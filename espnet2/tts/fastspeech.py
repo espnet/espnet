@@ -345,8 +345,8 @@ class FastSpeech(AbsTTS):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        duration: torch.Tensor,
-        duration_lengths: torch.Tensor,
+        durations: torch.Tensor,
+        durations_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -356,8 +356,8 @@ class FastSpeech(AbsTTS):
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            duration (LongTensor): Batch of padded duration (B, Tmax).
-            duration_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
+            durations (LongTensor): Batch of padded durations (B, Tmax).
+            durations_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
 
         Returns:
@@ -368,7 +368,7 @@ class FastSpeech(AbsTTS):
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         speech = speech[:, : speech_lengths.max()]  # for data-parallel
-        duration = duration[:, : duration_lengths.max()]  # for data-parallel
+        durations = durations[:, : durations_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
 
@@ -378,7 +378,7 @@ class FastSpeech(AbsTTS):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
 
-        ys, ds = speech, duration
+        ys, ds = speech, durations
         olens = speech_lengths
 
         # forward propagation

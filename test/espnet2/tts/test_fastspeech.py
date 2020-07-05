@@ -49,9 +49,9 @@ def test_fastspeech(
         text_lengths=torch.tensor([2, 1], dtype=torch.long),
         speech=torch.randn(2, 4 * reduction_factor, 5),
         speech_lengths=torch.tensor([4, 2], dtype=torch.long) * reduction_factor,
-        duration=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.long),
+        durations=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.long),
         # NOTE(kan-bayashi): +1 for eos
-        duration_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
+        durations_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
     )
     if spk_embed_dim is not None:
         inputs.update(spembs=torch.randn(2, spk_embed_dim))

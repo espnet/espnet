@@ -582,7 +582,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _scp=feats.scp
         _type=npy
         _fold_length="${speech_fold_length}"
-        _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape/speech_shape" | cut -f 2 -d ",")"
+        _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
         _opts+="--odim=${_odim} "
 
         if [ "${num_splits}" -gt 1 ]; then
@@ -597,9 +597,9 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                   --scps \
                       "${_train_dir}/text" \
                       "${_teacher_train_dir}/denorm/${_scp}" \
-                      "${_teacher_train_dir}/speech_shape/speech_shape" \
-                      "${_teacher_train_dir}/durations/durations" \
-                      "${_teacher_train_dir}/focus_rates/focus_rates" \
+                      "${_teacher_train_dir}/speech_shape" \
+                      "${_teacher_train_dir}/durations" \
+                      "${_teacher_train_dir}/focus_rates" \
                       "${tts_stats_dir}/text_shape.${token_type}" \
                   --num_splits "${num_splits}" \
                   --output_dir "${_split_dir}"
@@ -617,15 +617,15 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         else
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
             _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/denorm/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations/durations,duration,text_int "
+            _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
             _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
-            _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape/speech_shape "
+            _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape "
         fi
         _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
         _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/denorm/${_scp},speech,${_type} "
-        _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations/durations,duration,text_int "
+        _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
         _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
-        _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape/speech_shape "
+        _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape "
     fi
 
     # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
@@ -741,7 +741,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
-        mkdir -p "${_dir}"/{norm,denorm,speech_shape,wav}
+        mkdir -p "${_dir}"/{norm,denorm,wav}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
@@ -750,19 +750,19 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/speech_shape/speech_shape"
-        done | LC_ALL=C sort -k1 > "${_dir}/speech_shape/speech_shape"
+        done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
         for i in $(seq "${_nj}"); do
             mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
             rm -rf "${_logdir}/output.${i}"/wav
         done
-        if [ -e "${_logdir}/output.${i}/att_ws" ]; then
-            mkdir -p "${_dir}"/{att_ws,probs,durations,focus_rates}
+        if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
+            mkdir -p "${_dir}"/{att_ws,probs}
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/durations/durations"
-            done | LC_ALL=C sort -k1 > "${_dir}/durations/durations"
+            done | LC_ALL=C sort -k1 > "${_dir}/durations"
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-            done | LC_ALL=C sort -k1 > "${_dir}/focus_rates/focus_rates"
+            done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
             for i in $(seq "${_nj}"); do
                 mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
                 mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
