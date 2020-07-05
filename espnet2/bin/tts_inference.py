@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 import sys
 import time
+from typing import Dict
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -23,6 +24,7 @@ from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
@@ -30,6 +32,28 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+
+
+def check_use_speech_in_inference(tts: AbsTTS, decode_config: Dict) -> bool:
+    """Check whether to require speech in inference.
+
+    Args:
+        tts (AbsTTS): TTS model instance.
+        decode_config (Dict): Decoding config dictionary.
+
+    Returns:
+        bool: True if speech is required else False.
+
+    """
+    inferece_options_required_speech = ["use_teacher_forcing"]
+    tts_options_required_speech = ["use_gst"]
+    for option in inferece_options_required_speech:
+        if decode_config.get(option, False):
+            return True
+    for option in tts_options_required_speech:
+        if tts.get(option, False):
+            return True
+    return False
 
 
 @torch.no_grad()
@@ -83,7 +107,28 @@ def inference(
     logging.info(f"Normalization:\n{normalize}")
     logging.info(f"TTS:\n{tts}")
 
-    # 3. Build data-iterator
+    # 3. Build decoding config
+    decode_config = {
+        "threshold": threshold,
+        "maxlenratio": maxlenratio,
+        "minlenratio": minlenratio,
+        "use_teacher_forcing": use_teacher_forcing,
+    }
+    if isinstance(tts, Tacotron2):
+        decode_config.update(
+            {
+                "use_att_constraint": use_att_constraint,
+                "forward_window": forward_window,
+                "backward_window": backward_window,
+            }
+        )
+    use_speech = check_use_speech_in_inference(tts, decode_config)
+
+    # 4. Build data-iterator
+    if not use_speech:
+        data_path_and_name_and_type = list(
+            filter(lambda x: x[1] != "speech", data_path_and_name_and_type)
+        )
     loader = TTSTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
@@ -96,7 +141,7 @@ def inference(
         inference=True,
     )
 
-    # 4. Build converter from spectrogram to waveform
+    # 5. Build converter from spectrogram to waveform
     if feats_extract is not None:
         vocoder_conf.update(feats_extract.get_parameters())
     if "n_fft" in vocoder_conf and "n_shift" in vocoder_conf and "fs" in vocoder_conf:
@@ -106,7 +151,7 @@ def inference(
         spc2wav = None
         logging.info("Vocoder is not used because vocoder_conf is not sufficient")
 
-    # 5. Start for-loop
+    # 6. Start for-loop
     output_dir = Path(output_dir)
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
@@ -124,13 +169,13 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = to_device(batch, device)
 
-            # Extract features for teacher forcing or GST
-            _speech = {
-                k.replace("speech", "input"): v
-                for k, v in batch.items()
-                if k.startswith("speech")
-            }
-            if feats_extract is not None and len(_speech) != 0:
+            # Extract features if speech is needed
+            if use_speech and feats_extract is not None:
+                _speech = {
+                    k.replace("speech", "input"): v
+                    for k, v in batch.items()
+                    if k.startswith("speech")
+                }
                 speech, speech_lengths = feats_extract(**_speech)
                 batch.update(speech=speech, speech_lengths=speech_lengths)
 
@@ -139,22 +184,7 @@ def inference(
             # because inference() requires 1-seq, not mini-batch.
             _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             start_time = time.perf_counter()
-
-            _decode_conf = {
-                "threshold": threshold,
-                "maxlenratio": maxlenratio,
-                "minlenratio": minlenratio,
-                "use_teacher_forcing": use_teacher_forcing,
-            }
-            if isinstance(tts, Tacotron2):
-                _decode_conf.update(
-                    {
-                        "use_att_constraint": use_att_constraint,
-                        "forward_window": forward_window,
-                        "backward_window": backward_window,
-                    }
-                )
-            outs, probs, att_ws = tts.inference(**_data, **_decode_conf)
+            outs, probs, att_ws = tts.inference(**_data, **decode_config)
             insize = next(iter(_data.values())).size(0) + 1
             logging.info(
                 "inference speed = {:.1f} frames / sec.".format(

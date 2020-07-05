@@ -636,24 +636,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _opts+="--vocoder_conf fmax=${fmax} "
     fi
 
-    # If we use teacher forcing or GST embedding in inference,
-    # it is necessary to pass both speech and text
-    # TODO(kan-bayashi): Need to check train_args and decode_args
-    _use_speech=false
-    _use_teacher_forcing=false
-    _use_gst=false
-    if [ -n "${train_config}" ]; then
-        _use_gst=$(pyscripts/utils/get_yaml.py \
-            "${train_config}" tts_conf.use_gst)
-    fi
-    if [ -n "${decode_config}" ]; then
-        _use_teacher_forcing=$(pyscripts/utils/get_yaml.py \
-            "${decode_config}" use_teacher_forcing)
-    fi
-    if [ "${_use_teacher_forcing,,}" = "true" ] || [ "${_use_gst,,}" = "true" ]; then
-        _use_speech=true
-    fi
-
     for dset in ${test_sets}; do
         _data="${data_feats}/${dset}"
         _dir="${tts_exp}/${decode_tag}_${dset}"
@@ -673,29 +655,22 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # 2. Check extra options
-        # NOTE(kan-bayashi): Using opts causes duplicated option errors
-        _ex_opts=
-        if "${_use_speech}"; then
-            _ex_opts+="--allow_variable_data_keys true "
-            _ex_opts+="--data_path_and_name_and_type ${_data}/${_scp},speech,${_type} "
-        fi
-
-        # 3. Submit decoding jobs
+        # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
         # shellcheck disable=SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
             python3 -m espnet2.bin.tts_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/text,text,text" \
+                --data_path_and_name_and_type ${_data}/${_scp},speech,${_type} \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
                 --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
-                ${_opts} ${_ex_opts} ${decode_args}
+                ${_opts} ${decode_args}
 
-        # 4. Concatenates the output files from each jobs
+        # 3. Concatenates the output files from each jobs
         mkdir -p "${_dir}"/{norm,denorm,wav,att_ws,probs}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"

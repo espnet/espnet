@@ -200,7 +200,7 @@ class TTSTask(AbsTask):
             retval = ("spembs", "spcs")
         else:
             # Inference mode
-            retval = ("spembs",)
+            retval = ("spembs", "speech")
         return retval
 
     @classmethod
