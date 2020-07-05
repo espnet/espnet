@@ -94,16 +94,14 @@ def inference(
             batch = to_device(batch, device)
             # b. Forward Enhancement Frontend
             waves, _, _ = enh_model.frontend.forward_rawwav(**batch)
-            assert waves.shape[0] == batch_size, waves.shape[0]
+            assert len(waves[0]) == batch_size, len(waves[0])
 
         # FIXME(Chenda): will be incorrect when
         #  batch size is not 1 or multi-channel case
         if normalize_output_wav:
-            waves = [(w / torch.max(torch.abs(w))).T.cpu().numpy() for w in waves]
-            print('normalized wavs max,', waves[0].max(),waves[0].min())
+            waves = [(w / w.max(dim=1, keepdim=True)[0]).T.cpu().numpy() for w in waves] # list[(sample,batch)]
         else:
             waves = [w.T.cpu().numpy() for w in waves]
-            print('not normalized wavs max,', waves[0].max(),waves[0].min())
         for (i, w) in enumerate(waves):
             writers[i][keys[0]] = fs, w
 

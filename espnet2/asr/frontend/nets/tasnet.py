@@ -119,10 +119,11 @@ class TasNet(nn.Module):
         # T changed after conv1d in encoder, fix it here
         T_origin = mixture.size(-1)
         T_conv = est_source.size(-1)
-        est_source = F.pad(est_source, (0, T_origin - T_conv))
+        est_source = F.pad(est_source, (0, T_origin - T_conv)) # M,C,T
+
+        est_source = [es for es in est_source.transpose(0,1)] # List(M,T)
         masks = OrderedDict(
-            zip(["spk{}".format(i + 1) for i in range(self.num_spk)],
-                [None for __ in range(self.num_spk)], )
+            zip(["spk{}".format(i + 1) for i in range(self.num_spk)], est_source)
         )
         return est_source, ilens, masks
 

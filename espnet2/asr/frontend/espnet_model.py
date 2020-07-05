@@ -255,9 +255,9 @@ class ESPnetFrontendModel(AbsESPnetModel):
             speech_pre, speech_lengths, *__ = self.frontend.forward_rawwav(
                 speech_mix, speech_lengths
             )
-            assert speech_pre.dim() == 3, speech_pre.dim()
+            # speech_pre: list[(batch, sample)]
+            assert speech_pre[0].dim() == 2, speech_pre[0].dim()
             speech_ref = torch.unbind(speech_ref, dim=1)
-            speech_pre = torch.unbind(speech_pre, dim=1)
 
             # compute si-snr loss
             si_snr_loss, perm = self._permutation_loss(
@@ -389,7 +389,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return loss.mean(), perm
 
     def collect_feats(
-            self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
+        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
     ) -> Dict[str, torch.Tensor]:
         # for data-parallel
         speech_mix = speech_mix[:, : speech_mix_lengths.max()]
