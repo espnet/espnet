@@ -55,7 +55,7 @@ def check_use_speech_in_inference(tts: AbsTTS, decode_config: Dict) -> bool:
         if decode_config.get(option, False):
             return True
     for option in tts_options_required_speech:
-        if tts.get(option, False):
+        if getattr(tts, option, False):
             return True
     return False
 
@@ -200,7 +200,7 @@ def inference(
             # Extract features if speech is needed
             if use_speech:
                 if feats_extract is not None:
-                    _speech = {k: v for k, v in batch.items() if k.startswith("speech")}
+                    _speech = (v for k, v in batch.items() if k.startswith("speech"))
                     speech, speech_lengths = normalize(*feats_extract(*_speech))
                 else:
                     speech, speech_lengths = normalize(*_speech)
