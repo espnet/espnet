@@ -15,8 +15,8 @@ else
 fi
 
 train_set=tr_no_dev
-dev_set=dev
-eval_set=eval1
+valid_set=dev
+test_sets="dev eval1"
 
 asr_config=conf/train_asr_rnn.yaml
 decode_config=conf/decode_rnn.yaml
@@ -30,7 +30,7 @@ lm_config=conf/train_lm.yaml
     --decode_config "${decode_config}" \
     --lm_config "${lm_config}" \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_set}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
     ${opts} "$@"

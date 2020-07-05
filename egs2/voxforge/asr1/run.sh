@@ -7,8 +7,8 @@ set -o pipefail
 
 lang=it # de, en, es, fr, it, nl, pt, ru
 train_set="tr_${lang}"
-dev_set="dt_${lang}"
-eval_sets="et_${lang}"
+valid_set="dt_${lang}"
+test_sets="dt_${lang} et_${lang}"
 
 asr_config=conf/train_asr_rnn.yaml
 decode_config=conf/decode_asr.yaml
@@ -26,6 +26,6 @@ decode_config=conf/decode_asr.yaml
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_sets}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" "$@"

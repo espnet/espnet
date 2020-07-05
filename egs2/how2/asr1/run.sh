@@ -5,8 +5,8 @@ set -u
 set -o pipefail
 
 train_set="train_reduced"
-train_dev="dev5"
-eval_set="test_set_iwslt2019"
+valid_set="dev5"
+test_sets="dev5 test_set_iwslt2019"
 
 asr_config=conf/train_asr_rnn.yaml
 decode_config=conf/decode.yaml
@@ -31,7 +31,7 @@ use_lm=false
     --use_lm ${use_lm}                          \
     --asr_config "${asr_config}"                \
     --decode_config "${decode_config}"          \
-    --dev_set "${train_dev}"                    \
     --train_set "${train_set}"                  \
-    --eval_sets "${eval_set}"                   \
+    --valid_set "${valid_set}"                  \
+    --test_sets "${test_sets}"                  \
     --srctexts "data/${train_set}/text" "$@"
