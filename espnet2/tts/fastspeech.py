@@ -403,7 +403,11 @@ class FastSpeech(AbsTTS):
             )
         loss = l1_loss + duration_loss
 
-        stats = dict(l1_loss=l1_loss.item(), loss=loss.item(),)
+        stats = dict(
+            l1_loss=l1_loss.item(),
+            duration_loss=duration_loss.item(),
+            loss=loss.item(),
+        )
 
         # report extra information
         if self.use_scaled_pos_enc:
