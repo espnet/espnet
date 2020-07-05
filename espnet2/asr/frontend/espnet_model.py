@@ -75,6 +75,16 @@ class ESPnetFrontendModel(AbsESPnetModel):
                     if mask_label == "NPSM"
                     else mask.clamp(min=-1, max=1)
                 )
+            elif mask_type == "PSM^2":
+                # This is for training beamforming masks
+                phase_r = r / (abs(r) + eps)
+                phase_mix = mix_spec / (abs(mix_spec) + eps)
+                # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
+                cos_theta = (
+                    phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
+                )
+                mask = (abs(r).pow(2) / (abs(mix_spec).pow(2) + eps)) * cos_theta
+                mask = mask.clamp(min=-1, max=1)
             elif mask_type == "ICM":
                 mask = r / (mix_spec + eps)
                 mask.real = mask.real.clamp(min=-1, max=1)
@@ -251,7 +261,10 @@ class ESPnetFrontendModel(AbsESPnetModel):
             )
         else:
             # TODO:Jing, should find better way to configure for the choice of tf loss and time-only loss.
-            assert speech_ref.dim() == 3, speech_ref.dim()
+            if speech_ref.dim() == 4:
+                # For si_snr loss of multi-channel input, only select one channel as the reference
+                speech_ref = speech_ref[..., self.ref_channel]
+
             speech_pre, speech_lengths, *__ = self.frontend.forward_rawwav(
                 speech_mix, speech_lengths
             )
