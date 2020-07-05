@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -236,7 +234,7 @@ class StyleTokenLayer(torch.nn.Module):
         batch_size = ref_embs.size(0)
         # (num_tokens, token_dim) -> (batch_size, num_tokens, token_dim)
         gst_embs = torch.tanh(self.gst_embs).unsqueeze(0).expand(batch_size, -1, -1)
-        # NOTE(kan-bayashi): Projection is needed?
+        # NOTE(kan-bayashi): Projection is needed? Shoule we apply Tanh?
         ref_embs = self.projection(ref_embs).unsqueeze(1)
         style_embs = self.mha(ref_embs, gst_embs, gst_embs, None)
 
