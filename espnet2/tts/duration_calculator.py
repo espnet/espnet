@@ -36,10 +36,10 @@ class DurationCalculator(torch.nn.Module):
 
     @staticmethod
     def _calculate_focus_rete(att_ws):
-        if att_ws.ndim == 2:
+        if len(att_ws.shape) == 2:
             # tacotron 2 case -> (L, T)
             return att_ws.max(dim=-1)[0].mean()
-        elif att_ws.shape == 4:
+        elif len(att_ws.shape) == 4:
             # transformer case -> (#layers, #heads, L, T)
             return att_ws.max(dim=-1)[0].mean(dim=-1).max()
         else:
@@ -47,7 +47,7 @@ class DurationCalculator(torch.nn.Module):
 
     @staticmethod
     def _calculate_duration(att_ws):
-        if att_ws.ndim == 2:
+        if len(att_ws.shape) == 2:
             # tacotron 2 case -> (L, T)
             pass
         elif len(att_ws.shape) == 4:
