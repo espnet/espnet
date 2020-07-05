@@ -79,8 +79,8 @@ griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
-dev_set=         # Name of development set.
-eval_sets=       # Names of evaluation sets. Multiple items can be specified.
+valid_set=       # Name of validation set used for monitoring/tuning network training
+test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=        # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
 token_type=phn   # Transcription type.
@@ -90,7 +90,7 @@ text_fold_length=150   # fold_length for text data
 speech_fold_length=800 # fold_length for speech data
 
 help_message=$(cat << EOF
-Usage: $0 --train-set "<train_set_name>" --dev-set "<dev_set_name>" --eval_sets "<eval_set_names>" --srctexts "<srctexts>"
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
 
 Options:
     # General configuration
@@ -140,9 +140,9 @@ Options:
 
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set  # Name of training set (required).
-    --dev_set    # Name of development set (required).
-    --eval_sets  # Names of evaluation sets (required).
-                 # Note that multiple items can be specified.
+    --valid_set  # Name of validation set used for monitoring/tuning network training (required).
+    --test_sets  # Names of test sets (required).
+                 # Note that multiple items (e.g., both dev and eval sets) can be specified.
     --srctexts   # Texts to create token list (required).
                  # Note that multiple items can be specified.
     --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
@@ -235,7 +235,7 @@ tts_exp="${expdir}/tts_${tag}"
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
+    log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
     local/data.sh ${local_data_opts}
 fi
@@ -253,8 +253,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ "${feats_type}" = raw ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                 _suf="/org"
             else
                 _suf=""
@@ -276,8 +276,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
 
         # Generate the fbank features; by default 80-dimensional fbanks on each frame
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${dev_set}" ]; then
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                 _suf="/org"
             else
                 _suf=""
@@ -323,8 +323,8 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
-    # NOTE(kamo): Not applying to eval_sets to keep original data
-    for dset in "${train_set}" "${dev_set}"; do
+    # NOTE(kamo): Not applying to test_sets to keep original data
+    for dset in "${train_set}" "${valid_set}"; do
         # Copy data dir
         utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
@@ -408,8 +408,8 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     _train_dir="${data_feats}/${train_set}"
-    _dev_dir="${data_feats}/${dev_set}"
-    log "Stage 5: TTS collect stats: train_set=${_train_dir}, dev_set=${_dev_dir}"
+    _valid_dir="${data_feats}/${valid_set}"
+    log "Stage 5: TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
     _opts=
     if [ -n "${train_config}" ]; then
@@ -443,7 +443,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     mkdir -p "${_logdir}"
 
     # Get the minimum number among ${nj} and the number lines of input files
-    _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_dev_dir}/${_scp} wc -l)")
+    _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_valid_dir}/${_scp} wc -l)")
 
     key_file="${_train_dir}/${_scp}"
     split_scps=""
@@ -453,10 +453,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
-    key_file="${_dev_dir}/${_scp}"
+    key_file="${_valid_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
-        split_scps+=" ${_logdir}/dev.${n}.scp"
+        split_scps+=" ${_logdir}/valid.${n}.scp"
     done
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
@@ -476,10 +476,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --normalize none \
             --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
             --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/text,text,text" \
-            --valid_data_path_and_name_and_type "${_dev_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
+            --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},speech,${_type}" \
             --train_shape_file "${_logdir}/train.JOB.scp" \
-            --valid_shape_file "${_logdir}/dev.JOB.scp" \
+            --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${train_args}
 
@@ -503,8 +503,8 @@ fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     _train_dir="${data_feats}/${train_set}"
-    _dev_dir="${data_feats}/${dev_set}"
-    log "Stage 6: TTS Training: train_set=${_train_dir}, dev_set=${_dev_dir}"
+    _valid_dir="${data_feats}/${valid_set}"
+    log "Stage 6: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
     _opts=
     if [ -n "${train_config}" ]; then
@@ -571,14 +571,14 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
             _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
         fi
-        _opts+="--valid_data_path_and_name_and_type ${_dev_dir}/text,text,text "
-        _opts+="--valid_data_path_and_name_and_type ${_dev_dir}/${_scp},speech,${_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
         _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
         _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
     else
         # CASE 2: Knowledge distillation training
         _teacher_train_dir="${teacher_dumpdir}/${train_set}"
-        _teacher_dev_dir="${teacher_dumpdir}/${dev_set}"
+        _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
         _scp=feats.scp
         _type=npy
         _fold_length="${speech_fold_length}"
@@ -621,11 +621,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
             _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape/speech_shape "
         fi
-        _opts+="--valid_data_path_and_name_and_type ${_dev_dir}/text,text,text "
-        _opts+="--valid_data_path_and_name_and_type ${_teacher_dev_dir}/denorm/${_scp},speech,${_type} "
-        _opts+="--valid_data_path_and_name_and_type ${_teacher_dev_dir}/durations/durations,duration,text_int "
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
+        _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/denorm/${_scp},speech,${_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations/durations,duration,text_int "
         _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
-        _opts+="--valid_shape_file ${_teacher_dev_dir}/speech_shape/speech_shape "
+        _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape/speech_shape "
     fi
 
     # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
@@ -697,29 +697,20 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _opts+="--vocoder_conf fmax=${fmax} "
     fi
 
-    # If we use teacher forcing or GST embedding in inference,
-    # it is necessary to pass both speech and text
-    # TODO(kan-bayashi): Need to check train_args and decode_args
-    _use_speech=false
-    _use_teacher_forcing=false
-    _use_gst=false
-    if [ -n "${train_config}" ]; then
-        _use_gst=$(pyscripts/utils/get_yaml.py \
-            "${train_config}" tts_conf.use_gst)
-    fi
-    if [ -n "${decode_config}" ]; then
-        _use_teacher_forcing=$(pyscripts/utils/get_yaml.py \
-            "${decode_config}" use_teacher_forcing)
-    fi
-    if [ "${_use_teacher_forcing,,}" = "true" ] || [ "${_use_gst,,}" = "true" ]; then
-        _use_speech=true
-    fi
-
-    for dset in "${dev_set}" ${eval_sets}; do
+    for dset in ${test_sets}; do
         _data="${data_feats}/${dset}"
+        _speech_data="${_data}"
         _dir="${tts_exp}/${decode_tag}/${dset}"
         _logdir="${_dir}/log"
         mkdir -p "${_logdir}"
+
+        # NOTE(kan-bayashi): Overwrite speech arguments if teacher dumpdir is provided
+        if [ -z "${teacher_dumpdir}" ]; then
+            # TODO(kan-bayashi): Make this part more flexible
+            _speech_data="${teacher_dumpdir}/${dset}/denorm"
+            _scp=feats.scp
+            _type=npy
+        fi
 
         # 0. Copy feats_type
         cp "${_data}/feats_type" "${_dir}/feats_type"
@@ -734,34 +725,22 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # 2. Check extra options
-        # NOTE(kan-bayashi): Using opts causes duplicated option errors
-        _ex_opts=
-        if "${_use_speech}"; then
-            _ex_opts+="--allow_variable_data_keys true "
-            if [ -z "${teacher_dumpdir}" ]; then
-                _ex_opts+="--data_path_and_name_and_type ${_data}/${_scp},speech,${_type} "
-            else
-                _teacher_data=${teacher_dumpdir}/${dset}
-                _ex_opts+="--data_path_and_name_and_type ${_teacher_data}/norm/feats.scp,speech,npy "
-            fi
-        fi
-
-        # 3. Submit decoding jobs
+        # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
         # shellcheck disable=SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
             python3 -m espnet2.bin.tts_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/text,text,text" \
+                --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
                 --output_dir "${_logdir}"/output.JOB \
                 --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
-                ${_opts} ${_ex_opts} ${decode_args}
+                ${_opts} ${decode_args}
 
-        # 4. Concatenates the output files from each jobs
+        # 3. Concatenates the output files from each jobs
         mkdir -p "${_dir}"/{norm,denorm,speech_shape,wav}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
