@@ -705,7 +705,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         mkdir -p "${_logdir}"
 
         # NOTE(kan-bayashi): Overwrite speech arguments if teacher dumpdir is provided
-        if [ -z "${teacher_dumpdir}" ]; then
+        if [ -n "${teacher_dumpdir}" ]; then
             # TODO(kan-bayashi): Make this part more flexible
             _speech_data="${teacher_dumpdir}/${dset}/denorm"
             _scp=feats.scp
