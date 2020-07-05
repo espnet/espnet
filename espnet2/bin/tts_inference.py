@@ -4,6 +4,7 @@
 
 import logging
 from pathlib import Path
+import shutil
 import sys
 import time
 from typing import Optional
@@ -26,6 +27,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.duration_calculator import DurationCalculator
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -111,12 +113,16 @@ def inference(
         logging.info("Vocoder is not used because vocoder_conf is not sufficient")
 
     # 5. Get decoding configs
-    _decode_conf = {
-        "threshold": threshold,
-        "maxlenratio": maxlenratio,
-        "minlenratio": minlenratio,
-        "use_teacher_forcing": use_teacher_forcing,
-    }
+    _decode_conf = {}
+    if isinstance(tts, (Tacotron2, Transformer)):
+        _decode_conf.update(
+            {
+                "threshold": threshold,
+                "maxlenratio": maxlenratio,
+                "minlenratio": minlenratio,
+                "use_teacher_forcing": use_teacher_forcing,
+            }
+        )
     if isinstance(tts, Tacotron2):
         _decode_conf.update(
             {
@@ -257,8 +263,10 @@ def inference(
 
     # remove duration related files if attention is not provided
     if att_ws is None:
-        (output_dir / "duraions").rmdir()
-        (output_dir / "focus_rates").rmdir()
+        shutil.rmtree(output_dir / "att_ws")
+        shutil.rmtree(output_dir / "probs")
+        shutil.rmtree(output_dir / "durations")
+        shutil.rmtree(output_dir / "focus_rates")
 
 
 def get_parser():
