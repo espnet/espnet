@@ -141,6 +141,8 @@ class ReferenceEncoder(torch.nn.Module):
                     kernel_size=conv_kernel_size,
                     stride=conv_stride,
                     padding=padding,
+                    # Do not use bias due to the following batch norm
+                    bias=False,
                 ),
                 torch.nn.BatchNorm2d(conv_out_chans),
                 torch.nn.ReLU(inplace=True),
@@ -176,9 +178,7 @@ class ReferenceEncoder(torch.nn.Module):
         hs = self.convs(xs).transpose(1, 2)  # (B, Lmax', conv_out_chans, idim')
         # NOTE(kan-bayashi): We need to care the length?
         time_length = hs.size(1)
-        hs = (
-            hs.transpose(1, 2).contiguous().view(batch_size, time_length, -1)
-        )  # (B, Lmax', gru_units)
+        hs = hs.contiguous().view(batch_size, time_length, -1)  # (B, Lmax', gru_units)
         self.gru.flatten_parameters()
         _, ref_embs = self.gru(hs)  # (gru_layers, batch_size, gru_units)
         ref_embs = ref_embs[-1]  # (batch_size, gru_units)
@@ -219,6 +219,9 @@ class StyleTokenLayer(torch.nn.Module):
         gst_embs = torch.randn(gst_tokens, gst_token_dim)
         self.register_parameter("gst_embs", torch.nn.Parameter(gst_embs))
         self.projection = torch.nn.Linear(ref_embed_dim, gst_token_dim)
+        # NOTE(kan-bayashi): Our MHA assume the same input dimension for key, queue,
+        #   value and does not change the dimension. So we use 256 dim for gst token
+        #   instead of 256 // 4 dim.
         self.mha = MultiHeadedAttention(gst_heads, gst_token_dim, dropout_rate)
 
     def forward(self, ref_embs: torch.Tensor) -> torch.Tensor:
