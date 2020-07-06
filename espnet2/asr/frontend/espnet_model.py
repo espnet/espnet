@@ -94,7 +94,7 @@ class ESPnetFrontendModel(AbsESPnetModel):
         return mask_label
 
     def forward(
-            self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor = 0, **kwargs
+        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor = 0, **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -126,8 +126,11 @@ class ESPnetFrontendModel(AbsESPnetModel):
         dereverb_speech_ref = kwargs.get("dereverb_ref", None)
 
         batch_size = speech_mix.shape[0]
-        speech_lengths = speech_mix_lengths if speech_mix_lengths else torch.ones(batch_size).int() * speech_mix.shape[
-            1]
+        speech_lengths = (
+            speech_mix_lengths
+            if speech_mix_lengths
+            else torch.ones(batch_size).int() * speech_mix.shape[1]
+        )
         assert speech_lengths.dim() == 1, speech_lengths.shape
         # Check that batch_size is unified
         assert speech_mix.shape[0] == speech_ref.shape[0] == speech_lengths.shape[0], (
@@ -366,7 +369,9 @@ class ESPnetFrontendModel(AbsESPnetModel):
         e_noise = s_estimate - pair_wise_proj  # [B, T]
 
         # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
-        pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (torch.sum(e_noise ** 2, dim=1) + eps)
+        pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (
+            torch.sum(e_noise ** 2, dim=1) + eps
+        )
         # print('pair_si_snr',pair_wise_si_snr[0,:])
         pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + eps)  # [B]
         # print(pair_wise_si_snr)
