@@ -99,7 +99,9 @@ def inference(
         # FIXME(Chenda): will be incorrect when
         #  batch size is not 1 or multi-channel case
         if normalize_output_wav:
-            waves = [(w / w.max(dim=1, keepdim=True)[0]).T.cpu().numpy() for w in waves] # list[(sample,batch)]
+            waves = [
+                (w / w.max(dim=1, keepdim=True)[0]).T.cpu().numpy() for w in waves
+            ]  # list[(sample,batch)]
         else:
             waves = [w.T.cpu().numpy() for w in waves]
         for (i, w) in enumerate(waves):
@@ -161,7 +163,7 @@ def get_parser():
         "--normalize_output_wav",
         type=str2bool,
         default=False,
-        help="Weather to normalize the predicted wav to [-1~1]"
+        help="Weather to normalize the predicted wav to [-1~1]",
     )
 
     group = parser.add_argument_group("The model configuration related")

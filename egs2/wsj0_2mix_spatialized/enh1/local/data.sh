@@ -27,7 +27,7 @@ sample_rate=8k
 
 local/wsj0_2mix_data.sh --min_or_max ${min_or_max} --sample_rate ${sample_rate}
 
-wsj_full_wav=$PWD/data/wsj0/wsj0_wav
+# wsj_full_wav=$PWD/data/wsj0/wsj0_wav
 wsj_2mix_wav=$PWD/data/wsj0_mix
 wsj_2mix_spatialized_wav=$PWD/data/wsj0_mix_spatialized
 wsj_2mix_spatialized_scripts=$PWD/data/wsj0_mix_spatialized/scripts
