@@ -136,8 +136,9 @@ class EncoderLayer(nn.Module):
         residual = x
         if self.normalize_before:
             x = self.norm4(x)
+
         if self.macaron_style:
-            x = residual + 0.5 * self.dropout(self.feed_forward(x))
+            x = residual + 0.5 * self.dropout(self.feed_forward2(x))
         else:
             x = residual + self.dropout(self.feed_forward(x))
         if not self.normalize_before:

@@ -22,43 +22,38 @@ class ConvolutionBlock(nn.Module):
         self,
         channels,
         kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        bias=False,
+        bias=True,
         activation=nn.ReLU(),
     ):
         """Construct an ConvolutionBlock object."""
         super(ConvolutionBlock, self).__init__()
-        self.pad_left = nn.ConstantPad1d((kernel_size - 1, 0), 0)
+        # kernerl_size should be a odd number for 'SAME' padding
+        assert (kernel_size - 1) % 2 == 0
+
         self.pointwise_cov1 = nn.Conv1d(
             channels,
             2 * channels,
             kernel_size=1,
             stride=1,
             padding=0,
-            dilation=1,
             bias=bias,
         )
         self.depthwise_conv = nn.Conv1d(
             channels,
             channels,
             kernel_size,
-            stride=stride,
-            padding=padding,
-            dilation=dilation,
+            stride=1,
+            padding=(kernel_size - 1) // 2,
             groups=channels,
             bias=bias,
         )
-        self.norm = nn.BatchNorm1d(channels, eps=1e-3, momentum=0.1)
+        self.norm = nn.BatchNorm1d(channels)
         self.pointwise_cov2 = nn.Conv1d(
             channels,
             channels,
             kernel_size=1,
             stride=1,
             padding=0,
-            dilation=1,
-            groups=1,
             bias=bias,
         )
         self.act = activation
@@ -70,8 +65,7 @@ class ConvolutionBlock(nn.Module):
         :return torch.Tensor: convoluted `value` (batch, time, d_model)
         """
         # exchange the temporal dimension and the feature dimension
-        # pad the input from (batch, len, dim) to (batch, dim, len+(k-1))
-        x = self.pad_left(x.transpose(1, 2))
+        x = x.transpose(1, 2)
 
         # GLU mechanism
         x = self.pointwise_cov1(x)  # (batch, 2*channel, dim)

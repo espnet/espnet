@@ -104,8 +104,8 @@ class RelPositionMultiHeadedAttention(nn.Module):
         # as described in https://arxiv.org/abs/1901.02860 Section 3.3
         self.pos_bias_u = nn.Parameter(torch.Tensor(self.h, self.d_k))
         self.pos_bias_v = nn.Parameter(torch.Tensor(self.h, self.d_k))
-        torch.nn.init.kaiming_uniform_(self.pos_bias_u, a=math.sqrt(5))
-        torch.nn.init.kaiming_uniform_(self.pos_bias_v, a=math.sqrt(5))
+        torch.nn.init.xavier_uniform_(self.pos_bias_u)
+        torch.nn.init.xavier_uniform_(self.pos_bias_v)
 
         self.linear_out = nn.Linear(n_feat, n_feat)
         self.attn = None
