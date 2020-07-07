@@ -156,7 +156,9 @@ def tokenize(
     total_count = sum(counter.values())
     invocab_count = 0
     vocabulary_size = len(words_and_counts) if vocabulary_size <= 0 else vocabulary_size
-    positive_idx_vocabulary_size = min(vocabulary_size, len(words_and_counts)) - len(tail_words_ids)
+    positive_idx_vocabulary_size = min(vocabulary_size, len(words_and_counts)) - len(
+        tail_words_ids
+    )
     for nvocab, (w, c) in enumerate(words_and_counts, 1):
         if c is not None:
             invocab_count += c
