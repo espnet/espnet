@@ -226,7 +226,7 @@ class StyleTokenLayer(torch.nn.Module):
             v_dim=gst_token_dim // gst_heads,
             n_head=gst_heads,
             n_feat=gst_token_dim,
-            dropout_rate=dropout_rate
+            dropout_rate=dropout_rate,
         )
 
     def forward(self, ref_embs: torch.Tensor) -> torch.Tensor:
