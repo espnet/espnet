@@ -11,7 +11,7 @@ import torch
 
 from espnet.nets.pytorch_backend.conformer.activation import get_activation
 from espnet.nets.pytorch_backend.conformer.attention import (
-    MultiHeadedAttention,
+    MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionBlock
