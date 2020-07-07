@@ -188,15 +188,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --resume ${lm_resume} \
         --dict ${dict}
     
-    echo "stage 4: Ngram Preparation"
-    lmdatadir=data/local/lm_train
-    [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/train/text | cut -f 2- -d" " \
-        > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " \
-        > ${lmdatadir}/valid.txt
-    
-    lmplz --discount_fallback -o ${n_gram} <${ngramexpdir}/train.txt > ${ngramexpdir}/${n_gram}gram.arpa
+    lmplz --discount_fallback -o ${n_gram} <${lmdatadir}/train.txt > ${ngramexpdir}/${n_gram}gram.arpa
     build_binary -s ${ngramexpdir}/${n_gram}gram.arpa ${ngramexpdir}/${n_gram}gram.bin
 fi
 

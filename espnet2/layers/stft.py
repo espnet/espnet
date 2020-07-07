@@ -1,6 +1,5 @@
 from typing import Optional
 from typing import Tuple
-from typing import Union
 
 import torch
 from typeguard import check_argument_types
@@ -13,8 +12,9 @@ class Stft(torch.nn.Module, InversibleInterface):
     def __init__(
         self,
         n_fft: int = 512,
-        win_length: Union[int, None] = 512,
+        win_length: int = None,
         hop_length: int = 128,
+        window: Optional[str] = "hann",
         center: bool = True,
         pad_mode: str = "reflect",
         normalized: bool = False,
@@ -32,6 +32,9 @@ class Stft(torch.nn.Module, InversibleInterface):
         self.pad_mode = pad_mode
         self.normalized = normalized
         self.onesided = onesided
+        if window is not None and not hasattr(torch, f"{window}_window"):
+            raise ValueError(f"{window} window is not implemented")
+        self.window = window
 
     def extra_repr(self):
         return (
@@ -64,14 +67,27 @@ class Stft(torch.nn.Module, InversibleInterface):
         else:
             multi_channel = False
 
+        # NOTE(kamo):
+        #   The default behaviour of torch.stft is compatible with librosa.stft
+        #   about padding and scaling.
+        #   Note that it's different from scipy.signal.stft
+
         # output: (Batch, Freq, Frames, 2=real_imag)
         # or (Batch, Channel, Freq, Frames, 2=real_imag)
+        if self.window is not None:
+            window_func = getattr(torch, f"{self.window}_window")
+            window = window_func(
+                self.win_length, dtype=input.dtype, device=input.device
+            )
+        else:
+            window = None
         output = torch.stft(
             input,
             n_fft=self.n_fft,
             win_length=self.win_length,
             hop_length=self.hop_length,
             center=self.center,
+            window=window,
             pad_mode=self.pad_mode,
             normalized=self.normalized,
             onesided=self.onesided,

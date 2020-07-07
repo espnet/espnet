@@ -1,6 +1,7 @@
 from argparse import Namespace
 
 import numpy
+import os
 import pytest
 import torch
 
@@ -9,6 +10,7 @@ from espnet.nets.batch_beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.scorers.ngram import NgramFullScorer
 
 from test.test_beam_search import prepare
 from test.test_beam_search import transformer_args
@@ -65,9 +67,10 @@ transformer_lm = Namespace(
 
 
 @pytest.mark.parametrize(
-    "model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, bonus, device, dtype",
+    "model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, ngram_weight, \
+        bonus, device, dtype",
     [
-        (nn, args, ctc, lm_nn, lm_args, lm, bonus, device, dtype)
+        (nn, args, ctc, lm_nn, lm_args, lm, ngram, bonus, device, dtype)
         for device in ("cpu", "cuda")
         # (("rnn", rnn_args),)
         for nn, args in (("transformer", transformer_args),)
@@ -78,12 +81,22 @@ transformer_lm = Namespace(
             ("transformer", transformer_lm),
         )
         for lm in (0.0, 0.5)
+        for ngram in (0.0, 0.5)
         for bonus in (0.0, 0.1)
         for dtype in ("float32", "float64")  # TODO(karita): float16
     ],
 )
 def test_batch_beam_search_equal(
-    model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, bonus, device, dtype
+    model_class,
+    args,
+    ctc_weight,
+    lm_nn,
+    lm_args,
+    lm_weight,
+    ngram_weight,
+    bonus,
+    device,
+    dtype,
 ):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
@@ -104,6 +117,8 @@ def test_batch_beam_search_equal(
     char_list = train_args.char_list
     lm = dynamic_import_lm(lm_nn, backend="pytorch")(len(char_list), lm_args)
     lm.eval()
+    root = os.path.dirname(os.path.abspath(__file__))
+    ngram = NgramFullScorer(os.path.join(root, "beam_search_test.arpa"), args.char_list)
 
     # test previous beam search
     args = Namespace(
@@ -112,6 +127,7 @@ def test_batch_beam_search_equal(
         ctc_weight=ctc_weight,
         maxlenratio=0,
         lm_weight=lm_weight,
+        ngram_weight=ngram_weight,
         minlenratio=0,
         nbest=5,
     )
@@ -120,11 +136,14 @@ def test_batch_beam_search_equal(
     scorers = model.scorers()
     if lm_weight != 0:
         scorers["lm"] = lm
+    if ngram_weight != 0:
+        scorers["ngram"] = ngram
     scorers["length_bonus"] = LengthBonus(len(char_list))
     weights = dict(
         decoder=1.0 - ctc_weight,
         ctc=ctc_weight,
         lm=args.lm_weight,
+        ngram=args.ngram_weight,
         length_bonus=args.penalty,
     )
     model.to(device, dtype=dtype)

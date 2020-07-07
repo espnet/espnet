@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 train_set=train
-dev_set=dev
-eval_sets="test "
+valid_set=dev
+test_sets="dev test"
 
 asr_config=conf/train_asr_rnn.yaml
 decode_config=conf/decode_asr_rnn.yaml
@@ -30,7 +30,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --asr_config "${asr_config}"                       \
     --decode_config "${decode_config}"                 \
     --train_set "${train_set}"                         \
-    --dev_set "${dev_set}"                             \
-    --eval_sets "${eval_sets}"                         \
+    --valid_set "${valid_set}"                         \
+    --test_sets "${test_sets}"                         \
     --speed_perturb_factors "${speed_perturb_factors}" \
     --srctexts "data/${train_set}/text" "$@"

@@ -48,11 +48,6 @@ def test_load_num_sequence_text_invalid(tmp_path: Path):
         load_num_sequence_text(p)
 
     with p.open("w") as f:
-        f.write("abc\n")
-    with pytest.raises(RuntimeError):
-        load_num_sequence_text(p)
-
-    with p.open("w") as f:
         f.write("abc 1 2\n")
         f.write("abc 2 4\n")
     with pytest.raises(RuntimeError):

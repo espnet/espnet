@@ -1,6 +1,6 @@
 import torch
 
-from espnet2.utils.model_summary import model_summary
+from espnet2.torch_utils.model_summary import model_summary
 
 
 class Model(torch.nn.Module):

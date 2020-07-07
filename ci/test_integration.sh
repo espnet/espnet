@@ -63,8 +63,10 @@ cd ${cwd} || exit 1
 
 # test asr_mix recipe
 cd ./egs/mini_an4/asr_mix1 || exit 1
-echo "==== ASR Mix (backend=pytorch) ==="
-./run.sh
+echo "==== ASR Mix (backend=pytorch, model=rnn) ==="
+./run.sh --train-config conf/train_multispkr.yaml
+echo "==== ASR Mix (backend=pytorch, model=transformer) ==="
+./run.sh --stage 4 --train-config conf/train_multispkr_transformer.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1
@@ -127,7 +129,7 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
         python -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
-    for f in egs2/*/tts1/conf/train_*.yaml; do
+    for f in egs2/*/tts1/conf/train*.yaml; do
         python -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi

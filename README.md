@@ -56,11 +56,19 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **Transducer** based end-to-end ASR
   - Available: RNN-Transducer, Transformer-Transducer, mixed Transformer/RNN-Transducer
   - Also support: attention mechanism (RNN-decoder), pre-init w/ LM (RNN-decoder), VGG-Transformer (encoder)
+- CTC forced alignment
 
 ### TTS: Text-to-speech
 - Tacotron2 based end-to-end TTS
 - Transformer based end-to-end TTS
-- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
+- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS
+- Multi-speaker TTS with pretrained speaker embedding
+- Support phoneme-based TTS for En, Jp, and Zn
+- Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
+
+> To train the neural vocoder, please check the following repositories:
+> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
+> - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
 
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
@@ -402,6 +410,36 @@ Available pretrained vocoder models in the demo script are listed as follows:
 
 The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system. In VCC2020, the objective is intra/cross lingual nonparallel VC. A cascade method of ASR+TTS is developed.  
 You can download converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
+
+
+### CTC Forced Alignment demo
+
+<details><summary>expand</summary><div>
+
+You can align speech in a WAV file using pretrained models.
+Go to a recipe directory and run `utils/ctc_align_wav.sh` as follows:
+```sh
+# go to recipe directory and source path of espnet tools
+cd egs/wsj/asr1 && . ./path.sh
+# get example wav file
+mkdir -p alignment
+cp ../../../test_utils/ctc_align_test.wav ./alignment
+# let's generate the ctc alignment of the speech!
+# the transcription of the example wav is:
+# "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+ctc_align_wav.sh --align_dir ./alignment --models wsj.transformer.v1 ./alignment/ctc_align_test.wav "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+```
+where `test.wav` is a WAV file to be aligned.
+The sampling rate must be consistent with that of data used in training.
+
+Available pretrained models in the demo script are listed as below.
+
+| Model                                                                                            | Notes                                                      |
+| :------                                                                                          | :------                                                    |
+| [wsj.transformer.v1](https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp)            | Transformer-ASR trained on WSJ corpus                  |
+
+</div></details>
+
 
 ## References
 

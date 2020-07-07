@@ -17,7 +17,7 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 
 
 class DefaultFrontend(AbsFrontend):
-    """Conventional frontend structure for ASR
+    """Conventional frontend structure for ASR.
 
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN
     """
@@ -28,6 +28,7 @@ class DefaultFrontend(AbsFrontend):
         n_fft: int = 512,
         win_length: int = None,
         hop_length: int = 128,
+        window: Optional[str] = "hann",
         center: bool = True,
         pad_mode: str = "reflect",
         normalized: bool = False,
@@ -36,7 +37,6 @@ class DefaultFrontend(AbsFrontend):
         fmin: int = None,
         fmax: int = None,
         htk: bool = False,
-        norm=1,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
     ):
         assert check_argument_types()
@@ -52,6 +52,7 @@ class DefaultFrontend(AbsFrontend):
             win_length=win_length,
             hop_length=hop_length,
             center=center,
+            window=window,
             pad_mode=pad_mode,
             normalized=normalized,
             onesided=onesided,
@@ -62,7 +63,7 @@ class DefaultFrontend(AbsFrontend):
             self.frontend = None
 
         self.logmel = LogMel(
-            fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm,
+            fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk,
         )
         self.n_mels = n_mels
 
