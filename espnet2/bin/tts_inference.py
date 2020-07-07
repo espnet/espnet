@@ -12,15 +12,18 @@ from typing import Tuple
 from typing import Union
 
 import configargparse
-import kaldiio
+import matplotlib
+import numpy as np
 import soundfile as sf
 import torch
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -106,15 +109,12 @@ def inference(
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
     (output_dir / "wav").mkdir(parents=True, exist_ok=True)
+    (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
+    (output_dir / "probs").mkdir(parents=True, exist_ok=True)
 
-    # FIXME(kamo): I think we shouldn't depend on kaldi-format any more.
-    #  How about numpy or HDF5?
-    #  >>> with NpyScpWriter() as f:
-    with kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "norm/feats")
-    ) as f, kaldiio.WriteHelper(
-        "ark,scp:{o}.ark,{o}.scp".format(o=output_dir / "denorm/feats")
-    ) as g:
+    with NpyScpWriter(
+        output_dir / "norm", output_dir / "norm/feats.scp",
+    ) as f, NpyScpWriter(output_dir / "denorm", output_dir / "denorm/feats.scp") as g:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -128,25 +128,86 @@ def inference(
             _data = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             start_time = time.perf_counter()
 
-            # TODO(kamo): Now att_ws is not used.
-            outs, probs, att_ws = tts.inference(
-                **_data,
-                threshold=threshold,
-                maxlenratio=maxlenratio,
-                minlenratio=minlenratio,
-            )
-            outs_denorm = normalize.inverse(outs[None])[0][0]
-            insize = next(iter(_data.values())).size(0)
+            _decode_conf = {
+                "threshold": threshold,
+                "maxlenratio": maxlenratio,
+                "minlenratio": minlenratio,
+            }
+            if isinstance(tts, Tacotron2):
+                _decode_conf.update(
+                    {
+                        "use_att_constraint": use_att_constraint,
+                        "forward_window": forward_window,
+                        "backward_window": backward_window,
+                    }
+                )
+            outs, probs, att_ws = tts.inference(**_data, **_decode_conf)
+            insize = next(iter(_data.values())).size(0) + 1
             logging.info(
-                "inference speed = {} msec / frame.".format(
-                    (time.perf_counter() - start_time) / (int(outs.size(0)) * 1000)
+                "inference speed = {:.1f} frames / sec.".format(
+                    int(outs.size(0)) / (time.perf_counter() - start_time)
                 )
             )
             logging.info(f"{key} (size:{insize}->{outs.size(0)})")
             if outs.size(0) == insize * maxlenratio:
                 logging.warning(f"output length reaches maximum length ({key}).")
             f[key] = outs.cpu().numpy()
+
+            # NOTE: normalize.inverse is in-place operation
+            outs_denorm = normalize.inverse(outs[None])[0][0]
             g[key] = outs_denorm.cpu().numpy()
+
+            # Lazy load to avoid the backend error
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+            from matplotlib.ticker import MaxNLocator
+
+            # Plot attention weight
+            att_ws = att_ws.cpu().numpy()
+
+            if att_ws.ndim == 2:
+                att_ws = att_ws[None][None]
+            elif att_ws.ndim != 4:
+                raise RuntimeError(f"Must be 2 or 4 dimension: {att_ws.ndim}")
+
+            w, h = plt.figaspect(att_ws.shape[0] / att_ws.shape[1])
+            fig = plt.Figure(
+                figsize=(
+                    w * 1.3 * min(att_ws.shape[0], 2.5),
+                    h * 1.3 * min(att_ws.shape[1], 2.5),
+                )
+            )
+            fig.suptitle(f"{key}")
+            axes = fig.subplots(att_ws.shape[0], att_ws.shape[1])
+            if len(att_ws) == 1:
+                axes = [[axes]]
+            for ax, att_w in zip(axes, att_ws):
+                for ax_, att_w_ in zip(ax, att_w):
+                    ax_.imshow(att_w_.astype(np.float32), aspect="auto")
+                    ax_.set_xlabel("Input")
+                    ax_.set_ylabel("Output")
+                    ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
+                    ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+            fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+            fig.savefig(output_dir / f"att_ws/{key}.png")
+            fig.clf()
+
+            # Plot stop token prediction
+            probs = probs.cpu().numpy()
+
+            fig = plt.Figure()
+            ax = fig.add_subplot(1, 1, 1)
+            ax.plot(probs)
+            ax.set_title(f"{key}")
+            ax.set_xlabel("Output")
+            ax.set_ylabel("Stop probability")
+            ax.set_ylim(0, 1)
+            ax.grid(which="both")
+
+            fig.tight_layout()
+            fig.savefig(output_dir / f"probs/{key}.png")
+            fig.clf()
 
             # TODO(kamo): Write scp
             if spc2wav is not None:
@@ -164,7 +225,9 @@ def get_parser():
 
     # Note(kamo): Use "_" instead of "-" as separator.
     # "-" is confusing if written in yaml.
-    parser.add_argument("--config", is_config_file=True, help="config file path")
+    parser.add_argument(
+        "--config", is_config_file=True, help="config file path",
+    )
 
     parser.add_argument(
         "--log_level",
@@ -180,7 +243,9 @@ def get_parser():
     parser.add_argument(
         "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
-    parser.add_argument("--seed", type=int, default=0, help="Random seed")
+    parser.add_argument(
+        "--seed", type=int, default=0, help="Random seed",
+    )
     parser.add_argument(
         "--dtype",
         default="float32",
@@ -204,12 +269,20 @@ def get_parser():
         required=True,
         action="append",
     )
-    group.add_argument("--key_file", type=str_or_none)
-    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
+    group.add_argument(
+        "--key_file", type=str_or_none,
+    )
+    group.add_argument(
+        "--allow_variable_data_keys", type=str2bool, default=False,
+    )
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--train_config", type=str)
-    group.add_argument("--model_file", type=str)
+    group.add_argument(
+        "--train_config", type=str, help="Training configuration file.",
+    )
+    group.add_argument(
+        "--model_file", type=str, help="Model parameter file.",
+    )
 
     group = parser.add_argument_group("Decoding related")
     group.add_argument(
@@ -246,7 +319,7 @@ def get_parser():
         help="Forward window value in attention constraint",
     )
 
-    group = parser.add_argument_group(" Grriffin-Lim related")
+    group = parser.add_argument_group("Grriffin-Lim related")
     group.add_argument(
         "--vocoder_conf",
         action=NestedDictAction,

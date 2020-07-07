@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 import logging
 
 import numpy as np
+import six
 import torch
 import torch.nn.functional as F
 
@@ -137,6 +138,71 @@ class CTC(torch.nn.Module):
         :rtype: torch.Tensor
         """
         return torch.argmax(self.ctc_lo(hs_pad), dim=2)
+
+    def forced_align(self, h, y, blank_id=0):
+        """forced alignment.
+
+        :param torch.Tensor h: hidden state sequence, 2d tensor (T, D)
+        :param torch.Tensor y: id sequence tensor 1d tensor (L)
+        :param int y: blank symbol index
+        :return: best alignment results
+        :rtype: list
+        """
+
+        def interpolate_blank(label, blank_id=0):
+            """Insert blank token between every two label token."""
+            label = np.expand_dims(label, 1)
+            blanks = np.zeros((label.shape[0], 1), dtype=np.int64) + blank_id
+            label = np.concatenate([blanks, label], axis=1)
+            label = label.reshape(-1)
+            label = np.append(label, label[0])
+            return label
+
+        lpz = self.log_softmax(h)
+        lpz = lpz.squeeze(0)
+
+        y_int = interpolate_blank(y, blank_id)
+
+        logdelta = np.zeros((lpz.size(0), len(y_int))) - 100000000000.0  # log of zero
+        state_path = (
+            np.zeros((lpz.size(0), len(y_int)), dtype=np.int16) - 1
+        )  # state path
+
+        logdelta[0, 0] = lpz[0][y_int[0]]
+        logdelta[0, 1] = lpz[0][y_int[1]]
+
+        for t in six.moves.range(1, lpz.size(0)):
+            for s in six.moves.range(len(y_int)):
+                if y_int[s] == blank_id or s < 2 or y_int[s] == y_int[s - 2]:
+                    candidates = np.array([logdelta[t - 1, s], logdelta[t - 1, s - 1]])
+                    prev_state = [s, s - 1]
+                else:
+                    candidates = np.array(
+                        [
+                            logdelta[t - 1, s],
+                            logdelta[t - 1, s - 1],
+                            logdelta[t - 1, s - 2],
+                        ]
+                    )
+                    prev_state = [s, s - 1, s - 2]
+                logdelta[t, s] = np.max(candidates) + lpz[t][y_int[s]]
+                state_path[t, s] = prev_state[np.argmax(candidates)]
+
+        state_seq = -1 * np.ones((lpz.size(0), 1), dtype=np.int16)
+
+        candidates = np.array(
+            [logdelta[-1, len(y_int) - 1], logdelta[-1, len(y_int) - 2]]
+        )
+        prev_state = [len(y_int) - 1, len(y_int) - 2]
+        state_seq[-1] = prev_state[np.argmax(candidates)]
+        for t in six.moves.range(lpz.size(0) - 2, -1, -1):
+            state_seq[t] = state_path[t + 1, state_seq[t + 1, 0]]
+
+        output_state_seq = []
+        for t in six.moves.range(0, lpz.size(0)):
+            output_state_seq.append(y_int[state_seq[t, 0]])
+
+        return output_state_seq
 
 
 def ctc_for(args, odim, reduce=True):

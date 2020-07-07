@@ -7,6 +7,8 @@ See: https://espnet.github.io/espnet/tutorial.html
 
 | Directory name          | Corpus name                                                  | Task                                       | Language       | URL                                                          | Note                          |
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------------ | -------------- | ------------------------------------------------------------ | ----------------------------- |
+||||
+| aidatatang_200zh        | Aidatatang_200zh A free Chinese Mandarin speech corpus       | ASR                                        | ZH             | http://www.openslr.org/62/                                   |                               |
 | aishell                 | AISHELL-ASR0009-OS1 Open Source Mandarin Speech Corpus       | ASR                                        | ZH             | http://www.aishelltech.com/kysjcp                            |                               |
 | aishell2                | AISHELL-2 Open Source Mandarin Speech Corpus                 | ASR                                        | ZH             | http://www.aishelltech.com/aishell_2                                                         |
 | ami                     | The AMI Meeting Corpus                                       | ASR                                        | EN             | http://groups.inf.ed.ac.uk/ami/corpus/                       |                               |

@@ -15,7 +15,9 @@ def test_frontend_output_size():
 
 
 def test_frontend_backward():
-    frontend = DefaultFrontend(fs=160, n_fft=128, win_length=32, frontend_conf=None)
+    frontend = DefaultFrontend(
+        fs=160, n_fft=128, win_length=32, hop_length=32, frontend_conf=None
+    )
     x = torch.randn(2, 300, requires_grad=True)
     x_lengths = torch.LongTensor([300, 89])
     y, y_lengths = frontend(x, x_lengths)
