@@ -8,7 +8,9 @@ from typing import Sequence
 
 import torch
 
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention as BaseMultiHeadedAttention,  # NOQA
+)
 
 
 class StyleEncoder(torch.nn.Module):
@@ -216,13 +218,16 @@ class StyleTokenLayer(torch.nn.Module):
         assert check_argument_types()
         super(StyleTokenLayer, self).__init__()
 
-        gst_embs = torch.randn(gst_tokens, gst_token_dim)
+        gst_embs = torch.randn(gst_tokens, gst_token_dim // gst_heads)
         self.register_parameter("gst_embs", torch.nn.Parameter(gst_embs))
-        self.projection = torch.nn.Linear(ref_embed_dim, gst_token_dim)
-        # NOTE(kan-bayashi): Our MHA assume the same input dimension for key, queue,
-        #   value and does not change the dimension. So we use 256 dim for gst token
-        #   instead of 256 // 4 dim.
-        self.mha = MultiHeadedAttention(gst_heads, gst_token_dim, dropout_rate)
+        self.mha = MultiHeadedAttention(
+            q_dim=ref_embed_dim,
+            k_dim=gst_token_dim // gst_heads,
+            v_dim=gst_token_dim // gst_heads,
+            n_head=gst_heads,
+            n_feat=gst_token_dim,
+            dropout_rate=dropout_rate
+        )
 
     def forward(self, ref_embs: torch.Tensor) -> torch.Tensor:
         """Calculate forward propagation.
@@ -237,8 +242,26 @@ class StyleTokenLayer(torch.nn.Module):
         batch_size = ref_embs.size(0)
         # (num_tokens, token_dim) -> (batch_size, num_tokens, token_dim)
         gst_embs = torch.tanh(self.gst_embs).unsqueeze(0).expand(batch_size, -1, -1)
-        # NOTE(kan-bayashi): Projection is needed? Shoule we apply Tanh?
-        ref_embs = self.projection(ref_embs).unsqueeze(1)
+        # NOTE(kan-bayashi): Shoule we apply Tanh?
+        ref_embs = ref_embs.unsqueeze(1)  # (batch_size, 1 ,ref_embed_dim)
         style_embs = self.mha(ref_embs, gst_embs, gst_embs, None)
 
         return style_embs.squeeze(1)
+
+
+class MultiHeadedAttention(BaseMultiHeadedAttention):
+    """Multi head attention module with different input dimension."""
+
+    def __init__(self, q_dim, k_dim, v_dim, n_head, n_feat, dropout_rate=0.0):
+        """Initialize multi head attention module."""
+        super(MultiHeadedAttention, self).__init__()
+        assert n_feat % n_head == 0
+        # We assume d_v always equals d_k
+        self.d_k = n_feat // n_head
+        self.h = n_head
+        self.linear_q = torch.nn.Linear(q_dim, n_feat)
+        self.linear_k = torch.nn.Linear(k_dim, n_feat)
+        self.linear_v = torch.nn.Linear(v_dim, n_feat)
+        self.linear_out = torch.nn.Linear(n_feat, n_feat)
+        self.attn = None
+        self.dropout = torch.nn.Dropout(p=dropout_rate)
