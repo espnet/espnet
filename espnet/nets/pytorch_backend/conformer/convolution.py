@@ -19,11 +19,7 @@ class ConvolutionBlock(nn.Module):
     """
 
     def __init__(
-        self,
-        channels,
-        kernel_size,
-        bias=True,
-        activation=nn.ReLU(),
+        self, channels, kernel_size, bias=True, activation=nn.ReLU(),
     ):
         """Construct an ConvolutionBlock object."""
         super(ConvolutionBlock, self).__init__()
@@ -31,12 +27,7 @@ class ConvolutionBlock(nn.Module):
         assert (kernel_size - 1) % 2 == 0
 
         self.pointwise_cov1 = nn.Conv1d(
-            channels,
-            2 * channels,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=bias,
+            channels, 2 * channels, kernel_size=1, stride=1, padding=0, bias=bias,
         )
         self.depthwise_conv = nn.Conv1d(
             channels,
@@ -49,12 +40,7 @@ class ConvolutionBlock(nn.Module):
         )
         self.norm = nn.BatchNorm1d(channels)
         self.pointwise_cov2 = nn.Conv1d(
-            channels,
-            channels,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=bias,
+            channels, channels, kernel_size=1, stride=1, padding=0, bias=bias,
         )
         self.act = activation
 
