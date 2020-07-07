@@ -3,6 +3,8 @@ import torch
 import math
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+from typing import Tuple
 
 EPS = 1e-8
 
@@ -79,17 +81,17 @@ def remove_pad(inputs, inputs_lengths):
 class TasNet(nn.Module):
     def __init__(
         self,
-        N,
-        L,
-        B,
-        H,
-        P,
-        X,
-        R,
-        num_spk,
-        norm_type="gLN",
-        causal=False,
-        mask_nonlinear="relu",
+        N: int = 256,
+        L: int = 20,
+        B: int = 256,
+        H: int = 512,
+        P: int = 3,
+        X: int = 8,
+        R: int = 4,
+        num_spk: int = 2,
+        norm_type: str = "gLN",
+        causal: bool = False,
+        mask_nonlinear: str = "relu",
     ):
         """
         Args:
@@ -516,6 +518,11 @@ class GlobalLayerNorm(nn.Module):
 
 
 if __name__ == "__main__":
+    mixture = torch.randn(3, 16000)
+    input_size = torch.from_numpy(np.array([16000, 16000, 16000]))
+    net = TasNet()
+    output, *_ = net(mixture, input_size)
+
     torch.manual_seed(123)
     M, N, L, T = 2, 3, 4, 12
     K = 2 * T // L - 1
