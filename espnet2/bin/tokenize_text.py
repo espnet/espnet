@@ -136,6 +136,7 @@ def tokenize(
     # Sort by the number of occurrences
     words_and_counts = list(sorted(counter.items(), key=lambda x: x[1]))
 
+    tail_words_ids = []
     for symbol_and_id in add_symbol:
         # e.g symbol="<blank>:0"
         try:
@@ -149,20 +150,27 @@ def tokenize(
         # e.g. idx=-1 -> append as the last symbol
         if idx < 0:
             idx = len(words_and_counts) + 1 + idx
+            tail_words_ids.append(idx)
         words_and_counts.insert(idx, (symbol, None))
 
     total_count = sum(counter.values())
     invocab_count = 0
+    vocabulary_size = len(words_and_counts) if vocabulary_size <= 0 else vocabulary_size
+    positive_idx_vocabulary_size = min(vocabulary_size, len(words_and_counts)) - len(tail_words_ids)
     for nvocab, (w, c) in enumerate(words_and_counts, 1):
-        fout.write(w + "\n")
         if c is not None:
             invocab_count += c
-            if c <= cutoff:
-                break
-
+            if c > cutoff:
+                fout.write(w + "\n")
+        else:
+            fout.write(w + "\n")
         # Note that nvocab includes appended symbol, e.g. even <blank> or <sos/eos>
-        if nvocab >= vocabulary_size > 0:
+        if nvocab >= positive_idx_vocabulary_size > 0:
             break
+
+    # write negative idx words
+    for idx in tail_words_ids:
+        fout.write(words_and_counts[idx][0] + "\n")
 
     logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100} %")
 
