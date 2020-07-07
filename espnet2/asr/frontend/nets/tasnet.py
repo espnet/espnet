@@ -102,7 +102,7 @@ class TasNet(nn.Module):
             P: Kernel size in convolutional blocks
             X: Number of convolutional blocks in each repeat
             R: Number of repeats
-            C: Number of speakers
+            num_spk: Number of speakers
             norm_type: BN, gLN, cLN
             causal: causal or non-causal
             mask_nonlinear: use which non-linear function to generate mask
@@ -448,17 +448,19 @@ class Chomp1d(nn.Module):
 
 
 def chose_norm(norm_type, channel_size):
-    """The input of normlization will be (M, C, K), where M is batch size,
+    """The input of normalization will be (M, C, K), where M is batch size,
        C is channel size and K is sequence length.
     """
     if norm_type == "gLN":
         return GlobalLayerNorm(channel_size)
     elif norm_type == "cLN":
         return ChannelwiseLayerNorm(channel_size)
-    else:  # norm_type == "BN":
+    elif norm_type == "BN":
         # Given input (M, C, K), nn.BatchNorm1d(C) will accumulate statics
         # along M and K, so this BN usage is right.
         return nn.BatchNorm1d(channel_size)
+    else:
+        raise ValueError("Unsupported normalization type")
 
 
 # TODO: Use nn.LayerNorm to impl cLN to speed up

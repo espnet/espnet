@@ -3,7 +3,7 @@ from collections import OrderedDict
 import torch
 from espnet2.layers.stft import Stft
 from espnet2.asr.frontend.nets.dnn_beamformer import DNN_Beamformer
-from espnet.nets.pytorch_backend.frontends.dnn_wpe import DNN_WPE
+from espnet2.asr.frontend.nets.dnn_wpe import DNN_WPE
 from torch_complex.tensor import ComplexTensor
 
 
@@ -122,7 +122,9 @@ class BeamformerNet(torch.nn.Module):
         # wave -> stft -> magnitude specturm
         input_spectrum, flens = self.stft(input, ilens)
         # (Batch, Frames, Freq) or (Batch, Frames, Channels, Freq)
-        input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
+        input_spectrum = ComplexTensor(
+            input_spectrum[..., 0], input_spectrum[..., 1]
+        ).double()
         if self.normalize_input:
             input_spectrum = input_spectrum / abs(input_spectrum).max()
 
@@ -163,11 +165,13 @@ class BeamformerNet(torch.nn.Module):
         # Convert ComplexTensor to torch.Tensor
         # (B, T, F) -> (B, T, F, 2)
         if isinstance(enhanced, list):
-            # multi-speaker input
-            enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
+            # multi-speaker output
+            enhanced = [
+                torch.stack([enh.real, enh.imag], dim=-1).float() for enh in enhanced
+            ]
         else:
-            # single-speaker input
-            enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1)
+            # single-speaker output
+            enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1).float()
         return enhanced, flens, masks
 
     def forward_rawwav(self, input: torch.Tensor, ilens: torch.Tensor):

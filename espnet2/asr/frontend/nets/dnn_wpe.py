@@ -16,7 +16,6 @@ class DNN_WPE(torch.nn.Module):
         wlayers: int = 3,
         wunits: int = 300,
         wprojs: int = 320,
-        num_spkr: int = 1,
         dropout_rate: float = 0.0,
         taps: int = 5,
         delay: int = 3,
@@ -24,11 +23,10 @@ class DNN_WPE(torch.nn.Module):
         iterations: int = 1,
         normalization: bool = False,
     ):
-        super(DNN_WPE, self).__init__()
+        super().__init__()
         self.iterations = iterations
         self.taps = taps
         self.delay = delay
-        self.num_spkr = num_spkr
 
         self.normalization = normalization
         self.use_dnn_mask = use_dnn_mask
@@ -37,7 +35,7 @@ class DNN_WPE(torch.nn.Module):
 
         if self.use_dnn_mask:
             self.mask_est = MaskEstimator(
-                wtype, widim, wlayers, wunits, wprojs, dropout_rate, nmask=num_spkr
+                wtype, widim, wlayers, wunits, wprojs, dropout_rate, nmask=1
             )
 
     def forward(
@@ -52,80 +50,44 @@ class DNN_WPE(torch.nn.Module):
             F: Freq or Some dimension of the feature vector
 
         Args:
-            data: (B, C, T, F)
+            data: (B, C, T, F), double precision
             ilens: (B,)
         Returns:
-            data: (B, C, T, F)
+            data: (B, C, T, F), double precision
             ilens: (B,)
         """
-
-        def dereverberate(data, power, iterations, taps, delay, inverse_power):
-            enhanced = data
-            for i in range(iterations):
-                if i > 0:
-                    power = enhanced.real ** 2 + enhanced.imag ** 2
-                    # Averaging along the channel axis: (..., C, T) -> (..., T)
-                    power = power.mean(dim=-2)
-                # enhanced: (..., C, T) -> (..., C, T)
-                enhanced = wpe_one_iteration(
-                    data.contiguous(),
-                    power,
-                    taps=taps,
-                    delay=delay,
-                    inverse_power=inverse_power,
-                )
-            return enhanced
-
         # (B, T, C, F) -> (B, F, C, T)
-        data = data.permute(0, 3, 2, 1)
-        # Calculate power: (..., C, T)
-        power = data.real ** 2 + data.imag ** 2
+        enhanced = data = data.permute(0, 3, 2, 1)
+        mask = None
 
-        if self.use_dnn_mask:
-            mask, _ = self.mask_est(data, ilens)
-            if self.normalization:
-                # Normalize along T
-                mask = [m / m.sum(dim=-1)[..., None] for m in mask]
-            power = [(power * m).mean(dim=-2) for m in mask]
-        else:
-            mask = None
+        for i in range(self.iterations):
+            # Calculate power: (..., C, T)
+            power = enhanced.real ** 2 + enhanced.imag ** 2
+            if i == 0 and self.use_dnn_mask:
+                # mask: (B, F, C, T)
+                (mask,), _ = self.mask_est(enhanced.float(), ilens)
+                if self.normalization:
+                    # Normalize along T
+                    mask = mask / mask.sum(dim=-1)[..., None]
+                # (..., C, T) * (..., C, T) -> (..., C, T)
+                power = power * mask.double()
+
             # Averaging along the channel axis: (..., C, T) -> (..., T)
-            power = [power.mean(dim=-2)] * self.num_spkr
+            power = power.mean(dim=-2)
 
-        if self.num_spkr == 1:
-            enhanced = dereverberate(
-                data,
-                power[0],
-                self.iterations,
-                self.taps,
-                self.delay,
-                self.inverse_power,
+            # enhanced: (..., C, T) -> (..., C, T)
+            enhanced = wpe_one_iteration(
+                data.contiguous(),
+                power,
+                taps=self.taps,
+                delay=self.delay,
+                inverse_power=self.inverse_power,
             )
+
             enhanced.masked_fill_(make_pad_mask(ilens, enhanced.real), 0)
-            # (B, F, C, T) -> (B, T, C, F)
-            enhanced = enhanced.permute(0, 3, 2, 1)
 
-            if mask is not None:
-                mask = mask.transpose(-1, -3)
-        else:
-            # multi-speaker case: (mask_speech1, mask_speech2, ...)
-            enhanced = [
-                dereverberate(
-                    data,
-                    power[spk],
-                    self.iterations,
-                    self.taps,
-                    self.delay,
-                    self.inverse_power,
-                )
-                for spk in range(self.num_spkr)
-            ]
-            for enh in enhanced:
-                enh.masked_fill_(make_pad_mask(ilens, enh.real), 0)
-            # (B, F, C, T) -> (B, T, C, F)
-            enhanced = [enh.permute(0, 3, 2, 1) for enh in enhanced]
-
-            if mask is not None:
-                mask = [m.transpose(-1, -3) for m in mask]
-
+        # (B, F, C, T) -> (B, T, C, F)
+        enhanced = enhanced.permute(0, 3, 2, 1)
+        if mask is not None:
+            mask = mask.transpose(-1, -3)
         return enhanced, ilens, mask

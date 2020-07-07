@@ -85,7 +85,7 @@ class DNN_Beamformer(torch.nn.Module):
         self.beamformer_type = beamformer_type
         self.eps = eps
         self.btaps = btaps
-        self.bdelay = bdelay
+        self.bdelay = bdelay if self.btaps > 0 else 1
 
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
@@ -99,10 +99,10 @@ class DNN_Beamformer(torch.nn.Module):
             F: Freq
 
         Args:
-            data (ComplexTensor): (B, T, C, F)
+            data (ComplexTensor): (B, T, C, F), double precision
             ilens (torch.Tensor): (B,)
         Returns:
-            enhanced (ComplexTensor): (B, T, F)
+            enhanced (ComplexTensor): (B, T, F), double precision
             ilens (torch.Tensor): (B,)
             masks (torch.Tensor): (B, T, C, F)
         """
@@ -119,10 +119,10 @@ class DNN_Beamformer(torch.nn.Module):
                 u[..., self.ref_channel].fill_(1)
 
             if beamformer_type in ("mpdr", "mvdr"):
-                ws = get_mvdr_vector(psd_speech, psd_n, u)
+                ws = get_mvdr_vector(psd_speech, psd_n, u.double())
                 enhanced = apply_beamforming_vector(ws, data)
             elif beamformer_type == "wpd":
-                ws = get_WPD_filter_v2(psd_speech, psd_n, u)
+                ws = get_WPD_filter_v2(psd_speech, psd_n, u.double())
                 enhanced = perform_WPD_filtering(ws, data, self.bdelay, self.btaps)
             else:
                 raise ValueError(
@@ -135,7 +135,7 @@ class DNN_Beamformer(torch.nn.Module):
         data = data.permute(0, 3, 2, 1)
 
         # mask: [(B, F, C, T)]
-        masks, _ = self.mask(data, ilens)
+        masks, _ = self.mask(data.float(), ilens)
         assert self.nmask == len(masks)
         # floor masks with self.eps to increase numerical stability
         masks = [torch.clamp(m, min=self.eps) for m in masks]
@@ -149,16 +149,16 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_speech = masks[0]
                 mask_noise = 1 - mask_speech
 
-            psd_speech = get_power_spectral_density_matrix(data, mask_speech)
+            psd_speech = get_power_spectral_density_matrix(data, mask_speech.double())
             if self.beamformer_type == "mvdr":
                 # psd of noise
-                psd_n = get_power_spectral_density_matrix(data, mask_noise)
+                psd_n = get_power_spectral_density_matrix(data, mask_noise.double())
             elif self.beamformer_type == "mpdr":
                 # psd of observed signal
                 psd_n = FC.einsum("...ct,...et->...ce", [data, data.conj()])
             elif self.beamformer_type == "wpd":
                 # Calculate power: (..., C, T)
-                power_speech = (data.real ** 2 + data.imag ** 2) * mask_speech
+                power_speech = (data.real ** 2 + data.imag ** 2) * mask_speech.double()
                 # Averaging along the channel axis: (B, F, C, T) -> (B, F, T)
                 power_speech = power_speech.mean(dim=-2)
                 inverse_power = 1 / torch.clamp(power_speech, min=self.eps)
@@ -219,7 +219,6 @@ class DNN_Beamformer(torch.nn.Module):
                 )
 
             enhanced = []
-            ws = []
             for i in range(self.num_spk):
                 psd_speech = psd_speeches.pop(i)
                 # treat all other speakers' psd_speech as noises
@@ -247,9 +246,7 @@ class DNN_Beamformer(torch.nn.Module):
 
                 # (..., F, T) -> (..., T, F)
                 enh = enh.transpose(-1, -2)
-
                 enhanced.append(enh)
-                ws.append(w)
 
         # (..., F, C, T) -> (..., T, C, F)
         masks = [m.transpose(-1, -3) for m in masks]
