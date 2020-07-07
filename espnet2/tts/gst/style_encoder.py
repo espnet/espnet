@@ -254,7 +254,7 @@ class MultiHeadedAttention(BaseMultiHeadedAttention):
 
     def __init__(self, q_dim, k_dim, v_dim, n_head, n_feat, dropout_rate=0.0):
         """Initialize multi head attention module."""
-        super(MultiHeadedAttention, self).__init__()
+        torch.nn.Module.__init__(self)
         assert n_feat % n_head == 0
         # We assume d_v always equals d_k
         self.d_k = n_feat // n_head
