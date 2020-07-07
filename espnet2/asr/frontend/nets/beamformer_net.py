@@ -30,7 +30,7 @@ class BeamformerNet(torch.nn.Module):
         delay: int = 3,
         use_dnn_mask_for_wpe: bool = True,
         # Beamformer options
-        use_beamformer: bool = False,
+        use_beamformer: bool = True,
         bnet_type: str = "blstmp",
         blayers: int = 3,
         bunits: int = 300,
