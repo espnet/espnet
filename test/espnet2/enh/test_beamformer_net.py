@@ -5,7 +5,7 @@ from espnet2.asr.frontend.nets.beamformer_net import BeamformerNet
 
 
 @pytest.mark.parametrize(
-    "n_fft", "win_length", "hop_length", [(8, None, 2)],
+    "n_fft, win_length, hop_length", [(8, None, 2)],
 )
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("normalize_input", [True, False])
@@ -17,7 +17,6 @@ from espnet2.asr.frontend.nets.beamformer_net import BeamformerNet
 @pytest.mark.parametrize("wdropout_rate", [0.0, 0.2])
 @pytest.mark.parametrize("taps", [0, 3])
 @pytest.mark.parametrize("delay", [3])
-@pytest.mark.parametrize("use_dnn_mask_for_wpe", [True, False])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [True, False])
 @pytest.mark.parametrize("use_beamformer", [True])
 @pytest.mark.parametrize("bnet_type", ["blstmp"])
@@ -94,8 +93,8 @@ def test_beamformer_net_output():
     ilens = torch.LongTensor([16, 12])
     for num_spk in range(1, 3):
         model = BeamformerNet(
-            n_fft=8, hop_length=2, num_spk=num_spk,
-            use_wpe=False, use_beamformer=True)
+            n_fft=8, hop_length=2, num_spk=num_spk, use_wpe=False, use_beamformer=True
+        )
         specs, _, masks = model(inputs, ilens)
         assert isinstance(specs, list)
         assert len(specs) == num_spk
@@ -107,4 +106,4 @@ def test_beamformer_net_output():
 
 def test_beamformer_net_invalid_bf_type():
     with pytest.raises(ValueError):
-        BeamformerNet(use_beamformer=True, beamformer_type='fff')
+        BeamformerNet(use_beamformer=True, beamformer_type="fff")
