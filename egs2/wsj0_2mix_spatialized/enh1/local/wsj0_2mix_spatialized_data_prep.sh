@@ -9,11 +9,11 @@ sample_rate=8k
 . utils/parse_options.sh
 . ./path.sh
 
-if [[ "$min_or_max" != "max" ]] && [[ "$min_or_max" != "min" ]; then
+if [[ "$min_or_max" != "max" ]] && [[ "$min_or_max" != "min" ]]; then
   echo "Error: min_or_max must be either max or min: ${min_or_max}"
   exit 1
 fi
-if [[ "$sample_rate" != "16k" ]] && [[ "$sample_rate" != "8k" ]; then
+if [[ "$sample_rate" != "16k" ]] && [[ "$sample_rate" != "8k" ]]; then
   echo "Error: sample rate must be either 16k or 8k: ${sample_rate}"
   exit 1
 fi

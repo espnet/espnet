@@ -12,9 +12,9 @@ from espnet.nets.pytorch_backend.frontends.beamformer import (
     get_power_spectral_density_matrix,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
-from espnet2.asr.frontend.nets.conv_beamformer import get_covariances
-from espnet2.asr.frontend.nets.conv_beamformer import get_WPD_filter_v2
-from espnet2.asr.frontend.nets.conv_beamformer import perform_WPD_filtering
+from espnet2.asr.frontend.nets.utils.conv_beamformer import get_covariances
+from espnet2.asr.frontend.nets.utils.conv_beamformer import get_WPD_filter_v2
+from espnet2.asr.frontend.nets.utils.conv_beamformer import perform_WPD_filtering
 from torch_complex.tensor import ComplexTensor
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
@@ -83,9 +83,10 @@ class DNN_Beamformer(torch.nn.Module):
                 )
 
         self.beamformer_type = beamformer_type
-        self.eps = eps
+        assert btaps >= 0 and bdelay >= 0, (btaps, bdelay)
         self.btaps = btaps
         self.bdelay = bdelay if self.btaps > 0 else 1
+        self.eps = eps
 
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
@@ -110,7 +111,7 @@ class DNN_Beamformer(torch.nn.Module):
         def apply_beamforming(data, ilens, psd_speech, psd_n, beamformer_type):
             # u: (B, C)
             if self.ref_channel < 0:
-                u, _ = self.ref(psd_speech, ilens)
+                u, _ = self.ref(psd_speech.float(), ilens)
             else:
                 # (optional) Create onehot vector for fixed reference microphone
                 u = torch.zeros(

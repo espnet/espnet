@@ -9,13 +9,14 @@ from espnet2.asr.frontend.nets.beamformer_net import BeamformerNet
 )
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("normalize_input", [True, False])
-@pytest.mark.parametrize("use_wpe", [True, False])
+@pytest.mark.parametrize(
+    "use_wpe, taps", [(True, 3), (False, 0)]
+)
 @pytest.mark.parametrize("wnet_type", ["blstmp"])
 @pytest.mark.parametrize("wlayers", [3])
 @pytest.mark.parametrize("wunits", [8])
 @pytest.mark.parametrize("wprojs", [10])
 @pytest.mark.parametrize("wdropout_rate", [0.0, 0.2])
-@pytest.mark.parametrize("taps", [0, 3])
 @pytest.mark.parametrize("delay", [3])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [True, False])
 @pytest.mark.parametrize("use_beamformer", [True])

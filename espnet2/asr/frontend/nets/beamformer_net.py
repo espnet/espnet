@@ -2,8 +2,8 @@ from collections import OrderedDict
 
 import torch
 from espnet2.layers.stft import Stft
-from espnet2.asr.frontend.nets.dnn_beamformer import DNN_Beamformer
-from espnet2.asr.frontend.nets.dnn_wpe import DNN_WPE
+from espnet2.asr.frontend.nets.utils.dnn_beamformer import DNN_Beamformer
+from espnet2.asr.frontend.nets.utils.dnn_wpe import DNN_WPE
 from torch_complex.tensor import ComplexTensor
 
 
@@ -103,7 +103,7 @@ class BeamformerNet(torch.nn.Module):
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """
         Args:
-            input (torch.Tensor): mixed speech [Batch, sample]
+            input (torch.Tensor): mixed speech [Batch, Nsample, Channel]
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
@@ -177,12 +177,12 @@ class BeamformerNet(torch.nn.Module):
     def forward_rawwav(self, input: torch.Tensor, ilens: torch.Tensor):
         """
         Args:
-            input (torch.Tensor): mixed speech [Batch, sample]
+            input (torch.Tensor): mixed speech [Batch, Nsample, Channel]
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
             predcited speech wavs (single-channel):
-                torch.Tensor(Batch, sample), or List[torch.Tensor(Batch, sample)]
+                torch.Tensor(Batch, Nsamples), or List[torch.Tensor(Batch, Nsamples)]
             output lengths
             predcited masks: OrderedDict[
                 'dereverb': torch.Tensor(Batch, Frames, Channel, Freq),

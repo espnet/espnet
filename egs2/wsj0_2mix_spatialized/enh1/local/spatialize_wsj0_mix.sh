@@ -16,13 +16,13 @@ set -e
 set -u
 set -o pipefail
 
-if [[ "$min_or_max" != "max" ]] && [[ "$min_or_max" != "min" ]; then
+if [[ "$min_or_max" != "max" ]] && [[ "$min_or_max" != "min" ]]; then
   echo "Error: min_or_max must be either max or min: ${min_or_max}"
   exit 1
 fi
 if [[ "$sample_rate" == "16k" ]]; then
   sample_rate=16000
-elif [[ "$sample_rate" == "8k" ]; then
+elif [[ "$sample_rate" == "8k" ]]; then
   sample_rate=8000
 else
   echo "Error: sample rate must be either 16k or 8k: ${sample_rate}"
