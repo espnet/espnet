@@ -39,10 +39,18 @@ def test_tf_mask_net_forward_backward(
         utt_mvn=utt_mvn,
     )
 
-    est_speech, *_ = model(
+    # mask backward
+    est_speech, flens, masks = model(
         torch.randn(2, 16, requires_grad=True), ilens=torch.LongTensor([16, 12])
     )
-    loss = sum([est.mean() for est in est_speech])
+    loss = sum([masks[key].mean() for key in masks])
+    loss.backward()
+
+    # spectrums backward
+    est_speech, flens, masks = model(
+        torch.randn(2, 16, requires_grad=True), ilens=torch.LongTensor([16, 12])
+    )
+    loss = sum([abs(est).mean() for est in est_speech])
     loss.backward()
 
 
@@ -54,9 +62,9 @@ def test_tf_mask_net_output():
         specs, _, masks = model(inputs, ilens)
         assert isinstance(specs, list)
         assert isinstance(masks, dict)
-        for n in range(1, num_spk + 1):
-            assert "spk{}".format(n) in masks
-            assert specs[n].shape == masks["spk{}".format(n)].shape
+        for n in range(num_spk):
+            assert "spk{}".format(n+1) in masks
+            assert specs[n].shape == masks["spk{}".format(n+1)].shape
 
 
 def test_tf_mask_net_invalid_norm_type():

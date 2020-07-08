@@ -51,6 +51,12 @@ class TFMaskingNet(torch.nn.Module):
         self.linear = torch.nn.ModuleList(
             [torch.nn.Linear(unit, self.num_bin) for _ in range(self.num_spk)]
         )
+
+        if none_linear not in ("sigmoid", "relu", "tanh"):
+            raise ValueError(
+                "Not supporting none_linear={}".format(none_linear)
+            )
+
         self.none_linear = {
             "sigmoid": torch.nn.Sigmoid(),
             "relu": torch.nn.ReLU(),
