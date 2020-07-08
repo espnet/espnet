@@ -125,6 +125,7 @@ class TasNet(nn.Module):
         self.norm_type = norm_type
         self.causal = causal
         self.mask_nonlinear = mask_nonlinear
+        check_nonlinear(mask_nonlinear)
         # Components
         self.encoder = Encoder(L, N)
         self.separator = TemporalConvNet(
@@ -445,6 +446,11 @@ class Chomp1d(nn.Module):
             [M, H, K]
         """
         return x[:, :, : -self.chomp_size].contiguous()
+
+
+def check_nonlinear(nolinear_type):
+    if nolinear_type not in ["softmax", "relu"]:
+        raise ValueError("Unsupported nonlinear type")
 
 
 def chose_norm(norm_type, channel_size):
