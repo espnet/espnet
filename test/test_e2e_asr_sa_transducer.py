@@ -57,6 +57,8 @@ def make_recog_args(**kwargs):
         nbest=1,
         verbose=2,
         search_type="default",
+        nstep=1,
+        prefix_alpha=2,
         score_norm_transducer=True,
         rnnlm=None,
     )
@@ -195,8 +197,23 @@ def test_sa_transducer_mask(module):
             },
             {},
         ),
+        (
+            {
+                "dec_block_arch": [
+                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                ]
+            },
+            {"beam_size": 2, "search_type": "nsc"},
+        ),
         ({"enc_repeat_block": 2}, {}),
         ({"dec_repeat_block": 2}, {}),
+        ({"dec_repeat_block": 2}, {"beam_size": 2, "search_type": "nsc"}),
+        ({"enc_repeat_block": 2}, {"beam_size": 2, "search_type": "nsc", "nstep": 3}),
+        (
+            {"enc_repeat_block": 2},
+            {"beam_size": 2, "search_type": "nsc", "nstep": 3, "prefix_alpha": 1},
+        ),
         (
             {
                 "enc_block_arch": [
