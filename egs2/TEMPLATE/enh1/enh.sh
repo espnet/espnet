@@ -632,13 +632,13 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         # 2. Submit decoding jobs
         log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
         # shellcheck disable=SC2086
-        # ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
-        #     python3 -m espnet2.bin.enh_scoring \
-        #         --key_file "${_logdir}"/keys.JOB.scp \
-        #         --output_dir "${_logdir}"/output.JOB \
-        #         ${_ref_scp} \
-        #         ${_inf_scp} \
-        #         --ref_channel ${ref_channel}
+        ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
+            python3 -m espnet2.bin.enh_scoring \
+                --key_file "${_logdir}"/keys.JOB.scp \
+                --output_dir "${_logdir}"/output.JOB \
+                ${_ref_scp} \
+                ${_inf_scp} \
+                --ref_channel ${ref_channel}
 
         for spk in $(seq "${spk_num}"); do
             for protocol in ${scoring_protocol}; do
