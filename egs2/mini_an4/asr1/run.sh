@@ -7,6 +7,6 @@ set -o pipefail
 
 ./asr.sh \
     --train_set train_nodev \
-    --dev_set train_dev \
-    --eval_sets "test test_seg" \
+    --valid_set train_dev \
+    --test_sets "train_dev test test_seg" \
     --srctexts "data/train_nodev/text" "$@"
