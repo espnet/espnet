@@ -1,5 +1,14 @@
 # mixed RNN/Transformer-Transducer (enc: VGG2L + 6 x Transformer, dec: 1 x LSTM)
 
+- Environments
+  - date: `Wed Jul  8 10:48:20 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `f508cb03a31bcdd69bf1108b0b0f93d19294f67b`
+  - Commit date: `Wed Jul 8 10:30:05 2020 +0200`
+
 ## CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -36,6 +45,15 @@
 
 # RNN-Transducer (enc: 4 x BLSTMP, dec: 1 x LSTM)
 
+- Environments
+  - date: `Wed Jul  8 10:48:20 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `f508cb03a31bcdd69bf1108b0b0f93d19294f67b`
+  - Commit date: `Wed Jul 8 10:30:05 2020 +0200`
+
 ## CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -70,7 +88,16 @@
 |decode_train_dev_decode_nsc_lm|100|927|63.1|36.8|0.1|0.0|36.9|97.0|
 |decode_train_dev_decode_nsc_lm_word7184|100|927|64.8|35.0|0.2|0.1|35.3|96.0|
 
-## RNN-Transducer w/ att (enc: 4 x BLSTMP, dec: 1 x LSTM)
+# RNN-Transducer w/ att (enc: 4 x BLSTMP, dec: 1 x LSTM)
+
+- Environments
+  - date: `Wed Jul  8 10:48:20 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `f508cb03a31bcdd69bf1108b0b0f93d19294f67b`
+  - Commit date: `Wed Jul 8 10:30:05 2020 +0200`
 
 ## CER
 
@@ -106,7 +133,16 @@
 |decode_train_dev_decode_nsc_lm|100|927|64.6|35.3|0.1|0.0|35.4|95.0|
 |decode_train_dev_decode_nsc_lm_word7184|100|927|64.9|35.0|0.1|0.0|35.1|96.0|
 
-## Transformer-Transducer (enc: VGG2L + 6 x TDNN-Transformer, dec: 2 x CausalConv1d-Transformer)
+# Transformer-Transducer (enc: VGG2L + 6 x TDNN-Transformer, dec: 2 x CausalConv1d-Transformer)
+
+- Environments
+  - date: `Wed Jul  8 10:48:20 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `f508cb03a31bcdd69bf1108b0b0f93d19294f67b`
+  - Commit date: `Wed Jul 8 10:30:05 2020 +0200`
 
 ## CER
 
@@ -142,7 +178,16 @@
 |decode_train_dev_decode_nsc_lm|100|927|72.3|27.7|0.0|0.0|27.7|90.0|
 |decode_train_dev_decode_nsc_lm_word7184|100|927|73.0|27.0|0.0|0.0|27.0|86.0|
 
-## Transformer-Transducer (enc: VGG2L + 8 x Transformer, dec: 2 x Transformer)
+# Transformer-Transducer (enc: VGG2L + 8 x Transformer, dec: 2 x Transformer)
+
+- Environments
+  - date: `Wed Jul  8 10:48:20 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `f508cb03a31bcdd69bf1108b0b0f93d19294f67b`
+  - Commit date: `Wed Jul 8 10:30:05 2020 +0200`
 
 ## CER
 
