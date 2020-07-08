@@ -11,6 +11,8 @@ from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
+from espnet.nets.pytorch_backend.transducer.utils import get_beam_lm_states
+from espnet.nets.pytorch_backend.transducer.utils import get_idx_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import substract
 
@@ -246,39 +248,52 @@ class DecoderRNNT(torch.nn.Module):
             }
         ]
 
+        if rnnlm:
+            use_prefix = False
+        else:
+            use_prefix = True
+
         for hi in h:
-            hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
-            kept_hyps = []
+            if use_prefix:
+                hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
+                kept_hyps = []
 
-            for j in range(len(hyps) - 1):
-                for i in range((j + 1), len(hyps)):
-                    if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
-                        next_id = len(hyps[i]["yseq"])
+                for j in range(len(hyps) - 1):
+                    for i in range((j + 1), len(hyps)):
+                        if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
+                            next_id = len(hyps[i]["yseq"])
 
-                        vy = to_device(
-                            self,
-                            torch.full((1, 1), hyps[i]["yseq"][-1], dtype=torch.long),
-                        )
-                        ey = self.embed(vy)
+                            vy = to_device(
+                                self,
+                                torch.full(
+                                    (1, 1), hyps[i]["yseq"][-1], dtype=torch.long
+                                ),
+                            )
+                            ey = self.embed(vy)
 
-                        y, _ = self.rnn_forward(
-                            ey[0], (hyps[i]["z_prev"], hyps[i]["c_prev"])
-                        )
+                            y, _ = self.rnn_forward(
+                                ey[0], (hyps[i]["z_prev"], hyps[i]["c_prev"])
+                            )
 
-                        ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
+                            ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
 
-                        curr_score = float(hyps[i]["score"]) + float(
-                            ytu[hyps[j]["yseq"][next_id]]
-                        )
+                            curr_score = float(hyps[i]["score"]) + float(
+                                ytu[hyps[j]["yseq"][next_id]]
+                            )
 
-                        for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
-                            ytu = F.log_softmax(self.joint(hi, hyps[j]["y"][k]), dim=0)
+                            for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
+                                ytu = F.log_softmax(
+                                    self.joint(hi, hyps[j]["y"][k]), dim=0
+                                )
 
-                            curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
+                                curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
 
-                        hyps[j]["score"] = np.logaddexp(
-                            float(hyps[j]["score"]), curr_score
-                        )
+                            hyps[j]["score"] = np.logaddexp(
+                                float(hyps[j]["score"]), curr_score
+                            )
+            else:
+                hyps = kept_hyps
+                kept_hyps = []
 
             while True:
                 new_hyp = max(hyps, key=lambda x: x["score"])
@@ -377,16 +392,20 @@ class DecoderRNNT(torch.nn.Module):
 
         w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
 
-        zlist = []
-        clist = []
-        for layer in range(self.dlayers):
-            zlist.append(w_zlist[layer][0])
-            clist.append(w_clist[layer][0])
+        zlist = [w_zlist[layer][0] for layer in range(self.dlayers)]
+        clist = [w_clist[layer][0] for layer in range(self.dlayers)]
 
         if rnnlm:
             w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(None, w_tokens, beam)
 
-            rnnlm_states = w_rnnlm_states[0]
+            if hasattr(rnnlm.predictor, "wordlm"):
+                lm_type = "wordlm"
+                lm_layers = len(w_rnnlm_states[0])
+            else:
+                lm_type = "lm"
+                lm_layers = len(w_rnnlm_states["c"])
+
+            rnnlm_states = get_idx_lm_state(w_rnnlm_states, 0, lm_type, lm_layers)
             rnnlm_scores = w_rnnlm_scores[0]
         else:
             rnnlm_states = None
@@ -497,10 +516,12 @@ class DecoderRNNT(torch.nn.Module):
                 w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
 
                 if rnnlm:
-                    w_rnnlm_states = [v["lm_states"] for v in V]
+                    w_rnnlm_states = get_beam_lm_states(
+                        [v["lm_states"] for v in V], lm_type, lm_layers
+                    )
 
                     w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(
-                        w_rnnlm_states, w_tokens, beam
+                        w_rnnlm_states, w_tokens, w_range
                     )
 
                 if n < (nstep - 1):
@@ -515,7 +536,9 @@ class DecoderRNNT(torch.nn.Module):
                         v["y"].append(w_y[i])
 
                         if rnnlm:
-                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_states"] = get_idx_lm_state(
+                                w_rnnlm_states, i, lm_type, lm_layers
+                            )
                             v["lm_scores"] = w_rnnlm_scores[i]
 
                     hyps = V[:]
@@ -537,7 +560,9 @@ class DecoderRNNT(torch.nn.Module):
                         v["y"].append(w_y[i])
 
                         if rnnlm:
-                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_states"] = get_idx_lm_state(
+                                w_rnnlm_states, i, lm_type, lm_layers
+                            )
                             v["lm_scores"] = w_rnnlm_scores[i]
 
             kept_hyps = sorted((S + V), key=lambda x: x["score"], reverse=True)[
@@ -812,48 +837,61 @@ class DecoderRNNTAtt(torch.nn.Module):
             }
         ]
 
+        if rnnlm:
+            use_prefix = False
+        else:
+            use_prefix = True
+
         for hi in h:
-            hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
-            kept_hyps = []
+            if use_prefix:
+                hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
+                kept_hyps = []
 
-            for j in range(len(hyps) - 1):
-                for i in range((j + 1), len(hyps)):
-                    if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
-                        next_id = len(hyps[i]["yseq"])
+                for j in range(len(hyps) - 1):
+                    for i in range((j + 1), len(hyps)):
+                        if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
+                            next_id = len(hyps[i]["yseq"])
 
-                        vy = to_device(
-                            self,
-                            torch.full((1, 1), hyps[i]["yseq"][-1], dtype=torch.long),
-                        )
-                        ey = self.embed(vy)
+                            vy = to_device(
+                                self,
+                                torch.full(
+                                    (1, 1), hyps[i]["yseq"][-1], dtype=torch.long
+                                ),
+                            )
+                            ey = self.embed(vy)
 
-                        att_c, att_w = self.att[0](
-                            h.unsqueeze(0),
-                            [h.size(0)],
-                            self.dropout_dec[0](hyps[i]["z_prev"][0]),
-                            hyps[i]["a_prev"],
-                        )
+                            att_c, att_w = self.att[0](
+                                h.unsqueeze(0),
+                                [h.size(0)],
+                                self.dropout_dec[0](hyps[i]["z_prev"][0]),
+                                hyps[i]["a_prev"],
+                            )
 
-                        ey = torch.cat((ey[0], att_c), dim=1)
+                            ey = torch.cat((ey[0], att_c), dim=1)
 
-                        y, _ = self.rnn_forward(
-                            ey, (hyps[i]["z_prev"], hyps[i]["c_prev"])
-                        )
+                            y, _ = self.rnn_forward(
+                                ey, (hyps[i]["z_prev"], hyps[i]["c_prev"])
+                            )
 
-                        ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
+                            ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
 
-                        curr_score = float(hyps[i]["score"]) + float(
-                            ytu[hyps[j]["yseq"][next_id]]
-                        )
+                            curr_score = float(hyps[i]["score"]) + float(
+                                ytu[hyps[j]["yseq"][next_id]]
+                            )
 
-                        for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
-                            ytu = F.log_softmax(self.joint(hi, hyps[j]["y"][k]), dim=0)
+                            for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
+                                ytu = F.log_softmax(
+                                    self.joint(hi, hyps[j]["y"][k]), dim=0
+                                )
 
-                            curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
+                                curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
 
-                        hyps[j]["score"] = np.logaddexp(
-                            float(hyps[j]["score"]), curr_score
-                        )
+                            hyps[j]["score"] = np.logaddexp(
+                                float(hyps[j]["score"]), curr_score
+                            )
+            else:
+                hyps = kept_hyps
+                kept_hyps = []
 
             while True:
                 new_hyp = max(hyps, key=lambda x: x["score"])
@@ -971,16 +1009,20 @@ class DecoderRNNTAtt(torch.nn.Module):
 
         w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
 
-        zlist = []
-        clist = []
-        for layer in range(self.dlayers):
-            zlist.append(w_zlist[layer][0])
-            clist.append(w_clist[layer][0])
+        zlist = [w_zlist[layer][0] for layer in range(self.dlayers)]
+        clist = [w_zlist[layer][0] for layer in range(self.dlayers)]
 
         if rnnlm:
-            w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(None, w_tokens, beam)
+            w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(None, w_tokens, w_range)
 
-            rnnlm_states = w_rnnlm_states[0]
+            if hasattr(rnnlm.predictor, "wordlm"):
+                lm_type = "wordlm"
+                lm_layers = len(w_rnnlm_states[0])
+            else:
+                lm_type = "lm"
+                lm_layers = len(w_rnnlm_states["c"])
+
+            rnnlm_states = get_idx_lm_state(w_rnnlm_states, 0, lm_type, lm_layers)
             rnnlm_scores = w_rnnlm_scores[0]
         else:
             rnnlm_states = None
@@ -1101,10 +1143,12 @@ class DecoderRNNTAtt(torch.nn.Module):
                 w_y, (w_zlist, w_clist) = self.rnn_forward(w_ey, (w_zlist, w_clist))
 
                 if rnnlm:
-                    w_rnnlm_states = [v["lm_states"] for v in V]
+                    w_rnnlm_states = get_beam_lm_states(
+                        [v["lm_states"] for v in V], lm_type, lm_layers
+                    )
 
                     w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(
-                        w_rnnlm_states, w_tokens, beam
+                        w_rnnlm_states, w_tokens, w_range
                     )
 
                 if n < (nstep - 1):
@@ -1121,7 +1165,9 @@ class DecoderRNNTAtt(torch.nn.Module):
                         v["y"].append(w_y[i])
 
                         if rnnlm:
-                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_states"] = get_idx_lm_state(
+                                w_rnnlm_states, i, lm_type, lm_layers
+                            )
                             v["lm_scores"] = w_rnnlm_scores[i]
 
                     hyps = V[:]
@@ -1145,7 +1191,9 @@ class DecoderRNNTAtt(torch.nn.Module):
                         v["y"].append(w_y[i])
 
                         if rnnlm:
-                            v["lm_states"] = w_rnnlm_states[i]
+                            v["lm_states"] = get_idx_lm_state(
+                                w_rnnlm_states, i, lm_type, lm_layers
+                            )
                             v["lm_scores"] = w_rnnlm_scores[i]
 
             kept_hyps = sorted((S + V), key=lambda x: x["score"], reverse=True)[

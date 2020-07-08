@@ -90,3 +90,56 @@ def substract(x, subset):
         final.append(x_)
 
     return final
+
+
+def get_idx_lm_state(lm_states, idx, lm_type, lm_layers):
+    """Get lm state for given id.
+
+    Args:
+        lm_states (list or dict): lm_states for beam
+        idx (int): index to extract state from beam state
+        lm_type (str): type of lm
+        lm_layers (int): number of lm layers
+
+    Returns:
+       idx_state (dict): dict of lm state for given id
+
+    """
+    if lm_type == "wordlm":
+        return lm_states[idx]
+
+    idx_state = {}
+
+    idx_state["c"] = [lm_states["c"][layer][idx] for layer in range(lm_layers)]
+    idx_state["h"] = [lm_states["h"][layer][idx] for layer in range(lm_layers)]
+
+    return idx_state
+
+
+def get_beam_lm_states(lm_states_list, lm_type, lm_layers):
+    """Create beam lm states.
+
+    Args:
+        lm_states (list or dict): list of lm states
+        lm_type (str): type of lm
+        lm_layers (int): number of lm layers
+
+    Returns:
+       beam_states (list): list of lm states for beam
+
+    """
+    if lm_type == "wordlm":
+        return lm_states_list
+
+    beam_states = {}
+
+    beam_states["c"] = [
+        torch.stack([state["c"][layer] for state in lm_states_list])
+        for layer in range(lm_layers)
+    ]
+    beam_states["h"] = [
+        torch.stack([state["h"][layer] for state in lm_states_list])
+        for layer in range(lm_layers)
+    ]
+
+    return beam_states
