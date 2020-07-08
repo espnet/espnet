@@ -294,9 +294,15 @@ fi
 
 # The directory used for collect-stats mode
 asr_stats_dir="${expdir}/asr_stats_${feats_type}"
+if [ -n "${speed_perturb_factors}" ]; then
+    asr_stats_dir="${asr_stats_dir}_sp"
+fi
 lm_stats_dir="${expdir}/lm_stats"
 # The directory used for training commands
 asr_exp="${expdir}/asr_${asr_tag}"
+if [ -n "${speed_perturb_factors}" ]; then
+    asr_exp="${asr_exp}_sp"
+fi
 lm_exp="${expdir}/lm_${lm_tag}"
 
 # ========================== Main stages start from here. ==========================
@@ -677,7 +683,7 @@ if "${use_lm}"; then
       log "LM training started... log: '${lm_exp}/train.log'"
       # shellcheck disable=SC2086
       python3 -m espnet2.bin.launch \
-          --cmd "${cuda_cmd} --name ${lm_exp}/train.log" \
+          --cmd "${cuda_cmd} --name train.log" \
           --log "${lm_exp}"/train.log \
           --ngpu "${ngpu}" \
           --num_nodes "${num_nodes}" \
@@ -889,7 +895,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     log "ASR training started... log: '${asr_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd} --name ${asr_exp}/train.log" \
+        --cmd "${cuda_cmd} --name train.log" \
         --log "${asr_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
