@@ -396,8 +396,8 @@ class Decoder(torch.nn.Module):
         w_y, w_c = self.forward_one_step(w_tokens, w_tokens_mask, None)
 
         cache = []
-        for l in range(len(self.decoders)):
-            cache.append(w_c[l][0])
+        for layer in range(len(self.decoders)):
+            cache.append(w_c[layer][0])
 
         if rnnlm:
             w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(
@@ -519,8 +519,10 @@ class Decoder(torch.nn.Module):
                     .expand(w_range, -1, -1)
                 )
 
-                for l in range(len(self.decoders)):
-                    w_c[l] = pad_cache([v["cache"][l] for v in V], w_tokens.size(1))
+                for layer in range(len(self.decoders)):
+                    w_c[layer] = pad_cache(
+                        [v["cache"][layer] for v in V], w_tokens.size(1)
+                    )
 
                 w_y, w_c = self.forward_one_step(w_tokens, w_tokens_mask, w_c)
 
@@ -535,7 +537,9 @@ class Decoder(torch.nn.Module):
 
                 if n < (nstep - 1):
                     for i, v in enumerate(V):
-                        v["cache"] = [w_c[l][i] for l in range(len(self.decoders))]
+                        v["cache"] = [
+                            w_c[layer][i] for layer in range(len(self.decoders))
+                        ]
                         v["y"].append(w_y[i])
 
                         if rnnlm:
@@ -555,7 +559,9 @@ class Decoder(torch.nn.Module):
                         if nstep != 1:
                             v["score"] += float(blank_score[i])
 
-                        v["cache"] = [w_c[l][i] for l in range(len(self.decoders))]
+                        v["cache"] = [
+                            w_c[layer][i] for layer in range(len(self.decoders))
+                        ]
                         v["y"].append(w_y[i])
 
                         if rnnlm:
