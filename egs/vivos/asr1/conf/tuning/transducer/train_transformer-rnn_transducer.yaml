@@ -28,7 +28,6 @@ enc-block-arch:
           d_ff: 320
           heads: 4
 enc-block-repeat: 6
-dropout-rate: 0.4
 ## decoder related
 dtype: lstm
 dlayers: 1
