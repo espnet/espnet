@@ -49,10 +49,13 @@ class DecoderLayer(nn.Module):
         """Compute decoded features.
 
         Args:
-            x (torch.Tensor): decoded previous target features (B, Lmax, idim)
-            mask (torch.Tensor): mask for x (batch, Lmax)
+            tgt (torch.Tensor): decoded previous target features (B, Lmax, idim)
+            tgt_mask (torch.Tensor): mask for tgt (B, Lmax)
             cache (torch.Tensor): cached output (B, Lmax-1, idim)
 
+        Returns:
+            tgt (torch.Tensor): decoder target features (B, Lmax, odim)
+            tgt_mask (torch.Tensor): mask for tgt (B, Lmax)
         """
         residual = tgt
         if self.normalize_before:
@@ -67,8 +70,8 @@ class DecoderLayer(nn.Module):
                 self.size,
             ), f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
 
-            tgt_q = tgt[:, -1, :]
-            residual = residual[:, -1, :]
+            tgt_q = tgt[:, -1:, :]
+            residual = residual[:, -1:, :]
 
             if tgt_mask is not None:
                 tgt_mask = tgt_mask[:, -1:, :]
@@ -80,6 +83,7 @@ class DecoderLayer(nn.Module):
             tgt = residual + self.concat(tgt_concat)
         else:
             tgt = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_mask))
+
         if not self.normalize_before:
             tgt = self.norm1(tgt)
 
