@@ -113,7 +113,6 @@ class FrontendTask(AbsTask):
     @classmethod
     def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
-            # TODO: combining ref1 and ref2 into one data stream, maybe multi-channel format?
             retval = ("speech_mix", "speech_ref1")
         else:
             # Recognition mode

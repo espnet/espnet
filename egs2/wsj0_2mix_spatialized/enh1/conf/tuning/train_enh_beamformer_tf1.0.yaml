@@ -1,6 +1,6 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 30
+max_epoch: 50
 batch_type: folded
 batch_size: 16
 num_workers: 4
@@ -28,7 +28,7 @@ scheduler_conf:
 frontend: enh
 frontend_conf:
     enh_type: wpe_beamformer
-    mask_type: IAM
+    mask_type: PSM^2
     fs: 16000
     tf_factor: 1.0
     enh_conf:

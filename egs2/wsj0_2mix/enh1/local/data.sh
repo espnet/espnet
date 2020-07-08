@@ -12,9 +12,10 @@ log() {
 }
 
 help_message=$(cat << EOF
-Usage: $0 [min_or_max]
+Usage: $0 [--min_or_max <min/max>] [--sample_rate <8k/16k>]
   optional argument:
-    [min_or_max]: min (Default), max
+    [--min_or_max]: min (Default), max
+    [--sample_rate]: 8k (Default), 16k
 EOF
 )
 

@@ -40,8 +40,8 @@ EOF
 
 
 if [[ -f ${exp}/RESULTS.TXT ]]; then
-  cat ${exp}/config.yaml | grep ^config
-  cat ${exp}/RESULTS.TXT
+  grep ^config "${exp}"/config.yaml
+  cat "${exp}"/RESULTS.TXT
 fi
 
 

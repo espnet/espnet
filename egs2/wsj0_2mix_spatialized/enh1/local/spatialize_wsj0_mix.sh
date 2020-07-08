@@ -4,6 +4,8 @@
 # Apache 2.0
 
 min_or_max=min
+sample_rate=8000
+nj=16
 
 . utils/parse_options.sh
 . ./cmd.sh
@@ -14,7 +16,20 @@ set -e
 set -u
 set -o pipefail
 
-if [ $# -ne 4 ]; then
+if [[ "$min_or_max" != "max" ]] && [[ "$min_or_max" != "min" ]]; then
+  echo "Error: min_or_max must be either max or min: ${min_or_max}"
+  exit 1
+fi
+if [[ "$sample_rate" == "16k" ]]; then
+  sample_rate=16000
+elif [[ "$sample_rate" == "8k" ]]; then
+  sample_rate=8000
+else
+  echo "Error: sample rate must be either 16k or 8k: ${sample_rate}"
+  exit 1
+fi
+
+if [ $# -ne 3 ]; then
   echo "Usage: $0 <dir> <wsj0-2mix-wav> <wsj0-2mix-spatialized-wav>"
   echo " where <dir> is download space,"
   echo " <wsj0-2mix-wav> is the generated wsj0-2mix path,"
@@ -62,8 +77,8 @@ sed -i -e "s#data_in_root  = './wsj0-mix/';#data_in_root  = '${wsj0_2mix_wav}';#
        ${dir}/spatialize_wsj0_mix.m
 
 sed -i -e "s#MIN_OR_MAX=\"'min'\"#MIN_OR_MAX=\"'${min_or_max}'\"#" \
-       -e "s#FS=8000#FS=16000#" \
-       -e "s#NUM_JOBS=20#NUM_JOBS=16#" \
+       -e "s#FS=8000#FS=${sample_rate}#" \
+       -e "s#NUM_JOBS=20#NUM_JOBS=${nj}#" \
        ${dir}/launch_spatialize.sh
 
 # Download and compile rir_generator
@@ -73,13 +88,13 @@ wget --continue -O ${dir}/RIR-Generator-master/rir_generator.cpp ${url2}
 echo "Spatializing Mixtures."
 NUM_SPEAKERS=2
 MIN_OR_MAX="'${min_or_max}'"
-FS=16000                  # 16000 or 8000
+FS=${sample_rate}         # 16000 or 8000
 START_IND=1
 STOP_IND=28000            # number of utts: 20000+5000+3000
 USEPARCLUSTER_WITH_IND=1  # 1 for using parallel processing toolbox
 GENERATE_RIRS=1           # 1 for generating RIRs
 
-NUM_WORKERS=16            # maximum of 1 MATLAB worker per CPU core is recommended
+NUM_WORKERS=${nj}         # maximum of 1 MATLAB worker per CPU core is recommended
 sed -i -e "s#c.NumWorkers = 22;#c.NumWorkers = ${NUM_WORKERS};#" ${dir}/spatialize_wsj0_mix.m
 
 # Java must be initialized in order to use the Parallel Computing Toolbox.

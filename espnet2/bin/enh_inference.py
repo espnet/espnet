@@ -34,6 +34,7 @@ def inference(
     enh_train_config: str,
     enh_model_file: str,
     allow_variable_data_keys: bool,
+    normalize_output_wav: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -97,7 +98,12 @@ def inference(
 
         # FIXME(Chenda): will be incorrect when
         #  batch size is not 1 or multi-channel case
-        waves = [w.T.cpu().numpy() for w in waves]
+        if normalize_output_wav:
+            waves = [
+                (w / w.max(dim=1, keepdim=True)[0]).T.cpu().numpy() for w in waves
+            ]  # list[(sample,batch)]
+        else:
+            waves = [w.T.cpu().numpy() for w in waves]
         for (i, w) in enumerate(waves):
             writers[i][keys[0]] = fs, w
 
@@ -151,6 +157,14 @@ def get_parser():
     )
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
+
+    group = parser.add_argument_group("Output data related")
+    group.add_argument(
+        "--normalize_output_wav",
+        type=str2bool,
+        default=False,
+        help="Weather to normalize the predicted wav to [-1~1]",
+    )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--enh_train_config", type=str, required=True)

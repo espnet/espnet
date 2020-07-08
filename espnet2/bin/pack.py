@@ -18,6 +18,7 @@ class TTSPackedContents(PackedContents):
     files = ["model_file.pth"]
     yaml_files = ["train_config.yaml"]
 
+
 class EnhPackedContents(PackedContents):
     files = ["model_file.pth"]
     yaml_files = ["train_config.yaml"]
@@ -48,7 +49,11 @@ def get_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers()
 
     # Create subparser for ASR
-    for name, contents in [("asr", ASRPackedContents), ("tts", TTSPackedContents), ("enh", EnhPackedContents)]:
+    for name, contents in [
+        ("asr", ASRPackedContents),
+        ("tts", TTSPackedContents),
+        ("enh", EnhPackedContents),
+    ]:
         parser_asr = subparsers.add_parser(
             name, formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )

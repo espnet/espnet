@@ -3,6 +3,7 @@ This script is used to construct convolutional beamformers.
 Copyright 2020  Wangyou Zhang
  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """
+from typing import List
 from typing import Union
 
 import torch
@@ -22,6 +23,7 @@ def signal_framing(
     bdelay: int,
     do_padding: bool = False,
     pad_value: int = 0,
+    indices: List = None,
 ) -> Union[torch.Tensor, ComplexTensor]:
     """Expand `signal` into several frames, with each frame of length `frame_length`.
 
@@ -39,15 +41,7 @@ def signal_framing(
             if do_padding: (..., T, frame_length)
             else:          (..., T - bdelay - frame_length + 2, frame_length)
     """
-    if isinstance(signal, ComplexTensor):
-        real = signal_framing(
-            signal.real, frame_length, frame_step, bdelay, do_padding, pad_value
-        )
-        imag = signal_framing(
-            signal.imag, frame_length, frame_step, bdelay, do_padding, pad_value
-        )
-        return ComplexTensor(real, imag)
-    else:
+    if indices is None:
         frame_length2 = frame_length - 1
         # pad to the right at the last dimension of `signal` (time dimension)
         if do_padding:
@@ -67,6 +61,15 @@ def signal_framing(
             for i in range(0, signal.shape[-1] - frame_length2 - bdelay + 1, frame_step)
         ]
 
+    if isinstance(signal, ComplexTensor):
+        real = signal_framing(
+            signal.real, frame_length, frame_step, bdelay, do_padding, pad_value, indices
+        )
+        imag = signal_framing(
+            signal.imag, frame_length, frame_step, bdelay, do_padding, pad_value, indices
+        )
+        return ComplexTensor(real, imag)
+    else:
         # (..., T - bdelay - frame_length + 2, frame_length)
         signal = signal[..., indices]
         # signal[..., :-1] = -signal[..., :-1]

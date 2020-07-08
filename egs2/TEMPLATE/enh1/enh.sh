@@ -59,7 +59,7 @@ use_dereverb_ref=false
 use_noise_ref=false
 
 # Enhancement related
-inference_args=
+inference_args="--normalize_output_wav false"
 inference_enh_model=valid.si_snr.best.pth
 
 # Evaluation related
@@ -649,7 +649,8 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         done
 
         for protocol in ${scoring_protocol}; do
-            echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}/${protocol}_spk${spk_num} "; done)  | 
+            # shellcheck disable=SC2046
+            echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo ${_dir}/${protocol}_spk${j} ; done)  | 
             awk 'BEIGN{sum=0}
                 {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
                 END{print sum/NR}') 
