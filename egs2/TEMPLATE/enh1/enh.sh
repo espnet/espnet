@@ -632,13 +632,13 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         # 2. Submit decoding jobs
         log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
         # shellcheck disable=SC2086
-        ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
-            python3 -m espnet2.bin.enh_scoring \
-                --key_file "${_logdir}"/keys.JOB.scp \
-                --output_dir "${_logdir}"/output.JOB \
-                ${_ref_scp} \
-                ${_inf_scp} \
-                --ref_channel ${ref_channel}
+        # ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
+        #     python3 -m espnet2.bin.enh_scoring \
+        #         --key_file "${_logdir}"/keys.JOB.scp \
+        #         --output_dir "${_logdir}"/output.JOB \
+        #         ${_ref_scp} \
+        #         ${_inf_scp} \
+        #         --ref_channel ${ref_channel}
 
         for spk in $(seq "${spk_num}"); do
             for protocol in ${scoring_protocol}; do
@@ -649,7 +649,8 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         done
 
         for protocol in ${scoring_protocol}; do
-            echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}/${protocol}_spk${spk_num} "; done)  | 
+            # shellcheck disable=SC2046
+            echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo ${_dir}/${protocol}_spk${j} ; done)  | 
             awk 'BEIGN{sum=0}
                 {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
                 END{print sum/NR}') 
