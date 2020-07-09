@@ -101,8 +101,8 @@ class ESPnetFrontendModel(AbsESPnetModel):
         Args:
             speech_mix: (Batch, samples) or (Batch, samples, channels)
             speech_ref: (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
-            speech_lengths: (Batch,), default 0 for chunk interator, because the chunk-interator
-                            has not the speech_lenghts returned.
+            speech_lengths: (Batch,), default 0 for chunk interator, because the chunk-iterator
+                            has no the speech_lengths returned.
                             see in espnet2/iterators/chunk_iter_factory.py
         """
         # clean speech signal of each speaker
