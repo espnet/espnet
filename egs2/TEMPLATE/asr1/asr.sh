@@ -1123,7 +1123,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         --asr_model_file.pth "${asr_exp}"/"${decode_asr_model}" \
         ${_opts} \
         --option "${asr_exp}"/RESULTS.md \
-        --outpath "${asr_exp}/packed.tgz"
+        --outpath "${asr_exp}/packed.zip"
 
 fi
 
