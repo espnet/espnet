@@ -26,13 +26,6 @@ def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents
     for key in contents.files:
         parser.add_argument(f"--{key}", type=str, default=None)
     parser.add_argument("--option", type=str, action="append", default=[])
-    parser.add_argument(
-        "--mode",
-        type=str,
-        default="w:gz",
-        choices=["w", "w:gz", "w:bz2", "w:xz"],
-        help="Compression mode",
-    )
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -69,11 +62,7 @@ def main(cmd=None):
         y: getattr(args, y) for y in args.contents.files if getattr(args, y) is not None
     }
     pack(
-        yaml_files=yaml_files,
-        files=files,
-        option=args.option,
-        outpath=args.outpath,
-        mode=args.mode,
+        yaml_files=yaml_files, files=files, option=args.option, outpath=args.outpath,
     )
 
 
