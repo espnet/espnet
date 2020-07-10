@@ -417,7 +417,7 @@ def train(args):
         assert args.mtlalpha == 1.0
         mtl_mode = "transducer"
         logging.info("Pure transducer mode")
-    if args.mtlalpha == 1.0:
+    elif args.mtlalpha == 1.0:
         mtl_mode = "ctc"
         logging.info("Pure CTC mode")
     elif args.mtlalpha == 0.0:
@@ -667,7 +667,7 @@ def train(args):
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and (
-        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt"
+        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
     ):
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
