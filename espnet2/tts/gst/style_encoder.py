@@ -37,6 +37,9 @@ class StyleEncoder(torch.nn.Module):
         gru_layers (int, optional): The number of GRU layers in the reference encoder.
         gru_units (int, optional): The number of GRU units in the reference encoder.
 
+    Todo:
+        * Support manual weight specification in inference.
+
     """
 
     def __init__(
