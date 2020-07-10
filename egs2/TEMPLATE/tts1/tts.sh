@@ -696,7 +696,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         --train_config.yaml "${tts_exp}"/config.yaml \
         --model_file.pth "${tts_exp}"/"${decode_model}" \
         --option ${tts_stats_dir}/train/feats_stats.npz  \
-        --outpath "${tts_exp}/packed.tgz"
+        --outpath "${tts_exp}/packed.zip"
 
 fi
 
