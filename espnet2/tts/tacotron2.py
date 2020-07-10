@@ -416,7 +416,7 @@ class Tacotron2(AbsTTS):
         h = self.enc.inference(x)
         if self.use_gst:
             style_emb = self.gst(y.unsqueeze(0))
-            hs = h + style_emb
+            h = h + style_emb
         if self.spk_embed_dim is not None:
             hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
             h = self._integrate_with_spk_embed(hs, spembs)[0]
