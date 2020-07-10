@@ -22,6 +22,7 @@ def load_pretrained_model(
     """
     if pretrain_key is None:
         obj = model
+        key_prefix = ""  
     else:
 
         def get_attr(obj: Any, key: str):
@@ -35,18 +36,21 @@ def load_pretrained_model(
             >>> assert A.linear.weight is get_attr(A, 'linear.weight')
 
             """
+            key_prefix = []
             if key.strip() == "":
                 return obj
             for k in key.split("."):
                 obj = getattr(obj, k)
-            return obj
+                key_prefix.append(k)
+            key_prefix = ".".join(key_prefix) + "."
+            return obj, key_prefix
 
-        obj = get_attr(model, pretrain_key)
+        obj, key_prefix = get_attr(model, pretrain_key)
 
     state_dict = obj.state_dict()
     pretrained_dict = torch.load(pretrain_path, map_location=map_location)
     if ignore_not_existing_keys:
         # Ignores the parameters not existing in the train-model
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in state_dict}
+        pretrained_dict = {k: pretrained_dict[key_prefix + k] for k in state_dict if key_prefix + k in pretrained_dict}
     state_dict.update(pretrained_dict)
     obj.load_state_dict(state_dict)
