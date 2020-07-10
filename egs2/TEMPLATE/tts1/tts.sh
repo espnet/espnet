@@ -620,13 +620,17 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _feats_type="$(<${data_feats}/${train_set}/feats_type)"
 
     # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
-    if [ "${_feats_type}" == fbank ] || [ "${_feats_type}" == stft ]; then
+    _scp=wav.scp
+    _type=sound
+    if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
         _opts+="--vocoder_conf n_fft=${n_fft} "
         _opts+="--vocoder_conf n_shift=${n_shift} "
         _opts+="--vocoder_conf win_length=${win_length} "
         _opts+="--vocoder_conf fs=${fs} "
+        _scp=feats.scp
+        _type=kaldi_ark
     fi
-    if [ "${_feats_type}" == fbank ]; then
+    if [ "${_feats_type}" = fbank ]; then
         _opts+="--vocoder_conf n_mels=${n_mels} "
         _opts+="--vocoder_conf fmin=${fmin} "
         _opts+="--vocoder_conf fmax=${fmax} "
@@ -654,11 +658,11 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # 2. Submit decoding jobs
         log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
         # shellcheck disable=SC2086
-        # NOTE(kan-bayashi): --key_file is useful when we want to use multiple data
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
             python3 -m espnet2.bin.tts_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/text,text,text" \
+                --data_path_and_name_and_type ${_data}/${_scp},speech,${_type} \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
