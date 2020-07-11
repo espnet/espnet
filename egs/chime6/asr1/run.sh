@@ -29,7 +29,7 @@ lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+recog_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
 
 # data
@@ -58,7 +58,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 train_set=train_worn_simu_u400k_cleaned
-train_dev=dev_gss12
+train_dev=dev_gss
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### trimming and speed pertrubation for training data
@@ -175,7 +175,7 @@ fi
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "[STAGE 7]: Decoding"
     nj=40
-    decode_dir=decode_${train_dev}_$(basename ${decode_config%.*})_${lmtag}
+    decode_dir=decode_${train_dev}
     feat_recog_dir=${dumpdir}/${train_dev}/delta${do_delta}
 
     # split data
@@ -192,9 +192,8 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --recog-json ${feat_dt_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/rnnlm.model.best
 
-    score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+    score_sclite.sh --wer true --nlsyms ${nlsyms} --filter local/wer_output_filter ${expdir}/${decode_dir} ${dict}
 
     echo "Finished"
 fi
