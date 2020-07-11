@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 from pathlib import Path
 import sys
@@ -7,7 +8,6 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import configargparse
 import numpy as np
 import torch
 from torch.nn.parallel import data_parallel
@@ -19,6 +19,7 @@ from espnet2.tasks.lm import LMTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils import config_argparse
 from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -130,16 +131,13 @@ def calc_perplexity(
 
 
 def get_parser():
-    parser = configargparse.ArgumentParser(
+    parser = config_argparse.ArgumentParser(
         description="Calc perplexity",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument("--config", is_config_file=True, help="config file path")
-
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 import sys
 from typing import Optional
@@ -6,7 +7,6 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import configargparse
 import torch
 from typeguard import check_argument_types
 
@@ -22,6 +22,7 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -200,16 +201,13 @@ def inference(
 
 
 def get_parser():
-    parser = configargparse.ArgumentParser(
+    parser = config_argparse.ArgumentParser(
         description="ASR Decoding",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument("--config", is_config_file=True, help="config file path")
-
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),
