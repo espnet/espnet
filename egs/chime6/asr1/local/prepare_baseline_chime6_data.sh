@@ -317,7 +317,7 @@ if [ $stage -le 15 ] && [[ ${enhancement} == *gss* ]]; then
   
   # make segments file
   utils/data/get_utt2dur.sh --nj 1 data/dev_${enhancement}
-  awk '{ print $1, $1, 0, $2 }' data/dev_${enhancement}/utt2dur > data/dev_gss12/segments
+  awk '{ print $1, $1, 0, $2 }' data/dev_${enhancement}/utt2dur > data/dev_${enhancement}/segments
 
 fi
 
