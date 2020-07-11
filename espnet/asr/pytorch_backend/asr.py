@@ -751,7 +751,7 @@ def train(args):
                 ),
                 trigger=CompareValueTrigger(
                     "validation/main/loss",
-                    lambda best_value, current_value: best_value < current_value,
+                    lambda best_value, current_value: best_value < 0.0,
                 ),
             )
             trainer.extend(
