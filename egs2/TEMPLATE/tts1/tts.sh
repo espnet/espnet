@@ -62,6 +62,7 @@ train_config=      # Config for training.
 train_args=        # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
+tts_exp=           # Specify the direcotry path for experiment. If this option is specified, tag is ignored.
 num_splits=1       # Number of splitting for tts corpus
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 
@@ -128,6 +129,7 @@ Options:
     --train_args   # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
                    # Note that it will overwrite args in train config.
     --tag          # Suffix for training directory (default="${tag}").
+    --tts_exp      # Specify the direcotry path for experiment. If this option is specified, tag is ignored (default="${tts_exp}").
     --num_splits   # Number of splitting for tts corpus (default="${num_splits}").
 
     # Decoding related
@@ -229,7 +231,9 @@ if [ "${token_type}" = phn ]; then
     tts_stats_dir+="_${g2p}"
 fi
 # The directory used for training commands
-tts_exp="${expdir}/tts_${tag}"
+if [ -z "${tts_exp}" ]; then
+    tts_exp="${expdir}/tts_${tag}"
+fi
 
 
 # ========================== Main stages start from here. ==========================
@@ -769,21 +773,65 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 rm -rf "${_logdir}/output.${i}"/{att_ws,probs}
             done
         fi
-    done
-
-fi
+    done fi
 
 
+packed_model="${tts_exp}/${tts_exp##*/}_${decode_model%.*}.zip"
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "[Option] Stage 8: Pack model: ${tts_exp}/packed.tgz"
+    log "[Option] Stage 8: Pack model: ${packed_model}"
 
     python -m espnet2.bin.pack tts \
-        --train_config.yaml "${tts_exp}"/config.yaml \
-        --model_file.pth "${tts_exp}"/"${decode_model}" \
+        --dirname "$(basename ${packed_model} .zip)" \
+        --config.yaml "${tts_exp}"/config.yaml \
+        --pretrain.pth "${tts_exp}"/"${decode_model}" \
         --option ${tts_stats_dir}/train/feats_stats.npz  \
-        --outpath "${tts_exp}/packed.zip"
+        --outpath "${packed_model}"
 
+    # NOTE(kamo): If you'll use packed model to decode in this script, do as follows
+    #   % unzip ${packed_model}
+    #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --decode_model pretrain.pth
 fi
 
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    log "[Option] Stage 9: Upload model to Zenodo: ${packed_model}"
+
+    # To upload your model, you need to do:
+    #   1. Signup to Zenodo: https://zenodo.org/
+    #   2. Create access_token: https://zenodo.org/account/settings/applications/tokens/new/
+    #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+    if command -v git &> /dev/null; then
+        creator_name="$(git config user.name)"
+    else
+        creator_name="$(whoami)"
+    fi
+    # /some/where/espnet/egs2/foo/tts1/ -> foo/tt1
+    task="$(pwd | rev | cut -d/ -f1-2 | rev)"
+    # foo/asr1 -> foo
+    corpus="${task%/*}"
+
+    # Generate description file
+    cat << EOF > "${tts_exp}"/description
+This model was trained by ${creator_name} using ${task} recipe in <a href="https://github.com/espnet/espnet/" target="_blank">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+	<li><strong>Config</strong><pre><code>$(cat "${tts_exp}"/config.yaml)</code></pre></li>
+</ul>
+EOF
+
+    # NOTE(kamo): The model file is uploaded here, but not published yet. 
+    #   Please confirm your record at Zenodo and publish by youself.
+
+    # shellcheck disable=SC2086
+    python -m espnet2.bin.zenodo_upload \
+        --file "${packed_model}" \
+        --title "ESPnet2 pretrained model, ${creator_name}/${corpus}_$(basename ${packed_model} .zip)" \
+        --description_file "${tts_exp}"/description \
+        --creator_name "${creator_name}" \
+        --license "CC-BY-4.0" \
+        --use_sandbox false \
+        --publish false
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

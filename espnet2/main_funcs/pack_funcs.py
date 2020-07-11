@@ -13,8 +13,6 @@ import zipfile
 
 import yaml
 
-DIRNAME = Path("packed")
-
 
 class Archiver:
     def __init__(self, file, mode="r"):
@@ -161,7 +159,7 @@ def unpack(
 
     with Archiver(input_tarfile) as archive:
         for info in archive:
-            if archive.get_name_from_info(info) == str(DIRNAME / "meta.yaml"):
+            if Path(archive.get_name_from_info(info)).name == "meta.yaml":
                 d = yaml.safe_load(archive.extractfile(info))
                 yaml_files = d["yaml_files"]
                 break
@@ -195,15 +193,17 @@ def pack(
     yaml_files: Dict[str, Union[str, Path]],
     outpath: Union[str, Path],
     option: Iterable[Union[str, Path]] = (),
+    dirname: str = "packed",
 ):
     for v in list(files.values()) + list(yaml_files.values()) + list(option):
         if not Path(v).exists():
             raise FileNotFoundError(f"No such file or directory: {v}")
+    dirname = Path(dirname)
 
     files_map = {}
     for name, src in list(files.items()):
         # Save as e.g. packed/asr_model_file.pth
-        dst = str(DIRNAME / name)
+        dst = str(dirname / name)
         files_map[dst] = src
 
     for src in option:
@@ -212,9 +212,9 @@ def pack(
         while True:
             p = Path(src)
             if idx == 0:
-                dst = str(DIRNAME / "option" / p.name)
+                dst = str(dirname / "option" / p.name)
             else:
-                dst = str(DIRNAME / "option" / f"{p.stem}.{idx}{p.suffix}")
+                dst = str(dirname / "option" / f"{p.stem}.{idx}{p.suffix}")
             if dst not in files_map:
                 files_map[dst] = src
                 break
@@ -227,7 +227,7 @@ def pack(
             dic = yaml.safe_load(f)
             for dst, src in files_map.items():
                 dic = find_path_and_change_it_recursive(dic, src, dst)
-            dst = str(DIRNAME / name)
+            dst = str(dirname / name)
             yaml_files_map[dst] = dic
 
     meta_objs = dict(
@@ -254,7 +254,7 @@ def pack(
     with Archiver(outpath, mode="w") as archive:
         # Write packed/meta.yaml
         fileobj = BytesIO(yaml.safe_dump(meta_objs).encode())
-        info = archive.generate_info(DIRNAME / "meta.yaml", fileobj.getbuffer().nbytes)
+        info = archive.generate_info(dirname / "meta.yaml", fileobj.getbuffer().nbytes)
         archive.addfile(info, fileobj=fileobj)
 
         for dst, dic in yaml_files_map.items():

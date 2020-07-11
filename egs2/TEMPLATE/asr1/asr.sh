@@ -60,6 +60,7 @@ bpe_char_cover=1.0  # character coverage when modeling BPE
 # Language model related
 use_lm=true       # Use language model for ASR decoding.
 lm_tag=           # Suffix to the result dir for language model training.
+lm_exp=           # Specify the direcotry path for LM experiment. If this option is specified, lm_tag is ignored.
 lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
                   # Note that it will overwrite args in lm config.
@@ -70,6 +71,7 @@ word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
 asr_tag=    # Suffix to the result dir for asr model training.
+asr_exp=    # Specify the direcotry path for ASR experiment. If this option is specified, asr_tag is ignored.
 asr_config= # Config for asr model training.
 asr_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in asr config.
@@ -143,6 +145,7 @@ Options:
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
+    --lm_exp          # Specify the direcotry path for LM experiment. If this option is specified, lm_tag is ignored (default="${lm_exp}").
     --lm_config       # Config for language model training (default="${lm_config}").
     --lm_args         # Arguments for language model training, e.g., "--max_epoch 10" (default="${lm_args}").
                       # Note that it will overwrite args in lm config.
@@ -152,6 +155,7 @@ Options:
 
     # ASR model related
     --asr_tag    # Suffix to the result dir for asr model training (default="${asr_tag}").
+    --asr_exp    # Specify the direcotry path for ASR experiment. If this option is specified, asr_tag is ignored (default="${asr_exp}").
     --asr_config # Config for asr model training (default="${asr_config}").
     --asr_args   # Arguments for asr model training, e.g., "--max_epoch 10" (default="${asr_args}").
                  # Note that it will overwrite args in asr config.
@@ -296,8 +300,12 @@ fi
 asr_stats_dir="${expdir}/asr_stats_${feats_type}"
 lm_stats_dir="${expdir}/lm_stats"
 # The directory used for training commands
-asr_exp="${expdir}/asr_${asr_tag}"
-lm_exp="${expdir}/lm_${lm_tag}"
+if [ -z "${asr_exp}" ]; then
+    asr_exp="${expdir}/asr_${asr_tag}"
+fi
+if [ -z "${lm_exp}" ]; then
+    lm_exp="${expdir}/lm_${lm_tag}"
+fi
 
 # ========================== Main stages start from here. ==========================
 
@@ -1103,13 +1111,14 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
 fi
 
 
+packed_model="${asr_exp}/${asr_exp##*/}_${decode_asr_model%.*}.zip"
 if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-    log "[Option] Stage 13: Pack model: ${asr_exp}/packed.tgz"
+    log "[Option] Stage 13: Pack model: ${packed_model}"
 
     _opts=
     if "${use_lm}"; then
-        _opts+="--lm_train_config.yaml ${lm_exp}/config.yaml "
-        _opts+="--lm_file.pth ${lm_exp}/${decode_lm} "
+        _opts+="--lm/config.yaml ${lm_exp}/config.yaml "
+        _opts+="--lm/pretrain.pth ${lm_exp}/${decode_lm} "
     fi
     if [ "${feats_normalize}" = global_mvn ]; then
         _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
@@ -1119,12 +1128,61 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     fi
     # shellcheck disable=SC2086
     python -m espnet2.bin.pack asr \
-        --asr_train_config.yaml "${asr_exp}"/config.yaml \
-        --asr_model_file.pth "${asr_exp}"/"${decode_asr_model}" \
+        --dirname "$(basename ${packed_model} .zip)" \
+        --asr/config.yaml "${asr_exp}"/config.yaml \
+        --asr/pretrain.pth "${asr_exp}"/"${decode_asr_model}" \
         ${_opts} \
         --option "${asr_exp}"/RESULTS.md \
-        --outpath "${asr_exp}/packed.zip"
+        --outpath "${packed_model}"
 
+    # NOTE(kamo): If you'll use packed model to decode in this script, do as follows
+    #   % unzip ${packed_model}
+    #   % exp=$(basename ${packed_model} .zip)
+    #   % ./run.sh --stage 11 --asr_exp ${exp}/asr --decode_asr_model pretrain.pth --lm_exp ${exp}/lm --decode_lm pretrain.pth
+fi
+
+
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+    log "[Option] Stage 14: Upload model to Zenodo: ${packed_model}"
+
+    # To upload your model, you need to do:
+    #   1. Sign up to Zenodo: https://zenodo.org/
+    #   2. Create access_token: https://zenodo.org/account/settings/applications/tokens/new/
+    #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+    if command -v git &> /dev/null; then
+        creator_name="$(git config user.name)"
+    else
+        creator_name="$(whoami)"
+    fi
+    # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+    task="$(pwd | rev | cut -d/ -f2 | rev)"
+    # foo/asr1 -> foo
+    corpus="${task%/*}"
+
+    # Generate description file
+    cat << EOF > "${asr_exp}"/description
+This model was trained by ${creator_name} using ${task} recipe in <a href="https://github.com/espnet/espnet/" target="_blank">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+	<li><strong>Results</strong><pre><code>$(cat "${asr_exp}"/RESULTS.md)</code></pre></li>
+	<li><strong>ASR config</strong><pre><code>$(cat "${asr_exp}"/config.yaml)</code></pre></li>
+	<li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
+</ul>
+EOF
+
+    # NOTE(kamo): The model file is uploaded here, but not published yet. 
+    #   Please confirm your record at Zenodo and publish by youself.
+
+    # shellcheck disable=SC2086
+    python -m espnet2.bin.zenodo_upload \
+        --file "${packed_model}" \
+        --title "ESPnet2 pretrained model, ${creator_name}/${corpus}_$(basename ${packed_model} .zip)" \
+        --description_file ${asr_exp}/description \
+        --creator_name "${creator_name}" \
+        --license "CC-BY-4.0" \
+        --use_sandbox false \
+        --publish false
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
