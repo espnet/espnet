@@ -2,6 +2,7 @@
 
 """TTS mode decoding."""
 
+import argparse
 import logging
 from pathlib import Path
 import sys
@@ -12,7 +13,6 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import configargparse
 import matplotlib
 import numpy as np
 import soundfile as sf
@@ -26,6 +26,7 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -261,18 +262,13 @@ def inference(
 
 def get_parser():
     """Get argument parser."""
-    parser = configargparse.ArgumentParser(
+    parser = config_argparse.ArgumentParser(
         description="TTS Decode",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     # Note(kamo): Use "_" instead of "-" as separator.
     # "-" is confusing if written in yaml.
-    parser.add_argument(
-        "--config", is_config_file=True, help="config file path",
-    )
-
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),
