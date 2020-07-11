@@ -58,11 +58,12 @@ blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 
 # Training related
-train_config= # Config for training.
-train_args=   # Arguments for training, e.g., "--max_epoch 1".
-              # Note that it will overwrite args in train config.
-tag=""        # Suffix for training directory.
-num_splits=1  # Number of splitting for tts corpus
+train_config=      # Config for training.
+train_args=        # Arguments for training, e.g., "--max_epoch 1".
+                   # Note that it will overwrite args in train config.
+tag=""             # Suffix for training directory.
+num_splits=1       # Number of splitting for tts corpus
+teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 
 # Decoding related
 decode_config= # Config for decoding.
@@ -512,60 +513,119 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _opts+="--config ${train_config} "
     fi
 
-    _feats_type="$(<${_train_dir}/feats_type)"
-    if [ "${_feats_type}" = raw ]; then
-        _scp=wav.scp
-        # "sound" supports "wav", "flac", etc.
-        _type=sound
-        _fold_length="$((speech_fold_length * n_shift))"
-        _opts+="--feats_extract fbank "
-        _opts+="--feats_extract_conf fs=${fs} "
-        _opts+="--feats_extract_conf fmin=${fmin} "
-        _opts+="--feats_extract_conf fmax=${fmax} "
-        _opts+="--feats_extract_conf n_mels=${n_mels} "
-        _opts+="--feats_extract_conf hop_length=${n_shift} "
-        _opts+="--feats_extract_conf n_fft=${n_fft} "
-        _opts+="--feats_extract_conf win_length=${win_length} "
-    else
-        _scp=feats.scp
-        _type=kaldi_ark
-        _fold_length="${speech_fold_length}"
-        _odim="$(<${_train_dir}/feats_dim)"
-        _opts+="--odim=${_odim} "
-    fi
+    if [ -z "${teacher_dumpdir}" ]; then
+        # CASE 1: Standard training
+        _feats_type="$(<${_train_dir}/feats_type)"
 
-    if [ "${num_splits}" -gt 1 ]; then
-        # If you met a memory error when parsing text files, this option may help you.
-        # The corpus is split into subsets and each subset is used for training one by one in order,
-        # so the memory footprint can be limited to the memory required for each dataset.
-
-        _split_dir="${tts_stats_dir}/splits${num_splits}"
-        if [ ! -f "${_split_dir}/.done" ]; then
-            rm -f "${_split_dir}/.done"
-            python3 -m espnet2.bin.split_scps \
-              --scps \
-                  "${_train_dir}/text" \
-                  "${_train_dir}/${_scp}" \
-                  "${tts_stats_dir}/train/speech_shape" \
-                  "${tts_stats_dir}/train/text_shape.${token_type}" \
-              --num_splits "${num_splits}" \
-              --output_dir "${_split_dir}"
-            touch "${_split_dir}/.done"
+        if [ "${_feats_type}" = raw ]; then
+            _scp=wav.scp
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+            _fold_length="$((speech_fold_length * n_shift))"
+            _opts+="--feats_extract fbank "
+            _opts+="--feats_extract_conf fs=${fs} "
+            _opts+="--feats_extract_conf fmin=${fmin} "
+            _opts+="--feats_extract_conf fmax=${fmax} "
+            _opts+="--feats_extract_conf n_mels=${n_mels} "
+            _opts+="--feats_extract_conf hop_length=${n_shift} "
+            _opts+="--feats_extract_conf n_fft=${n_fft} "
+            _opts+="--feats_extract_conf win_length=${win_length} "
         else
-            log "${_split_dir}/.done exists. Spliting is skipped"
+            _scp=feats.scp
+            _type=kaldi_ark
+            _fold_length="${speech_fold_length}"
+            _odim="$(<${_train_dir}/feats_dim)"
+            _opts+="--odim=${_odim} "
         fi
 
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-        _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
-        _opts+="--train_shape_file ${_split_dir}/speech_shape "
-        _opts+="--multiple_iterator true "
+        if [ "${num_splits}" -gt 1 ]; then
+            # If you met a memory error when parsing text files, this option may help you.
+            # The corpus is split into subsets and each subset is used for training one by one in order,
+            # so the memory footprint can be limited to the memory required for each dataset.
 
+            _split_dir="${tts_stats_dir}/splits${num_splits}"
+            if [ ! -f "${_split_dir}/.done" ]; then
+                rm -f "${_split_dir}/.done"
+                python3 -m espnet2.bin.split_scps \
+                  --scps \
+                      "${_train_dir}/text" \
+                      "${_train_dir}/${_scp}" \
+                      "${tts_stats_dir}/train/speech_shape" \
+                      "${tts_stats_dir}/train/text_shape.${token_type}" \
+                  --num_splits "${num_splits}" \
+                  --output_dir "${_split_dir}"
+                touch "${_split_dir}/.done"
+            else
+                log "${_split_dir}/.done exists. Spliting is skipped"
+            fi
+
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+            _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+            _opts+="--train_shape_file ${_split_dir}/speech_shape "
+            _opts+="--multiple_iterator true "
+
+        else
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+        fi
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
     else
-        _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
-        _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
-        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
-        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+        # CASE 2: Knowledge distillation training
+        _teacher_train_dir="${teacher_dumpdir}/${train_set}"
+        _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
+        _scp=feats.scp
+        _type=npy
+        _fold_length="${speech_fold_length}"
+        _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
+        _opts+="--odim=${_odim} "
+
+        if [ "${num_splits}" -gt 1 ]; then
+            # If you met a memory error when parsing text files, this option may help you.
+            # The corpus is split into subsets and each subset is used for training one by one in order,
+            # so the memory footprint can be limited to the memory required for each dataset.
+
+            _split_dir="${teacher_dumpdir}/splits${num_splits}"
+            if [ ! -f "${_split_dir}/.done" ]; then
+                rm -f "${_split_dir}/.done"
+                python3 -m espnet2.bin.split_scps \
+                  --scps \
+                      "${_train_dir}/text" \
+                      "${_teacher_train_dir}/denorm/${_scp}" \
+                      "${_teacher_train_dir}/speech_shape" \
+                      "${_teacher_train_dir}/durations" \
+                      "${_teacher_train_dir}/focus_rates" \
+                      "${tts_stats_dir}/text_shape.${token_type}" \
+                  --num_splits "${num_splits}" \
+                  --output_dir "${_split_dir}"
+                touch "${_split_dir}/.done"
+            else
+                log "${_split_dir}/.done exists. Spliting is skipped"
+            fi
+
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+            _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+            _opts+="--train_shape_file ${_split_dir}/speech_shape "
+            _opts+="--multiple_iterator true "
+
+        else
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/denorm/${_scp},speech,${_type} "
+            _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
+            _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape "
+        fi
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
+        _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/denorm/${_scp},speech,${_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
+        _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape "
     fi
 
     # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
@@ -588,10 +648,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --g2p "${g2p}" \
             --normalize global_mvn \
             --normalize_conf "stats_file=${tts_stats_dir}/train/feats_stats.npz" \
-            --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
-            --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},speech,${_type}" \
-            --valid_shape_file "${tts_stats_dir}/valid/text_shape.${token_type}" \
-            --valid_shape_file "${tts_stats_dir}/valid/speech_shape" \
             --resume true \
             --fold_length "${text_fold_length}" \
             --fold_length "${_fold_length}" \
@@ -617,7 +673,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _opts+="--config ${decode_config} "
     fi
 
-    _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+    if [ -z "${teacher_dumpdir}" ]; then
+        _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+    else
+        # TODO(kan-bayashi): Fix hard coding
+        _feats_type=fbank
+    fi
 
     # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
     _scp=wav.scp
@@ -638,9 +699,18 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     for dset in ${test_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${tts_exp}/${decode_tag}_${dset}"
+        _speech_data="${_data}"
+        _dir="${tts_exp}/${decode_tag}/${dset}"
         _logdir="${_dir}/log"
         mkdir -p "${_logdir}"
+
+        # NOTE(kan-bayashi): Overwrite speech arguments if teacher dumpdir is provided
+        if [ -n "${teacher_dumpdir}" ]; then
+            # TODO(kan-bayashi): Make this part more flexible
+            _speech_data="${teacher_dumpdir}/${dset}/denorm"
+            _scp=feats.scp
+            _type=npy
+        fi
 
         # 0. Copy feats_type
         cp "${_data}/feats_type" "${_dir}/feats_type"
@@ -662,7 +732,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             python3 -m espnet2.bin.tts_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/text,text,text" \
-                --data_path_and_name_and_type ${_data}/${_scp},speech,${_type} \
+                --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --model_file "${tts_exp}"/"${decode_model}" \
                 --train_config "${tts_exp}"/config.yaml \
@@ -671,7 +741,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 ${_opts} ${decode_args}
 
         # 3. Concatenates the output files from each jobs
-        mkdir -p "${_dir}"/{norm,denorm,wav,att_ws,probs}
+        mkdir -p "${_dir}"/{norm,denorm,wav}
         for i in $(seq "${_nj}"); do
              cat "${_logdir}/output.${i}/norm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
@@ -679,11 +749,26 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
              cat "${_logdir}/output.${i}/denorm/feats.scp"
         done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
         for i in $(seq "${_nj}"); do
+             cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+        done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+        for i in $(seq "${_nj}"); do
             mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-            mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
-            mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
-            rm -rf "${_logdir}/output.${i}"/{wav,att_ws,probs}
+            rm -rf "${_logdir}/output.${i}"/wav
         done
+        if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
+            mkdir -p "${_dir}"/{att_ws,probs}
+            for i in $(seq "${_nj}"); do
+                 cat "${_logdir}/output.${i}/durations/durations"
+            done | LC_ALL=C sort -k1 > "${_dir}/durations"
+            for i in $(seq "${_nj}"); do
+                 cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+            done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
+            for i in $(seq "${_nj}"); do
+                mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+                mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                rm -rf "${_logdir}/output.${i}"/{att_ws,probs}
+            done
+        fi
     done
 
 fi

@@ -5,6 +5,7 @@
 import argparse
 import logging
 from pathlib import Path
+import shutil
 import sys
 import time
 from typing import Dict
@@ -25,7 +26,10 @@ from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.duration_calculator import DurationCalculator
+from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.tts.transformer import Transformer
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
@@ -77,6 +81,7 @@ def inference(
     use_att_constraint: bool,
     backward_window: int,
     forward_window: int,
+    speed_control_alpha: float,
     allow_variable_data_keys: bool,
     vocoder_conf: dict,
 ):
@@ -105,16 +110,21 @@ def inference(
     tts = model.tts
     normalize = model.normalize
     feats_extract = model.feats_extract
+    duration_calculator = DurationCalculator()
     logging.info(f"Normalization:\n{normalize}")
     logging.info(f"TTS:\n{tts}")
 
     # 3. Build decoding config
-    decode_config = {
-        "threshold": threshold,
-        "maxlenratio": maxlenratio,
-        "minlenratio": minlenratio,
-        "use_teacher_forcing": use_teacher_forcing,
-    }
+    decode_config = {}
+    if isinstance(tts, (Tacotron2, Transformer)):
+        decode_config.update(
+            {
+                "threshold": threshold,
+                "maxlenratio": maxlenratio,
+                "minlenratio": minlenratio,
+                "use_teacher_forcing": use_teacher_forcing,
+            }
+        )
     if isinstance(tts, Tacotron2):
         decode_config.update(
             {
@@ -123,6 +133,8 @@ def inference(
                 "backward_window": backward_window,
             }
         )
+    if isinstance(tts, FastSpeech):
+        decode_config.update({"alpha": speed_control_alpha})
     use_speech = check_use_speech_in_inference(tts, decode_config)
 
     # 4. Build data-iterator
@@ -156,13 +168,29 @@ def inference(
     output_dir = Path(output_dir)
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
+    (output_dir / "speech_shape").mkdir(parents=True, exist_ok=True)
     (output_dir / "wav").mkdir(parents=True, exist_ok=True)
     (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
     (output_dir / "probs").mkdir(parents=True, exist_ok=True)
+    (output_dir / "durations").mkdir(parents=True, exist_ok=True)
+    (output_dir / "focus_rates").mkdir(parents=True, exist_ok=True)
+
+    # Lazy load to avoid the backend error
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
 
     with NpyScpWriter(
         output_dir / "norm", output_dir / "norm/feats.scp",
-    ) as f, NpyScpWriter(output_dir / "denorm", output_dir / "denorm/feats.scp") as g:
+    ) as norm_writer, NpyScpWriter(
+        output_dir / "denorm", output_dir / "denorm/feats.scp"
+    ) as denorm_writer, open(
+        output_dir / "speech_shape/speech_shape", "w"
+    ) as shape_writer, open(
+        output_dir / "durations/durations", "w"
+    ) as duration_writer, open(
+        output_dir / "focus_rates/focus_rates", "w"
+    ) as focus_rate_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -194,19 +222,22 @@ def inference(
             logging.info(f"{key} (size:{insize}->{outs.size(0)})")
             if outs.size(0) == insize * maxlenratio:
                 logging.warning(f"output length reaches maximum length ({key}).")
-            f[key] = outs.cpu().numpy()
+            norm_writer[key] = outs.cpu().numpy()
+            shape_writer.write(f"{key} " + ",".join(map(str, outs.shape)) + "\n")
 
             # NOTE: normalize.inverse is in-place operation
             outs_denorm = normalize.inverse(outs[None])[0][0]
-            g[key] = outs_denorm.cpu().numpy()
+            denorm_writer[key] = outs_denorm.cpu().numpy()
 
-            # Lazy load to avoid the backend error
-            matplotlib.use("Agg")
-            import matplotlib.pyplot as plt
-            from matplotlib.ticker import MaxNLocator
-
-            # Plot attention weight
             if att_ws is not None:
+                # Save duration and fucus rates
+                duration, focus_rate = duration_calculator(att_ws)
+                duration_writer.write(
+                    f"{key} " + " ".join(map(str, duration.cpu().numpy())) + "\n"
+                )
+                focus_rate_writer.write(f"{key} {float(focus_rate):.5f}\n")
+
+                # Plot attention weight
                 att_ws = att_ws.cpu().numpy()
 
                 if att_ws.ndim == 2:
@@ -233,12 +264,12 @@ def inference(
                         ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
                         ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-                fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+                fig.set_tight_layout({"rect": [0, 0.03, 1, 0.95]})
                 fig.savefig(output_dir / f"att_ws/{key}.png")
                 fig.clf()
 
-            # Plot stop token prediction
             if probs is not None:
+                # Plot stop token prediction
                 probs = probs.cpu().numpy()
 
                 fig = plt.Figure()
@@ -250,7 +281,7 @@ def inference(
                 ax.set_ylim(0, 1)
                 ax.grid(which="both")
 
-                fig.tight_layout()
+                fig.set_tight_layout(True)
                 fig.savefig(output_dir / f"probs/{key}.png")
                 fig.clf()
 
@@ -258,6 +289,13 @@ def inference(
             if spc2wav is not None:
                 wav = spc2wav(outs_denorm.cpu().numpy())
                 sf.write(f"{output_dir}/wav/{key}.wav", wav, spc2wav.fs, "PCM_16")
+
+    # remove duration related files if attention is not provided
+    if att_ws is None:
+        shutil.rmtree(output_dir / "att_ws")
+        shutil.rmtree(output_dir / "probs")
+        shutil.rmtree(output_dir / "durations")
+        shutil.rmtree(output_dir / "focus_rates")
 
 
 def get_parser():
@@ -363,6 +401,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Whether to use teacher forcing",
+    )
+    parser.add_argument(
+        "--speed_control_alpha",
+        type=float,
+        default=1.0,
+        help="Alpha in FastSpeech to change the speed of generated speech",
     )
 
     group = parser.add_argument_group("Grriffin-Lim related")
