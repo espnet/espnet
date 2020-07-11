@@ -316,8 +316,8 @@ if [ $stage -le 15 ] && [[ ${enhancement} == *gss* ]]; then
       ${json_dir}/dev data/dev_${enhancement} || exit 1
   
   # make segments file
-  utils/data/get_utt2dur.sh --nj 1 data/dev_gss
-  awk '{ print $1, $1, 0, $2 }' data/dev_gss12/utt2dur > data/dev_gss12/segments
+  utils/data/get_utt2dur.sh --nj 1 data/dev_${enhancement}
+  awk '{ print $1, $1, 0, $2 }' data/dev_${enhancement}/utt2dur > data/dev_${enhancement}/segments
 
 fi
 
