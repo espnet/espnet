@@ -42,6 +42,7 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
+from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
@@ -415,7 +416,13 @@ def train(args):
     # specify attention, CTC, hybrid mode
     if "transducer" in args.model_module:
         assert args.mtlalpha == 1.0
-        mtl_mode = "transducer"
+        if (
+            getattr(args, "etype", False) == "transformer"
+            or getattr(args, "dtype", False) == "transformer"
+        ):
+            mtl_mode = "transformer_transducer"
+        else:
+            mtl_mode = "transducer"
         logging.info("Pure transducer mode")
     elif args.mtlalpha == 1.0:
         mtl_mode = "ctc"
@@ -666,9 +673,15 @@ def train(args):
         )
 
     # Save attention weight each epoch
+
     if args.num_save_attention > 0 and (
-        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
+        ("transformer" in getattr(args, "model_module") or mtl_mode == "att")
+        or (
+            mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
+        )
+        or mtl_mode == "transformer_transducer"
     ):
+
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
@@ -679,7 +692,10 @@ def train(args):
             plot_class = model.module.attention_plot_class
         else:
             att_vis_fn = model.calculate_all_attentions
-            plot_class = model.attention_plot_class
+            if mtl_mode == "transformer_transducer":
+                plot_class = PlotAttentionReport
+            else:
+                plot_class = model.attention_plot_class
         att_reporter = plot_class(
             att_vis_fn,
             data,
@@ -734,7 +750,7 @@ def train(args):
         snapshot_object(model, "model.loss.best"),
         trigger=training.triggers.MinValueTrigger("validation/main/loss"),
     )
-    if mtl_mode not in ["ctc", "transducer"]:
+    if mtl_mode not in ["ctc", "transducer", "transformer_transducer"]:
         trainer.extend(
             snapshot_object(model, "model.acc.best"),
             trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
