@@ -25,7 +25,7 @@ dlayers: 1
 dec-embed-dim: 300
 dunits: 300
 dropout-rate-decoder: 0.1
-dropout-rate-embed-decoder: 0.1
+dropout-rate-embed-decoder: 0.0
 ## attention related
 atype: location
 adim: 320
