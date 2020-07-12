@@ -600,9 +600,9 @@ class E2E(ASRInterface, torch.nn.Module):
             with torch.no_grad():
                 self.forward(xs_pad, ilens, ys_pad)
 
-                ret = dict()
-                for name, m in self.named_modules():
-                    if isinstance(m, MultiHeadedAttention):
-                        ret[name] = m.attn.cpu().numpy()
+            ret = dict()
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention):
+                    ret[name] = m.attn.cpu().numpy()
 
         return ret
