@@ -42,7 +42,6 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
-from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
@@ -692,10 +691,7 @@ def train(args):
             plot_class = model.module.attention_plot_class
         else:
             att_vis_fn = model.calculate_all_attentions
-            if mtl_mode == "transformer_transducer":
-                plot_class = PlotAttentionReport
-            else:
-                plot_class = model.attention_plot_class
+            plot_class = model.attention_plot_class
         att_reporter = plot_class(
             att_vis_fn,
             data,

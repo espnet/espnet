@@ -313,6 +313,16 @@ class E2E(ASRInterface, torch.nn.Module):
 
         return parser
 
+    @property
+    def attention_plot_class(self):
+        """Get attention plot class."""
+        if self.etype == "transformer" or self.dtype == "transformer":
+            from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+        else:
+            from espnet.asr.asr_utils import PlotAttentionReport
+
+        return PlotAttentionReport
+
     def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0):
         """Construct an E2E object for transducer model.
 
