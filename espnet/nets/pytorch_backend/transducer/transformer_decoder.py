@@ -224,59 +224,12 @@ class Decoder(torch.nn.Module):
         normscore = recog_args.score_norm_transducer
 
         kept_hyps = [
-            {
-                "score": 0.0,
-                "yseq": [self.blank],
-                "cache": None,
-                "y": [],
-                "lm_state": None,
-            }
+            {"score": 0.0, "yseq": [self.blank], "cache": None, "lm_state": None}
         ]
 
-        if rnnlm:
-            use_prefix = False
-        else:
-            use_prefix = True
-
         for hi in h:
-            if use_prefix:
-                hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
-                kept_hyps = []
-
-                for j in range(len(hyps) - 1):
-                    for i in range((j + 1), len(hyps)):
-                        if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
-                            next_id = len(hyps[i]["yseq"])
-
-                            ys = to_device(
-                                self, torch.tensor(hyps[i]["yseq"]).unsqueeze(0)
-                            )
-
-                            ys_mask = to_device(
-                                self, subsequent_mask(len(hyps[i]["yseq"])).unsqueeze(0)
-                            )
-
-                            y, _ = self.forward_one_step(ys, ys_mask, hyps[i]["cache"])
-
-                            ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
-
-                            curr_score = float(hyps[i]["score"]) + float(
-                                ytu[hyps[j]["yseq"][next_id]]
-                            )
-
-                            for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
-                                ytu = torch.log_softmax(
-                                    self.joint(hi, hyps[j]["y"][k]), dim=0
-                                )
-
-                                curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
-
-                            hyps[j]["score"] = np.logaddexp(
-                                float(hyps[j]["score"]), curr_score
-                            )
-            else:
-                hyps = kept_hyps
-                kept_hyps = []
+            hyps = kept_hyps
+            kept_hyps = []
 
             while True:
                 new_hyp = max(hyps, key=lambda x: x["score"])
@@ -301,7 +254,6 @@ class Decoder(torch.nn.Module):
                         "score": new_hyp["score"] + float(ytu[k]),
                         "yseq": new_hyp["yseq"][:],
                         "cache": new_hyp["cache"],
-                        "y": new_hyp["y"],
                     }
 
                     if rnnlm:
@@ -312,8 +264,6 @@ class Decoder(torch.nn.Module):
                     else:
                         beam_hyp["yseq"].append(int(k))
                         beam_hyp["cache"] = c
-
-                        beam_hyp["y"].append(y[0])
 
                         if rnnlm:
                             beam_hyp["lm_state"] = rnnlm_state

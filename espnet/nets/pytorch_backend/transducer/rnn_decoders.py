@@ -243,57 +243,13 @@ class DecoderRNNT(torch.nn.Module):
                 "yseq": [self.blank],
                 "z_prev": z_list,
                 "c_prev": c_list,
-                "y": [],
                 "lm_state": None,
             }
         ]
 
-        if rnnlm:
-            use_prefix = False
-        else:
-            use_prefix = True
-
         for hi in h:
-            if use_prefix:
-                hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
-                kept_hyps = []
-
-                for j in range(len(hyps) - 1):
-                    for i in range((j + 1), len(hyps)):
-                        if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
-                            next_id = len(hyps[i]["yseq"])
-
-                            vy = to_device(
-                                self,
-                                torch.full(
-                                    (1, 1), hyps[i]["yseq"][-1], dtype=torch.long
-                                ),
-                            )
-                            ey = self.embed(vy)
-
-                            y, _ = self.rnn_forward(
-                                ey[0], (hyps[i]["z_prev"], hyps[i]["c_prev"])
-                            )
-
-                            ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
-
-                            curr_score = float(hyps[i]["score"]) + float(
-                                ytu[hyps[j]["yseq"][next_id]]
-                            )
-
-                            for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
-                                ytu = F.log_softmax(
-                                    self.joint(hi, hyps[j]["y"][k]), dim=0
-                                )
-
-                                curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
-
-                            hyps[j]["score"] = np.logaddexp(
-                                float(hyps[j]["score"]), curr_score
-                            )
-            else:
-                hyps = kept_hyps
-                kept_hyps = []
+            hyps = kept_hyps
+            kept_hyps = []
 
             while True:
                 new_hyp = max(hyps, key=lambda x: x["score"])
@@ -321,7 +277,6 @@ class DecoderRNNT(torch.nn.Module):
                         "yseq": new_hyp["yseq"][:],
                         "z_prev": new_hyp["z_prev"],
                         "c_prev": new_hyp["c_prev"],
-                        "y": new_hyp["y"][:],
                         "lm_state": new_hyp["lm_state"],
                     }
 
@@ -330,8 +285,6 @@ class DecoderRNNT(torch.nn.Module):
                     else:
                         beam_hyp["z_prev"] = z_list[:]
                         beam_hyp["c_prev"] = c_list[:]
-
-                        beam_hyp["y"].append(y[0])
 
                         beam_hyp["yseq"].append(int(k))
 
@@ -734,7 +687,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         self.att[0].reset()
 
         z_list, c_list = self.zero_state(hs_pad)
-        eys = self.embed(ys_in_pad)
+        eys = self.dropout_emb(self.embed(ys_in_pad))
 
         z_all = []
         for i in six.moves.range(olength):
@@ -832,66 +785,13 @@ class DecoderRNNTAtt(torch.nn.Module):
                 "z_prev": z_list,
                 "c_prev": c_list,
                 "a_prev": None,
-                "y": [],
                 "lm_state": None,
             }
         ]
 
-        if rnnlm:
-            use_prefix = False
-        else:
-            use_prefix = True
-
         for hi in h:
-            if use_prefix:
-                hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
-                kept_hyps = []
-
-                for j in range(len(hyps) - 1):
-                    for i in range((j + 1), len(hyps)):
-                        if is_prefix(hyps[j]["yseq"], hyps[i]["yseq"]):
-                            next_id = len(hyps[i]["yseq"])
-
-                            vy = to_device(
-                                self,
-                                torch.full(
-                                    (1, 1), hyps[i]["yseq"][-1], dtype=torch.long
-                                ),
-                            )
-                            ey = self.embed(vy)
-
-                            att_c, att_w = self.att[0](
-                                h.unsqueeze(0),
-                                [h.size(0)],
-                                self.dropout_dec[0](hyps[i]["z_prev"][0]),
-                                hyps[i]["a_prev"],
-                            )
-
-                            ey = torch.cat((ey[0], att_c), dim=1)
-
-                            y, _ = self.rnn_forward(
-                                ey, (hyps[i]["z_prev"], hyps[i]["c_prev"])
-                            )
-
-                            ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
-
-                            curr_score = float(hyps[i]["score"]) + float(
-                                ytu[hyps[j]["yseq"][next_id]]
-                            )
-
-                            for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
-                                ytu = F.log_softmax(
-                                    self.joint(hi, hyps[j]["y"][k]), dim=0
-                                )
-
-                                curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
-
-                            hyps[j]["score"] = np.logaddexp(
-                                float(hyps[j]["score"]), curr_score
-                            )
-            else:
-                hyps = kept_hyps
-                kept_hyps = []
+            hyps = kept_hyps
+            kept_hyps = []
 
             while True:
                 new_hyp = max(hyps, key=lambda x: x["score"])
@@ -928,7 +828,6 @@ class DecoderRNNTAtt(torch.nn.Module):
                         "z_prev": new_hyp["z_prev"],
                         "c_prev": new_hyp["c_prev"],
                         "a_prev": new_hyp["a_prev"],
-                        "y": new_hyp["y"][:],
                         "lm_state": new_hyp["lm_state"],
                     }
 
@@ -938,8 +837,6 @@ class DecoderRNNTAtt(torch.nn.Module):
                         beam_hyp["z_prev"] = z_list[:]
                         beam_hyp["c_prev"] = c_list[:]
                         beam_hyp["a_prev"] = att_w[:]
-
-                        beam_hyp["y"].append(y[0])
 
                         beam_hyp["yseq"].append(int(k))
 
