@@ -57,6 +57,7 @@ class MultiHeadedAttention(nn.Module):
 
     def forward_attention(self, value, scores, mask):
         """Compute attention context vector.
+
         :param torch.Tensor value: (batch, time2, size)
         :param torch.Tensor scores: (batch, time1, time2)
         :param torch.Tensor mask: (batch, time1, time2)
@@ -103,6 +104,7 @@ class MultiHeadedAttention(nn.Module):
 
 class RelPositionMultiHeadedAttention(MultiHeadedAttention):
     """Multi-Head Attention layer with relative position encoding.
+
     Paper: https://arxiv.org/abs/1901.02860
 
     :param int n_head: the number of head s

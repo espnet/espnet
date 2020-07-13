@@ -130,6 +130,7 @@ class ScaledPositionalEncoding(PositionalEncoding):
 
 class RelPositionalEncoding(PositionalEncoding):
     """Relitive positional encoding module.
+
     See : Appendix B in https://arxiv.org/abs/1901.02860
 
     :param int d_model: embedding dim
@@ -139,6 +140,13 @@ class RelPositionalEncoding(PositionalEncoding):
     """
 
     def __init__(self, d_model, dropout_rate, max_len=5000):
+        """Initialize class.
+
+        :param int d_model: embedding dim
+        :param float dropout_rate: dropout rate
+        :param int max_len: maximum input length
+
+        """
         super().__init__(d_model, dropout_rate, max_len, reverse=True)
 
     def forward(self, x):
