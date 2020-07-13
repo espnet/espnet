@@ -53,7 +53,7 @@ Example:
     rec -c 1 -r 16000 example.wav trim 0 5
 
     # Align using model name
-    $0 --models tedlium2.transformer.v1 example.wav
+    $0 --models tedlium2.transformer.v1 example.wav "example text"
 
     # Align using model file
     $0 --cmvn cmvn.ark --align_model model.acc.best --align_config conf/align.yaml example.wav
@@ -71,6 +71,7 @@ Available models:
     - commonvoice.transformer.v1
     - csj.transformer.v1
     - wsj.transformer.v1
+    - wsj.transformer_small.v1
 EOF
 )
 . utils/parse_options.sh || exit 1;
@@ -127,6 +128,7 @@ function download_models () {
         "commonvoice.transformer.v1") share_url="https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh" ;;
         "csj.transformer.v1") share_url="https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF" ;;
         "wsj.transformer.v1") share_url="https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp" ;;
+        "wsj.transformer_small.v1") share_url="https://drive.google.com/open?id=1jdEKbgWhLTxN_qP4xwE7mTOPmp7Ga--T" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 
@@ -155,7 +157,8 @@ if [ -z "${wav}" ]; then
 fi
 if [ -z "${dict}" ]; then
     download_models
-    dict=$(find ${download_dir}/${models}/data/lang_1char -name "*.txt" | head -n 1)
+    dict=$(find ${download_dir}/${models}/data/lang_*char -name "*.txt" | head -n 1) || \
+        (echo Error: Dictionary file could not be found. Please construct one by yourself following the egs/*/asr1/run.sh. && exit 1;)
 fi
 
 # Check file existence
