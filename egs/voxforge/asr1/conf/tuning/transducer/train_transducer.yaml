@@ -16,8 +16,6 @@ patience: 3
 etype: vggblstm
 elayers: 4
 eunits: 320
-eprojs: 320
-subsample: "1_1_1_1_1"
 dropout-rate: 0.4
 ## decoder related
 dtype: lstm
@@ -29,8 +27,6 @@ dropout-rate-embed-decoder: 0.2
 ## attention related
 atype: location
 adim: 256
-aheads: 1
-awin: 5
 aconv-chans: 10
 aconv-filts: 100
 ## joint network related
