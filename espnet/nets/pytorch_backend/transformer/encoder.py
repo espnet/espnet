@@ -10,8 +10,15 @@ import torch
 
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
 from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.transformer.convolution import ConvolutionModule
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,  # noqa: H301
+    RelPositionalEncoding,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
@@ -58,6 +65,10 @@ class Encoder(torch.nn.Module):
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     :param str positionwise_layer_type: linear of conv1d
     :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
+    :param str encoder_attn_layer_type: encoder attention layer type
+    :param bool macaron_style: whether to use macaron style for positionwise layer
+    :param bool use_cnn_module: whether to use convolution module
+    :param int cnn_module_kernel: kernerl size of convolution module
     :param int padding_idx: padding_idx for input_layer=embed
     """
 
@@ -77,11 +88,18 @@ class Encoder(torch.nn.Module):
         concat_after=False,
         positionwise_layer_type="linear",
         positionwise_conv_kernel_size=1,
+        macaron_style=False,
+        encoder_attn_layer_type="mha",
+        use_cnn_module=False,
+        cnn_module_kernel=31,
         padding_idx=-1,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
         self._register_load_state_dict_pre_hook(_pre_hook)
+
+        if encoder_attn_layer_type == "rel_mha":
+            pos_enc_class = RelPositionalEncoding
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -92,7 +110,12 @@ class Encoder(torch.nn.Module):
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer == "conv2d":
-            self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+            self.embed = Conv2dSubsampling(
+                idim,
+                attention_dim,
+                dropout_rate,
+                pos_enc_class(attention_dim, dropout_rate),
+            )
         elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
@@ -132,17 +155,38 @@ class Encoder(torch.nn.Module):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
+
+        if encoder_attn_layer_type == "mha":
+            encoder_attn_layer = MultiHeadedAttention
+            encoder_attn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
+        elif encoder_attn_layer_type == "rel_mha":
+            encoder_attn_layer = RelPositionMultiHeadedAttention
+            encoder_attn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
+        else:
+            raise ValueError("unknown encoder_attn_layer: " + encoder_attn_layer)
+
+        convolution_layer = ConvolutionModule
+        convolution_layer_args = (attention_dim, cnn_module_kernel)
+
         self.encoders = repeat(
             num_blocks,
             lambda: EncoderLayer(
                 attention_dim,
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, attention_dropout_rate
-                ),
+                encoder_attn_layer(*encoder_attn_layer_args),
                 positionwise_layer(*positionwise_layer_args),
+                convolution_layer(*convolution_layer_args) if use_cnn_module else None,
                 dropout_rate,
                 normalize_before,
                 concat_after,
+                macaron_style,
             ),
         )
         if self.normalize_before:
@@ -160,7 +204,11 @@ class Encoder(torch.nn.Module):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)
+
         xs, masks = self.encoders(xs, masks)
+        if isinstance(xs, tuple):
+            xs = xs[0]
+
         if self.normalize_before:
             xs = self.after_norm(xs)
         return xs, masks

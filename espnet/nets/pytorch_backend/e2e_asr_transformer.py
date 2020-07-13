@@ -23,7 +23,10 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
@@ -71,6 +74,13 @@ class E2E(ASRInterface, torch.nn.Module):
             help="transformer input layer type",
         )
         group.add_argument(
+            "--transformer-encoder-attn-layer-type",
+            type=str,
+            default="mha",
+            choices=["mha", "rel_mha"],
+            help="transformer encoder attention layer type",
+        )
+        group.add_argument(
             "--transformer-attn-dropout-rate",
             default=None,
             type=float,
@@ -94,12 +104,17 @@ class E2E(ASRInterface, torch.nn.Module):
             type=strtobool,
             help="normalize loss by length",
         )
-
         group.add_argument(
             "--dropout-rate",
             default=0.0,
             type=float,
             help="Dropout rate for the encoder",
+        )
+        group.add_argument(
+            "--macaron-style",
+            default=False,
+            type=strtobool,
+            help="Whether to use macaron style for positionwise layer",
         )
         # Encoder
         group.add_argument(
@@ -115,6 +130,18 @@ class E2E(ASRInterface, torch.nn.Module):
             default=300,
             type=int,
             help="Number of encoder hidden units",
+        )
+        group.add_argument(
+            "--use-cnn-module",
+            default=False,
+            type=strtobool,
+            help="Use convolution module or not",
+        )
+        group.add_argument(
+            "--cnn-module-kernel",
+            default=31,
+            type=int,
+            help="Kernel size of convolution module.",
         )
         # Attention
         group.add_argument(
@@ -163,6 +190,10 @@ class E2E(ASRInterface, torch.nn.Module):
             dropout_rate=args.dropout_rate,
             positional_dropout_rate=args.dropout_rate,
             attention_dropout_rate=args.transformer_attn_dropout_rate,
+            encoder_attn_layer_type=args.transformer_encoder_attn_layer_type,
+            macaron_style=args.macaron_style,
+            use_cnn_module=args.use_cnn_module,
+            cnn_module_kernel=args.cnn_module_kernel,
         )
         if args.mtlalpha < 1:
             self.decoder = Decoder(
@@ -553,6 +584,8 @@ class E2E(ASRInterface, torch.nn.Module):
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention):
+            if isinstance(m, MultiHeadedAttention) or isinstance(
+                m, RelPositionMultiHeadedAttention
+            ):
                 ret[name] = m.attn.cpu().numpy()
         return ret

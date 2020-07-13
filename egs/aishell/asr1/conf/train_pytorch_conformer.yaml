@@ -22,24 +22,23 @@ maxlen-out: 150 # if output length > maxlen-out, batchsize is automatically redu
 
 # optimization related
 sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt: conformer
+opt: noam
 accum-grad: 2
 grad-clip: 5
 patience: 0
 epochs: 50
 dropout-rate: 0.1
 
-# conformer specific setting
+# transformer specific setting
 backend: pytorch
-model-module: "espnet.nets.pytorch_backend.e2e_asr_conformer:E2E"
-conformer-activation: 'relu'
-conformer-input-layer: conv2d     # encoder architecture type
-conformer-rel-pos: true
-conformer-macaron-style: true
-conformer-convolution-block: true
-kernel-size: 32
-conformer-lr: 1.0
-conformer-warmup-steps: 25000
-conformer-attn-dropout-rate: 0.0
-conformer-length-normalized-loss: false
-conformer-init: pytorch
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E"
+transformer-input-layer: conv2d     # encoder architecture type
+transformer-encoder-attn-layer-type: rel_mha
+macaron-style: true
+use-cnn-module: true
+cnn-module-kernel: 31
+transformer-lr: 1.0
+transformer-warmup-steps: 25000
+transformer-attn-dropout-rate: 0.0
+transformer-length-normalized-loss: false
+transformer-init: pytorch

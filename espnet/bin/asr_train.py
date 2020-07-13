@@ -277,7 +277,7 @@ def get_parser(parser=None, required=True):
         "--opt",
         default="adadelta",
         type=str,
-        choices=["adadelta", "adam", "noam", "contextnet", "conformer"],
+        choices=["adadelta", "adam", "noam"],
         help="Optimizer",
     )
     parser.add_argument(
@@ -502,7 +502,6 @@ def get_parser(parser=None, required=True):
     )
     parser.add_argument("--fbank-fmin", type=float, default=0.0, help="")
     parser.add_argument("--fbank-fmax", type=float, default=None, help="")
-
     return parser
 
 
