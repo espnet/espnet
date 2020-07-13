@@ -1,11 +1,11 @@
-# Default transformer
+# Default transducer
   - Environments (obtained by `$ get_sys_info.sh`)
-      - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
+      - system information: `Linux 5.3.0-42-generic #34~18.04.1-Ubuntu SMP Fri Feb 28 13:42:26 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux`
 	  - python version: `Python 3.7.3`
-	  - espnet version: `espnet 0.3.1`
+	  - espnet version: `espnet 0.8.0`
 	  - chainer version: `chainer 6.0.0`
 	  - pytorch version: `pytorch 1.0.1.post2`
-	  - Git hash: `2525193c2c25dea5683086ef1b69f45bd1e050af`
+	  - Git hash: `2627f362d99daacc2368386d9cd8ea4727e4ff6a`
   - Model files link `https://drive.google.com/file/d/1vnm7DMZSLprgp4AVLKt5w7jPz4KFy1wQ/view?usp=sharing`
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
