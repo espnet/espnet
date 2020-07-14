@@ -69,6 +69,10 @@ def make_arg(**kwargs):
         transformer_init="pytorch",
         transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
+        transformer_encoder_attn_layer_type="mha",
+        macaron_style=False,
+        use_cnn_module=False,
+        cnn_module_kernel=31,
         report_cer=False,
         report_wer=False,
         mtlalpha=0.0,
@@ -230,6 +234,10 @@ def prepare_copy_task(d_model, d_ff=64, n=1):
             transformer_attn_dropout_rate=None,
             transformer_length_normalized_loss=True,
             mtlalpha=0.0,
+            transformer_encoder_attn_layer_type="mha",
+            macaron_style=False,
+            use_cnn_module=False,
+            cnn_module_kernel=31,
         )
         model = T.E2E(idim, odim, args)
     else:
