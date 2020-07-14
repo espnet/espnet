@@ -87,6 +87,7 @@ nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
 token_type=phn   # Transcription type.
 cleaner=tacotron # Text cleaner.
 g2p=g2p_en       # g2p method (needed if token_type=phn).
+lang=noinfo      # The language type of corpus
 text_fold_length=150   # fold_length for text data
 speech_fold_length=800 # fold_length for speech data
 
@@ -141,16 +142,17 @@ Options:
     --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
 
     # [Task dependent] Set the datadir name created by local/data.sh.
-    --train_set  # Name of training set (required).
-    --valid_set  # Name of validation set used for monitoring/tuning network training (required).
-    --test_sets  # Names of test sets (required).
-                 # Note that multiple items (e.g., both dev and eval sets) can be specified.
-    --srctexts   # Texts to create token list (required).
-                 # Note that multiple items can be specified.
-    --nlsyms_txt # Non-linguistic symbol list (default="${nlsyms_txt}").
-    --token_type # Transcription type (default="${token_type}").
-    --cleaner    # Text cleaner (default="${cleaner}").
-    --g2p        # g2p method (default="${g2p}").
+    --train_set         # Name of training set (required).
+    --valid_set         # Name of validation set used for monitoring/tuning network training (required).
+    --test_sets         # Names of test sets (required).
+                        # Note that multiple items (e.g., both dev and eval sets) can be specified.
+    --srctexts          # Texts to create token list (required).
+                        # Note that multiple items can be specified.
+    --nlsyms_txt        # Non-linguistic symbol list (default="${nlsyms_txt}").
+    --token_type        # Transcription type (default="${token_type}").
+    --cleaner           # Text cleaner (default="${cleaner}").
+    --g2p               # g2p method (default="${g2p}").
+    --lang              # The language type of corpus (default=${lang}).
     --text_fold_length   # fold_length for text data
     --speech_fold_length # fold_length for speech data
 EOF
@@ -798,7 +800,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 
     # To upload your model, you need to do:
     #   1. Signup to Zenodo: https://zenodo.org/
-    #   2. Create access_token: https://zenodo.org/account/settings/applications/tokens/new/
+    #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
     #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
     if command -v git &> /dev/null; then
@@ -813,20 +815,20 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 
     # Generate description file
     cat << EOF > "${tts_exp}"/description
-This model was trained by ${creator_name} using ${task} recipe in <a href="https://github.com/espnet/espnet/" target="_blank">espnet</a>.
+This model was trained by ${creator_name} using ${task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
 	<li><strong>Config</strong><pre><code>$(cat "${tts_exp}"/config.yaml)</code></pre></li>
 </ul>
 EOF
 
-    # NOTE(kamo): The model file is uploaded here, but not published yet. 
+    # NOTE(kamo): The model file is uploaded here, but not published yet.
     #   Please confirm your record at Zenodo and publish by youself.
 
     # shellcheck disable=SC2086
     python -m espnet2.bin.zenodo_upload \
         --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${creator_name}/${corpus}_$(basename ${packed_model} .zip)" \
+        --title "ESPnet2 pretrained model, ${creator_name}/${corpus}_$(basename ${packed_model} .zip), fs=${fs}, lang=${lang}" \
         --description_file "${tts_exp}"/description \
         --creator_name "${creator_name}" \
         --license "CC-BY-4.0" \

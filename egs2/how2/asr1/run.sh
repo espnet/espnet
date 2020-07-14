@@ -23,6 +23,7 @@ bpe_nlsyms="[hes]"
 use_lm=false
 
 ./asr.sh                                        \
+    --lang en                                   \
     --feats_type ${feats_type}                  \
     --token_type ${token_type}                  \
     --nbpe ${nbpe}                              \

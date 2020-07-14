@@ -33,6 +33,7 @@ g2p=pypinyin_g2p_phone
 # pypinyin_g2p_phone: k a3 er3 p u3 p ei2 uai4 s un1 uan2 h ua2 t i1
 
 ./tts.sh \
+    --lang zh \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \

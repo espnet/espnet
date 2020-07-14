@@ -101,6 +101,7 @@ lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
+lang=noinfo      # The language type of corpus
 asr_speech_fold_length=800 # fold_length for speech data during ASR training
 asr_text_fold_length=150   # fold_length for text data during ASR training
 lm_fold_length=150         # fold_length for LM training
@@ -180,6 +181,7 @@ Options:
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
+    --lang              # The language type of corpus (default=${lang}).
     --asr_speech_fold_length # fold_length for speech data during ASR training  (default="${asr_speech_fold_length}").
     --asr_text_fold_length   # fold_length for text data during ASR training  (default="${asr_text_fold_length}").
     --lm_fold_length         # fold_length for LM training  (default="${lm_fold_length}").
@@ -1147,7 +1149,7 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
 
     # To upload your model, you need to do:
     #   1. Sign up to Zenodo: https://zenodo.org/
-    #   2. Create access_token: https://zenodo.org/account/settings/applications/tokens/new/
+    #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
     #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
     if command -v git &> /dev/null; then
@@ -1162,7 +1164,7 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
 
     # Generate description file
     cat << EOF > "${asr_exp}"/description
-This model was trained by ${creator_name} using ${task} recipe in <a href="https://github.com/espnet/espnet/" target="_blank">espnet</a>.
+This model was trained by ${creator_name} using ${task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
 	<li><strong>Results</strong><pre><code>$(cat "${asr_exp}"/RESULTS.md)</code></pre></li>
@@ -1171,13 +1173,13 @@ This model was trained by ${creator_name} using ${task} recipe in <a href="https
 </ul>
 EOF
 
-    # NOTE(kamo): The model file is uploaded here, but not published yet. 
-    #   Please confirm your record at Zenodo and publish by youself.
+    # NOTE(kamo): The model file is uploaded here, but not published yet.
+    #   Please confirm your record at Zenodo and publish it by youself.
 
     # shellcheck disable=SC2086
     python -m espnet2.bin.zenodo_upload \
         --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${creator_name}/${corpus}_$(basename ${packed_model} .zip)" \
+        --title "ESPnet2 pretrained model, ${creator_name}/${corpus}_$(basename ${packed_model} .zip), fs=${fs}, lang=${lang}" \
         --description_file ${asr_exp}/description \
         --creator_name "${creator_name}" \
         --license "CC-BY-4.0" \

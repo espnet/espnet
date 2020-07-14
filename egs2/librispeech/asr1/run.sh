@@ -14,6 +14,7 @@ lm_config=conf/train_lm.yaml
 decode_config=conf/decode_asr.yaml
 
 ./asr.sh \
+    --lang en \
     --ngpu 4 \
     --nbpe 5000 \
     --max_wav_duration 30 \

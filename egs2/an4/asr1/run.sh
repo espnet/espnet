@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 ./asr.sh \
+    --lang en \
     --train_set train_nodev \
     --lm_config conf/train_lm.yaml \
     --valid_set train_dev \

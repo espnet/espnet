@@ -5,6 +5,7 @@ set -e
 set -u
 set -o pipefail
 
+
 lang=cy # en de fr cy tt kab ca zh-TW it fa eu es ru
 
 train_set=valid_train_${lang}
@@ -17,6 +18,7 @@ decode_config=conf/decode_asr.yaml
 
 
 ./asr.sh \
+    --lang "${lang}" \
     --local_data_opts "--lang ${lang}" \
     --use_lm true \
     --lm_config "${lm_config}" \

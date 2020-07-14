@@ -21,6 +21,7 @@ use_wordlm=false
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh                                               \
+    --lang zh                                          \
     --audio_format wav                                 \
     --feats_type fbank_pitch                           \
     --token_type char                                  \

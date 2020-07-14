@@ -28,6 +28,7 @@ decode_config=conf/decode.yaml
 g2p=g2p_en_no_space # Include no word separator
 
 ./tts.sh \
+    --lang en \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
