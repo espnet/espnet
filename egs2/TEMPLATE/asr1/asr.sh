@@ -1165,24 +1165,30 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
     #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
     if command -v git &> /dev/null; then
-        creator_name="$(git config user.name)"
+        _creator_name="$(git config user.name)"
+        _checkout="
+git checkout $(git show -s --format=%H)"
+
     else
-        creator_name="$(whoami)"
+        _creator_name="$(whoami)"
+        _checkout=""
     fi
     # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
-    task="$(pwd | rev | cut -d/ -f2 | rev)"
+    _task="$(pwd | rev | cut -d/ -f2 | rev)"
     # foo/asr1 -> foo
-    corpus="${task%/*}"
+    _corpus="${_task%/*}"
 
     # Generate description file
     cat << EOF > "${asr_exp}"/description
-This model was trained by ${creator_name} using ${task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
+This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
 <li><strong>Python API</strong><pre><code class="language-python">Coming soon...</code></pre></li>
 <li><strong>Decoding with pretrained model in the recipe</strong><pre>
 <code class="language-bash">git clone https://github.com/espnet/espnet
-cd espnet/$(pwd | rev | cut -d/ -f1-3 | rev)
+cd espnet${_checkout}
+pip install -e .
+cd $(pwd | rev | cut -d/ -f1-3 | rev)
 # Download the model file here
 unzip $(basename ${packed_model})
 ./run.sh --skip_data_prep false --skip_train true --asr_exp $(basename ${packed_model} .zip)/asr --decode_asr_model pretrain.pth --lm_exp $(basename ${packed_model} .zip)/lm --decode_lm pretrain.pth</code>
@@ -1199,9 +1205,9 @@ EOF
     # shellcheck disable=SC2086
     python -m espnet2.bin.zenodo_upload \
         --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${creator_name}/${corpus}_$(basename ${packed_model} .zip), fs=${fs}, lang=${lang}" \
+        --title "ESPnet2 pretrained model, ${_creator_name}/${_corpus}_$(basename ${packed_model} .zip), fs=${fs}, lang=${lang}" \
         --description_file ${asr_exp}/description \
-        --creator_name "${creator_name}" \
+        --creator_name "${_creator_name}" \
         --license "CC-BY-4.0" \
         --use_sandbox false \
         --publish false
