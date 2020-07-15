@@ -9,9 +9,8 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.fileio.datadir_writer import DatadirWriter
-from pb_bss_eval.evaluation.module_pesq import pesq
-from pb_bss_eval.evaluation.module_stoi import stoi
-from pb_bss_eval.evaluation.module_mir_eval import mir_eval_sources
+from pystoi import stoi
+from mir_eval.separation import bss_eval_sources
 import numpy as np
 
 
@@ -65,20 +64,11 @@ def scoring(
                     network output is multi-channel."
                 )
 
-            sdr, sir, sar, perm = mir_eval_sources(ref, inf, compute_permutation=True)
+            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
             for i in range(num_spk):
-                stoi_score = stoi(ref[i], inf[int(perm[i])], sample_rate=sample_rate)
-                try:
-                    # This version of pesq will exit with error code 1 on some input audios,
-                    # here we just skip this audios
-                    pesq_score = pesq(ref[i], inf[int(perm[i])], sample_rate=sample_rate)
-                except:
-                    # FIXME (chenda), this exit can't be catched since the pesq C module exit without raising exceptions
-                    logging.info(f'utterance {key} failed in pesq evaluation, skipped')
-                    continue
+                stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
                 writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
-                writer[f"PESQ_spk{i + 1}"][key] = str(pesq_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
