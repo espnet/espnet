@@ -9,8 +9,15 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.transformer.convolution import ConvolutionModule
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,  # noqa: H301
+    RelPositionalEncoding,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
@@ -64,11 +71,18 @@ class TransformerEncoder(AbsEncoder):
         concat_after: bool = False,
         positionwise_layer_type: str = "linear",
         positionwise_conv_kernel_size: int = 1,
+        macaron_style: bool = False,
+        encoder_attn_layer_type: str = "mha",
+        use_cnn_module: bool = False,
+        cnn_module_kernel: int = 31,
         padding_idx: int = -1,
     ):
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
+
+        if encoder_attn_layer_type == "rel_mha":
+            pos_enc_class = RelPositionalEncoding
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -79,7 +93,12 @@ class TransformerEncoder(AbsEncoder):
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer == "conv2d":
-            self.embed = Conv2dSubsampling(input_size, output_size, dropout_rate)
+            self.embed = Conv2dSubsampling(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, dropout_rate),
+            )
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
@@ -117,14 +136,34 @@ class TransformerEncoder(AbsEncoder):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
+
+        if encoder_attn_layer_type == "mha":
+            encoder_attn_layer = MultiHeadedAttention
+            encoder_attn_layer_args = (
+                attention_heads,
+                output_size,
+                attention_dropout_rate,
+            )
+        elif encoder_attn_layer_type == "rel_mha":
+            encoder_attn_layer = RelPositionMultiHeadedAttention
+            encoder_attn_layer_args = (
+                attention_heads,
+                output_size,
+                attention_dropout_rate,
+            )
+        else:
+            raise ValueError("unknown encoder_attn_layer: " + encoder_attn_layer)
+
+        convolution_layer = ConvolutionModule
+        convolution_layer_args = (output_size, cnn_module_kernel)
+
         self.encoders = repeat(
             num_blocks,
             lambda: EncoderLayer(
                 output_size,
-                MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
-                ),
+                encoder_attn_layer(*encoder_attn_layer_args),
                 positionwise_layer(*positionwise_layer_args),
+                convolution_layer(*convolution_layer_args) if use_cnn_module else None,
                 dropout_rate,
                 normalize_before,
                 concat_after,
@@ -158,6 +197,10 @@ class TransformerEncoder(AbsEncoder):
         else:
             xs_pad = self.embed(xs_pad)
         xs_pad, masks = self.encoders(xs_pad, masks)
+
+        if isinstance(xs_pad, tuple):
+            xs_pad = xs_pad[0]
+
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 
