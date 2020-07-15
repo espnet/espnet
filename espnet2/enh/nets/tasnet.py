@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Tuple
+from espnet2.enh.abs_enh import AbsEnhancement
 
 EPS = 1e-8
 
@@ -78,20 +79,21 @@ def remove_pad(inputs, inputs_lengths):
     return results
 
 
-class TasNet(nn.Module):
+class TasNet(AbsEnhancement):
     def __init__(
-        self,
-        N: int = 256,
-        L: int = 20,
-        B: int = 256,
-        H: int = 512,
-        P: int = 3,
-        X: int = 8,
-        R: int = 4,
-        num_spk: int = 2,
-        norm_type: str = "gLN",
-        causal: bool = False,
-        mask_nonlinear: str = "relu",
+            self,
+            fs: int = 8000,
+            N: int = 256,
+            L: int = 20,
+            B: int = 256,
+            H: int = 512,
+            P: int = 3,
+            X: int = 8,
+            R: int = 4,
+            num_spk: int = 2,
+            norm_type: str = "gLN",
+            causal: bool = False,
+            mask_nonlinear: str = "relu",
     ):
         """
         Args:
@@ -112,6 +114,7 @@ class TasNet(nn.Module):
         """
         super(TasNet, self).__init__()
         # Hyper-parameter
+        self.fs = fs
         self.N, self.L, self.B, self.H, self.P, self.X, self.R, self.C = (
             N,
             L,
@@ -134,11 +137,13 @@ class TasNet(nn.Module):
         self.decoder = Decoder(N, L)
         self.stft = None
         self.num_spk = num_spk
-        self.forward_rawwav = self.forward
         # init
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_normal_(p)
+
+    def forward_rawwav(self, mixture, ilens=None):
+        return self.forward(mixture, ilens)
 
     def forward(self, mixture, ilens=None):
         """
@@ -266,7 +271,7 @@ class Decoder(nn.Module):
 
 class TemporalConvNet(nn.Module):
     def __init__(
-        self, N, B, H, P, X, R, C, norm_type="gLN", causal=False, mask_nonlinear="relu"
+            self, N, B, H, P, X, R, C, norm_type="gLN", causal=False, mask_nonlinear="relu"
     ):
         """
         Args:
@@ -340,15 +345,15 @@ class TemporalConvNet(nn.Module):
 
 class TemporalBlock(nn.Module):
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride,
-        padding,
-        dilation,
-        norm_type="gLN",
-        causal=False,
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            norm_type="gLN",
+            causal=False,
     ):
         super(TemporalBlock, self).__init__()
         # [M, B, K] -> [M, H, K]
@@ -385,15 +390,15 @@ class TemporalBlock(nn.Module):
 
 class DepthwiseSeparableConv(nn.Module):
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride,
-        padding,
-        dilation,
-        norm_type="gLN",
-        causal=False,
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            norm_type="gLN",
+            causal=False,
     ):
         super(DepthwiseSeparableConv, self).__init__()
         # Use `groups` option to implement depthwise convolution

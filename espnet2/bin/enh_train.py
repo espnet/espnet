@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from espnet2.tasks.frontend import FrontendTask
+from espnet2.tasks.enh import EnhancementTask
 
 
 def get_parser():
-    parser = FrontendTask.get_parser()
+    parser = EnhancementTask.get_parser()
     return parser
 
 
@@ -16,7 +16,7 @@ def main(cmd=None):
                 > conf/train_enh.yaml
         % python enh_train.py --config conf/train_enh.yaml
     """
-    FrontendTask.main(cmd=cmd)
+    EnhancementTask.main(cmd=cmd)
 
 
 if __name__ == "__main__":

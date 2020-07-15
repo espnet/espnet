@@ -2,12 +2,13 @@ from collections import OrderedDict
 
 import torch
 from espnet2.layers.stft import Stft
-from espnet2.asr.frontend.nets.utils.dnn_beamformer import DNN_Beamformer
-from espnet2.asr.frontend.nets.utils.dnn_wpe import DNN_WPE
+from espnet2.enh.abs_enh import AbsEnhancement
+from espnet2.enh.funcs.dnn_beamformer import DNN_Beamformer
+from espnet2.enh.funcs.dnn_wpe import DNN_WPE
 from torch_complex.tensor import ComplexTensor
 
 
-class BeamformerNet(torch.nn.Module):
+class BeamformerNet(AbsEnhancement):
     """ TF Masking based beamformer
 
     """

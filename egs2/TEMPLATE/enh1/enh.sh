@@ -59,7 +59,7 @@ use_dereverb_ref=false
 use_noise_ref=false
 
 # Enhancement related
-inference_args="--normalize_output_wav false"
+inference_args="--normalize_output_wav true"
 inference_enh_model=valid.si_snr.best.pth
 
 # Evaluation related
