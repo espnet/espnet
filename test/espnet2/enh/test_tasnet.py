@@ -2,16 +2,16 @@ import pytest
 import torch
 import numpy as np
 
-from espnet2.asr.frontend.nets.tasnet import TasNet
+from espnet2.enh.nets.tasnet import TasNet
 
 
-@pytest.mark.parametrize("N", [5,])
-@pytest.mark.parametrize("L", [20,])
-@pytest.mark.parametrize("B", [5,])
-@pytest.mark.parametrize("H", [10,])
-@pytest.mark.parametrize("P", [3,])
-@pytest.mark.parametrize("X", [8,])
-@pytest.mark.parametrize("R", [4,])
+@pytest.mark.parametrize("N", [5])
+@pytest.mark.parametrize("L", [20])
+@pytest.mark.parametrize("B", [5])
+@pytest.mark.parametrize("H", [10])
+@pytest.mark.parametrize("P", [3])
+@pytest.mark.parametrize("X", [8])
+@pytest.mark.parametrize("R", [4])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
 @pytest.mark.parametrize("causal", [True, False])
@@ -41,11 +41,11 @@ def test_tasnet_forward_backward(
 
 
 @pytest.mark.parametrize("N", [5, 10])
-@pytest.mark.parametrize("L", [20,])
-@pytest.mark.parametrize("B", [5,])
-@pytest.mark.parametrize("H", [10,])
-@pytest.mark.parametrize("P", [3,])
-@pytest.mark.parametrize("X", [8,])
+@pytest.mark.parametrize("L", [20])
+@pytest.mark.parametrize("B", [5])
+@pytest.mark.parametrize("H", [10])
+@pytest.mark.parametrize("P", [3])
+@pytest.mark.parametrize("X", [8])
 @pytest.mark.parametrize("R", [2, 4])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
@@ -85,13 +85,13 @@ def test_tasnet_cosistency(
     )
 
 
-@pytest.mark.parametrize("N", [5,])
-@pytest.mark.parametrize("L", [20,])
-@pytest.mark.parametrize("B", [5,])
-@pytest.mark.parametrize("H", [10,])
-@pytest.mark.parametrize("P", [3,])
-@pytest.mark.parametrize("X", [8,])
-@pytest.mark.parametrize("R", [4,])
+@pytest.mark.parametrize("N", [5])
+@pytest.mark.parametrize("L", [20])
+@pytest.mark.parametrize("B", [5])
+@pytest.mark.parametrize("H", [10])
+@pytest.mark.parametrize("P", [3])
+@pytest.mark.parametrize("X", [8])
+@pytest.mark.parametrize("R", [4])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
 @pytest.mark.parametrize("causal", [True, False])

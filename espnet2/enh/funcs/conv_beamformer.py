@@ -63,10 +63,22 @@ def signal_framing(
 
     if isinstance(signal, ComplexTensor):
         real = signal_framing(
-            signal.real, frame_length, frame_step, bdelay, do_padding, pad_value, indices
+            signal.real,
+            frame_length,
+            frame_step,
+            bdelay,
+            do_padding,
+            pad_value,
+            indices,
         )
         imag = signal_framing(
-            signal.imag, frame_length, frame_step, bdelay, do_padding, pad_value, indices
+            signal.imag,
+            frame_length,
+            frame_step,
+            bdelay,
+            do_padding,
+            pad_value,
+            indices,
         )
         return ComplexTensor(real, imag)
     else:
@@ -83,8 +95,8 @@ def get_covariances(
     btaps: int,
     get_vector: bool = False,
 ) -> ComplexTensor:
-    """Calculates the power normalized spatio-temporal covariance matrix of the framed signal.
-
+    """Calculates the power normalized spatio-temporal
+        covariance matrix of the framed signal.
     Args:
         Y : Complext STFT signal with shape (B, F, C, T)
         inverse_power : Weighting factor with shape (B, F, T)
@@ -102,15 +114,18 @@ def get_covariances(
     Psi = signal_framing(Y, btaps + 1, 1, bdelay, do_padding=False)[
         ..., : T - bdelay - btaps + 1, :
     ]
-    # Reverse along btaps-axis: [tau, tau-bdelay, tau-bdelay-1, ..., tau-bdelay-frame_length+1]
+    # Reverse along btaps-axis:
+    # [tau, tau-bdelay, tau-bdelay-1, ..., tau-bdelay-frame_length+1]
     Psi = FC.reverse(Psi, dim=-1)
     Psi_norm = Psi * inverse_power[..., None, bdelay + btaps - 1 :, None]
 
     # let T' = T - bdelay - btaps + 1
-    # (B, F, C, T', btaps + 1) x (B, F, C, T', btaps + 1) -> (B, F, btaps + 1, C, btaps + 1, C)
+    # (B, F, C, T', btaps + 1) x (B, F, C, T', btaps + 1)
+    #  -> (B, F, btaps + 1, C, btaps + 1, C)
     covariance_matrix = FC.einsum("bfdtk,bfetl->bfkdle", (Psi, Psi_norm.conj()))
 
-    # (B, F, btaps + 1, C, btaps + 1, C) -> (B, F, (btaps + 1) * C, (btaps + 1) * C)
+    # (B, F, btaps + 1, C, btaps + 1, C)
+    #   -> (B, F, (btaps + 1) * C, (btaps + 1) * C)
     covariance_matrix = covariance_matrix.view(
         Bs, Fdim, (btaps + 1) * C, (btaps + 1) * C
     )
@@ -158,7 +173,7 @@ def get_WPD_filter(
     """
     try:
         inv_Rf = Rf.inverse()
-    except:
+    except Exception:
         try:
             reg_coeff_tensor = (
                 ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-4
@@ -167,7 +182,7 @@ def get_WPD_filter(
             Phi = Phi / 10e4
             Rf += reg_coeff_tensor
             inv_Rf = Rf.inverse()
-        except:
+        except Exception:
             reg_coeff_tensor = (
                 ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
             )
@@ -222,7 +237,7 @@ def get_WPD_filter_v2(
     C = reference_vector.shape[-1]
     try:
         inv_Rf = Rf.inverse()
-    except:
+    except Exception:
         try:
             reg_coeff_tensor = (
                 ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-4
@@ -231,7 +246,7 @@ def get_WPD_filter_v2(
             Phi = Phi / 10e4
             Rf += reg_coeff_tensor
             inv_Rf = Rf.inverse()
-        except:
+        except Exception:
             reg_coeff_tensor = (
                 ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
             )

@@ -48,7 +48,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             "PSM",
             "NPSM",
             "PSM^2",
-            None
+            None,
         ], f"mask type {mask_type} not supported"
         eps = 10e-8
         mask_label = []
@@ -59,7 +59,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int()
             elif mask_type == "IRM":
-                # TODO (Wangyou): need to fix this, as noise referecens are provided separately
+                # TODO (Wangyou): need to fix this,
+                #  as noise referecens are provided separately
                 mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + eps)
             elif mask_type == "IAM":
                 mask = abs(r) / (abs(mix_spec) + eps)
@@ -92,16 +93,21 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         return mask_label
 
     def forward(
-        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor = None, **kwargs
+        self,
+        speech_mix: torch.Tensor,
+        speech_mix_lengths: torch.Tensor = None,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
             speech_mix: (Batch, samples) or (Batch, samples, channels)
-            speech_ref: (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
-            speech_mix_lengths: (Batch,), default 0 for chunk interator, because the chunk-iterator
-                            has no the speech_lengths returned.
-                            see in espnet2/iterators/chunk_iter_factory.py
+            speech_ref: (Batch, num_speaker, samples)
+                        or (Batch, num_speaker, samples, channels)
+            speech_mix_lengths: (Batch,), default None for chunk interator,
+                            because the chunk-iterator has no the
+                            speech_lengths returned. see in
+                            espnet2/iterators/chunk_iter_factory.py
         """
         # clean speech signal of each speaker
         speech_ref = [
@@ -111,16 +117,19 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref = torch.stack(speech_ref, dim=1)
 
         if "noise_ref1" in kwargs:
-            # noise signal (optional, required when using frontend models with beamformering)
+            # noise signal (optional, required when using
+            # frontend models with beamformering)
             noise_ref = [
                 kwargs["noise_ref{}".format(n + 1)] for n in range(self.num_noise_type)
             ]
-            # (Batch, num_noise_type, samples) or (Batch, num_noise_type, samples, channels)
+            # (Batch, num_noise_type, samples) or
+            # (Batch, num_noise_type, samples, channels)
             noise_ref = torch.stack(noise_ref, dim=1)
         else:
             noise_ref = None
 
-        # dereverberated noisy signal (optional, only used for frontend models with WPE)
+        # dereverberated noisy signal
+        # (optional, only used for frontend models with WPE)
         dereverb_speech_ref = kwargs.get("dereverb_ref", None)
 
         batch_size = speech_mix.shape[0]
@@ -138,7 +147,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
         batch_size = speech_mix.shape[0]
 
-        # for data-parallel, (Chenda, here do not need to distinguish multi- and single- channel)
+        # for data-parallel
         speech_ref = speech_ref[:, :, : speech_lengths.max()]
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
@@ -200,7 +209,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 ]
 
                 # compute TF masking loss
-                # TODO:Chenda, Shall we add options for computing loss on the masked spectrum?
+                # TODO: Chenda, Shall we add options for
+                #  computing loss on the masked spectrum?
                 tf_loss, perm = self._permutation_loss(
                     mask_ref, mask_pre_, self.tf_mse_loss
                 )
@@ -251,13 +261,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
             loss = tf_loss
 
-            stats = dict(
-                si_snr=si_snr,
-                loss=loss.detach(),
-            )
+            stats = dict(si_snr=si_snr, loss=loss.detach(),)
         else:
             if speech_ref.dim() == 4:
-                # For si_snr loss of multi-channel input, only select one channel as the reference
+                # For si_snr loss of multi-channel input,
+                # only select one channel as the reference
                 speech_ref = speech_ref[..., self.ref_channel]
 
             speech_pre, speech_lengths, *__ = self.enh_model.forward_rawwav(

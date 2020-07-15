@@ -2,15 +2,15 @@ import pytest
 import torch
 import numpy as np
 
-from espnet2.asr.frontend.nets.tf_mask_net import TFMaskingNet
+from espnet2.enh.nets.tf_mask_net import TFMaskingNet
 
 
 @pytest.mark.parametrize(
     "n_fft, win_length, hop_length", [(8, None, 2)],
 )
-@pytest.mark.parametrize("rnn_type", ["blstm",])
+@pytest.mark.parametrize("rnn_type", ["blstm"])
 @pytest.mark.parametrize("layer", [1, 3])
-@pytest.mark.parametrize("unit", [8,])
+@pytest.mark.parametrize("unit", [8])
 @pytest.mark.parametrize("dropout", [0.0, 0.2])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("none_linear", ["relu", "sigmoid", "tanh"])
@@ -58,9 +58,9 @@ def test_tf_mask_net_forward_backward(
 @pytest.mark.parametrize(
     "n_fft, win_length, hop_length", [(8, None, 2)],
 )
-@pytest.mark.parametrize("rnn_type", ["blstm",])
+@pytest.mark.parametrize("rnn_type", ["blstm"])
 @pytest.mark.parametrize("layer", [1, 3])
-@pytest.mark.parametrize("unit", [8,])
+@pytest.mark.parametrize("unit", [8])
 @pytest.mark.parametrize("dropout", [0.0, 0.2])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("none_linear", ["relu", "sigmoid", "tanh"])
@@ -119,7 +119,16 @@ def test_tf_mask_net_output():
     inputs = torch.randn(2, 16)
     ilens = torch.LongTensor([16, 12])
     for num_spk in range(1, 3):
-        model = TFMaskingNet(8, None, 2, "blstm", 3, 8, 0.0, num_spk)
+        model = TFMaskingNet(
+            n_fft=8,
+            win_length=None,
+            hop_length=2,
+            rnn_type="blstm",
+            layer=3,
+            unit=8,
+            dropout=0.0,
+            num_spk=num_spk,
+        )
         specs, _, masks = model(inputs, ilens)
         assert isinstance(specs, list)
         assert isinstance(masks, dict)
@@ -130,4 +139,14 @@ def test_tf_mask_net_output():
 
 def test_tf_mask_net_invalid_norm_type():
     with pytest.raises(ValueError):
-        TFMaskingNet(8, None, 2, "blstm", 3, 8, 0.0, 2, none_linear="fff")
+        TFMaskingNet(
+            n_fft=8,
+            win_length=None,
+            hop_length=2,
+            rnn_type="blstm",
+            layer=3,
+            unit=8,
+            dropout=0.0,
+            num_spk=2,
+            none_linear="fff",
+        )

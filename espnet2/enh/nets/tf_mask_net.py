@@ -27,7 +27,7 @@ class TFMaskingNet(AbsEnhancement):
         num_spk: int = 2,
         none_linear: str = "sigmoid",
         utt_mvn: bool = False,
-        mask_type: str = 'IRM',
+        mask_type: str = "IRM",
     ):
         super(TFMaskingNet, self).__init__()
 
@@ -58,9 +58,7 @@ class TFMaskingNet(AbsEnhancement):
         )
 
         if none_linear not in ("sigmoid", "relu", "tanh"):
-            raise ValueError(
-                "Not supporting none_linear={}".format(none_linear)
-            )
+            raise ValueError("Not supporting none_linear={}".format(none_linear))
 
         self.none_linear = {
             "sigmoid": torch.nn.Sigmoid(),

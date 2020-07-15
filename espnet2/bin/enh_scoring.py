@@ -15,13 +15,13 @@ import numpy as np
 
 
 def scoring(
-        output_dir: str,
-        dtype: str,
-        log_level: Union[int, str],
-        key_file: str,
-        ref_scp: List[str],
-        inf_scp: List[str],
-        ref_channel: int,
+    output_dir: str,
+    dtype: str,
+    log_level: Union[int, str],
+    key_file: str,
+    ref_scp: List[str],
+    inf_scp: List[str],
+    ref_channel: int,
 ):
     assert check_argument_types()
 

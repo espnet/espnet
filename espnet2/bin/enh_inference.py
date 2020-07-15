@@ -100,7 +100,8 @@ def inference(
         #  batch size is not 1 or multi-channel case
         if normalize_output_wav:
             waves = [
-                (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).T.cpu().numpy() for w in waves
+                (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).T.cpu().numpy()
+                for w in waves
             ]  # list[(sample,batch)]
         else:
             waves = [w.T.cpu().numpy() for w in waves]

@@ -94,7 +94,7 @@ Options:
     --speed_perturb_factors   # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
 
     # Feature extraction related
-    --feats_type   # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
+    --feats_type   # Feature type (only support raw currently).
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
 
@@ -150,20 +150,7 @@ fi
 [ -z "${dev_set}" ] &&   { log "${help_message}"; log "Error: --dev_set is required"  ; exit 2; };
 [ -z "${eval_sets}" ] && { log "${help_message}"; log "Error: --eval_sets is required"; exit 2; };
 
-# Check feature type
-if [ "${feats_type}" = raw ]; then
-    data_feats=${dumpdir}/raw
-elif [ "${feats_type}" = fbank_pitch ]; then
-    data_feats=${dumpdir}/fbank_pitch
-elif [ "${feats_type}" = fbank ]; then
-    data_feats=${dumpdir}/fbank
-elif [ "${feats_type}" == extracted ]; then
-    data_feats=${dumpdir}/extracted
-else
-    log "${help_message}"
-    log "Error: not supported: --feats_type ${feats_type}"
-    exit 2
-fi
+data_feats=${dumpdir}/raw
 
 
 
@@ -230,61 +217,56 @@ if [ -n "${speed_perturb_factors}" ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    if [ "${feats_type}" = raw ]; then
-        log "Stage 3: Format wav.scp: data/ -> ${data_feats}/org/"
 
-        # ====== Recreating "wav.scp" ======
-        # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
-        # shouldn't be used in training process.
-        # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
-        # and also it can also change the audio-format and sampling rate.
-        # If nothing is need, then format_wav_scp.sh does nothing:
-        # i.e. the input file format and rate is same as the output.
+    log "Stage 3: Format wav.scp: data/ -> ${data_feats}/org/"
 
-        for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
-            rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
-            _opts=
-            if [ -e data/"${dset}"/segments ]; then
-                # "segments" is used for splitting wav files which are written in "wav".scp
-                # into utterances. The file format of segments:
-                #   <segment_id> <record_id> <start_time> <end_time>
-                #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
-                # Where the time is written in seconds.
-                _opts+="--segments data/${dset}/segments "
-            fi
+    # ====== Recreating "wav.scp" ======
+    # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
+    # shouldn't be used in training process.
+    # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
+    # and also it can also change the audio-format and sampling rate.
+    # If nothing is need, then format_wav_scp.sh does nothing:
+    # i.e. the input file format and rate is same as the output.
+
+    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+        utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
+        rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
+        _opts=
+        if [ -e data/"${dset}"/segments ]; then
+            # "segments" is used for splitting wav files which are written in "wav".scp
+            # into utterances. The file format of segments:
+            #   <segment_id> <record_id> <start_time> <end_time>
+            #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
+            # Where the time is written in seconds.
+            _opts+="--segments data/${dset}/segments "
+        fi
 
 
-            _spk_list=" "
-            for i in $(seq ${spk_num}); do
-                _spk_list+="spk${i} "
-            done
-            if $use_noise_ref; then
-                # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
-                _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
-            fi
-            if $use_dereverb_ref; then
-                # reference for dereverberation
-                _spk_list+="dereverb "
-            fi
+        _spk_list=" "
+        for i in $(seq ${spk_num}); do
+            _spk_list+="spk${i} "
+        done
+        if $use_noise_ref; then
+            # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
+            _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
+        fi
+        if $use_dereverb_ref; then
+            # reference for dereverberation
+            _spk_list+="dereverb "
+        fi
 
-            for spk in ${_spk_list} "wav" ; do
-                # shellcheck disable=SC2086
-                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                    --out-filename "${spk}.scp" \
-                    --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                    "data/${dset}/${spk}.scp" "${data_feats}/org/${dset}" \
-                    "${data_feats}/org/${dset}/logs/${spk}" "${data_feats}/org/${dset}/data/${spk}"
-
-            done
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+        for spk in ${_spk_list} "wav" ; do
+            # shellcheck disable=SC2086
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --out-filename "${spk}.scp" \
+                --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
+                "data/${dset}/${spk}.scp" "${data_feats}/org/${dset}" \
+                "${data_feats}/org/${dset}/logs/${spk}" "${data_feats}/org/${dset}/data/${spk}"
 
         done
+        echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
 
-    else
-        log "Error: not supported: --feats_type ${feats_type}"
-        exit 2
-    fi
+    done
 fi
 
 
@@ -315,29 +297,18 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         done
         # Remove short utterances
         _feats_type="$(<${data_feats}/${dset}/feats_type)"
-        if [ "${_feats_type}" = raw ]; then
-            min_length=2560
 
-            # utt2num_samples is created by format_wav_scp.sh
-            <"${data_feats}/org/${dset}/utt2num_samples" \
-                awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}/utt2num_samples"
-            for spk in ${_spk_list} "wav"; do
-                <"${data_feats}/org/${dset}/${spk}.scp" \
-                    utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
-                    >"${data_feats}/${dset}/${spk}.scp"
-            done
-        else
-            min_length=10
+        min_length=2560
 
-            cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
-            <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
-                | awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-                >"${data_feats}/${dset}/feats_shape"
-            <"${data_feats}/org/${dset}/feats.scp" \
-                utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
-                >"${data_feats}/${dset}/feats.scp"
-        fi
+        # utt2num_samples is created by format_wav_scp.sh
+        <"${data_feats}/org/${dset}/utt2num_samples" \
+            awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
+            >"${data_feats}/${dset}/utt2num_samples"
+        for spk in ${_spk_list} "wav"; do
+            <"${data_feats}/org/${dset}/${spk}.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/${spk}.scp"
+        done
 
         # fix_data_dir.sh leaves only utts which exist in all files
         utils/fix_data_dir.sh "${data_feats}/${dset}"
@@ -362,17 +333,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     _feats_type="$(<${_enh_train_dir}/feats_type)"
-    if [ "${_feats_type}" = raw ]; then
-        _scp=wav.scp
-        # "sound" supports "wav", "flac", etc.
-        _type=sound
-        # _opts+="--frontend_conf fs=${fs} "
-    else
-        _scp=feats.scp
-        _type=kaldi_ark
-        _input_size="$(<${_enh_train_dir}/feats_dim)"
-        _opts+="--input_size=${_input_size} "
-    fi
+    _scp=wav.scp
+    # "sound" supports "wav", "flac", etc.
+    _type=sound
 
     # 1. Split the key file
     _logdir="${enh_stats_dir}/logdir"
@@ -463,20 +426,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     fi
 
     _feats_type="$(<${_enh_train_dir}/feats_type)"
-    if [ "${_feats_type}" = raw ]; then
-        _scp=wav.scp
-        # "sound" supports "wav", "flac", etc.
-        _type=sound
-        _fold_length="$((enh_speech_fold_length * 100))"
-        # _opts+="--frontend_conf fs=${fs} "
-    else
-        _scp=feats.scp
-        _type=kaldi_ark
-        _fold_length="${enh_speech_fold_length}"
-        _input_size="$(<${_enh_train_dir}/feats_dim)"
-        _opts+="--input_size=${_input_size} "
-
-    fi
+    _scp=wav.scp
+    # "sound" supports "wav", "flac", etc.
+    _type=sound
+    _fold_length="$((enh_speech_fold_length * 100))"
+    # _opts+="--frontend_conf fs=${fs} "
 
     # prepare train and valid data parameters
     _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "

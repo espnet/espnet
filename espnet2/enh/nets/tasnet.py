@@ -4,7 +4,6 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from typing import Tuple
 from espnet2.enh.abs_enh import AbsEnhancement
 
 EPS = 1e-8
@@ -20,14 +19,18 @@ def overlap_and_add(signal, frame_step):
         output_size = (frames - 1) * frame_step + frame_length
 
     Args:
-        signal: A [..., frames, frame_length] Tensor. All dimensions may be unknown, and rank must be at least 2.
-        frame_step: An integer denoting overlap offsets. Must be less than or equal to frame_length.
+        signal: A [..., frames, frame_length] Tensor.
+                All dimensions may be unknown, and rank must be at least 2.
+        frame_step: An integer denoting overlap offsets.
+                    Must be less than or equal to frame_length.
 
     Returns:
-        A Tensor with shape [..., output_size] containing the overlap-added frames of signal's inner-most two dimensions.
+        A Tensor with shape [..., output_size] containing the
+         overlap-added frames of signal's inner-most two dimensions.
         output_size = (frames - 1) * frame_step + frame_length
 
-    Based on https://github.com/tensorflow/tensorflow/blob/r1.12/tensorflow/contrib/signal/python/ops/reconstruction_ops.py
+    Based on https://github.com/tensorflow/tensorflow/blob/r1.12/
+            tensorflow/contrib/signal/python/ops/reconstruction_ops.py
     """
     outer_dimensions = signal.size()[:-2]
     frames, frame_length = signal.size()[-2:]
@@ -81,19 +84,19 @@ def remove_pad(inputs, inputs_lengths):
 
 class TasNet(AbsEnhancement):
     def __init__(
-            self,
-            fs: int = 8000,
-            N: int = 256,
-            L: int = 20,
-            B: int = 256,
-            H: int = 512,
-            P: int = 3,
-            X: int = 8,
-            R: int = 4,
-            num_spk: int = 2,
-            norm_type: str = "gLN",
-            causal: bool = False,
-            mask_nonlinear: str = "relu",
+        self,
+        fs: int = 8000,
+        N: int = 256,
+        L: int = 20,
+        B: int = 256,
+        H: int = 512,
+        P: int = 3,
+        X: int = 8,
+        R: int = 4,
+        num_spk: int = 2,
+        norm_type: str = "gLN",
+        causal: bool = False,
+        mask_nonlinear: str = "relu",
     ):
         """
         Args:
@@ -109,7 +112,8 @@ class TasNet(AbsEnhancement):
             causal: causal or non-causal
             mask_nonlinear: use which non-linear function to generate mask
         Reference:
-            Luo Y, Mesgarani N. Tasnet: time-domain audio separation network for real-time, single-channel speech separation
+            Luo Y, Mesgarani N. Tasnet: time-domain audio
+            separation network for real-time, single-channel speech separation
         Based on https://github.com/kaituoxu/Conv-TasNet
         """
         super(TasNet, self).__init__()
@@ -271,7 +275,7 @@ class Decoder(nn.Module):
 
 class TemporalConvNet(nn.Module):
     def __init__(
-            self, N, B, H, P, X, R, C, norm_type="gLN", causal=False, mask_nonlinear="relu"
+        self, N, B, H, P, X, R, C, norm_type="gLN", causal=False, mask_nonlinear="relu"
     ):
         """
         Args:
@@ -345,15 +349,15 @@ class TemporalConvNet(nn.Module):
 
 class TemporalBlock(nn.Module):
     def __init__(
-            self,
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride,
-            padding,
-            dilation,
-            norm_type="gLN",
-            causal=False,
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride,
+        padding,
+        dilation,
+        norm_type="gLN",
+        causal=False,
     ):
         super(TemporalBlock, self).__init__()
         # [M, B, K] -> [M, H, K]
@@ -390,15 +394,15 @@ class TemporalBlock(nn.Module):
 
 class DepthwiseSeparableConv(nn.Module):
     def __init__(
-            self,
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride,
-            padding,
-            dilation,
-            norm_type="gLN",
-            causal=False,
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride,
+        padding,
+        dilation,
+        norm_type="gLN",
+        causal=False,
     ):
         super(DepthwiseSeparableConv, self).__init__()
         # Use `groups` option to implement depthwise convolution
