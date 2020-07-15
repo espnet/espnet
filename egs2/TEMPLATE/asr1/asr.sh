@@ -1184,7 +1184,7 @@ This model was trained by ${_creator_name} using ${_task} recipe in <a href="htt
 <p>&nbsp;</p>
 <ul>
 <li><strong>Python API</strong><pre><code class="language-python">Coming soon...</code></pre></li>
-<li><strong>Decoding with pretrained model in the recipe</strong><pre>
+<li><strong>Evaluate in the recipe</strong><pre>
 <code class="language-bash">git clone https://github.com/espnet/espnet
 cd espnet${_checkout}
 pip install -e .
