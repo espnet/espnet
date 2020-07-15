@@ -21,5 +21,4 @@ eval_sets="tt_${min_or_max}_${sample_rate} "
     --ngpu 1 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
     --enh_config ./conf/tuning/train_enh_PSM.yaml \
-    --speed_perturb_factors "0.9 1.0 1.1" \
     "$@"

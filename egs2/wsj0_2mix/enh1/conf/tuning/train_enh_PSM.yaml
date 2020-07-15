@@ -25,20 +25,17 @@ scheduler_conf:
     mode: min
     factor: 0.7
     patience: 1
-frontend: enh
-frontend_conf:
-    enh_type: tf_masking
+enh: tf_masking
+enh_conf:
     mask_type: PSM
     fs: 8000
-    tf_factor: 1.0
-    enh_conf:
-        n_fft: 256
-        hop_length: 128
-        rnn_type: blstm
-        layer: 3
-        unit: 896
-        dropout: 0.5
-        num_spk: 2
-        utt_mvn: False
-        none_linear: relu
+    n_fft: 256
+    hop_length: 128
+    rnn_type: blstm
+    layer: 3
+    unit: 896
+    dropout: 0.5
+    num_spk: 2
+    utt_mvn: False
+    none_linear: relu
     

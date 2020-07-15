@@ -12,9 +12,9 @@ from espnet.nets.pytorch_backend.frontends.beamformer import (
     get_power_spectral_density_matrix,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
-from espnet2.asr.frontend.nets.utils.conv_beamformer import get_covariances
-from espnet2.asr.frontend.nets.utils.conv_beamformer import get_WPD_filter_v2
-from espnet2.asr.frontend.nets.utils.conv_beamformer import perform_WPD_filtering
+from espnet2.enh.funcs.conv_beamformer import get_covariances
+from espnet2.enh.funcs.conv_beamformer import get_WPD_filter_v2
+from espnet2.enh.funcs.conv_beamformer import perform_WPD_filtering
 from torch_complex.tensor import ComplexTensor
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")

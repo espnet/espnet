@@ -12,9 +12,11 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.enh_frontend import EnhFrontend
-from espnet2.asr.frontend.espnet_model import ESPnetFrontendModel
+from espnet2.enh.abs_enh import AbsEnhancement
+from espnet2.enh.nets.tasnet import TasNet
+from espnet2.enh.nets.tf_mask_net import TFMaskingNet
+from espnet2.enh.nets.beamformer_net import BeamformerNet
+from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -25,23 +27,23 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
-frontend_choices = ClassChoices(
-    name="frontend",
-    classes=dict(enh=EnhFrontend),
-    type_check=AbsFrontend,
-    default="enh",
+enh_choices = ClassChoices(
+    name="enh",
+    classes=dict(tf_masking=TFMaskingNet, tasnet=TasNet, wpe_beamformer=BeamformerNet),
+    type_check=AbsEnhancement,
+    default="tf_masking",
 )
 
 MAX_REFERENCE_NUM = 100
 
 
-class FrontendTask(AbsTask):
+class EnhancementTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
     class_choices_list = [
-        # --frontend and --frontend_conf
-        frontend_choices,
+        # --enh and --enh_conf
+        enh_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -73,7 +75,7 @@ class FrontendTask(AbsTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetFrontendModel),
+            default=get_default_kwargs(ESPnetEnhancementModel),
             help="The keyword arguments for model class.",
         )
 
@@ -129,13 +131,13 @@ class FrontendTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetFrontendModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetEnhancementModel:
         assert check_argument_types()
 
-        frontend = frontend_choices.get_class(args.frontend)(**args.frontend_conf)
+        enh_model = enh_choices.get_class(args.enh)(**args.enh_conf)
 
         # 1. Build model
-        model = ESPnetFrontendModel(frontend=frontend)
+        model = ESPnetEnhancementModel(enh_model=enh_model)
 
         # FIXME(kamo): Should be done in model?
         # 2. Initialize

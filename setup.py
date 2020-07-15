@@ -48,7 +48,8 @@ requirements = {
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
-        "pb-bss-eval>=0.0.2",
+        'torchaudio>=0.5.0'
+        "mir-eval>=0.6",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [

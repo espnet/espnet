@@ -59,11 +59,11 @@ use_dereverb_ref=false
 use_noise_ref=false
 
 # Enhancement related
-inference_args="--normalize_output_wav false"
+inference_args="--normalize_output_wav true"
 inference_enh_model=valid.si_snr.best.pth
 
 # Evaluation related
-scoring_protocol="PESQ STOI SDR SAR SIR"
+scoring_protocol="STOI SDR SAR SIR"
 ref_channel=0
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -73,7 +73,7 @@ eval_sets=     # Names of evaluation sets. Multiple items can be specified.
 enh_speech_fold_length=800 # fold_length for speech data during enhancement training
 
 help_message=$(cat << EOF
-Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names> 
+Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names>
 
 Options:
     # General configuration
@@ -254,7 +254,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 _opts+="--segments data/${dset}/segments "
             fi
 
-            
+
             _spk_list=" "
             for i in $(seq ${spk_num}); do
                 _spk_list+="spk${i} "
@@ -280,7 +280,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
 
         done
-        
+
     else
         log "Error: not supported: --feats_type ${feats_type}"
         exit 2
@@ -398,7 +398,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "Enhancement collect-stats started... log: '${_logdir}/stats.*.log'"        
+    log "Enhancement collect-stats started... log: '${_logdir}/stats.*.log'"
 
     # prepare train and valid data parameters
     _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
@@ -480,13 +480,13 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 
     # prepare train and valid data parameters
     _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
-    _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape " 
+    _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
     _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/wav.scp,speech_mix,sound "
     _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
     _fold_length_param="--fold_length ${_fold_length} "
     for spk in $(seq "${spk_num}"); do
         _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
-        _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape " 
+        _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
         _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/spk${spk}.scp,speech_ref${spk},sound "
         _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
         _fold_length_param+="--fold_length ${_fold_length} "
@@ -570,7 +570,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # 2. Submit decoding jobs
         log "Separation started... log: '${_logdir}/enh_inference.*.log'"
         # shellcheck disable=SC2086
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
+        ${_cmd} --gpu "${_ngpu}" --mem ${mem} JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
             python3 -m espnet2.bin.enh_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
@@ -601,11 +601,11 @@ fi
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     log "Stage 8: Scoring"
     _cmd=${decode_cmd}
-    
+
     for dset in "${dev_set}" ${eval_sets}; do
         _data="${data_feats}/${dset}"
-        _inf_dir="${enh_exp}/separate_${dset}" 
-        _dir="${enh_exp}/separate_${dset}/scoring" 
+        _inf_dir="${enh_exp}/separate_${dset}"
+        _dir="${enh_exp}/separate_${dset}/scoring"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -650,20 +650,20 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
         for protocol in ${scoring_protocol}; do
             # shellcheck disable=SC2046
-            echo ${protocol}: $(paste $(for j in $(seq ${spk_num}); do echo ${_dir}/${protocol}_spk${j} ; done)  | 
+            echo "${protocol}": $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
             awk 'BEIGN{sum=0}
                 {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
-                END{print sum/NR}') 
-        done > ${_dir}/result.txt
+                END{print sum/NR}')
+        done > "${_dir}"/result.txt
 
-        cat ${_dir}/result.txt
+        cat "${_dir}"/result.txt
     done
 
     for dset in "${dev_set}" ${eval_sets} ; do
-         _dir="${enh_exp}/separate_${dset}/scoring" 
+         _dir="${enh_exp}/separate_${dset}/scoring"
          echo "======= Results in ${dset} ======="
-         cat ${_dir}/result.txt
-    done > ${enh_exp}/RESULTS.TXT
+         cat "${_dir}"/result.txt
+    done > "${enh_exp}"/RESULTS.TXT
 fi
 
 

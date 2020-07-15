@@ -12,7 +12,7 @@ from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.sound_scp import SoundScpWriter
-from espnet2.tasks.frontend import FrontendTask
+from espnet2.tasks.enh import EnhancementTask
 
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -56,7 +56,7 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build Enh model
-    enh_model, enh_train_args = FrontendTask.build_model_from_file(
+    enh_model, enh_train_args = EnhancementTask.build_model_from_file(
         enh_train_config, enh_model_file, device
     )
     enh_model.eval()
@@ -65,14 +65,14 @@ def inference(
     fs = enh_model.fs
 
     # 3. Build data-iterator
-    loader = FrontendTask.build_streaming_iterator(
+    loader = EnhancementTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=FrontendTask.build_preprocess_fn(enh_train_args, False),
-        collate_fn=FrontendTask.build_collate_fn(enh_train_args),
+        preprocess_fn=EnhancementTask.build_preprocess_fn(enh_train_args, False),
+        collate_fn=EnhancementTask.build_collate_fn(enh_train_args),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -100,7 +100,7 @@ def inference(
         #  batch size is not 1 or multi-channel case
         if normalize_output_wav:
             waves = [
-                (w / w.max(dim=1, keepdim=True)[0]).T.cpu().numpy() for w in waves
+                (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).T.cpu().numpy() for w in waves
             ]  # list[(sample,batch)]
         else:
             waves = [w.T.cpu().numpy() for w in waves]

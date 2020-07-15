@@ -6,9 +6,10 @@ from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet2.layers.stft import Stft
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from torch_complex.tensor import ComplexTensor
+from espnet2.enh.abs_enh import AbsEnhancement
 
 
-class TFMaskingNet(torch.nn.Module):
+class TFMaskingNet(AbsEnhancement):
     """ TF Masking Speech Separation Net
 
     """
@@ -17,6 +18,7 @@ class TFMaskingNet(torch.nn.Module):
         self,
         n_fft: int = 512,
         win_length: int = None,
+        fs: int = 8000,
         hop_length: int = 128,
         rnn_type: str = "blstm",
         layer: int = 3,
@@ -25,11 +27,14 @@ class TFMaskingNet(torch.nn.Module):
         num_spk: int = 2,
         none_linear: str = "sigmoid",
         utt_mvn: bool = False,
+        mask_type: str = 'IRM',
     ):
         super(TFMaskingNet, self).__init__()
 
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1
+        self.fs = fs
+        self.mask_type = mask_type
 
         self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
 
