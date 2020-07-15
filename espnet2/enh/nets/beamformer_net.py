@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import Optional
 
 import torch
 from espnet2.layers.stft import Stft
@@ -15,11 +16,17 @@ class BeamformerNet(AbsEnhancement):
 
     def __init__(
         self,
+        num_spk: int = 1,
+        normalize_input: bool = False,
+        # STFT options
         n_fft: int = 512,
         win_length: int = None,
         hop_length: int = 128,
-        num_spk: int = 2,
-        normalize_input: bool = False,
+        center: bool = True,
+        window: Optional[str] = "hann",
+        pad_mode: str = "reflect",
+        normalized: bool = False,
+        onesided: bool = True,
         # Dereverberation options
         use_wpe: bool = False,
         wnet_type: str = "blstmp",
@@ -47,19 +54,23 @@ class BeamformerNet(AbsEnhancement):
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1
 
-        self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
+        self.stft = Stft(
+            n_fft=n_fft,
+            win_length=win_length,
+            hop_length=hop_length,
+            center=center,
+            window=window,
+            pad_mode=pad_mode,
+            normalized=normalized,
+            onesided=onesided,
+        )
 
         self.normalize_input = normalize_input
         self.use_beamformer = use_beamformer
         self.use_wpe = use_wpe
-        self.use_dnn_mask_for_wpe = use_dnn_mask_for_wpe
-
-        assert (
-            self.use_wpe or self.use_beamformer
-        ), "`use_wpe` and `use_beamformer` cannot be False at the same time."
 
         if self.use_wpe:
-            if self.use_dnn_mask_for_wpe:
+            if use_dnn_mask_for_wpe:
                 # Use DNN for power estimation
                 iterations = 1
             else:
@@ -136,9 +147,10 @@ class BeamformerNet(AbsEnhancement):
             # single-channel input
             if self.use_wpe:
                 # (B, T, F)
-                enhanced, flens, mask_w = self.wpe(input_spectrum, flens)
+                enhanced, flens, mask_w = self.wpe(input_spectrum.unsqueeze(-2), flens)
+                enhanced = enhanced.squeeze(-2)
                 if mask_w is not None:
-                    masks["dereverb"] = mask_w
+                    masks["dereverb"] = mask_w.squeeze(-2)
 
         elif input_spectrum.dim() == 4:
             # multi-channel input

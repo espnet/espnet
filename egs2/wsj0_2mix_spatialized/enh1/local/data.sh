@@ -32,9 +32,12 @@ wsj_2mix_wav=$PWD/data/wsj0_mix
 wsj_2mix_spatialized_wav=$PWD/data/wsj0_mix_spatialized
 wsj_2mix_spatialized_scripts=$PWD/data/wsj0_mix_spatialized/scripts
 
-# train_set: tr_spatialized_anechoic_multich tr_spatialized_reverb_multich
-# train_dev: cv_spatialized_anechoic_multich cv_spatialized_reverb_multich
-# recog_set: tt_spatialized_anechoic_multich tt_spatialized_reverb_multich
+# train_set: tr_${min_or_max}_${sample_rate}_spatialized_anechoic_multich
+#            tr_${min_or_max}_${sample_rate}_spatialized_reverb_multich
+# train_dev: cv_${min_or_max}_${sample_rate}_spatialized_anechoic_multich
+#            cv_${min_or_max}_${sample_rate}_spatialized_reverb_multich
+# recog_set: tt_${min_or_max}_${sample_rate}_spatialized_anechoic_multich
+#            tt_${min_or_max}_${sample_rate}_spatialized_reverb_multich
 
 ### This part is for spatializing WSJ0 mix
 ### Download spatialize_mixture scripts and spatialize mixtures for 2 speakers

@@ -16,6 +16,17 @@ from espnet.nets.pytorch_backend.frontends.beamformer import (
 )
 
 
+def inv(z):
+    # z.shape: ..., N, N
+    real, imag = z.real, z.imag
+    dim_N = z.size(-1)
+    C = torch.cat(
+        (torch.cat((real, -imag), dim=-1), torch.cat((imag, real), dim=-1)), dim=-2
+    )
+    invC = torch.inverse(C)[..., :dim_N]
+    return ComplexTensor(invC[..., :dim_N, :], invC[..., dim_N:, :])
+
+
 def signal_framing(
     signal: Union[torch.Tensor, ComplexTensor],
     frame_length: int,
@@ -46,7 +57,7 @@ def signal_framing(
         # pad to the right at the last dimension of `signal` (time dimension)
         if do_padding:
             # (..., T) --> (..., T + bdelay + frame_length - 2)
-            signal = F.pad(
+            signal = FC.pad(
                 signal, (bdelay + frame_length2 - 1, 0), "constant", pad_value
             )
 
@@ -172,7 +183,7 @@ def get_WPD_filter(
         filter_matrix (ComplexTensor): (B, F, (btaps + 1) * C)
     """
     try:
-        inv_Rf = Rf.inverse()
+        inv_Rf = inv(Rf)
     except Exception:
         try:
             reg_coeff_tensor = (
@@ -181,7 +192,7 @@ def get_WPD_filter(
             Rf = Rf / 10e4
             Phi = Phi / 10e4
             Rf += reg_coeff_tensor
-            inv_Rf = Rf.inverse()
+            inv_Rf = inv(Rf)
         except Exception:
             reg_coeff_tensor = (
                 ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
@@ -189,7 +200,7 @@ def get_WPD_filter(
             Rf = Rf / 10e10
             Phi = Phi / 10e10
             Rf += reg_coeff_tensor
-            inv_Rf = Rf.inverse()
+            inv_Rf = inv(Rf)
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     numerator = FC.einsum("...ec,...cd->...ed", [inv_Rf, Phi])
@@ -236,7 +247,7 @@ def get_WPD_filter_v2(
     """
     C = reference_vector.shape[-1]
     try:
-        inv_Rf = Rf.inverse()
+        inv_Rf = inv(Rf)
     except Exception:
         try:
             reg_coeff_tensor = (
@@ -245,7 +256,7 @@ def get_WPD_filter_v2(
             Rf = Rf / 10e4
             Phi = Phi / 10e4
             Rf += reg_coeff_tensor
-            inv_Rf = Rf.inverse()
+            inv_Rf = inv(Rf)
         except Exception:
             reg_coeff_tensor = (
                 ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
@@ -253,7 +264,7 @@ def get_WPD_filter_v2(
             Rf = Rf / 10e10
             Phi = Phi / 10e10
             Rf += reg_coeff_tensor
-            inv_Rf = Rf.inverse()
+            inv_Rf = inv(Rf)
     # (B, F, (btaps+1) * C, (btaps+1) * C) --> (B, F, (btaps+1) * C, C)
     inv_Rf_pruned = inv_Rf[..., :C]
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)

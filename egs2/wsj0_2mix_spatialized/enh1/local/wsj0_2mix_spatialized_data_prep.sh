@@ -51,8 +51,8 @@ for suffix in anechoic reverb; do
 done
 
 data=./data
-rm -r ${data}/{tr,cv,tt}_spatialized_anechoic_multich 2>/dev/null
-rm -r ${data}/{tr,cv,tt}_spatialized_reverb_multich 2>/dev/null
+rm -r ${data}/{tr,cv,tt}_spatialized_anechoic_multich 2>/dev/null || true
+rm -r ${data}/{tr,cv,tt}_spatialized_reverb_multich 2>/dev/null || true
 
 for x in tr_spatialized_anechoic_multich cv_spatialized_anechoic_multich tt_spatialized_anechoic_multich \
          tr_spatialized_reverb_multich cv_spatialized_reverb_multich tt_spatialized_reverb_multich; do

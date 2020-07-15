@@ -9,7 +9,8 @@ import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+# from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+from espnet2.enh.nets.beamformer_net import BeamformerNet as Frontend
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.log_mel import LogMel
 from espnet2.layers.stft import Stft
@@ -47,20 +48,29 @@ class DefaultFrontend(AbsFrontend):
         # Deepcopy (In general, dict shouldn't be used as default arg)
         frontend_conf = copy.deepcopy(frontend_conf)
 
-        self.stft = Stft(
-            n_fft=n_fft,
-            win_length=win_length,
-            hop_length=hop_length,
-            center=center,
-            window=window,
-            pad_mode=pad_mode,
-            normalized=normalized,
-            onesided=onesided,
-        )
         if frontend_conf is not None:
-            self.frontend = Frontend(idim=n_fft // 2 + 1, **frontend_conf)
+            frontend_conf["n_fft"] = n_fft
+            frontend_conf["win_length"] = win_length
+            frontend_conf["hop_length"] = hop_length
+            frontend_conf["center"] = center
+            frontend_conf["window"] = window
+            frontend_conf["pad_mode"] = pad_mode
+            frontend_conf["normalized"] = normalized
+            frontend_conf["onesided"] = onesided
+            self.frontend = Frontend(**frontend_conf)
+            self.stft = self.frontend.stft
         else:
             self.frontend = None
+            self.stft = Stft(
+                n_fft=n_fft,
+                win_length=win_length,
+                hop_length=hop_length,
+                center=center,
+                window=window,
+                pad_mode=pad_mode,
+                normalized=normalized,
+                onesided=onesided,
+            )
 
         self.logmel = LogMel(
             fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk,
@@ -73,22 +83,21 @@ class DefaultFrontend(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        input_stft, feats_lens = self.stft(input, input_lengths)
+        # 1. [Optional] Speech enhancement
+        if self.frontend is not None:
+            # input_stft: (Batch, Length, [Channel], Freq)
+            input_stft, feats_lens, mask = self.frontend(input, input_lengths)
+        else:
+            # 1. Domain-conversion: e.g. Stft: time -> time-freq
+            input_stft, feats_lens = self.stft(input, input_lengths)
 
-        assert input_stft.dim() >= 4, input_stft.shape
-        # "2" refers to the real/imag parts of Complex
-        assert input_stft.shape[-1] == 2, input_stft.shape
+            assert input_stft.dim() >= 4, input_stft.shape
+            # "2" refers to the real/imag parts of Complex
+            assert input_stft.shape[-1] == 2, input_stft.shape
 
-        # Change torch.Tensor to ComplexTensor
+        # 2. Change torch.Tensor to ComplexTensor
         # input_stft: (..., F, 2) -> (..., F)
         input_stft = ComplexTensor(input_stft[..., 0], input_stft[..., 1])
-
-        # 2. [Option] Speech enhancement
-        if self.frontend is not None:
-            assert isinstance(input_stft, ComplexTensor), type(input_stft)
-            # input_stft: (Batch, Length, [Channel], Freq)
-            input_stft, _, mask = self.frontend(input_stft, feats_lens)
 
         # 3. [Multi channel case]: Select a channel
         if input_stft.dim() == 4:
