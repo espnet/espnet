@@ -570,7 +570,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # 2. Submit decoding jobs
         log "Separation started... log: '${_logdir}/enh_inference.*.log'"
         # shellcheck disable=SC2086
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
+        ${_cmd} --gpu "${_ngpu}" --mem ${mem} JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
             python3 -m espnet2.bin.enh_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
