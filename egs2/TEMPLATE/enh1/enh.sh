@@ -198,7 +198,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh "${local_data_opts}"
+    local/data.sh ${local_data_opts}
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -219,7 +219,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                _dirs+="data/${train_set} "
            fi
        done
-       utils/combine_data.sh --extra-files "${_scp_list}" "data/${train_set}_sp" "${_dirs}"
+       utils/combine_data.sh --extra-files "${_scp_list}" "data/${train_set}_sp" ${_dirs}
     else
        log "Skip stage 2: Speed perturbation"
     fi
