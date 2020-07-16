@@ -18,6 +18,7 @@ decode_config=conf/decode_asr.yaml
 # I'm not sure this is due to bug.
 
 ./asr.sh \
+    --lang "${lang}" \
     --local_data_opts "--lang ${lang}" \
     --use_lm false \
     --token_type char \

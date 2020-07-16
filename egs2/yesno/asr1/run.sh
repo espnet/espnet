@@ -12,6 +12,7 @@ asr_config=conf/train_asr.yaml
 decode_config=conf/decode.yaml
 
 ./asr.sh                                        \
+    --lang en                                   \
     --audio_format wav                          \
     --feats_type raw                            \
     --token_type char                           \

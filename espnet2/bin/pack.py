@@ -10,13 +10,13 @@ class PackedContents:
 
 
 class ASRPackedContents(PackedContents):
-    files = ["asr_model_file.pth", "lm_file.pth"]
-    yaml_files = ["asr_train_config.yaml", "lm_train_config.yaml"]
+    files = ["asr/pretrain.pth", "lm/pretrain.pth"]
+    yaml_files = ["asr/config.yaml", "lm/config.yaml"]
 
 
 class TTSPackedContents(PackedContents):
-    files = ["model_file.pth"]
-    yaml_files = ["train_config.yaml"]
+    files = ["pretrain.pth"]
+    yaml_files = ["config.yaml"]
 
 
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
@@ -26,6 +26,7 @@ def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents
     for key in contents.files:
         parser.add_argument(f"--{key}", type=str, default=None)
     parser.add_argument("--option", type=str, action="append", default=[])
+    parser.add_argument("--dirname", type=str, default="Base dirname in archived file")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -62,7 +63,11 @@ def main(cmd=None):
         y: getattr(args, y) for y in args.contents.files if getattr(args, y) is not None
     }
     pack(
-        yaml_files=yaml_files, files=files, option=args.option, outpath=args.outpath,
+        yaml_files=yaml_files,
+        files=files,
+        option=args.option,
+        dirname=args.dirname,
+        outpath=args.outpath,
     )
 
 

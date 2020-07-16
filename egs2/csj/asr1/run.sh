@@ -18,6 +18,7 @@ lm_config=conf/train_lm.yaml
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh \
+    --lang jp \
     --token_type char \
     --feats_type raw \
     --asr_config "${asr_config}" \
