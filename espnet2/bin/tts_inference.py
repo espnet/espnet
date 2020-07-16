@@ -200,11 +200,10 @@ def inference(
 
             # Extract features if speech is needed
             if use_speech:
+                _speech = (v for k, v in batch.items() if k.startswith("speech"))
                 if feats_extract is not None:
-                    _speech = (v for k, v in batch.items() if k.startswith("speech"))
-                    speech, speech_lengths = normalize(*feats_extract(*_speech))
-                else:
-                    speech, speech_lengths = normalize(*_speech)
+                    _speech = feats_extract(*_speech)
+                speech, speech_lengths = normalize(*_speech)
                 batch.update(speech=speech, speech_lengths=speech_lengths)
 
             key = keys[0]
