@@ -194,7 +194,7 @@ class E2E(STInterface, torch.nn.Module):
         group.add_argument(
             "--dunits", default=2048, type=int, help="Number of decoder hidden units"
         )
-    return parser
+        return parser
 
     @property
     def attention_plot_class(self):
