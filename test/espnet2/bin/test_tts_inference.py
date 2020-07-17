@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 from pathlib import Path
 import string
 
-import numpy as np
 import pytest
 
 from espnet2.bin.tts_inference import get_parser
@@ -58,6 +57,4 @@ def config_file(tmp_path: Path, token_list):
 def test_Text2Speech(config_file):
     text2speech = Text2Speech(train_config=config_file)
     text = "aiueo"
-    fs, wav, outs, outs_denorm, probs, att_ws = text2speech(text)
-    assert isinstance(fs, int)
-    assert isinstance(wav, np.ndarray)
+    text2speech(text)

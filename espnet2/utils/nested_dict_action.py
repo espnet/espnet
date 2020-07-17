@@ -73,8 +73,7 @@ e.g.
                 if idx == len(keys) - 1:
                     d[k] = value
                 else:
-                    v = d.setdefault(k, {})
-                    if not isinstance(v, dict):
+                    if not isinstance(d.setdefault(k, {}), dict):
                         # Remove the existing value and recreates as empty dict
                         d[k] = {}
                     d = d[k]
@@ -82,7 +81,6 @@ e.g.
             # Update the value
             setattr(namespace, self.dest, indict)
         else:
-            setattr(namespace, self.dest, values)
             try:
                 # At the first, try eval(), i.e. Python syntax dict.
                 # e.g. --{option} "{'a': 3}" -> {'a': 3}
@@ -99,5 +97,10 @@ e.g.
                     syntax = self._syntax.format(op=option_strings)
                     mes = f"must be interpreted as dict: but got {values}\n{syntax}"
                     raise argparse.ArgumentError(self, mes)
-            # Remove existing params, and overwrite
-            setattr(namespace, self.dest, value)
+
+            d = getattr(namespace, self.dest, None)
+            if isinstance(d, dict):
+                d.update(value)
+            else:
+                # Remove existing params, and overwrite
+                setattr(namespace, self.dest, value)

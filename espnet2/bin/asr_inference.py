@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 from pathlib import Path
 import sys
@@ -7,13 +8,11 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import configargparse
 import numpy as np
 import torch
 from typeguard import check_argument_types
-from typing import List
-
 from typeguard import check_return_type
+from typing import List
 
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
@@ -27,6 +26,7 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -138,16 +138,25 @@ class Speech2Text:
         self.dtype = dtype
         self.nbest = nbest
 
+    @torch.no_grad()
     def __call__(
         self, data: Union[dict, torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+        """Inference
+
+        Args:
+            data: Input speech data
+        Returns:
+            text, token, token_int, hyp
+
+        """
         assert check_argument_types()
 
         # Reform data to mini-batch (= dict type)
         if isinstance(data, dict):
             # This data comes from data-loader
             batch = data
-        elif isinstance(data, (torch.Tensor, np.ndarray)):
+        else:
             # Input as audio signal
             if isinstance(data, np.ndarray):
                 data = torch.tensor(data)
@@ -157,22 +166,19 @@ class Speech2Text:
             # lenghts: (1,)
             lengths = data.new_full([1], dtype=torch.long, fill_value=data.size(1))
             batch = {"speech": data, "speech_lengths": lengths}
-        else:
-            raise TypeError(f"dict, torch.Tensor, or np.ndarray: {type(data)}")
 
-        with torch.no_grad():
-            # a. To device
-            batch = to_device(batch, device=self.device)
+        # a. To device
+        batch = to_device(batch, device=self.device)
 
-            # b. Forward Encoder
-            enc, _ = self.asr_model.encode(**batch)
-            assert len(enc) == 1, len(enc)
+        # b. Forward Encoder
+        enc, _ = self.asr_model.encode(**batch)
+        assert len(enc) == 1, len(enc)
 
-            # c. Passed the encoder result and the beam search
-            nbest_hyps = self.beam_search(
-                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-            )
-            nbest_hyps = nbest_hyps[: self.nbest]
+        # c. Passed the encoder result and the beam search
+        nbest_hyps = self.beam_search(
+            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+        )
+        nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
         for hyp in nbest_hyps:
@@ -305,16 +311,13 @@ def inference(
 
 
 def get_parser():
-    parser = configargparse.ArgumentParser(
+    parser = config_argparse.ArgumentParser(
         description="ASR Decoding",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument("--config", is_config_file=True, help="config file path")
-
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),

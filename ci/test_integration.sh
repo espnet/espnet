@@ -94,7 +94,7 @@ done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 6 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
+        ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done
@@ -109,7 +109,7 @@ echo "==== [ESPnet2] TTS ==="
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --ngpu 0 --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 8 --feats-type "${t}" --train-args "--max_epoch 1"
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -129,7 +129,7 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
         python -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
-    for f in egs2/*/tts1/conf/train_*.yaml; do
+    for f in egs2/*/tts1/conf/train*.yaml; do
         python -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi
