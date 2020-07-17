@@ -36,6 +36,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.nets.st_interface import STInterface
+from espnet.utils.fill_missing_args import fill_missing_args
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -252,6 +253,10 @@ class E2E(STInterface, torch.nn.Module):
         """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         self.asr_weight = getattr(args, "asr_weight", 0)
         self.mt_weight = getattr(args, "mt_weight", 0)
         self.mtlalpha = args.mtlalpha
