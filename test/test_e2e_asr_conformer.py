@@ -44,7 +44,7 @@ def subsequent_mask(size, backend="pytorch"):
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_mask(module):
     T = importlib.import_module(
-        "espnet.nets.{}_backend.e2e_asr_conformer".format(module)
+        "espnet.nets.{}_backend.e2e_asr_transformer".format(module)
     )
     m = T.subsequent_mask(3)
     print(m)
