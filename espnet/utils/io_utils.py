@@ -200,22 +200,13 @@ class LoadInputsAndTargets(object):
         xs = list(x_feats_dict.values())
 
         if self.load_output:
-            if len(y_feats_dict) == 1:
-                ys = list(y_feats_dict.values())[0]
-                assert len(xs[0]) == len(ys), (len(xs[0]), len(ys))
+            ys = list(y_feats_dict.values())
+            assert len(xs[0]) == len(ys[0]), (len(xs[0]), len(ys[0]))
 
-                # get index of non-zero length samples
-                nonzero_idx = list(filter(lambda i: len(ys[i]) > 0, range(len(ys))))
-            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
-                ys = list(y_feats_dict.values())
-                assert len(xs[0]) == len(ys[0]), (len(xs[0]), len(ys[0]))
-
-                # get index of non-zero length samples
-                nonzero_idx = list(
-                    filter(lambda i: len(ys[0][i]) > 0, range(len(ys[0])))
-                )
-                for n in range(1, len(y_feats_dict)):
-                    nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
+            # get index of non-zero length samples
+            nonzero_idx = list(filter(lambda i: len(ys[0][i]) > 0, range(len(ys[0]))))
+            for n in range(1, len(y_feats_dict)):
+                nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
         else:
             # Note(kamo): Be careful not to make nonzero_idx to a generator
             nonzero_idx = list(range(len(xs[0])))
@@ -239,16 +230,15 @@ class LoadInputsAndTargets(object):
 
         x_names = list(x_feats_dict.keys())
         if self.load_output:
-            if len(y_feats_dict) == 1:
-                ys = [ys[i] for i in nonzero_sorted_idx]
-            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
-                ys = zip(*[[y[i] for i in nonzero_sorted_idx] for y in ys])
-
-            y_name = list(y_feats_dict.keys())[0]
+            ys = [[y[i] for i in nonzero_sorted_idx] for y in ys]
+            y_names = list(y_feats_dict.keys())
 
             # Keeping x_name and y_name, e.g. input1, for future extension
             return_batch = OrderedDict(
-                [*[(x_name, x) for x_name, x in zip(x_names, xs)], (y_name, ys)]
+                [
+                    *[(x_name, x) for x_name, x in zip(x_names, xs)],
+                    *[(y_name, y) for y_name, y in zip(y_names, ys)],
+                ]
             )
         else:
             return_batch = OrderedDict([(x_name, x) for x_name, x in zip(x_names, xs)])

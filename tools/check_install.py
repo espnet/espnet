@@ -35,6 +35,7 @@ COMPATIBLE_TORCH_VERSIONS = (
     "1.3.1",
     "1.4.0",
     "1.5.0",
+    "1.5.1",
 )
 
 

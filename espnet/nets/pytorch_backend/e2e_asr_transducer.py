@@ -23,6 +23,7 @@ from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class Reporter(chainer.Chain):
@@ -291,6 +292,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
         """
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
 
         if args.etype == "transformer":
             self.subsample = get_subsample(args, mode="asr", arch="transformer")

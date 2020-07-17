@@ -69,13 +69,13 @@ if __name__ == "__main__":
 
         out_list = []
         out_idx = 1
-        while "text_spk%d" % out_idx in dic:
+        while f"text_spk{out_idx}" in dic:
             out_dic = {}
-            out_dic["name"] = "target%d" % out_idx
-            out_dic["shape"] = int(dic["olen_spk%d" % out_idx]), int(dic["odim"])
-            out_dic["text"] = dic["text_spk%d" % out_idx]
-            out_dic["token"] = dic["token_spk%d" % out_idx]
-            out_dic["tokenid"] = dic["tokenid_spk%d" % out_idx]
+            out_dic["name"] = f"target{out_idx}"
+            out_dic["shape"] = int(dic[f"olen_spk{out_idx}"]), int(dic["odim"])
+            out_dic["text"] = dic[f"text_spk{out_idx}"]
+            out_dic["token"] = dic[f"token_spk{out_idx}"]
+            out_dic["tokenid"] = dic[f"tokenid_spk{out_idx}"]
             out_list.append(out_dic)
             out_idx += 1
 
