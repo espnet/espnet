@@ -140,7 +140,7 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, data: Union[dict, torch.Tensor, np.ndarray]
+        self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
@@ -152,20 +152,15 @@ class Speech2Text:
         """
         assert check_argument_types()
 
-        # Reform data to mini-batch (= dict type)
-        if isinstance(data, dict):
-            # This data comes from data-loader
-            batch = data
-        else:
-            # Input as audio signal
-            if isinstance(data, np.ndarray):
-                data = torch.tensor(data)
+        # Input as audio signal
+        if isinstance(speech, np.ndarray):
+            speech = torch.tensor(speech)
 
-            # data: (Nsamples,) -> (1, Nsamples)
-            data = data.unsqueeze(0).to(getattr(torch, self.dtype))
-            # lenghts: (1,)
-            lengths = data.new_full([1], dtype=torch.long, fill_value=data.size(1))
-            batch = {"speech": data, "speech_lengths": lengths}
+        # data: (Nsamples,) -> (1, Nsamples)
+        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
+        # lenghts: (1,)
+        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+        batch = {"speech": speech, "speech_lengths": lengths}
 
         # a. To device
         batch = to_device(batch, device=self.device)
@@ -291,9 +286,10 @@ def inference(
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(batch)
+            results = speech2text(**batch)
 
             # Only supporting batch_size==1
             key = keys[0]

@@ -124,36 +124,20 @@ class Text2Speech:
     @torch.no_grad()
     def __call__(
         self,
-        data: Union[dict, str, torch.Tensor, np.ndarray],
+        text: Union[str, torch.Tensor, np.ndarray],
         speech: Union[torch.Tensor, np.ndarray] = None,
     ):
         assert check_argument_types()
 
-        # Reform data to mini-batch (= dict type)
-        if isinstance(data, dict):
-            # This data comes from data-loader
+        if self.use_speech and speech is None:
+            raise RuntimeError("missing required argument: 'speech'")
 
-            # Change to single sequence and remove *_length
-            # because inference() requires 1-seq, not mini-batch.
-            batch = {k: v[0] for k, v in data.items() if not k.endswith("_lengths")}
-
-            if speech is not None:
-                if "speech" in batch:
-                    raise RuntimeError("keyword argument 'speech' is also in 'data'")
-                batch["speech"] = speech
-            if self.use_speech and "speech" not in batch:
-                raise RuntimeError("missing required argument: 'speech'")
-
-        else:
-            if self.use_speech and speech is None:
-                raise RuntimeError("missing required argument: 'speech'")
-
-            if isinstance(data, str):
-                # str -> np.ndarray
-                data = self.preprocess_fn("<dummy>", {"text": data})["text"]
-            batch = {"text": data}
-            if speech is not None:
-                batch["speech"] = speech
+        if isinstance(text, str):
+            # str -> np.ndarray
+            text = self.preprocess_fn("<dummy>", {"text": text})["text"]
+        batch = {"text": text}
+        if speech is not None:
+            batch["speech"] = speech
 
         batch = to_device(batch, self.device)
         outs, outs_denorm, probs, att_ws = self.model.inference(
@@ -297,11 +281,15 @@ def inference(
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
-            assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-            start_time = time.perf_counter()
+            assert _bs == 1, _bs
 
+            # Change to single sequence and remove *_length
+            # because inference() requires 1-seq, not mini-batch.
+            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+
+            start_time = time.perf_counter()
             wav, outs, outs_denorm, probs, att_ws, duration, focus_rate = text2speech(
-                batch
+                **batch
             )
 
             key = keys[0]
