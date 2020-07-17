@@ -74,13 +74,6 @@ class E2E(ASRInterface, torch.nn.Module):
             help="transformer input layer type",
         )
         group.add_argument(
-            "--transformer-encoder-attn-layer-type",
-            type=str,
-            default="mha",
-            choices=["mha", "rel_mha"],
-            help="transformer encoder attention layer type",
-        )
-        group.add_argument(
             "--transformer-attn-dropout-rate",
             default=None,
             type=float,
@@ -104,17 +97,12 @@ class E2E(ASRInterface, torch.nn.Module):
             type=strtobool,
             help="normalize loss by length",
         )
+
         group.add_argument(
             "--dropout-rate",
             default=0.0,
             type=float,
             help="Dropout rate for the encoder",
-        )
-        group.add_argument(
-            "--macaron-style",
-            default=False,
-            type=strtobool,
-            help="Whether to use macaron style for positionwise layer",
         )
         # Encoder
         group.add_argument(
@@ -130,18 +118,6 @@ class E2E(ASRInterface, torch.nn.Module):
             default=300,
             type=int,
             help="Number of encoder hidden units",
-        )
-        group.add_argument(
-            "--use-cnn-module",
-            default=False,
-            type=strtobool,
-            help="Use convolution module or not",
-        )
-        group.add_argument(
-            "--cnn-module-kernel",
-            default=31,
-            type=int,
-            help="Kernel size of convolution module.",
         )
         # Attention
         group.add_argument(
@@ -190,10 +166,6 @@ class E2E(ASRInterface, torch.nn.Module):
             dropout_rate=args.dropout_rate,
             positional_dropout_rate=args.dropout_rate,
             attention_dropout_rate=args.transformer_attn_dropout_rate,
-            encoder_attn_layer_type=args.transformer_encoder_attn_layer_type,
-            macaron_style=args.macaron_style,
-            use_cnn_module=args.use_cnn_module,
-            cnn_module_kernel=args.cnn_module_kernel,
         )
         if args.mtlalpha < 1:
             self.decoder = Decoder(
