@@ -144,17 +144,10 @@ def train(args):
         model = model_class(idim, odim, args)
     assert isinstance(model, STInterface)
 
-    subsampling_factor = model.subsample[0]
-
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(
-                len(args.char_list),
-                rnnlm_args.layer,
-                rnnlm_args.unit,
-                getattr(rnnlm_args, "embed_unit", None),  # for backward compatibility
-            )
+            lm_pytorch.RNNLM(len(args.char_list), rnnlm_args.layer, rnnlm_args.unit)
         )
         torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
@@ -600,10 +593,7 @@ def trans(args):
             )
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
-                len(train_args.char_list),
-                rnnlm_args.layer,
-                rnnlm_args.unit,
-                getattr(rnnlm_args, "embed_unit", None),  # for backward compatibility
+                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit
             )
         )
         torch_load(args.rnnlm, rnnlm)
