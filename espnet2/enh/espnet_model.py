@@ -105,7 +105,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             speech_ref: (Batch, num_speaker, samples)
                         or (Batch, num_speaker, samples, channels)
             speech_mix_lengths: (Batch,), default None for chunk interator,
-                            because the chunk-iterator has no the
+                            because the chunk-iterator does not have the
                             speech_lengths returned. see in
                             espnet2/iterators/chunk_iter_factory.py
         """
