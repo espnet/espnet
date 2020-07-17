@@ -91,14 +91,14 @@ class E2E(MTInterface, torch.nn.Module):
             "--transformer-encoder-selfattn-layer-type",
             type=str,
             default="selfattn",
-            choices=["selfattn", "lightconv", "dynamicconv",],
+            choices=["selfattn", "lightconv", "dynamicconv"],
             help="transformer encoder self-attention layer type",
         )
         group.add_argument(
             "--transformer-decoder-selfattn-layer-type",
             type=str,
             default="selfattn",
-            choices=["selfattn", "lightconv", "dynamicconv",],
+            choices=["selfattn", "lightconv", "dynamicconv"],
             help="transformer decoder self-attention layer type",
         )
         # Lightweight/Dynamic convolution related parameters.
