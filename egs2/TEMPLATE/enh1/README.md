@@ -34,31 +34,33 @@ espnet2/
 ├── bin
 │   └── enh_train.py
 └── tasks
-    └── frontend.py
+    └── enh.py
 ```
-The `FrontendTask` defined in `frontend.py` is called in `enh_train.py`. In the `collect_stats` mode. the behavior of `FrontendTask` is same as the `ABSTask`.
+The`EnhancementTask` defined in `enh.py` is called in `enh_train.py`. In the `collect_stats` mode. the behavior of `EnhancementTask` is same as the `ABSTask`.
 
-#### Stage 6: Enhancemnt Frontend Training
-We have created `FrontendTask` in `espnet2/tasks/frontend.py`, which is used to train `EnhFrontend(AbsFrontend)` that is defined in `espnet2/asr/frontend/enh_frontend.py` . Although it is currently defined as an independent task, the `EnhFrontend` is inherited from `AbsFrontend` and can be easily called by ASR tasks or even jointly trained with ASR in the future. The `ESPnetFrontendModel` defined in `espnet2/asr/frontend/espnet_model.py` is a wrapper of `EnhFrontend`.
-In `EnhFrontend`, several speech enhancement or separation models have been implemented (see `espnet2/asr/frontend/nets/`).
+#### Stage 6: Enhancemnt task Training
+We have created `EnhancementTask` in `espnet2/tasks/enh.py`, which is used to train the `ESPnetEnhancementModel(AbsESPnetModel)` defined in `espnet2/enh/espnet_model.py`. 
+In `EnhancementTask`, several speech enhancement or separation models have been implemented (see `espnet2/enh/nets/`). Although it is currently defined as an independent task, the models from `EnhancementTask` can be easily called by ASR tasks or even jointly trained with ASR in the future (see espnets/asr/frontend/default.py).
 
 Related new python files:
 ```
 espnet2/
 ├── bin
 │   └── enh_train.py
-├── asr
-│   └── frontend
-│       ├── nets
-|       |   ├── beamformer_net.py
-|       |   ├── tasnet.py
-|       |   ├── tf_mask_net.py
-│       │   └── utils
-│       │       ├── conv_beamformer.py
-│       │       ├── dnn_beamformer.py
-│       │       └── dnn_wpe.py
-|       ├── enh_frontend.py
-|       └── espnet_model.py
+├── enh
+│   ├── __init__.py
+│   ├── abs_enh.py
+│   ├── espnet_model.py
+│   ├── funcs
+│   │   ├── __init__.py
+│   │   ├── conv_beamformer.py
+│   │   ├── dnn_beamformer.py
+│   │   └── dnn_wpe.py
+│   └── nets
+│       ├── __init__.py
+│       ├── beamformer_net.py
+│       ├── tasnet.py
+│       └── tf_mask_net.py
 └── tasks
     └── frontend.py
 ```
