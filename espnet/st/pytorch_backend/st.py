@@ -6,7 +6,6 @@
 
 """Training/decoding definition for the speech translation task."""
 
-import copy
 import json
 import logging
 import os
