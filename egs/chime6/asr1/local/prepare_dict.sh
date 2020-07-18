@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright (c) 2018, Johns Hopkins University (Jan "Yenda" Trmal<jtrmal@gmail.com>)
 # License: Apache 2.0
 
