@@ -37,7 +37,7 @@ class MultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p=dropout_rate)
 
     def forward_qkv(self, query, key, value):
-        """Tranformerd query, key and value.
+        """Transform query, key and value.
 
         :param torch.Tensor query: (batch, time1, size)
         :param torch.Tensor key: (batch, time2, size)
