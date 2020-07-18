@@ -228,8 +228,8 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+    #${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    asr_train.py \
         --config ${train_config} \
         --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
