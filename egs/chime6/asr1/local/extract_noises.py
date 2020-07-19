@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
+# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 import argparse
 import json
 import logging
-import os
-import sys
-import scipy.io.wavfile as siw
 import math
 import numpy as np
+import os
+import scipy.io.wavfile as siw
+import sys
 
 
 def get_args():
@@ -23,15 +26,18 @@ def get_args():
     parser.add_argument("--segment-length", default=20)
     parser.add_argument(
         "audio_dir",
-        help="""Location of the CHiME5 Audio files. e.g. /export/corpora4/CHiME5/audio/train/""",
+        help="""Location of the CHiME5 Audio files.
+        e.g. /export/corpora4/CHiME5/audio/train/""",
     )
     parser.add_argument(
         "trans_dir",
-        help="""Location of the CHiME5 Transcriptions. e.g. /export/corpora4/CHiME5/transcriptions/train/""",
+        help="""Location of the CHiME5 Transcriptions.
+        e.g. /export/corpora4/CHiME5/transcriptions/train/""",
     )
     parser.add_argument(
         "audio_list",
-        help="""List of ids of the CHiME5 recordings from which noise is extracted. e.g. local/distant_audio_list""",
+        help="""List of ids of the CHiME5 recordings from which noise is extracted.
+        e.g. local/distant_audio_list""",
     )
     parser.add_argument(
         "out_dir",
@@ -78,6 +84,7 @@ def main():
     wav_list = open(args.audio_list).readlines()
 
     cnt = 1
+    session_p = None
     for i, audio in enumerate(wav_list):
         parts = audio.strip().split(".")
         if len(parts) == 2:
