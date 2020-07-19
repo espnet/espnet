@@ -79,6 +79,7 @@ decode_model=train.loss.best.pth # Model path for decoding e.g.,
                                  # decode_model=valid.acc.best.pth
                                  # decode_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
+download_model= # Download a model from Model Zoo and use it for decoding
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -144,6 +145,7 @@ Options:
     --decode_tag        # Suffix for decoding directory (default="${decode_tag}").
     --decode_model      # Model path for decoding (default=${decode_model}).
     --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
+    --download_model   # Download a model from Model Zoo and use it for decoding  (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set         # Name of training set (required).
@@ -675,6 +677,25 @@ else
 fi
 
 
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for decoding and evaluation"
+    tts_exp="${expdir}/${download_model}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download "${download_model}" > "${tts_exp}/config.txt"
+
+    # Get the path of each file
+    _model_file=$(<"${tts_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
+    _train_config=$(<"${tts_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_model_file}" "${tts_exp}"
+    ln -sf "${_train_config}" "${tts_exp}"
+    decode_model=$(basename "${_model_file}")
+
+fi
+
+
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "Stage 7: Decoding: training_dir=${tts_exp}"
 
@@ -795,9 +816,8 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     log "[Option] Stage 8: Pack model: ${packed_model}"
 
     python -m espnet2.bin.pack tts \
-        --dirname "$(basename ${packed_model} .zip)" \
-        --config.yaml "${tts_exp}"/config.yaml \
-        --pretrain.pth "${tts_exp}"/"${decode_model}" \
+        --train_config "${tts_exp}"/config.yaml \
+        --model_file "${tts_exp}"/"${decode_model}" \
         --option ${tts_stats_dir}/train/feats_stats.npz  \
         --outpath "${packed_model}"
 
@@ -827,21 +847,21 @@ git checkout $(git show -s --format=%H)"
     _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
     # foo/asr1 -> foo
     _corpus="${_task%/*}"
+    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
     # Generate description file
     cat << EOF > "${tts_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
-<li><strong>Python API</strong><pre><code class="language-python">Coming soon...</code></pre></li>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
 <li><strong>Evaluate in the recipe</strong><pre>
 <code class="language-bash">git clone https://github.com/espnet/espnet
 cd espnet${_checkout}
 pip install -e .
 cd $(pwd | rev | cut -d/ -f1-3 | rev)
 # Download the model file here
-unzip $(basename ${packed_model})
-./run.sh --skip_data_prep false --skip_train true --asr_exp $(basename ${packed_model} .zip)/asr --decode_asr_model pretrain.pth --lm_exp $(basename ${packed_model} .zip)/lm --decode_lm pretrain.pth</code>
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
 <li><strong>Config</strong><pre><code>$(cat "${tts_exp}"/config.yaml)</code></pre></li>
 </ul>
@@ -851,9 +871,9 @@ EOF
     #   Please confirm your record at Zenodo and publish by youself.
 
     # shellcheck disable=SC2086
-    python -m espnet2.bin.zenodo_upload \
+    espnet_model_zoo_upload \
         --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${_creator_name}/${_corpus}_$(basename ${packed_model} .zip), fs=${fs}, lang=${lang}" \
+        --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
         --description_file "${tts_exp}"/description \
         --creator_name "${_creator_name}" \
         --license "CC-BY-4.0" \

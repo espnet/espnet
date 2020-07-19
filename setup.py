@@ -18,9 +18,10 @@ requirements = {
         "editdistance==0.5.2",
         "numba==0.49",
         "gdown",
+        "espnet_model_zoo",
         # DNN related
         # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
-        "chainer==6.0.0",
+        "chainer==6.7.0",
         # 'cupy==6.0.0',  # Do not install cupy as default
         "tensorboard>=1.14",  # For pytorch>=1.1.0
         "tensorboardX>=1.8",  # For pytorch<1.1.0

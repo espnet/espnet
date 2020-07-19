@@ -92,6 +92,7 @@ decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                     # decode_asr_model=3epoch.pth
                                     # decode_asr_model=valid.acc.best.pth
                                     # decode_asr_model=valid.loss.ave.pth
+download_model= # Download a model from Model Zoo and use it for decoding
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -174,6 +175,7 @@ Options:
                        # Note that it will overwrite args in decode config.
     --decode_lm        # Language modle path for decoding (default="${decode_lm}").
     --decode_asr_model # ASR model path for decoding (default="${decode_asr_model}").
+    --download_model   # Download a model from Model Zoo and use it for decoding  (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -234,7 +236,7 @@ fi
 # Check tokenization type
 token_listdir=data/token_list
 bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
-bpeprefix="${bpedir}"/model
+bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
 bpetoken_list="${bpedir}"/tokens.txt
 chartoken_list="${token_listdir}"/char/tokens.txt
@@ -938,6 +940,35 @@ else
 fi
 
 
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for decoding and evaluation"
+    asr_exp="${expdir}/${download_model}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download "${download_model}" > "${asr_exp}/config.txt"
+
+    # Get the path of each file
+    _asr_model_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_model_file': '\([^']*\)'.*$/\1/")
+    _asr_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_asr_model_file}" "${asr_exp}"
+    ln -sf "${_asr_train_config}" "${asr_exp}"
+    decode_asr_model=$(basename "${_asr_model_file}")
+
+    if [ "$(<${asr_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
+        _lm_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
+        _lm_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
+
+        lm_exp="${expdir}/${download_model}/lm"
+        ln -sf "${_lm_file}" "${lm_exp}"
+        ln -sf "${_lm_train_config}" "${lm_exp}"
+        decode_lm=$(basename "${_lm_file}")
+    fi
+
+fi
+
+
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
     log "Stage 11: Decoding: training_dir=${asr_exp}"
 
@@ -1131,8 +1162,8 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
 
     _opts=
     if "${use_lm}"; then
-        _opts+="--lm/config.yaml ${lm_exp}/config.yaml "
-        _opts+="--lm/pretrain.pth ${lm_exp}/${decode_lm} "
+        _opts+="--lm_train_config ${lm_exp}/config.yaml "
+        _opts+="--lm_file ${lm_exp}/${decode_lm} "
     fi
     if [ "${feats_normalize}" = global_mvn ]; then
         _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
@@ -1142,9 +1173,8 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     fi
     # shellcheck disable=SC2086
     python -m espnet2.bin.pack asr \
-        --dirname "$(basename ${packed_model} .zip)" \
-        --asr/config.yaml "${asr_exp}"/config.yaml \
-        --asr/pretrain.pth "${asr_exp}"/"${decode_asr_model}" \
+        --asr_train_config "${asr_exp}"/config.yaml \
+        --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
         ${_opts} \
         --option "${asr_exp}"/RESULTS.md \
         --outpath "${packed_model}"
@@ -1177,21 +1207,20 @@ git checkout $(git show -s --format=%H)"
     _task="$(pwd | rev | cut -d/ -f2 | rev)"
     # foo/asr1 -> foo
     _corpus="${_task%/*}"
+    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
     # Generate description file
     cat << EOF > "${asr_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
-<li><strong>Python API</strong><pre><code class="language-python">Coming soon...</code></pre></li>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
 <li><strong>Evaluate in the recipe</strong><pre>
 <code class="language-bash">git clone https://github.com/espnet/espnet
 cd espnet${_checkout}
 pip install -e .
 cd $(pwd | rev | cut -d/ -f1-3 | rev)
-# Download the model file here
-unzip $(basename ${packed_model})
-./run.sh --skip_data_prep false --skip_train true --asr_exp $(basename ${packed_model} .zip)/asr --decode_asr_model pretrain.pth --lm_exp $(basename ${packed_model} .zip)/lm --decode_lm pretrain.pth</code>
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
 <li><strong>Results</strong><pre><code>$(cat "${asr_exp}"/RESULTS.md)</code></pre></li>
 <li><strong>ASR config</strong><pre><code>$(cat "${asr_exp}"/config.yaml)</code></pre></li>
@@ -1203,10 +1232,10 @@ EOF
     #   Please confirm your record at Zenodo and publish it by youself.
 
     # shellcheck disable=SC2086
-    python -m espnet2.bin.zenodo_upload \
+    espnet_model_zoo_upload \
         --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${_creator_name}/${_corpus}_$(basename ${packed_model} .zip), fs=${fs}, lang=${lang}" \
-        --description_file ${asr_exp}/description \
+        --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+        --description_file "${asr_exp}"/description \
         --creator_name "${_creator_name}" \
         --license "CC-BY-4.0" \
         --use_sandbox false \
