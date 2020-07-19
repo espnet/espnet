@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2017  Johns Hopkins University (Author: Yenda Trmal, Shinji Watanabe)
 # Apache 2.0
 

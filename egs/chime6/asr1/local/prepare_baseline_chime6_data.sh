@@ -58,7 +58,7 @@ test_sets="dev_${enhancement} eval_${enhancement}"
 train_set=train_worn_simu_u400k
 
 # This script also needs the phonetisaurus g2p, srilm, beamformit
-#./local/check_tools.sh || exit 1
+./local/check_tools.sh || exit 1
 
 ###########################################################################
 # We first generate the synchronized audio files across arrays and
