@@ -21,19 +21,13 @@ resume=        # Resume the training from snapshot
 do_delta=false
 
 train_config=conf/train.yaml
-lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
-
-# rnnlm related
-lm_resume=        # specify a snapshot file to resume LM training
-lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
 
 # data
-chime5_corpus=/media/hardDisk-2Tb/PROJECTS/chime6/CHiME5
+chime5_corpus=/export/corpora4/CHiME5
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -45,10 +39,6 @@ tag="" # tag for managing experiments.
 set -e
 set -u
 set -o pipefail
-
-# use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
-#eval#recog_set="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
-recog_set=""
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -176,7 +166,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "[STAGE 7]: Decoding"
     nj=40
     decode_dir=decode_${train_dev}
-    feat_recog_dir=${dumpdir}/${train_dev}/delta${do_delta}
 
     # split data
     splitjson.py --parts ${nj} ${feat_dt_dir}/data.json
