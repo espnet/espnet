@@ -84,7 +84,7 @@ if __name__ == "__main__":
             end_time = hms_to_seconds(end_time)
 
             uttid = speaker_id + "_" + session_id
-            if not args.mictype in ["worn", "gss"]:
+            if args.mictype not in ["worn", "gss"]:
                 uttid += "_" + mictype
 
             if args.mictype == "gss":

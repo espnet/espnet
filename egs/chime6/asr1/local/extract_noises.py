@@ -5,7 +5,6 @@
 
 import argparse
 import json
-import logging
 import math
 import numpy as np
 import os
