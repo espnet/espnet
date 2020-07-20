@@ -14,13 +14,13 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_test_clean_decode_asr_model_valid.acc.best/score_cer/result.txt:|457|25472|98.1|0.5|1.4|0.1|2.0|17.5|
-exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_train_dev_decode_asr_model_valid.acc.best/score_cer/result.txt:|220|12291|99.2|0.2|0.6|0.0|0.8|9.1|
+decode_test_clean_decode_asr_model_valid.acc.best:|457|25472|98.1|0.5|1.4|0.1|2.0|17.5|
+decode_train_dev_decode_asr_model_valid.acc.best:|220|12291|99.2|0.2|0.6|0.0|0.8|9.1|
 
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_test_clean_decode_asr_model_valid.acc.best/score_wer/result.txt:|457|6641|96.9|1.6|1.5|0.2|3.3|17.5|
-exp/asr_train_asr_transformer_fbank_pitch_bpe/decode_train_dev_decode_asr_model_valid.acc.best/score_wer/result.txt:|220|3216|98.5|0.8|0.7|0.0|1.6|9.1|
+decode_test_clean_decode_asr_model_valid.acc.best:|457|6641|96.9|1.6|1.5|0.2|3.3|17.5|
+decode_train_dev_decode_asr_model_valid.acc.best:|220|3216|98.5|0.8|0.7|0.0|1.6|9.1|
 
