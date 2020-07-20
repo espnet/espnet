@@ -73,4 +73,33 @@ EOF
             echo
         fi
     fi
+
+    if ls ${expdir}/decode_*/score_cer/result.txt &> /dev/null; then
+    # 1. Show the result table
+    cat << EOF
+## $(basename ${expdir})
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+EOF
+        grep -e Avg ${expdir}/decode_*/score_cer/result.txt \
+            | sed -e "s#${expdir}/\([^/]*\)/result.txt:#|\1#g" \
+            | sed -e 's#Sum/Avg##g' | tr '|' ' ' | tr -s ' ' '|'
+        echo
+
+        # 2. Show the result table for WER
+        if ls ${expdir}/decode_*/score_wer/result.txt &> /dev/null; then
+            cat << EOF
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+EOF
+            grep -e Avg ${expdir}/decode_*/score_wer/result.txt \
+                | sed -e "s#${expdir}/\([^/]*\)/result.txt:#|\1#g" \
+                | sed -e 's#Sum/Avg##g' | tr '|' ' ' | tr -s ' ' '|'
+            echo
+        fi
+    fi
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)

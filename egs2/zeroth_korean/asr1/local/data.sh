@@ -59,7 +59,6 @@ if [ $stage -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
   rm -f utt2spk.tmp
 
-
   # copy a test set
   utils/copy_data_dir.sh data/test_data_01 "data/${test_set}"
 fi
