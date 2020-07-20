@@ -159,7 +159,11 @@ class TransformerEncoder(AbsEncoder):
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
-        if isinstance(self.embed, Conv2dSubsampling) or isinstance(self.embed, Conv2dSubsampling6) or isinstance(self.embed, Conv2dSubsampling8):
+        if (
+            isinstance(self.embed, Conv2dSubsampling)
+            or isinstance(self.embed, Conv2dSubsampling6)
+            or isinstance(self.embed, Conv2dSubsampling8)
+        ):
             xs_pad, masks = self.embed(xs_pad, masks)
         else:
             xs_pad = self.embed(xs_pad)

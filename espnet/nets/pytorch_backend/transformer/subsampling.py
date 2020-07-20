@@ -50,6 +50,7 @@ class Conv2dSubsampling(torch.nn.Module):
             return x, None
         return x, x_mask[:, :, :-2:2][:, :, :-2:2]
 
+
 class Conv2dSubsampling6(torch.nn.Module):
     """Convolutional 2D subsampling (to 1/6 length).
 
