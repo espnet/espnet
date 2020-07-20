@@ -492,6 +492,7 @@ class E2E(MTInterface, torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             # 1. Encoder
             xs_pad, ys_pad = self.target_language_biasing(xs_pad, ilens, ys_pad)
@@ -499,5 +500,5 @@ class E2E(MTInterface, torch.nn.Module):
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
-
+        self.train()
         return att_ws

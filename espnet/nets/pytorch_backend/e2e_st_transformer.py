@@ -663,13 +663,13 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_src: batch of padded token id sequence tensor (B, Lmax)
         :param torch.Tensor ys_pad_src:
             batch of padded token id sequence tensor (B, Lmax)
-        :return: attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
+        :return: attention weights (B, H, Lmax, Tmax)
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             self.forward(xs_pad, ilens, ys_pad, ys_pad_src)
         ret = dict()
@@ -678,4 +678,5 @@ class E2E(STInterface, torch.nn.Module):
                 isinstance(m, MultiHeadedAttention) and m.attn is not None
             ):  # skip MHA for submodules
                 ret[name] = m.attn.cpu().numpy()
+        self.train()
         return ret
