@@ -22,8 +22,6 @@ jobs:
         # NOTE(kamo): Conda is tested by Circle-CI
         use-conda: [false]
         exclude:
-          - python-version: 3.7
-            pytorch-version: 1.0.1
           - python-version: 3.8
             pytorch-version: 1.0.1
           - python-version: 3.8
