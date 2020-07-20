@@ -293,7 +293,7 @@ def inference(
             )
 
             key = keys[0]
-            insize = next(iter(batch.values())).size(1) + 1
+            insize = next(iter(batch.values())).size(0) + 1
             logging.info(
                 "inference speed = {:.1f} frames / sec.".format(
                     int(outs.size(0)) / (time.perf_counter() - start_time)
