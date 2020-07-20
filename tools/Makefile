@@ -50,7 +50,6 @@ espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install matplotlib==3.1.1
 	touch espnet.done
 else
 venv:
@@ -58,7 +57,6 @@ venv:
 espnet.done: venv
 	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
 	. venv/bin/activate && pip install -e ..
-	. venv/bin/activate; pip install matplotlib==3.1.1
 	touch espnet.done
 endif
 

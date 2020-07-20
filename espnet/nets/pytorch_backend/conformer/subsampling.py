@@ -12,6 +12,11 @@ import torch
 class Conv2dSubsampling(torch.nn.Module):
     """Convolutional 2D subsampling (to 1/4 length).
 
+    Almost same as Conv2dSunbsampling in Transformer except
+    taking a positional encoding objective as input outside the class.
+    It will be more flexiable to choose different positional encoding types,
+    such as Sinusoidal positional encoding, Relative positional encoding, etc.
+
     :param int idim: input dim
     :param int odim: output dim
     :param nn.Module pos_enc_class: positional encoding layer
