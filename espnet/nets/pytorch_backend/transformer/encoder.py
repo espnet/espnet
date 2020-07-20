@@ -26,6 +26,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 
 
 def _pre_hook(
@@ -102,6 +103,8 @@ class Encoder(torch.nn.Module):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+        elif input_layer == "conv2d8":
+            self.embed = Conv2dSubsampling8(idim, attention_dim, dropout_rate)
         elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
