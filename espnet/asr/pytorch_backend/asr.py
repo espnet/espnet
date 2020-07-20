@@ -417,7 +417,7 @@ def train(args):
         assert args.mtlalpha == 1.0
         mtl_mode = "transducer"
         logging.info("Pure transducer mode")
-    if args.mtlalpha == 1.0:
+    elif args.mtlalpha == 1.0:
         mtl_mode = "ctc"
         logging.info("Pure CTC mode")
     elif args.mtlalpha == 0.0:
