@@ -663,7 +663,6 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
-        :param torch.Tensor ys_pad_src: batch of padded token id sequence tensor (B, Lmax)
         :param torch.Tensor ys_pad_src:
             batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights (B, H, Lmax, Tmax)
