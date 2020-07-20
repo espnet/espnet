@@ -658,10 +658,8 @@ def train(args):
             CustomEvaluator(model, {"main": valid_iter}, reporter, device, args.ngpu)
         )
 
-    # Save attention weight each epoch
-    if args.num_save_attention > 0 and (
-        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt"
-    ):
+    # Save attention weight at each epoch
+    if args.num_save_attention > 0 and mtl_mode in ["att", "mtl"]:
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
