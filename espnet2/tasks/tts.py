@@ -105,7 +105,7 @@ class TTSTask(AbsTask):
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
-            default=False,
+            default=True,
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
