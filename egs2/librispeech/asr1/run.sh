@@ -10,13 +10,14 @@ valid_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
 asr_config=conf/train_asr_transformer.yaml
-lm_config=conf/train_lm.yaml
+lm_config=conf/tuning/train_lm_adam.yaml
 decode_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --ngpu 4 \
     --nbpe 5000 \
     --max_wav_duration 30 \
+   --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --lm_config "${lm_config}" \
     --decode_config "${decode_config}" \
