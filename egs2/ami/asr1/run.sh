@@ -27,6 +27,7 @@ decode_config=conf/decode_asr.yaml
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh \
+    --lang en \
     --local_data_opts "--mic ${mic}" \
     --use_lm true \
     --lm_config "${lm_config}" \

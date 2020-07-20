@@ -22,6 +22,7 @@ asr_config=conf/train_asr_rnn.yaml
 decode_config=conf/decode_rnn.yaml
 lm_config=conf/train_lm.yaml
 ./asr.sh \
+    --lang jp \
     --token_type char \
     --feats_type raw \
     --fs ${fs} \
