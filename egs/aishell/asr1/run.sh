@@ -28,6 +28,10 @@ decode_config=conf/decode.yaml
 lm_resume=         # specify a snapshot file to resume LM training
 lmtag=             # tag for managing LMs
 
+# ngram
+ngramtag=
+n_gram=4
+
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
@@ -155,6 +159,13 @@ lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
+ngramexpname=train_ngram
+ngramexpdir=exp/${ngramexpname}
+if [ -z ${ngramtag} ]; then
+    ngramtag=${n_gram}
+fi
+mkdir -p ${ngramexpdir}
+
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
@@ -176,7 +187,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
         --dict ${dict}
+    
+    lmplz --discount_fallback -o ${n_gram} <${lmdatadir}/train.txt > ${ngramexpdir}/${n_gram}gram.arpa
+    build_binary -s ${ngramexpdir}/${n_gram}gram.arpa ${ngramexpdir}/${n_gram}gram.bin
 fi
+
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
@@ -212,16 +227,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-	recog_model=model.last${n_average}.avg.best
-	average_checkpoints.py --backend ${backend} \
-			       --snapshots ${expdir}/results/snapshot.ep.* \
-			       --out ${expdir}/results/${recog_model} \
-			       --num ${n_average}
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+        		       --snapshots ${expdir}/results/snapshot.ep.* \
+        		       --out ${expdir}/results/${recog_model} \
+        		       --num ${n_average}
     fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}_${ngramtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -239,7 +254,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/rnnlm.model.best
+            --rnnlm ${lmexpdir}/rnnlm.model.best \
+            --ngram-model ${ngramexpdir}/${n_gram}gram.bin \
+            --api v2
 
         score_sclite.sh ${expdir}/${decode_dir} ${dict}
 

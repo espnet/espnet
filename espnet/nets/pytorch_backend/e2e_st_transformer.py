@@ -35,6 +35,7 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.st_interface import STInterface
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class E2E(STInterface, torch.nn.Module):
@@ -95,7 +96,67 @@ class E2E(STInterface, torch.nn.Module):
             type=strtobool,
             help="normalize loss by length",
         )
-
+        group.add_argument(
+            "--transformer-encoder-selfattn-layer-type",
+            type=str,
+            default="selfattn",
+            choices=[
+                "selfattn",
+                "lightconv",
+                "lightconv2d",
+                "dynamicconv",
+                "dynamicconv2d",
+                "light-dynamicconv2d",
+            ],
+            help="transformer encoder self-attention layer type",
+        )
+        group.add_argument(
+            "--transformer-decoder-selfattn-layer-type",
+            type=str,
+            default="selfattn",
+            choices=[
+                "selfattn",
+                "lightconv",
+                "lightconv2d",
+                "dynamicconv",
+                "dynamicconv2d",
+                "light-dynamicconv2d",
+            ],
+            help="transformer decoder self-attention layer type",
+        )
+        # Lightweight/Dynamic convolution related parameters.
+        # See https://arxiv.org/abs/1912.11793v2
+        # and https://arxiv.org/abs/1901.10430 for detail of the method.
+        # Configurations used in the first paper are in
+        # egs/{csj, librispeech}/asr1/conf/tuning/ld_conv/
+        group.add_argument(
+            "--wshare",
+            default=4,
+            type=int,
+            help="Number of parameter shargin for lightweight convolution",
+        )
+        group.add_argument(
+            "--ldconv-encoder-kernel-length",
+            default="21_23_25_27_29_31_33_35_37_39_41_43",
+            type=str,
+            help="kernel size for lightweight/dynamic convolution: "
+            'Encoder side. For example, "21_23_25" means kernel length 21 for '
+            "First layer, 23 for Second layer and so on.",
+        )
+        group.add_argument(
+            "--ldconv-decoder-kernel-length",
+            default="11_13_15_17_19_21",
+            type=str,
+            help="kernel size for lightweight/dynamic convolution: "
+            'Decoder side. For example, "21_23_25" means kernel length 21 for '
+            "First layer, 23 for Second layer and so on.",
+        )
+        group.add_argument(
+            "--ldconv-usebias",
+            type=strtobool,
+            default=False,
+            help="use bias term in lightweight/dynamic convolution",
+        )
         group.add_argument(
             "--dropout-rate",
             default=0.1,
@@ -148,12 +209,20 @@ class E2E(STInterface, torch.nn.Module):
         :param Namespace args: argument Namespace containing options
         """
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
         self.encoder = Encoder(
             idim=idim,
+            selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_encoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.eunits,
             num_blocks=args.elayers,
             input_layer=args.transformer_input_layer,
@@ -163,8 +232,12 @@ class E2E(STInterface, torch.nn.Module):
         )
         self.decoder = Decoder(
             odim=odim,
+            selfattention_layer_type=args.transformer_decoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_decoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.dunits,
             num_blocks=args.dlayers,
             dropout_rate=args.dropout_rate,
@@ -186,7 +259,6 @@ class E2E(STInterface, torch.nn.Module):
             args.lsm_weight,
             args.transformer_length_normalized_loss,
         )
-        self.adim = args.adim
         # submodule for ASR task
         self.mtlalpha = args.mtlalpha
         self.asr_weight = getattr(args, "asr_weight", 0.0)
@@ -202,6 +274,7 @@ class E2E(STInterface, torch.nn.Module):
                 self_attention_dropout_rate=args.transformer_attn_dropout_rate,
                 src_attention_dropout_rate=args.transformer_attn_dropout_rate,
             )
+
         # submodule for MT task
         self.mt_weight = getattr(args, "mt_weight", 0.0)
         if self.mt_weight > 0:
@@ -217,7 +290,8 @@ class E2E(STInterface, torch.nn.Module):
                 attention_dropout_rate=args.transformer_attn_dropout_rate,
                 padding_idx=0,
             )
-        self.reset_parameters(args)  # place after the submodule initialization
+        self.reset_parameters(args)  # NOTE: place after the submodule initialization
+        self.adim = args.adim  # used for CTC (equal to d_model)
         if self.asr_weight > 0 and args.mtlalpha > 0.0:
             self.ctc = CTC(
                 odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True

@@ -33,6 +33,7 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.pytorch_backend.asr_init import freeze_modules
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
@@ -435,6 +436,11 @@ def train(args):
         )
     assert isinstance(model, ASRInterface)
 
+    logging.info(
+        " Total parameter of the model = "
+        + str(sum(p.numel() for p in model.parameters()))
+    )
+
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
@@ -484,18 +490,23 @@ def train(args):
         dtype = torch.float32
     model = model.to(device=device, dtype=dtype)
 
+    if args.freeze_mods:
+        model, model_params = freeze_modules(model, args.freeze_mods)
+    else:
+        model_params = model.parameters()
+
     # Setup an optimizer
     if args.opt == "adadelta":
         optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps, weight_decay=args.weight_decay
+            model_params, rho=0.95, eps=args.eps, weight_decay=args.weight_decay
         )
     elif args.opt == "adam":
-        optimizer = torch.optim.Adam(model.parameters(), weight_decay=args.weight_decay)
+        optimizer = torch.optim.Adam(model_params, weight_decay=args.weight_decay)
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
@@ -834,6 +845,10 @@ def recog(args):
 
     if args.streaming_mode and "transformer" in train_args.model_module:
         raise NotImplementedError("streaming mode for transformer is not implemented")
+    logging.info(
+        " Total parameter of the model = "
+        + str(sum(p.numel() for p in model.parameters()))
+    )
 
     # read rnnlm
     if args.rnnlm:
@@ -1258,3 +1273,88 @@ def enhance(args):
             if num_images >= args.num_images and enh_writer is None:
                 logging.info("Breaking the process.")
                 break
+
+
+def ctc_align(args):
+    """CTC forced alignments with the given args.
+
+    Args:
+        args (namespace): The program arguments.
+    """
+
+    def add_alignment_to_json(js, alignment, char_list):
+        """Add N-best results to json.
+
+        Args:
+            js (dict[str, Any]): Groundtruth utterance dict.
+            alignment (list[int]): List of alignment.
+            char_list (list[str]): List of characters.
+
+        Returns:
+            dict[str, Any]: N-best results added utterance dict.
+
+        """
+        # copy old json info
+        new_js = dict()
+        new_js["ctc_alignment"] = []
+
+        alignment_tokens = []
+        for idx, a in enumerate(alignment):
+            alignment_tokens.append(char_list[a])
+        alignment_tokens = " ".join(alignment_tokens)
+
+        new_js["ctc_alignment"] = alignment_tokens
+
+        return new_js
+
+    set_deterministic_pytorch(args)
+    model, train_args = load_trained_model(args.model)
+    assert isinstance(model, ASRInterface)
+    model.eval()
+
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode="asr",
+        load_output=True,
+        sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None
+        else args.preprocess_conf,
+        preprocess_args={"train": False},
+    )
+
+    if args.ngpu > 1:
+        raise NotImplementedError("only single GPU decoding is supported")
+    if args.ngpu == 1:
+        device = "cuda"
+    else:
+        device = "cpu"
+    dtype = getattr(torch, args.dtype)
+    logging.info(f"Decoding device={device}, dtype={dtype}")
+    model.to(device=device, dtype=dtype).eval()
+
+    # read json data
+    with open(args.align_json, "rb") as f:
+        js = json.load(f)["utts"]
+    new_js = {}
+    if args.batchsize == 0:
+        with torch.no_grad():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
+                batch = [(name, js[name])]
+                feat, label = load_inputs_and_targets(batch)
+                feat = feat[0]
+                label = label[0]
+                enc = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
+                alignment = model.ctc.forced_align(enc, label)
+                new_js[name] = add_alignment_to_json(
+                    js[name], alignment, train_args.char_list
+                )
+    else:
+        raise NotImplementedError("Align_batch is not implemented.")
+
+    with open(args.result_label, "wb") as f:
+        f.write(
+            json.dumps(
+                {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
+            ).encode("utf_8")
+        )

@@ -13,10 +13,11 @@ requirements = {
         "dataclasses",  # For Python<3.7
         "humanfriendly",
         "scipy>=1.4.1",
-        "matplotlib>=3.1.0",
+        "matplotlib==3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "numba==0.49",
+        "gdown",
         # DNN related
         # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
         "chainer==6.0.0",
@@ -39,8 +40,6 @@ requirements = {
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
-        "jaconv",
-        "g2p_en",
         "nnmnkwii",
         "espnet_tts_frontend",
         # ASR frontend related
@@ -93,7 +92,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.7.0",
+    version="0.8.0",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

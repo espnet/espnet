@@ -17,8 +17,8 @@ set -o pipefail
 mic=ihm
 
 train_set=${mic}_train
-train_dev=${mic}_dev
-train_test=${mic}_eval
+valid_set=${mic}_dev
+test_sets="${mic}_eval ${mic}_dev"
 
 asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
@@ -27,6 +27,7 @@ decode_config=conf/decode_asr.yaml
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh \
+    --lang en \
     --local_data_opts "--mic ${mic}" \
     --use_lm true \
     --lm_config "${lm_config}" \
@@ -37,7 +38,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --asr_config "${asr_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
-    --dev_set "${train_dev}" \
-    --eval_sets "${train_test}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
     --srctexts "data/${train_set}/text" "$@"

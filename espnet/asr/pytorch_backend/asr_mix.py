@@ -33,12 +33,12 @@ from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
 from espnet.nets.pytorch_backend.e2e_asr_mix import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
@@ -60,11 +60,12 @@ class CustomConverter(object):
 
     """
 
-    def __init__(self, subsampling_factor=1, dtype=torch.float32):
+    def __init__(self, subsampling_factor=1, dtype=torch.float32, num_spkrs=2):
         """Initialize the converter."""
         self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
         self.dtype = dtype
+        self.num_spkrs = num_spkrs
 
     def __call__(self, batch, device=torch.device("cpu")):
         """Transform a batch and send it to a device.
@@ -79,9 +80,7 @@ class CustomConverter(object):
         """
         # batch should be located in list
         assert len(batch) == 1
-        xs, ys = batch[0]
-        # Convert zip object to list in python 3.x
-        ys = list(ys)
+        xs, ys = batch[0][0], batch[0][-self.num_spkrs :]
 
         # perform subsampling
         if self.subsampling_factor > 1:
@@ -110,15 +109,16 @@ class CustomConverter(object):
             )
 
         ilens = torch.from_numpy(ilens).to(device)
-        # TODO(Xuankai): try to make this neat
         if not isinstance(ys[0], np.ndarray):
-            ys_pad = [torch.from_numpy(y[0]).long() for y in ys] + [
-                torch.from_numpy(y[1]).long() for y in ys
-            ]
+            ys_pad = []
+            for i in range(len(ys)):  # speakers
+                ys_pad += [torch.from_numpy(y).long() for y in ys[i]]
             ys_pad = pad_list(ys_pad, self.ignore_id)
             ys_pad = (
-                ys_pad.view(2, -1, ys_pad.size(1)).transpose(0, 1).to(device)
-            )  # (num_spkrs, B, Tmax)
+                ys_pad.view(self.num_spkrs, -1, ys_pad.size(1))
+                .transpose(0, 1)
+                .to(device)
+            )  # (B, num_spkrs, Tmax)
         else:
             ys_pad = pad_list(
                 [torch.from_numpy(y).long() for y in ys], self.ignore_id
@@ -161,7 +161,9 @@ def train(args):
         logging.info("Multitask learning mode")
 
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model_class = dynamic_import(args.model_module)
+    model = model_class(idim, odim, args)
+    assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
@@ -221,7 +223,10 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model.parameters(),
+            args.adim,
+            args.transformer_warmup_steps,
+            args.transformer_lr,
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
@@ -253,7 +258,9 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor, dtype=dtype)
+    converter = CustomConverter(
+        subsampling_factor=subsampling_factor, dtype=dtype, num_spkrs=args.num_spkrs
+    )
 
     # read json data
     with open(args.train_json, "rb") as f:

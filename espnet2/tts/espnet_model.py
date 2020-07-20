@@ -32,8 +32,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
-        spcs: torch.Tensor = None,
-        spcs_lengths: torch.Tensor = None,
+        **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
@@ -46,8 +45,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             speech=feats,
             speech_lengths=feats_lengths,
             spembs=spembs,
-            spcs=spcs,
-            spcs_lengths=spcs_lengths,
+            **kwargs,
         )
 
     def collect_feats(
