@@ -17,6 +17,7 @@ use_wordlm=false
 word_vocab_size=7184
 
 ./asr.sh                                        \
+    --lang vi                                   \
     --audio_format wav                          \
     --feats_type raw                            \
     --token_type char                           \

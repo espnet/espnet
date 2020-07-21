@@ -1,10 +1,11 @@
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Tacotron 2 related modules for ESPnet2."""
 
 import logging
 from typing import Dict
+from typing import Sequence
 from typing import Tuple
 
 import torch
@@ -21,6 +22,7 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.gst.style_encoder import StyleEncoder
 
 
 class Tacotron2(AbsTTS):
@@ -61,6 +63,16 @@ class Tacotron2(AbsTTS):
         reduction_factor (int, optional): Reduction factor.
         spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
         spk_embed_integration_type (str, optional): How to integrate speaker embedding.
+        use_gst (str, optional): Whether to use global style token.
+        gst_tokens (int, optional): The number of GST embeddings.
+        gst_heads (int, optional): The number of heads in GST multihead attention.
+        gst_conv_layers (int, optional): The number of conv layers in GST.
+        gst_conv_chans_list: (Sequence[int], optional):
+            List of the number of channels of conv layers in GST.
+        gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
+        gst_conv_stride (int, optional): Stride size of conv layers in GST.
+        gst_gru_layers (int, optional): The number of GRU layers in GST.
+        gst_gru_units (int, optional): The number of GRU units in GST.
         dropout_rate (float, optional): Dropout rate.
         zoneout_rate (float, optional): Zoneout rate.
         use_masking (bool, optional): Whether to mask padded part in loss calculation.
@@ -105,6 +117,15 @@ class Tacotron2(AbsTTS):
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "concat",
+        use_gst: bool = False,
+        gst_tokens: int = 10,
+        gst_heads: int = 4,
+        gst_conv_layers: int = 6,
+        gst_conv_chans_list: Sequence[int] = (32, 32, 64, 64, 128, 128),
+        gst_conv_kernel_size: int = 3,
+        gst_conv_stride: int = 2,
+        gst_gru_layers: int = 1,
+        gst_gru_units: int = 128,
         # training related
         dropout_rate: float = 0.5,
         zoneout_rate: float = 0.1,
@@ -127,6 +148,7 @@ class Tacotron2(AbsTTS):
         self.spk_embed_dim = spk_embed_dim
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
+        self.use_gst = use_gst
         self.use_guided_attn_loss = use_guided_attn_loss
         self.loss_type = loss_type
         if self.spk_embed_dim is not None:
@@ -160,6 +182,20 @@ class Tacotron2(AbsTTS):
             dropout_rate=dropout_rate,
             padding_idx=padding_idx,
         )
+
+        if self.use_gst:
+            self.gst = StyleEncoder(
+                idim=odim,  # the input is mel-spectrogram
+                gst_tokens=gst_tokens,
+                gst_token_dim=eunits,
+                gst_heads=gst_heads,
+                conv_layers=gst_conv_layers,
+                conv_chans_list=gst_conv_chans_list,
+                conv_kernel_size=gst_conv_kernel_size,
+                conv_stride=gst_conv_stride,
+                gru_layers=gst_gru_layers,
+                gru_units=gst_gru_units,
+            )
 
         if spk_embed_dim is None:
             dec_idim = eunits
@@ -247,6 +283,7 @@ class Tacotron2(AbsTTS):
         speech = speech[:, : speech_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
+
         # Add eos at the last of sequence
         xs = F.pad(text, [0, 1], "constant", self.padding_idx)
         for i, l in enumerate(text_lengths):
@@ -261,10 +298,9 @@ class Tacotron2(AbsTTS):
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate tacotron2 outputs
-        hs, hlens = self.enc(xs, ilens)
-        if self.spk_embed_dim is not None:
-            hs = self._integrate_with_spk_embed(hs, spembs)
-        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
+        after_outs, before_outs, logits, att_ws = self._forward(
+            xs, ilens, ys, olens, spembs
+        )
 
         # modify mod part of groundtruth
         if self.reduction_factor > 1:
@@ -308,9 +344,26 @@ class Tacotron2(AbsTTS):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    def _forward(
+        self,
+        xs: torch.Tensor,
+        ilens: torch.Tensor,
+        ys: torch.Tensor,
+        olens: torch.Tensor,
+        spembs: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        hs, hlens = self.enc(xs, ilens)
+        if self.use_gst:
+            style_embs = self.gst(ys)
+            hs = hs + style_embs.unsqueeze(1)
+        if self.spk_embed_dim is not None:
+            hs = self._integrate_with_spk_embed(hs, spembs)
+        return self.dec(hs, hlens, ys)
+
     def inference(
         self,
         text: torch.Tensor,
+        speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -318,11 +371,13 @@ class Tacotron2(AbsTTS):
         use_att_constraint: bool = False,
         backward_window: int = 1,
         forward_window: int = 3,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
             text (LongTensor): Input sequence of characters (T,).
+            speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
             threshold (float, optional): Threshold in inference.
             minlenratio (float, optional): Minimum length ratio in inference.
@@ -330,6 +385,7 @@ class Tacotron2(AbsTTS):
             use_att_constraint (bool, optional): Whether to apply attention constraint.
             backward_window (int, optional): Backward window in attention constraint.
             forward_window (int, optional): Forward window in attention constraint.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -338,13 +394,29 @@ class Tacotron2(AbsTTS):
 
         """
         x = text
+        y = speech
         spemb = spembs
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
 
+        # inference with teacher forcing
+        if use_teacher_forcing:
+            assert speech is not None, "speech must be provided with teacher forcing."
+
+            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
+            spembs = None if spemb is None else spemb.unsqueeze(0)
+            ilens = x.new_tensor([xs.size(1)]).long()
+            olens = y.new_tensor([ys.size(1)]).long()
+            outs, _, _, att_ws = self._forward(xs, ilens, ys, olens, spembs)
+
+            return outs[0], None, att_ws[0]
+
         # inference
         h = self.enc.inference(x)
+        if self.use_gst:
+            style_emb = self.gst(y.unsqueeze(0))
+            h = h + style_emb
         if self.spk_embed_dim is not None:
             hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
             h = self._integrate_with_spk_embed(hs, spembs)[0]
@@ -360,7 +432,9 @@ class Tacotron2(AbsTTS):
 
         return outs, probs, att_ws
 
-    def _integrate_with_spk_embed(self, hs, spembs):
+    def _integrate_with_spk_embed(
+        self, hs: torch.Tensor, spembs: torch.Tensor
+    ) -> torch.Tensor:
         """Integrate speaker embedding with hidden states.
 
         Args:

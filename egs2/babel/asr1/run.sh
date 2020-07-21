@@ -23,7 +23,10 @@ decode_config=conf/decode_asr.yaml
 
 nlsyms_txt=data/nlsym.txt
 
+
+# TODO(kamo): Derive language name from $langs and give it as --lang
 ./asr.sh \
+    --lang noinfo \
     --local_data_opts "--langs ${langs} --recog ${recog}" \
     --use_lm true \
     --lm_config "${lm_config}" \

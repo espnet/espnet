@@ -24,6 +24,7 @@ use_word_lm=false
 word_vocab_size=65000
 
 ./asr.sh                                        \
+    --lang en \
     --nlsyms_txt data/nlsyms.txt                \
     --token_type char                           \
     --feats_type fbank_pitch                    \

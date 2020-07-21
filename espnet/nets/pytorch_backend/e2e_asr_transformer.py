@@ -25,7 +25,10 @@ from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import mask_uniform
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
@@ -105,6 +108,7 @@ class E2E(ASRInterface, torch.nn.Module):
             default="selfattn",
             choices=[
                 "selfattn",
+                "rel_selfattn",
                 "lightconv",
                 "lightconv2d",
                 "dynamicconv",
@@ -132,13 +136,13 @@ class E2E(ASRInterface, torch.nn.Module):
         # and https://arxiv.org/abs/1901.10430 for detail of the method.
         # Configurations used in the first paper are in
         # egs/{csj, librispeech}/asr1/conf/tuning/ld_conv/
-        parser.add_argument(
+        group.add_argument(
             "--wshare",
             default=4,
             type=int,
             help="Number of parameter shargin for lightweight convolution",
         )
-        parser.add_argument(
+        group.add_argument(
             "--ldconv-encoder-kernel-length",
             default="21_23_25_27_29_31_33_35_37_39_41_43",
             type=str,
@@ -146,7 +150,7 @@ class E2E(ASRInterface, torch.nn.Module):
             'Encoder side. For example, "21_23_25" means kernel length 21 for '
             "First layer, 23 for Second layer and so on.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--ldconv-decoder-kernel-length",
             default="11_13_15_17_19_21",
             type=str,
@@ -154,7 +158,7 @@ class E2E(ASRInterface, torch.nn.Module):
             'Decoder side. For example, "21_23_25" means kernel length 21 for '
             "First layer, 23 for Second layer and so on.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--ldconv-usebias",
             type=strtobool,
             default=False,
@@ -370,7 +374,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
 
         # 5. compute cer/wer
-        if self.training or self.error_calculator is None:
+        if self.training or self.error_calculator is None or self.mtlalpha == 1.0:
             cer, wer = None, None
         else:
             ys_hat = pred_pad.argmax(dim=-1)
@@ -712,7 +716,11 @@ class E2E(ASRInterface, torch.nn.Module):
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) or isinstance(m, DynamicConvolution):
+            if (
+                isinstance(m, MultiHeadedAttention)
+                or isinstance(m, DynamicConvolution)
+                or isinstance(m, RelPositionMultiHeadedAttention)
+            ):
                 ret[name] = m.attn.cpu().numpy()
             if isinstance(m, DynamicConvolution2D):
                 ret[name + "_time"] = m.attn_t.cpu().numpy()

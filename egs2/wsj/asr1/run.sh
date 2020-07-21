@@ -10,6 +10,7 @@ valid_set=test_dev93
 test_sets="test_dev93 test_eval92"
 
 ./asr.sh \
+    --lang "en" \
     --nbpe 5000 \
     --nlsyms_txt data/nlsyms.txt \
     --token_type char \
