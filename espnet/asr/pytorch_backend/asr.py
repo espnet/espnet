@@ -408,8 +408,8 @@ def train(args):
         int(valid_json[utts[0]]["input"][i]["shape"][-1]) for i in range(args.num_encs)
     ]
     odim = int(valid_json[utts[0]]["output"][0]["shape"][-1])
-    if args.dmode == "NAR":
-        odim += 1
+    if hasattr(args, 'dmode') and args.dmode == "NAR":
+        odim += 1  # for the <mask> token
     for i in range(args.num_encs):
         logging.info("stream{}: input dims : {}".format(i + 1, idim_list[i]))
     logging.info("#output dims: " + str(odim))
@@ -979,7 +979,7 @@ def recog(args):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
                 elif model.dmode == 'NAR':
-                    nbest_hyps = model.recognize_mask_ctc(
+                    nbest_hyps = model.recognize_nar(
                         feat, args, train_args.char_list
                     )
                 else:

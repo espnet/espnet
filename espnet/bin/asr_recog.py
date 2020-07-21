@@ -216,8 +216,8 @@ def get_parser():
     parser.add_argument(
         "--K",
         type=int,
-        default=1,
-        help="Number of decoding iterations. Set to 999 to predict 1 mask/iter."
+        default=5,
+        help="Number of decoding iterations. Set 0 to predict 1 mask/iter."
     )
     return parser
 
