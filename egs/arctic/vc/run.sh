@@ -121,9 +121,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         spk_train_set=${spk_org_set}_train
         spk_dev_set=${spk_org_set}_dev
         spk_eval_set=${spk_org_set}_eval
-        spk_feat_tr_dir=${dumpdir}/${spk_train_set}_${norm_name}
-        spk_feat_dt_dir=${dumpdir}/${spk_dev_set}_${norm_name}
-        spk_feat_ev_dir=${dumpdir}/${spk_eval_set}_${norm_name}
        
         make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
             --fs ${fs} \
@@ -223,8 +220,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         -O ${pair_ev_dir}/data.json
 fi
 
-if [[ -z {train_config} ]]; then
-    echo "Please specify `train_config`."
+if [[ -z ${train_config} ]]; then
+    echo "Please specify --train_config."
     exit 1
 fi
 
