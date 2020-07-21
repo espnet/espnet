@@ -6,5 +6,5 @@ minlenratio: 0.0
 ctc-weight: 0.0
 lm-weight: 0.0
 
-K: 1
+K: 10
 p-thres: 0.999
