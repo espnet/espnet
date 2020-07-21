@@ -2,8 +2,8 @@ from typing import Optional
 from typing import Tuple, Union
 
 import torch
-from typeguard import check_argument_types
 from torch_complex.tensor import ComplexTensor
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -119,7 +119,7 @@ class Stft(torch.nn.Module, InversibleInterface):
     def inverse(
         self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """
+        """Inverse STFT.
 
         :param input: Tensor (batch, T, F, 2) or ComplexTensor (batch, T, F)
         :param ilens:

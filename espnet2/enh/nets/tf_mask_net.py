@@ -10,7 +10,7 @@ from torch_complex.tensor import ComplexTensor
 
 
 class TFMaskingNet(AbsEnhancement):
-    """ TF Masking Speech Separation Net."""
+    """TF Masking Speech Separation Net."""
 
     def __init__(
         self,

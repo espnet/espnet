@@ -34,7 +34,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.ref_channel = getattr(self.enh_model, "ref_channel", -1)
 
     def _create_mask_label(self, mix_spec, ref_spec, mask_type="IAM"):
-        """
+        """Create mask label.
+
         :param mix_spec: ComplexTensor(B, T, F)
         :param ref_spec: [ComplexTensor(B, T, F), ...] or ComplexTensor(B, T, F)
         :param noise_spec: ComplexTensor(B, T, F)
@@ -289,7 +290,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def tf_mse_loss(ref, inf):
-        """
+        """time-frequency MSE loss.
+
         :param ref: (Batch, T, F)
         :param inf: (Batch, T, F)
         :return: (Batch)
@@ -306,7 +308,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def tf_l1_loss(ref, inf):
-        """
+        """time-frequency L1 loss.
+
         :param ref: (Batch, T, F) or (Batch, T, C, F)
         :param inf: (Batch, T, F) or (Batch, T, C, F)
         :return: (Batch)
@@ -322,7 +325,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def si_snr_loss(ref, inf):
-        """
+        """si-snr loss
+
         :param ref: (Batch, samples)
         :param inf: (Batch, samples)
         :return: (Batch)
@@ -340,7 +344,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def si_snr_loss_zeromean(ref, inf):
-        """
+        """si_snr loss with zero-mean in pre-processing.
+
         :param ref: (Batch, samples)
         :param inf: (Batch, samples)
         :return: (Batch)
@@ -380,7 +385,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def _permutation_loss(ref, inf, criterion, perm=None):
-        """
+        """The basic permutation loss function.
+
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...]
             inf (List[torch.Tensor]): [(batch, ...), ...]

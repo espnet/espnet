@@ -106,8 +106,9 @@ def get_covariances(
     btaps: int,
     get_vector: bool = False,
 ) -> ComplexTensor:
-    """Calculates the power normalized spatio-temporal
-        covariance matrix of the framed signal.
+    """Calculates the power normalized spatio-temporal\
+     covariance matrix of the framed signal.
+
     Args:
         Y : Complext STFT signal with shape (B, F, C, T)
         inverse_power : Weighting factor with shape (B, F, T)

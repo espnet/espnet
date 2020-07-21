@@ -335,7 +335,7 @@ class TemporalConvNet(nn.Module):
         )
 
     def forward(self, mixture_w):
-        """ Keep this API same with TasNet
+        """Keep this API same with TasNet
 
         Args:
             mixture_w: [M, N, K], M is batch size
@@ -395,7 +395,7 @@ class TemporalBlock(nn.Module):
         """
         residual = x
         out = self.net(x)
-        # TODO: when P = 3 here works fine, but when P = 2 maybe need to pad?
+        # TODO(Jing): when P = 3 here works fine, but when P = 2 maybe need to pad?
         return out + residual  # look like w/o F.relu is better than w/ F.relu
         # return F.relu(out + residual)
 
@@ -472,8 +472,8 @@ def check_nonlinear(nolinear_type):
 
 
 def chose_norm(norm_type, channel_size):
-    """The input of normalization will be (M, C, K), where M is batch size,
-       C is channel size and K is sequence length. """
+    """The input of normalization will be (M, C, K), where M is batch size,\
+     C is channel size and K is sequence length. """
     if norm_type == "gLN":
         return GlobalLayerNorm(channel_size)
     elif norm_type == "cLN":
@@ -486,7 +486,6 @@ def chose_norm(norm_type, channel_size):
         raise ValueError("Unsupported normalization type")
 
 
-# TODO: Use nn.LayerNorm to impl cLN to speed up
 class ChannelwiseLayerNorm(nn.Module):
     """Channel-wise Layer Normalization (cLN)"""
 
@@ -535,7 +534,6 @@ class GlobalLayerNorm(nn.Module):
         Returns:
             gLN_y: [M, N, K]
         """
-        # TODO: in torch 1.0, torch.mean() support dim list
         mean = y.mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)  # [M, 1, 1]
         var = (
             (torch.pow(y - mean, 2)).mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)
