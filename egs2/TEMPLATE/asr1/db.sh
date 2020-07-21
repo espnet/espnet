@@ -1,5 +1,6 @@
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
-    AISHELL=
+    AIDATATANG=/export/b03/hyan/espnet-data/aidatatang
+    AISHELL=/export/b03/hyan/espnet-data/aishell
     AN4=
     WSJ0=
     WSJ1=
