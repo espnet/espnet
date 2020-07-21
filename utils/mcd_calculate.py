@@ -20,6 +20,7 @@ import pysptk
 import pyworld as pw
 from fastdtw import fastdtw
 
+
 def find_files(root_dir, query="*.wav", include_root_dir=True):
     """Find files recursively.
 
@@ -41,6 +42,7 @@ def find_files(root_dir, query="*.wav", include_root_dir=True):
 
     return files
 
+
 def low_cut_filter(x, fs, cutoff=70):
     """FUNCTION TO APPLY LOW CUT FILTER
 
@@ -61,50 +63,53 @@ def low_cut_filter(x, fs, cutoff=70):
     lcf_x = lfilter(fil, 1, x)
 
     return lcf_x
-        
+
+
 def world_extract(wav_path, args):
     fs, x = wavfile.read(wav_path)
     x = np.array(x, dtype=np.float64)
     x = low_cut_filter(x, fs)
 
     # extract features
-    f0, time_axis = pw.harvest(x, fs,
-                               f0_floor=args.f0min,
-                               f0_ceil=args.f0max,
-                               frame_period=args.shiftms)
-    sp = pw.cheaptrick(x, f0, time_axis, fs,
-                       fft_size=args.fftl)
+    f0, time_axis = pw.harvest(
+        x, fs, f0_floor=args.f0min, f0_ceil=args.f0max, frame_period=args.shiftms
+    )
+    sp = pw.cheaptrick(x, f0, time_axis, fs, fft_size=args.fftl)
     ap = pw.d4c(x, f0, time_axis, fs, fft_size=args.fftl)
     mcep = pysptk.sp2mc(sp, args.mcep_dim, args.mcep_alpha)
 
     return {
-        'sp': sp,
-        'mcep': mcep,
-        'ap': ap,
-        'f0': f0,
+        "sp": sp,
+        "mcep": mcep,
+        "ap": ap,
+        "f0": f0,
     }
+
 
 def get_basename(path):
     return os.path.splitext(os.path.split(path)[-1])[0]
 
+
 def calculate(file_list, gt_file_list, args, MCD):
-    
+
     for i, cvt_path in enumerate(file_list):
         basename = get_basename(cvt_path)
-        corresponding_list = list(filter(lambda gt_path: get_basename(gt_path) in cvt_path, gt_file_list))
-        assert(len(corresponding_list) == 1)
+        corresponding_list = list(
+            filter(lambda gt_path: get_basename(gt_path) in cvt_path, gt_file_list)
+        )
+        assert len(corresponding_list) == 1
         gt_path = corresponding_list[0]
         gt_basename = get_basename(gt_path)
 
         # extract ground truth and converted features
-        gt_feats    = world_extract(gt_path, args)
-        cvt_feats   = world_extract(cvt_path, args)
+        gt_feats = world_extract(gt_path, args)
+        cvt_feats = world_extract(cvt_path, args)
 
         # non-silence parts
-        gt_idx = np.where(gt_feats['f0']>0)[0]
-        gt_mcep = gt_feats['mcep'][gt_idx]
-        cvt_idx = np.where(cvt_feats['f0']>0)[0]
-        cvt_mcep = cvt_feats['mcep'][cvt_idx]
+        gt_idx = np.where(gt_feats["f0"] > 0)[0]
+        gt_mcep = gt_feats["mcep"][gt_idx]
+        cvt_idx = np.where(cvt_feats["f0"] > 0)[0]
+        cvt_mcep = cvt_feats["mcep"][cvt_idx]
 
         # DTW
         _, path = fastdtw(cvt_mcep, gt_mcep, dist=scipy.spatial.distance.euclidean)
@@ -112,52 +117,54 @@ def calculate(file_list, gt_file_list, args, MCD):
         cvt_mcep_dtw = cvt_mcep[twf[0]]
         gt_mcep_dtw = gt_mcep[twf[1]]
 
-        # MCD 
-        diff2sum = np.sum((cvt_mcep_dtw - gt_mcep_dtw)**2, 1)
+        # MCD
+        diff2sum = np.sum((cvt_mcep_dtw - gt_mcep_dtw) ** 2, 1)
         mcd = np.mean(10.0 / np.log(10.0) * np.sqrt(2 * diff2sum), 0)
-        print('{} {}'.format(gt_basename, mcd))
+        print("{} {}".format(gt_basename, mcd))
         MCD.append(mcd)
 
+
 def main():
-    
-    parser = argparse.ArgumentParser(
-        description="calculate MCD.")
+
+    parser = argparse.ArgumentParser(description="calculate MCD.")
     parser.add_argument(
-        "--wavdir", required=True, type=str,
-        help="path of directory for converted waveforms")
+        "--wavdir",
+        required=True,
+        type=str,
+        help="path of directory for converted waveforms",
+    )
     parser.add_argument(
-        "--gtwavdir", required=True, type=str,
-        help="path of directory for ground truth waveforms")
+        "--gtwavdir",
+        required=True,
+        type=str,
+        help="path of directory for ground truth waveforms",
+    )
 
     # analysis related
     parser.add_argument(
-        "--mcep_dim", default=41, type=int,
-        help="dimension of mel cepstrum coefficient")
+        "--mcep_dim", default=41, type=int, help="dimension of mel cepstrum coefficient"
+    )
     parser.add_argument(
-        "--mcep_alpha", default=0.41, type=int,
-        help="all pass constant")
+        "--mcep_alpha", default=0.41, type=int, help="all pass constant"
+    )
+    parser.add_argument("--fftl", default=1024, type=int, help="fft length")
+    parser.add_argument("--shiftms", default=5, type=int, help="frame shift (ms)")
     parser.add_argument(
-        "--fftl", default=1024, type=int,
-        help="fft length")
+        "--f0min", required=True, type=int, help="fo search range (min)"
+    )
     parser.add_argument(
-        "--shiftms", default=5, type=int,
-        help="frame shift (ms)")
-    parser.add_argument(
-        "--f0min", required=True, type=int,
-        help="fo search range (min)")
-    parser.add_argument(
-        "--f0max", required=True, type=int,
-        help="fo search range (max)")
+        "--f0max", required=True, type=int, help="fo search range (max)"
+    )
 
     parser.add_argument(
-        "--n_jobs", default=40, type=int,
-        help="number of parallel jobs")
+        "--n_jobs", default=40, type=int, help="number of parallel jobs"
+    )
     args = parser.parse_args()
-    
+
     # find files
     converted_files = sorted(find_files(args.wavdir))
     gt_files = sorted(find_files(args.gtwavdir))
-    
+
     # Get and divide list
 
     print("number of utterances = %d" % len(converted_files))
@@ -178,7 +185,8 @@ def main():
             p.join()
 
         mMCD = np.mean(np.array(MCD))
-        print('Mean MCD: {:.2f}'.format(mMCD))
+        print("Mean MCD: {:.2f}".format(mMCD))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
