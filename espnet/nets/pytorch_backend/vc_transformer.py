@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Tomoki Hayashi
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""VC-Transformer related modules."""
+"""Voice Transformer Network (Transformer-VC) related modules."""
 
 import logging
 
@@ -31,158 +31,15 @@ from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
-
-from espnet.nets.pytorch_backend.vq.vector_quantize_codebook import VQCodebook
-
-class GradientReversalFunction(Function):
-    """
-    Gradient Reversal Layer from:
-    Unsupervised Domain Adaptation by Backpropagation (Ganin & Lempitsky, 2015)
-    Forward pass is the identity function. In the backward pass,
-    the upstream gradients are multiplied by -lambda (i.e. gradient is reversed)
-    """
-
-    @staticmethod
-    def forward(ctx, x, lambda_):
-        ctx.lambda_ = lambda_
-        return x.clone()
-
-    @staticmethod
-    def backward(ctx, grads):
-        lambda_ = ctx.lambda_
-        lambda_ = grads.new_tensor(lambda_)
-        dx = -lambda_ * grads
-        return dx, None
-
-class GradientReversal(torch.nn.Module):
-    def __init__(self, lambda_=1):
-        super(GradientReversal, self).__init__()
-        self.lambda_ = lambda_
-
-    def forward(self, x):
-        return GradientReversalFunction.apply(x, self.lambda_)
-
-class AdversarialClassifier(torch.nn.Module):
-    """Adversarial classifier network.
-
-    This is a module of adversarial classfier. It first inserts a gradient reversal layer (GRL), 
-    then uses one hidden layer (so two layers in total). 
-
-    .. _`Disentangling Correlated Speaker and Noise for Speech Synthesis via Data Augmentation and Adversarial Factorization`:
-       https://openreview.net/pdf?id=Bkg9ZeBB37
-
-    """
-
-    def __init__(self, idim, odim,
-                 lambda_,
-                 hidden_dim=256,
-                 ):
-        """Initialize adversarial classifier module.
-
-        Args:
-            idim (int) Dimension of the inputs.
-            odim (int) Dimension of the outputs.
-            lambda_ (float) Lambda (weight) of the reversed gradient.
-            hidden_dim (int, optional) Dimension of hidden layer.
-
-        """
-        super(AdversarialClassifier, self).__init__()
-        # store the hyperparameters
-        self.idim = idim
-        self.odim = odim
-        self.hidden_dim = hidden_dim
-
-        # define network layer modules
-        self.net = torch.nn.Sequential(
-            GradientReversal(lambda_=lambda_),
-            torch.nn.Linear(idim, hidden_dim),
-            torch.nn.Linear(hidden_dim, odim),
-        )
-
-    def forward(self, xs, ilens=None):
-        """Calculate forward propagation.
-
-        Args:
-            xs (Tensor): Batch of the padded sequence of encoder hidden states.
-
-        Returns:
-            Tensor: Batch of the sequences of posteriors (e.x. speaker posterior).
-
-        """
-        return self.net(xs)
-
-class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
-    """Guided attention loss function module for multi head attention.
-
-    Args:
-        sigma (float, optional): Standard deviation to control how close attention to a diagonal.
-        alpha (float, optional): Scaling coefficient (lambda).
-        reset_always (bool, optional): Whether to always reset masks.
-
-    """
-
-    def forward(self, att_ws, ilens, olens):
-        """Calculate forward propagation.
-
-        Args:
-            att_ws (Tensor): Batch of multi head attention weights (B, H, T_max_out, T_max_in).
-            ilens (LongTensor): Batch of input lenghts (B,).
-            olens (LongTensor): Batch of output lenghts (B,).
-
-        Returns:
-            Tensor: Guided attention loss value.
-
-        """
-        if self.guided_attn_masks is None:
-            self.guided_attn_masks = self._make_guided_attention_masks(ilens, olens).to(att_ws.device).unsqueeze(1)
-        if self.masks is None:
-            self.masks = self._make_masks(ilens, olens).to(att_ws.device).unsqueeze(1)
-        losses = self.guided_attn_masks * att_ws
-        loss = torch.mean(losses.masked_select(self.masks))
-        if self.reset_always:
-            self._reset_masks()
-
-        return self.alpha * loss
-
-
-class TTSPlot(PlotAttentionReport):
-    """Attention plot module for TTS-Transformer. We reuse it for VC."""
-
-    def plotfn(self, data, attn_dict, outdir, suffix="png", savefn=None):
-        """Plot multi head attentions.
-
-        Args:
-            data (dict): Utts info from json file.
-            attn_dict (dict): Multi head attention dict.
-                Values should be numpy.ndarray (H, L, T)
-            outdir (str): Directory name to save figures.
-            suffix (str): Filename suffix including image type (e.g., png).
-            savefn (function): Function to save figures.
-
-        """
-        import matplotlib.pyplot as plt
-        for name, att_ws in attn_dict.items():
-            for idx, att_w in enumerate(att_ws):
-                filename = "%s/%s.%s.%s" % (
-                    outdir, data[idx][0], name, suffix)
-                if "fbank" in name:
-                    fig = plt.Figure()
-                    ax = fig.subplots(1, 1)
-                    ax.imshow(att_w, aspect="auto")
-                    ax.set_xlabel("frames")
-                    ax.set_ylabel("fbank coeff")
-                    fig.tight_layout()
-                else:
-                    fig = _plot_and_save_attention(att_w, filename)
-                savefn(fig, filename)
+from espnet.nets.pytorch_backend.e2e_tts_transformer import GuidedMultiHeadAttentionLoss, TTSPlot
 
 
 class Transformer(TTSInterface, torch.nn.Module):
     """VC Transformer module.
 
-    This is a module of text-to-speech Transformer described in
+    This is a module of the Voice Transformer Network (VTN, Transformer-VC) described in
     `Voice Transformer Network: Sequence-to-Sequence Voice Conversion Using Transformer with Text-to-Speech Pretraining`_,
-    which convert the sequence of Mel-filterbanks into the sequence of Mel-filterbanks.
+    which convert the sequence of acoustic features into the sequence of acoustic features.
     
     .. _`Voice Transformer Network: Sequence-to-Sequence Voice Conversion Using Transformer with Text-to-Speech Pretraining`:
         https://arxiv.org/pdf/1912.06813.pdf
@@ -312,22 +169,6 @@ class Transformer(TTSInterface, torch.nn.Module):
         group.add_argument("--modules-applied-guided-attn", type=str, nargs="+",
                            default=["encoder-decoder"],
                            help="Module name list to be applied guided attention loss")
-        group.add_argument("--use-speaker-adv-loss", default=False, type=strtobool,
-                           help="Whether to use adversarial speaker classifier loss.")
-        group.add_argument("--num-speakers", type=int,
-                           help="Number of speakers in the training set.")
-        group.add_argument("--speaker-classifier-dim", default=256, type=int,
-                           help="Dimension of hidden layer of speaker classifier.")
-        group.add_argument("--speaker-adv-loss-lambda", default=1.0, type=float,
-                           help="Lambda in adversarial speaker classifier loss.")
-        group.add_argument("--use-vq", default=False, type=strtobool,
-                           help="Whether to use vector quantization.")
-        group.add_argument("--vq-num-embeds", default=512, type=int,
-                           help="Codebook size.")
-        group.add_argument("--vq-embed-dim", default=256, type=int,
-                           help="Codebook dimension.")
-        group.add_argument("--vq-lambda-commit", default=0.25, type=float,
-                           help="Lambda in VQ commitment loss.")
         return parser
 
     @property
@@ -336,7 +177,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         return TTSPlot
 
     def __init__(self, idim, odim, args=None):
-        """Initialize VC-Transformer module.
+        """Initialize Transformer-VC module.
 
         Args:
             idim (int): Dimension of the inputs.
@@ -421,11 +262,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             else:
                 self.num_heads_applied_guided_attn = args.num_heads_applied_guided_attn
             self.modules_applied_guided_attn = args.modules_applied_guided_attn
-        self.use_speaker_adv_loss = args.use_speaker_adv_loss
-        self.use_vq = args.use_vq
-        self.vq_num_embeds = args.vq_num_embeds
-        self.vq_embed_dim = args.vq_embed_dim
-        self.vq_lambda_commit = args.vq_lambda_commit
 
         # use idx 0 as padding idx
         padding_idx = 0
@@ -476,15 +312,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                 self.projection = torch.nn.Linear(self.spk_embed_dim, args.adim)
             else:
                 self.projection = torch.nn.Linear(args.adim + self.spk_embed_dim, args.adim)
-
-        # define VQ
-        if self.use_vq:
-            self.codebook = VQCodebook(
-                num_embeds=self.vq_num_embeds,
-                embed_dim=self.vq_embed_dim
-            )
-            self.vq_criterion = torch.nn.MSELoss(reduction="mean")
-            
 
         # define transformer decoder
         if args.dprenet_layers != 0:
@@ -542,15 +369,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                 alpha=args.guided_attn_loss_lambda,
             )
 
-        if self.use_speaker_adv_loss:
-            self.speaker_adv_classifier = AdversarialClassifier(
-                args.adim,
-                args.num_speakers,
-                args.speaker_adv_loss_lambda,
-                args.speaker_classifier_dim,
-            )
-            self.speaker_adv_criterion = torch.nn.CrossEntropyLoss()
-
         # initialize parameters
         self._reset_parameters(init_type=args.transformer_init,
                                init_enc_alpha=args.initial_encoder_alpha,
@@ -573,7 +391,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         ys_in = torch.cat([ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1)
         return ys_in
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spk_labels=None, *args, **kwargs):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, *args, **kwargs):
         """Calculate forward propagation.
 
         Args:
@@ -610,17 +428,11 @@ class Transformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens_ds)
         hs, hs_masks = self.encoder(xs_ds, x_masks)
         
-        # VQ
-        if self.use_vq:
-            hs_st, hs_q = self.codebook.straight_through(hs)
-        else:
-            hs_st = hs
-
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
-            hs_int = self._integrate_with_spk_embed(hs_st, spembs)
+            hs_int = self._integrate_with_spk_embed(hs, spembs)
         else:
-            hs_int = hs_st
+            hs_int = hs
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -637,7 +449,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             ilens_ds_st = ilens_ds.new([ ((ilen -2 +1) // 2 -2 +1) //2 for ilen in ilens_ds])
         else:
             ilens_ds_st = ilens_ds
-        
 
         # forward decoder
         y_masks = self._target_mask(olens_in)
@@ -715,25 +526,6 @@ class Transformer(TTSInterface, torch.nn.Module):
                 loss = loss + enc_dec_attn_loss
                 report_keys += [{"enc_dec_attn_loss": enc_dec_attn_loss.item()}]
 
-        # calculate speaker adversarial loss. The latter condition is to ensure this is not evaluated in validation
-        if self.use_speaker_adv_loss and (spk_labels is not None):
-            posterior = self.speaker_adv_classifier(hs_st)
-            _, T, posterior_dim = posterior.shape
-            spk_labels_repeat = spk_labels.view(-1, 1).repeat(1, T) # repeat spk_label to match posterior time length
-            posterior_flat = posterior.view(-1, posterior_dim) # flat to [N x T, num_spks]
-            spk_labels_flat = spk_labels_repeat.view(-1) # flat to [N x T, ]
-            speaker_adv_loss = self.speaker_adv_criterion(posterior_flat, spk_labels_flat)
-            loss = loss + speaker_adv_loss
-            report_keys += [{"speaker_adv_loss": speaker_adv_loss.item()}]
-
-        # calculate VQ loss and commitment loss
-        if self.use_vq:
-            quantize_loss = self.vq_criterion(hs_q, hs.detach())
-            commit_loss = self.vq_criterion(hs, hs_q.detach())
-            loss = loss + quantize_loss + self.vq_lambda_commit * commit_loss
-            report_keys += [{"quantize_loss": quantize_loss.item()}]
-            report_keys += [{"commit_loss": commit_loss.item()}]
-
         # report extra information
         if self.use_scaled_pos_enc:
             report_keys += [
@@ -781,11 +573,6 @@ class Transformer(TTSInterface, torch.nn.Module):
         # forward encoder
         x_ds = x_ds.unsqueeze(0)
         hs, _ = self.encoder(x_ds, None)
-
-        # VQ
-        if self.use_vq:
-            hs = self.codebook(hs)
-            hs = self.codebook.embedding(hs)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
@@ -844,34 +631,6 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         return outs, probs, att_ws
     
-    def encode(self, x, *args, **kwargs):
-        """Generate the sequence of features given the input acoustic feature sequence .
-
-        Args:
-            x (Tensor): Input sequence of acoustic feature (T, idim).
-
-        Returns:
-            Tensor: Output sequence of features (L, odim).
-            Tensor: Output sequence of stop probabilities (L,).
-            Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).
-
-        """
-
-        # thin out input frames for reduction factor (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
-        if self.encoder_reduction_factor > 1:
-            Lmax, idim = x.shape
-            if Lmax % self.encoder_reduction_factor != 0:
-                x = x[: -(Lmax % self.encoder_reduction_factor), :]
-            x_ds = x.contiguous().view(int(Lmax / self.encoder_reduction_factor), idim * self.encoder_reduction_factor)
-        else:
-            x_ds = x
-
-        # forward encoder
-        x_ds = x_ds.unsqueeze(0)
-        hs, _ = self.encoder(x_ds, None)
-
-        return hs.squeeze(0)
-
     def calculate_all_attentions(self, xs, ilens, ys, olens,
                                  spembs=None, skip_output=False, keep_tensor=False, *args, **kwargs):
         """Calculate all of the attention weights.
@@ -903,11 +662,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             # forward encoder
             x_masks = self._source_mask(ilens_ds)
             hs, hs_masks = self.encoder(xs_ds, x_masks)
-        
-            # VQ
-            if self.use_vq:
-                hs = self.codebook(hs)
-                hs = self.codebook.embedding(hs)
 
             # integrate speaker embedding
             if self.spk_embed_dim is not None:
@@ -1074,10 +828,5 @@ class Transformer(TTSInterface, torch.nn.Module):
                 plot_keys += ["dec_attn_loss"]
             if "encoder-decoder" in self.modules_applied_guided_attn:
                 plot_keys += ["enc_dec_attn_loss"]
-        if self.use_speaker_adv_loss:
-            plot_keys += ["speaker_adv_loss"]
-        if self.use_vq:
-            plot_keys += ["quantize_loss"]
-            plot_keys += ["commit_loss"]
 
         return plot_keys

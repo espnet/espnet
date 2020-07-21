@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """VC decoding script."""
