@@ -1,18 +1,16 @@
 from collections import OrderedDict
 from typing import Tuple
 
-import torch
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
+from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.layers.stft import Stft
 from espnet2.layers.utterance_mvn import UtteranceMVN
+import torch
 from torch_complex.tensor import ComplexTensor
-from espnet2.enh.abs_enh import AbsEnhancement
 
 
 class TFMaskingNet(AbsEnhancement):
-    """ TF Masking Speech Separation Net
-
-    """
+    """ TF Masking Speech Separation Net."""
 
     def __init__(
         self,
@@ -67,7 +65,8 @@ class TFMaskingNet(AbsEnhancement):
         }[none_linear]
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
-        """
+        """Forward.
+
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]
@@ -116,7 +115,8 @@ class TFMaskingNet(AbsEnhancement):
     def forward_rawwav(
         self, input: torch.Tensor, ilens: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+        """Output with waveforms.
+
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]

@@ -1,9 +1,11 @@
 from collections import OrderedDict
-import torch
 import math
+
+import numpy as np
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+
 from espnet2.enh.abs_enh import AbsEnhancement
 
 EPS = 1e-8
@@ -63,7 +65,8 @@ def overlap_and_add(signal, frame_step):
 
 
 def remove_pad(inputs, inputs_lengths):
-    """
+    """Remove pad.
+
     Args:
         inputs: torch.Tensor, [B, C, T] or [B, T], B is batch size
         inputs_lengths: torch.Tensor, [B]
@@ -98,7 +101,8 @@ class TasNet(AbsEnhancement):
         causal: bool = False,
         mask_nonlinear: str = "relu",
     ):
-        """
+        """Main tasnet class.
+
         Args:
             N: Number of filters in autoencoder
             L: Length of the filters (in samples)
@@ -150,7 +154,8 @@ class TasNet(AbsEnhancement):
         return self.forward(mixture, ilens)
 
     def forward(self, mixture, ilens=None):
-        """
+        """Forward from mixture to estimation sources.
+
         Args:
             mixture: [M, T], M is batch size, T is #samples
             ilens (torch.Tensor): input lengths [Batch]
@@ -225,8 +230,7 @@ class TasNet(AbsEnhancement):
 
 
 class Encoder(nn.Module):
-    """Estimation of the nonnegative mixture weight by a 1-D conv layer.
-    """
+    """Estimation of the nonnegative mixture weight by a 1-D conv layer. """
 
     def __init__(self, L, N):
         super(Encoder, self).__init__()
@@ -237,7 +241,8 @@ class Encoder(nn.Module):
         self.conv1d_U = nn.Conv1d(1, N, kernel_size=L, stride=L // 2, bias=False)
 
     def forward(self, mixture):
-        """
+        """Forward.
+
         Args:
             mixture: [M, T], M is batch size, T is #samples
         Returns:
@@ -257,7 +262,8 @@ class Decoder(nn.Module):
         self.basis_signals = nn.Linear(N, L, bias=False)
 
     def forward(self, mixture_w, est_mask):
-        """
+        """Forward
+
         Args:
             mixture_w: [M, N, K]
             est_mask: [M, C, N, K]
@@ -277,7 +283,8 @@ class TemporalConvNet(nn.Module):
     def __init__(
         self, N, B, H, P, X, R, C, norm_type="gLN", causal=False, mask_nonlinear="relu"
     ):
-        """
+        """Basic Module of tasnet.
+
         Args:
             N: Number of filters in autoencoder
             B: Number of channels in bottleneck 1 * 1-conv block
@@ -328,8 +335,8 @@ class TemporalConvNet(nn.Module):
         )
 
     def forward(self, mixture_w):
-        """
-        Keep this API same with TasNet
+        """ Keep this API same with TasNet
+
         Args:
             mixture_w: [M, N, K], M is batch size
         returns:
@@ -379,7 +386,8 @@ class TemporalBlock(nn.Module):
         self.net = nn.Sequential(conv1x1, prelu, norm, dsconv)
 
     def forward(self, x):
-        """
+        """Forward.
+
         Args:
             x: [M, B, K]
         Returns:
@@ -430,7 +438,8 @@ class DepthwiseSeparableConv(nn.Module):
             self.net = nn.Sequential(depthwise_conv, prelu, norm, pointwise_conv)
 
     def forward(self, x):
-        """
+        """Forward.
+
         Args:
             x: [M, H, K]
         Returns:
@@ -440,15 +449,15 @@ class DepthwiseSeparableConv(nn.Module):
 
 
 class Chomp1d(nn.Module):
-    """To ensure the output length is the same as the input.
-    """
+    """To ensure the output length is the same as the input. """
 
     def __init__(self, chomp_size):
         super(Chomp1d, self).__init__()
         self.chomp_size = chomp_size
 
     def forward(self, x):
-        """
+        """Forward.
+
         Args:
             x: [M, H, Kpad]
         Returns:
@@ -464,8 +473,7 @@ def check_nonlinear(nolinear_type):
 
 def chose_norm(norm_type, channel_size):
     """The input of normalization will be (M, C, K), where M is batch size,
-       C is channel size and K is sequence length.
-    """
+       C is channel size and K is sequence length. """
     if norm_type == "gLN":
         return GlobalLayerNorm(channel_size)
     elif norm_type == "cLN":
@@ -493,7 +501,8 @@ class ChannelwiseLayerNorm(nn.Module):
         self.beta.data.zero_()
 
     def forward(self, y):
-        """
+        """Forward.
+
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
         Returns:
@@ -519,7 +528,8 @@ class GlobalLayerNorm(nn.Module):
         self.beta.data.zero_()
 
     def forward(self, y):
-        """
+        """Forward.
+
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
         Returns:
