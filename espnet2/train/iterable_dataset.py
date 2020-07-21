@@ -129,9 +129,16 @@ class IterableESPnetDataset(IterableDataset):
 
         files = [open(lis[0], encoding="utf-8") for lis in self.path_name_type_list]
 
+        worker_info = torch.utils.data.get_worker_info()
+
         linenum = 0
         count = 0
         for count, uid in enumerate(uid_iter, 1):
+            # If num_workers>=1, split keys
+            if worker_info is not None:
+                if (count - 1) % worker_info.num_workers != worker_info.id:
+                    continue
+
             # 1. Read a line from each file
             while True:
                 keys = []

@@ -133,9 +133,18 @@ def tokenize(
         return
 
     # ======= write_vocabulary mode from here =======
-    # Sort by the number of occurrences
-    words_and_counts = list(sorted(counter.items(), key=lambda x: x[1]))
+    # Sort by the number of occurrences in descending order
+    # and filter lower frequency words than cutoff value
+    words_and_counts = list(
+        filter(lambda x: x[1] > cutoff, sorted(counter.items(), key=lambda x: -x[1]))
+    )
+    # Restrict the vocabulary size
+    if vocabulary_size > 0:
+        if vocabulary_size < len(add_symbol):
+            raise RuntimeError(f"vocabulary_size is too small: {vocabulary_size}")
+        words_and_counts = words_and_counts[: vocabulary_size - len(add_symbol)]
 
+    # Parse the values of --add_symbol
     for symbol_and_id in add_symbol:
         # e.g symbol="<blank>:0"
         try:
@@ -151,19 +160,13 @@ def tokenize(
             idx = len(words_and_counts) + 1 + idx
         words_and_counts.insert(idx, (symbol, None))
 
-    total_count = sum(counter.values())
-    invocab_count = 0
-    for nvocab, (w, c) in enumerate(words_and_counts, 1):
+    # Write words
+    for w, c in words_and_counts:
         fout.write(w + "\n")
-        if c is not None:
-            invocab_count += c
-            if c <= cutoff:
-                break
 
-        # Note that nvocab includes appended symbol, e.g. even <blank> or <sos/eos>
-        if nvocab >= vocabulary_size > 0:
-            break
-
+    # Logging
+    total_count = sum(counter.values())
+    invocab_count = sum(c for w, c in words_and_counts if c is not None)
     logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100} %")
 
 
@@ -222,7 +225,15 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--g2p",
         type=str_or_none,
-        choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
+        choices=[
+            None,
+            "g2p_en",
+            "g2p_en_no_space",
+            "pyopenjtalk",
+            "pyopenjtalk_kana",
+            "pypinyin_g2p",
+            "pypinyin_g2p_phone",
+        ],
         default=None,
         help="Specify g2p method if --token_type=phn",
     )

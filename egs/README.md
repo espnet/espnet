@@ -7,6 +7,8 @@ See: https://espnet.github.io/espnet/tutorial.html
 
 | Directory name          | Corpus name                                                  | Task                                       | Language       | URL                                                          | Note                          |
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------------ | -------------- | ------------------------------------------------------------ | ----------------------------- |
+||||
+| aidatatang_200zh        | Aidatatang_200zh A free Chinese Mandarin speech corpus       | ASR                                        | ZH             | http://www.openslr.org/62/                                   |                               |
 | aishell                 | AISHELL-ASR0009-OS1 Open Source Mandarin Speech Corpus       | ASR                                        | ZH             | http://www.aishelltech.com/kysjcp                            |                               |
 | aishell2                | AISHELL-2 Open Source Mandarin Speech Corpus                 | ASR                                        | ZH             | http://www.aishelltech.com/aishell_2                                                         |
 | ami                     | The AMI Meeting Corpus                                       | ASR                                        | EN             | http://groups.inf.ed.ac.uk/ami/corpus/                       |                               |
@@ -57,4 +59,5 @@ See: https://espnet.github.io/espnet/tutorial.html
 | voxforge                | VoxForge                                                     | ASR                                        | 7 languages    | http://www.voxforge.org/                                     |                               |
 | wsj                     | CSR-I (WSJ0) Complete, CSR-II (WSJ1) Complete                | ASR                                        | EN             | https://catalog.ldc.upenn.edu/LDC93S6A,https://catalog.ldc.upenn.edu/LDC94S13A |                               |
 | wsj_mix                 | MERL WSJ0-mix multi-speaker dataset                          | Multispeaker ASR                           | EN             | http://www.merl.com/demos/deep-clustering                    |                               |
-| yesno                   | The "yesno" corpus                                           | ASR                                        | HE             | http://www.openslr.org/1                                     |                               |
+| yesno                   | The "yesno" corpus                                           | ASR                                        | HE             | http://www.openslr.org/1                                     |                               
+| Yoloxóchitl-Mixtec      | The Yoloxóchitl-Mixtec corpus                                | ASR                                        | Mixtec         | http://www.openslr.org/89                                    ||

@@ -6,7 +6,7 @@ PYTHON :=
 PYTHON_VERSION := 3.7.3
 CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0
+# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1
 TH_VERSION := 1.0.1
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
@@ -25,7 +25,7 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv warp-ctc.done warp-transducer.done chainer_ctc.done
+python: venv warp-ctc.done warp-transducer.done chainer_ctc.done cupy.done
 
 extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
 
@@ -82,7 +82,7 @@ nkf.done:
 	./install_nkf.sh
 	touch nkf.done
 
-pyopenjtalk.done: open_jtalk.done
+pyopenjtalk.done: espnet.done
 	. venv/bin/activate && ./install_pyopenjtalk.sh
 	touch pyopenjtalk.done
 
@@ -94,7 +94,7 @@ mwerSegmenter.done:
 	./install_mwerSegmenter.sh
 	touch mwerSegmenter.done
 
-kenlm.done:
+kenlm.done: espnet.done
 	. venv/bin/activate && ./install_kenlm.sh
 	touch kenlm.done
 
