@@ -9,9 +9,9 @@ import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 # from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.enh.nets.beamformer_net import BeamformerNet as Frontend
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.log_mel import LogMel
 from espnet2.layers.stft import Stft
 from espnet2.utils.get_default_kwargs import get_default_kwargs

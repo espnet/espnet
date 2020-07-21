@@ -1,17 +1,17 @@
+from functools import reduce
+from itertools import permutations
 from typing import Dict
 from typing import Optional
 from typing import Tuple
-from itertools import permutations
 
 import torch
+from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.enh.nets.tasnet import TasNet
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from torch_complex.tensor import ComplexTensor
-from functools import reduce
 
 
 class ESPnetEnhancementModel(AbsESPnetModel):
