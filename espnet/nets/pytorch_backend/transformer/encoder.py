@@ -25,7 +25,10 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling, Conv2dSubsamplingCustomPosEnc
+from espnet.nets.pytorch_backend.transformer.subsampling import (
+    Conv2dSubsampling,
+    Conv2dSubsamplingCustomPosEnc,
+)
 
 
 def _pre_hook(
@@ -103,10 +106,13 @@ class Encoder(torch.nn.Module):
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
         elif input_layer == "conv2d-scaled-pos-enc":
-            self.embed = Conv2dSubsamplingCustomPosEnc(idim, attention_dim, dropout_rate,
-                pos_enc_class(attention_dim, positional_dropout_rate)
+            self.embed = Conv2dSubsamplingCustomPosEnc(
+                idim,
+                attention_dim,
+                dropout_rate,
+                pos_enc_class(attention_dim, positional_dropout_rate),
             )
-        elif input_layer == 'vgg2l':
+        elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
@@ -274,7 +280,9 @@ class Encoder(torch.nn.Module):
         :return: position embedded tensor and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
-        if isinstance(self.embed, (Conv2dSubsampling, VGG2L, Conv2dSubsamplingCustomPosEnc)):
+        if isinstance(
+            self.embed, (Conv2dSubsampling, VGG2L, Conv2dSubsamplingCustomPosEnc)
+        ):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)

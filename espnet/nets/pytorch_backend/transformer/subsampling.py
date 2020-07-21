@@ -33,11 +33,10 @@ class Conv2dSubsampling(torch.nn.Module):
             torch.nn.Conv2d(1, odim, 3, 2),
             torch.nn.ReLU(),
             torch.nn.Conv2d(odim, odim, 3, 2),
-            torch.nn.ReLU()
+            torch.nn.ReLU(),
         )
         self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim),
-            self.pos_enc
+            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim), self.pos_enc
         )
 
     def forward(self, x, x_mask):
@@ -55,13 +54,13 @@ class Conv2dSubsampling(torch.nn.Module):
         if x_mask is None:
             return x, None
         return x, x_mask[:, :, :-2:2][:, :, :-2:2]
-    
+
     def __getitem__(self, key):
         """Subsample x.
         When reset_parameters() is called, if use_scaled_pos_enc is used,
             return the positioning encoding.
         """
-        
+
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
         return self.out[key]

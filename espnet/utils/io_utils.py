@@ -50,7 +50,7 @@ class LoadInputsAndTargets(object):
         keep_all_data_on_mem=False,
     ):
         self._loaders = {}
-        if mode not in ['asr', 'tts', 'mt', 'vc']:
+        if mode not in ["asr", "tts", "mt", "vc"]:
             raise ValueError("Only asr or tts are allowed: mode={}".format(mode))
         if preprocess_conf is not None:
             self.preprocessing = Transformation(preprocess_conf)
@@ -66,7 +66,11 @@ class LoadInputsAndTargets(object):
             raise ValueError(
                 'Choose one of "use_second_target" and ' '"use_speaker_embedding "'
             )
-        if (use_second_target or use_speaker_embedding) and mode != "tts" and mode != 'vc':
+        if (
+            (use_second_target or use_speaker_embedding)
+            and mode != "tts"
+            and mode != "vc"
+        ):
             logging.warning(
                 '"use_second_target" and "use_speaker_embedding" is '
                 "used only for tts or vc mode"
@@ -168,9 +172,10 @@ class LoadInputsAndTargets(object):
             return_batch, uttid_list = self._create_batch_mt(
                 x_feats_dict, y_feats_dict, uttid_list
             )
-        elif self.mode == 'vc':
+        elif self.mode == "vc":
             return_batch, uttid_list = self._create_batch_vc(
-                x_feats_dict, y_feats_dict, uttid_list)
+                x_feats_dict, y_feats_dict, uttid_list
+            )
         else:
             raise NotImplementedError
 
@@ -408,11 +413,11 @@ class LoadInputsAndTargets(object):
 
             spembs = None
             spcs = None
-            spembs_name = 'spembs_none'
-            spcs_name = 'spcs_none'
+            spembs_name = "spembs_none"
+            spcs_name = "spcs_none"
 
             if self.use_second_target:
-                raise ValueError('Currently second target not supported.')
+                raise ValueError("Currently second target not supported.")
                 spcs = list(x_feats_dict.values())[1]
                 spcs = [spcs[i] for i in nonzero_sorted_idx]
                 spcs_name = list(x_feats_dict.keys())[1]
@@ -425,13 +430,12 @@ class LoadInputsAndTargets(object):
             x_name = list(x_feats_dict.keys())[0]
             y_name = list(y_feats_dict.keys())[0]
 
-            return_batch = OrderedDict([(x_name, xs),
-                                        (y_name, ys),
-                                        (spembs_name, spembs),
-                                        (spcs_name, spcs)])
+            return_batch = OrderedDict(
+                [(x_name, xs), (y_name, ys), (spembs_name, spembs), (spcs_name, spcs)]
+            )
         elif self.use_speaker_embedding:
             if len(x_feats_dict) == 0:
-                raise IndexError('No speaker embedding is provided')
+                raise IndexError("No speaker embedding is provided")
             elif len(x_feats_dict) == 1:
                 spembs_idx = 0
             else:
@@ -443,8 +447,7 @@ class LoadInputsAndTargets(object):
             x_name = list(x_feats_dict.keys())[0]
             spembs_name = list(x_feats_dict.keys())[spembs_idx]
 
-            return_batch = OrderedDict([(x_name, xs),
-                                        (spembs_name, spembs)])
+            return_batch = OrderedDict([(x_name, xs), (spembs_name, spembs)])
         else:
             x_name = list(x_feats_dict.keys())[0]
 
