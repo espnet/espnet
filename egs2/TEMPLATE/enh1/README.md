@@ -42,7 +42,7 @@ The`EnhancementTask` defined in `enh.py` is called in `enh_train.py`. In the `co
 We have created `EnhancementTask` in `espnet2/tasks/enh.py`, which is used to train the `ESPnetEnhancementModel(AbsESPnetModel)` defined in `espnet2/enh/espnet_model.py`. 
 In `EnhancementTask`, several speech enhancement or separation models have been implemented (see `espnet2/enh/nets/`). Although it is currently defined as an independent task, the models from `EnhancementTask` can be easily called by ASR tasks or even jointly trained with ASR in the future (see espnets/asr/frontend/default.py).
 
-Related new python files:
+Related python files:
 ```
 espnet2/
 ├── bin

@@ -49,7 +49,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             "PSM",
             "NPSM",
             "PSM^2",
-            None,
         ], f"mask type {mask_type} not supported"
         eps = 10e-8
         mask_label = []
