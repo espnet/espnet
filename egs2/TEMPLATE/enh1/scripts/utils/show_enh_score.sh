@@ -1,19 +1,24 @@
 #!/bin/bash
-
+mindepth=0
+maxdepth=1
 
 . utils/parse_options.sh
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 exp/xxx" 1>&2
+if [ $# -gt 1 ]; then
+    echo "Usage: $0 --mindepth 0 --maxdepth 1 [exp]" 1>&2
     echo ""
     echo "Show the system environments and the evaluation results in Markdown format."
+    echo 'The default of <exp> is "exp/".'
     exit 1
-else
-  exp=$1
 fi
 
 [ -f ./path.sh ] && . ./path.sh
 set -euo pipefail
+if [ $# -eq 1 ]; then
+    exp=$1
+else
+    exp=exp
+fi
 
 
 cat << EOF
@@ -39,9 +44,36 @@ cat << EOF
 EOF
 
 
-if [[ -f ${exp}/RESULTS.TXT ]]; then
-  grep ^config "${exp}"/config.yaml
-  cat "${exp}"/RESULTS.TXT
-fi
+while IFS= read -r expdir; do
+    if ls "${expdir}"/enhance_*/scoring/result_stoi.txt &> /dev/null; then
+        grep ^config "${expdir}"/config.yaml
+        echo -e "\n## $(basename ${expdir})"
+        metrics=()
+        heading="|dataset|"
+        sep="|---|"
+        for type in pesq stoi sar sdr sir; do
+            if ls "${expdir}"/enhance_*/scoring/result_${type}.txt &> /dev/null; then
+                metrics+=("$type")
+                heading+="${type^^}|"
+                sep+="---|"
+            fi
+        done
+        echo -e "${heading}\n${sep}"
 
+        setnames=()
+        for dirname in "${expdir}"/enhance_*/scoring/result_stoi.txt; do
+            dset=$(echo $dirname | sed -e "s#${expdir}/\([^/]*\)/scoring/result_stoi.txt#\1#g")
+            setnames+=("$dset")
+        done
+        for dset in "${setnames[@]}"; do
+            line="|${dset}|"
+            for ((i=0; i<${#metrics[@]}; i++)); do
+                type=${metrics[$i]}
+                score=$(head -n1 "${expdir}"/${dset}/scoring/result_${type}.txt)
+                line+="${score}|"
+            done
+            echo $line
+        done
+    fi
 
+done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
