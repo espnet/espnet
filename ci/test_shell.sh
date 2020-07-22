@@ -11,7 +11,7 @@ if ! [ -x "$(command -v bats)" ]; then
 fi
 if ! [ -x "$(command -v shellcheck)" ]; then
     echo "=== install shellcheck ==="
-    wget https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz
+    wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
     tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 fi
 . tools/venv/bin/activate
