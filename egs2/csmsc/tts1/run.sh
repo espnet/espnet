@@ -19,8 +19,8 @@ else
 fi
 
 train_set=tr_no_dev
-dev_set=dev
-eval_set=eval1
+valid_set=dev
+test_sets="dev eval1"
 
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
@@ -33,6 +33,7 @@ g2p=pypinyin_g2p_phone
 # pypinyin_g2p_phone: k a3 er3 p u3 p ei2 uai4 s un1 uan2 h ua2 t i1
 
 ./tts.sh \
+    --lang zh \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
@@ -44,7 +45,7 @@ g2p=pypinyin_g2p_phone
     --train_config "${train_config}" \
     --decode_config "${decode_config}" \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_set}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
     ${opts} "$@"

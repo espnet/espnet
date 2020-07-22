@@ -10,8 +10,24 @@ setup() {
     cd ./egs/wsj/asr1/
     wav=../../../test_utils/ctc_align_test.wav
     transcription="THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
-    model=wsj.transformer.v1
-    ../../../utils/ctc_align_wav.sh --stop-stage 2 --align_dir ${tmpdir} --models ${model} ${wav} "${transcription}"
+    model=wsj.transformer_small.v1
+
+    mkdir -p ${tmpdir}
+    dict_units=('<unk>' '!' '"' '&' "'" '(' ')' "*" ',' '-' '.' '/' ':' ';' '<*IN*>' \
+               '<*MR.*>' '<NOISE>' '<space>' '?' 'A' 'B' 'C' 'D' 'E' 'F' 'G' 'H' 'I' 'J' 'K' \
+               'L' 'M' 'N' 'O' 'P' 'Q' 'R' 'S' 'T' 'U' 'V' 'W' 'X' 'Y' 'Z' \
+               '_' '`' '{' '}' '~')
+    for u in ${!dict_units[@]}; do
+        echo "${dict_units[u]}" $((u+1))
+    done > ${tmpdir}/tr_units.txt
+    echo "batchsize: 0" > ${tmpdir}/align.yaml
+
+    ../../../utils/ctc_align_wav.sh \
+        --stop-stage 2 \
+        --models ${model} \
+        --align_dir ${tmpdir} \
+        --align_config ${tmpdir}/align.yaml \
+        --dict ${tmpdir}/tr_units.txt ${wav} "${transcription}"
 
     prefix="Alignment: "
 

@@ -8,8 +8,8 @@ set -o pipefail
 
 
 train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
-dev_set=dt05_multi_isolated_1ch_track
-eval_set="\
+valid_set=dt05_multi_isolated_1ch_track
+test_sets="\
 dt05_real_isolated_1ch_track dt05_simu_isolated_1ch_track et05_real_isolated_1ch_track et05_simu_isolated_1ch_track \
 dt05_real_beamformit_2mics dt05_simu_beamformit_2mics et05_real_beamformit_2mics et05_simu_beamformit_2mics \
 dt05_real_beamformit_5mics dt05_simu_beamformit_5mics et05_real_beamformit_5mics et05_simu_beamformit_5mics \
@@ -24,6 +24,7 @@ use_word_lm=false
 word_vocab_size=65000
 
 ./asr.sh                                   \
+    --lang en \
     --nlsyms_txt data/nlsyms.txt           \
     --token_type char                      \
     --feats_type fbank_pitch               \
@@ -33,6 +34,6 @@ word_vocab_size=65000
     --use_word_lm ${use_word_lm}           \
     --word_vocab_size ${word_vocab_size}   \
     --train_set "${train_set}"             \
-    --dev_set "${dev_set}"                 \
-    --eval_sets "${eval_set}"              \
+    --valid_set "${valid_set}"             \
+    --test_sets "${test_sets}"             \
     --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
