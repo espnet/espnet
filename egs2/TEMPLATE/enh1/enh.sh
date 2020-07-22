@@ -153,9 +153,6 @@ fi
 data_feats=${dumpdir}/raw
 
 
-
-
-
 # Set tag for naming of model directory
 if [ -z "${enh_tag}" ]; then
     if [ -n "${enh_config}" ]; then
@@ -189,7 +186,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    if [ -n "${speed_perturb_factors}" ]; then
+    if ! $use_dereverb_ref && [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
 
         _scp_list="wav.scp "
