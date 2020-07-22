@@ -600,10 +600,10 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
         for protocol in ${scoring_protocol}; do
             # shellcheck disable=SC2046
-            echo $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
+            paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
             awk 'BEIGN{sum=0}
                 {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
-                END{print sum/NR}') > "${_dir}"/"result_${protocol,,}.txt"
+                END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
         done
     done
 
