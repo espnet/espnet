@@ -46,10 +46,10 @@ EOF
 
 while IFS= read -r expdir; do
     if ls "${expdir}"/enhanced_*/scoring/result_stoi.txt &> /dev/null; then
+        echo -e "\n## $(basename ${expdir})\n"
         grep ^config "${expdir}"/config.yaml
-        echo -e "\n## $(basename ${expdir})"
         metrics=()
-        heading="|dataset|"
+        heading="\n|dataset|"
         sep="|---|"
         for type in pesq stoi sar sdr sir; do
             if ls "${expdir}"/enhanced_*/scoring/result_${type}.txt &> /dev/null; then
