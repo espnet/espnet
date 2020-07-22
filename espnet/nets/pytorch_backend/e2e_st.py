@@ -490,12 +490,8 @@ class E2E(STInterface, torch.nn.Module):
             + self.mt_weight * self.loss_mt
         )
         loss_st_data = float(self.loss_st)
-        loss_asr_data = float(
-            asr_ctc_weight * self.loss_asr_ctc
-            + (1 - asr_ctc_weight) * self.loss_asr_att
-        )
-        loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
-
+        loss_asr_data = float(self.loss_asr)
+        loss_mt_data = float(self.loss_mt)
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(
