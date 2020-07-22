@@ -19,9 +19,11 @@ class BeamformerNet(AbsEnhancement):
         self,
         num_spk: int = 1,
         normalize_input: bool = False,
+        mask_type: str = "IPM^2",
         # STFT options
         n_fft: int = 512,
         win_length: int = None,
+        fs: int = 8000,
         hop_length: int = 128,
         center: bool = True,
         window: Optional[str] = "hann",
@@ -51,6 +53,9 @@ class BeamformerNet(AbsEnhancement):
         bdropout_rate=0.0,
     ):
         super(BeamformerNet, self).__init__()
+
+        self.mask_type = mask_type
+        self.fs = fs
 
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1

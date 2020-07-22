@@ -295,8 +295,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         for spk in ${_spk_list};do
             cp "${data_feats}/org/${dset}/${spk}.scp" "${data_feats}/${dset}/${spk}.scp"
         done
-        # Remove short utterances
-        _feats_type="$(<${data_feats}/${dset}/feats_type)"
 
         min_length=2560
 
@@ -332,8 +330,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--config ${enh_config} "
     fi
 
-    # shellcheck disable=SC2034
-    _feats_type="$(<${_enh_train_dir}/feats_type)"
     _scp=wav.scp
     # "sound" supports "wav", "flac", etc.
     _type=sound
@@ -400,8 +396,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${enh_args} \
-            --batch_type unsorted
+            ${_opts} ${enh_args}
 
     # 3. Aggregate shape files
     _opts=
@@ -426,8 +421,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _opts+="--config ${enh_config} "
     fi
 
-    # shellcheck disable=SC2034
-    _feats_type="$(<${_enh_train_dir}/feats_type)"
     _scp=wav.scp
     # "sound" supports "wav", "flac", etc.
     _type=sound
