@@ -115,9 +115,13 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
 
         """
         batch_state = (
-            torch.stack([s[0] for s in state], dim=2),
-            torch.stack([s[1] for s in state]),
-            state[0][2],
-            state[0][3]
-        ) if state[0] is not None else None
+            (
+                torch.stack([s[0] for s in state], dim=2),
+                torch.stack([s[1] for s in state]),
+                state[0][2],
+                state[0][3],
+            )
+            if state[0] is not None
+            else None
+        )
         return self.impl(y, batch_state, ids)

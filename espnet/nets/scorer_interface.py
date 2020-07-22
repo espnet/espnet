@@ -165,7 +165,11 @@ class BatchPartialScorerInterface(BatchScorerInterface, PartialScorerInterface):
     """Batch partial scorer interface for beam search."""
 
     def batch_score_partial(
-        self, ys: torch.Tensor, next_tokens: torch.Tensor, states: List[Any], xs: torch.Tensor
+        self,
+        ys: torch.Tensor,
+        next_tokens: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
     ) -> Tuple[torch.Tensor, Any]:
         """Score new token (required).
 

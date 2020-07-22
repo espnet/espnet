@@ -302,7 +302,8 @@ class BeamSearch(torch.nn.Module):
             # partial scoring
             if self.do_pre_beam:
                 pre_beam_scores = (
-                    weighted_scores if self.pre_beam_score_key == "full"
+                    weighted_scores
+                    if self.pre_beam_score_key == "full"
                     else scores[self.pre_beam_score_key]
                 )
                 part_ids = torch.topk(pre_beam_scores, self.pre_beam_size)[1]

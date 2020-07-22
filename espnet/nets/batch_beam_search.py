@@ -123,14 +123,16 @@ class BatchBeamSearch(BeamSearch):
         for k, d in self.scorers.items():
             init_states[k] = d.batch_init_state(x)
             init_scores[k] = 0.0
-        return self.batchfy([
-            Hypothesis(
-                score=0.0,
-                scores=init_scores,
-                states=init_states,
-                yseq=torch.tensor([self.sos], device=x.device),
-            )
-        ])
+        return self.batchfy(
+            [
+                Hypothesis(
+                    score=0.0,
+                    scores=init_scores,
+                    states=init_states,
+                    yseq=torch.tensor([self.sos], device=x.device),
+                )
+            ]
+        )
 
     def score_full(
         self, hyp: BatchHypothesis, x: torch.Tensor
@@ -176,7 +178,9 @@ class BatchBeamSearch(BeamSearch):
         scores = dict()
         states = dict()
         for k, d in self.part_scorers.items():
-            scores[k], states[k] = d.batch_score_partial(hyp.yseq, ids, hyp.states[k], x)
+            scores[k], states[k] = d.batch_score_partial(
+                hyp.yseq, ids, hyp.states[k], x
+            )
         return scores, states
 
     def merge_states(self, states: Any, part_states: Any, part_idx: int) -> Any:
@@ -223,7 +227,8 @@ class BatchBeamSearch(BeamSearch):
         # partial scoring
         if self.do_pre_beam:
             pre_beam_scores = (
-                weighted_scores if self.pre_beam_score_key == "full"
+                weighted_scores
+                if self.pre_beam_score_key == "full"
                 else scores[self.pre_beam_score_key]
             )
             part_ids = torch.topk(pre_beam_scores, self.pre_beam_size, dim=-1)[1]
@@ -267,7 +272,9 @@ class BatchBeamSearch(BeamSearch):
                             for k, v in states.items()
                         },
                         {
-                            k: self.part_scorers[k].select_state(v, part_prev_hyp_id, part_new_token_id)
+                            k: self.part_scorers[k].select_state(
+                                v, part_prev_hyp_id, part_new_token_id
+                            )
                             for k, v in part_states.items()
                         },
                         part_new_token_id,
@@ -312,7 +319,18 @@ class BatchBeamSearch(BeamSearch):
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
             logging.info("adding <eos> in the last position in the loop")
-            yseq_eos = torch.cat((running_hyps.yseq, torch.full((n_batch, 1), self.eos, device=running_hyps.yseq.device, dtype=torch.int64)), 1)
+            yseq_eos = torch.cat(
+                (
+                    running_hyps.yseq,
+                    torch.full(
+                        (n_batch, 1),
+                        self.eos,
+                        device=running_hyps.yseq.device,
+                        dtype=torch.int64,
+                    ),
+                ),
+                1,
+            )
             running_hyps.yseq.resize_as_(yseq_eos)
             running_hyps.yseq[:] = yseq_eos
             running_hyps.length[:] = len(yseq_eos)

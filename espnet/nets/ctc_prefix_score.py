@@ -107,7 +107,9 @@ class CTCPrefixScoreTH(object):
             scoring_idmap[self.idx_bh[:n_bh], scoring_ids] = torch.arange(
                 snum, device=self.device
             )
-            scoring_idx = (scoring_ids + self.idx_bo.repeat(1, n_hyps).view(-1, 1)).view(-1)
+            scoring_idx = (
+                scoring_ids + self.idx_bo.repeat(1, n_hyps).view(-1, 1)
+            ).view(-1)
             x_ = torch.index_select(
                 self.x.view(2, -1, self.batch * self.odim), 2, scoring_idx
             ).view(2, -1, n_bh, snum)
@@ -115,11 +117,7 @@ class CTCPrefixScoreTH(object):
             scoring_ids = None
             scoring_idmap = None
             snum = self.odim
-            x_ = (
-                self.x.unsqueeze(3)
-                .repeat(1, 1, 1, n_hyps, 1)
-                .view(2, -1, n_bh, snum)
-            )
+            x_ = self.x.unsqueeze(3).repeat(1, 1, 1, n_hyps, 1).view(2, -1, n_bh, snum)
 
         # new CTC forward probs are prepared as a (T x 2 x BW x S) tensor
         # that corresponds to r_t^n(h) and r_t^b(h) in a batch.
@@ -208,8 +206,7 @@ class CTCPrefixScoreTH(object):
         if scoring_idmap is not None:
             snum = self.scoring_num
             hyp_idx = (
-                torch.div(best_ids, self.odim)
-                + (self.idx_b * n_hyps).view(-1, 1)
+                torch.div(best_ids, self.odim) + (self.idx_b * n_hyps).view(-1, 1)
             ).view(-1)
             label_ids = torch.fmod(best_ids, self.odim).view(-1)
             score_idx = scoring_idmap[hyp_idx, label_ids]
