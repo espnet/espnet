@@ -690,11 +690,14 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_src:
+            batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             # 1. Encoder
             if self.multilingual:
@@ -708,7 +711,7 @@ class E2E(STInterface, torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(
                 hpad, hlens, ys_pad, lang_ids=tgt_lang_ids
             )
-
+        self.train()
         return att_ws
 
     def subsample_frames(self, x):
