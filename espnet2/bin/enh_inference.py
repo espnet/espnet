@@ -93,7 +93,9 @@ def inference(
             # a. To device
             batch = to_device(batch, device)
             # b. Forward Enhancement Frontend
-            waves, _, _ = enh_model.frontend.forward_rawwav(**batch)
+            waves, _, _ = enh_model.enh_model.forward_rawwav(
+                batch["speech_mix"], batch["speech_mix_lengths"]
+            )
             assert len(waves[0]) == batch_size, len(waves[0])
 
         # FIXME(Chenda): will be incorrect when

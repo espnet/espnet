@@ -637,7 +637,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         --model_file.pth "${enh_exp}"/"${inference_enh_model}" \
         ${_opts} \
         --option "${enh_exp}"/RESULTS.TXT \
-        --outpath "${enh_exp}/packed.tgz"
+        --outpath "${enh_exp}/packed.zip"
 
 fi
 
