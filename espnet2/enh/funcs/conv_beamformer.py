@@ -7,13 +7,10 @@ from typing import List
 from typing import Union
 
 import torch
-import torch.nn.functional as F
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.beamformer import (
-    get_power_spectral_density_matrix,
-)
+from espnet.nets.pytorch_backend.frontends.beamformer import get_power_spectral_density_matrix
 
 
 def inv(z):
@@ -106,7 +103,8 @@ def get_covariances(
     btaps: int,
     get_vector: bool = False,
 ) -> ComplexTensor:
-    """Calculates the power normalized spatio-temporal\
+    """Calculates the power normalized spatio-temporal
+
      covariance matrix of the framed signal.
 
     Args:
@@ -159,8 +157,10 @@ def get_WPD_filter(
     reference_vector: torch.Tensor,
     eps: float = 1e-15,
 ) -> ComplexTensor:
-    """Return the WPD (Weighted Power minimization Distortionless response
-        convolutional beamformer) vector:
+    """Return the WPD vector.
+
+        WPD is the Weighted Power minimization Distortionless response
+        convolutional beamformer. As follows:
 
         h = (Rf^-1 @ Phi_{xx}) / tr[(Rf^-1) @ Phi_{xx}] @ u
 
@@ -219,8 +219,10 @@ def get_WPD_filter_v2(
     reference_vector: torch.Tensor,
     eps: float = 1e-15,
 ) -> ComplexTensor:
-    """Return the WPD (Weighted Power minimization Distortionless response
-        convolutional beamformer) vector:
+    """Return the WPD vector with filter v2.
+
+        WPD is the Weighted Power minimization Distortionless response
+        convolutional beamformer. As follows:
 
         h = (Rf^-1 @ Phi_{xx}) @ u / tr[(Rf^-1) @ Phi_{xx}]
 

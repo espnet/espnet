@@ -60,7 +60,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int()
             elif mask_type == "IRM":
-                # TODO (Wangyou): need to fix this,
+                # TODO(Wangyou): need to fix this,
                 #  as noise referecens are provided separately
                 mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + eps)
             elif mask_type == "IAM":
@@ -194,7 +194,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 speech_mix, speech_lengths
             )
 
-            # TODO:Chenda, Shall we add options for computing loss on
+            # TODO(Chenda), Shall we add options for computing loss on
             #  the masked spectrum?
             # compute TF masking loss
             if mask_pre is None:
@@ -210,7 +210,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 ]
 
                 # compute TF masking loss
-                # TODO: Chenda, Shall we add options for
+                # TODO(Chenda), Shall we add options for
                 #  computing loss on the masked spectrum?
                 tf_loss, perm = self._permutation_loss(
                     mask_ref, mask_pre_, self.tf_mse_loss
