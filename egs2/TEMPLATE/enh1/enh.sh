@@ -68,12 +68,12 @@ ref_channel=0
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set.
-dev_set=       # Name of development set.
-eval_sets=     # Names of evaluation sets. Multiple items can be specified.
+valid_set=       # Name of development set.
+test_sets=     # Names of evaluation sets. Multiple items can be specified.
 enh_speech_fold_length=800 # fold_length for speech data during enhancement training
 
 help_message=$(cat << EOF
-Usage: $0 --train-set <train_set_name> --dev-set <dev_set_name> --eval_sets <eval_set_names>
+Usage: $0 --train-set <train_set_name> --valid-set <valid_set_name> --test_sets <test_set_names>
 
 Options:
     # General configuration
@@ -126,8 +126,8 @@ Options:
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
-    --dev_set       # Name of development set (required).
-    --eval_sets     # Names of evaluation sets (required).
+    --valid_set       # Name of development set (required).
+    --test_sets     # Names of evaluation sets (required).
     --enh_speech_fold_length # fold_length for speech data during enhancement training  (default="${enh_speech_fold_length}").
 EOF
 )
@@ -147,8 +147,8 @@ fi
 
 # Check required arguments
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
-[ -z "${dev_set}" ] &&   { log "${help_message}"; log "Error: --dev_set is required"  ; exit 2; };
-[ -z "${eval_sets}" ] && { log "${help_message}"; log "Error: --eval_sets is required"; exit 2; };
+[ -z "${valid_set}" ] &&   { log "${help_message}"; log "Error: --valid_set is required"  ; exit 2; };
+[ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
 
 data_feats=${dumpdir}/raw
 
@@ -183,7 +183,7 @@ fi
 # ========================== Main stages start from here. ==========================
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Stage 1: Data preparation for data/${train_set}, data/${dev_set}, etc."
+    log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
     local/data.sh ${local_data_opts}
 fi
@@ -228,7 +228,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # If nothing is need, then format_wav_scp.sh does nothing:
     # i.e. the input file format and rate is same as the output.
 
-    for dset in "${train_set}" "${dev_set}" ${eval_sets}; do
+    for dset in "${train_set}" "${valid_set}" ${test_sets}; do
         utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
         rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
         _opts=
@@ -273,8 +273,8 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Remove short data: ${data_feats}/org -> ${data_feats}"
 
-    for dset in "${train_set}" "${dev_set}"; do
-    # NOTE: Not applying to eval_sets to keep original data
+    for dset in "${train_set}" "${valid_set}"; do
+    # NOTE: Not applying to test_sets to keep original data
 
         _spk_list=" "
         for i in $(seq ${spk_num}); do
@@ -322,8 +322,8 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     _enh_train_dir="${data_feats}/${train_set}"
-    _enh_dev_dir="${data_feats}/${dev_set}"
-    log "Stage 5: Enhancement collect stats: train_set=${_enh_train_dir}, dev_set=${_enh_dev_dir}"
+    _enh_valid_dir="${data_feats}/${valid_set}"
+    log "Stage 5: Enhancement collect stats: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
 
     _opts=
     if [ -n "${enh_config}" ]; then
@@ -343,7 +343,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     mkdir -p "${_logdir}"
 
     # Get the minimum number among ${nj} and the number lines of input files
-    _nj=$(min "${nj}" "$(<${_enh_train_dir}/${_scp} wc -l)" "$(<${_enh_dev_dir}/${_scp} wc -l)")
+    _nj=$(min "${nj}" "$(<${_enh_train_dir}/${_scp} wc -l)" "$(<${_enh_valid_dir}/${_scp} wc -l)")
 
     key_file="${_enh_train_dir}/${_scp}"
     split_scps=""
@@ -353,10 +353,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
-    key_file="${_enh_dev_dir}/${_scp}"
+    key_file="${_enh_valid_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
-        split_scps+=" ${_logdir}/dev.${n}.scp"
+        split_scps+=" ${_logdir}/valid.${n}.scp"
     done
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
@@ -366,16 +366,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
     # prepare train and valid data parameters
     _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
-    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/wav.scp,speech_mix,sound "
+    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,sound "
     for spk in $(seq "${spk_num}"); do
         _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
     done
 
     if $use_dereverb_ref; then
         # reference for dereverberation
         _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/dereverb.scp,dereverb_ref,sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
     fi
 
     if $use_noise_ref; then
@@ -383,7 +383,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _train_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
             "--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "; done)
         _valid_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
-            "--valid_data_path_and_name_and_type ${_enh_dev_dir}/noise${n}.scp,noise_ref${n},sound "; done)
+            "--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "; done)
     fi
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
@@ -398,7 +398,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             ${_train_data_param} \
             ${_valid_data_param} \
             --train_shape_file "${_logdir}/train.JOB.scp" \
-            --valid_shape_file "${_logdir}/dev.JOB.scp" \
+            --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${enh_args} \
             --batch_type unsorted
@@ -416,8 +416,8 @@ fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     _enh_train_dir="${data_feats}/${train_set}"
-    _enh_dev_dir="${data_feats}/${dev_set}"
-    log "Stage 6: Enhancemnt Frontend Training: train_set=${_enh_train_dir}, dev_set=${_enh_dev_dir}"
+    _enh_valid_dir="${data_feats}/${valid_set}"
+    log "Stage 6: Enhancemnt Frontend Training: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
 
     _opts=
     if [ -n "${enh_config}" ]; then
@@ -437,13 +437,13 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     # prepare train and valid data parameters
     _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
     _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
-    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_dev_dir}/wav.scp,speech_mix,sound "
+    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,sound "
     _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
     _fold_length_param="--fold_length ${_fold_length} "
     for spk in $(seq "${spk_num}"); do
         _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
         _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
         _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
         _fold_length_param+="--fold_length ${_fold_length} "
     done
@@ -452,7 +452,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         # reference for dereverberation
         _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
         _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref_shape "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/dereverb.scp,dereverb_ref,sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
         _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref_shape "
         _fold_length_param+="--fold_length ${_fold_length} "
     fi
@@ -462,7 +462,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         for n in $(seq "${noise_type_num}"); do
             _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "
             _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/noise_ref${n}_shape "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_dev_dir}/noise${n}.scp,noise_ref${n},sound "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/noise_ref${n}_shape "
             _fold_length_param+="--fold_length ${_fold_length} "
         done
@@ -504,7 +504,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     _opts=
 
-    for dset in "${dev_set}" ${eval_sets}; do
+    for dset in "${valid_set}" ${test_sets}; do
         _data="${data_feats}/${dset}"
         _dir="${enh_exp}/separate_${dset}"
         _logdir="${_dir}/logdir"
@@ -558,7 +558,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     log "Stage 8: Scoring"
     _cmd=${decode_cmd}
 
-    for dset in "${dev_set}" ${eval_sets}; do
+    for dset in "${valid_set}" ${test_sets}; do
         _data="${data_feats}/${dset}"
         _inf_dir="${enh_exp}/separate_${dset}"
         _dir="${enh_exp}/separate_${dset}/scoring"
@@ -615,7 +615,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         cat "${_dir}"/result.txt
     done
 
-    for dset in "${dev_set}" ${eval_sets} ; do
+    for dset in "${valid_set}" ${test_sets} ; do
          _dir="${enh_exp}/separate_${dset}/scoring"
          echo "======= Results in ${dset} ======="
          cat "${_dir}"/result.txt
