@@ -122,8 +122,6 @@ def get_parser():
 
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-    parser.add_argument("--config", is_config_file=True, help="config file path")
-
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),
