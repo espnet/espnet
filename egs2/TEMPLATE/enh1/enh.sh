@@ -396,8 +396,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/dev.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${enh_args} \
-            --batch_type unsorted
+            ${_opts} ${enh_args}
 
     # 3. Aggregate shape files
     _opts=
