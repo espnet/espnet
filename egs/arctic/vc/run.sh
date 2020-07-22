@@ -78,7 +78,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     local/data_download.sh ${db_root} ${trgspk}
 
     # download pretrained model for training
-    if [ ! -z ${pretrained_model} ]; then
+    if [ -n ${pretrained_model} ]; then
         local/pretrained_model_download.sh ${db_root} ${pretrained_model}
     fi
     
@@ -144,7 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
         
     # If not using pretrained models statistics, calculate in a speaker-dependent way.
-    if [ ! -z ${pretrained_model} ]; then
+    if [ -n ${pretrained_model} ]; then
         src_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
         trg_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
     else
@@ -226,7 +226,7 @@ if [[ -z ${train_config} ]]; then
 fi
 
 # If pretrained model specified, add pretrained model info in config
-if [ ! -z ${pretrained_model} ]; then
+if [ -n ${pretrained_model} ]; then
     pretrained_model_path=$(find ${db_root}/${pretrained_model} -name "snapshot*" | head -n 1)
     train_config="$(change_yaml.py \
         -a enc-init="${pretrained_model_path}" \
@@ -309,7 +309,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         
         # Normalization
         # If not using pretrained models statistics, use statistics of target speaker
-        if [ ! -z ${pretrained_model} ]; then
+        if [ -n ${pretrained_model} ]; then
             trg_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
         else
             trg_cmvn=data/${trg_train_set}/cmvn.ark
