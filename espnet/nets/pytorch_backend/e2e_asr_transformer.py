@@ -207,7 +207,7 @@ class E2E(ASRInterface, torch.nn.Module):
         )
         # Non-autoregressive training
         group.add_argument(
-            "--dmode",
+            "--decoder-mode",
             default="AR",
             type=str,
             choices=["AR", "NAR"],
@@ -269,8 +269,8 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.decoder = None
         self.blank = 0
-        self.dmode = args.dmode 
-        if self.dmode == "NAR":                                                                                                                                                                
+        self.decoder_mode = args.decoder_mode 
+        if self.decoder_mode == "NAR":                                                                                                                                                                
             self.mask_token = odim - 1                                                                                                                                                               
             self.sos = odim - 2                                                                                                                                                                
             self.eos = odim - 2                                                                                                                                                                
@@ -338,7 +338,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 2. forward decoder
         if self.decoder is not None:
-            if self.dmode == "NAR":
+            if self.decoder_mode == "NAR":
                 ys_in_pad, ys_out_pad = mask_uniform(
                     ys_pad, self.mask_token, self.eos, self.ignore_id
                 )
@@ -667,8 +667,9 @@ class E2E(ASRInterface, torch.nn.Module):
         probs_hat = torch.from_numpy(numpy.array(probs_hat))
 
         char_mask = '_'
-        mask_idx = torch.nonzero(probs_hat[y_idx] < recog_args.p_thres).squeeze(-1)
-        confident_idx = torch.nonzero(probs_hat[y_idx] >= recog_args.p_thres).squeeze(-1)
+        p_thres = recog_args.nar_probability_threshold
+        mask_idx = torch.nonzero(probs_hat[y_idx] < p_thres).squeeze(-1)
+        confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
         mask_num = len(mask_idx)
 
         y_in = torch.zeros(1, len(y_idx) + 1, dtype=torch.long) + self.mask_token
@@ -679,7 +680,8 @@ class E2E(ASRInterface, torch.nn.Module):
             ''.join([char_list[y] if y != self.mask_token else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
 
         if not mask_num == 0:
-            num_iter = recog_args.K if mask_num >= recog_args.K and recog_args.K > 0 else mask_num
+            K = recog_args.nar_n_iterations
+            num_iter = K if mask_num >= K and K > 0 else mask_num
 
             for t in range(1, num_iter):
                 pred, _ = self.decoder(y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None)

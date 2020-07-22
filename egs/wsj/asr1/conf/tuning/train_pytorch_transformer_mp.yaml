@@ -44,4 +44,4 @@ report-cer: true
 report-wer: true
 
 # Non-autoregressive
-dmode: NAR
+decoder_mode: NAR

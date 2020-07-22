@@ -597,7 +597,7 @@ def main(cmd_args):
         char_list.insert(0, "<blank>")
         char_list.append("<eos>")
         # for non-autoregressive training using Transformer
-        if hasattr(args, 'dmode') and args.dmode == "NAR":
+        if hasattr(args, 'decoder_mode') and args.decoder_mode == "NAR":
             char_list.append("<mask>")
         args.char_list = char_list
     else:

@@ -1,2 +1,2 @@
-K: 10
-p-thres: 0.999
+nar-n-iterations: 10
+nar-probability-threshold: 0.999
