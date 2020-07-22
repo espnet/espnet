@@ -1,17 +1,17 @@
+from functools import reduce
+from itertools import permutations
 from typing import Dict
 from typing import Optional
 from typing import Tuple
-from itertools import permutations
 
 import torch
+from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.enh.nets.tasnet import TasNet
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from torch_complex.tensor import ComplexTensor
-from functools import reduce
 
 
 class ESPnetEnhancementModel(AbsESPnetModel):
@@ -34,7 +34,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.ref_channel = getattr(self.enh_model, "ref_channel", -1)
 
     def _create_mask_label(self, mix_spec, ref_spec, mask_type="IAM"):
-        """
+        """Create mask label.
+
         :param mix_spec: ComplexTensor(B, T, F)
         :param ref_spec: [ComplexTensor(B, T, F), ...] or ComplexTensor(B, T, F)
         :param noise_spec: ComplexTensor(B, T, F)
@@ -59,7 +60,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int()
             elif mask_type == "IRM":
-                # TODO (Wangyou): need to fix this,
+                # TODO(Wangyou): need to fix this,
                 #  as noise referecens are provided separately
                 mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + eps)
             elif mask_type == "IAM":
@@ -193,7 +194,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 speech_mix, speech_lengths
             )
 
-            # TODO:Chenda, Shall we add options for computing loss on
+            # TODO(Chenda), Shall we add options for computing loss on
             #  the masked spectrum?
             # compute TF masking loss
             if mask_pre is None:
@@ -209,7 +210,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 ]
 
                 # compute TF masking loss
-                # TODO: Chenda, Shall we add options for
+                # TODO(Chenda), Shall we add options for
                 #  computing loss on the masked spectrum?
                 tf_loss, perm = self._permutation_loss(
                     mask_ref, mask_pre_, self.tf_mse_loss
@@ -289,7 +290,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def tf_mse_loss(ref, inf):
-        """
+        """time-frequency MSE loss.
+
         :param ref: (Batch, T, F)
         :param inf: (Batch, T, F)
         :return: (Batch)
@@ -306,7 +308,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def tf_l1_loss(ref, inf):
-        """
+        """time-frequency L1 loss.
+
         :param ref: (Batch, T, F) or (Batch, T, C, F)
         :param inf: (Batch, T, F) or (Batch, T, C, F)
         :return: (Batch)
@@ -322,7 +325,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def si_snr_loss(ref, inf):
-        """
+        """si-snr loss
+
         :param ref: (Batch, samples)
         :param inf: (Batch, samples)
         :return: (Batch)
@@ -340,7 +344,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def si_snr_loss_zeromean(ref, inf):
-        """
+        """si_snr loss with zero-mean in pre-processing.
+
         :param ref: (Batch, samples)
         :param inf: (Batch, samples)
         :return: (Batch)
@@ -380,7 +385,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
     @staticmethod
     def _permutation_loss(ref, inf, criterion, perm=None):
-        """
+        """The basic permutation loss function.
+
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...]
             inf (List[torch.Tensor]): [(batch, ...), ...]

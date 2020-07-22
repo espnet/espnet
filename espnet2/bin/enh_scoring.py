@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 import logging
 import sys
-from typing import Union
 from typing import List
+from typing import Union
 
 import configargparse
-from typeguard import check_argument_types
-from espnet.utils.cli_utils import get_commandline_args
-from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.fileio.datadir_writer import DatadirWriter
-from pystoi import stoi
-from mir_eval.separation import bss_eval_sources
 import numpy as np
+from typeguard import check_argument_types
+
+from espnet.utils.cli_utils import get_commandline_args
+from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.fileio.sound_scp import SoundScpReader
+from mir_eval.separation import bss_eval_sources
+from pystoi import stoi
 
 
 def scoring(

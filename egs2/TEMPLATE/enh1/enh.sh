@@ -332,6 +332,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--config ${enh_config} "
     fi
 
+    # shellcheck disable=SC2034
     _feats_type="$(<${_enh_train_dir}/feats_type)"
     _scp=wav.scp
     # "sound" supports "wav", "flac", etc.
@@ -425,6 +426,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _opts+="--config ${enh_config} "
     fi
 
+    # shellcheck disable=SC2034
     _feats_type="$(<${_enh_train_dir}/feats_type)"
     _scp=wav.scp
     # "sound" supports "wav", "flac", etc.

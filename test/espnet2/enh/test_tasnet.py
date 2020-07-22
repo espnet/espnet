@@ -1,6 +1,7 @@
 import pytest
-import torch
+
 import numpy as np
+import torch
 
 from espnet2.enh.nets.tasnet import TasNet
 
