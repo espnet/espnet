@@ -408,7 +408,7 @@ def train(args):
         int(valid_json[utts[0]]["input"][i]["shape"][-1]) for i in range(args.num_encs)
     ]
     odim = int(valid_json[utts[0]]["output"][0]["shape"][-1])
-    if hasattr(args, 'decoder_mode') and args.decoder_mode == "NAR":
+    if hasattr(args, 'decoder_mode') and args.decoder_mode == "MP":
         odim += 1  # for the <mask> token
     for i in range(args.num_encs):
         logging.info("stream{}: input dims : {}".format(i + 1, idim_list[i]))
@@ -978,8 +978,8 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
-                elif model.decoder_mode == 'NAR':
-                    nbest_hyps = model.recognize_nar(
+                elif hasattr(model, 'decoder_mode') and model.decoder_mode == "MP":
+                    nbest_hyps = model.recognize_mp(
                         feat, args, train_args.char_list
                     )
                 else:

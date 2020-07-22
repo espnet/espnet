@@ -210,9 +210,9 @@ class E2E(ASRInterface, torch.nn.Module):
             "--decoder-mode",
             default="AR",
             type=str,
-            choices=["AR", "NAR"],
+            choices=["AR", "MP"],
             help="AR: standard autoregressive training, "
-            "NAR: non-autoregressive training based on mask-predict",
+            "MP: non-autoregressive training based on mask-predict",
         )
         return parser
 
@@ -270,7 +270,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.decoder = None
         self.blank = 0
         self.decoder_mode = args.decoder_mode 
-        if self.decoder_mode == "NAR":                                                                                                                                                                
+        if self.decoder_mode == "MP":                                                                                                                                                                
             self.mask_token = odim - 1                                                                                                                                                               
             self.sos = odim - 2                                                                                                                                                                
             self.eos = odim - 2                                                                                                                                                                
@@ -338,7 +338,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 2. forward decoder
         if self.decoder is not None:
-            if self.decoder_mode == "NAR":
+            if self.decoder_mode == "MP":
                 ys_in_pad, ys_out_pad = mask_uniform(
                     ys_pad, self.mask_token, self.eos, self.ignore_id
                 )
@@ -640,7 +640,7 @@ class E2E(ASRInterface, torch.nn.Module):
         )
         return nbest_hyps
 
-    def recognize_nar(self, x, recog_args, char_list=None):
+    def recognize_mp(self, x, recog_args, char_list=None):
         """Non-autoregressive decoding
 
         :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
@@ -667,7 +667,7 @@ class E2E(ASRInterface, torch.nn.Module):
         probs_hat = torch.from_numpy(numpy.array(probs_hat))
 
         char_mask = '_'
-        p_thres = recog_args.nar_probability_threshold
+        p_thres = recog_args.mp_probability_threshold
         mask_idx = torch.nonzero(probs_hat[y_idx] < p_thres).squeeze(-1)
         confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
         mask_num = len(mask_idx)

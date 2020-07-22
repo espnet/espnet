@@ -1,2 +1,2 @@
 nar-n-iterations: 10
-nar-probability-threshold: 0.999
+mp-probability-threshold: 0.999
