@@ -499,7 +499,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     for dset in "${valid_set}" ${test_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${enh_exp}/separate_${dset}"
+        _dir="${enh_exp}/enhanced_${dset}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -517,7 +517,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Submit decoding jobs
-        log "Separation started... log: '${_logdir}/enh_inference.*.log'"
+        log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
         # shellcheck disable=SC2086
         ${_cmd} --gpu "${_ngpu}" --mem ${mem} JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
             python3 -m espnet2.bin.enh_inference \
@@ -553,8 +553,8 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
     for dset in "${valid_set}" ${test_sets}; do
         _data="${data_feats}/${dset}"
-        _inf_dir="${enh_exp}/separate_${dset}"
-        _dir="${enh_exp}/separate_${dset}/scoring"
+        _inf_dir="${enh_exp}/enhanced_${dset}"
+        _dir="${enh_exp}/enhanced_${dset}/scoring"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -599,25 +599,18 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
         for protocol in ${scoring_protocol}; do
             # shellcheck disable=SC2046
-            echo "${protocol}": $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
+            echo $(paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
             awk 'BEIGN{sum=0}
                 {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
-                END{print sum/NR}')
-        done > "${_dir}"/result.txt
-
-        cat "${_dir}"/result.txt
+                END{print sum/NR}') > "${_dir}"/"result_${protocol,,}.txt"
+        done
     done
 
-    for dset in "${valid_set}" ${test_sets} ; do
-         _dir="${enh_exp}/separate_${dset}/scoring"
-         echo "======= Results in ${dset} ======="
-         cat "${_dir}"/result.txt
-    done > "${enh_exp}"/RESULTS.TXT
 fi
 
 
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    log "[Option] Stage 9: Pack model: ${enh_exp}/packed.tgz"
+    log "[Option] Stage 9: Pack model: ${enh_exp}/packed.zip"
 
     _opts=
     if [ "${feats_normalize}" = global_mvn ]; then
