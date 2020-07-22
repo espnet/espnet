@@ -175,8 +175,7 @@ class BatchPartialScorerInterface(BatchScorerInterface, PartialScorerInterface):
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
-            next_tokens (torch.Tensor):
-                torch.int64 next token to score (n_batch, n_tokens).
+            next_tokens (torch.Tensor): torch.int64 tokens to score (n_batch, n_token).
             states (List[Any]): Scorer states for prefix tokens.
             xs (torch.Tensor):
                 The encoder feature that generates ys (n_batch, xlen, n_feat).
