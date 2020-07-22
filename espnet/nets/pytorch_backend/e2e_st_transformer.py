@@ -501,7 +501,6 @@ class E2E(STInterface, torch.nn.Module):
         xs_zero_pad = xs_zero_pad[:, : max(ilens)]  # for data parallel
         src_mask = (~make_pad_mask(ilens.tolist())).to(xs_zero_pad.device).unsqueeze(-2)
         hs_pad, hs_mask = self.encoder_mt(xs_zero_pad, src_mask)
-        assert self.dmode != "NAR"  # TODO(hirofumi0810): fix later
         pred_pad, _ = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         loss = self.criterion(pred_pad, ys_out_pad)
         acc = th_accuracy(

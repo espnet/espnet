@@ -440,7 +440,7 @@ class E2E(STInterface, torch.nn.Module):
         ) = self.forward_asr(hs_pad, hlens, ys_pad_src)
 
         # 4. MT attention loss
-        self.loss_mt, acc_mt = self.forward_mt(xs_pad, ys_pad)
+        self.loss_mt, acc_mt = self.forward_mt(ys_pad, ys_pad_src)
 
         # 5. Compute BLEU
         if self.training or not self.report_bleu:
@@ -480,13 +480,13 @@ class E2E(STInterface, torch.nn.Module):
             self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
 
         asr_ctc_weight = self.mtlalpha
+        self.loss_asr = (
+            asr_ctc_weight * self.loss_asr_ctc
+            + (1 - asr_ctc_weight) * self.loss_asr_att
+        )
         self.loss = (
             (1 - self.asr_weight - self.mt_weight) * self.loss_st
-            + self.asr_weight
-            * (
-                asr_ctc_weight * self.loss_asr_ctc
-                + (1 - asr_ctc_weight) * self.loss_asr_att
-            )
+            + self.asr_weight * self.loss_asr
             + self.mt_weight * self.loss_mt
         )
         loss_st_data = float(self.loss_st)
