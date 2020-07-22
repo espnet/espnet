@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 import sys
 from typing import Optional
@@ -6,16 +7,15 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import configargparse
 import torch
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
-
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -115,10 +115,9 @@ def inference(
 
 
 def get_parser():
-    parser = configargparse.ArgumentParser(
+    parser = config_argparse.ArgumentParser(
         description="Frontend inference",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     # Note(kamo): Use '_' instead of '-' as separator.
@@ -144,6 +143,7 @@ def get_parser():
         choices=["float16", "float32", "float64"],
         help="Data type",
     )
+    parser.add_argument("--fs", type=int, default=8000, help="Sampling rate")
     parser.add_argument(
         "--num_workers",
         type=int,
@@ -152,7 +152,6 @@ def get_parser():
     )
 
     group = parser.add_argument_group("Input data related")
-    group.add_argument("--fs", type=int, defualt=8000, help="sampling rate")
     group.add_argument(
         "--data_path_and_name_and_type",
         type=str2triple_str,

@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 import sys
 from typing import List
 from typing import Union
 
-import configargparse
+from mir_eval.separation import bss_eval_sources
 import numpy as np
+from pystoi import stoi
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
-from mir_eval.separation import bss_eval_sources
-from pystoi import stoi
+from espnet2.utils import config_argparse
 
 
 def scoring(
@@ -76,10 +77,9 @@ def scoring(
 
 
 def get_parser():
-    parser = configargparse.ArgumentParser(
+    parser = config_argparse.ArgumentParser(
         description="Frontend inference",
-        config_file_parser_class=configargparse.YAMLConfigFileParser,
-        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     # Note(kamo): Use '_' instead of '-' as separator.

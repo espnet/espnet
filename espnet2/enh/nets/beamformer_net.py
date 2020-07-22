@@ -5,8 +5,8 @@ import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.abs_enh import AbsEnhancement
-from espnet2.enh.funcs.dnn_beamformer import DNN_Beamformer
-from espnet2.enh.funcs.dnn_wpe import DNN_WPE
+from espnet2.enh.layers.dnn_beamformer import DNN_Beamformer
+from espnet2.enh.layers.dnn_wpe import DNN_WPE
 from espnet2.layers.stft import Stft
 
 

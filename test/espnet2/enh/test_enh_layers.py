@@ -5,8 +5,8 @@ import torch
 import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.funcs.conv_beamformer import inv
-from espnet2.enh.funcs.conv_beamformer import signal_framing
+from espnet2.enh.layers.conv_beamformer import inv
+from espnet2.enh.layers.conv_beamformer import signal_framing
 
 
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
