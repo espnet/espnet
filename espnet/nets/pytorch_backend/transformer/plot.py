@@ -60,6 +60,7 @@ def plot_multi_head_attention(
     iaxis=0,
     okey="output",
     oaxis=0,
+    subsampling_rate=4,
 ):
     """Plot multi head attentions.
 
@@ -69,17 +70,22 @@ def plot_multi_head_attention(
     :param str outdir: dir to save fig
     :param str suffix: filename suffix including image type (e.g., png)
     :param savefn: function to save
+    :param str ikey: key to access input
+    :param int iaxis: dimension to access input
+    :param str okey: key to access output
+    :param int oaxis: dimension to access output
+    :param subsampling_rate: subsampling rate in encoder
 
     """
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (outdir, data[idx][0], name, suffix)
-            dec_len = int(data[idx][1][okey][oaxis]["shape"][0]) + 1  # +1 for <sos>
+            dec_len = int(data[idx][1][okey][oaxis]["shape"][0]) + 1  # +1 for <eos>
             enc_len = int(data[idx][1][ikey][iaxis]["shape"][0])
             is_mt = "token" in data[idx][1][ikey][iaxis].keys()
             # for ASR/ST
             if not is_mt:
-                enc_len //= 4  # /4 for subsampling in CNN
+                enc_len //= subsampling_rate
             xtokens, ytokens = None, None
             if "encoder" in name:
                 att_w = att_w[:, :enc_len, :enc_len]
