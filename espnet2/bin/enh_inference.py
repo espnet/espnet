@@ -25,6 +25,7 @@ def inference(
     output_dir: str,
     batch_size: int,
     dtype: str,
+    fs: int,
     ngpu: int,
     seed: int,
     num_workers: int,
@@ -62,7 +63,6 @@ def inference(
     enh_model.eval()
 
     num_spk = enh_model.num_spk
-    fs = enh_model.fs
 
     # 3. Build data-iterator
     loader = EnhancementTask.build_streaming_iterator(
@@ -152,6 +152,7 @@ def get_parser():
     )
 
     group = parser.add_argument_group("Input data related")
+    group.add_argument("--fs", type=int, defualt=8000, help="sampling rate")
     group.add_argument(
         "--data_path_and_name_and_type",
         type=str2triple_str,

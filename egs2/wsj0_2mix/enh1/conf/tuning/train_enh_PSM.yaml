@@ -28,7 +28,6 @@ scheduler_conf:
 enh: tf_masking
 enh_conf:
     mask_type: PSM
-    fs: 8000
     n_fft: 256
     hop_length: 128
     rnn_type: blstm

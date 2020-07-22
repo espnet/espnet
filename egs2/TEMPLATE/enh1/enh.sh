@@ -157,9 +157,6 @@ fi
 data_feats=${dumpdir}/raw
 
 
-
-
-
 # Set tag for naming of model directory
 if [ -z "${enh_tag}" ]; then
     if [ -n "${enh_config}" ]; then
@@ -193,7 +190,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    if [ -n "${speed_perturb_factors}" ]; then
+    if ! $use_dereverb_ref && [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
 
         _scp_list="wav.scp "
@@ -529,6 +526,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         ${_cmd} --gpu "${_ngpu}" --mem ${mem} JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
             python3 -m espnet2.bin.enh_inference \
                 --ngpu "${_ngpu}" \
+                --fs "${fs}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --enh_train_config "${enh_exp}"/config.yaml \

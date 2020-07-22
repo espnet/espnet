@@ -74,6 +74,7 @@ while IFS= read -r expdir; do
             done
             echo $line
         done
+        echo ""
     fi
 
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)

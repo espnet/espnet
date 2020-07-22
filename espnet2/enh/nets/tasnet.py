@@ -88,7 +88,6 @@ def remove_pad(inputs, inputs_lengths):
 class TasNet(AbsEnhancement):
     def __init__(
         self,
-        fs: int = 8000,
         N: int = 256,
         L: int = 20,
         B: int = 256,
@@ -122,7 +121,6 @@ class TasNet(AbsEnhancement):
         """
         super(TasNet, self).__init__()
         # Hyper-parameter
-        self.fs = fs
         self.N, self.L, self.B, self.H, self.P, self.X, self.R, self.C = (
             N,
             L,

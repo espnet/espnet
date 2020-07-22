@@ -29,7 +29,6 @@ scheduler_conf:
     patience: 1
 enh: tasnet
 enh_conf:
-    fs: 8000
     N: 256
     L: 20
     B: 256
