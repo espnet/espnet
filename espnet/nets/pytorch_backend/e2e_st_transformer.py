@@ -474,8 +474,6 @@ class E2E(STInterface, torch.nn.Module):
                 cer_ctc = self.error_calculator_asr(
                     ys_hat_ctc.cpu(), ys_pad.cpu(), is_ctc=True
                 )
-                # for visualization
-                self.ctc.softmax(hs_pad)
         return loss_att, acc, loss_ctc, cer_ctc, cer, wer
 
     def forward_mt(self, xs_pad, ys_in_pad, ys_out_pad, ys_mask):
