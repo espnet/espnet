@@ -17,6 +17,7 @@ from typing import List
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
+from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
@@ -56,6 +57,7 @@ class Speech2Text:
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
+        batch_size: int = 1,
         dtype: str = "float32",
         beam_size: int = 20,
         ctc_weight: float = 0.5,
