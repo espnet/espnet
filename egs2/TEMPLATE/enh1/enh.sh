@@ -44,6 +44,8 @@ speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by
 feats_type=raw    # Feature type (raw or fbank_pitch).
 audio_format=flac # Audio format (only in feats_type=raw).
 fs=16k            # Sampling rate.
+min_wav_duration=0.1   # Minimum duration in second
+max_wav_duration=20    # Maximum duration in second
 
 # Enhancement model related
 enh_tag=    # Suffix to the result dir for enhancement model training.
@@ -97,6 +99,8 @@ Options:
     --feats_type   # Feature type (only support raw currently).
     --audio_format # Audio format (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
+    --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
+    --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
 
     # Enhancemnt model related
@@ -296,12 +300,15 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             cp "${data_feats}/org/${dset}/${spk}.scp" "${data_feats}/${dset}/${spk}.scp"
         done
 
-        min_length=2560
+        _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+        _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+        _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
         # utt2num_samples is created by format_wav_scp.sh
         <"${data_feats}/org/${dset}/utt2num_samples" \
-            awk -v min_length="$min_length" '{ if ($2 > min_length) print $0; }' \
-            >"${data_feats}/${dset}/utt2num_samples"
+            awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                >"${data_feats}/${dset}/utt2num_samples"
         for spk in ${_spk_list} "wav"; do
             <"${data_feats}/org/${dset}/${spk}.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
