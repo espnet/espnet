@@ -1,3 +1,16 @@
+# Conformer result
+
+- training config file: `conf/tuning/train_pytorch_conformer.yaml`
+- decoding config file: `conf/decode.yaml`
+```
+exp/train_sp_pytorch_train_pytorch_conformer/decode_dev_decode_pytorch_conformer/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
+|   Sum/Avg  |  14326      205341   |   94.7        5.1        0.1        0.1        5.4       39.0   |
+exp/train_sp_pytorch_train_pytorch_conformer/decode_test_decode_pytorch_conformer/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
+|   Sum/Avg  |   7176      104765   |   94.2        5.6         0.2        0.1        5.9       41.8   |
+```
+
 # Transformer result (default transformer with initial learning rate = 1.0 and epochs = 50)
 
   - Environments (obtained by `$ get_sys_info.sh`)
@@ -64,3 +77,4 @@ exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/decode_test_decode_pytorch_
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
 |   Sum/Avg  |   7176       104765  |   92.7        7.1        0.2        0.1        7.4      49.8    |
 ```
+

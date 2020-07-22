@@ -23,7 +23,10 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
@@ -103,6 +106,7 @@ class E2E(ASRInterface, torch.nn.Module):
             default="selfattn",
             choices=[
                 "selfattn",
+                "rel_selfattn",
                 "lightconv",
                 "lightconv2d",
                 "dynamicconv",
@@ -346,7 +350,11 @@ class E2E(ASRInterface, torch.nn.Module):
                 cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
 
         # 5. compute cer/wer
+<<<<<<< HEAD
         if self.training or self.error_calculator is None or self.decoder is None:
+=======
+        if self.training or self.error_calculator is None or self.mtlalpha == 1.0:
+>>>>>>> upstream/master
             cer, wer = None, None
         else:
             ys_hat = pred_pad.argmax(dim=-1)
@@ -626,7 +634,11 @@ class E2E(ASRInterface, torch.nn.Module):
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) or isinstance(m, DynamicConvolution):
+            if (
+                isinstance(m, MultiHeadedAttention)
+                or isinstance(m, DynamicConvolution)
+                or isinstance(m, RelPositionMultiHeadedAttention)
+            ):
                 ret[name] = m.attn.cpu().numpy()
             if isinstance(m, DynamicConvolution2D):
                 ret[name + "_time"] = m.attn_t.cpu().numpy()
