@@ -140,7 +140,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             pad_mode=self.pad_mode,
             normalized=self.normalized,
             onesided=self.onesided,
-            length=ilens.max(),
+            length=ilens.max() if ilens is not None else ilens,
         )
 
         return wavs, ilens
