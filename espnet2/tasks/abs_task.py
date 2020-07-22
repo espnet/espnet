@@ -16,7 +16,6 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import configargparse
 import humanfriendly
 import numpy as np
 import torch
@@ -60,6 +59,7 @@ from espnet2.train.iterable_dataset import IterableESPnetDataset
 from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
+from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import humanfriendly_parse_size_or_none
@@ -229,18 +229,16 @@ class AbsTask(ABC):
         raise NotImplementedError
 
     @classmethod
-    def get_parser(cls) -> configargparse.ArgumentParser:
+    def get_parser(cls) -> config_argparse.ArgumentParser:
         assert check_argument_types()
 
         class ArgumentDefaultsRawTextHelpFormatter(
-            configargparse.RawTextHelpFormatter,
-            configargparse.ArgumentDefaultsHelpFormatter,
+            argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter,
         ):
             pass
 
-        parser = configargparse.ArgumentParser(
+        parser = config_argparse.ArgumentParser(
             description="base parser",
-            config_file_parser_class=configargparse.YAMLConfigFileParser,
             formatter_class=ArgumentDefaultsRawTextHelpFormatter,
         )
 
@@ -253,7 +251,6 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("Common configuration")
 
-        group.add_argument("--config", is_config_file=True, help="config file path")
         group.add_argument(
             "--print_config",
             action="store_true",

@@ -35,7 +35,7 @@ train_dev=dev
 
 recog_set=""
 for l in ${recog}; do
-  recog_set="eval_${l} ${recog_set}"
+  recog_set="dev_${l} eval_${l} ${recog_set}"
 done
 recog_set=${recog_set%% }
 
