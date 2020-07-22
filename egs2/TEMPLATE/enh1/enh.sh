@@ -522,6 +522,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         ${_cmd} --gpu "${_ngpu}" --mem ${mem} JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
             python3 -m espnet2.bin.enh_inference \
                 --ngpu "${_ngpu}" \
+                --fs "${fs}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --enh_train_config "${enh_exp}"/config.yaml \

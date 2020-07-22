@@ -27,7 +27,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.enh_model = enh_model
         self.num_spk = enh_model.num_spk
         self.num_noise_type = getattr(self.enh_model, "num_noise_type", 1)
-        self.fs = enh_model.fs
         # get mask type for TF-domain models
         self.mask_type = getattr(self.enh_model, "mask_type", None)
         # for multi-channel signal

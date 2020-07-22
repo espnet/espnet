@@ -8,9 +8,11 @@
 - Git hash: `6070ad9df9997cbed0540af50b7fa09c4825c456`
   - Commit date: `Wed Jul 8 21:00:57 2020 -0400`
 
-config: conf/tuning/train_enh_beamformer_tf1.0.yaml
 
 ## enh_train_enh_beamformer_tf1.0_8k_2ch_4gpu_raw
+
+config: conf/tuning/train_enh_beamformer_tf1.0.yaml
+
 |dataset|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
 |enhanced_cv_spatialized_anechoic_multich|0.96|25.04|20.00|22.25|
