@@ -23,8 +23,8 @@ do_delta=false
 
 # config files
 preprocess_config=conf/specaug.yaml  # use conf/specaug.yaml for data augmentation
-train_config=conf/tuning/train_pytorch_transformer_nar.yaml
-decode_config=conf/tuning/decode_pytorch_transformer_nar.yaml
+train_config=conf/tuning/train_pytorch_transformer_mp.yaml
+decode_config=conf/tuning/decode_pytorch_transformer_mp.yaml
 
 # decoding parameter
 n_average=50 # use 1 for RNN models
