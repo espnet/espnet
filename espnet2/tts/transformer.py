@@ -4,7 +4,7 @@
 """TTS-Transformer related modules."""
 
 from typing import Dict
-from typing import List
+from typing import Sequence
 from typing import Tuple
 
 import torch
@@ -27,6 +27,7 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.gst.style_encoder import StyleEncoder
 
 
 class Transformer(AbsTTS):
@@ -79,6 +80,16 @@ class Transformer(AbsTTS):
         reduction_factor (int, optional): Reduction factor.
         spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
         spk_embed_integration_type (str, optional): How to integrate speaker embedding.
+        use_gst (str, optional): Whether to use global style token.
+        gst_tokens (int, optional): The number of GST embeddings.
+        gst_heads (int, optional): The number of heads in GST multihead attention.
+        gst_conv_layers (int, optional): The number of conv layers in GST.
+        gst_conv_chans_list: (Sequence[int], optional):
+            List of the number of channels of conv layers in GST.
+        gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
+        gst_conv_stride (int, optional): Stride size of conv layers in GST.
+        gst_gru_layers (int, optional): The number of GRU layers in GST.
+        gst_gru_units (int, optional): The number of GRU units in GST.
         transformer_lr (float, optional): Initial value of learning rate.
         transformer_warmup_steps (int, optional): Optimizer warmup steps.
         transformer_enc_dropout_rate (float, optional):
@@ -116,7 +127,7 @@ class Transformer(AbsTTS):
             Number of heads in each layer to apply guided attention loss.
         num_layers_applied_guided_attn (int, optional):
             Number of layers to apply guided attention loss.
-        modules_applied_guided_attn (List, optional):
+        modules_applied_guided_attn (Sequence[str], optional):
             List of module names to apply guided attention loss.
         guided_attn_loss_sigma (float, optional) Sigma in guided attention loss.
         guided_attn_loss_lambda (float, optional): Lambda in guided attention loss.
@@ -154,6 +165,15 @@ class Transformer(AbsTTS):
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
+        use_gst: bool = False,
+        gst_tokens: int = 10,
+        gst_heads: int = 4,
+        gst_conv_layers: int = 6,
+        gst_conv_chans_list: Sequence[int] = (32, 32, 64, 64, 128, 128),
+        gst_conv_kernel_size: int = 3,
+        gst_conv_stride: int = 2,
+        gst_gru_layers: int = 1,
+        gst_gru_units: int = 128,
         # training related
         transformer_enc_dropout_rate: float = 0.1,
         transformer_enc_positional_dropout_rate: float = 0.1,
@@ -175,7 +195,7 @@ class Transformer(AbsTTS):
         use_guided_attn_loss: bool = True,
         num_heads_applied_guided_attn: int = 2,
         num_layers_applied_guided_attn: int = 2,
-        modules_applied_guided_attn: List[str] = ["encoder-decoder"],
+        modules_applied_guided_attn: Sequence[str] = ("encoder-decoder"),
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
     ):
@@ -189,6 +209,7 @@ class Transformer(AbsTTS):
         self.eos = idim - 1
         self.spk_embed_dim = spk_embed_dim
         self.reduction_factor = reduction_factor
+        self.use_gst = use_gst
         self.use_guided_attn_loss = use_guided_attn_loss
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.loss_type = loss_type
@@ -251,6 +272,21 @@ class Transformer(AbsTTS):
             positionwise_layer_type=positionwise_layer_type,
             positionwise_conv_kernel_size=positionwise_conv_kernel_size,
         )
+
+        # define GST
+        if self.use_gst:
+            self.gst = StyleEncoder(
+                idim=odim,  # the input is mel-spectrogram
+                gst_tokens=gst_tokens,
+                gst_token_dim=adim,
+                gst_heads=gst_heads,
+                conv_layers=gst_conv_layers,
+                conv_chans_list=gst_conv_chans_list,
+                conv_kernel_size=gst_conv_kernel_size,
+                conv_stride=gst_conv_stride,
+                gru_layers=gst_gru_layers,
+                gru_units=gst_gru_units,
+            )
 
         # define projection layer
         if self.spk_embed_dim is not None:
@@ -344,8 +380,6 @@ class Transformer(AbsTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
-        *args,
-        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -379,42 +413,13 @@ class Transformer(AbsTTS):
         labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
-        # forward encoder
-        x_masks = self._source_mask(ilens)
-        hs, h_masks = self.encoder(xs, x_masks)
-
-        # integrate speaker embedding
-        if self.spk_embed_dim is not None:
-            hs = self._integrate_with_spk_embed(hs, spembs)
-
-        # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
-        if self.reduction_factor > 1:
-            ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
-            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
-        else:
-            ys_in, olens_in = ys, olens
-
-        # add first zero frame and remove last frame for auto-regressive
-        ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
-
-        # forward decoder
-        y_masks = self._target_mask(olens_in)
-        zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
-        # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
-        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
-        # (B, Lmax//r, r) -> (B, Lmax//r * r)
-        logits = self.prob_out(zs).view(zs.size(0), -1)
-
-        # postnet -> (B, Lmax//r * r, odim)
-        if self.postnet is None:
-            after_outs = before_outs
-        else:
-            after_outs = before_outs + self.postnet(
-                before_outs.transpose(1, 2)
-            ).transpose(1, 2)
+        # calculate transformer outputs
+        after_outs, before_outs, logits = self._forward(xs, ilens, ys, olens, spembs)
 
         # modifiy mod part of groundtruth
+        olens_in = olens
         if self.reduction_factor > 1:
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)
             ys = ys[:, :max_olen]
@@ -504,22 +509,75 @@ class Transformer(AbsTTS):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    def _forward(
+        self,
+        xs: torch.Tensor,
+        ilens: torch.Tensor,
+        ys: torch.Tensor,
+        olens: torch.Tensor,
+        spembs: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        # forward encoder
+        x_masks = self._source_mask(ilens)
+        hs, h_masks = self.encoder(xs, x_masks)
+
+        # integrate with GST
+        if self.use_gst:
+            style_embs = self.gst(ys)
+            hs = hs + style_embs.unsqueeze(1)
+
+        # integrate speaker embedding
+        if self.spk_embed_dim is not None:
+            hs = self._integrate_with_spk_embed(hs, spembs)
+
+        # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
+        if self.reduction_factor > 1:
+            ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+        else:
+            ys_in, olens_in = ys, olens
+
+        # add first zero frame and remove last frame for auto-regressive
+        ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
+
+        # forward decoder
+        y_masks = self._target_mask(olens_in)
+        zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
+        # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
+        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
+        # (B, Lmax//r, r) -> (B, Lmax//r * r)
+        logits = self.prob_out(zs).view(zs.size(0), -1)
+
+        # postnet -> (B, Lmax//r * r, odim)
+        if self.postnet is None:
+            after_outs = before_outs
+        else:
+            after_outs = before_outs + self.postnet(
+                before_outs.transpose(1, 2)
+            ).transpose(1, 2)
+
+        return after_outs, before_outs, logits
+
     def inference(
         self,
         text: torch.Tensor,
+        speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
             text (LongTensor): Input sequence of characters (T,).
+            speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
             threshold (float, optional): Threshold in inference.
             minlenratio (float, optional): Minimum length ratio in inference.
             maxlenratio (float, optional): Maximum length ratio in inference.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -528,14 +586,39 @@ class Transformer(AbsTTS):
 
         """
         x = text
+        y = speech
         spemb = spembs
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
 
+        # inference with teacher forcing
+        if use_teacher_forcing:
+            assert speech is not None, "speech must be provided with teacher forcing."
+
+            # get teacher forcing outputs
+            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
+            spembs = None if spemb is None else spemb.unsqueeze(0)
+            ilens = x.new_tensor([xs.size(1)]).long()
+            olens = y.new_tensor([ys.size(1)]).long()
+            outs, *_ = self._forward(xs, ilens, ys, olens, spembs)
+
+            # get attention weights
+            att_ws = []
+            for i in range(len(self.decoder.decoders)):
+                att_ws += [self.decoder.decoders[i].src_attn.attn]
+            att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_out, T_in)
+
+            return outs[0], None, att_ws[0]
+
         # forward encoder
         xs = x.unsqueeze(0)
         hs, _ = self.encoder(xs, None)
+
+        # integrate GST
+        if self.use_gst:
+            style_embs = self.gst(y.unsqueeze(0))
+            hs = hs + style_embs.unsqueeze(1)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
@@ -605,7 +688,7 @@ class Transformer(AbsTTS):
 
         return outs, probs, att_ws
 
-    def _add_first_frame_and_remove_last_frame(self, ys):
+    def _add_first_frame_and_remove_last_frame(self, ys: torch.Tensor) -> torch.Tensor:
         ys_in = torch.cat(
             [ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1
         )
@@ -615,7 +698,7 @@ class Transformer(AbsTTS):
         """Make masks for self-attention.
 
         Args:
-            ilens (LongTensor or List): Batch of lengths (B,).
+            ilens (LongTensor): Batch of lengths (B,).
 
         Returns:
             Tensor: Mask tensor for self-attention.
@@ -632,16 +715,16 @@ class Transformer(AbsTTS):
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
         return x_masks.unsqueeze(-2)
 
-    def _target_mask(self, olens):
+    def _target_mask(self, olens: torch.Tensor) -> torch.Tensor:
         """Make masks for masked self-attention.
 
         Args:
-            olens (LongTensor or List): Batch of lengths (B,).
+            olens (LongTensor): Batch of lengths (B,).
 
         Returns:
             Tensor: Mask tensor for masked self-attention.
-                    dtype=torch.uint8 in PyTorch 1.2-
-                    dtype=torch.bool in PyTorch 1.2+ (including 1.2)
+                dtype=torch.uint8 in PyTorch 1.2-
+                dtype=torch.bool in PyTorch 1.2+ (including 1.2)
 
         Examples:
             >>> olens = [5, 3]
@@ -662,7 +745,9 @@ class Transformer(AbsTTS):
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
 
-    def _integrate_with_spk_embed(self, hs, spembs):
+    def _integrate_with_spk_embed(
+        self, hs: torch.Tensor, spembs: torch.Tensor
+    ) -> torch.Tensor:
         """Integrate speaker embedding with hidden states.
 
         Args:

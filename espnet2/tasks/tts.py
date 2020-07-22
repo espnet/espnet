@@ -21,6 +21,7 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.espnet_model import ESPnetTTSModel
+from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
@@ -47,7 +48,7 @@ normalize_choices = ClassChoices(
 )
 tts_choices = ClassChoices(
     "tts",
-    classes=dict(tacotron2=Tacotron2, transformer=Transformer),
+    classes=dict(tacotron2=Tacotron2, transformer=Transformer, fastspeech=FastSpeech),
     type_check=AbsTTS,
     default="tacotron2",
 )
@@ -104,7 +105,7 @@ class TTSTask(AbsTask):
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
-            default=False,
+            default=True,
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
@@ -197,10 +198,10 @@ class TTSTask(AbsTask):
     @classmethod
     def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "spcs")
+            retval = ("spembs", "durations")
         else:
             # Inference mode
-            retval = ("spembs",)
+            retval = ("spembs", "speech")
         return retval
 
     @classmethod
