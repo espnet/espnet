@@ -184,6 +184,8 @@ ldconv_dconv2d_args = dict(
     "module, model_dict",
     [
         ("pytorch", {}),
+        ("pytorch", {"transformer_input_layer": "conv2d6"}),
+        ("pytorch", {"transformer_input_layer": "conv2d8"}),
         ("pytorch", ldconv_lconv_args),
         ("pytorch", ldconv_dconv_args),
         ("pytorch", ldconv_lconv2d_args),
