@@ -37,3 +37,4 @@ def test_inverse():
     y, _ = layer(x)
     x_lengths = torch.IntTensor([400, 300])
     raw, _ = layer.inverse(y, x_lengths)
+    raw, _ = layer.inverse(y)
