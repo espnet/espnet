@@ -74,7 +74,7 @@ transformer_lm = Namespace(
         for device in ("cpu", "cuda")
         # (("rnn", rnn_args),)
         for nn, args in (("transformer", transformer_args),)
-        for ctc in (0.0,)  # 0.5, 1.0)
+        for ctc in (0.0, 0.5, 1.0)
         for lm_nn, lm_args in (
             ("default", lstm_lm),
             ("default", gru_lm),
@@ -159,7 +159,7 @@ def test_batch_beam_search_equal(
         token_list=train_args.char_list,
         sos=model.sos,
         eos=model.eos,
-        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder",
+        pre_beam_score_key=None if ctc_weight == 1.0 else "full",
     )
     legacy_beam.to(device, dtype=dtype)
     legacy_beam.eval()
@@ -172,6 +172,7 @@ def test_batch_beam_search_equal(
         token_list=train_args.char_list,
         sos=model.sos,
         eos=model.eos,
+        pre_beam_score_key=None if ctc_weight == 1.0 else "full",
     )
     beam.to(device, dtype=dtype)
     beam.eval()
