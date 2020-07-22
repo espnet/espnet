@@ -350,11 +350,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
 
         # 5. compute cer/wer
-<<<<<<< HEAD
         if self.training or self.error_calculator is None or self.decoder is None:
-=======
-        if self.training or self.error_calculator is None or self.mtlalpha == 1.0:
->>>>>>> upstream/master
             cer, wer = None, None
         else:
             ys_hat = pred_pad.argmax(dim=-1)
