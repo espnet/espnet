@@ -40,6 +40,10 @@ while(<CSV>) {
     $gender = "m";
   }
   $uttId = $filepath;
+  if (-z "$db_base/clips/$filepath") {
+    print "null file $filepath\n";
+    next;
+  }
   $uttId =~ s/\.mp3//g;
   $uttId =~ tr/\//-/;
   # speaker information should be suffix of the utterance Id

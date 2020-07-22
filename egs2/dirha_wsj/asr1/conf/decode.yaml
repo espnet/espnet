@@ -1,0 +1,6 @@
+lm_weight: 1.0
+beam_size: 30
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0
+ctc_weight: 0.3

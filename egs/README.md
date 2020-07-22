@@ -1,8 +1,16 @@
-# Overview of example information
+# egs (Examples)
+
+## How to use?
+See: https://espnet.github.io/espnet/tutorial.html
+
+## Overview of example information
 
 | Directory name          | Corpus name                                                  | Task                                       | Language       | URL                                                          | Note                          |
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------------ | -------------- | ------------------------------------------------------------ | ----------------------------- |
+||||
+| aidatatang_200zh        | Aidatatang_200zh A free Chinese Mandarin speech corpus       | ASR                                        | ZH             | http://www.openslr.org/62/                                   |                               |
 | aishell                 | AISHELL-ASR0009-OS1 Open Source Mandarin Speech Corpus       | ASR                                        | ZH             | http://www.aishelltech.com/kysjcp                            |                               |
+| aishell2                | AISHELL-2 Open Source Mandarin Speech Corpus                 | ASR                                        | ZH             | http://www.aishelltech.com/aishell_2                                                         |
 | ami                     | The AMI Meeting Corpus                                       | ASR                                        | EN             | http://groups.inf.ed.ac.uk/ami/corpus/                       |                               |
 | an4                     | CMU AN4 database                                             | ASR/TTS                                    | EN             | http://www.speech.cs.cmu.edu/databases/an4/                  |                               |
 | arctic                 | CMU ARCTIC databases                                          | TTS                                        | EN             | http://www.festvox.org/cmu_arctic/                           |                               |
@@ -15,6 +23,7 @@
 | commonvoice             | The Mozilla Common Voice                                     | ASR                                        | 13 Languages   | https://voice.mozilla.org/datasets                           |                               |
 | csj                     | Corpus of Spontaneous Japanese                               | ASR                                        | JP             | https://pj.ninjal.ac.jp/corpus_center/csj/en/                |                               |
 | csmsc                   | Chinese Standard Mandarin Speech Copus                       | TTS                                        | ZH             | https://www.data-baker.com/open_source.html                  |                               |
+| dipco                   | Dinner Party Corpus                                          | ASR                                        | EN             | https://arxiv.org/abs/1909.13447                             |                               |
 | dirha_wsj               | Distant-speech Interaction for Robust Home Applications      | Multi-Array ASR                            | EN             | https://dirha.fbk.eu/, https://github.com/SHINE-FBK/DIRHA_English_wsj|                               |
 | fisher_callhome_spanish | Fisher and CALLHOME Spanish--English Speech Translation      | ASR/Machine Translation/Speech Translation | ES->EN         | https://catalog.ldc.upenn.edu/LDC2014T23                     |                               |
 | fisher_swbd             | Fisher English Training Speech, Switchboard-1 Release 2      | ASR                                        | EN             | https://catalog.ldc.upenn.edu/LDC2004S13, https://catalog.ldc.upenn.edu/LDC2005S13, https://catalog.ldc.upenn.edu/LDC97S62 |                               |
@@ -41,11 +50,14 @@
 | swbd                    | The Switchboard corpus                                       | ASR                                        | EN             | https://catalog.ldc.upenn.edu/LDC97S62                       |                               |
 | tedlium2                | TED-LIUM corpus release 2                                    | ASR                                        | EN             | https://www.openslr.org/19/, http://www.lrec-conf.org/proceedings/lrec2014/pdf/1104_Paper.pdf |                               |
 | tedlium3                | TED-LIUM corpus release 3                                    | ASR                                        | EN             | http://www.openslr.org/51/, https://arxiv.org/pdf/1805.04699 |                               |
-| timit                   | TIMIT Acoustic-Phonetic Continuous Speech Corpus             | ASR                                        | EN             | https://catalog.ldc.upenn.edu/LDC93S1                        |                               |
+| timit                   | TIMIT Acoustic-Phonetic Continuous Speech Corpus             | ASR                                        | EN             | https://catalog.ldc.upenn.edu/LDC93S1
+| timit_ssc               | Silent Speech Challenge                                      | ASR                                        | EN             | https://catalog.ldc.upenn.edu/LDC93S1/, https://ftp.espci.fr/pub/sigma/                          | Features extracted from ultra sound image and lip motion video. Train set and test set transcripts are from TIMIT corpus and WSJ corpus respectively |
 | tweb                    | The World English Bible                                      | TTS                                        | EN             | https://www.kaggle.com/bryanpark/the-world-english-bible-speech-dataset                      |                               |
 | vais1000                | VAIS-1000                                                    | TTS                                        | VI             | https://ieee-dataport.org/documents/vais-1000-vietnamese-speech-synthesis-corpus  |             |
+| vcc20                 | Voice Conversion Challenge 2020                              | VC                                         | EN->{EN, DE, FI, ZH} | http://www.vc-challenge.org/                               |                               |
 | vivos                   | VIVOS (Vietnamese corpus for ASR)                            | ASR                                        | VI             | https://ailab.hcmus.edu.vn/vivos/                            |                               |
 | voxforge                | VoxForge                                                     | ASR                                        | 7 languages    | http://www.voxforge.org/                                     |                               |
 | wsj                     | CSR-I (WSJ0) Complete, CSR-II (WSJ1) Complete                | ASR                                        | EN             | https://catalog.ldc.upenn.edu/LDC93S6A,https://catalog.ldc.upenn.edu/LDC94S13A |                               |
 | wsj_mix                 | MERL WSJ0-mix multi-speaker dataset                          | Multispeaker ASR                           | EN             | http://www.merl.com/demos/deep-clustering                    |                               |
-| yesno                   | The "yesno" corpus                                           | ASR                                        | HE             | http://www.openslr.org/1                                     |                               |
+| yesno                   | The "yesno" corpus                                           | ASR                                        | HE             | http://www.openslr.org/1                                     |                               
+| Yoloxóchitl-Mixtec      | The Yoloxóchitl-Mixtec corpus                                | ASR                                        | Mixtec         | http://www.openslr.org/89                                    ||

@@ -65,9 +65,14 @@ def make_arg(**kwargs):
         penalty=0.5,
         ref_channel=0,
         replace_sos=False,
+        report_cer=False,
+        report_wer=False,
+        sortagrad=0,
         spa=False,
         stats_file=None,
         subsample="1_2_2_1_1",
+        sym_blank="<blank>",
+        sym_space="<space>",
         tgt_lang=False,
         use_beamformer=False,
         use_dnn_mask_for_wpe=False,
@@ -83,7 +88,7 @@ def make_arg(**kwargs):
         wpe_taps=5,
         wprojs=300,
         wtype="blstmp",
-        wunits=300
+        wunits=300,
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -99,17 +104,24 @@ def init_chainer_weight_const(m, val):
         p.data[:] = val
 
 
-@pytest.mark.parametrize(("etype", "dtype", "num_spkrs", "spa", "m_str", "text_idx1"), [
-    ("vggblstmp", "lstm", 2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 0),
-    ("vggbgrup", "gru", 2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 1),
-])
-def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, text_idx1):
+@pytest.mark.parametrize(
+    ("etype", "dtype", "num_spkrs", "spa", "m_str", "text_idx1"),
+    [
+        ("vggblstmp", "lstm", 2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 0),
+        ("vggbgrup", "gru", 2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 1),
+    ],
+)
+def test_recognition_results_multi_outputs(
+    etype, dtype, num_spkrs, spa, m_str, text_idx1
+):
     const = 1e-4
     numpy.random.seed(1)
 
     # ctc_weight: 0.5 (hybrid CTC/attention), cannot be 0.0 (attention) or 1.0 (CTC)
     for text_idx2, ctc_weight in enumerate([0.5]):
-        args = make_arg(etype=etype, ctc_weight=ctc_weight, num_spkrs=num_spkrs, spa=spa)
+        args = make_arg(
+            etype=etype, ctc_weight=ctc_weight, num_spkrs=num_spkrs, spa=spa
+        )
         m = importlib.import_module(m_str)
         model = m.E2E(40, 5, args)
 
@@ -119,24 +131,30 @@ def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, 
             init_chainer_weight_const(model, const)
 
         data = [
-            ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-                numpy.float32), token=['', '']))
+            (
+                "aaa",
+                dict(
+                    feat=numpy.random.randn(100, 40).astype(numpy.float32),
+                    token=["", ""],
+                ),
+            )
         ]
 
         in_data = data[0][1]["feat"]
         nbest_hyps = model.recognize(in_data, args, args.char_list)
 
         for i in range(num_spkrs):
-            y_hat = nbest_hyps[i][0]['yseq'][1:]
+            y_hat = nbest_hyps[i][0]["yseq"][1:]
             seq_hat = [args.char_list[int(idx)] for idx in y_hat]
-            seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+            seq_hat_text = "".join(seq_hat).replace("<space>", " ")
 
-            assert re.match(r'[aiueo]+', seq_hat_text)
+            assert re.match(r"[aiueo]+", seq_hat_text)
 
 
-@pytest.mark.parametrize(("etype", "dtype", "num_spkrs", "m_str", "data_idx"), [
-    ("vggblstmp", "lstm", 2, "espnet.nets.pytorch_backend.e2e_asr_mix", 0),
-])
+@pytest.mark.parametrize(
+    ("etype", "dtype", "num_spkrs", "m_str", "data_idx"),
+    [("vggblstmp", "lstm", 2, "espnet.nets.pytorch_backend.e2e_asr_mix", 0)],
+)
 def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
     bs = 10
     m = importlib.import_module(m_str)
@@ -163,16 +181,22 @@ def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
     assert torch.equal(min_perm, true_perm[data_idx])
 
 
-@pytest.mark.parametrize(("use_frontend", "use_beamformer", "bnmask", "num_spkrs", "m_str"), [
-    (True, True, 3, 2, "espnet.nets.pytorch_backend.e2e_asr_mix"),
-])
+@pytest.mark.parametrize(
+    ("use_frontend", "use_beamformer", "bnmask", "num_spkrs", "m_str"),
+    [(True, True, 3, 2, "espnet.nets.pytorch_backend.e2e_asr_mix")],
+)
 def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     bs = 4
     m = importlib.import_module(m_str)
     const = 1e-4
     numpy.random.seed(1)
 
-    args = make_arg(use_frontend=use_frontend, use_beamformer=use_beamformer, bnmask=bnmask, num_spkrs=num_spkrs)
+    args = make_arg(
+        use_frontend=use_frontend,
+        use_beamformer=use_beamformer,
+        bnmask=bnmask,
+        num_spkrs=num_spkrs,
+    )
     model = m.E2E(257, 5, args)
     beamformer = model.frontend.beamformer
     mask_estimator = beamformer.mask
@@ -185,7 +209,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     # STFT feature
     feat_real = torch.from_numpy(numpy.random.uniform(size=(bs, 100, 2, 257))).float()
     feat_imag = torch.from_numpy(numpy.random.uniform(size=(bs, 100, 2, 257))).float()
-    feat = m.to_torch_tensor({'real': feat_real, 'imag': feat_imag})
+    feat = m.to_torch_tensor({"real": feat_real, "imag": feat_imag})
     ilens = torch.tensor([100] * bs).long()
 
     # dnn_beamformer
@@ -198,7 +222,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     masks, _ = mask_estimator(feat, ilens)
     mask_speech1, mask_speech2, mask_noise = masks
 
-    b = importlib.import_module('espnet.nets.pytorch_backend.frontends.beamformer')
+    b = importlib.import_module("espnet.nets.pytorch_backend.frontends.beamformer")
 
     psd_speech1 = b.get_power_spectral_density_matrix(feat, mask_speech1)
     psd_speech2 = b.get_power_spectral_density_matrix(feat, mask_speech2)

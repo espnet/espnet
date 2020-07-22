@@ -16,7 +16,6 @@ model-module: "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E"
 mtlalpha: 0.3
 
 # label smoothing
-lsm-type: unigram
 lsm-weight: 0.1
 
 # minibatch related
@@ -37,6 +36,3 @@ transformer-warmup-steps: 18000
 transformer-attn-dropout-rate: 0.0
 transformer-length-normalized-loss: False
 transformer-init: pytorch
-
-# scheduled sampling option
-sampling-probability: 0.0

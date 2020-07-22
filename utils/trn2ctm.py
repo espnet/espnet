@@ -10,10 +10,9 @@ is_python2 = sys.version_info[0] == 2
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description='convert trn to ctm')
-    parser.add_argument('trn', type=str, default=None, nargs='?',
-                        help='input trn')
-    parser.add_argument('ctm', type=str, default=None, nargs='?', help='output ctm')
+    parser = argparse.ArgumentParser(description="convert trn to ctm")
+    parser.add_argument("trn", type=str, default=None, nargs="?", help="input trn")
+    parser.add_argument("ctm", type=str, default=None, nargs="?", help="output ctm")
     return parser
 
 
@@ -24,7 +23,7 @@ def main(args):
 
 def convert(trn=None, ctm=None):
     if trn is not None:
-        with codecs.open(trn, 'r', encoding="utf-8") as trn:
+        with codecs.open(trn, "r", encoding="utf-8") as trn:
             content = trn.readlines()
     else:
         trn = codecs.getreader("utf-8")(sys.stdin if is_python2 else sys.stdin.buffer)
@@ -32,7 +31,7 @@ def convert(trn=None, ctm=None):
     split_content = []
     for i, line in enumerate(content):
         idx = line.rindex("(")
-        split = [line[:idx].strip().upper(), line[idx + 1:].strip()[:-1]]
+        split = [line[:idx].strip().upper(), line[idx + 1 :].strip()[:-1]]
         while "((" in split[0]:
             split[0] = split[0].replace("((", "(")
         while "  " in split[0]:
@@ -45,14 +44,19 @@ def convert(trn=None, ctm=None):
         end_time_int = int(segm_info[7])
         diff_int = end_time_int - start_time_int
         word_split = split[0].split(" ")
-        word_split = list(filter(lambda x: len(x) > 0 and any([c != " " for c in x]), word_split))
+        word_split = list(
+            filter(lambda x: len(x) > 0 and any([c != " " for c in x]), word_split)
+        )
         if len(word_split) > 0:
             step_int = int(math.floor(float(diff_int) / len(word_split)))
             step = str(step_int)
             for j, word in enumerate(word_split):
                 start_time = str(int(start_time_int + step_int * j))
-                col3 = (start_time[:-2] if len(start_time) > 2 else "0") + "." + (
-                    start_time[-2:] if len(start_time) > 1 else "00")
+                col3 = (
+                    (start_time[:-2] if len(start_time) > 2 else "0")
+                    + "."
+                    + (start_time[-2:] if len(start_time) > 1 else "00")
+                )
                 if j == len(word_split) - 1:
                     diff = str(int(end_time_int - int(start_time)))
                 else:
@@ -64,7 +68,8 @@ def convert(trn=None, ctm=None):
         sys.stdout = codecs.open(ctm, "w", encoding="utf-8")
     else:
         sys.stdout = codecs.getwriter("utf-8")(
-            sys.stdout if is_python2 else sys.stdout.buffer)
+            sys.stdout if is_python2 else sys.stdout.buffer
+        )
     for c_line in split_content:
         print(c_line)
 

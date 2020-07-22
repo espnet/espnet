@@ -267,7 +267,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         spm_decode --model=${bpemodel}.model --input_format=piece < ${data_dir}/text_asr_hyp.${src_case} | sed -e "s/▁/ /g" \
             > ${data_dir}/text_asr_hyp.wrd.${src_case}
 
-        local/data2json.sh --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model \
+        data2json.sh --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
             data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         update_json.sh --text ${data_dir}/text_asr_hyp.wrd.${src_case} --bpecode ${bpemodel}.model \
             ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
