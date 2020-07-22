@@ -37,6 +37,9 @@ echo "=== ASR (backend=pytorch, model=conformer) ==="
 echo "=== ASR (backend=pytorch, model=transformer-pure-ctc) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer_pure_ctc.yaml \
        --decode-config conf/decode_pure_ctc.yaml
+echo "=== ASR (backend=pytorch, model=conformer-pure-ctc) ==="
+./run.sh --stage 4 --train-config conf/train_conformer_pure_ctc.yaml \
+      --decode-config conf/decode_pure_ctc.yaml
 echo "=== ASR (backend=pytorch, model=transformer-no-ctc) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer_no_ctc.yaml \
         --decode-config conf/decode_no_ctc.yaml
