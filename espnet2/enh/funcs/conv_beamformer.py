@@ -10,7 +10,7 @@ import torch
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.beamformer import get_power_spectral_density_matrix
+from espnet.nets.pytorch_backend.frontends import beamformer
 
 
 def inv(z):
@@ -334,7 +334,7 @@ if __name__ == "__main__":
     )
 
     # speech signal PSD: (B, F, C, C)
-    psd_speech = get_power_spectral_density_matrix(
+    psd_speech = beamformer.get_power_spectral_density_matrix(
         Z, mask_speech, btaps, normalization=True
     )
 
