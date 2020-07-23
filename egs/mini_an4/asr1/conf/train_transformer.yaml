@@ -1,13 +1,13 @@
 # network architecture
 # encoder related
-elayers: 2
-eunits: 8
+elayers: 1
+eunits: 4
 # decoder related
-dlayers: 2
-dunits: 8
+dlayers: 1
+dunits: 4
 # attention related
-adim: 8
-aheads: 4
+adim: 4
+aheads: 2
 
 # hybrid CTC/attention
 mtlalpha: 0.3

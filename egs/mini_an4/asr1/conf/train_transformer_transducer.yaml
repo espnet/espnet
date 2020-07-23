@@ -18,17 +18,17 @@ transformer-warmup-steps: 10
 ## encoder related
 etype: transformer
 elayers: 1
-eunits: 8
+eunits: 4
 subsample: "1_2_2_1_1"
 ## decoder related
 dtype: transformer
 dlayers: 1
-dunits: 8
+dunits: 4
 ## attention related
-adim: 8
+adim: 4
 aheads: 2
 ## joint network related
-joint-dim: 8
+joint-dim: 4
 
 # transducer related
 ## mtlalpha should be set to 1.0 (CTC) to use transducer

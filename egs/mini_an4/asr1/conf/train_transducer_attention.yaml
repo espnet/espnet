@@ -15,21 +15,21 @@ patience: 0
 ## encoder related
 etype: blstmp
 elayers: 1
-eunits: 8
-eprojs: 8
+eunits: 4
+eprojs: 4
 subsample: "1_2_2_1_1"
 ## decoder related
 dtype: lstm
 dlayers: 1
-dec-embed-dim: 8
-dunits: 8
+dec-embed-dim: 4
+dunits: 4
 ## attention related
 atype: location
-adim: 8
+adim: 4
 aconv-chans: 4
 aconv-filts: 3
 ## joint network related
-joint-dim: 8
+joint-dim: 4
 
 # transducer related
 mtlalpha: 1.0

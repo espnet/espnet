@@ -16,15 +16,15 @@ sampling-probability: 0.0
 etype: vggblstmp     # encoder architecture type
 elayers-sd: 1
 elayers: 1
-eunits: 8
-eprojs: 8
+eunits: 4
+eprojs: 4
 subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
 # decoder related
 dlayers: 1
-dunits: 8
+dunits: 4
 # attention related
 atype: location
-adim: 8
+adim: 4
 aconv-chans: 4
 aconv-filts: 3
 

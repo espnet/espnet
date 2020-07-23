@@ -1,12 +1,12 @@
 # network architecture
 # encoder related
 elayers: 1
-eunits: 8
+eunits: 4
 # decoder related
 dlayers: 1
-dunits: 8
+dunits: 4
 # attention related
-adim: 8
+adim: 4
 aheads: 2
 
 # hybrid CTC/attention
