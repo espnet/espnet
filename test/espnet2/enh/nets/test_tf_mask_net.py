@@ -16,6 +16,8 @@ from espnet2.enh.nets.tf_mask_net import TFMaskingNet
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("none_linear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("utt_mvn", [True, False])
+@pytest.mark.parametrize("mask_type", ["IRM"])
+@pytest.mark.parametrize("loss_type", ["mask", "magnitude", "spectrum"])
 def test_tf_mask_net_forward_backward(
     n_fft,
     win_length,
@@ -27,6 +29,8 @@ def test_tf_mask_net_forward_backward(
     num_spk,
     none_linear,
     utt_mvn,
+    mask_type,
+    loss_type,
 ):
     model = TFMaskingNet(
         n_fft=n_fft,
@@ -39,21 +43,25 @@ def test_tf_mask_net_forward_backward(
         num_spk=num_spk,
         none_linear=none_linear,
         utt_mvn=utt_mvn,
+        mask_type=mask_type,
+        loss_type=loss_type,
     )
+    model.train()
 
-    # mask backward
-    est_speech, flens, masks = model(
-        torch.randn(2, 16, requires_grad=True), ilens=torch.LongTensor([16, 12])
-    )
-    loss = sum([masks[key].mean() for key in masks])
-    loss.backward()
-
-    # spectrums backward
-    est_speech, flens, masks = model(
-        torch.randn(2, 16, requires_grad=True), ilens=torch.LongTensor([16, 12])
-    )
-    loss = sum([abs(est).mean() for est in est_speech])
-    loss.backward()
+    if loss_type == "mask":
+        # mask backward
+        est_speech, flens, masks = model(
+            torch.randn(2, 16, requires_grad=True), ilens=torch.LongTensor([16, 12])
+        )
+        loss = sum([masks[key].mean() for key in masks])
+        loss.backward()
+    else:
+        # spectrums backward
+        est_speech, flens, masks = model(
+            torch.randn(2, 16, requires_grad=True), ilens=torch.LongTensor([16, 12])
+        )
+        loss = sum([abs(est).mean() for est in est_speech])
+        loss.backward()
 
 
 @pytest.mark.parametrize(
@@ -66,6 +74,8 @@ def test_tf_mask_net_forward_backward(
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("none_linear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("utt_mvn", [True, False])
+@pytest.mark.parametrize("mask_type", ["IRM"])
+@pytest.mark.parametrize("loss_type", ["mask", "magnitude", "spectrum"])
 def test_tf_mask_net_consistency(
     n_fft,
     win_length,
@@ -77,6 +87,8 @@ def test_tf_mask_net_consistency(
     num_spk,
     none_linear,
     utt_mvn,
+    mask_type,
+    loss_type,
 ):
     model = TFMaskingNet(
         n_fft=n_fft,
@@ -89,6 +101,8 @@ def test_tf_mask_net_consistency(
         num_spk=num_spk,
         none_linear=none_linear,
         utt_mvn=utt_mvn,
+        mask_type=mask_type,
+        loss_type=loss_type,
     )
 
     model.eval()
@@ -151,3 +165,8 @@ def test_tf_mask_net_invalid_norm_type():
             num_spk=2,
             none_linear="fff",
         )
+
+
+def test_tf_mask_net_invalid_loss_type():
+    with pytest.raises(ValueError):
+        TFMaskingNet(loss_type="fff")

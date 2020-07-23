@@ -33,7 +33,8 @@ class TFMaskingNet(AbsEnhancement):
         self.num_bin = n_fft // 2 + 1
         self.mask_type = mask_type
         self.loss_type = loss_type
-        assert loss_type in ("mask", "magnitude", "spectrum"), loss_type
+        if loss_type not in ("mask", "magnitude", "spectrum"):
+            raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
 

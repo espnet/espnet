@@ -56,7 +56,8 @@ class BeamformerNet(AbsEnhancement):
 
         self.mask_type = mask_type
         self.loss_type = loss_type
-        assert loss_type in ("mask", "spectrum"), loss_type
+        if loss_type not in ("mask", "spectrum"):
+            raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1

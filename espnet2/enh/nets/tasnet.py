@@ -133,7 +133,8 @@ class TasNet(AbsEnhancement):
             num_spk,
         )
         self.loss_type = loss_type
-        assert loss_type == "si_snr", loss_type
+        if loss_type != "si_snr":
+            raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.norm_type = norm_type
         self.causal = causal
