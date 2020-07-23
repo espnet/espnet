@@ -13,16 +13,16 @@ sampling-probability: 0.0
 
 # encoder related
 etype: blstmp     # encoder architecture type
-elayers: 2
-eunits: 16
-eprojs: 16
+elayers: 1
+eunits: 8
+eprojs: 8
 subsample: "1_1" # skip every n frame from input to nth layers
 # decoder related
 dlayers: 1
-dunits: 16
+dunits: 8
 context-residual: true
 tie-src-tgt-embedding: false
 tie-classifier: false
 # attention related
 atype: add
-adim: 16
+adim: 8

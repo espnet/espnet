@@ -1,9 +1,9 @@
 # network architecture
 model-module: transformer
-att-unit: 16
+att-unit: 8
 embed-unit: 2
-head: 4
-layer: 2
+head: 2
+layer: 1
 pos-enc: none
 unit: 10
 

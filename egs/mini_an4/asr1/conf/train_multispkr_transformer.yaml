@@ -2,12 +2,12 @@
 # encoder related
 elayers-sd: 1
 elayers: 1
-eunits: 16
+eunits: 8
 # decoder related
 dlayers: 1
-dunits: 16
+dunits: 8
 # attention related
-adim: 16
+adim: 8
 aheads: 2
 
 # hybrid CTC/attention

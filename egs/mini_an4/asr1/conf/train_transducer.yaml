@@ -14,22 +14,22 @@ patience: 0
 # network architecture
 ## encoder related
 etype: blstmp
-elayers: 2
-eunits: 16
-eprojs: 16
+elayers: 1
+eunits: 8
+eprojs: 8
 subsample: "1_2_2_1_1"
 ## decoder related
 dtype: lstm
 dlayers: 1
-dec-embed-dim: 16
-dunits: 16
+dec-embed-dim: 8
+dunits: 8
 ## attention related
 atype: location
-adim: 16
+adim: 8
 aconv-chans: 4
 aconv-filts: 3
 ## joint network related
-joint-dim: 16
+joint-dim: 8
 
 # transducer related
 mtlalpha: 1.0

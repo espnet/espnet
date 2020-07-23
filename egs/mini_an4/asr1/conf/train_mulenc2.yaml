@@ -17,15 +17,15 @@ model-module: "espnet.nets.pytorch_backend.e2e_asr_mulenc:E2E"
 # encoder related
 etype: [ blstmp, blstmp ]     # encoder architecture type
 elayers: [ 2, 2 ]
-eunits: [ 16, 16 ]
-eprojs: 16
+eunits: [ 8, 8 ]
+eprojs: 8
 subsample: [ "1_2_2_1_1", "1_2_2_1_1" ] # skip every n frame from input to nth layers
 # decoder related
 dlayers: 1
-dunits: 16
+dunits: 8
 # attention related
 atype: [ location, location ]
-adim: [ 16, 16 ]
+adim: [ 8, 8 ]
 awin: [ 5, 5 ]
 aheads: [ 4, 4 ]
 aconv-chans: [ 4, 4 ]
@@ -33,7 +33,7 @@ aconv-filts: [ 3, 3 ]
 
 # hierarchical attention network (han)
 han-type: add
-han-dim: 16
+han-dim: 8
 han-win: 5
 han-heads: 4
 han-conv-chans: 4
