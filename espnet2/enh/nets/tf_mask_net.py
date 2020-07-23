@@ -25,12 +25,15 @@ class TFMaskingNet(AbsEnhancement):
         none_linear: str = "sigmoid",
         utt_mvn: bool = False,
         mask_type: str = "IRM",
+        loss_type: str = "mask",
     ):
         super(TFMaskingNet, self).__init__()
 
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1
         self.mask_type = mask_type
+        self.loss_type = loss_type
+        assert loss_type in ("mask", "magnitude", "spectrum"), loss_type
 
         self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
 
@@ -100,10 +103,12 @@ class TFMaskingNet(AbsEnhancement):
             y = self.none_linear(y)
             masks.append(y)
 
-        # apply mask
-        predict_magnitude = [m * input_magnitude for m in masks]
-
-        predicted_spectrums = [pm * input_phase for pm in predict_magnitude]
+        if self.training and self.loss_type == "mask":
+            predicted_spectrums = None
+        else:
+            # apply mask
+            predict_magnitude = [m * input_magnitude for m in masks]
+            predicted_spectrums = [pm * input_phase for pm in predict_magnitude]
 
         masks = OrderedDict(
             zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
@@ -133,7 +138,15 @@ class TFMaskingNet(AbsEnhancement):
         # predict spectrum for each speaker
         predicted_spectrums, flens, masks = self.forward(input, ilens)
 
-        # complex spectrum -> raw wave
-        predicted_wavs = [self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums]
+        if predicted_spectrums is None:
+            predicted_wavs = None
+        elif isinstance(predicted_spectrums, list):
+            # multi-speaker input
+            predicted_wavs = [
+                self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums
+            ]
+        else:
+            # single-speaker input
+            predicted_wavs = self.stft.inverse(predicted_spectrums, ilens)[0]
 
         return predicted_wavs, ilens, masks

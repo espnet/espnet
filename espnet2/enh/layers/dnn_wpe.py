@@ -91,3 +91,23 @@ class DNN_WPE(torch.nn.Module):
         if mask is not None:
             mask = mask.transpose(-1, -3)
         return enhanced, ilens, mask
+
+    def predict_mask(
+        self, data: ComplexTensor, ilens: torch.LongTensor
+    ) -> Tuple[torch.Tensor, torch.LongTensor]:
+        """Predict mask for WPE dereverberation
+
+        Args:
+            data (ComplexTensor): (B, T, C, F), double precision
+            ilens (torch.Tensor): (B,)
+        Returns:
+            masks (torch.Tensor): (B, T, C, F)
+            ilens (torch.Tensor): (B,)
+        """
+        if self.use_dnn_mask:
+            (mask,), ilens = self.mask_est(data.permute(0, 3, 2, 1).float(), ilens)
+            # (B, F, C, T) -> (B, T, C, F)
+            mask = mask.transpose(-1, -3)
+        else:
+            mask = None
+        return mask, ilens
