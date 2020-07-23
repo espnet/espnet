@@ -477,7 +477,7 @@ class E2E(STInterface, torch.nn.Module):
                 hyps += [seq_hat_text.split(" ")]
                 list_of_refs += [[seq_true_text.split(" ")]]
 
-            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
+            self.bleu = nltk.bleu_score.corpus_bleu(list_of_refs, hyps) * 100
 
         asr_ctc_weight = self.mtlalpha
         self.loss_asr = (
