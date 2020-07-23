@@ -11,7 +11,6 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-
 from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.nets.beamformer_net import BeamformerNet
