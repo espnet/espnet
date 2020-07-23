@@ -37,12 +37,13 @@ class ScorerInterface:
         """
         return None
 
-    def select_state(self, state: Any, i: int) -> Any:
+    def select_state(self, state: Any, i: int, new_id: int = None) -> Any:
         """Select state with relative ids in the main beam search.
 
         Args:
             state: Decoder state for prefix tokens
             i (int): Index to select a state in the main beam search
+            new_id (int): New label index to select a state if necessary
 
         Returns:
             state: pruned state
@@ -83,6 +84,17 @@ class ScorerInterface:
 
 class BatchScorerInterface(ScorerInterface):
     """Batch scorer interface."""
+
+    def batch_init_state(self, x: torch.Tensor) -> Any:
+        """Get an initial state for decoding (optional).
+
+        Args:
+            x (torch.Tensor): The encoded feature tensor
+
+        Returns: initial state
+
+        """
+        return self.init_state(x)
 
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
@@ -145,5 +157,32 @@ class PartialScorerInterface(ScorerInterface):
                 Tuple of a score tensor for y that has a shape `(len(next_tokens),)`
                 and next state for ys
 
+        """
+        raise NotImplementedError
+
+
+class BatchPartialScorerInterface(BatchScorerInterface, PartialScorerInterface):
+    """Batch partial scorer interface for beam search."""
+
+    def batch_score_partial(
+        self,
+        ys: torch.Tensor,
+        next_tokens: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Any]:
+        """Score new token (required).
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            next_tokens (torch.Tensor): torch.int64 tokens to score (n_batch, n_token).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, Any]:
+                Tuple of a score tensor for ys that has a shape `(n_batch, n_vocab)`
+                and next states for ys
         """
         raise NotImplementedError

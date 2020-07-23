@@ -1,10 +1,11 @@
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Tacotron 2 related modules."""
+"""Tacotron 2 related modules for ESPnet2."""
 
 import logging
 from typing import Dict
+from typing import Sequence
 from typing import Tuple
 
 import torch
@@ -17,78 +18,78 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
-from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
-from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.gst.style_encoder import StyleEncoder
 
 
 class Tacotron2(AbsTTS):
     """Tacotron2 module for end-to-end text-to-speech.
 
     This is a module of Spectrogram prediction network in Tacotron2 described
-    in `Natural TTS Synthesis
-    by Conditioning WaveNet on Mel Spectrogram Predictions`_, which converts
-    the sequence of characters into the sequence of Mel-filterbanks.
+    in `Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_,
+    which converts the sequence of characters into the sequence of Mel-filterbanks.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
 
     Args:
-        idim: Dimension of the inputs.
-        odim: Dimension of the outputs.
-        spk_embed_dim: Dimension of the speaker embedding.
-        embed_dim: Dimension of character embedding.
-        elayers: The number of encoder blstm layers.
-        eunits: The number of encoder blstm units.
-        econv_layers: The number of encoder conv layers.
-        econv_filts: The number of encoder conv filter size.
-        econv_chans: The number of encoder conv filter channels.
-        dlayers: The number of decoder lstm layers.
-        dunits: The number of decoder lstm units.
-        prenet_layers: The number of prenet layers.
-        prenet_units: The number of prenet units.
-        postnet_layers: The number of postnet layers.
-        postnet_filts: The number of postnet filter size.
-        postnet_chans: The number of postnet filter channels.
-        output_activation: The name of activation function for outputs.
-        adim: The number of dimension of mlp in attention.
-        aconv_chans: The number of attention conv filter channels.
-        aconv_filts: The number of attention conv filter size.
-        cumulate_att_w: Whether to cumulate previous attention weight.
-        use_batch_norm: Whether to use batch normalization.
-        use_concate: Whether to concatenate encoder embedding with decoder
-            lstm outputs.
-        dropout_rate: Dropout rate.
-        zoneout_rate: Zoneout rate.
-        reduction_factor: Reduction factor.
-        spk_embed_dim: Number of speaker embedding dimenstions.
-        spc_dim: Number of spectrogram embedding dimenstions
-            (only for use_cbhg=True).
-        use_cbhg: Whether to use CBHG module.
-        cbhg_conv_bank_layers: The number of convoluional banks in CBHG.
-        cbhg_conv_bank_chans: The number of channels of convolutional bank in
-            CBHG.
-        cbhg_proj_filts: The number of filter size of projection layeri in
-            CBHG.
-        cbhg_proj_chans: The number of channels of projection layer in CBHG.
-        cbhg_highway_layers: The number of layers of highway network in CBHG.
-        cbhg_highway_units: The number of units of highway network in CBHG.
-        cbhg_gru_units: The number of units of GRU in CBHG.
-        use_masking: Whether to mask padded part in loss calculation.
-        use_weighted_masking: Whether to apply weighted masking in
+        idim (int): Dimension of the inputs.
+        odim: (int) Dimension of the outputs.
+        spk_embed_dim (int, optional): Dimension of the speaker embedding.
+        embed_dim (int, optional): Dimension of character embedding.
+        elayers (int, optional): The number of encoder blstm layers.
+        eunits (int, optional): The number of encoder blstm units.
+        econv_layers (int, optional): The number of encoder conv layers.
+        econv_filts (int, optional): The number of encoder conv filter size.
+        econv_chans (int, optional): The number of encoder conv filter channels.
+        dlayers (int, optional): The number of decoder lstm layers.
+        dunits (int, optional): The number of decoder lstm units.
+        prenet_layers (int, optional): The number of prenet layers.
+        prenet_units (int, optional): The number of prenet units.
+        postnet_layers (int, optional): The number of postnet layers.
+        postnet_filts (int, optional): The number of postnet filter size.
+        postnet_chans (int, optional): The number of postnet filter channels.
+        output_activation (str, optional): The name of activation function for outputs.
+        adim (int, optional): The number of dimension of mlp in attention.
+        aconv_chans (int, optional): The number of attention conv filter channels.
+        aconv_filts (int, optional): The number of attention conv filter size.
+        cumulate_att_w (bool, optional): Whether to cumulate previous attention weight.
+        use_batch_norm (bool, optional): Whether to use batch normalization.
+        use_concate (bool, optional): Whether to concatenate encoder embedding with
+            decoder lstm outputs.
+        reduction_factor (int, optional): Reduction factor.
+        spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
+        spk_embed_integration_type (str, optional): How to integrate speaker embedding.
+        use_gst (str, optional): Whether to use global style token.
+        gst_tokens (int, optional): The number of GST embeddings.
+        gst_heads (int, optional): The number of heads in GST multihead attention.
+        gst_conv_layers (int, optional): The number of conv layers in GST.
+        gst_conv_chans_list: (Sequence[int], optional):
+            List of the number of channels of conv layers in GST.
+        gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
+        gst_conv_stride (int, optional): Stride size of conv layers in GST.
+        gst_gru_layers (int, optional): The number of GRU layers in GST.
+        gst_gru_units (int, optional): The number of GRU units in GST.
+        dropout_rate (float, optional): Dropout rate.
+        zoneout_rate (float, optional): Zoneout rate.
+        use_masking (bool, optional): Whether to mask padded part in loss calculation.
+        use_weighted_masking (bool, optional): Whether to apply weighted masking in
             loss calculation.
-        bce_pos_weight: Weight of positive sample of stop token
+        bce_pos_weight (float, optional): Weight of positive sample of stop token
             (only for use_masking=True).
-        use_guided_attn_loss: Whether to use guided attention loss.
-        guided_attn_loss_sigma: Sigma in guided attention loss.
-        guided_attn_loss_lamdba: Lambda in guided attention loss.
+        loss_type (str, optional): How to calculate loss.
+        use_guided_attn_loss (bool, optional): Whether to use guided attention loss.
+        guided_attn_loss_sigma (float, optional): Sigma in guided attention loss.
+        guided_attn_loss_lamdba (float, optional): Lambda in guided attention loss.
+
     """
 
     def __init__(
         self,
+        # network structure related
         idim: int,
         odim: int,
         embed_dim: int = 512,
@@ -110,29 +111,33 @@ class Tacotron2(AbsTTS):
         postnet_chans: int = 512,
         postnet_filts: int = 5,
         output_activation: str = None,
-        use_cbhg: bool = False,
-        cbhg_conv_bank_layers: int = 8,
-        cbhg_conv_bank_chans: int = 128,
-        cbhg_conv_proj_filts: int = 3,
-        cbhg_conv_proj_chans: int = 256,
-        cbhg_highway_layers: int = 4,
-        cbhg_highway_units: int = 128,
-        cbhg_gru_units: int = 256,
         use_batch_norm: bool = True,
         use_concate: bool = True,
         use_residual: bool = False,
-        dropout_rate: float = 0.5,
-        zoneout_rate: float = 0.1,
         reduction_factor: int = 1,
         spk_embed_dim: int = None,
-        spc_dim: int = None,
+        spk_embed_integration_type: str = "concat",
+        use_gst: bool = False,
+        gst_tokens: int = 10,
+        gst_heads: int = 4,
+        gst_conv_layers: int = 6,
+        gst_conv_chans_list: Sequence[int] = (32, 32, 64, 64, 128, 128),
+        gst_conv_kernel_size: int = 3,
+        gst_conv_stride: int = 2,
+        gst_gru_layers: int = 1,
+        gst_gru_units: int = 128,
+        # training related
+        dropout_rate: float = 0.5,
+        zoneout_rate: float = 0.1,
         use_masking: bool = True,
         use_weighted_masking: bool = False,
         bce_pos_weight: float = 5.0,
+        loss_type: str = "L1+L2",
         use_guided_attn_loss: bool = True,
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
     ):
+        """Initialize Tacotron2 module."""
         assert check_argument_types()
         super().__init__()
 
@@ -143,8 +148,11 @@ class Tacotron2(AbsTTS):
         self.spk_embed_dim = spk_embed_dim
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
-        self.use_cbhg = use_cbhg
+        self.use_gst = use_gst
         self.use_guided_attn_loss = use_guided_attn_loss
+        self.loss_type = loss_type
+        if self.spk_embed_dim is not None:
+            self.spk_embed_integration_type = spk_embed_integration_type
 
         # define activation function for the final output
         if output_activation is None:
@@ -175,7 +183,30 @@ class Tacotron2(AbsTTS):
             padding_idx=padding_idx,
         )
 
-        dec_idim = eunits if spk_embed_dim is None else eunits + spk_embed_dim
+        if self.use_gst:
+            self.gst = StyleEncoder(
+                idim=odim,  # the input is mel-spectrogram
+                gst_tokens=gst_tokens,
+                gst_token_dim=eunits,
+                gst_heads=gst_heads,
+                conv_layers=gst_conv_layers,
+                conv_chans_list=gst_conv_chans_list,
+                conv_kernel_size=gst_conv_kernel_size,
+                conv_stride=gst_conv_stride,
+                gru_layers=gst_gru_layers,
+                gru_units=gst_gru_units,
+            )
+
+        if spk_embed_dim is None:
+            dec_idim = eunits
+        elif spk_embed_integration_type == "concat":
+            dec_idim = eunits + spk_embed_dim
+        elif spk_embed_integration_type == "add":
+            dec_idim = eunits
+            self.projection = torch.nn.Linear(self.spk_embed_dim, eunits)
+        else:
+            raise ValueError(f"{spk_embed_integration_type} is not supported.")
+
         if atype == "location":
             att = AttLoc(dec_idim, dunits, adim, aconv_chans, aconv_filts)
         elif atype == "forward":
@@ -224,19 +255,6 @@ class Tacotron2(AbsTTS):
             self.attn_loss = GuidedAttentionLoss(
                 sigma=guided_attn_loss_sigma, alpha=guided_attn_loss_lambda,
             )
-        if self.use_cbhg:
-            self.cbhg = CBHG(
-                idim=odim,
-                odim=spc_dim,
-                conv_bank_layers=cbhg_conv_bank_layers,
-                conv_bank_chans=cbhg_conv_bank_chans,
-                conv_proj_filts=cbhg_conv_proj_filts,
-                conv_proj_chans=cbhg_conv_proj_chans,
-                highway_layers=cbhg_highway_layers,
-                highway_units=cbhg_highway_units,
-                gru_units=cbhg_gru_units,
-            )
-            self.cbhg_loss = CBHGLoss(use_masking=use_masking)
 
     def forward(
         self,
@@ -245,26 +263,29 @@ class Tacotron2(AbsTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
-        spcs: torch.Tensor = None,
-        spcs_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
-            text: Batch of padded character ids (B, Tmax).
-            text_lengths: Batch of lengths of each input batch (B,).
-            speech: Batch of padded target features (B, Lmax, odim).
-            speech_lengths: Batch of the lengths of each target (B,).
-            spembs: Batch of speaker embedding vectors (B, spk_embed_dim).
-            spcs: Batch of ground-truth spectrogram (B, Lmax, spc_dim).
-            spcs_lengths:
+            text (LongTensor): Batch of padded character ids (B, Tmax).
+            text_lengths (LongTensor): Batch of lengths of each input batch (B,).
+            speech (Tensor): Batch of padded target features (B, Lmax, odim).
+            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
+            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Loss scalar value.
+            Dict: Statistics to be monitored.
+            Tensor: Weight value.
+
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         speech = speech[:, : speech_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
+
         # Add eos at the last of sequence
-        xs = F.pad(text, [0, 1], "constant", 0.0)
+        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
         for i, l in enumerate(text_lengths):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
@@ -273,14 +294,13 @@ class Tacotron2(AbsTTS):
         olens = speech_lengths
 
         # make labels for stop prediction
-        labels = make_pad_mask(olens).to(ys.device, ys.dtype)
+        labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
+        labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate tacotron2 outputs
-        hs, hlens = self.enc(xs, ilens)
-        if self.spk_embed_dim is not None:
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = torch.cat([hs, spembs], dim=-1)
-        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
+        after_outs, before_outs, logits, att_ws = self._forward(
+            xs, ilens, ys, olens, spembs
+        )
 
         # modify mod part of groundtruth
         if self.reduction_factor > 1:
@@ -294,7 +314,14 @@ class Tacotron2(AbsTTS):
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
             after_outs, before_outs, logits, ys, labels, olens
         )
-        loss = l1_loss + mse_loss + bce_loss
+        if self.loss_type == "L1+L2":
+            loss = l1_loss + mse_loss + bce_loss
+        elif self.loss_type == "L1":
+            loss = l1_loss + bce_loss
+        elif self.loss_type == "L2":
+            loss = mse_loss + bce_loss
+        else:
+            raise ValueError(f"unknown --loss-type {self.loss_type}")
 
         stats = dict(
             l1_loss=l1_loss.item(), mse_loss=mse_loss.item(), bce_loss=bce_loss.item(),
@@ -312,28 +339,31 @@ class Tacotron2(AbsTTS):
             loss = loss + attn_loss
             stats.update(attn_loss=attn_loss.item())
 
-        # caluculate cbhg loss
-        if self.use_cbhg:
-            # remove unnecessary padded part (for multi-gpus)
-            if max_out != spcs.shape[1]:
-                spcs = spcs[:, :max_out]
-
-            # caluculate cbhg outputs & loss and report them
-            cbhg_outs, _ = self.cbhg(after_outs, olens)
-            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, spcs, olens)
-            loss = loss + cbhg_l1_loss + cbhg_mse_loss
-            stats.update(
-                cbhg_l1_loss=cbhg_l1_loss.item(), cbhg_mse_loss=cbhg_mse_loss.item(),
-            )
-
         stats.update(loss=loss.item())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    def _forward(
+        self,
+        xs: torch.Tensor,
+        ilens: torch.Tensor,
+        ys: torch.Tensor,
+        olens: torch.Tensor,
+        spembs: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        hs, hlens = self.enc(xs, ilens)
+        if self.use_gst:
+            style_embs = self.gst(ys)
+            hs = hs + style_embs.unsqueeze(1)
+        if self.spk_embed_dim is not None:
+            hs = self._integrate_with_spk_embed(hs, spembs)
+        return self.dec(hs, hlens, ys)
+
     def inference(
         self,
         text: torch.Tensor,
+        speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -341,18 +371,21 @@ class Tacotron2(AbsTTS):
         use_att_constraint: bool = False,
         backward_window: int = 1,
         forward_window: int = 3,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            text: Input sequence of characters (T,).
-            spembs: Speaker embedding vector (spk_embed_dim,).
-            threshold: Threshold in inference.
-            minlenratio: Minimum length ratio in inference.
-            maxlenratio: Maximum length ratio in inference.
-            use_att_constraint: Whether to apply attention constraint.
-            backward_window: Backward window in attention constraint.
-            forward_window: Forward window in attention constraint.
+            text (LongTensor): Input sequence of characters (T,).
+            speech (Tensor, optional): Feature sequence to extract style (N, idim).
+            spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
+            threshold (float, optional): Threshold in inference.
+            minlenratio (float, optional): Minimum length ratio in inference.
+            maxlenratio (float, optional): Maximum length ratio in inference.
+            use_att_constraint (bool, optional): Whether to apply attention constraint.
+            backward_window (int, optional): Backward window in attention constraint.
+            forward_window (int, optional): Forward window in attention constraint.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -361,13 +394,32 @@ class Tacotron2(AbsTTS):
 
         """
         x = text
+        y = speech
         spemb = spembs
+
+        # add eos at the last of sequence
+        x = F.pad(x, [0, 1], "constant", self.eos)
+
+        # inference with teacher forcing
+        if use_teacher_forcing:
+            assert speech is not None, "speech must be provided with teacher forcing."
+
+            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
+            spembs = None if spemb is None else spemb.unsqueeze(0)
+            ilens = x.new_tensor([xs.size(1)]).long()
+            olens = y.new_tensor([ys.size(1)]).long()
+            outs, _, _, att_ws = self._forward(xs, ilens, ys, olens, spembs)
+
+            return outs[0], None, att_ws[0]
 
         # inference
         h = self.enc.inference(x)
+        if self.use_gst:
+            style_emb = self.gst(y.unsqueeze(0))
+            h = h + style_emb
         if self.spk_embed_dim is not None:
-            spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
-            h = torch.cat([h, spemb], dim=-1)
+            hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
+            h = self._integrate_with_spk_embed(hs, spembs)[0]
         outs, probs, att_ws = self.dec.inference(
             h,
             threshold=threshold,
@@ -378,8 +430,31 @@ class Tacotron2(AbsTTS):
             forward_window=forward_window,
         )
 
-        if self.use_cbhg:
-            cbhg_outs = self.cbhg.inference(outs)
-            return cbhg_outs, probs, att_ws
+        return outs, probs, att_ws
+
+    def _integrate_with_spk_embed(
+        self, hs: torch.Tensor, spembs: torch.Tensor
+    ) -> torch.Tensor:
+        """Integrate speaker embedding with hidden states.
+
+        Args:
+            hs (Tensor): Batch of hidden state sequences (B, Tmax, eunits).
+            spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Batch of integrated hidden state sequences (B, Tmax, eunits) if
+                integration_type is "add" else (B, Tmax, eunits + spk_embed_dim).
+
+        """
+        if self.spk_embed_integration_type == "add":
+            # apply projection and then add to hidden states
+            spembs = self.projection(F.normalize(spembs))
+            hs = hs + spembs.unsqueeze(1)
+        elif self.spk_embed_integration_type == "concat":
+            # concat hidden states with spk embeds
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
         else:
-            return outs, probs, att_ws
+            raise NotImplementedError("support only add or concat.")
+
+        return hs

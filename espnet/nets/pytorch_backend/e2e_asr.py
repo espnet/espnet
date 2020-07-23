@@ -612,6 +612,7 @@ class E2E(ASRInterface, torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
@@ -625,7 +626,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
-
+        self.train()
         return att_ws
 
     def subsample_frames(self, x):

@@ -25,6 +25,56 @@ def pyopenjtalk_g2p_kana(text) -> List[str]:
     return list(kanas)
 
 
+def pypinyin_g2p(text) -> List[str]:
+    from pypinyin import pinyin
+    from pypinyin import Style
+
+    phones = [phone[0] for phone in pinyin(text, style=Style.TONE3)]
+    return phones
+
+
+def pypinyin_g2p_phone(text) -> List[str]:
+    from pypinyin import pinyin
+    from pypinyin import Style
+    from pypinyin.style._utils import get_finals
+    from pypinyin.style._utils import get_initials
+
+    phones = [
+        p
+        for phone in pinyin(text, style=Style.TONE3)
+        for p in [
+            get_initials(phone[0], strict=True),
+            get_finals(phone[0], strict=True),
+        ]
+        if len(p) != 0
+    ]
+    return phones
+
+
+class G2p_en:
+    """On behalf of g2p_en.G2p.
+
+    g2p_en.G2p isn't pickalable and it can't be copied to the other processes
+    via multiprocessing module.
+    As a workaround, g2p_en.G2p is instantiated upon calling this class.
+
+    """
+
+    def __init__(self, no_space: bool = False):
+        self.no_space = no_space
+        self.g2p = None
+
+    def __call__(self, text) -> List[str]:
+        if self.g2p is None:
+            self.g2p = g2p_en.G2p()
+
+        phones = self.g2p(text)
+        if self.no_space:
+            # remove space which represents word serapater
+            phones = list(filter(lambda s: s != " ", phones))
+        return phones
+
+
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
@@ -35,11 +85,17 @@ class PhonemeTokenizer(AbsTokenizer):
     ):
         assert check_argument_types()
         if g2p_type == "g2p_en":
-            self.g2p = g2p_en.G2p()
+            self.g2p = G2p_en(no_space=False)
+        elif g2p_type == "g2p_en_no_space":
+            self.g2p = G2p_en(no_space=True)
         elif g2p_type == "pyopenjtalk":
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
             self.g2p = pyopenjtalk_g2p_kana
+        elif g2p_type == "pypinyin_g2p":
+            self.g2p = pypinyin_g2p
+        elif g2p_type == "pypinyin_g2p_phone":
+            self.g2p = pypinyin_g2p_phone
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 

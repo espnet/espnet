@@ -756,19 +756,14 @@ class Decoder(torch.nn.Module, ScorerInterface):
         ]
 
         if lpz[0] is not None:
-            scoring_ratio = (
-                CTC_SCORING_RATIO if att_weight > 0.0 and not lpz[0].is_cuda else 0
+            scoring_num = min(
+                int(beam * CTC_SCORING_RATIO)
+                if att_weight > 0.0 and not lpz[0].is_cuda
+                else 0,
+                lpz[0].size(-1),
             )
             ctc_scorer = [
-                CTCPrefixScoreTH(
-                    lpz[idx],
-                    hlens[idx],
-                    0,
-                    self.eos,
-                    beam,
-                    scoring_ratio,
-                    margin=ctc_margin,
-                )
+                CTCPrefixScoreTH(lpz[idx], hlens[idx], 0, self.eos, margin=ctc_margin,)
                 for idx in range(self.num_encs)
             ]
 
@@ -816,11 +811,17 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
             # ctc
             if ctc_scorer[0]:
+                local_scores[:, 0] = self.logzero  # avoid choosing blank
+                part_ids = (
+                    torch.topk(local_scores, scoring_num, dim=-1)[1]
+                    if scoring_num > 0
+                    else None
+                )
                 for idx in range(self.num_encs):
                     att_w = att_w_list[idx]
                     att_w_ = att_w if isinstance(att_w, torch.Tensor) else att_w[0]
-                    ctc_state[idx], local_ctc_scores = ctc_scorer[idx](
-                        yseq, ctc_state[idx], local_scores, att_w_
+                    local_ctc_scores, ctc_state[idx] = ctc_scorer[idx](
+                        yseq, ctc_state[idx], part_ids, att_w_
                     )
                     local_scores = (
                         local_scores
