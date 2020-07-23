@@ -47,7 +47,6 @@ requirements = {
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
-        "torchaudio>=0.5.0",
         "mir-eval>=0.6",
     ],
     "setup": ["numpy", "pytest-runner"],
@@ -79,6 +78,20 @@ try:
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
         requirements["install"].append("torch_optimizer")
+
+    if LooseVersion(torch.__version__) == LooseVersion("1.5.1"):
+        requirements["install"].append("torchaudio==0.5.1")
+    elif LooseVersion(torch.__version__) == LooseVersion("1.5.0"):
+        requirements["install"].append("torchaudio==0.5.0")
+    elif LooseVersion(torch.__version__) == LooseVersion("1.4.0"):
+        requirements["install"].append("torchaudio==0.4.0")
+    elif LooseVersion(torch.__version__) == LooseVersion("1.3.1"):
+        requirements["install"].append("torchaudio==0.3.2")
+    elif LooseVersion(torch.__version__) == LooseVersion("1.3.0"):
+        requirements["install"].append("torchaudio==0.3.1")
+    elif LooseVersion(torch.__version__) == LooseVersion("1.2.0"):
+        requirements["install"].append("torchaudio==0.3.0")
+
     del torch
 except ImportError:
     pass
