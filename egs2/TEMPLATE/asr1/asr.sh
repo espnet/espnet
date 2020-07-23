@@ -949,9 +949,10 @@ fi
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
     asr_exp="${expdir}/${download_model}"
+    mkdir -p "${asr_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download "${download_model}" > "${asr_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${asr_exp}/config.txt"
 
     # Get the path of each file
     _asr_model_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_model_file': '\([^']*\)'.*$/\1/")
@@ -967,6 +968,8 @@ if [ -n "${download_model}" ]; then
         _lm_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
 
         lm_exp="${expdir}/${download_model}/lm"
+        mkdir -p "${lm_exp}"
+
         ln -sf "${_lm_file}" "${lm_exp}"
         ln -sf "${_lm_train_config}" "${lm_exp}"
         decode_lm=$(basename "${_lm_file}")

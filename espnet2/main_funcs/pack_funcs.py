@@ -221,6 +221,17 @@ def unpack(
         return retval
 
 
+def _to_relative_or_resolve(f):
+    # Resolve to avoid symbolic link
+    p = Path(f).resolve()
+    try:
+        # Change to relative if it can
+        p = p.relative_to(Path(".").resolve())
+    except ValueError:
+        pass
+    return str(p)
+
+
 def pack(
     files: Dict[str, Union[str, Path]],
     yaml_files: Dict[str, Union[str, Path]],
@@ -230,6 +241,10 @@ def pack(
     for v in list(files.values()) + list(yaml_files.values()) + list(option):
         if not Path(v).exists():
             raise FileNotFoundError(f"No such file or directory: {v}")
+
+    files = {k: _to_relative_or_resolve(v) for k, v in files.items()}
+    yaml_files = {k: _to_relative_or_resolve(v) for k, v in yaml_files.items()}
+    option = [_to_relative_or_resolve(v) for v in option]
 
     meta_objs = dict(
         files=files,
@@ -259,11 +274,4 @@ def pack(
         archive.addfile(info, fileobj=fileobj)
 
         for f in list(yaml_files.values()) + list(files.values()) + list(option):
-            # Resolve to avoid symbolic link
-            p = Path(f).resolve()
-            try:
-                # Change to relative if it can
-                p = p.relative_to(Path(".").resolve())
-            except ValueError:
-                pass
-            archive.add(p)
+            archive.add(f)

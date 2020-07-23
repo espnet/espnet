@@ -680,9 +680,10 @@ fi
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
     tts_exp="${expdir}/${download_model}"
+    mkdir -p "${tts_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download "${download_model}" > "${tts_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${tts_exp}/config.txt"
 
     # Get the path of each file
     _model_file=$(<"${tts_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
