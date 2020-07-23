@@ -268,12 +268,9 @@ class DNN_Beamformer(torch.nn.Module):
             masks (torch.Tensor): (B, T, C, F)
             ilens (torch.Tensor): (B,)
         """
-        if self.use_dnn_mask:
-            masks, _ = self.mask(data.permute(0, 3, 2, 1).float(), ilens)
-            # (B, F, C, T) -> (B, T, C, F)
-            masks = [m.transpose(-1, -3) for m in masks]
-        else:
-            masks = None
+        masks, _ = self.mask(data.permute(0, 3, 2, 1).float(), ilens)
+        # (B, F, C, T) -> (B, T, C, F)
+        masks = [m.transpose(-1, -3) for m in masks]
         return masks, ilens
 
 

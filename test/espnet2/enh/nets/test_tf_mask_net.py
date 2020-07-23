@@ -144,6 +144,7 @@ def test_tf_mask_net_output():
             dropout=0.0,
             num_spk=num_spk,
         )
+        model.eval()
         specs, _, masks = model(inputs, ilens)
         assert isinstance(specs, list)
         assert isinstance(masks, dict)
