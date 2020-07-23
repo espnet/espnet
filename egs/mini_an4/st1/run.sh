@@ -34,7 +34,7 @@ mt_model=
 
 # preprocessing related
 src_case=lc.rm
-tgt_case=lc
+tgt_case=tc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
