@@ -8,8 +8,8 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: adadelta
-epochs: 3
-patience: 2
+epochs: 1
+patience: 0
 
 # network architecture
 ## encoder related
