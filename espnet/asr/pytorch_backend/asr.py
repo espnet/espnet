@@ -1296,3 +1296,88 @@ def enhance(args):
             if num_images >= args.num_images and enh_writer is None:
                 logging.info("Breaking the process.")
                 break
+
+
+def ctc_align(args):
+    """CTC forced alignments with the given args.
+
+    Args:
+        args (namespace): The program arguments.
+    """
+
+    def add_alignment_to_json(js, alignment, char_list):
+        """Add N-best results to json.
+
+        Args:
+            js (dict[str, Any]): Groundtruth utterance dict.
+            alignment (list[int]): List of alignment.
+            char_list (list[str]): List of characters.
+
+        Returns:
+            dict[str, Any]: N-best results added utterance dict.
+
+        """
+        # copy old json info
+        new_js = dict()
+        new_js["ctc_alignment"] = []
+
+        alignment_tokens = []
+        for idx, a in enumerate(alignment):
+            alignment_tokens.append(char_list[a])
+        alignment_tokens = " ".join(alignment_tokens)
+
+        new_js["ctc_alignment"] = alignment_tokens
+
+        return new_js
+
+    set_deterministic_pytorch(args)
+    model, train_args = load_trained_model(args.model)
+    assert isinstance(model, ASRInterface)
+    model.eval()
+
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode="asr",
+        load_output=True,
+        sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None
+        else args.preprocess_conf,
+        preprocess_args={"train": False},
+    )
+
+    if args.ngpu > 1:
+        raise NotImplementedError("only single GPU decoding is supported")
+    if args.ngpu == 1:
+        device = "cuda"
+    else:
+        device = "cpu"
+    dtype = getattr(torch, args.dtype)
+    logging.info(f"Decoding device={device}, dtype={dtype}")
+    model.to(device=device, dtype=dtype).eval()
+
+    # read json data
+    with open(args.align_json, "rb") as f:
+        js = json.load(f)["utts"]
+    new_js = {}
+    if args.batchsize == 0:
+        with torch.no_grad():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
+                batch = [(name, js[name])]
+                feat, label = load_inputs_and_targets(batch)
+                feat = feat[0]
+                label = label[0]
+                enc = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
+                alignment = model.ctc.forced_align(enc, label)
+                new_js[name] = add_alignment_to_json(
+                    js[name], alignment, train_args.char_list
+                )
+    else:
+        raise NotImplementedError("Align_batch is not implemented.")
+
+    with open(args.result_label, "wb") as f:
+        f.write(
+            json.dumps(
+                {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
+            ).encode("utf_8")
+        )

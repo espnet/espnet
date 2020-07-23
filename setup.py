@@ -13,10 +13,10 @@ requirements = {
         "dataclasses",  # For Python<3.7
         "humanfriendly",
         "scipy>=1.4.1",
-        "matplotlib>=3.1.0",
+        "matplotlib==3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
-        "numba==0.49",
+        "gdown",
         # DNN related
         # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
         "chainer==6.0.0",
@@ -24,7 +24,7 @@ requirements = {
         "tensorboard>=1.14",  # For pytorch>=1.1.0
         "tensorboardX>=1.8",  # For pytorch<1.1.0
         # Signal processing related
-        "librosa>=0.7.0",
+        "librosa>=0.8.0",
         "resampy",
         "pysptk>=0.1.17",
         # Natural language processing related
@@ -39,8 +39,6 @@ requirements = {
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
-        "jaconv",
-        "g2p_en",
         "nnmnkwii",
         "espnet_tts_frontend",
         # ASR frontend related
@@ -49,6 +47,8 @@ requirements = {
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
+        "torchaudio>=0.5.0",
+        "mir-eval>=0.6",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [

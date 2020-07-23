@@ -50,7 +50,7 @@ if __name__ == "__main__":
     args = parser.parse_args(cmd_args)
 
     # subsampling info
-    if args.etype.startswith("vgg"):
+    if hasattr(args, "etype") and args.etype.startswith("vgg"):
         # Subsampling is not performed for vgg*.
         # It is performed in max pooling layers at CNN.
         min_io_ratio = 4

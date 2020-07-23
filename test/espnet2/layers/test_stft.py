@@ -1,4 +1,3 @@
-import pytest
 import torch
 
 from espnet2.layers.stft import Stft
@@ -35,5 +34,7 @@ def test_backward_not_leaf_in():
 def test_inverse():
     layer = Stft()
     x = torch.randn(2, 400, requires_grad=True)
-    with pytest.raises(NotImplementedError):
-        y, _ = layer.inverse(x)
+    y, _ = layer(x)
+    x_lengths = torch.IntTensor([400, 300])
+    raw, _ = layer.inverse(y, x_lengths)
+    raw, _ = layer.inverse(y)

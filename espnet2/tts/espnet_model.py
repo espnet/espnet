@@ -9,7 +9,10 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.tts.transformer import Transformer
 
 
 class ESPnetTTSModel(AbsESPnetModel):
@@ -32,8 +35,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
-        spcs: torch.Tensor = None,
-        spcs_lengths: torch.Tensor = None,
+        **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
@@ -46,8 +48,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             speech=feats,
             speech_lengths=feats_lengths,
             spembs=spembs,
-            spcs=spcs,
-            spcs_lengths=spcs_lengths,
+            **kwargs,
         )
 
     def collect_feats(
@@ -71,3 +72,56 @@ class ESPnetTTSModel(AbsESPnetModel):
         else:
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
+
+    def inference(
+        self,
+        text: torch.Tensor,
+        spembs: torch.Tensor = None,
+        speech: torch.Tensor = None,
+        threshold: float = 0.5,
+        minlenratio: float = 0.0,
+        maxlenratio: float = 10.0,
+        use_teacher_forcing: bool = False,
+        use_att_constraint: bool = False,
+        backward_window: int = 1,
+        forward_window: int = 3,
+        speed_control_alpha: float = 1.0,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        kwargs = {}
+
+        if isinstance(self.tts, (Tacotron2, Transformer)):
+            kwargs.update(
+                {
+                    "threshold": threshold,
+                    "maxlenratio": maxlenratio,
+                    "minlenratio": minlenratio,
+                    "use_teacher_forcing": use_teacher_forcing,
+                }
+            )
+        if isinstance(self.tts, Tacotron2):
+            kwargs.update(
+                {
+                    "use_att_constraint": use_att_constraint,
+                    "forward_window": forward_window,
+                    "backward_window": backward_window,
+                }
+            )
+        if isinstance(self.tts, FastSpeech):
+            kwargs.update({"alpha": speed_control_alpha})
+
+        if use_teacher_forcing or getattr(self.tts, "use_gst", False):
+            if speech is None:
+                raise RuntimeError("missing required argument: 'speech'")
+            if self.feats_extract is not None:
+                speech = self.feats_extract(speech[None])[0][0]
+            if self.normalize is not None:
+                speech = self.normalize(speech[None])[0][0]
+            kwargs["speech"] = speech
+        outs, probs, att_ws = self.tts.inference(text=text, spembs=spembs, **kwargs)
+
+        if self.normalize is not None:
+            # NOTE: normalize.inverse is in-place operation
+            outs_denorm = self.normalize.inverse(outs[None])[0][0]
+        else:
+            outs_denorm = outs
+        return outs, outs_denorm, probs, att_ws

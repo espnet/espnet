@@ -1,8 +1,11 @@
+from distutils.version import LooseVersion
+
 import h5py
 import kaldiio
 import numpy as np
 import pytest
 import soundfile
+import torch
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.sound_scp import SoundScpWriter
@@ -33,6 +36,9 @@ def sound_scp(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_sound_scp(sound_scp):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(sound_scp, "data1", "sound")], preprocess=preprocess,
@@ -67,6 +73,9 @@ def pipe_wav(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_pipe_wav(pipe_wav):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(pipe_wav, "data1", "pipe_wav")], preprocess=preprocess,
@@ -89,6 +98,9 @@ def feats_scp(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_feats_scp(feats_scp,):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(feats_scp, "data2", "kaldi_ark")], preprocess=preprocess,
@@ -110,6 +122,9 @@ def npy_scp(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_npy_scp(npy_scp):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(npy_scp, "data3", "npy")], preprocess=preprocess,
@@ -131,6 +146,9 @@ def h5file_1(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_h5file_1(h5file_1):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(h5file_1, "data4", "hdf5")], preprocess=preprocess,
@@ -152,6 +170,9 @@ def shape_file(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_rand_float(shape_file):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(shape_file, "data5", "rand_float")],
@@ -165,6 +186,9 @@ def test_ESPnetDataset_rand_float(shape_file):
             assert data["data5"].shape == (150, 80,)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_rand_int(shape_file):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(shape_file, "data6", "rand_int_0_10")],
@@ -187,6 +211,9 @@ def text(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_text(text):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(text, "data7", "text")], preprocess=preprocess,
@@ -208,6 +235,9 @@ def text_float(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_text_float(text_float):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(text_float, "data8", "text_float")],
@@ -230,6 +260,9 @@ def text_int(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_text_int(text_int):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(text_int, "data8", "text_int")], preprocess=preprocess,
@@ -251,6 +284,9 @@ def csv_float(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_csv_float(csv_float):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(csv_float, "data8", "csv_float")], preprocess=preprocess,
@@ -272,6 +308,9 @@ def csv_int(tmp_path):
     return str(p)
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
+)
 def test_ESPnetDataset_csv_int(csv_int):
     dataset = IterableESPnetDataset(
         path_name_type_list=[(csv_int, "data8", "csv_int")], preprocess=preprocess,

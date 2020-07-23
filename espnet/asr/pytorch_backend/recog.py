@@ -95,7 +95,7 @@ def recog_v2(args):
         sos=model.sos,
         eos=model.eos,
         token_list=train_args.char_list,
-        pre_beam_score_key=None if args.ctc_weight == 1.0 else "decoder",
+        pre_beam_score_key=None if args.ctc_weight == 1.0 else "full",
     )
     # TODO(karita): make all scorers batchfied
     if args.batchsize == 1:

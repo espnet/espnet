@@ -10,7 +10,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1jrMtp3opu6Vq5v9IltCt8p1t-b-OAw0Q
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing    
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_ca/cmvn.ark`
@@ -45,7 +45,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1mJ1Hc1eklkLJRXrZYG87FzfPO5PHDVoQ
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_cy/cmvn.ark`
@@ -80,7 +80,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1VG7h_myFFyLMZPUsNk2Ym-_4VVcyAoTP
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_de/cmvn.ark`
@@ -115,7 +115,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1R8H9xYEd82b3B0i5YTXUsja8_KVJ_l4d
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_en/cmvn.ark`
@@ -151,7 +151,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=13OpZ_Krnv4gR9C_jkynfZioa6y7sj3Ts
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_es/cmvn.ark`
@@ -187,7 +187,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1nt0uAYBHf1LmkJSRaDnT5pjjj859Li-X
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_eu/cmvn.ark`
@@ -223,7 +223,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=10I3Cj9NxkLZyBP2rrGgmvbHpO3Keie6y
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_fa/cmvn.ark`
@@ -259,7 +259,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1QijqBttQz8EPy_EUVZpvfjCBteBiF4QY
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_fr/cmvn.ark`
@@ -295,7 +295,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=12oV2Tn9D3Q_T2DwUjGXjwx4m2g1xZp6C
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_it/cmvn.ark`
@@ -330,7 +330,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1ylT4WazFn_mCujMnl0DZYKdFtzpSrqew
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_kab/cmvn.ark`
@@ -366,7 +366,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1sC9VT1OuPcjNBsjT2yNtTo0c_A8-6mRo
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_ru/cmvn.ark`
@@ -402,7 +402,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=131s1Z6GHRFWGr5QFsGQEgQfMjhLHKlyS
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_tt/cmvn.ark`
@@ -438,7 +438,7 @@
 
 ## Model Information
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1hkN1y8d87DN_wiGxFvZwvERd3wKpRTLd
+    - model link: https://drive.google.com/drive/folders/1Elyyi8Ilf5fpw20iaEI6hLw3e3VcUxT5?usp=sharing
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/valid_train_zh_TW/cmvn.ark`

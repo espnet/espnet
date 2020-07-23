@@ -22,7 +22,7 @@ echo "==== ASR (backend=chainer) ==="
 # test rnn recipe
 echo "=== ASR (backend=pytorch, model=rnn-pure-ctc) ==="
 ./run.sh --stage 4 --train-config conf/train_pure_ctc.yaml \
-       --decode-config conf/decode_pure_ctc.yaml
+        --decode-config conf/decode_pure_ctc.yaml
 echo "=== ASR (backend=pytorch, model=rnn-no-ctc) ==="
 ./run.sh --stage 4 --train-config conf/train_no_ctc.yaml \
         --decode-config conf/decode_no_ctc.yaml
@@ -30,27 +30,33 @@ echo "=== ASR (backend=pytorch, model=rnn-no-ctc) ==="
 # test transformer recipe
 echo "=== ASR (backend=pytorch, model=transformer) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer.yaml \
-         --decode-config conf/decode.yaml
+        --decode-config conf/decode.yaml
+echo "=== ASR (backend=pytorch, model=conformer) ==="
+./run.sh --stage 4 --train-config conf/train_conformer.yaml \
+        --decode-config conf/decode.yaml
 echo "=== ASR (backend=pytorch, model=transformer-pure-ctc) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer_pure_ctc.yaml \
-       --decode-config conf/decode_pure_ctc.yaml
+        --decode-config conf/decode_pure_ctc.yaml
+echo "=== ASR (backend=pytorch, model=conformer-pure-ctc) ==="
+./run.sh --stage 4 --train-config conf/train_conformer_pure_ctc.yaml \
+        --decode-config conf/decode_pure_ctc.yaml
 echo "=== ASR (backend=pytorch, model=transformer-no-ctc) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer_no_ctc.yaml \
         --decode-config conf/decode_no_ctc.yaml
 echo "=== ASR (backend=pytorch num-encs 2, model=transformer) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer.yaml \
-         --decode-config conf/decode.yaml
+        --decode-config conf/decode.yaml
 
 # test transducer recipe
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
 ./run.sh --stage 4 --train-config conf/train_transducer.yaml \
-         --decode-config conf/decode_transducer.yaml
+        --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=rnnt-att) ==="
 ./run.sh --stage 4 --train-config conf/train_transducer_attention.yaml \
-         --decode-config conf/decode_transducer.yaml
+        --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer_transducer.yaml \
-         --decode-config conf/decode_transducer.yaml
+        --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer-att) ==="
 ./run.sh --stage 4 --train-config conf/train_transformer_transducer_attention.yaml \
         --decode-config conf/decode_transducer.yaml
@@ -94,7 +100,7 @@ done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 6 --stop-stage 100 --feats-type "${t}" --token-type "${t2}" \
+        ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done
@@ -109,7 +115,7 @@ echo "==== [ESPnet2] TTS ==="
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --ngpu 0 --stage 2 --stop-stage 100 --feats-type "${t}" --train-args "--max_epoch 1"
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 8 --feats-type "${t}" --train-args "--max_epoch 1"
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -129,7 +135,7 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
         python -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
-    for f in egs2/*/tts1/conf/train_*.yaml; do
+    for f in egs2/*/tts1/conf/train*.yaml; do
         python -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi

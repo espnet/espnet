@@ -38,13 +38,15 @@ class PositionalEncoding(torch.nn.Module):
     :param int d_model: embedding dim
     :param float dropout_rate: dropout rate
     :param int max_len: maximum input length
+    :param reverse: whether to reverse the input position
 
     """
 
-    def __init__(self, d_model, dropout_rate, max_len=5000):
+    def __init__(self, d_model, dropout_rate, max_len=5000, reverse=False):
         """Construct an PositionalEncoding object."""
         super(PositionalEncoding, self).__init__()
         self.d_model = d_model
+        self.reverse = reverse
         self.xscale = math.sqrt(self.d_model)
         self.dropout = torch.nn.Dropout(p=dropout_rate)
         self.pe = None
@@ -59,7 +61,12 @@ class PositionalEncoding(torch.nn.Module):
                     self.pe = self.pe.to(dtype=x.dtype, device=x.device)
                 return
         pe = torch.zeros(x.size(1), self.d_model)
-        position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
+        if self.reverse:
+            position = torch.arange(
+                x.size(1) - 1, -1, -1.0, dtype=torch.float32
+            ).unsqueeze(1)
+        else:
+            position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
             torch.arange(0, self.d_model, 2, dtype=torch.float32)
             * -(math.log(10000.0) / self.d_model)
@@ -119,3 +126,41 @@ class ScaledPositionalEncoding(PositionalEncoding):
         self.extend_pe(x)
         x = x + self.alpha * self.pe[:, : x.size(1)]
         return self.dropout(x)
+
+
+class RelPositionalEncoding(PositionalEncoding):
+    """Relitive positional encoding module.
+
+    See : Appendix B in https://arxiv.org/abs/1901.02860
+
+    :param int d_model: embedding dim
+    :param float dropout_rate: dropout rate
+    :param int max_len: maximum input length
+
+    """
+
+    def __init__(self, d_model, dropout_rate, max_len=5000):
+        """Initialize class.
+
+        :param int d_model: embedding dim
+        :param float dropout_rate: dropout rate
+        :param int max_len: maximum input length
+
+        """
+        super().__init__(d_model, dropout_rate, max_len, reverse=True)
+
+    def forward(self, x):
+        """Compute positional encoding.
+
+        Args:
+            x (torch.Tensor): Input. Its shape is (batch, time, ...)
+
+        Returns:
+            torch.Tensor: x. Its shape is (batch, time, ...)
+            torch.Tensor: pos_emb. Its shape is (1, time, ...)
+
+        """
+        self.extend_pe(x)
+        x = x * self.xscale
+        pos_emb = self.pe[:, : x.size(1)]
+        return self.dropout(x), self.dropout(pos_emb)

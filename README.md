@@ -56,6 +56,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **Transducer** based end-to-end ASR
   - Available: RNN-Transducer, Transformer-Transducer, mixed Transformer/RNN-Transducer
   - Also support: attention mechanism (RNN-decoder), pre-init w/ LM (RNN-decoder), VGG-Transformer (encoder)
+- CTC forced alignment
 
 ### TTS: Text-to-speech
 - Tacotron2 based end-to-end TTS
@@ -66,7 +67,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
 
 > To train the neural vocoder, please check the following repositories:
-> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/PytorchWaveNetVocoder)
+> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
 > - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
 
 ### ST: Speech Translation & MT: Machine Translation
@@ -94,7 +95,7 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
 ## Installation
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
-- If you just need the Python module only: 
+- If you just need the Python module only:
     ```bash
     pip install torch  # Install some dependencies manually
     pip install espnet
@@ -410,6 +411,36 @@ Available pretrained vocoder models in the demo script are listed as follows:
 The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system. In VCC2020, the objective is intra/cross lingual nonparallel VC. A cascade method of ASR+TTS is developed.  
 You can download converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
+
+### CTC Forced Alignment demo
+
+<details><summary>expand</summary><div>
+
+You can align speech in a WAV file using pretrained models.
+Go to a recipe directory and run `utils/ctc_align_wav.sh` as follows:
+```sh
+# go to recipe directory and source path of espnet tools
+cd egs/wsj/asr1 && . ./path.sh
+# get example wav file
+mkdir -p alignment
+cp ../../../test_utils/ctc_align_test.wav ./alignment
+# let's generate the ctc alignment of the speech!
+# the transcription of the example wav is:
+# "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+ctc_align_wav.sh --align_dir ./alignment --models wsj.transformer.v1 ./alignment/ctc_align_test.wav "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+```
+where `test.wav` is a WAV file to be aligned.
+The sampling rate must be consistent with that of data used in training.
+
+Available pretrained models in the demo script are listed as below.
+
+| Model                                                                                            | Notes                                                      |
+| :------                                                                                          | :------                                                    |
+| [wsj.transformer.v1](https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp)            | Transformer-ASR trained on WSJ corpus                  |
+
+</div></details>
+
+
 ## References
 
 [1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
@@ -423,25 +454,36 @@ You can download converted samples [here](https://drive.google.com/drive/folders
 ```
 @inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
-  title={ESPnet: End-to-End Speech Processing Toolkit},
-  year=2018,
-  booktitle={Interspeech},
+  title={{ESPnet}: End-to-End Speech Processing Toolkit},
+  year={2018},
+  booktitle={Proceedings of Interspeech},
   pages={2207--2211},
   doi={10.21437/Interspeech.2018-1456},
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
 }
-@misc{hayashi2019espnettts,
-    title={ESPnet-TTS: Unified, Reproducible, and Integratable Open Source End-to-End Text-to-Speech Toolkit},
-    author={Tomoki Hayashi and Ryuichi Yamamoto and Katsuki Inoue and Takenori Yoshimura and Shinji Watanabe and Tomoki Toda and Kazuya Takeda and Yu Zhang and Xu Tan},
-    year={2019},
-    eprint={1910.10909},
-    archivePrefix={arXiv},
-    primaryClass={cs.CL}
+@inproceedings{hayashi2020espnet,
+  title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},
+  author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},
+  booktitle={Proceedings of IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={7654--7658},
+  year={2020},
+  organization={IEEE}
 }
-@article{inaguma2020espnet,
-  title={ESPnet-ST: All-in-One Speech Translation Toolkit},
-  author={Inaguma, Hirofumi and Kiyono, Shun and Duh, Kevin and Karita, Shigeki and Soplin, Nelson Enrique Yalta and Hayashi, Tomoki and Watanabe, Shinji},
-  journal={arXiv preprint arXiv:2004.10234},
-  year={2020}
+@inproceedings{inaguma-etal-2020-espnet,
+    title = "{ESP}net-{ST}: All-in-One Speech Translation Toolkit",
+    author = "Inaguma, Hirofumi  and
+      Kiyono, Shun  and
+      Duh, Kevin  and
+      Karita, Shigeki  and
+      Yalta, Nelson  and
+      Hayashi, Tomoki  and
+      Watanabe, Shinji",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics: System Demonstrations",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/2020.acl-demos.34",
+    pages = "302--311",
 }
 ```

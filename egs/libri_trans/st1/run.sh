@@ -206,29 +206,29 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set_prefix}.fr.gtranslate/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
-        data/${train_set_prefix}.fr.gtranslate ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${tgt_case}.json
+        data/${train_set_prefix}.fr.gtranslate ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
         data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
-            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
     # update json (add source references)
     update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
-        ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
+        ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
     update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
-        ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
+        ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
     update_json.sh --text data/"$(echo ${train_dev} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
-        ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json data/"$(echo ${train_dev} | cut -f 1 -d ".")".en ${dict}
+        ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f 1 -d ".")".en ${dict}
 
     # concatenate Fr and Fr (Google translation) jsons
     local/concat_json_multiref.py \
-        ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
-        ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${tgt_case}.json > ${feat_tr_dir}/data_2ref_${bpemode}${nbpe}.${tgt_case}.json
+        ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json > ${feat_tr_dir}/data_2ref_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 fi
 
 # NOTE: skip stage 3: LM Preparation
@@ -271,8 +271,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_2ref_${bpemode}${nbpe}.${tgt_case}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
+        --train-json ${feat_tr_dir}/data_2ref_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --enc-init ${asr_model} \
         --dec-init ${mt_model}
 fi
@@ -303,7 +303,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0
