@@ -23,7 +23,7 @@ fi
 . ./db.sh
 
 other_text=data/local/other_text/text
-nlsyms=data/nlsyms,txt
+nlsyms=data/nlsyms.txt
 
 if [ ! -e "${WSJ0}" ]; then
     log "Fill the value of 'WSJ0' of db.sh"

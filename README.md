@@ -2,19 +2,20 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.0.1|1.1.0|1.2.0|1.3.1|1.4.0|
-| :---: | :---: | :---: | :---: | :---: | :---: |
-|ubuntu18/python3.8/pip|||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu18/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|ubuntu16/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|debian9/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|centos7/python3.6/conda|||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|[docs/coverage] python3.8|||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
+|system/pytorch ver.|1.0.1|1.1.0|1.2.0|1.3.1|1.4.0|1.5.1|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|ubuntu18/python3.8/pip||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu18/python3.6/conda||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|ubuntu16/python3.6/conda||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|debian9/python3.6/conda||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|centos7/python3.6/conda||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|[docs/coverage] python3.8||||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
 
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
 [![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
 [![Downloads](https://pepy.tech/badge/espnet)](https://pepy.tech/project/espnet)
+[![GitHub license](https://img.shields.io/github/license/espnet/espnet.svg)](https://github.com/espnet/espnet)
 [![codecov](https://codecov.io/gh/espnet/espnet/branch/master/graph/badge.svg)](https://codecov.io/gh/espnet/espnet)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/espnet/espnet&style=flat)](https://mergify.io)
@@ -22,13 +23,10 @@
 
 [**Docs**](https://espnet.github.io/espnet/)
 | [**Example**](https://github.com/espnet/espnet/tree/master/egs)
+| [**Example (ESPnet2)**](https://github.com/espnet/espnet/tree/master/egs2)
 | [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
 | [**Notebook**](https://github.com/espnet/notebook)
 | [**Tutorial (2019)**](https://github.com/espnet/interspeech2019-tutorial)
-
-[**Master**](https://github.com/espnet/espnet/tree/master)
-| [**Develop**](https://github.com/espnet/espnet/tree/develop)
-| [**Release**](https://github.com/espnet/espnet/releases)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -53,16 +51,24 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - CTC/attention joint decoding to boost monotonic alignment decoding
   - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
 - Attention: Dot product, location-aware attention, variants of multihead
-- Incorporate RNNLM/LSTMLM/TransformerLM trained only with text data
+- Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
 - **Transducer** based end-to-end ASR
   - Available: RNN-Transducer, Transformer-Transducer, mixed Transformer/RNN-Transducer
   - Also support: attention mechanism (RNN-decoder), pre-init w/ LM (RNN-decoder), VGG-Transformer (encoder)
+- CTC forced alignment
 
 ### TTS: Text-to-speech
 - Tacotron2 based end-to-end TTS
 - Transformer based end-to-end TTS
-- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS (new!)
+- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS
+- Multi-speaker TTS with pretrained speaker embedding
+- Support phoneme-based TTS for En, Jp, and Zn
+- Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
+
+> To train the neural vocoder, please check the following repositories:
+> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
+> - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
 
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
@@ -78,9 +84,18 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
 - Tensorboard based monitoring
 
+### ESPnet2
+See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
+
+- Indepedent from Kaldi/Chainer
+- On the fly feature extraction and text processing when training
+- Multi GPUs training on single/multi nodes (Distributed training)
+- A template recipe which can be applied for all corpora
+- Possible to train any size of corpus without cpu memory error
+
 ## Installation
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
-- If you just need the Python module only: 
+- If you just need the Python module only:
     ```bash
     pip install torch  # Install some dependencies manually
     pip install espnet
@@ -95,18 +110,9 @@ See [Usage](https://espnet.github.io/espnet/tutorial.html).
 
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
 
-## About ESPnet2
-See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
-
 ## Contribution
 Thank you for taking times for ESPnet! Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
 If it's the first contribution to ESPnet for you,  please follow the [contribution guide](CONTRIBUTING.md).
-
-### Branching strategy
-
-- [master](https://github.com/espnet/espnet/tree/master): Hot fix, adding new recipes, fix typo, update README.md
-- [develop](https://github.com/espnet/espnet/tree/develop): Adding new feature, refactoring, adding test codes
-- [release](https://github.com/espnet/espnet/releases): The specific commit by tag
 
 ## Results and demo
 
@@ -122,7 +128,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Task                   | CER (%) | WER (%) | Pretrained model                                                                                                                                                      |
 | -----------            | :----:  | :----:  | :----:                                                                                                                                                                |
 | Aishell dev            | 6.0     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
-| Aishell test           | 6.7     | N/A     | same as above                                                                                                                                                         |
+| Aishell test           | 6.6     | N/A     | same as above                                                                                                                                                         |
 | Common Voice dev       | 1.7     | 2.2     | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
 | Common Voice test      | 1.8     | 2.3     | same as above                                                                                                                                                         |
 | CSJ eval1              | 5.7     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/csj/asr1/RESULTS.md#pytorch-backend-transformer-without-any-hyperparameter-tuning)                            |
@@ -168,8 +174,8 @@ Available pretrained models in the demo script are listed as below.
 | :------                                                                                          | :------                                                    |
 | [tedlium2.rnn.v1](https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe)            | Streaming decoding based on CTC-based VAD                  |
 | [tedlium2.rnn.v2](https://drive.google.com/open?id=1cac5Uc09lJrCYfWkLQsF8eapQcxZnYdf)            | Streaming decoding based on CTC-based VAD (batch decoding) |
-| [tedlium2.transformer.v1](https://drive.google.com/open?id=1mgbiWabOSkh_oHJIDA-h7hekQ3W95Z_U)    | Joint-CTC attention Transformer trained on Tedlium 2       |
-| [tedlium3.transformer.v1](https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO)    | Joint-CTC attention Transformer trained on Tedlium 3       |
+| [tedlium2.transformer.v1](https://drive.google.com/open?id=1cVeSOYY1twOfL9Gns7Z3ZDnkrJqNwPow)    | Joint-CTC attention Transformer trained on Tedlium 2       |
+| [tedlium3.transformer.v1](https://drive.google.com/open?id=1zcPglHAKILwVgfACoMWWERiyIquzSYuU)    | Joint-CTC attention Transformer trained on Tedlium 3       |
 | [librispeech.transformer.v1](https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6) | Joint-CTC attention Transformer trained on Librispeech     |
 | [commonvoice.transformer.v1](https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh) | Joint-CTC attention Transformer trained on CommonVoice     |
 | [csj.transformer.v1](https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF)         | Joint-CTC attention Transformer trained on CSJ             |
@@ -405,6 +411,36 @@ Available pretrained vocoder models in the demo script are listed as follows:
 The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system. In VCC2020, the objective is intra/cross lingual nonparallel VC. A cascade method of ASR+TTS is developed.  
 You can download converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
+
+### CTC Forced Alignment demo
+
+<details><summary>expand</summary><div>
+
+You can align speech in a WAV file using pretrained models.
+Go to a recipe directory and run `utils/ctc_align_wav.sh` as follows:
+```sh
+# go to recipe directory and source path of espnet tools
+cd egs/wsj/asr1 && . ./path.sh
+# get example wav file
+mkdir -p alignment
+cp ../../../test_utils/ctc_align_test.wav ./alignment
+# let's generate the ctc alignment of the speech!
+# the transcription of the example wav is:
+# "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+ctc_align_wav.sh --align_dir ./alignment --models wsj.transformer.v1 ./alignment/ctc_align_test.wav "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+```
+where `test.wav` is a WAV file to be aligned.
+The sampling rate must be consistent with that of data used in training.
+
+Available pretrained models in the demo script are listed as below.
+
+| Model                                                                                            | Notes                                                      |
+| :------                                                                                          | :------                                                    |
+| [wsj.transformer.v1](https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp)            | Transformer-ASR trained on WSJ corpus                  |
+
+</div></details>
+
+
 ## References
 
 [1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
@@ -418,25 +454,36 @@ You can download converted samples [here](https://drive.google.com/drive/folders
 ```
 @inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
-  title={ESPnet: End-to-End Speech Processing Toolkit},
-  year=2018,
-  booktitle={Interspeech},
+  title={{ESPnet}: End-to-End Speech Processing Toolkit},
+  year={2018},
+  booktitle={Proceedings of Interspeech},
   pages={2207--2211},
   doi={10.21437/Interspeech.2018-1456},
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
 }
-@misc{hayashi2019espnettts,
-    title={ESPnet-TTS: Unified, Reproducible, and Integratable Open Source End-to-End Text-to-Speech Toolkit},
-    author={Tomoki Hayashi and Ryuichi Yamamoto and Katsuki Inoue and Takenori Yoshimura and Shinji Watanabe and Tomoki Toda and Kazuya Takeda and Yu Zhang and Xu Tan},
-    year={2019},
-    eprint={1910.10909},
-    archivePrefix={arXiv},
-    primaryClass={cs.CL}
+@inproceedings{hayashi2020espnet,
+  title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},
+  author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},
+  booktitle={Proceedings of IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={7654--7658},
+  year={2020},
+  organization={IEEE}
 }
-@article{inaguma2020espnet,
-  title={ESPnet-ST: All-in-One Speech Translation Toolkit},
-  author={Inaguma, Hirofumi and Kiyono, Shun and Duh, Kevin and Karita, Shigeki and Soplin, Nelson Enrique Yalta and Hayashi, Tomoki and Watanabe, Shinji},
-  journal={arXiv preprint arXiv:2004.10234},
-  year={2020}
+@inproceedings{inaguma-etal-2020-espnet,
+    title = "{ESP}net-{ST}: All-in-One Speech Translation Toolkit",
+    author = "Inaguma, Hirofumi  and
+      Kiyono, Shun  and
+      Duh, Kevin  and
+      Karita, Shigeki  and
+      Yalta, Nelson  and
+      Hayashi, Tomoki  and
+      Watanabe, Shinji",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics: System Demonstrations",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/2020.acl-demos.34",
+    pages = "302--311",
 }
 ```

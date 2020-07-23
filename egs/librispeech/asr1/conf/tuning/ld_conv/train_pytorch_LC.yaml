@@ -1,0 +1,54 @@
+# network architecture for Lightweight convolution. 
+# encoder related
+elayers: 12
+eunits: 2048
+# decoder related
+dlayers: 6
+dunits: 2048
+# attention related
+adim: 256
+aheads: 4
+
+# hybrid CTC/attention
+mtlalpha: 0.3
+
+# label smoothing
+lsm-weight: 0.1
+
+# minibatch related
+batch-size: 48
+maxlen-in: 512  # if input length  > maxlen-in, batchsize is automatically reduced
+maxlen-out: 150 # if output length > maxlen-out, batchsize is automatically reduced
+
+# optimization related
+sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+opt: noam
+accum-grad: 13
+grad-clip: 5
+patience: 0
+epochs: 50
+dropout-rate: 0.1
+
+# transformer specific setting
+backend: pytorch
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E"
+transformer-input-layer: conv2d     # encoder architecture type
+transformer-lr: 10.0
+transformer-warmup-steps: 25000
+transformer-attn-dropout-rate: 0.1
+transformer-length-normalized-loss: false
+transformer-init: pytorch
+
+# Ligtweight/Dynamic convolution specific setting
+transformer-encoder-selfattn-layer-type: lightconv
+transformer-decoder-selfattn-layer-type: lightconv
+wshare: 4
+ldconv-encoder-kernel-length: "101_101_101_101_101_101_101_101_101_101_101_101"
+ldconv-decoder-kernel-length: "71_71_71_71_71_71"
+
+# RESULTS
+#                                                                                                                                    # Snt       # Wrd    |   Corr         Sub         Del          Ins         Err       S.Err    |
+#exp/train_960_pytorch_train_pytorch_LC_specaug/decode_dev_clean_model.val5.avg.best_decode_lm/result.wrd.txt:|   Sum/Avg        |   2703       54402    |   96.9          2.8         0.3         0.3         3.4        39.0    |
+#exp/train_960_pytorch_train_pytorch_LC_specaug/decode_dev_other_model.val5.avg.best_decode_lm/result.wrd.txt:|   Sum/Avg        |   2864       50948    |   92.1          6.9         0.9         1.0         8.8        57.3    |
+#exp/train_960_pytorch_train_pytorch_LC_specaug/decode_test_clean_model.val5.avg.best_decode_lm/result.wrd.txt:|   Sum/Avg        |   2620        52576    |   96.8         2.9         0.3          0.4         3.6        38.4    |
+#exp/train_960_pytorch_train_pytorch_LC_specaug/decode_test_other_model.val5.avg.best_decode_lm/result.wrd.txt:|   Sum/Avg        |   2939        52343    |   92.0         7.0         0.9          0.9         8.9        60.4    |

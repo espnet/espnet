@@ -125,12 +125,7 @@ def train(args):
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(
-                len(args.char_list),
-                rnnlm_args.layer,
-                rnnlm_args.unit,
-                getattr(rnnlm_args, "embed_unit", None),  # for backward compatibility
-            )
+            lm_pytorch.RNNLM(len(args.char_list), rnnlm_args.layer, rnnlm_args.unit)
         )
         torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
@@ -181,7 +176,10 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model.parameters(),
+            args.adim,
+            args.transformer_warmup_steps,
+            args.transformer_lr,
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
@@ -263,30 +261,26 @@ def train(args):
     # actual bathsize is included in a list
     # default collate function converts numpy array to pytorch tensor
     # we used an empty collate function instead which returns list
-    train_iter = {
-        "main": ChainerDataLoader(
-            dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
-            batch_size=1,
-            num_workers=args.n_iter_processes,
-            shuffle=not use_sortagrad,
-            collate_fn=lambda x: x[0],
-        )
-    }
-    valid_iter = {
-        "main": ChainerDataLoader(
-            dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
-            batch_size=1,
-            shuffle=False,
-            collate_fn=lambda x: x[0],
-            num_workers=args.n_iter_processes,
-        )
-    }
+    train_iter = ChainerDataLoader(
+        dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
+        batch_size=1,
+        num_workers=args.n_iter_processes,
+        shuffle=not use_sortagrad,
+        collate_fn=lambda x: x[0],
+    )
+    valid_iter = ChainerDataLoader(
+        dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
+        batch_size=1,
+        shuffle=False,
+        collate_fn=lambda x: x[0],
+        num_workers=args.n_iter_processes,
+    )
 
     # Set up a trainer
     updater = CustomUpdater(
         model,
         args.grad_clip,
-        train_iter,
+        {"main": train_iter},
         optimizer,
         device,
         args.ngpu,
@@ -310,11 +304,13 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     if args.save_interval_iters > 0:
         trainer.extend(
-            CustomEvaluator(model, valid_iter, reporter, device, args.ngpu),
+            CustomEvaluator(model, {"main": valid_iter}, reporter, device, args.ngpu),
             trigger=(args.save_interval_iters, "iteration"),
         )
     else:
-        trainer.extend(CustomEvaluator(model, valid_iter, reporter, device, args.ngpu))
+        trainer.extend(
+            CustomEvaluator(model, {"main": valid_iter}, reporter, device, args.ngpu)
+        )
 
     # Save attention weight each epoch
     if args.num_save_attention > 0:
@@ -495,6 +491,7 @@ def train(args):
         )
         report_keys.append("lr")
     if args.report_bleu:
+        report_keys.append("main/bleu")
         report_keys.append("validation/main/bleu")
     trainer.extend(
         extensions.PrintReport(report_keys),
