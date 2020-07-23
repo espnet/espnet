@@ -29,7 +29,7 @@ class VariancePredictor(torch.nn.Module):
         n_layers: int = 2,
         n_chans: int = 384,
         kernel_size: int = 3,
-        dropout_rate: int = 0.1,
+        dropout_rate: float = 0.1,
     ):
         """Initilize duration predictor module.
 
@@ -62,7 +62,7 @@ class VariancePredictor(torch.nn.Module):
             ]
         self.linear = torch.nn.Linear(n_chans, 1)
 
-    def forward(self, xs, x_masks=None):
+    def forward(self, xs: torch.Tensor, x_masks: torch.Tensor = None) -> torch.Tensor:
         """Calculate forward propagation.
 
         Args:
