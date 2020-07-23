@@ -641,7 +641,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return nbest_hyps
 
     def recognize_maskctc(self, x, recog_args, char_list=None):
-        """Non-autoregressive decoding
+        """Non-autoregressive decoding using Mask CTC.
 
         :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
         :param Namespace recog_args: argment Namespace contraining options
