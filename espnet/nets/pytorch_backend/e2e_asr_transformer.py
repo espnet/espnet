@@ -212,7 +212,7 @@ class E2E(ASRInterface, torch.nn.Module):
             type=str,
             choices=["AR", "MP"],
             help="AR: standard autoregressive training, "
-            "MP: non-autoregressive training based on mask-predict",
+            "MP: non-autoregressive training based on mask-predict (MP)",
         )
         return parser
 
@@ -680,7 +680,7 @@ class E2E(ASRInterface, torch.nn.Module):
             ''.join([char_list[y] if y != self.mask_token else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
 
         if not mask_num == 0:
-            K = recog_args.nar_n_iterations
+            K = recog_args.mp_n_iterations
             num_iter = K if mask_num >= K and K > 0 else mask_num
 
             for t in range(1, num_iter):
