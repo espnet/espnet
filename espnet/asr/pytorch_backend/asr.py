@@ -672,15 +672,19 @@ def train(args):
         )
 
     # Save attention weight each epoch
-
-    if args.num_save_attention > 0 and (
-        ("transformer" in getattr(args, "model_module") or mtl_mode == "att")
+    is_attn_plot = (
+        (
+            "transformer" in args.model_module
+            or "conformer" in args.model_module
+            or mtl_mode in ["att", "mtl"]
+        )
         or (
             mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
         )
         or mtl_mode == "transformer_transducer"
-    ):
+    )
 
+    if args.num_save_attention > 0 and is_attn_plot:
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
