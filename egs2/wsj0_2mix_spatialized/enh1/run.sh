@@ -10,17 +10,17 @@ sample_rate=8k
 
 
 train_set=tr_spatialized_anechoic_multich
-dev_set=cv_spatialized_anechoic_multich
-eval_sets="tt_spatialized_anechoic_multich "
+valid_set=cv_spatialized_anechoic_multich
+test_sets="tt_spatialized_anechoic_multich "
 
 ./enh.sh \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_sets}" \
-    --fs 8k \
-    --ngpu 1 \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
+    --fs ${sample_rate} \
+    --ngpu 2 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --enh_config ./conf/tuning/train_enh_beamformer_tf1.0.yaml \
+    --enh_config ./conf/tuning/train_enh_beamformer_no_wpe.yaml \
     --use_dereverb_ref false \
     --use_noise_ref false \
     "$@"

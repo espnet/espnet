@@ -7,6 +7,7 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+import humanfriendly
 import torch
 from typeguard import check_argument_types
 
@@ -19,6 +20,12 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+
+
+def humanfriendly_or_none(value: str):
+    if value in ("none", "None", "NONE"):
+        return None
+    return humanfriendly.parse_size(value)
 
 
 def inference(
@@ -141,7 +148,9 @@ def get_parser():
         choices=["float16", "float32", "float64"],
         help="Data type",
     )
-    parser.add_argument("--fs", type=int, default=8000, help="Sampling rate")
+    parser.add_argument(
+        "--fs", type=humanfriendly_or_none, default=8000, help="Sampling rate"
+    )
     parser.add_argument(
         "--num_workers",
         type=int,

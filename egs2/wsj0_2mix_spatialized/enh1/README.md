@@ -9,9 +9,9 @@
   - Commit date: `Wed Jul 8 21:00:57 2020 -0400`
 
 
-## enh_train_enh_beamformer_tf1.0_8k_2ch_4gpu_raw
+## enh_train_enh_beamformer_no_wpe__8k_2ch_4gpu_raw
 
-config: conf/tuning/train_enh_beamformer_tf1.0.yaml
+config: conf/tuning/train_enh_beamformer_no_wpe.yaml
 
 |dataset|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
