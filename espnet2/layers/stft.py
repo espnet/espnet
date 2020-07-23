@@ -1,7 +1,10 @@
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import torch
+from torch_complex.tensor import ComplexTensor
+import torchaudio
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -115,7 +118,29 @@ class Stft(torch.nn.Module, InversibleInterface):
         return output, olens
 
     def inverse(
-        self, input: torch.Tensor, ilens: torch.Tensor = None
+        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        # TODO(kamo): torch audio?
-        raise NotImplementedError
+        """Inverse STFT.
+
+        :param input: Tensor (batch, T, F, 2) or ComplexTensor (batch, T, F)
+        :param ilens:
+        :return:
+        """
+        if isinstance(input, ComplexTensor):
+            input = torch.stack([input.real, input.imag], dim=-1)
+        assert input.shape[-1] == 2
+        input = input.transpose(1, 2)
+
+        wavs = torchaudio.functional.istft(
+            input,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            center=self.center,
+            pad_mode=self.pad_mode,
+            normalized=self.normalized,
+            onesided=self.onesided,
+            length=ilens.max() if ilens is not None else ilens,
+        )
+
+        return wavs, ilens

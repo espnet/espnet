@@ -959,6 +959,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             dict: Dict of attention weights and outputs.
 
         """
+        self.eval()
         with torch.no_grad():
             # forward encoder
             x_masks = self._source_mask(ilens)
@@ -1038,7 +1039,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 att_ws_dict["after_postnet_fbank"] = [
                     m[:l].T for m, l in zip(after_outs, olens.tolist())
                 ]
-
+        self.train()
         return att_ws_dict
 
     def _integrate_with_spk_embed(self, hs, spembs):
