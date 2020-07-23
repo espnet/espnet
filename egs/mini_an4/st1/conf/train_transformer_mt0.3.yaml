@@ -1,10 +1,10 @@
 # network architecture
 # encoder related
 elayers: 2
-eunits: 32
+eunits: 16
 # decoder related
 dlayers: 2
-dunits: 32
+dunits: 16
 # attention related
 adim: 16
 aheads: 4
