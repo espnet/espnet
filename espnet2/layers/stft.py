@@ -4,11 +4,11 @@ from typing import Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
+import torchaudio
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.inversible_interface import InversibleInterface
-import torchaudio
 
 
 class Stft(torch.nn.Module, InversibleInterface):
