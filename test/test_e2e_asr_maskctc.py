@@ -1,7 +1,6 @@
 import argparse
 import importlib
 import logging
-import numpy
 import pytest
 import torch
 
