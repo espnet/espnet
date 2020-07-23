@@ -213,13 +213,13 @@ def get_parser():
         type=int,
         default=10,
         help="Number of decoding iterations."
-        "For Mask CTC, set 0 to predict 1 mask/iter."
+        "For Mask CTC, set 0 to predict 1 mask/iter.",
     )
     parser.add_argument(
         "--maskctc-probability-threshold",
         type=float,
         default=0.999,
-        help="Threshold probability for CTC output"
+        help="Threshold probability for CTC output",
     )
 
     return parser

@@ -31,6 +31,7 @@ def add_sos_eos(ys_pad, sos, eos, ignore_id):
     ys_out = [torch.cat([y, _eos], dim=0) for y in ys]
     return pad_list(ys_in, eos), pad_list(ys_out, ignore_id)
 
+
 def mask_uniform(ys_pad, mask_token, eos, ignore_id):
     """Replace random tokens with <mask> label and add <eos> label.
 

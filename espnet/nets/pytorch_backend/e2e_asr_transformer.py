@@ -269,13 +269,13 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.decoder = None
         self.blank = 0
-        self.decoder_mode = args.decoder_mode 
-        if self.decoder_mode == "maskctc":                                                                                                                                                                
-            self.mask_token = odim - 1                                                                                                                                                               
-            self.sos = odim - 2                                                                                                                                                                
-            self.eos = odim - 2                                                                                                                                                                
-        else:                                                                                                                                                                                  
-            self.sos = odim - 1                                                                                                                                                                
+        self.decoder_mode = args.decoder_mode
+        if self.decoder_mode == "maskctc":
+            self.mask_token = odim - 1
+            self.sos = odim - 2
+            self.eos = odim - 2
+        else:
+            self.sos = odim - 1
             self.eos = odim - 1
         self.odim = odim
         self.ignore_id = ignore_id
@@ -666,7 +666,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 cnt += 1
         probs_hat = torch.from_numpy(numpy.array(probs_hat))
 
-        char_mask = '_'
+        char_mask = "_"
         p_thres = recog_args.maskctc_probability_threshold
         mask_idx = torch.nonzero(probs_hat[y_idx] < p_thres).squeeze(-1)
         confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
@@ -675,31 +675,59 @@ class E2E(ASRInterface, torch.nn.Module):
         y_in = torch.zeros(1, len(y_idx) + 1, dtype=torch.long) + self.mask_token
         y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
         y_in[0][-1] = self.eos
-        
-        logging.info('ctc:{}'.format(
-            ''.join([char_list[y] if y != self.mask_token else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
+
+        logging.info(
+            "ctc:{}".format(
+                "".join(
+                    [
+                        char_list[y] if y != self.mask_token else char_mask
+                        for y in y_in[0].tolist()
+                    ]
+                ).replace("<space>", " ")
+            )
+        )
 
         if not mask_num == 0:
             K = recog_args.maskctc_n_iterations
             num_iter = K if mask_num >= K and K > 0 else mask_num
 
             for t in range(1, num_iter):
-                pred, _ = self.decoder(y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None)
+                pred, _ = self.decoder(
+                    y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None
+                )
                 pred_sc, pred_id = pred[0][mask_idx].max(dim=-1)
                 cand = torch.topk(pred_sc, mask_num // num_iter, -1)[1]
                 y_in[0][mask_idx[cand]] = pred_id[cand]
                 mask_idx = torch.nonzero(y_in[0] == self.mask_token).squeeze(-1)
 
-                logging.info('msk:{}'.format(
-                    ''.join([char_list[y] if y != self.mask_token else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
-                
-            pred, pred_mask = self.decoder(y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None)
+                logging.info(
+                    "msk:{}".format(
+                        "".join(
+                            [
+                                char_list[y] if y != self.mask_token else char_mask
+                                for y in y_in[0].tolist()
+                            ]
+                        ).replace("<space>", " ")
+                    )
+                )
+
+            pred, pred_mask = self.decoder(
+                y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None
+            )
             y_in[0][mask_idx] = pred[0][mask_idx].argmax(dim=-1)
-            logging.info('msk:{}'.format(
-                ''.join([char_list[y] if y != self.mask_token else char_mask for y in y_in[0].tolist()]).replace('<space>', ' ')))
+            logging.info(
+                "msk:{}".format(
+                    "".join(
+                        [
+                            char_list[y] if y != self.mask_token else char_mask
+                            for y in y_in[0].tolist()
+                        ]
+                    ).replace("<space>", " ")
+                )
+            )
 
         ret = y_in.tolist()[0][:-1]
-        hyp = {'score': 0.0, 'yseq': [self.sos] + ret + [self.eos]}
+        hyp = {"score": 0.0, "yseq": [self.sos] + ret + [self.eos]}
 
         return [hyp]
 

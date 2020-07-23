@@ -36,7 +36,7 @@ def make_arg(**kwargs):
         wshare=4,
         char_list=["<blank>", "a", "e", "i", "o", "u", "<eos>", "<mask>"],
         ctc_type="warpctc",
-        decoder_mode="maskctc"
+        decoder_mode="maskctc",
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -55,7 +55,7 @@ def prepare(args):
 
     x = torch.randn(batchsize, 40, idim)
     ilens = [40, 30, 20, 15, 10]
-    n_token = odim - 2 # w/o <eos>/<sos>, <mask>
+    n_token = odim - 2  # w/o <eos>/<sos>, <mask>
     y = (torch.rand(batchsize, 10) * n_token % n_token).long()
     olens = [5, 9, 10, 7, 6]
     for i in range(batchsize):
@@ -76,6 +76,7 @@ def prepare(args):
 
     return model, x, torch.tensor(ilens), y, data
 
+
 def test_mask():
     args = make_arg()
     model, x, ilens, y, data = prepare(args)
@@ -88,8 +89,12 @@ def test_mask():
 
     # check mask_uniform
     from espnet.nets.pytorch_backend.transformer.add_sos_eos import mask_uniform
+
     yi, yo = mask_uniform(y, model.mask_token, model.eos, model.ignore_id)
-    assert ((yi == model.mask_token).detach().numpy() == (yo != model.ignore_id).detach().numpy()).all()
+    assert (
+        (yi == model.mask_token).detach().numpy()
+        == (yo != model.ignore_id).detach().numpy()
+    ).all()
 
 
 @pytest.mark.parametrize(
@@ -125,10 +130,14 @@ def test_transformer_trainable_and_decodable(model_dict):
 
     # test decoding
     with torch.no_grad():
-        nbest = model.recognize_maskctc(x[0, : ilens[0]].numpy(), recog_args, args.char_list)
+        nbest = model.recognize_maskctc(
+            x[0, : ilens[0]].numpy(), recog_args, args.char_list
+        )
         print(y[0])
         print(nbest[0]["yseq"][1:-1])
 
+
 if __name__ == "__main__":
     test_transformer_trainable_and_decodable(
-        {"maskctc_n_iterations": 0, "maskctc_probability_threshold": 0.5})
+        {"maskctc_n_iterations": 0, "maskctc_probability_threshold": 0.5}
+    )
