@@ -5,6 +5,7 @@ import logging
 import torch
 from torch.nn import functional as F
 from torch_complex import functional as FC
+from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.frontends.beamformer import apply_beamforming_vector
 from espnet.nets.pytorch_backend.frontends.beamformer import get_mvdr_vector
@@ -15,7 +16,6 @@ from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
 from espnet2.enh.layers.conv_beamformer import get_covariances
 from espnet2.enh.layers.conv_beamformer import get_WPD_filter_v2
 from espnet2.enh.layers.conv_beamformer import perform_WPD_filtering
-from torch_complex.tensor import ComplexTensor
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
