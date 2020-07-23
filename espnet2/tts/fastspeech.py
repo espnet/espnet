@@ -13,7 +13,9 @@ import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformerLoss
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
+    FeedForwardTransformerLoss as FastSpeechLoss,  # NOQA
+)
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -275,7 +277,7 @@ class FastSpeech(AbsTTS):
         )
 
         # define criterions
-        self.criterion = FeedForwardTransformerLoss(
+        self.criterion = FastSpeechLoss(
             use_masking=use_masking, use_weighted_masking=use_weighted_masking
         )
 
@@ -394,13 +396,10 @@ class FastSpeech(AbsTTS):
 
         # calculate loss
         if self.postnet is None:
-            l1_loss, duration_loss = self.criterion(
-                None, before_outs, d_outs, ys, ds, ilens, olens
-            )
-        else:
-            l1_loss, duration_loss = self.criterion(
-                after_outs, before_outs, d_outs, ys, ds, ilens, olens
-            )
+            after_outs = None
+        l1_loss, duration_loss = self.criterion(
+            after_outs, before_outs, d_outs, ys, ds, ilens, olens
+        )
         loss = l1_loss + duration_loss
 
         stats = dict(
