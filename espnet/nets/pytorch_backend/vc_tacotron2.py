@@ -21,7 +21,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
-from espnet.nets.pytorch_backend.tacotron2.encoder import EncoderNoEmb as Encoder
+from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.fill_missing_args import fill_missing_args
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
@@ -42,12 +42,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         """Add model-specific arguments to the parser."""
         group = parser.add_argument_group("tacotron 2 model setting")
         # encoder
-        group.add_argument(
-            "--embed-dim",
-            default=512,
-            type=int,
-            help="Number of dimension of embedding",
-        )
         group.add_argument(
             "--elayers", default=1, type=int, help="Number of encoder layers"
         )
@@ -281,12 +275,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             type=float,
             help="Lambda in target reconstruction loss",
         )
-        group.add_argument(
-            "--use-speaker-adv-loss",
-            default=False,
-            type=strtobool,
-            help="Whether to use adversarial speaker classifier loss.",
-        )
         return parser
 
     def __init__(self, idim, odim, args=None):
@@ -297,7 +285,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             odim (int): Dimension of the outputs.
             args (Namespace, optional):
                 - spk_embed_dim (int): Dimension of the speaker embedding.
-                - embed_dim (int): Dimension of character embedding.
                 - elayers (int): The number of encoder blstm layers.
                 - eunits (int): The number of encoder blstm units.
                 - econv_layers (int): The number of encoder conv layers.
@@ -371,11 +358,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         padding_idx = 0
 
         # define network modules
-        encoder_input_layer = torch.nn.Linear(
-            idim * args.encoder_reduction_factor, args.embed_dim
-        )
         self.enc = Encoder(
-            idim=args.embed_dim,
+            idim=idim,
+            use_embed=False,
+            encoder_reduction_factor=args.encoder_reduction_factor,
             elayers=args.elayers,
             eunits=args.eunits,
             econv_layers=args.econv_layers,
@@ -384,7 +370,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             use_batch_norm=args.use_batch_norm,
             use_residual=args.use_residual,
             dropout_rate=args.dropout_rate,
-            input_layer=encoder_input_layer,
         )
         dec_idim = (
             args.eunits
@@ -462,6 +447,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if self.src_reconstruction_loss_lambda > 0:
             self.src_reconstructor = Encoder(
                 idim=dec_idim,
+                use_embed=False,
                 elayers=args.elayers,
                 eunits=args.eunits,
                 econv_layers=args.econv_layers,
@@ -479,6 +465,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if self.trg_reconstruction_loss_lambda > 0:
             self.trg_reconstructor = Encoder(
                 idim=dec_idim,
+                use_embed=False,
                 elayers=args.elayers,
                 eunits=args.eunits,
                 econv_layers=args.econv_layers,
@@ -503,7 +490,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            xs (Tensor): Batch of padded character ids (B, Tmax).
+            xs (Tensor): Batch of padded acoustic features (B, Tmax, idim).
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
@@ -664,7 +651,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            x (Tensor): Input sequence of characters (T,).
+            x (Tensor): Input sequence of acoustic features (T, idim).
             inference_args (Namespace):
                 - threshold (float): Threshold in inference.
                 - minlenratio (float): Minimum length ratio in inference.
@@ -711,7 +698,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         """Calculate all of the attention weights.
 
         Args:
-            xs (Tensor): Batch of padded character ids (B, Tmax).
+            xs (Tensor): Batch of padded acoustic features (B, Tmax, idim).
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).

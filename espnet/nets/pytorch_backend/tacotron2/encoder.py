@@ -37,13 +37,14 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         idim,
+        use_embed=True,
         embed_dim=512,
+        encoder_reduction_factor=1,
         elayers=1,
         eunits=512,
         econv_layers=3,
         econv_chans=512,
         econv_filts=5,
-        input_layer=None,
         use_batch_norm=True,
         use_residual=False,
         dropout_rate=0.5,
@@ -53,13 +54,14 @@ class Encoder(torch.nn.Module):
 
         Args:
             idim (int) Dimension of the inputs.
+            use_embed (bool, optional) Whether to use embedding table or not. 
+            encoder_reduction_factor (int, optional) Encoder reduction factor.
             embed_dim (int, optional) Dimension of character embedding.
             elayers (int, optional) The number of encoder blstm layers.
             eunits (int, optional) The number of encoder blstm units.
             econv_layers (int, optional) The number of encoder conv layers.
             econv_filts (int, optional) The number of encoder conv filter size.
             econv_chans (int, optional) The number of encoder conv filter channels.
-            input_layer (torch.nn.Module, optional) Input layer type.
             use_batch_norm (bool, optional) Whether to use batch normalization.
             use_residual (bool, optional) Whether to use residual connection.
             dropout_rate (float, optional) Dropout rate.
@@ -69,20 +71,24 @@ class Encoder(torch.nn.Module):
         # store the hyperparameters
         self.idim = idim
         self.use_residual = use_residual
+        self.use_embed = use_embed
 
         # define network layer modules
-        self.embed = torch.nn.Embedding(idim, embed_dim, padding_idx=padding_idx)
-        self.input_layer = input_layer
-
-        # If input_layer is specified, the input is acoustic feature sequence.
-        # Then, the input dim to the conv layers is idim.
-        if self.input_layer is not None:
-            embed_dim = idim
+        # If use_embed is true, the input is character sequence.
+        #   Then, use embed.
+        # Else, the input is acoustic feature sequence.
+        #   Then, use a linear layer to project to econv_chans dimension (for residual)
+        if use_embed:
+            self.embed = torch.nn.Embedding(idim, embed_dim, padding_idx=padding_idx)
+        else:
+            self.input_layer = torch.nn.Linear(
+            idim * encoder_reduction_factor, econv_chans
+        )
 
         if econv_layers > 0:
             self.convs = torch.nn.ModuleList()
             for layer in six.moves.range(econv_layers):
-                ichans = embed_dim if layer == 0 else econv_chans
+                ichans = econv_chans if layer > 0 or not use_embed else embed_dim
                 if use_batch_norm:
                     self.convs += [
                         torch.nn.Sequential(
@@ -132,7 +138,8 @@ class Encoder(torch.nn.Module):
 
         Args:
             xs (Tensor): Batch of the padded sequence.
-                Either character ids (B, Tmax) or acoustic feature (B, Tmax, idim).
+                Either character ids (B, Tmax)
+                    or acoustic feature (B, Tmax, idim * encoder_reduction_factor).
                 Padded value should be 0.
             ilens (LongTensor): Batch of lengths of each input batch (B,).
 
@@ -141,14 +148,14 @@ class Encoder(torch.nn.Module):
             LongTensor: Batch of lengths of each sequence (B,)
 
         """
-        # If input_layer is specified, the input is acoustic feature sequence.
-        # Then, use input_layer.
-        if self.input_layer is not None:
-            xs = self.input_layer(xs)
-
-        # Else, the input is character sequence. Then, use embed.
-        else:
+        # If use_embed is true, the input is character sequence.
+        #   Then, use embed.
+        # Else, the input is acoustic feature sequence.
+        #   Then, use a linear layer.
+        if self.use_embed:
             xs = self.embed(xs)
+        else:
+            xs = self.input_layer(xs)
 
         xs = xs.transpose(1, 2)
         if self.convs is not None:
@@ -170,7 +177,8 @@ class Encoder(torch.nn.Module):
         """Inference.
 
         Args:
-            x (Tensor): The sequeunce of character ids (T,) or acoustic features (T, idim).
+            x (Tensor): The sequeunce of character ids (T,)
+                    or acoustic feature (T, idim * encoder_reduction_factor).
 
         Returns:
             Tensor: The sequences of encoder states(T, eunits).
