@@ -80,6 +80,16 @@ cd "${cwd}" || exit 1
 # test st recipe
 cd ./egs/mini_an4/st1 || exit 1
 echo "==== ST (backend=pytorch) ==="
+./run.sh
+echo "==== ST (backend=pytorch asr0.3) ==="
+./run.sh --stage 4 --train_config conf/train_asr0.3.yaml
+echo "==== ST (backend=pytorch ctc asr0.3) ==="
+./run.sh --stage 4 --train_config conf/train_ctc_asr0.3.yaml
+echo "==== ST (backend=pytorch mt0.3) ==="
+./run.sh --stage 4 --train_config conf/train_mt0.3.yaml
+echo "==== ST (backend=pytorch asr0.2 mt0.2) ==="
+./run.sh --stage 4 --train_config conf/train_asr0.2_mt0.2.yaml
+echo "==== ST (backend=pytorch, model=transformer) ==="
 ./run.sh --stage 4 --train_config conf/train_transformer.yaml
 echo "==== ST (backend=pytorch asr0.3, model=transformer) ==="
 ./run.sh --stage 4 --train_config conf/train_transformer_asr0.3.yaml
