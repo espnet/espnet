@@ -44,4 +44,4 @@ report-cer: true
 report-wer: true
 
 # Non-autoregressive
-decoder-mode: MP
+decoder-mode: maskctc

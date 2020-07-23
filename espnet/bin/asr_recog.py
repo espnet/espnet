@@ -209,14 +209,14 @@ def get_parser():
     # non-autoregressive related
     # Mask CTC related. See https://arxiv.org/abs/2005.08700 for the detail.
     parser.add_argument(
-        "--mp-n-iterations",
+        "--maskctc-n-iterations",
         type=int,
         default=10,
         help="Number of decoding iterations."
         "For Mask CTC, set 0 to predict 1 mask/iter."
     )
     parser.add_argument(
-        "--mp-probability-threshold",
+        "--maskctc-probability-threshold",
         type=float,
         default=0.999,
         help="Threshold probability for CTC output"
