@@ -12,7 +12,7 @@ import torch
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.conformer.subsampling import Conv2dSubsampling
-from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
