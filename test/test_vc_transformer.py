@@ -7,6 +7,7 @@
 import numpy as np
 import pytest
 import torch
+from math import floor
 
 from argparse import Namespace
 
@@ -221,8 +222,8 @@ def test_transformer_gpu_trainable_and_decodable(model_dict):
 
     idim = 40
     odim = 40
-    ilens = [10, 5]
-    olens = [20, 15]
+    ilens = [10, 5, 10, 5]
+    olens = [20, 15, 20, 15]
     device = torch.device("cuda")
     batch = prepare_inputs(
         idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device
@@ -285,8 +286,8 @@ def test_transformer_multi_gpu_trainable(model_dict):
     # setup batch
     idim = 40
     odim = 40
-    ilens = [10, 5]
-    olens = [20, 15]
+    ilens = [10, 5, 10, 5]
+    olens = [20, 15, 20, 15]
     device = torch.device("cuda")
     batch = prepare_inputs(
         idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device
@@ -320,24 +321,26 @@ def test_attention_masking(model_dict):
     # setup batch
     idim = 40
     odim = 40
-    ilens = [10, 5]
-    olens = [20, 15]
+    ilens = [40, 40]
+    olens = [40, 40]
     batch = prepare_inputs(idim, odim, ilens, olens)
 
     # define model
     model = Transformer(idim, odim, Namespace(**model_args))
 
     # test encoder self-attention
-    xs = model.encoder.embed(batch["xs"])
-    xs[1, ilens[1] :] = float("nan")
     x_masks = model._source_mask(batch["ilens"])
+    xs, x_masks = model.encoder.embed(batch["xs"], x_masks)
+    xs[1, ilens[1] :] = float("nan")
     a = model.encoder.encoders[0].self_attn
     a(xs, xs, xs, x_masks)
     aws = a.attn.detach().numpy()
     for aw, ilen in zip(aws, batch["ilens"]):
+        ilen = floor(floor(((ilen-1)/2)-1)/2) # due to 4x down sampling
         assert not np.isnan(aw[:, :ilen, :ilen]).any()
         np.testing.assert_almost_equal(
-            aw[:, :ilen, :ilen].sum(), float(aw.shape[0] * ilen), decimal=4
+            aw[:, :ilen, :ilen].sum(), float(aw.shape[0] * ilen), decimal=4,
+            err_msg=f"ilen={ilen}, awshape={str(aw)}"
         )
         assert aw[:, ilen:, ilen:].sum() == 0.0
 
@@ -349,6 +352,7 @@ def test_attention_masking(model_dict):
     a(ys, xs, xs, xy_masks)
     aws = a.attn.detach().numpy()
     for aw, ilen, olen in zip(aws, batch["ilens"], batch["olens"]):
+        ilen = floor(floor(((ilen-1)/2)-1)/2) # due to 4x down sampling
         assert not np.isnan(aw[:, :olen, :ilen]).any()
         np.testing.assert_almost_equal(
             aw[:, :olen, :ilen].sum(), float(aw.shape[0] * olen), decimal=4
@@ -387,8 +391,8 @@ def test_forward_and_inference_are_equal(model_dict):
     # setup batch
     idim = 40
     odim = 40
-    ilens = [10]
-    olens = [20]
+    ilens = [60]
+    olens = [60]
     batch = prepare_inputs(idim, odim, ilens, olens)
     xs = batch["xs"]
     ilens = batch["ilens"]
