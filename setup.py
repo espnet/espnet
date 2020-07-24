@@ -17,6 +17,7 @@ requirements = {
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "gdown",
+        "espnet_model_zoo",
         # DNN related
         # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
         "chainer==6.0.0",

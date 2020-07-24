@@ -24,14 +24,16 @@ SECONDS=0
 
 # General configuration
 stage=1              # Processes starts from the specified stage.
-stop_stage=12        # Processes is stopped at the specified stage.
+stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
+skip_eval=false      # Skip decoding and evaluation stages
+skip_upload=true     # Skip packing and uploading stages
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
-decode_nj=32         # The number of parallel jobs in decoding.
-gpu_decode=false     # Whether to perform gpu decoding.
+inference_nj=32         # The number of parallel jobs in decoding.
+gpu_inference=false     # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 
@@ -81,17 +83,18 @@ feats_normalize=global_mvn  # Normalizaton layer type
 num_splits_asr=1   # Number of splitting for lm corpus
 
 # Decoding related
-decode_tag=    # Suffix to the result dir for decoding.
-decode_config= # Config for decoding.
-decode_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
-               # Note that it will overwrite args in decode config.
-decode_lm=valid.loss.best.pth       # Language modle path for decoding.
-decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
+inference_tag=    # Suffix to the result dir for decoding.
+inference_config= # Config for decoding.
+inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
+               # Note that it will overwrite args in inference config.
+inference_lm=valid.loss.best.pth       # Language modle path for decoding.
+inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                     # e.g.
-                                    # decode_asr_model=train.loss.best.pth
-                                    # decode_asr_model=3epoch.pth
-                                    # decode_asr_model=valid.acc.best.pth
-                                    # decode_asr_model=valid.loss.ave.pth
+                                    # inference_asr_model=train.loss.best.pth
+                                    # inference_asr_model=3epoch.pth
+                                    # inference_asr_model=valid.acc.best.pth
+                                    # inference_asr_model=valid.loss.ave.pth
+download_model= # Download a model from Model Zoo and use it for decoding
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -117,11 +120,13 @@ Options:
     --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
+    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes
     --nj             # The number of parallel jobs (default="${nj}").
-    --decode_nj      # The number of parallel jobs in decoding (default="${decode_nj}").
-    --gpu_decode     # Whether to perform gpu decoding (default="${gpu_decode}").
+    --inference_nj      # The number of parallel jobs in decoding (default="${inference_nj}").
+    --gpu_inference     # Whether to perform gpu decoding (default="${gpu_inference}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
 
@@ -168,12 +173,13 @@ Options:
     --num_splits_asr=1   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
     # Decoding related
-    --decode_tag       # Suffix to the result dir for decoding (default="${decode_tag}").
-    --decode_config    # Config for decoding (default="${decode_config}").
-    --decode_args      # Arguments for decoding, e.g., "--lm_weight 0.1" (default="${decode_args}").
-                       # Note that it will overwrite args in decode config.
-    --decode_lm        # Language modle path for decoding (default="${decode_lm}").
-    --decode_asr_model # ASR model path for decoding (default="${decode_asr_model}").
+    --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
+    --inference_config    # Config for decoding (default="${inference_config}").
+    --inference_args      # Arguments for decoding, e.g., "--lm_weight 0.1" (default="${inference_args}").
+                       # Note that it will overwrite args in inference config.
+    --inference_lm        # Language modle path for decoding (default="${inference_lm}").
+    --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
+    --download_model   # Download a model from Model Zoo and use it for decoding  (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -234,7 +240,7 @@ fi
 # Check tokenization type
 token_listdir=data/token_list
 bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
-bpeprefix="${bpedir}"/model
+bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
 bpetoken_list="${bpedir}"/tokens.txt
 chartoken_list="${token_listdir}"/char/tokens.txt
@@ -286,20 +292,20 @@ if [ -z "${lm_tag}" ]; then
         lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
-if [ -z "${decode_tag}" ]; then
-    if [ -n "${decode_config}" ]; then
-        decode_tag="$(basename "${decode_config}" .yaml)"
+if [ -z "${inference_tag}" ]; then
+    if [ -n "${inference_config}" ]; then
+        inference_tag="$(basename "${inference_config}" .yaml)"
     else
-        decode_tag=decode
+        inference_tag=inference
     fi
     # Add overwritten arg's info
-    if [ -n "${decode_args}" ]; then
-        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    if [ -n "${inference_args}" ]; then
+        inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     if "${use_lm}"; then
-        decode_tag+="_lm_${lm_tag}_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        inference_tag+="_lm_${lm_tag}_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
-    decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 # The directory used for collect-stats mode
@@ -738,7 +744,7 @@ if ! "${skip_train}"; then
                     --ngpu "${ngpu}" \
                     --data_path_and_name_and_type "${lm_test_text},text,text" \
                     --train_config "${lm_exp}"/config.yaml \
-                    --model_file "${lm_exp}/${decode_lm}" \
+                    --model_file "${lm_exp}/${inference_lm}" \
                     --output_dir "${lm_exp}/perplexity_test" \
                     ${_opts}
             log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
@@ -944,260 +950,290 @@ else
 fi
 
 
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-    log "Stage 11: Decoding: training_dir=${asr_exp}"
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for decoding and evaluation"
+    asr_exp="${expdir}/${download_model}"
+    mkdir -p "${asr_exp}"
 
-    if ${gpu_decode}; then
-        _cmd="${cuda_cmd}"
-        _ngpu=1
-    else
-        _cmd="${decode_cmd}"
-        _ngpu=0
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download --unpack true "${download_model}" > "${asr_exp}/config.txt"
+
+    # Get the path of each file
+    _asr_model_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_model_file': '\([^']*\)'.*$/\1/")
+    _asr_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_asr_model_file}" "${asr_exp}"
+    ln -sf "${_asr_train_config}" "${asr_exp}"
+    inference_asr_model=$(basename "${_asr_model_file}")
+
+    if [ "$(<${asr_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
+        _lm_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
+        _lm_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
+
+        lm_exp="${expdir}/${download_model}/lm"
+        mkdir -p "${lm_exp}"
+
+        ln -sf "${_lm_file}" "${lm_exp}"
+        ln -sf "${_lm_train_config}" "${lm_exp}"
+        inference_lm=$(basename "${_lm_file}")
     fi
 
-    _opts=
-    if [ -n "${decode_config}" ]; then
-        _opts+="--config ${decode_config} "
-    fi
-    if "${use_lm}"; then
-        if "${use_word_lm}"; then
-            _opts+="--word_lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--word_lm_file ${lm_exp}/${decode_lm} "
-        else
-            _opts+="--lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--lm_file ${lm_exp}/${decode_lm} "
-        fi
-    fi
-
-    for dset in ${test_sets}; do
-        _data="${data_feats}/${dset}"
-        _dir="${asr_exp}/decode_${dset}_${decode_tag}"
-        _logdir="${_dir}/logdir"
-        mkdir -p "${_logdir}"
-
-        _feats_type="$(<${_data}/feats_type)"
-        if [ "${_feats_type}" = raw ]; then
-            _scp=wav.scp
-            _type=sound
-        else
-            _scp=feats.scp
-            _type=kaldi_ark
-        fi
-
-        # 1. Split the key file
-        key_file=${_data}/${_scp}
-        split_scps=""
-        _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
-        for n in $(seq "${_nj}"); do
-            split_scps+=" ${_logdir}/keys.${n}.scp"
-        done
-        # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
-
-        # 2. Submit decoding jobs
-        log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
-        # shellcheck disable=SC2086
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-            python3 -m espnet2.bin.asr_inference \
-                --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
-                --key_file "${_logdir}"/keys.JOB.scp \
-                --asr_train_config "${asr_exp}"/config.yaml \
-                --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
-                --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${decode_args}
-
-        # 3. Concatenates the output files from each jobs
-        for f in token token_int score text; do
-            for i in $(seq "${_nj}"); do
-                cat "${_logdir}/output.${i}/1best_recog/${f}"
-            done | LC_ALL=C sort -k1 >"${_dir}/${f}"
-        done
-    done
 fi
 
 
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-    log "Stage 12: Scoring"
-    if [ "${token_type}" = pnh ]; then
-        log "Error: Not implemented for token_type=phn"
-        exit 1
-    fi
+if ! "${skip_eval}"; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+        log "Stage 11: Decoding: training_dir=${asr_exp}"
 
-    for dset in ${test_sets}; do
-        _data="${data_feats}/${dset}"
-        _dir="${asr_exp}/decode_${dset}_${decode_tag}"
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+        fi
 
-        for _type in cer wer ter; do
-            [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
+        _opts=
+        if [ -n "${inference_config}" ]; then
+            _opts+="--config ${inference_config} "
+        fi
+        if "${use_lm}"; then
+            if "${use_word_lm}"; then
+                _opts+="--word_lm_train_config ${lm_exp}/config.yaml "
+                _opts+="--word_lm_file ${lm_exp}/${inference_lm} "
+            else
+                _opts+="--lm_train_config ${lm_exp}/config.yaml "
+                _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            fi
+        fi
 
-            _scoredir="${_dir}/score_${_type}"
-            mkdir -p "${_scoredir}"
+        for dset in ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _dir="${asr_exp}/inference_${dset}_${inference_tag}"
+            _logdir="${_dir}/logdir"
+            mkdir -p "${_logdir}"
 
-            if [ "${_type}" = wer ]; then
-                # Tokenize text to word level
-                paste \
-                    <(<"${_data}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type word \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true \
-                              --cleaner "${cleaner}" \
-                              ) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/ref.trn"
-
-                # NOTE(kamo): Don't use cleaner for hyp
-                paste \
-                    <(<"${_dir}/text"  \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type word \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true \
-                              ) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/hyp.trn"
-
-
-            elif [ "${_type}" = cer ]; then
-                # Tokenize text to char level
-                paste \
-                    <(<"${_data}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type char \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true \
-                              --cleaner "${cleaner}" \
-                              ) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/ref.trn"
-
-                # NOTE(kamo): Don't use cleaner for hyp
-                paste \
-                    <(<"${_dir}/text"  \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type char \
-                              --non_linguistic_symbols "${nlsyms_txt}" \
-                              --remove_non_linguistic_symbols true \
-                              ) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/hyp.trn"
-
-            elif [ "${_type}" = ter ]; then
-                # Tokenize text using BPE
-                paste \
-                    <(<"${_data}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type bpe \
-                              --bpemodel "${bpemodel}" \
-                              --cleaner "${cleaner}" \
-                            ) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/ref.trn"
-
-                # NOTE(kamo): Don't use cleaner for hyp
-                paste \
-                    <(<"${_dir}/text" \
-                          python3 -m espnet2.bin.tokenize_text  \
-                              -f 2- --input - --output - \
-                              --token_type bpe \
-                              --bpemodel "${bpemodel}" \
-                              --cleaner "${cleaner}" \
-                              ) \
-                    <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                        >"${_scoredir}/hyp.trn"
+            _feats_type="$(<${_data}/feats_type)"
+            if [ "${_feats_type}" = raw ]; then
+                _scp=wav.scp
+                _type=sound
+            else
+                _scp=feats.scp
+                _type=kaldi_ark
             fi
 
-            sclite \
-                -r "${_scoredir}/ref.trn" trn \
-                -h "${_scoredir}/hyp.trn" trn \
-                -i rm -o all stdout > "${_scoredir}/result.txt"
+            # 1. Split the key file
+            key_file=${_data}/${_scp}
+            split_scps=""
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            for n in $(seq "${_nj}"); do
+                split_scps+=" ${_logdir}/keys.${n}.scp"
+            done
+            # shellcheck disable=SC2086
+            utils/split_scp.pl "${key_file}" ${split_scps}
 
-            log "Write ${_type} result in ${_scoredir}/result.txt"
-            grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+            # 2. Submit decoding jobs
+            log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+            # shellcheck disable=SC2086
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
+                python3 -m espnet2.bin.asr_inference \
+                    --ngpu "${_ngpu}" \
+                    --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                    --key_file "${_logdir}"/keys.JOB.scp \
+                    --asr_train_config "${asr_exp}"/config.yaml \
+                    --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+                    --output_dir "${_logdir}"/output.JOB \
+                    ${_opts} ${inference_args}
+
+            # 3. Concatenates the output files from each jobs
+            for f in token token_int score text; do
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/1best_recog/${f}"
+                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+            done
+        done
+    fi
+
+
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+        log "Stage 12: Scoring"
+        if [ "${token_type}" = pnh ]; then
+            log "Error: Not implemented for token_type=phn"
+            exit 1
+        fi
+
+        for dset in ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _dir="${asr_exp}/inference_${dset}_${inference_tag}"
+
+            for _type in cer wer ter; do
+                [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
+
+                _scoredir="${_dir}/score_${_type}"
+                mkdir -p "${_scoredir}"
+
+                if [ "${_type}" = wer ]; then
+                    # Tokenize text to word level
+                    paste \
+                        <(<"${_data}/text" \
+                              python3 -m espnet2.bin.tokenize_text  \
+                                  -f 2- --input - --output - \
+                                  --token_type word \
+                                  --non_linguistic_symbols "${nlsyms_txt}" \
+                                  --remove_non_linguistic_symbols true \
+                                  --cleaner "${cleaner}" \
+                                  ) \
+                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                            >"${_scoredir}/ref.trn"
+
+                    # NOTE(kamo): Don't use cleaner for hyp
+                    paste \
+                        <(<"${_dir}/text"  \
+                              python3 -m espnet2.bin.tokenize_text  \
+                                  -f 2- --input - --output - \
+                                  --token_type word \
+                                  --non_linguistic_symbols "${nlsyms_txt}" \
+                                  --remove_non_linguistic_symbols true \
+                                  ) \
+                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                            >"${_scoredir}/hyp.trn"
+
+
+                elif [ "${_type}" = cer ]; then
+                    # Tokenize text to char level
+                    paste \
+                        <(<"${_data}/text" \
+                              python3 -m espnet2.bin.tokenize_text  \
+                                  -f 2- --input - --output - \
+                                  --token_type char \
+                                  --non_linguistic_symbols "${nlsyms_txt}" \
+                                  --remove_non_linguistic_symbols true \
+                                  --cleaner "${cleaner}" \
+                                  ) \
+                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                            >"${_scoredir}/ref.trn"
+
+                    # NOTE(kamo): Don't use cleaner for hyp
+                    paste \
+                        <(<"${_dir}/text"  \
+                              python3 -m espnet2.bin.tokenize_text  \
+                                  -f 2- --input - --output - \
+                                  --token_type char \
+                                  --non_linguistic_symbols "${nlsyms_txt}" \
+                                  --remove_non_linguistic_symbols true \
+                                  ) \
+                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                            >"${_scoredir}/hyp.trn"
+
+                elif [ "${_type}" = ter ]; then
+                    # Tokenize text using BPE
+                    paste \
+                        <(<"${_data}/text" \
+                              python3 -m espnet2.bin.tokenize_text  \
+                                  -f 2- --input - --output - \
+                                  --token_type bpe \
+                                  --bpemodel "${bpemodel}" \
+                                  --cleaner "${cleaner}" \
+                                ) \
+                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                            >"${_scoredir}/ref.trn"
+
+                    # NOTE(kamo): Don't use cleaner for hyp
+                    paste \
+                        <(<"${_dir}/text" \
+                              python3 -m espnet2.bin.tokenize_text  \
+                                  -f 2- --input - --output - \
+                                  --token_type bpe \
+                                  --bpemodel "${bpemodel}" \
+                                  --cleaner "${cleaner}" \
+                                  ) \
+                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                            >"${_scoredir}/hyp.trn"
+                fi
+
+                sclite \
+                    -r "${_scoredir}/ref.trn" trn \
+                    -h "${_scoredir}/hyp.trn" trn \
+                    -i rm -o all stdout > "${_scoredir}/result.txt"
+
+                log "Write ${_type} result in ${_scoredir}/result.txt"
+                grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+            done
+
         done
 
-    done
+        # Show results in Markdown syntax
+        scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
+        cat "${asr_exp}"/RESULTS.md
 
-    # Show results in Markdown syntax
-    scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
-    cat "${asr_exp}"/RESULTS.md
-
+    fi
+else
+    log "Skip the evaluation stages"
 fi
 
 
-packed_model="${asr_exp}/${asr_exp##*/}_${decode_asr_model%.*}.zip"
-if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-    log "[Option] Stage 13: Pack model: ${packed_model}"
+packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
+if ! "${skip_upload}"; then
+    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+        log "Stage 13: Pack model: ${packed_model}"
 
-    _opts=
-    if "${use_lm}"; then
-        _opts+="--lm/config.yaml ${lm_exp}/config.yaml "
-        _opts+="--lm/pretrain.pth ${lm_exp}/${decode_lm} "
+        _opts=
+        if "${use_lm}"; then
+            _opts+="--lm_train_config ${lm_exp}/config.yaml "
+            _opts+="--lm_file ${lm_exp}/${inference_lm} "
+        fi
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+        fi
+        if [ "${token_type}" = bpe ]; then
+            _opts+="--option ${bpemodel} "
+        fi
+        # shellcheck disable=SC2086
+        python -m espnet2.bin.pack asr \
+            --asr_train_config "${asr_exp}"/config.yaml \
+            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+            ${_opts} \
+            --option "${asr_exp}"/RESULTS.md \
+            --outpath "${packed_model}"
     fi
-    if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
-    fi
-    if [ "${token_type}" = bpe ]; then
-        _opts+="--option ${bpemodel} "
-    fi
-    # shellcheck disable=SC2086
-    python -m espnet2.bin.pack asr \
-        --dirname "$(basename ${packed_model} .zip)" \
-        --asr/config.yaml "${asr_exp}"/config.yaml \
-        --asr/pretrain.pth "${asr_exp}"/"${decode_asr_model}" \
-        ${_opts} \
-        --option "${asr_exp}"/RESULTS.md \
-        --outpath "${packed_model}"
-
-    # NOTE(kamo): If you'll use packed model to decode in this script, do as follows
-    #   % unzip ${packed_model}
-    #   % exp=$(basename ${packed_model} .zip)
-    #   % ./run.sh --skip_data_prep <true|false> --skip_train true --asr_exp ${exp}/asr --decode_asr_model pretrain.pth --lm_exp ${exp}/lm --decode_lm pretrain.pth
-fi
 
 
-if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-    log "[Option] Stage 14: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Upload model to Zenodo: ${packed_model}"
 
-    # To upload your model, you need to do:
-    #   1. Sign up to Zenodo: https://zenodo.org/
-    #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-    #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+        # To upload your model, you need to do:
+        #   1. Sign up to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-    if command -v git &> /dev/null; then
-        _creator_name="$(git config user.name)"
-        _checkout="
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
 git checkout $(git show -s --format=%H)"
 
-    else
-        _creator_name="$(whoami)"
-        _checkout=""
-    fi
-    # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
-    _task="$(pwd | rev | cut -d/ -f2 | rev)"
-    # foo/asr1 -> foo
-    _corpus="${_task%/*}"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
-    # Generate description file
-    cat << EOF > "${asr_exp}"/description
+        # Generate description file
+        cat << EOF > "${asr_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
-<li><strong>Python API</strong><pre><code class="language-python">Coming soon...</code></pre></li>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
 <li><strong>Evaluate in the recipe</strong><pre>
 <code class="language-bash">git clone https://github.com/espnet/espnet
 cd espnet${_checkout}
 pip install -e .
 cd $(pwd | rev | cut -d/ -f1-3 | rev)
-# Download the model file here
-unzip $(basename ${packed_model})
-./run.sh --skip_data_prep false --skip_train true --asr_exp $(basename ${packed_model} .zip)/asr --decode_asr_model pretrain.pth --lm_exp $(basename ${packed_model} .zip)/lm --decode_lm pretrain.pth</code>
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
 <li><strong>Results</strong><pre><code>$(cat "${asr_exp}"/RESULTS.md)</code></pre></li>
 <li><strong>ASR config</strong><pre><code>$(cat "${asr_exp}"/config.yaml)</code></pre></li>
@@ -1205,18 +1241,21 @@ unzip $(basename ${packed_model})
 </ul>
 EOF
 
-    # NOTE(kamo): The model file is uploaded here, but not published yet.
-    #   Please confirm your record at Zenodo and publish it by youself.
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish it by youself.
 
-    # shellcheck disable=SC2086
-    python -m espnet2.bin.zenodo_upload \
-        --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${_creator_name}/${_corpus}_$(basename ${packed_model} .zip), fs=${fs}, lang=${lang}" \
-        --description_file ${asr_exp}/description \
-        --creator_name "${_creator_name}" \
-        --license "CC-BY-4.0" \
-        --use_sandbox false \
-        --publish false
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${asr_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
+else
+    log "Skip the uploading stages"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
