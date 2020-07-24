@@ -336,10 +336,7 @@ class FastSpeech(AbsTTS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        if is_inference:
-            return before_outs, after_outs, d_outs
-        else:
-            return before_outs, after_outs, ds, d_outs
+        return before_outs, after_outs, d_outs
 
     def forward(
         self,
@@ -384,7 +381,7 @@ class FastSpeech(AbsTTS):
         olens = speech_lengths
 
         # forward propagation
-        before_outs, after_outs, ds, d_outs = self._forward(
+        before_outs, after_outs, d_outs = self._forward(
             xs, ilens, ys, olens, ds, spembs=spembs, is_inference=False
         )
 
