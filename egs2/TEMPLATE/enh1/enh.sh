@@ -637,8 +637,8 @@ fi
 
 packed_model="${enh_exp}/${enh_exp##*/}_${inference_model%.*}.zip"
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Pack model: ${packed_model}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Pack model: ${packed_model}"
 
         python -m espnet2.bin.pack tts \
             --train_config "${enh_exp}"/config.yaml \
