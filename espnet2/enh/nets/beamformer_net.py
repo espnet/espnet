@@ -182,9 +182,7 @@ class BeamformerNet(AbsEnhancement):
         # (B, T, F) -> (B, T, F, 2)
         if isinstance(enhanced, list):
             # multi-speaker output
-            enhanced = [
-                torch.stack([enh.real, enh.imag], dim=-1).float() for enh in enhanced
-            ]
+            enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
         else:
             # single-speaker output
             enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1).float()
