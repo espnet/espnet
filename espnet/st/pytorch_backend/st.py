@@ -371,9 +371,7 @@ def train(args):
         att_reporter = None
 
     # Save CTC prob at each epoch
-    if (
-        args.mtlalpha > 0 or getattr(args, "mtlalpha_st", 0) > 0
-    ) and args.num_save_ctc > 0:
+    if (args.asr_weight > 0 and args.mtlalpha > 0) and args.num_save_ctc > 0:
         # NOTE: sort it by output lengths
         data = sorted(
             list(valid_json.items())[: args.num_save_ctc],
