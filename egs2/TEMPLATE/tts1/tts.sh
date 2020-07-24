@@ -35,8 +35,8 @@ skip_upload=true     # Skip packing and uploading stages
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
-decode_nj=32         # The number of parallel jobs in decoding.
-gpu_decode=false     # Whether to perform gpu decoding.
+inference_nj=32         # The number of parallel jobs in decoding.
+gpu_inference=false     # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 
@@ -71,15 +71,15 @@ num_splits=1       # Number of splitting for tts corpus
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 
 # Decoding related
-decode_config= # Config for decoding.
-decode_args=   # Arguments for decoding, e.g., "--threshold 0.75".
-               # Note that it will overwrite args in decode config.
-decode_tag=""  # Suffix for decoding directory.
-decode_model=train.loss.best.pth # Model path for decoding e.g.,
-                                 # decode_model=train.loss.best.pth
-                                 # decode_model=3epoch.pth
-                                 # decode_model=valid.acc.best.pth
-                                 # decode_model=valid.loss.ave.pth
+inference_config= # Config for decoding.
+inference_args=   # Arguments for decoding, e.g., "--threshold 0.75".
+               # Note that it will overwrite args in inference config.
+inference_tag=""  # Suffix for decoding directory.
+inference_model=train.loss.best.pth # Model path for decoding e.g.,
+                                 # inference_model=train.loss.best.pth
+                                 # inference_model=3epoch.pth
+                                 # inference_model=valid.acc.best.pth
+                                 # inference_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 download_model= # Download a model from Model Zoo and use it for decoding
 
@@ -110,8 +110,8 @@ Options:
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes
     --nj             # The number of parallel jobs (default="${nj}").
-    --decode_nj      # The number of parallel jobs in decoding (default="${decode_nj}").
-    --gpu_decode     # Whether to perform gpu decoding (default="${gpu_decode}").
+    --inference_nj      # The number of parallel jobs in decoding (default="${inference_nj}").
+    --gpu_inference     # Whether to perform gpu decoding (default="${gpu_inference}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
 
@@ -143,11 +143,11 @@ Options:
     --num_splits   # Number of splitting for tts corpus (default="${num_splits}").
 
     # Decoding related
-    --decode_config     # Config for decoding (default="${decode_config}").
-    --decode_args       # Arguments for decoding, e.g., "--threshold 0.75" (default="${decode_args}").
-                        # Note that it will overwrite args in decode config.
-    --decode_tag        # Suffix for decoding directory (default="${decode_tag}").
-    --decode_model      # Model path for decoding (default=${decode_model}).
+    --inference_config     # Config for decoding (default="${inference_config}").
+    --inference_args       # Arguments for decoding, e.g., "--threshold 0.75" (default="${inference_args}").
+                        # Note that it will overwrite args in inference config.
+    --inference_tag        # Suffix for decoding directory (default="${inference_tag}").
+    --inference_model      # Model path for decoding (default=${inference_model}).
     --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
     --download_model   # Download a model from Model Zoo and use it for decoding  (default="${download_model}").
 
@@ -221,17 +221,17 @@ if [ -z "${tag}" ]; then
         tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
-if [ -z "${decode_tag}" ]; then
-    if [ -n "${decode_config}" ]; then
-        decode_tag="$(basename "${decode_config}" .yaml)"
+if [ -z "${inference_tag}" ]; then
+    if [ -n "${inference_config}" ]; then
+        inference_tag="$(basename "${inference_config}" .yaml)"
     else
-        decode_tag=decode
+        inference_tag=inference
     fi
     # Add overwritten arg's info
-    if [ -n "${decode_args}" ]; then
-        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    if [ -n "${inference_args}" ]; then
+        inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
-    decode_tag+="_$(echo "${decode_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    inference_tag+="_$(echo "${inference_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 # The directory used for collect-stats mode
@@ -696,7 +696,7 @@ if [ -n "${download_model}" ]; then
     # Create symbolic links
     ln -sf "${_model_file}" "${tts_exp}"
     ln -sf "${_train_config}" "${tts_exp}"
-    decode_model=$(basename "${_model_file}")
+    inference_model=$(basename "${_model_file}")
 
 fi
 
@@ -705,7 +705,7 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Decoding: training_dir=${tts_exp}"
 
-        if ${gpu_decode}; then
+        if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
             _ngpu=1
         else
@@ -714,8 +714,8 @@ if ! "${skip_eval}"; then
         fi
 
         _opts=
-        if [ -n "${decode_config}" ]; then
-            _opts+="--config ${decode_config} "
+        if [ -n "${inference_config}" ]; then
+            _opts+="--config ${inference_config} "
         fi
 
         if [ -z "${teacher_dumpdir}" ]; then
@@ -745,7 +745,7 @@ if ! "${skip_eval}"; then
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _speech_data="${_data}"
-            _dir="${tts_exp}/${decode_tag}/${dset}"
+            _dir="${tts_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/log"
             mkdir -p "${_logdir}"
 
@@ -763,7 +763,7 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/text
             split_scps=""
-            _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
             done
@@ -779,11 +779,11 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/text,text,text" \
                     --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --model_file "${tts_exp}"/"${decode_model}" \
+                    --model_file "${tts_exp}"/"${inference_model}" \
                     --train_config "${tts_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
                     --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
-                    ${_opts} ${decode_args}
+                    ${_opts} ${inference_args}
 
             # 3. Concatenates the output files from each jobs
             mkdir -p "${_dir}"/{norm,denorm,wav}
@@ -821,20 +821,20 @@ else
 fi
 
 
-packed_model="${tts_exp}/${tts_exp##*/}_${decode_model%.*}.zip"
+packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
 if ! "${skip_upload}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
 
         python -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
-            --model_file "${tts_exp}"/"${decode_model}" \
+            --model_file "${tts_exp}"/"${inference_model}" \
             --option ${tts_stats_dir}/train/feats_stats.npz  \
             --outpath "${packed_model}"
 
-        # NOTE(kamo): If you'll use packed model to decode in this script, do as follows
+        # NOTE(kamo): If you'll use packed model to inference in this script, do as follows
         #   % unzip ${packed_model}
-        #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --decode_model pretrain.pth
+        #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
     fi
 
 

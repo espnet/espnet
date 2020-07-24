@@ -32,8 +32,8 @@ skip_upload=true     # Skip packing and uploading stages
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
-decode_nj=32         # The number of parallel jobs in decoding.
-gpu_decode=false     # Whether to perform gpu decoding.
+inference_nj=32         # The number of parallel jobs in decoding.
+gpu_inference=false     # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 
@@ -83,17 +83,17 @@ feats_normalize=global_mvn  # Normalizaton layer type
 num_splits_asr=1   # Number of splitting for lm corpus
 
 # Decoding related
-decode_tag=    # Suffix to the result dir for decoding.
-decode_config= # Config for decoding.
-decode_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
-               # Note that it will overwrite args in decode config.
-decode_lm=valid.loss.best.pth       # Language modle path for decoding.
-decode_asr_model=valid.acc.best.pth # ASR model path for decoding.
+inference_tag=    # Suffix to the result dir for decoding.
+inference_config= # Config for decoding.
+inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
+               # Note that it will overwrite args in inference config.
+inference_lm=valid.loss.best.pth       # Language modle path for decoding.
+inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                     # e.g.
-                                    # decode_asr_model=train.loss.best.pth
-                                    # decode_asr_model=3epoch.pth
-                                    # decode_asr_model=valid.acc.best.pth
-                                    # decode_asr_model=valid.loss.ave.pth
+                                    # inference_asr_model=train.loss.best.pth
+                                    # inference_asr_model=3epoch.pth
+                                    # inference_asr_model=valid.acc.best.pth
+                                    # inference_asr_model=valid.loss.ave.pth
 download_model= # Download a model from Model Zoo and use it for decoding
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -125,8 +125,8 @@ Options:
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes
     --nj             # The number of parallel jobs (default="${nj}").
-    --decode_nj      # The number of parallel jobs in decoding (default="${decode_nj}").
-    --gpu_decode     # Whether to perform gpu decoding (default="${gpu_decode}").
+    --inference_nj      # The number of parallel jobs in decoding (default="${inference_nj}").
+    --gpu_inference     # Whether to perform gpu decoding (default="${gpu_inference}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
 
@@ -173,12 +173,12 @@ Options:
     --num_splits_asr=1   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
     # Decoding related
-    --decode_tag       # Suffix to the result dir for decoding (default="${decode_tag}").
-    --decode_config    # Config for decoding (default="${decode_config}").
-    --decode_args      # Arguments for decoding, e.g., "--lm_weight 0.1" (default="${decode_args}").
-                       # Note that it will overwrite args in decode config.
-    --decode_lm        # Language modle path for decoding (default="${decode_lm}").
-    --decode_asr_model # ASR model path for decoding (default="${decode_asr_model}").
+    --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
+    --inference_config    # Config for decoding (default="${inference_config}").
+    --inference_args      # Arguments for decoding, e.g., "--lm_weight 0.1" (default="${inference_args}").
+                       # Note that it will overwrite args in inference config.
+    --inference_lm        # Language modle path for decoding (default="${inference_lm}").
+    --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
     --download_model   # Download a model from Model Zoo and use it for decoding  (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
@@ -292,20 +292,20 @@ if [ -z "${lm_tag}" ]; then
         lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
-if [ -z "${decode_tag}" ]; then
-    if [ -n "${decode_config}" ]; then
-        decode_tag="$(basename "${decode_config}" .yaml)"
+if [ -z "${inference_tag}" ]; then
+    if [ -n "${inference_config}" ]; then
+        inference_tag="$(basename "${inference_config}" .yaml)"
     else
-        decode_tag=decode
+        inference_tag=inference
     fi
     # Add overwritten arg's info
-    if [ -n "${decode_args}" ]; then
-        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    if [ -n "${inference_args}" ]; then
+        inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     if "${use_lm}"; then
-        decode_tag+="_lm_${lm_tag}_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        inference_tag+="_lm_${lm_tag}_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
-    decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 # The directory used for collect-stats mode
@@ -744,7 +744,7 @@ if ! "${skip_train}"; then
                     --ngpu "${ngpu}" \
                     --data_path_and_name_and_type "${lm_test_text},text,text" \
                     --train_config "${lm_exp}"/config.yaml \
-                    --model_file "${lm_exp}/${decode_lm}" \
+                    --model_file "${lm_exp}/${inference_lm}" \
                     --output_dir "${lm_exp}/perplexity_test" \
                     ${_opts}
             log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
@@ -965,7 +965,7 @@ if [ -n "${download_model}" ]; then
     # Create symbolic links
     ln -sf "${_asr_model_file}" "${asr_exp}"
     ln -sf "${_asr_train_config}" "${asr_exp}"
-    decode_asr_model=$(basename "${_asr_model_file}")
+    inference_asr_model=$(basename "${_asr_model_file}")
 
     if [ "$(<${asr_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
         _lm_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
@@ -976,7 +976,7 @@ if [ -n "${download_model}" ]; then
 
         ln -sf "${_lm_file}" "${lm_exp}"
         ln -sf "${_lm_train_config}" "${lm_exp}"
-        decode_lm=$(basename "${_lm_file}")
+        inference_lm=$(basename "${_lm_file}")
     fi
 
 fi
@@ -986,7 +986,7 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         log "Stage 11: Decoding: training_dir=${asr_exp}"
 
-        if ${gpu_decode}; then
+        if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
             _ngpu=1
         else
@@ -995,22 +995,22 @@ if ! "${skip_eval}"; then
         fi
 
         _opts=
-        if [ -n "${decode_config}" ]; then
-            _opts+="--config ${decode_config} "
+        if [ -n "${inference_config}" ]; then
+            _opts+="--config ${inference_config} "
         fi
         if "${use_lm}"; then
             if "${use_word_lm}"; then
                 _opts+="--word_lm_train_config ${lm_exp}/config.yaml "
-                _opts+="--word_lm_file ${lm_exp}/${decode_lm} "
+                _opts+="--word_lm_file ${lm_exp}/${inference_lm} "
             else
                 _opts+="--lm_train_config ${lm_exp}/config.yaml "
-                _opts+="--lm_file ${lm_exp}/${decode_lm} "
+                _opts+="--lm_file ${lm_exp}/${inference_lm} "
             fi
         fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/decode_${dset}_${decode_tag}"
+            _dir="${asr_exp}/inference_${dset}_${inference_tag}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -1026,7 +1026,7 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
             done
@@ -1042,9 +1042,9 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --asr_train_config "${asr_exp}"/config.yaml \
-                    --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
+                    --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${decode_args}
+                    ${_opts} ${inference_args}
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
@@ -1065,7 +1065,7 @@ if ! "${skip_eval}"; then
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/decode_${dset}_${decode_tag}"
+            _dir="${asr_exp}/inference_${dset}_${inference_tag}"
 
             for _type in cer wer ter; do
                 [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
@@ -1173,7 +1173,7 @@ else
 fi
 
 
-packed_model="${asr_exp}/${asr_exp##*/}_${decode_asr_model%.*}.zip"
+packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
 if ! "${skip_upload}"; then
     if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         log "Stage 13: Pack model: ${packed_model}"
@@ -1181,7 +1181,7 @@ if ! "${skip_upload}"; then
         _opts=
         if "${use_lm}"; then
             _opts+="--lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--lm_file ${lm_exp}/${decode_lm} "
+            _opts+="--lm_file ${lm_exp}/${inference_lm} "
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
             _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
@@ -1192,7 +1192,7 @@ if ! "${skip_upload}"; then
         # shellcheck disable=SC2086
         python -m espnet2.bin.pack asr \
             --asr_train_config "${asr_exp}"/config.yaml \
-            --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
+            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
             ${_opts} \
             --option "${asr_exp}"/RESULTS.md \
             --outpath "${packed_model}"
