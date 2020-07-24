@@ -6,7 +6,7 @@ set -euo pipefail
 
 $CXX -v
 
-( 
+(
     set -euo pipefail
     cd tools
     # To suppress the installation for Kaldi
@@ -16,6 +16,7 @@ $CXX -v
     else
         make PYTHON="$(which python)" TH_VERSION="${TH_VERSION}"
     fi
+    make moses.done
     rm kaldi.done
 )
 if [ -z "${PS1:-}" ]; then
