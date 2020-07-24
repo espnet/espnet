@@ -306,9 +306,9 @@ class FastSpeech2(AbsTTS):
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
             durations (LongTensor): Batch of padded durations (B, Tmax).
             durations_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
-            pitch (Tensor): Batch of padded pitch (B, Tmax).
+            pitch (Tensor): Batch of padded pitch (B, Tmax, 1).
             pitch_lengths (LongTensor): Batch of lengths of each pitch (B, Tmax).
-            energy (Tensor): Batch of padded energy (B, Tmax).
+            energy (Tensor): Batch of padded energy (B, Tmax, 1).
             energy_lengths (LongTensor): Batch of lengths of each energy (B, Tmax).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
 
@@ -335,10 +335,9 @@ class FastSpeech2(AbsTTS):
         ys, ds = speech, durations
         olens = speech_lengths
 
-        # # average by duration lengths
-        # ps = self._average_by_duration(pitch, ds)
-        # es = self._average_by_duration(energy, ds)
-        ps, es = pitch, energy
+        # average by duration lengths
+        ps = self._batch_average_by_duration(pitch, ds)
+        es = self._batch_average_by_duration(energy, ds)
 
         # forward propagation
         before_outs, after_outs, d_outs, p_outs, e_outs = self._forward(
@@ -562,6 +561,21 @@ class FastSpeech2(AbsTTS):
         if self.use_scaled_pos_enc:
             self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
             self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
+
+    def _batch_average_by_duration(
+        self, xs: torch.Tensor, ds: torch.Tensor
+    ) -> torch.Tensor:
+        xs_avg = [self._average_by_duration(x, d) for x, d in zip(xs, ds)]
+        return torch.stack(xs_avg)
+
+    @staticmethod
+    def _average_by_duration(x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
+        d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
+        x_avg = [
+            x[start:end].mean(dim=0) if len(x[start:end]) != 0 else x.new_tensor([0.0])
+            for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
+        ]
+        return torch.stack(x_avg)
 
 
 class FastSpeech2Loss(torch.nn.Module):
