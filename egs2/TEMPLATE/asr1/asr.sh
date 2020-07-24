@@ -304,10 +304,16 @@ fi
 
 # The directory used for collect-stats mode
 asr_stats_dir="${expdir}/asr_stats_${feats_type}"
+if [ -n "${speed_perturb_factors}" ]; then
+    asr_stats_dir="${asr_stats_dir}_sp"
+fi
 lm_stats_dir="${expdir}/lm_stats"
 # The directory used for training commands
 if [ -z "${asr_exp}" ]; then
     asr_exp="${expdir}/asr_${asr_tag}"
+fi
+if [ -n "${speed_perturb_factors}" ]; then
+    asr_exp="${asr_exp}_sp"
 fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
