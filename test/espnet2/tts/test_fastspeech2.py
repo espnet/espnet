@@ -11,7 +11,9 @@ from espnet2.tts.fastspeech2 import FastSpeech2
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize("use_gst", [True, False])
-@pytest.mark.parametrize("use_masking, use_weighted_masking", [[True, False], [False, True]])
+@pytest.mark.parametrize(
+    "use_masking, use_weighted_masking", [[True, False], [False, True]]
+)
 def test_fastspeech2(
     postnet_layers,
     reduction_factor,

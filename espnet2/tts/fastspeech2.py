@@ -682,9 +682,7 @@ class FastSpeech2Loss(torch.nn.Module):
             )
             pitch_masks = duration_masks.unsqueeze(-1)
             pitch_weights = duration_weights.unsqueeze(-1)
-            pitch_loss = (
-                pitch_loss.mul(pitch_weights).masked_select(pitch_masks).sum()
-            )
+            pitch_loss = pitch_loss.mul(pitch_weights).masked_select(pitch_masks).sum()
             energy_loss = (
                 energy_loss.mul(pitch_weights).masked_select(pitch_masks).sum()
             )
