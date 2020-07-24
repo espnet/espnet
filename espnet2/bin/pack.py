@@ -21,8 +21,8 @@ class TTSPackedContents(PackedContents):
 
 
 class EnhPackedContents(PackedContents):
-    files = ["model_file.pth"]
-    yaml_files = ["train_config.yaml"]
+    files = ["model_file"]
+    yaml_files = ["train_config"]
 
 
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
