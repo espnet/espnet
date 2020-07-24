@@ -27,9 +27,11 @@ SECONDS=0
 
 # General configuration
 stage=1              # Processes starts from the specified stage.
-stop_stage=7         # Processes is stopped at the specified stage.
+stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
+skip_eval=false      # Skip decoding and evaluation stages
+skip_upload=true     # Skip packing and uploading stages
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
@@ -103,6 +105,8 @@ Options:
     --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
+    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes
     --nj             # The number of parallel jobs (default="${nj}").
@@ -697,161 +701,167 @@ if [ -n "${download_model}" ]; then
 fi
 
 
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-    log "Stage 7: Decoding: training_dir=${tts_exp}"
+if ! "${skip_eval}"; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+        log "Stage 7: Decoding: training_dir=${tts_exp}"
 
-    if ${gpu_decode}; then
-        _cmd="${cuda_cmd}"
-        _ngpu=1
-    else
-        _cmd="${decode_cmd}"
-        _ngpu=0
-    fi
+        if ${gpu_decode}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+        fi
 
-    _opts=
-    if [ -n "${decode_config}" ]; then
-        _opts+="--config ${decode_config} "
-    fi
+        _opts=
+        if [ -n "${decode_config}" ]; then
+            _opts+="--config ${decode_config} "
+        fi
 
-    if [ -z "${teacher_dumpdir}" ]; then
-        _feats_type="$(<${data_feats}/${train_set}/feats_type)"
-    else
-        # TODO(kan-bayashi): Fix hard coding
-        _feats_type=fbank
-    fi
+        if [ -z "${teacher_dumpdir}" ]; then
+            _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+        else
+            # TODO(kan-bayashi): Fix hard coding
+            _feats_type=fbank
+        fi
 
-    # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
-    _scp=wav.scp
-    _type=sound
-    if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
-        _opts+="--vocoder_conf n_fft=${n_fft} "
-        _opts+="--vocoder_conf n_shift=${n_shift} "
-        _opts+="--vocoder_conf win_length=${win_length} "
-        _opts+="--vocoder_conf fs=${fs} "
-        _scp=feats.scp
-        _type=kaldi_ark
-    fi
-    if [ "${_feats_type}" = fbank ]; then
-        _opts+="--vocoder_conf n_mels=${n_mels} "
-        _opts+="--vocoder_conf fmin=${fmin} "
-        _opts+="--vocoder_conf fmax=${fmax} "
-    fi
-
-    for dset in ${test_sets}; do
-        _data="${data_feats}/${dset}"
-        _speech_data="${_data}"
-        _dir="${tts_exp}/${decode_tag}/${dset}"
-        _logdir="${_dir}/log"
-        mkdir -p "${_logdir}"
-
-        # NOTE(kan-bayashi): Overwrite speech arguments if teacher dumpdir is provided
-        if [ -n "${teacher_dumpdir}" ]; then
-            # TODO(kan-bayashi): Make this part more flexible
-            _speech_data="${teacher_dumpdir}/${dset}/denorm"
+        # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
+        _scp=wav.scp
+        _type=sound
+        if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
+            _opts+="--vocoder_conf n_fft=${n_fft} "
+            _opts+="--vocoder_conf n_shift=${n_shift} "
+            _opts+="--vocoder_conf win_length=${win_length} "
+            _opts+="--vocoder_conf fs=${fs} "
             _scp=feats.scp
-            _type=npy
+            _type=kaldi_ark
+        fi
+        if [ "${_feats_type}" = fbank ]; then
+            _opts+="--vocoder_conf n_mels=${n_mels} "
+            _opts+="--vocoder_conf fmin=${fmin} "
+            _opts+="--vocoder_conf fmax=${fmax} "
         fi
 
-        # 0. Copy feats_type
-        cp "${_data}/feats_type" "${_dir}/feats_type"
+        for dset in ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _speech_data="${_data}"
+            _dir="${tts_exp}/${decode_tag}/${dset}"
+            _logdir="${_dir}/log"
+            mkdir -p "${_logdir}"
 
-        # 1. Split the key file
-        key_file=${_data}/text
-        split_scps=""
-        _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
-        for n in $(seq "${_nj}"); do
-            split_scps+=" ${_logdir}/keys.${n}.scp"
-        done
-        # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
+            # NOTE(kan-bayashi): Overwrite speech arguments if teacher dumpdir is provided
+            if [ -n "${teacher_dumpdir}" ]; then
+                # TODO(kan-bayashi): Make this part more flexible
+                _speech_data="${teacher_dumpdir}/${dset}/denorm"
+                _scp=feats.scp
+                _type=npy
+            fi
 
-        # 2. Submit decoding jobs
-        log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
-        # shellcheck disable=SC2086
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
-            python3 -m espnet2.bin.tts_inference \
-                --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/text,text,text" \
-                --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
-                --key_file "${_logdir}"/keys.JOB.scp \
-                --model_file "${tts_exp}"/"${decode_model}" \
-                --train_config "${tts_exp}"/config.yaml \
-                --output_dir "${_logdir}"/output.JOB \
-                --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
-                ${_opts} ${decode_args}
+            # 0. Copy feats_type
+            cp "${_data}/feats_type" "${_dir}/feats_type"
 
-        # 3. Concatenates the output files from each jobs
-        mkdir -p "${_dir}"/{norm,denorm,wav}
-        for i in $(seq "${_nj}"); do
-             cat "${_logdir}/output.${i}/norm/feats.scp"
-        done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-        for i in $(seq "${_nj}"); do
-             cat "${_logdir}/output.${i}/denorm/feats.scp"
-        done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
-        for i in $(seq "${_nj}"); do
-             cat "${_logdir}/output.${i}/speech_shape/speech_shape"
-        done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
-        for i in $(seq "${_nj}"); do
-            mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-            rm -rf "${_logdir}/output.${i}"/wav
-        done
-        if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
-            mkdir -p "${_dir}"/{att_ws,probs}
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/durations/durations"
-            done | LC_ALL=C sort -k1 > "${_dir}/durations"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-            done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
-            for i in $(seq "${_nj}"); do
-                mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
-                mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
-                rm -rf "${_logdir}/output.${i}"/{att_ws,probs}
+            # 1. Split the key file
+            key_file=${_data}/text
+            split_scps=""
+            _nj=$(min "${decode_nj}" "$(<${key_file} wc -l)")
+            for n in $(seq "${_nj}"); do
+                split_scps+=" ${_logdir}/keys.${n}.scp"
             done
-        fi
-    done fi
+            # shellcheck disable=SC2086
+            utils/split_scp.pl "${key_file}" ${split_scps}
 
+            # 2. Submit decoding jobs
+            log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
+            # shellcheck disable=SC2086
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
+                python3 -m espnet2.bin.tts_inference \
+                    --ngpu "${_ngpu}" \
+                    --data_path_and_name_and_type "${_data}/text,text,text" \
+                    --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
+                    --key_file "${_logdir}"/keys.JOB.scp \
+                    --model_file "${tts_exp}"/"${decode_model}" \
+                    --train_config "${tts_exp}"/config.yaml \
+                    --output_dir "${_logdir}"/output.JOB \
+                    --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
+                    ${_opts} ${decode_args}
 
-packed_model="${tts_exp}/${tts_exp##*/}_${decode_model%.*}.zip"
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "[Option] Stage 8: Pack model: ${packed_model}"
-
-    python -m espnet2.bin.pack tts \
-        --train_config "${tts_exp}"/config.yaml \
-        --model_file "${tts_exp}"/"${decode_model}" \
-        --option ${tts_stats_dir}/train/feats_stats.npz  \
-        --outpath "${packed_model}"
-
-    # NOTE(kamo): If you'll use packed model to decode in this script, do as follows
-    #   % unzip ${packed_model}
-    #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --decode_model pretrain.pth
+            # 3. Concatenates the output files from each jobs
+            mkdir -p "${_dir}"/{norm,denorm,wav}
+            for i in $(seq "${_nj}"); do
+                 cat "${_logdir}/output.${i}/norm/feats.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+            for i in $(seq "${_nj}"); do
+                 cat "${_logdir}/output.${i}/denorm/feats.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+            for i in $(seq "${_nj}"); do
+                 cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+            done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+            for i in $(seq "${_nj}"); do
+                mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                rm -rf "${_logdir}/output.${i}"/wav
+            done
+            if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
+                mkdir -p "${_dir}"/{att_ws,probs}
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/durations/durations"
+                done | LC_ALL=C sort -k1 > "${_dir}/durations"
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
+                for i in $(seq "${_nj}"); do
+                    mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+                    mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                    rm -rf "${_logdir}/output.${i}"/{att_ws,probs}
+                done
+            fi
+        done 
+    fi
+else
+    log "Skip the evaluation stages"
 fi
 
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    log "[Option] Stage 9: Upload model to Zenodo: ${packed_model}"
+packed_model="${tts_exp}/${tts_exp##*/}_${decode_model%.*}.zip"
+if ! "${skip_upload}"; then
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Pack model: ${packed_model}"
 
-    # To upload your model, you need to do:
-    #   1. Signup to Zenodo: https://zenodo.org/
-    #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-    #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+        python -m espnet2.bin.pack tts \
+            --train_config "${tts_exp}"/config.yaml \
+            --model_file "${tts_exp}"/"${decode_model}" \
+            --option ${tts_stats_dir}/train/feats_stats.npz  \
+            --outpath "${packed_model}"
 
-    if command -v git &> /dev/null; then
-        _creator_name="$(git config user.name)"
-        _checkout="
-git checkout $(git show -s --format=%H)"
-    else
-        _creator_name="$(whoami)"
-        _checkout=""
+        # NOTE(kamo): If you'll use packed model to decode in this script, do as follows
+        #   % unzip ${packed_model}
+        #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --decode_model pretrain.pth
     fi
-    # /some/where/espnet/egs2/foo/tts1/ -> foo/tt1
-    _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
-    # foo/asr1 -> foo
-    _corpus="${_task%/*}"
-    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
-    # Generate description file
-    cat << EOF > "${tts_exp}"/description
+
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Upload model to Zenodo: ${packed_model}"
+
+        # To upload your model, you need to do:
+        #   1. Signup to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/tts1/ -> foo/tt1
+        _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # Generate description file
+        cat << EOF > "${tts_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
@@ -868,18 +878,21 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 </ul>
 EOF
 
-    # NOTE(kamo): The model file is uploaded here, but not published yet.
-    #   Please confirm your record at Zenodo and publish by youself.
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish by youself.
 
-    # shellcheck disable=SC2086
-    espnet_model_zoo_upload \
-        --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-        --description_file "${tts_exp}"/description \
-        --creator_name "${_creator_name}" \
-        --license "CC-BY-4.0" \
-        --use_sandbox false \
-        --publish false
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${tts_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
+else
+    log "Skip the uploading stages"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
