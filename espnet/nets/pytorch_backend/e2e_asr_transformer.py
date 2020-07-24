@@ -23,7 +23,10 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
@@ -103,6 +106,7 @@ class E2E(ASRInterface, torch.nn.Module):
             default="selfattn",
             choices=[
                 "selfattn",
+                "rel_selfattn",
                 "lightconv",
                 "lightconv2d",
                 "dynamicconv",
@@ -251,8 +255,15 @@ class E2E(ASRInterface, torch.nn.Module):
                 self_attention_dropout_rate=args.transformer_attn_dropout_rate,
                 src_attention_dropout_rate=args.transformer_attn_dropout_rate,
             )
+            self.criterion = LabelSmoothingLoss(
+                odim,
+                ignore_id,
+                args.lsm_weight,
+                args.transformer_length_normalized_loss,
+            )
         else:
             self.decoder = None
+            self.criterion = None
         self.blank = 0
         self.sos = odim - 1
         self.eos = odim - 1
@@ -261,16 +272,8 @@ class E2E(ASRInterface, torch.nn.Module):
         self.subsample = get_subsample(args, mode="asr", arch="transformer")
         self.reporter = Reporter()
 
-        # self.lsm_weight = a
-        self.criterion = LabelSmoothingLoss(
-            self.odim,
-            self.ignore_id,
-            args.lsm_weight,
-            args.transformer_length_normalized_loss,
-        )
-        # self.verbose = args.verbose
         self.reset_parameters(args)
-        self.adim = args.adim
+        self.adim = args.adim  # used for CTC (equal to d_model)
         self.mtlalpha = args.mtlalpha
         if args.mtlalpha > 0.0:
             self.ctc = CTC(
@@ -302,7 +305,7 @@ class E2E(ASRInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of source sequences (B)
         :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
-        :return: ctc loass value
+        :return: ctc loss value
         :rtype: torch.Tensor
         :return: attention loss value
         :rtype: torch.Tensor
@@ -347,7 +350,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
 
         # 5. compute cer/wer
-        if self.training or self.error_calculator is None:
+        if self.training or self.error_calculator is None or self.decoder is None:
             cer, wer = None, None
         else:
             ys_hat = pred_pad.argmax(dim=-1)
@@ -619,18 +622,22 @@ class E2E(ASRInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
-        :return: attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
+        :return: attention weights (B, H, Lmax, Tmax)
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention) or isinstance(m, DynamicConvolution):
+            if (
+                isinstance(m, MultiHeadedAttention)
+                or isinstance(m, DynamicConvolution)
+                or isinstance(m, RelPositionMultiHeadedAttention)
+            ):
                 ret[name] = m.attn.cpu().numpy()
             if isinstance(m, DynamicConvolution2D):
                 ret[name + "_time"] = m.attn_t.cpu().numpy()
                 ret[name + "_freq"] = m.attn_f.cpu().numpy()
+        self.train()
         return ret

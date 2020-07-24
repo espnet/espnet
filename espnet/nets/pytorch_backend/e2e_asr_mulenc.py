@@ -824,6 +824,7 @@ class E2E(ASRInterface, torch.nn.Module):
             3) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray or list
         """
+        self.eval()
         with torch.no_grad():
             # 1. Encoder
             if self.replace_sos:
@@ -842,5 +843,5 @@ class E2E(ASRInterface, torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(
                 hs_pad_list, hlens_list, ys_pad, lang_ids=tgt_lang_ids
             )
-
+        self.train()
         return att_ws

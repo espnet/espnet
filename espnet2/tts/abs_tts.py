@@ -22,11 +22,6 @@ class AbsTTS(torch.nn.Module, ABC):
 
     @abstractmethod
     def inference(
-        self,
-        text: torch.Tensor,
-        threshold: float,
-        minlenratio: float,
-        maxlenratio: float,
-        spembs: torch.Tensor = None,
+        self, text: torch.Tensor, spembs: torch.Tensor = None, **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         raise NotImplementedError
