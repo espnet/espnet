@@ -26,6 +26,8 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 
 
 def _pre_hook(
@@ -109,6 +111,10 @@ class Encoder(torch.nn.Module):
                 dropout_rate,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
+        elif input_layer == "conv2d6":
+            self.embed = Conv2dSubsampling6(idim, attention_dim, dropout_rate)
+        elif input_layer == "conv2d8":
+            self.embed = Conv2dSubsampling8(idim, attention_dim, dropout_rate)
         elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
@@ -277,7 +283,10 @@ class Encoder(torch.nn.Module):
         :return: position embedded tensor and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
-        if isinstance(self.embed, (Conv2dSubsampling, VGG2L)):
+        if isinstance(
+            self.embed,
+            (Conv2dSubsampling, Conv2dSubsampling6, Conv2dSubsampling8, VGG2L),
+        ):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)

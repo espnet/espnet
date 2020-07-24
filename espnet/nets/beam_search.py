@@ -99,6 +99,7 @@ class BeamSearch(torch.nn.Module):
         self.n_vocab = vocab_size
         if (
             pre_beam_score_key is not None
+            and pre_beam_score_key != "full"
             and pre_beam_score_key not in self.full_scorers
         ):
             raise KeyError(f"{pre_beam_score_key} is not found in {self.full_scorers}")
@@ -294,19 +295,22 @@ class BeamSearch(torch.nn.Module):
         part_ids = torch.arange(self.n_vocab, device=x.device)  # no pre-beam
         for hyp in running_hyps:
             # scoring
-            scores, states = self.score_full(hyp, x)
-            if self.do_pre_beam:
-                part_ids = torch.topk(
-                    scores[self.pre_beam_score_key], self.pre_beam_size
-                )[1]
-            part_scores, part_states = self.score_partial(hyp, part_ids, x)
-
-            # weighted sum scores
             weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
+            scores, states = self.score_full(hyp, x)
             for k in self.full_scorers:
                 weighted_scores += self.weights[k] * scores[k]
+            # partial scoring
+            if self.do_pre_beam:
+                pre_beam_scores = (
+                    weighted_scores
+                    if self.pre_beam_score_key == "full"
+                    else scores[self.pre_beam_score_key]
+                )
+                part_ids = torch.topk(pre_beam_scores, self.pre_beam_size)[1]
+            part_scores, part_states = self.score_partial(hyp, part_ids, x)
             for k in self.part_scorers:
                 weighted_scores[part_ids] += self.weights[k] * part_scores[k]
+            # add previous hyp score
             weighted_scores += hyp.score
 
             # update hyps
@@ -466,7 +470,7 @@ def beam_search(
     maxlenratio: float = 0.0,
     minlenratio: float = 0.0,
     pre_beam_ratio: float = 1.5,
-    pre_beam_score_key: str = "decoder",
+    pre_beam_score_key: str = "full",
 ) -> list:
     """Perform beam search with scorers.
 

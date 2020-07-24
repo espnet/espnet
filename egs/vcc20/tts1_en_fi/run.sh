@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpu in training
-nj=64        # numebr of parallel jobs
+nj=64        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 1, get more log)
 seed=1       # random seed number
@@ -70,12 +70,12 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
-    
+
     if [ ! -e ${fin_db} ]; then
         echo "${fin_db} not found. Please download the dataset and put it in ${fin_db}." >&2
         exit 1;
     fi
-    
+
     # prepare the M-AILABS dataset
     for spk in judy elliot; do
         echo "Processing ${spk}..."
@@ -89,7 +89,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/data_prep_css10_fi.sh ${fin_db}/fin data/fin fi_FI fin
     utils/data/resample_data_dir.sh ${fs} data/fin
     utils/validate_data_dir.sh --no-feats data/fin
-    
+
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -123,7 +123,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             data/${x} \
             exp/make_fbank/${x} \
             ${fbankdir}
-    
+
         # make a dev set
         utils/subset_data_dir.sh --last data/${x} 500 data/${x}_tmp
         utils/subset_data_dir.sh --last data/${x}_tmp 250 data/${x}_${eval_set}
@@ -163,12 +163,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1${trans_type}/
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    
+
     echo "make a non-linguistic symbol list"
     [ -e ${nlsyms} ] && rm ${nlsyms}
     echo "<en_US>" >> ${nlsyms}
     echo "<fi_FI>" >> ${nlsyms}
-    
+
     text2token.py -s 1 -n 1 -l ${nlsyms} --trans_type ${trans_type} \
         data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
@@ -279,7 +279,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-    
+
     pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
     (

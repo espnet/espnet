@@ -112,7 +112,9 @@ class PlotAttentionReport(extension.Extension):
         oaxis=0,
     ):
         self.att_vis_fn = att_vis_fn
-        self.data = copy.deepcopy(data)
+        self.data = copy.deepcopy(data)[::-1]
+        # NOTE: inputs to the model is sorted in the descending order
+        # However, data is sorted in the ascending order
         self.outdir = outdir
         self.converter = converter
         self.transform = transform
@@ -188,25 +190,22 @@ class PlotAttentionReport(extension.Extension):
                     logger.add_figure(
                         "%s_att%d" % (self.data[idx][0], i + 1), plot.gcf(), step
                     )
-                    plot.clf()
             # han
             for idx, att_w in enumerate(att_ws[num_encs]):
                 att_w = self.get_attention_weight(idx, att_w)
                 plot = self.draw_han_plot(att_w)
                 logger.add_figure("%s_han" % (self.data[idx][0]), plot.gcf(), step)
-                plot.clf()
         else:
             for idx, att_w in enumerate(att_ws):
                 att_w = self.get_attention_weight(idx, att_w)
                 plot = self.draw_attention_plot(att_w)
                 logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
-                plot.clf()
 
     def get_attention_weights(self):
         """Return attention weights.
 
         Returns:
-            numpy.ndarray: attention weights.float. Its shape would be
+            numpy.ndarray: attention weights. float. Its shape would be
                 differ from backend.
                 * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax), 2)
                   other case => (B, Lmax, Tmax).
@@ -243,6 +242,7 @@ class PlotAttentionReport(extension.Extension):
         """
         import matplotlib.pyplot as plt
 
+        plt.clf()
         att_w = att_w.astype(np.float32)
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
@@ -266,6 +266,7 @@ class PlotAttentionReport(extension.Extension):
         """
         import matplotlib.pyplot as plt
 
+        plt.clf()
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
                 legends = []

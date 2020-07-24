@@ -14,8 +14,10 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
 
+from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
+from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
@@ -55,6 +57,7 @@ class Speech2Text:
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
+        batch_size: int = 1,
         dtype: str = "float32",
         beam_size: int = 20,
         ctc_weight: float = 0.5,
@@ -100,7 +103,23 @@ class Speech2Text:
             eos=asr_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
+            pre_beam_score_key=None if ctc_weight == 1.0 else "full",
         )
+        # TODO(karita): make all scorers batchfied
+        if batch_size == 1:
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            if len(non_batch) == 0:
+                beam_search.__class__ = BatchBeamSearch
+                logging.info("BatchBeamSearch implementation is selected.")
+            else:
+                logging.warning(
+                    f"As non-batch scorers {non_batch} are found, "
+                    f"fall back to non-batch implementation."
+                )
         beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
         for scorer in scorers.values():
             if isinstance(scorer, torch.nn.Module):
