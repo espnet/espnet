@@ -14,17 +14,20 @@ sampling-probability: 0.0
 # encoder related
 etype: blstmp     # encoder architecture type
 elayers: 1
-eunits: 4
-eprojs: 4
+eunits: 8
+eprojs: 8
 subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
 # decoder related
 dlayers: 1
-dunits: 4
+dunits: 8
+context-residual: true
 # attention related
 atype: location
-adim: 4
+adim: 8
 aconv-chans: 4
 aconv-filts: 3
 
-# hybrid CTC/attention
-mtlalpha: 0.0
+# multitask
+mtlalpha: 0.0  # CTC weight for ASR task
+asr-weight: 0.0
+mt-weight: 0.0

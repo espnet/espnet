@@ -1,13 +1,13 @@
 # network architecture
 # encoder related
-elayers: 2
-eunits: 32
+elayers: 1
+eunits: 4
 # decoder related
-dlayers: 2
-dunits: 32
+dlayers: 1
+dunits: 4
 # attention related
-adim: 16
-aheads: 4
+adim: 4
+aheads: 2
 
 # hybrid CTC/attention
 mtlalpha: 0.3
@@ -26,7 +26,7 @@ opt: noam
 accum-grad: 2
 grad-clip: 5
 patience: 0
-epochs: 3
+epochs: 2
 dropout-rate: 0.1
 
 # transformer specific setting

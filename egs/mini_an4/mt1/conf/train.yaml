@@ -16,15 +16,13 @@ etype: blstmp     # encoder architecture type
 elayers: 1
 eunits: 4
 eprojs: 4
-subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
+subsample: "1_1" # skip every n frame from input to nth layers
 # decoder related
 dlayers: 1
 dunits: 4
+context-residual: true
+tie-src-tgt-embedding: false
+tie-classifier: false
 # attention related
-atype: location
+atype: add
 adim: 4
-aconv-chans: 4
-aconv-filts: 3
-
-# hybrid CTC/attention
-mtlalpha: 0.0
