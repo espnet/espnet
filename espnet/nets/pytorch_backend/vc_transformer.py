@@ -21,7 +21,7 @@ from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
-from espnet.nets.pytorch_backend.tacotron2.encoder import EncoderNoEmb as EncoderPrenet
+from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -57,26 +57,20 @@ class Transformer(TTSInterface, torch.nn.Module):
         group = parser.add_argument_group("transformer model setting")
         # network structure related
         group.add_argument(
-            "--embed-dim",
-            default=512,
-            type=int,
-            help="Dimension of character embedding in encoder prenet",
-        )
-        group.add_argument(
             "--eprenet-conv-layers",
-            default=3,
+            default=0,
             type=int,
             help="Number of encoder prenet convolution layers",
         )
         group.add_argument(
             "--eprenet-conv-chans",
-            default=256,
+            default=0,
             type=int,
             help="Number of encoder prenet convolution channels",
         )
         group.add_argument(
             "--eprenet-conv-filts",
-            default=5,
+            default=0,
             type=int,
             help="Filter size of encoder prenet convolution",
         )
@@ -385,10 +379,10 @@ class Transformer(TTSInterface, torch.nn.Module):
             idim (int): Dimension of the inputs.
             odim (int): Dimension of the outputs.
             args (Namespace, optional):
-                - embed_dim (int): Dimension of character embedding.
                 - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
                 - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
                 - eprenet_conv_filts (int): Filter size of encoder prenet convolution.
+                - transformer_input_layer (str): Input layer before the encoder.
                 - dprenet_layers (int): Number of decoder prenet layers.
                 - dprenet_units (int): Number of decoder prenet hidden units.
                 - elayers (int): Number of encoder layers.
@@ -480,7 +474,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             # encoder prenet
             encoder_input_layer = torch.nn.Sequential(
                 EncoderPrenet(
-                    idim=idim * args.encoder_reduction_factor,
+                    idim=idim,
                     elayers=0,
                     econv_layers=args.eprenet_conv_layers,
                     econv_chans=args.eprenet_conv_chans,
@@ -488,6 +482,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                     use_batch_norm=args.use_batch_norm,
                     dropout_rate=args.eprenet_dropout_rate,
                     padding_idx=padding_idx,
+                    input_layer=torch.nn.Linear(
+                        idim * args.encoder_reduction_factor, idim
+                    ),
                 ),
                 torch.nn.Linear(args.eprenet_conv_chans, args.adim),
             )
@@ -614,7 +611,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            xs (Tensor): Batch of padded character ids (B, Tmax).
+            xs (Tensor): Batch of padded acoustic features (B, Tmax, idim).
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
@@ -789,10 +786,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         return loss
 
     def inference(self, x, inference_args, spemb=None, *args, **kwargs):
-        """Generate the sequence of features given the sequences of characters.
+        """Generate the sequence of features given the sequences of acoustic features.
 
         Args:
-            x (Tensor): Input sequence of characters (T,).
+            x (Tensor): Input sequence of acoustic features (T, idim).
             inference_args (Namespace):
                 - threshold (float): Threshold in inference.
                 - minlenratio (float): Minimum length ratio in inference.
@@ -916,7 +913,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         """Calculate all of the attention weights.
 
         Args:
-            xs (Tensor): Batch of padded character ids (B, Tmax).
+            xs (Tensor): Batch of padded acoustic features (B, Tmax, idim).
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).

@@ -82,8 +82,8 @@ class Encoder(torch.nn.Module):
             self.embed = torch.nn.Embedding(idim, embed_dim, padding_idx=padding_idx)
         else:
             self.input_layer = torch.nn.Linear(
-            idim * encoder_reduction_factor, econv_chans
-        )
+                idim * encoder_reduction_factor, econv_chans
+            )
 
         if econv_layers > 0:
             self.convs = torch.nn.ModuleList()
