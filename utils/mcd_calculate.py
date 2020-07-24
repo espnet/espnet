@@ -8,17 +8,17 @@
 
 import argparse
 import fnmatch
-import os
 import multiprocessing as mp
+import os
 
 from fastdtw import fastdtw
 import numpy as np
+import pysptk
+import pyworld as pw
 import scipy
 from scipy.io import wavfile
 from scipy.signal import firwin
 from scipy.signal import lfilter
-import pysptk
-import pyworld as pw
 
 
 def find_files(root_dir, query="*.wav", include_root_dir=True):
