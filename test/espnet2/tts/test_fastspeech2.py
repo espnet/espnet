@@ -11,12 +11,15 @@ from espnet2.tts.fastspeech2 import FastSpeech2
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize("use_gst", [True, False])
+@pytest.mark.parametrize("use_masking, use_weighted_masking", [[True, False], [False, True]])
 def test_fastspeech2(
     postnet_layers,
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
     use_gst,
+    use_masking,
+    use_weighted_masking,
 ):
     model = FastSpeech2(
         idim=10,
@@ -57,6 +60,8 @@ def test_fastspeech2(
         gst_conv_stride=2,
         gst_gru_layers=1,
         gst_gru_units=4,
+        use_masking=use_masking,
+        use_weighted_masking=use_weighted_masking,
     )
 
     inputs = dict(
