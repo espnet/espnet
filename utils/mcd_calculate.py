@@ -15,7 +15,8 @@ from fastdtw import fastdtw
 import numpy as np
 import scipy
 from scipy.io import wavfile
-from scipy.signal import (firwin, lfilter)
+from scipy.signal import firwin
+from scipy.signal import lfilter
 import pysptk
 import pyworld as pw
 
