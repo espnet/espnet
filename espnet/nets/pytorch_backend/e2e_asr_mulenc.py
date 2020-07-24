@@ -858,6 +858,10 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: CTC probability (B, Tmax, vocab)
         :rtype: float ndarray or list
         """
+        probs_list = [None]
+        if self.mtlalpha == 0:
+            return probs_list
+
         self.eval()
         probs_list = []
         with torch.no_grad():

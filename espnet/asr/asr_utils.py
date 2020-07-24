@@ -387,7 +387,13 @@ class PlotCTCReport(extension.Extension):
         """Add image files of ctc probs to the tensorboard."""
         ctc_probs = self.get_ctc_probs()
         if isinstance(ctc_probs, list):  # multi-encoder case
-            pass
+            num_encs = len(ctc_probs) - 1
+            for i in range(num_encs):
+                for idx, ctc_prob in enumerate(ctc_probs[i]):
+                    plot = self.draw_ctc_plot(ctc_prob)
+                    logger.add_figure(
+                        "%s_att%d" % (self.data[idx][0], i + 1), plot.gcf(), step
+                    )
         else:
             for idx, ctc_prob in enumerate(ctc_probs):
                 plot = self.draw_ctc_plot(ctc_prob)

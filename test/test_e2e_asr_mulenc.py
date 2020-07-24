@@ -578,9 +578,10 @@ def test_model_trainable_and_decodable(module, num_encs, model_dict):
     plot = PlotCTCReport(
         model.calculate_all_ctc_probs, batchset[0], tmpdir, None, None, None
     )
-    for i in range(num_encs):
-        # ctc-encoder
-        plot._plot_and_save_ctc(ctc_probs[i][0], "{}/ctc{}.png".format(tmpdir, i))
+    if args.mtlalpha > 0:
+        for i in range(num_encs):
+            # ctc-encoder
+            plot._plot_and_save_ctc(ctc_probs[i][0], "{}/ctc{}.png".format(tmpdir, i))
 
     # test decodable
     with torch.no_grad(), chainer.no_backprop_mode():
