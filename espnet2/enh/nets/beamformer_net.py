@@ -139,9 +139,7 @@ class BeamformerNet(AbsEnhancement):
         # wave -> stft -> magnitude specturm
         input_spectrum, flens = self.stft(input, ilens)
         # (Batch, Frames, Freq) or (Batch, Frames, Channels, Freq)
-        input_spectrum = ComplexTensor(
-            input_spectrum[..., 0], input_spectrum[..., 1]
-        ).double()
+        input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
         if self.normalize_input:
             input_spectrum = input_spectrum / abs(input_spectrum).max()
 

@@ -84,7 +84,8 @@ def test_beamformer_net_forward_backward(
     )
 
     est_speech, *_ = model(
-        torch.randn(2, 16, 2, requires_grad=True), ilens=torch.LongTensor([16, 12])
+        torch.randn(2, 16, 2, requires_grad=True, dtype=torch.float),
+        ilens=torch.LongTensor([16, 12]),
     )
     loss = sum([abs(est).mean() for est in est_speech])
     loss.backward()
@@ -190,6 +191,7 @@ def test_beamformer_net_consistency(
 def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
     torch.random.manual_seed(0)
     inputs = torch.randn(2, 16, ch) if ch > 1 else torch.randn(2, 16)
+    inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
     model = BeamformerNet(
         n_fft=8,
@@ -214,6 +216,7 @@ def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
 def test_beamformer_net_bf_output(num_spk):
     ch = 3
     inputs = torch.randn(2, 16, ch)
+    inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
     model = BeamformerNet(
         n_fft=8,
