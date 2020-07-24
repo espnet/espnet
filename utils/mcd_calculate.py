@@ -6,19 +6,18 @@
 
 # Calculate MCD using converted waveform.
 
-import os
-import sys
-import fnmatch
 import argparse
+import fnmatch
+import os
 import multiprocessing as mp
 
+from fastdtw import fastdtw
 import numpy as np
 import scipy
 from scipy.io import wavfile
-from scipy.signal import firwin, lfilter
+from scipy.signal import (firwin, lfilter)
 import pysptk
 import pyworld as pw
-from fastdtw import fastdtw
 
 
 def find_files(root_dir, query="*.wav", include_root_dir=True):
