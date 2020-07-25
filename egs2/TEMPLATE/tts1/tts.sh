@@ -54,6 +54,8 @@ n_mels=80         # The number of mel basis.
 n_fft=1024        # The number of fft points.
 n_shift=256       # The number of shift points.
 win_length=null   # Window length.
+f0min=80          # Maximum f0 (only for FastSpeech2)
+f0max=800         # Minimum f0 (only for FastSpeech2)
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol
@@ -453,6 +455,18 @@ if ! "${skip_train}"; then
             _opts+="--odim=${_odim} "
         fi
 
+        # Add extra configs for FastSpeech2
+        # NOTE(kan-bayashi): We always pass this options but not used in default
+        _opts+="--pitch_extract_conf fs=${fs} "
+        _opts+="--pitch_extract_conf n_fft=${n_fft} "
+        _opts+="--pitch_extract_conf hop_length=${n_shift} "
+        _opts+="--pitch_extract_conf f0max=${f0max} "
+        _opts+="--pitch_extract_conf f0min=${f0min} "
+        _opts+="--energy_extract_conf fs=${fs} "
+        _opts+="--energy_extract_conf n_fft=${n_fft} "
+        _opts+="--energy_extract_conf hop_length=${n_shift} "
+        _opts+="--energy_extract_conf win_length=${win_length} "
+
         # 1. Split the key file
         _logdir="${tts_stats_dir}/logdir"
         mkdir -p "${_logdir}"
@@ -489,6 +503,8 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --normalize none \
+                --pitch_normalize none \
+                --energy_normalize none \
                 --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
@@ -594,11 +610,7 @@ if ! "${skip_train}"; then
             # CASE 2: Knowledge distillation training
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
             _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
-            _scp=feats.scp
-            _type=npy
             _fold_length="${speech_fold_length}"
-            _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
-            _opts+="--odim=${_odim} "
 
             if [ "${num_splits}" -gt 1 ]; then
                 # If you met a memory error when parsing text files, this option may help you.
@@ -606,16 +618,45 @@ if ! "${skip_train}"; then
                 # so the memory footprint can be limited to the memory required for each dataset.
 
                 _split_dir="${teacher_dumpdir}/splits${num_splits}"
+                _scps=""
+                if [ -e ${_teacher_train_dir}/probs ]; then
+                    _scp=feats.scp
+                    _type=npy
+                    _scps+="${_teacher_train_dir}/denorm/${_scp} "
+                    _scps+="${_teacher_train_dir}/speech_shape "
+                    _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
+                    _opts+="--odim=${_odim} "
+                else
+                    if [ "${feats_type}" = raw ]; then
+                        _scp=wav.scp
+                        _type=sound
+                        _fold_length="$((speech_fold_length * n_shift))"
+                        _opts+="--feats_extract fbank "
+                        _opts+="--feats_extract_conf fs=${fs} "
+                        _opts+="--feats_extract_conf fmin=${fmin} "
+                        _opts+="--feats_extract_conf fmax=${fmax} "
+                        _opts+="--feats_extract_conf n_mels=${n_mels} "
+                        _opts+="--feats_extract_conf hop_length=${n_shift} "
+                        _opts+="--feats_extract_conf n_fft=${n_fft} "
+                        _opts+="--feats_extract_conf win_length=${win_length} "
+                    else
+                        _scp=feats.scp
+                        _type=kaldi_ark
+                        _odim="$(head -n 1 "${tts_stats_dir}/train/speech_shape" | cut -f 2 -d ",")"
+                        _opts+="--odim=${_odim} "
+                    fi
+                    _scps+="${_train_dir}/${_scp} "
+                    _scps+="${tts_stats_dir}/speech_shape "
+                fi
                 if [ ! -f "${_split_dir}/.done" ]; then
                     rm -f "${_split_dir}/.done"
                     python3 -m espnet2.bin.split_scps \
                       --scps \
                           "${_train_dir}/text" \
-                          "${_teacher_train_dir}/denorm/${_scp}" \
-                          "${_teacher_train_dir}/speech_shape" \
                           "${_teacher_train_dir}/durations" \
                           "${_teacher_train_dir}/focus_rates" \
                           "${tts_stats_dir}/text_shape.${token_type}" \
+                          ${_scps} \
                       --num_splits "${num_splits}" \
                       --output_dir "${_split_dir}"
                     touch "${_split_dir}/.done"
@@ -631,16 +672,60 @@ if ! "${skip_train}"; then
 
             else
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
-                _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/denorm/${_scp},speech,${_type} "
                 _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
                 _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
-                _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape "
+                if [ -e ${_teacher_train_dir}/probs ]; then
+                    # Knowledge distillation case
+                    _scp=feats.scp
+                    _type=npy
+                    _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
+                    _opts+="--odim=${_odim} "
+                    _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/denorm/${_scp},speech,${_type} "
+                    _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape "
+                else
+                    # Teacher forcing case
+                    if [ "${feats_type}" = raw ]; then
+                        _scp=wav.scp
+                        _type=sound
+                        _fold_length="$((speech_fold_length * n_shift))"
+                        _opts+="--feats_extract fbank "
+                        _opts+="--feats_extract_conf fs=${fs} "
+                        _opts+="--feats_extract_conf fmin=${fmin} "
+                        _opts+="--feats_extract_conf fmax=${fmax} "
+                        _opts+="--feats_extract_conf n_mels=${n_mels} "
+                        _opts+="--feats_extract_conf hop_length=${n_shift} "
+                        _opts+="--feats_extract_conf n_fft=${n_fft} "
+                        _opts+="--feats_extract_conf win_length=${win_length} "
+                    else
+                        _scp=feats.scp
+                        _type=kaldi_ark
+                        _odim="$(head -n 1 "${tts_stats_dir}/train/speech_shape" | cut -f 2 -d ",")"
+                        _opts+="--odim=${_odim} "
+                    fi
+                    _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+                    _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+                fi
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
-            _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/denorm/${_scp},speech,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
-            _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape "
+            if [ -e ${_teacher_train_dir}/probs ]; then
+                # Knowledge distillation case
+                _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/denorm/${_scp},speech,${_type} "
+                _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape "
+            else
+                # Teacher forcing case
+                _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
+                _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+            fi
+        fi
+
+        # Check extra statistics
+        if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
+            _opts+="--pitch_normalize_conf stats_file=${tts_stats_dir}/train/pitch_stats.npz "
+        fi
+        if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
+            _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
@@ -695,7 +780,11 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _feats_type="$(<${data_feats}/${train_set}/feats_type)"
     else
         # TODO(kan-bayashi): Fix hard coding
-        _feats_type=fbank
+        if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
+            _feats_type=fbank
+        else
+            _feats_type="$(<${data_feats}/${train_set}/feats_type)"
+        fi
     fi
 
     # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
@@ -725,9 +814,11 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         # NOTE(kan-bayashi): Overwrite speech arguments if teacher dumpdir is provided
         if [ -n "${teacher_dumpdir}" ]; then
             # TODO(kan-bayashi): Make this part more flexible
-            _speech_data="${teacher_dumpdir}/${dset}/denorm"
-            _scp=feats.scp
-            _type=npy
+            if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
+                _speech_data="${teacher_dumpdir}/${dset}/denorm"
+                _scp=feats.scp
+                _type=npy
+            fi
         fi
 
         # 0. Copy feats_type
@@ -774,7 +865,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             rm -rf "${_logdir}/output.${i}"/wav
         done
         if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
-            mkdir -p "${_dir}"/{att_ws,probs}
+            mkdir -p "${_dir}"/att_ws
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/durations/durations"
             done | LC_ALL=C sort -k1 > "${_dir}/durations"
@@ -783,12 +874,18 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
             for i in $(seq "${_nj}"); do
                 mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
-                mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
-                rm -rf "${_logdir}/output.${i}"/{att_ws,probs}
+                rm -rf "${_logdir}/output.${i}"/att_ws
             done
         fi
-    done fi
-
+        if [ -e "${_logdir}/output.${_nj}/probs" ]; then
+            mkdir -p "${_dir}"/probs
+            for i in $(seq "${_nj}"); do
+                mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                rm -rf "${_logdir}/output.${i}"/probs
+            done
+        fi
+    done
+fi
 
 packed_model="${tts_exp}/${tts_exp##*/}_${decode_model%.*}.zip"
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
