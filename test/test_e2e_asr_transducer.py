@@ -60,6 +60,7 @@ def get_default_recog_args(**kwargs):
         search_type="default",
         nstep=1,
         prefix_alpha=2,
+        u_max=1,
         score_norm_transducer=True,
         rnnlm=None,
     )
@@ -102,6 +103,7 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
 @pytest.mark.parametrize(
     "train_dic, recog_dic",
     [
+        ({}, {}),
         ({}, {"beam_size": 1}),
         ({"rnnt_mode": "rnnt-att"}, {"beam_size": 1}),
         ({}, {"beam_size": 2}),
@@ -110,7 +112,17 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
         ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "nsc"}),
         ({}, {"beam_size": 2, "search_type": "nsc", "nstep": 3}),
         ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "nsc", "nstep": 3}),
-        ({}, {}),
+        ({}, {"beam_size": 2, "search_type": "tsd"}),
+        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "tsd"}),
+        ({}, {"beam_size": 2, "search_type": "tsd", "nstep": 3}),
+        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "tsd", "nstep": 3}),
+        ({}, {"beam_size": 2, "search_type": "alsd"}),
+        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "alsd"}),
+        ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 20}),
+        (
+            {"rnnt_mode": "rnnt-att"},
+            {"beam_size": 2, "search_type": "alsd", "u_max": 20},
+        ),
         ({"rnnt_mode": "rnnt-att"}, {}),
         ({"etype": "gru"}, {}),
         ({"rnnt_mode": "rnnt-att", "etype": "gru"}, {}),
