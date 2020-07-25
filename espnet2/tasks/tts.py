@@ -242,7 +242,7 @@ class TTSTask(AbsTask):
     @classmethod
     def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations")
+            retval = ("spembs", "durations", "pitch", "energy")
         else:
             # Inference mode
             retval = ("spembs", "speech")
