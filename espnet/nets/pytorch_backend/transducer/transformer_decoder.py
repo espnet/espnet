@@ -682,7 +682,7 @@ class Decoder(torch.nn.Module):
                     rnnlm_state, rnnlm_scores = rnnlm.predict(
                         hyp["lm_state"], ys[:, -1]
                     )
-                    
+
                 for k in range(1, self.odim):
                     beam_hyp = {
                         "score": hyp["score"] + float(ytu[k]),
@@ -697,7 +697,7 @@ class Decoder(torch.nn.Module):
                         beam_hyp["lm_state"] = rnnlm_state
 
                         beam_hyp["score"] += recog_args.lm_weight * rnnlm_scores[0][k]
-                    
+
                     A.append(beam_hyp)
 
             B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
