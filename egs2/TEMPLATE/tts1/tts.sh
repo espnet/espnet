@@ -801,7 +801,7 @@ if ! "${skip_eval}"; then
                 rm -rf "${_logdir}/output.${i}"/wav
             done
             if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
-                mkdir -p "${_dir}"/{att_ws,probs}
+                mkdir -p "${_dir}"/att_ws
                 for i in $(seq "${_nj}"); do
                      cat "${_logdir}/output.${i}/durations/durations"
                 done | LC_ALL=C sort -k1 > "${_dir}/durations"
@@ -811,10 +811,17 @@ if ! "${skip_eval}"; then
                 for i in $(seq "${_nj}"); do
                     mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
                     mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
-                    rm -rf "${_logdir}/output.${i}"/{att_ws,probs}
+                    rm -rf "${_logdir}/output.${i}"/att_ws
                 done
             fi
-        done 
+            if [ -e "${_logdir}/output.${_nj}/probs" ]; then
+                mkdir -p "${_dir}"/probs
+                for i in $(seq "${_nj}"); do
+                    mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                    rm -rf "${_logdir}/output.${i}"/probs
+                done
+            fi
+        done
     fi
 else
     log "Skip the evaluation stages"
