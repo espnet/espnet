@@ -44,9 +44,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         pitch: torch.Tensor = None,
-        pitch_lengths: torch.Tensor = None,
         energy: torch.Tensor = None,
-        energy_lengths: torch.Tensor = None,
         spembs: torch.Tensor = None,
         **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -55,9 +53,9 @@ class ESPnetTTSModel(AbsESPnetModel):
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
         else:
             feats, feats_lengths = speech, speech_lengths
-        if self.pitch_extract is not None:
+        if self.pitch_extract is not None and pitch is None:
             pitch, pitch_lengths = self.pitch_extract(speech, speech_lengths)
-        if self.energy_extract is not None:
+        if self.energy_extract is not None and energy is None:
             energy, energy_lengths = self.energy_extract(speech, speech_lengths)
 
         # Normalize
@@ -159,7 +157,7 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         if self.normalize is not None:
             # NOTE: normalize.inverse is in-place operation
-            outs_denorm = self.normalize.inverse(outs[None])[0][0]
+            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
         else:
             outs_denorm = outs
         return outs, outs_denorm, probs, att_ws
