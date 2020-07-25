@@ -1,10 +1,10 @@
+from distutils.version import LooseVersion
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
-import torchaudio
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -126,12 +126,28 @@ class Stft(torch.nn.Module, InversibleInterface):
         :param ilens:
         :return:
         """
+        if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+            istft = torch.functional.istft
+        else:
+            try:
+                import torchaudio
+            except ImportError:
+                raise ImportError(
+                    "Please install torchaudio>=0.3.0 or use torch>=1.6.0"
+                )
+
+            if not hasattr(torchaudio.functional, "istft"):
+                raise ImportError(
+                    "Please install torchaudio>=0.3.0 or use torch>=1.6.0"
+                )
+            istft = torchaudio.functional.istft
+
         if isinstance(input, ComplexTensor):
             input = torch.stack([input.real, input.imag], dim=-1)
         assert input.shape[-1] == 2
         input = input.transpose(1, 2)
 
-        wavs = torchaudio.functional.istft(
+        wavs = istft(
             input,
             n_fft=self.n_fft,
             hop_length=self.hop_length,

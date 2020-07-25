@@ -84,8 +84,11 @@ def test_beamformer_net_forward_backward(
     )
 
     est_speech, *_ = model(
-        torch.randn(2, 16, 2, requires_grad=True), ilens=torch.LongTensor([16, 12])
+        torch.randn(2, 16, 2, requires_grad=True, dtype=torch.float),
+        ilens=torch.LongTensor([16, 12]),
     )
+    for est in est_speech:
+        assert est.dtype == torch.float
     loss = sum([abs(est).mean() for est in est_speech])
     loss.backward()
 
@@ -182,6 +185,8 @@ def test_beamformer_net_consistency(
     est_speech_torch, *_ = model(random_input_torch, ilens=torch.LongTensor([16, 12]))
     assert torch.allclose(est_speech_torch[0], est_speech_numpy[0])
     assert torch.allclose(est_speech_torch[-1], est_speech_numpy[-1])
+    for est in est_speech_torch:
+        assert est.dtype == torch.float
 
 
 @pytest.mark.parametrize("ch", [1, 3])
@@ -190,6 +195,7 @@ def test_beamformer_net_consistency(
 def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
     torch.random.manual_seed(0)
     inputs = torch.randn(2, 16, ch) if ch > 1 else torch.randn(2, 16)
+    inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
     model = BeamformerNet(
         n_fft=8,
@@ -204,6 +210,7 @@ def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
     spec, _, masks = model(inputs, ilens)
     assert spec.shape[0] == 2  # batch size
     assert spec.shape[-1] == 2  # real and imag
+    assert spec.dtype == torch.float
     assert isinstance(masks, dict)
     if use_dnn_mask_for_wpe:
         assert "dereverb" in masks
@@ -214,6 +221,7 @@ def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
 def test_beamformer_net_bf_output(num_spk):
     ch = 3
     inputs = torch.randn(2, 16, ch)
+    inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
     model = BeamformerNet(
         n_fft=8,
@@ -235,12 +243,14 @@ def test_beamformer_net_bf_output(num_spk):
             assert masks["spk{}".format(n)].shape[-2] == ch
             assert specs[n - 1].shape[:-1] == masks["spk{}".format(n)][..., 0, :].shape
             assert specs[n - 1].shape[-1] == 2  # real and imag
+            assert specs[n - 1].dtype == torch.float
     else:
         assert isinstance(specs, torch.Tensor)
         assert "spk1" in masks
         assert masks["spk1"].shape[-2] == ch
         assert specs.shape[:-1] == masks["spk1"][..., 0, :].shape
         assert specs.shape[-1] == 2  # real and imag
+        assert specs.dtype == torch.float
 
 
 def test_beamformer_net_invalid_bf_type():
