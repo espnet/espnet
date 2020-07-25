@@ -87,7 +87,7 @@ class LogMelFbank(AbsFeatsExtract):
         )
 
     def forward(
-        self, input: torch.Tensor, input_lengths: torch.Tensor
+        self, input: torch.Tensor, input_lengths: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
         input_stft, feats_lens = self.stft(input, input_lengths)
