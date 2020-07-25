@@ -569,6 +569,10 @@ class E2E(ASRInterface, torch.nn.Module):
                 nbest_hyps = decoder.recognize_beam_default(*params)
             elif recog_args.search_type == "nsc":
                 nbest_hyps = decoder.recognize_beam_nsc(*params)
+            elif recog_args.search_type == "tsd":
+                nbest_hyps = decoder.recognize_beam_tsd(*params)
+            elif recog_args.search_type == "alsd":
+                nbest_hyps = decoder.recognize_beam_alsd(*params)
             else:
                 raise NotImplementedError
 

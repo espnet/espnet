@@ -1,5 +1,6 @@
 """Utility functions for transducer models."""
 
+import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -143,3 +144,30 @@ def get_beam_lm_states(lm_states_list, lm_type, lm_layers):
     ]
 
     return beam_states
+
+
+def recombine_hyps(hyps):
+    """Recombine hypothesis with equivalent output sequence.
+
+    Args:
+        hyps (list): list of hypothesis
+
+    Returns:
+       final (list): list of recombined hypothesis
+
+    """
+    final = []
+
+    for i, hyp in enumerate(hyps):
+        seq_final = [f["yseq"] for f in final if f["yseq"]]
+
+        if hyp["yseq"] in seq_final:
+            dict_pos = seq_final.index(hyp["yseq"])
+
+            final[dict_pos]["score"] = np.logaddexp(
+                final[dict_pos]["score"], hyp["score"]
+            )
+        else:
+            final.append(hyp)
+
+    return hyps

@@ -14,6 +14,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.transducer.utils import get_beam_lm_states
 from espnet.nets.pytorch_backend.transducer.utils import get_idx_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import is_prefix
+from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
 from espnet.nets.pytorch_backend.transducer.utils import substract
 
 
@@ -525,6 +526,207 @@ class DecoderRNNT(torch.nn.Module):
         nbest_hyps = sorted(
             kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
         )[:nbest]
+
+        return nbest_hyps
+
+    def recognize_beam_tsd(self, h, recog_args, rnnlm=None):
+        """Time synchronous beam search implementation.
+
+        Based on https://ieeexplore.ieee.org/document/9053040
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        beam = recog_args.beam_size
+        w_range = min(beam, self.odim)
+
+        max_sym_exp = recog_args.nstep
+        nbest = recog_args.nbest
+
+        z_list, c_list = self.zero_state(h.unsqueeze(0))
+
+        B = [
+            {
+                "yseq": [self.blank],
+                "score": 0.0,
+                "z_list": z_list,
+                "c_list": c_list,
+                "lm_state": None,
+            }
+        ]
+
+        for hi in h:
+            A = []
+            C = B
+
+            for v in range(max_sym_exp):
+                D = []
+
+                for hyp in C:
+                    vy = to_device(
+                        self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long)
+                    )
+                    ey = self.embed(vy)
+
+                    y, (z_list, c_list) = self.rnn_forward(
+                        ey[0], (hyp["z_list"], hyp["c_list"])
+                    )
+
+                    ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
+
+                    seq_A = [h["yseq"] for h in A]
+
+                    if hyp["yseq"] not in seq_A:
+                        new_hyp = {
+                            "score": hyp["score"] + float(ytu[0]),
+                            "yseq": hyp["yseq"][:],
+                            "z_list": hyp["z_list"],
+                            "c_list": hyp["c_list"],
+                            "lm_state": hyp["lm_state"],
+                        }
+
+                        A.append(new_hyp)
+                    else:
+                        dict_pos = seq_A.index(hyp["yseq"])
+
+                        A[dict_pos]["score"] = np.logaddexp(
+                            A[dict_pos]["score"], (hyp["score"] + float(ytu[0]))
+                        )
+
+                    if rnnlm:
+                        rnnlm_state, rnnlm_scores = rnnlm.predict(
+                            hyp["lm_state"], vy[0]
+                        )
+
+                    if v < max_sym_exp:
+                        for k in range(1, self.odim):
+                            beam_hyp = {
+                                "score": hyp["score"] + float(ytu[k]),
+                                "yseq": hyp["yseq"][:],
+                                "z_list": z_list[:],
+                                "c_list": c_list[:],
+                                "lm_state": hyp["lm_state"],
+                            }
+
+                            beam_hyp["yseq"].append(int(k))
+
+                            if rnnlm:
+                                beam_hyp["lm_state"] = rnnlm_state
+
+                                beam_hyp["score"] += (
+                                    recog_args.lm_weight * rnnlm_scores[0][k]
+                                )
+
+                            D.append(beam_hyp)
+
+                C = sorted(D, key=lambda x: x["score"], reverse=True)[:w_range]
+
+            B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
+
+        nbest_hyps = sorted(B, key=lambda x: x["score"], reverse=True)[:nbest]
+
+        return nbest_hyps
+
+    def recognize_beam_alsd(self, h, recog_args, rnnlm=None):
+        """Alignment-length synchronous beam search implementation.
+
+        Based on https://ieeexplore.ieee.org/document/9053040
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        beam = recog_args.beam_size
+        w_range = min(beam, self.odim)
+
+        h_length = int(h.size(0))
+        u_max = min(recog_args.u_max, h_length)
+
+        nbest = recog_args.nbest
+
+        z_list, c_list = self.zero_state(h.unsqueeze(0))
+
+        B = [
+            {
+                "yseq": [self.blank],
+                "score": 0.0,
+                "z_list": z_list,
+                "c_list": c_list,
+                "lm_state": None,
+            }
+        ]
+
+        final = []
+
+        for i in range(h_length + u_max):
+            A = []
+
+            for hyp in B:
+                u = len(hyp["yseq"])
+                t = i - u + 1
+
+                if t > (h_length - 1):
+                    continue
+
+                vy = to_device(
+                    self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long)
+                )
+                ey = self.embed(vy)
+
+                y, (z_list, c_list) = self.rnn_forward(
+                    ey[0], (hyp["z_list"], hyp["c_list"])
+                )
+
+                ytu = F.log_softmax(self.joint(h[t], y[0]), dim=0)
+
+                new_hyp = {
+                    "score": hyp["score"] + float(ytu[0]),
+                    "yseq": hyp["yseq"][:],
+                    "z_list": hyp["z_list"],
+                    "c_list": hyp["c_list"],
+                    "lm_state": hyp["lm_state"],
+                }
+
+                A.append(new_hyp)
+
+                if t == (h_length - 1):
+                    final.append(new_hyp)
+
+                if rnnlm:
+                    rnnlm_state, rnnlm_scores = rnnlm.predict(hyp["lm_state"], vy[0])
+
+                for k in range(1, self.odim):
+                    beam_hyp = {
+                        "score": hyp["score"] + float(ytu[k]),
+                        "yseq": hyp["yseq"][:],
+                        "z_list": z_list[:],
+                        "c_list": c_list[:],
+                        "lm_state": hyp["lm_state"],
+                    }
+
+                    beam_hyp["yseq"].append(int(k))
+
+                    if rnnlm:
+                        beam_hyp["lm_state"] = rnnlm_state
+                        beam_hyp["score"] += recog_args.lm_weight * rnnlm_scores[0][k]
+
+                    A.append(beam_hyp)
+
+            B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
+            B = recombine_hyps(B)
+
+        nbest_hyps = sorted(final, key=lambda x: x["score"], reverse=True)[:nbest]
 
         return nbest_hyps
 
@@ -1100,6 +1302,236 @@ class DecoderRNNTAtt(torch.nn.Module):
         nbest_hyps = sorted(
             kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
         )[:nbest]
+
+        return nbest_hyps
+
+    def recognize_beam_tsd(self, h, recog_args, rnnlm=None):
+        """Time synchronous beam search implementation.
+
+        Based on https://ieeexplore.ieee.org/document/9053040
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        beam = recog_args.beam_size
+        w_range = min(beam, self.odim)
+
+        max_sym_exp = recog_args.nstep
+        nbest = recog_args.nbest
+
+        self.att[0].reset()
+
+        z_list, c_list = self.zero_state(h.unsqueeze(0))
+
+        B = [
+            {
+                "yseq": [self.blank],
+                "score": 0.0,
+                "z_list": z_list,
+                "c_list": c_list,
+                "a_list": None,
+                "lm_state": None,
+            }
+        ]
+
+        for hi in h:
+            A = []
+            C = B
+
+            for v in range(max_sym_exp):
+                D = []
+
+                for hyp in C:
+                    vy = to_device(
+                        self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long)
+                    )
+                    ey = self.embed(vy)
+
+                    att_c, att_w = self.att[0](
+                        h.unsqueeze(0),
+                        [h.size(0)],
+                        self.dropout_dec[0](hyp["z_list"][0]),
+                        hyp["a_list"],
+                    )
+
+                    ey = torch.cat((ey[0], att_c), dim=1)
+
+                    y, (z_list, c_list) = self.rnn_forward(
+                        ey, (hyp["z_list"], hyp["c_list"])
+                    )
+
+                    ytu = F.log_softmax(self.joint(hi, y[0]), dim=0)
+
+                    seq_A = [h["yseq"] for h in A]
+
+                    if hyp["yseq"] not in seq_A:
+                        new_hyp = {
+                            "score": hyp["score"] + float(ytu[0]),
+                            "yseq": hyp["yseq"][:],
+                            "z_list": hyp["z_list"],
+                            "c_list": hyp["c_list"],
+                            "a_list": hyp["a_list"],
+                            "lm_state": hyp["lm_state"],
+                        }
+
+                        A.append(new_hyp)
+                    else:
+                        dict_pos = seq_A.index(hyp["yseq"])
+
+                        A[dict_pos]["score"] = np.logaddexp(
+                            A[dict_pos]["score"], (hyp["score"] + float(ytu[0]))
+                        )
+
+                    if rnnlm:
+                        rnnlm_state, rnnlm_scores = rnnlm.predict(
+                            hyp["lm_state"], vy[0]
+                        )
+
+                    if v < max_sym_exp:
+                        for k in range(1, self.odim):
+                            beam_hyp = {
+                                "score": hyp["score"] + float(ytu[k]),
+                                "yseq": hyp["yseq"][:],
+                                "z_list": z_list[:],
+                                "c_list": c_list[:],
+                                "a_list": att_w[:],
+                                "lm_state": hyp["lm_state"],
+                            }
+
+                            beam_hyp["yseq"].append(int(k))
+
+                            if rnnlm:
+                                beam_hyp["lm_state"] = rnnlm_state
+
+                                beam_hyp["score"] += (
+                                    recog_args.lm_weight * rnnlm_scores[0][k]
+                                )
+
+                            D.append(beam_hyp)
+
+                C = sorted(D, key=lambda x: x["score"], reverse=True)[:w_range]
+
+            B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
+
+        nbest_hyps = sorted(B, key=lambda x: x["score"], reverse=True)[:nbest]
+
+        return nbest_hyps
+
+    def recognize_beam_alsd(self, h, recog_args, rnnlm=None):
+        """Alignment-length synchronous beam search implementation.
+
+        Based on https://ieeexplore.ieee.org/document/9053040
+
+        Args:
+            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
+            recog_args (Namespace): argument Namespace containing options
+            rnnlm (torch.nn.Module): language module
+
+        Returns:
+            nbest_hyps (list of dicts): n-best decoding results
+
+        """
+        beam = recog_args.beam_size
+        w_range = min(beam, self.odim)
+
+        h_length = int(h.size(0))
+        u_max = min(recog_args.u_max, h_length)
+
+        nbest = recog_args.nbest
+
+        self.att[0].reset()
+
+        z_list, c_list = self.zero_state(h.unsqueeze(0))
+
+        B = [
+            {
+                "yseq": [self.blank],
+                "score": 0.0,
+                "z_list": z_list,
+                "c_list": c_list,
+                "a_list": None,
+                "lm_state": None,
+            }
+        ]
+
+        final = []
+
+        for i in range(h_length + u_max):
+            A = []
+
+            for hyp in B:
+                u = len(hyp["yseq"])
+                t = i - u + 1
+
+                if t > (h_length - 1):
+                    continue
+
+                vy = to_device(
+                    self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long)
+                )
+                ey = self.embed(vy)
+
+                att_c, att_w = self.att[0](
+                    h.unsqueeze(0),
+                    [h.size(0)],
+                    self.dropout_dec[0](hyp["z_list"][0]),
+                    hyp["a_list"],
+                )
+
+                ey = torch.cat((ey[0], att_c), dim=1)
+
+                y, (z_list, c_list) = self.rnn_forward(
+                    ey, (hyp["z_list"], hyp["c_list"])
+                )
+
+                ytu = F.log_softmax(self.joint(h[t], y[0]), dim=0)
+
+                new_hyp = {
+                    "score": hyp["score"] + float(ytu[0]),
+                    "yseq": hyp["yseq"][:],
+                    "z_list": hyp["z_list"],
+                    "c_list": hyp["c_list"],
+                    "a_list": hyp["a_list"],
+                    "lm_state": hyp["lm_state"],
+                }
+
+                A.append(new_hyp)
+
+                if t == (h_length - 1):
+                    final.append(new_hyp)
+
+                if rnnlm:
+                    rnnlm_state, rnnlm_scores = rnnlm.predict(hyp["lm_state"], vy[0])
+
+                for k in range(1, self.odim):
+                    beam_hyp = {
+                        "score": hyp["score"] + float(ytu[k]),
+                        "yseq": hyp["yseq"][:],
+                        "z_list": z_list[:],
+                        "c_list": c_list[:],
+                        "a_list": att_w[:],
+                        "lm_state": hyp["lm_state"],
+                    }
+
+                    beam_hyp["yseq"].append(int(k))
+
+                    if rnnlm:
+                        beam_hyp["lm_state"] = rnnlm_state
+
+                        beam_hyp["score"] += recog_args.lm_weight * rnnlm_scores[0][k]
+
+                    A.append(beam_hyp)
+
+            B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
+            B = recombine_hyps(B)
+
+        nbest_hyps = sorted(final, key=lambda x: x["score"], reverse=True)[:nbest]
 
         return nbest_hyps
 
