@@ -93,7 +93,7 @@ class Energy(AbsFeatsExtract):
         # (Optional): Adjust length to match with the mel-spectrogram
         if feats_lengths is not None:
             energy = [
-                self._adjust_num_frames(e[:el], fl)
+                self._adjust_num_frames(e[:el].view(-1), fl)
                 for e, el, fl in zip(energy, energy_lengths, feats_lengths)
             ]
             energy_lengths = feats_lengths
@@ -101,7 +101,7 @@ class Energy(AbsFeatsExtract):
         # (Optional): Average by duration to calculate token-wise energy
         if self.use_token_averaged_energy:
             energy = [
-                self._average_by_duration(e[:el], d)
+                self._average_by_duration(e[:el].view(-1), d)
                 for e, el, d in zip(energy, energy_lengths, durations)
             ]
             energy_lengths = durations_lengths
@@ -110,6 +110,7 @@ class Energy(AbsFeatsExtract):
         if isinstance(energy, list):
             energy = pad_list(energy, 0.0)
 
+        # Return with the shape (B, T, 1)
         return energy.unsqueeze(-1), energy_lengths
 
     @staticmethod
@@ -122,7 +123,7 @@ class Energy(AbsFeatsExtract):
             else x.new_tensor(0.0)
             for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
         ]
-        return torch.stack(x_avg).unsqueeze(-1)
+        return torch.stack(x_avg)
 
     @staticmethod
     def _adjust_num_frames(x: torch.Tensor, num_frames: torch.Tensor) -> torch.Tensor:

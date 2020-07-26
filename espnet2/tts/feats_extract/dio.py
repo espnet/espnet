@@ -76,12 +76,16 @@ class Dio(AbsFeatsExtract):
         # (Optional): Adjust length to match with the mel-spectrogram
         if feats_lengths is not None:
             pitch = [
-                self._adjust_num_frames(p, fl) for p, fl in zip(pitch, feats_lengths)
+                self._adjust_num_frames(p, fl).view(-1)
+                for p, fl in zip(pitch, feats_lengths)
             ]
 
         # (Optional): Average by duration to calculate token-wise f0
         if self.use_token_averaged_f0:
-            pitch = [self._average_by_duration(p, d) for p, d in zip(pitch, durations)]
+            pitch = [
+                self._average_by_duration(p, d).view(-1)
+                for p, d in zip(pitch, durations)
+            ]
             pitch_lengths = durations_lengths
         else:
             pitch_lengths = input.new_tensor([len(p) for p in pitch], dtype=torch.long)
@@ -89,6 +93,7 @@ class Dio(AbsFeatsExtract):
         # Padding
         pitch = pad_list(pitch, 0.0)
 
+        # Return with the shape (B, T, 1)
         return pitch.unsqueeze(-1), pitch_lengths
 
     def _calculate_f0(self, input: torch.Tensor) -> torch.Tensor:
@@ -147,4 +152,4 @@ class Dio(AbsFeatsExtract):
             else x.new_tensor(0.0)
             for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
         ]
-        return torch.stack(x_avg).unsqueeze(-1)
+        return torch.stack(x_avg)
