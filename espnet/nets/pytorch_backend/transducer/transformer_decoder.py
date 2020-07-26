@@ -639,11 +639,11 @@ class Decoder(torch.nn.Module):
         w_range = min(beam, self.odim)
 
         h_length = int(h.size(0))
-        u_max = max(recog_args.u_max, int(h_length * 1.5))
+        u_max = min(recog_args.u_max, (h_length - 1))
 
         nbest = recog_args.nbest
 
-        B = [{"yseq": [self.blank], "score": 0.0, "cache": None, "lm_state": None}]
+        B = [{"score": 0.0, "yseq": [self.blank], "cache": None, "lm_state": None}]
 
         final = []
 
@@ -651,7 +651,7 @@ class Decoder(torch.nn.Module):
             A = []
 
             for hyp in B:
-                u = len(hyp["yseq"])
+                u = len(hyp["yseq"]) - 1
                 t = i - u + 1
 
                 if t > (h_length - 1):
@@ -695,7 +695,6 @@ class Decoder(torch.nn.Module):
 
                     if rnnlm:
                         beam_hyp["lm_state"] = rnnlm_state
-
                         beam_hyp["score"] += recog_args.lm_weight * rnnlm_scores[0][k]
 
                     A.append(beam_hyp)
@@ -703,6 +702,10 @@ class Decoder(torch.nn.Module):
             B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
             B = recombine_hyps(B)
 
-        nbest_hyps = sorted(final, key=lambda x: x["score"], reverse=True)[:nbest]
+        # temp. fix: final can end-up empty with t-t, investigation in progress.
+        if final:
+            nbest_hyps = sorted(final, key=lambda x: x["score"], reverse=True)[:nbest]
+        else:
+            nbest_hyps = sorted(B, key=lambda x: x["score"], reverse=True)[:nbest]
 
         return nbest_hyps

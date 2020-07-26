@@ -651,7 +651,7 @@ class DecoderRNNT(torch.nn.Module):
         w_range = min(beam, self.odim)
 
         h_length = int(h.size(0))
-        u_max = min(recog_args.u_max, h_length)
+        u_max = min(recog_args.u_max, (h_length - 1))
 
         nbest = recog_args.nbest
 
@@ -673,7 +673,7 @@ class DecoderRNNT(torch.nn.Module):
             A = []
 
             for hyp in B:
-                u = len(hyp["yseq"])
+                u = len(hyp["yseq"]) - 1
                 t = i - u + 1
 
                 if t > (h_length - 1):
@@ -1441,7 +1441,7 @@ class DecoderRNNTAtt(torch.nn.Module):
         w_range = min(beam, self.odim)
 
         h_length = int(h.size(0))
-        u_max = min(recog_args.u_max, h_length)
+        u_max = min(recog_args.u_max, (h_length - 1))
 
         nbest = recog_args.nbest
 
@@ -1466,7 +1466,7 @@ class DecoderRNNTAtt(torch.nn.Module):
             A = []
 
             for hyp in B:
-                u = len(hyp["yseq"])
+                u = len(hyp["yseq"]) - 1
                 t = i - u + 1
 
                 if t > (h_length - 1):
