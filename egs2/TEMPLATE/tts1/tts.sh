@@ -42,10 +42,11 @@ expdir=exp           # Directory to save experiments.
 local_data_opts= # Options to be passed to local/data.sh.
 
 # Feature extraction related
-feats_type=raw      # Feature type (fbank or stft or raw).
-audio_format=flac   # Audio format (only in feats_type=raw).
-min_wav_duration=0.1   # Minimum duration in second
-max_wav_duration=20    # Maximum duration in second
+feats_type=raw              # Feature type (fbank or stft or raw).
+audio_format=flac           # Audio format (only in feats_type=raw).
+min_wav_duration=0.1        # Minimum duration in second
+max_wav_duration=20         # Maximum duration in second
+write_collected_feats=false # Whether to dump features in stats collection.
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
@@ -467,6 +468,13 @@ if ! "${skip_train}"; then
         _opts+="--energy_extract_conf hop_length=${n_shift} "
         _opts+="--energy_extract_conf win_length=${win_length} "
 
+        if [ -n "${teacher_dumpdir}" ]; then
+            _teacher_train_dir="${teacher_dumpdir}/${train_set}"
+            _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
+            _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
+        fi
+
         # 1. Split the key file
         _logdir="${tts_stats_dir}/logdir"
         mkdir -p "${_logdir}"
@@ -496,6 +504,7 @@ if ! "${skip_train}"; then
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             python3 -m espnet2.bin.tts_train \
                 --collect_stats true \
+                --write_collected_feats "${write_collected_feats}" \
                 --use_preprocessor true \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \
@@ -620,6 +629,7 @@ if ! "${skip_train}"; then
                 _split_dir="${teacher_dumpdir}/splits${num_splits}"
                 _scps=""
                 if [ -e ${_teacher_train_dir}/probs ]; then
+                    # Knowledge distillation case
                     _scp=feats.scp
                     _type=npy
                     _scps+="${_teacher_train_dir}/denorm/${_scp} "
@@ -627,6 +637,7 @@ if ! "${skip_train}"; then
                     _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
                     _opts+="--odim=${_odim} "
                 else
+                    # Teacher forcing case
                     if [ "${feats_type}" = raw ]; then
                         _scp=wav.scp
                         _type=sound
@@ -720,7 +731,25 @@ if ! "${skip_train}"; then
             fi
         fi
 
-        # Check extra statistics
+        # Check extra inputs (For FastSpeech2)
+        if [ -e "${tts_stats_dir}/train/collect_feats/pitch.scp" ]; then
+            _scp=pitch.scp
+            _type=npy
+            _train_collect_dir=${tts_stats_dir}/train/collect_feats
+            _valid_collect_dir=${tts_stats_dir}/valid/collect_feats
+            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},pitch,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},pitch,${_type} "
+        fi
+        if [ -e "${tts_stats_dir}/train/collect_feats/energy.scp" ]; then
+            _scp=energy.scp
+            _type=npy
+            _train_collect_dir=${tts_stats_dir}/train/collect_feats
+            _valid_collect_dir=${tts_stats_dir}/valid/collect_feats
+            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},energy,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
+        fi
+
+        # Check extra statistics (For FastSpeech2)
         if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
             _opts+="--pitch_normalize_conf stats_file=${tts_stats_dir}/train/pitch_stats.npz "
         fi
