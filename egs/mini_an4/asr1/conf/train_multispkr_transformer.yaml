@@ -2,12 +2,12 @@
 # encoder related
 elayers-sd: 1
 elayers: 1
-eunits: 32
+eunits: 4
 # decoder related
 dlayers: 1
-dunits: 30
+dunits: 4
 # attention related
-adim: 32
+adim: 4
 aheads: 2
 
 # hybrid CTC/attention
@@ -26,8 +26,8 @@ sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epoch
 opt: noam
 accum-grad: 2
 grad-clip: 1
-patience: 2
-epochs: 3
+patience: 0
+epochs: 1
 dropout-rate: 0.1
 
 # transformer specific setting
