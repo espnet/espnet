@@ -30,7 +30,7 @@ from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
 from espnet.nets.pytorch_backend.e2e_tts_transformer import (
     GuidedMultiHeadAttentionLoss,  # noqa: H301
-    TTSPlot, # noqa: H301
+    TTSPlot,  # noqa: H301
 )
 
 
