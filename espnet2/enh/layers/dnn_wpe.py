@@ -65,25 +65,26 @@ class DNN_WPE(torch.nn.Module):
             power = enhanced.real ** 2 + enhanced.imag ** 2
             if i == 0 and self.use_dnn_mask:
                 # mask: (B, F, C, T)
-                (mask,), _ = self.mask_est(enhanced.float(), ilens)
+                (mask,), _ = self.mask_est(enhanced, ilens)
                 if self.normalization:
                     # Normalize along T
                     mask = mask / mask.sum(dim=-1)[..., None]
                 # (..., C, T) * (..., C, T) -> (..., C, T)
-                power = power * mask.double()
+                power = power * mask
 
             # Averaging along the channel axis: (..., C, T) -> (..., T)
             power = power.mean(dim=-2)
 
             # enhanced: (..., C, T) -> (..., C, T)
+            # NOTE(kamo): Calculate in double precision
             enhanced = wpe_one_iteration(
-                data.contiguous(),
-                power,
+                data.contiguous().double(),
+                power.double(),
                 taps=self.taps,
                 delay=self.delay,
                 inverse_power=self.inverse_power,
             )
-
+            enhanced = enhanced.type(data.dtype)
             enhanced.masked_fill_(make_pad_mask(ilens, enhanced.real), 0)
 
         # (B, F, C, T) -> (B, T, C, F)

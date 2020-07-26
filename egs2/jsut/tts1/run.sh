@@ -23,7 +23,7 @@ valid_set=dev
 test_sets="dev eval1"
 
 train_config=conf/train.yaml
-decode_config=conf/decode.yaml
+inference_config=conf/decode.yaml
 # pyopenjtalk case: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
 # pyopenjtalk_kana case: ミズヲマレーシアカラカワナクテワナラナイノデス。
 g2p=pyopenjtalk
@@ -42,7 +42,7 @@ g2p=pyopenjtalk
     --cleaner jaconv \
     --g2p "${g2p}" \
     --train_config "${train_config}" \
-    --decode_config "${decode_config}" \
+    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
