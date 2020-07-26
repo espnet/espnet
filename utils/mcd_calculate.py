@@ -122,8 +122,7 @@ def calculate(file_list, gt_file_list, args, MCD):
         print("{} {}".format(gt_basename, mcd))
         MCD.append(mcd)
 
-
-def main():
+def get_parser():
 
     parser = argparse.ArgumentParser(description="calculate MCD.")
     parser.add_argument(
@@ -158,7 +157,10 @@ def main():
     parser.add_argument(
         "--n_jobs", default=40, type=int, help="number of parallel jobs"
     )
-    args = parser.parse_args()
+    return parser
+
+def main():
+    args = get_parser().parse_args()
 
     # find files
     converted_files = sorted(find_files(args.wavdir))
