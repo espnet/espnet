@@ -121,7 +121,7 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         if self.normalize is not None:
             # NOTE: normalize.inverse is in-place operation
-            outs_denorm = self.normalize.inverse(outs[None])[0][0]
+            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
         else:
             outs_denorm = outs
         return outs, outs_denorm, probs, att_ws

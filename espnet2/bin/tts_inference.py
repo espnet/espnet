@@ -372,9 +372,10 @@ def inference(
     # remove duration related files if attention is not provided
     if att_ws is None:
         shutil.rmtree(output_dir / "att_ws")
-        shutil.rmtree(output_dir / "probs")
         shutil.rmtree(output_dir / "durations")
         shutil.rmtree(output_dir / "focus_rates")
+    if probs is None:
+        shutil.rmtree(output_dir / "probs")
 
 
 def get_parser():
