@@ -5,7 +5,6 @@
 
 from argparse import Namespace
 from distutils.util import strtobool
-from itertools import groupby
 import logging
 import math
 
@@ -24,7 +23,6 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import mask_uniform
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
@@ -205,15 +203,7 @@ class E2E(ASRInterface, torch.nn.Module):
         group.add_argument(
             "--dunits", default=320, type=int, help="Number of decoder hidden units"
         )
-        # Non-autoregressive training
-        group.add_argument(
-            "--decoder-mode",
-            default="AR",
-            type=str,
-            choices=["ar", "maskctc"],
-            help="AR: standard autoregressive training, "
-            "maskctc: non-autoregressive training based on Mask CTC",
-        )
+
         return parser
 
     @property
@@ -276,14 +266,8 @@ class E2E(ASRInterface, torch.nn.Module):
             self.decoder = None
             self.criterion = None
         self.blank = 0
-        self.decoder_mode = args.decoder_mode
-        if self.decoder_mode == "maskctc":
-            self.mask_token = odim - 1
-            self.sos = odim - 2
-            self.eos = odim - 2
-        else:
-            self.sos = odim - 1
-            self.eos = odim - 1
+        self.sos = odim - 1
+        self.eos = odim - 1
         self.odim = odim
         self.ignore_id = ignore_id
         self.subsample = get_subsample(args, mode="asr", arch="transformer")
@@ -638,97 +622,6 @@ class E2E(ASRInterface, torch.nn.Module):
             + str(nbest_hyps[0]["score"] / len(nbest_hyps[0]["yseq"]))
         )
         return nbest_hyps
-
-    def recognize_maskctc(self, x, recog_args, char_list=None):
-        """Non-autoregressive decoding using Mask CTC.
-
-        :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
-        :param Namespace recog_args: argment Namespace contraining options
-        :param list char_list: list of characters
-        :return: decoding result
-        :rtype: list
-        """
-        self.eval()
-        h = self.encode(x).unsqueeze(0)
-
-        ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(h)).max(dim=-1)
-        y_hat = torch.stack([x[0] for x in groupby(ctc_ids[0])])
-        y_idx = torch.nonzero(y_hat != 0).squeeze(-1)
-
-        probs_hat = []
-        cnt = 0
-        for i, y in enumerate(y_hat.tolist()):
-            probs_hat.append(-1)
-            while cnt < ctc_ids.shape[1] and y == ctc_ids[0][cnt]:
-                if probs_hat[i] < ctc_probs[0][cnt]:
-                    probs_hat[i] = ctc_probs[0][cnt].item()
-                cnt += 1
-        probs_hat = torch.from_numpy(numpy.array(probs_hat))
-
-        char_mask = "_"
-        p_thres = recog_args.maskctc_probability_threshold
-        mask_idx = torch.nonzero(probs_hat[y_idx] < p_thres).squeeze(-1)
-        confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
-        mask_num = len(mask_idx)
-
-        y_in = torch.zeros(1, len(y_idx) + 1, dtype=torch.long) + self.mask_token
-        y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
-        y_in[0][-1] = self.eos
-
-        logging.info(
-            "ctc:{}".format(
-                "".join(
-                    [
-                        char_list[y] if y != self.mask_token else char_mask
-                        for y in y_in[0].tolist()
-                    ]
-                ).replace("<space>", " ")
-            )
-        )
-
-        if not mask_num == 0:
-            K = recog_args.maskctc_n_iterations
-            num_iter = K if mask_num >= K and K > 0 else mask_num
-
-            for t in range(1, num_iter):
-                pred, _ = self.decoder(
-                    y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None
-                )
-                pred_sc, pred_id = pred[0][mask_idx].max(dim=-1)
-                cand = torch.topk(pred_sc, mask_num // num_iter, -1)[1]
-                y_in[0][mask_idx[cand]] = pred_id[cand]
-                mask_idx = torch.nonzero(y_in[0] == self.mask_token).squeeze(-1)
-
-                logging.info(
-                    "msk:{}".format(
-                        "".join(
-                            [
-                                char_list[y] if y != self.mask_token else char_mask
-                                for y in y_in[0].tolist()
-                            ]
-                        ).replace("<space>", " ")
-                    )
-                )
-
-            pred, pred_mask = self.decoder(
-                y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None
-            )
-            y_in[0][mask_idx] = pred[0][mask_idx].argmax(dim=-1)
-            logging.info(
-                "msk:{}".format(
-                    "".join(
-                        [
-                            char_list[y] if y != self.mask_token else char_mask
-                            for y in y_in[0].tolist()
-                        ]
-                    ).replace("<space>", " ")
-                )
-            )
-
-        ret = y_in.tolist()[0][:-1]
-        hyp = {"score": 0.0, "yseq": [self.sos] + ret + [self.eos]}
-
-        return [hyp]
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.

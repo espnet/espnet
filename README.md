@@ -57,6 +57,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Available: RNN-Transducer, Transformer-Transducer, mixed Transformer/RNN-Transducer
   - Also support: attention mechanism (RNN-decoder), pre-init w/ LM (RNN-decoder), VGG-Transformer (encoder)
 - CTC forced alignment
+- Non-autoregressive based on Mask CTC
 
 ### TTS: Text-to-speech
 - Tacotron2 based end-to-end TTS

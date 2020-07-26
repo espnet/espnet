@@ -33,9 +33,8 @@ def make_arg(**kwargs):
         mtlalpha=0.3,
         lsm_weight=0.001,
         wshare=4,
-        char_list=["<blank>", "a", "e", "i", "o", "u", "<eos>", "<mask>"],
+        char_list=["<blank>", "a", "e", "i", "o", "u", "<eos>"],
         ctc_type="warpctc",
-        decoder_mode="maskctc",
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -46,7 +45,7 @@ def prepare(args):
     odim = len(args.char_list)
 
     T = importlib.import_module(
-        "espnet.nets.{}_backend.e2e_asr_transformer".format("pytorch")
+        "espnet.nets.{}_backend.e2e_asr_maskctc".format("pytorch")
     )
 
     model = T.E2E(idim, odim, args)
