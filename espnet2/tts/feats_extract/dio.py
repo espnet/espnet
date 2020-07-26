@@ -15,6 +15,7 @@ import numpy as np
 import pyworld
 import torch
 
+from scipy.interpolate import interp1d
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -30,7 +31,9 @@ class Dio(AbsFeatsExtract):
         n_fft: int = 1024,
         hop_length: int = 256,
         f0min: Optional[int] = 80,
-        f0max: Optional[int] = 800,
+        f0max: Optional[int] = 400,
+        use_continuous_f0: bool = True,
+        use_log_f0: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -42,6 +45,8 @@ class Dio(AbsFeatsExtract):
         self.frame_period = 1000 * hop_length / fs
         self.f0min = f0min
         self.f0max = f0max
+        self.use_continuous_f0 = use_continuous_f0
+        self.use_log_f0 = use_log_f0
 
     def output_size(self) -> int:
         return 1
@@ -74,6 +79,11 @@ class Dio(AbsFeatsExtract):
         )
         f0 = pyworld.stonemask(x, f0, timeaxis, self.fs)
         f0 = self._adjust_num_frames(x, f0)
+        if self.use_continuous_f0:
+            f0 = self._convert_to_continuous_f0(f0)
+        if self.use_log_f0:
+            nonzero_idxs = np.where(f0 != 0)[0]
+            f0[nonzero_idxs] = np.log(f0[nonzero_idxs])
         return input.new_tensor(f0.reshape(-1, 1), dtype=torch.float)
 
     def _adjust_num_frames(self, x: np.array, f0: np.array) -> np.array:
@@ -83,4 +93,24 @@ class Dio(AbsFeatsExtract):
             f0 = np.pad(f0, ((0, num_frames - len(f0))))
         elif num_frames < len(f0):
             f0 = f0[:num_frames]
+        return f0
+
+    def _convert_to_continuous_f0(self, f0: np.array) -> np.array:
+        assert not (f0 == 0).all(), "All frames seems to be unvoiced."
+
+        # padding start and end of f0 sequence
+        start_f0 = f0[f0 != 0][0]
+        end_f0 = f0[f0 != 0][-1]
+        start_idx = np.where(f0 == start_f0)[0][0]
+        end_idx = np.where(f0 == end_f0)[0][-1]
+        f0[:start_idx] = start_f0
+        f0[end_idx:] = end_f0
+
+        # get non-zero frame index
+        nonzero_idxs = np.where(f0 != 0)[0]
+
+        # perform linear interpolation
+        interp_fn = interp1d(nonzero_idxs, f0[nonzero_idxs])
+        f0 = interp_fn(np.arange(0, f0.shape[0]))
+
         return f0
