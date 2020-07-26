@@ -72,13 +72,11 @@ def test_fastspeech2(
         speech=torch.randn(2, 4 * reduction_factor, 5),
         speech_lengths=torch.tensor([4, 2], dtype=torch.long) * reduction_factor,
         durations=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.long),
+        pitch=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.float).unsqueeze(-1),
+        energy=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.float).unsqueeze(-1),
         # NOTE(kan-bayashi): +1 for eos
         durations_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
-        pitch=torch.randn(2, 4 * reduction_factor, 1),
-        # NOTE(kan-bayashi): +1 for eos
         pitch_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
-        energy=torch.randn(2, 4 * reduction_factor, 1),
-        # NOTE(kan-bayashi): +1 for eos
         energy_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
     )
     if spk_embed_dim is not None:
