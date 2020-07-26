@@ -122,6 +122,7 @@ def calculate(file_list, gt_file_list, args, MCD):
         print("{} {}".format(gt_basename, mcd))
         MCD.append(mcd)
 
+
 def get_parser():
 
     parser = argparse.ArgumentParser(description="calculate MCD.")
@@ -158,6 +159,7 @@ def get_parser():
         "--n_jobs", default=40, type=int, help="number of parallel jobs"
     )
     return parser
+
 
 def main():
     args = get_parser().parse_args()
