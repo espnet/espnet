@@ -321,7 +321,7 @@ def train(args):
                 param.requires_grad = False
 
     for mod, param in model.named_parameters():
-        if param.requires_grad == False:
+        if not param.requires_grad:
             logging.info("Frozen module %s" % mod)
 
     # check the use of multi-gpu
@@ -350,7 +350,7 @@ def train(args):
             model, args.adim, args.transformer_warmup_steps, args.transformer_lr
         )
     elif args.opt == "lamb":
-        from pytorch_lamb import Lamb, log_lamb_rs
+        from pytorch_lamb import Lamb
 
         optimizer = Lamb(
             model.parameters(), lr=args.lr, weight_decay=0.01, betas=(0.9, 0.999)
@@ -615,7 +615,8 @@ def decode(args):
             plt.xlabel("Input")
             plt.ylabel("Output")
         elif len(shape) == 4:
-            # for transformer attention weights, whose shape is (#leyers, #heads, out_length, in_length)
+            # for transformer attention weights,
+            # whose shape is (#leyers, #heads, out_length, in_length)
             plt.figure(figsize=(figsize[0] * shape[0], figsize[1] * shape[1]), dpi=dpi)
             for idx1, xs in enumerate(array):
                 for idx2, x in enumerate(xs, 1):
@@ -632,7 +633,8 @@ def decode(args):
         plt.savefig(figname)
         plt.close()
 
-    # define function to calculate focus rate (see section 3.3 in https://arxiv.org/abs/1905.09263)
+    # define function to calculate focus rate
+    # (see section 3.3 in https://arxiv.org/abs/1905.09263)
     def _calculate_focus_rete(att_ws):
         if att_ws is None:
             # fastspeech case -> None

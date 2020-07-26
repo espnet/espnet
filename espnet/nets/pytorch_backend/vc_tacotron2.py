@@ -14,7 +14,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
@@ -34,7 +33,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     """VC Tacotron2 module for VC.
 
     This is a module of Tacotron2-based VC model,
-    which convert the sequence of acoustic features into the sequence of acoustic features.
+    which convert the sequence of acoustic features
+    into the sequence of acoustic features.
     """
 
     @staticmethod
@@ -243,7 +243,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             "--bce-pos-weight",
             default=20.0,
             type=float,
-            help="Positive sample weight in BCE calculation (only for use-masking=True)",
+            help="Positive sample weight in BCE calculation "
+            "(only for use-masking=True)",
         )
         group.add_argument(
             "--use-guided-attn-loss",
@@ -303,22 +304,31 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 - aconv_filts (int): The number of attention conv filter size.
                 - cumulate_att_w (bool): Whether to cumulate previous attention weight.
                 - use_batch_norm (bool): Whether to use batch normalization.
-                - use_concate (int): Whether to concatenate encoder embedding with decoder lstm outputs.
+                - use_concate (int):
+                    Whether to concatenate encoder embedding with decoder lstm outputs.
                 - dropout_rate (float): Dropout rate.
                 - zoneout_rate (float): Zoneout rate.
                 - reduction_factor (int): Reduction factor.
                 - spk_embed_dim (int): Number of speaker embedding dimenstions.
-                - spc_dim (int): Number of spectrogram embedding dimenstions (only for use_cbhg=True).
+                - spc_dim (int): Number of spectrogram embedding dimenstions
+                    (only for use_cbhg=True).
                 - use_cbhg (bool): Whether to use CBHG module.
-                - cbhg_conv_bank_layers (int): The number of convoluional banks in CBHG.
-                - cbhg_conv_bank_chans (int): The number of channels of convolutional bank in CBHG.
-                - cbhg_proj_filts (int): The number of filter size of projection layeri in CBHG.
-                - cbhg_proj_chans (int): The number of channels of projection layer in CBHG.
-                - cbhg_highway_layers (int): The number of layers of highway network in CBHG.
-                - cbhg_highway_units (int): The number of units of highway network in CBHG.
+                - cbhg_conv_bank_layers (int):
+                    The number of convoluional banks in CBHG.
+                - cbhg_conv_bank_chans (int):
+                    The number of channels of convolutional bank in CBHG.
+                - cbhg_proj_filts (int):
+                    The number of filter size of projection layeri in CBHG.
+                - cbhg_proj_chans (int):
+                    The number of channels of projection layer in CBHG.
+                - cbhg_highway_layers (int):
+                    The number of layers of highway network in CBHG.
+                - cbhg_highway_units (int):
+                    The number of units of highway network in CBHG.
                 - cbhg_gru_units (int): The number of units of GRU in CBHG.
                 - use_masking (bool): Whether to mask padded part in loss calculation.
-                - bce_pos_weight (float): Weight of positive sample of stop token (only for use_masking=True).
+                - bce_pos_weight (float): Weight of positive sample of stop token
+                    (only for use_masking=True).
                 - use-guided-attn-loss (bool): Whether to use guided attention loss.
                 - guided-attn-loss-sigma (float) Sigma in guided attention loss.
                 - guided-attn-loss-lamdba (float): Lambda in guided attention loss.
@@ -353,9 +363,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             raise ValueError(
                 "there is no such an activation function. (%s)" % args.output_activation
             )
-
-        # set padding idx
-        padding_idx = 0
 
         # define network modules
         self.enc = Encoder(
@@ -494,8 +501,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
-            spcs (Tensor, optional): Batch of groundtruth spectrograms (B, Lmax, spc_dim).
+            spembs (Tensor, optional):
+                Batch of speaker embedding vectors (B, spk_embed_dim).
+            spcs (Tensor, optional):
+                Batch of groundtruth spectrograms (B, Lmax, spc_dim).
 
         Returns:
             Tensor: Loss value.
@@ -510,7 +519,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
 
-        # thin out input frames for reduction factor (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+        # thin out input frames for reduction factor
+        # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
         if self.encoder_reduction_factor > 1:
             B, Lmax, idim = xs.shape
             if Lmax % self.encoder_reduction_factor != 0:
@@ -610,7 +620,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         # caluculate attention loss
         if self.use_guided_attn_loss:
-            # NOTE(kan-bayashi): length of output for auto-regressive input will be changed when r > 1
+            # NOTE(kan-bayashi): length of output for auto-regressive input
+            #   will be changed when r > 1
             if self.encoder_reduction_factor > 1:
                 ilens_in = ilens.new(
                     [ilen // self.encoder_reduction_factor for ilen in ilens]
@@ -669,7 +680,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         minlenratio = inference_args.minlenratio
         maxlenratio = inference_args.maxlenratio
 
-        # thin out input frames for reduction factor (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+        # thin out input frames for reduction factor
+        # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
         if self.encoder_reduction_factor > 1:
             Lmax, idim = x.shape
             if Lmax % self.encoder_reduction_factor != 0:
@@ -702,7 +714,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            spembs (Tensor, optional):
+                Batch of speaker embedding vectors (B, spk_embed_dim).
 
         Returns:
             numpy.ndarray: Batch of attention weights (B, Lmax, Tmax).
@@ -714,7 +727,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         self.eval()
         with torch.no_grad():
-            # thin out input frames for reduction factor (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+            # thin out input frames for reduction factor
+            # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
             if self.encoder_reduction_factor > 1:
                 B, Lmax, idim = xs.shape
                 if Lmax % self.encoder_reduction_factor != 0:
@@ -739,10 +753,13 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
     @property
     def base_plot_keys(self):
-        """Return base key names to plot during training. keys should match what `chainer.reporter` reports.
+        """Return base key names to plot during training.
+        keys should match what `chainer.reporter` reports.
 
-        If you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
-        also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
+        If you add the key `loss`, the reporter will report `main/loss`
+            and `validation/main/loss` values.
+        also `loss.png` will be created as a figure visulizing `main/loss`
+            and `validation/main/loss` values.
 
         Returns:
             list: List of strings which are base keys to plot during training.

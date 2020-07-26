@@ -54,7 +54,7 @@ class Encoder(torch.nn.Module):
 
         Args:
             idim (int) Dimension of the inputs.
-            use_embed (bool, optional) Whether to use embedding table or not. 
+            use_embed (bool, optional) Whether to use embedding table or not.
             encoder_reduction_factor (int, optional) Encoder reduction factor.
             embed_dim (int, optional) Dimension of character embedding.
             elayers (int, optional) The number of encoder blstm layers.

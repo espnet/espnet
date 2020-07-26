@@ -46,6 +46,7 @@ class Conv2dSubsampling(torch.nn.Module):
         :param torch.Tensor x_mask: input mask
         :return: subsampled x and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]
+
         """
         x = x.unsqueeze(1)  # (b, c, t, f)
         x = self.conv(x)
@@ -57,8 +58,10 @@ class Conv2dSubsampling(torch.nn.Module):
 
     def __getitem__(self, key):
         """Subsample x.
+
         When reset_parameters() is called, if use_scaled_pos_enc is used,
             return the positioning encoding.
+
         """
 
         if key != -1:

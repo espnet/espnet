@@ -11,12 +11,9 @@ import logging
 import torch
 import torch.nn.functional as F
 
-from torch.autograd import Function
-
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
-    Tacotron2Loss as TransformerLoss,
+    Tacotron2Loss as TransformerLoss,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
@@ -28,8 +25,6 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet.nets.pytorch_backend.transformer.plot import _plot_and_save_attention
-from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
@@ -42,11 +37,17 @@ from espnet.nets.pytorch_backend.e2e_tts_transformer import (
 class Transformer(TTSInterface, torch.nn.Module):
     """VC Transformer module.
 
-    This is a module of the Voice Transformer Network (VTN, Transformer-VC) described in
-    `Voice Transformer Network: Sequence-to-Sequence Voice Conversion Using Transformer with Text-to-Speech Pretraining`_,
-    which convert the sequence of acoustic features into the sequence of acoustic features.
-    
-    .. _`Voice Transformer Network: Sequence-to-Sequence Voice Conversion Using Transformer with Text-to-Speech Pretraining`:
+    This is a module of the Voice Transformer Network
+    (a.k.a. VTN or Transformer-VC) described in
+    `Voice Transformer Network: Sequence-to-Sequence
+    Voice Conversion Using Transformer with
+    Text-to-Speech Pretraining`_,
+    which convert the sequence of acoustic features
+    into the sequence of acoustic features.
+
+    .. _`Voice Transformer Network: Sequence-to-Sequence
+        Voice Conversion Using Transformer with
+        Text-to-Speech Pretraining`:
         https://arxiv.org/pdf/1912.06813.pdf
 
     """
@@ -142,7 +143,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             "--use-scaled-pos-enc",
             default=True,
             type=strtobool,
-            help="Use trainable scaled positional encoding instead of the fixed scale one.",
+            help="Use trainable scaled positional encoding"
+            "instead of the fixed scale one.",
         )
         group.add_argument(
             "--use-batch-norm",
@@ -259,7 +261,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             "--transformer-dec-dropout-rate",
             default=0.1,
             type=float,
-            help="Dropout rate for transformer decoder except for attention and pos encoding",
+            help="Dropout rate for transformer decoder "
+            "except for attention and pos encoding",
         )
         group.add_argument(
             "--transformer-dec-positional-dropout-rate",
@@ -324,7 +327,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             "--bce-pos-weight",
             default=5.0,
             type=float,
-            help="Positive sample weight in BCE calculation (only for use-masking=True)",
+            help="Positive sample weight in BCE calculation "
+            "(only for use-masking=True)",
         )
         group.add_argument(
             "--use-guided-attn-loss",
@@ -379,9 +383,12 @@ class Transformer(TTSInterface, torch.nn.Module):
             idim (int): Dimension of the inputs.
             odim (int): Dimension of the outputs.
             args (Namespace, optional):
-                - eprenet_conv_layers (int): Number of encoder prenet convolution layers.
-                - eprenet_conv_chans (int): Number of encoder prenet convolution channels.
-                - eprenet_conv_filts (int): Filter size of encoder prenet convolution.
+                - eprenet_conv_layers (int):
+                    Number of encoder prenet convolution layers.
+                - eprenet_conv_chans (int):
+                    Number of encoder prenet convolution channels.
+                - eprenet_conv_filts (int):
+                    Filter size of encoder prenet convolution.
                 - transformer_input_layer (str): Input layer before the encoder.
                 - dprenet_layers (int): Number of decoder prenet layers.
                 - dprenet_units (int): Number of decoder prenet hidden units.
@@ -394,12 +401,18 @@ class Transformer(TTSInterface, torch.nn.Module):
                 - postnet_layers (int): Number of postnet layers.
                 - postnet_chans (int): Number of postnet channels.
                 - postnet_filts (int): Filter size of postnet.
-                - use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
-                - use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
-                - encoder_normalize_before (bool): Whether to perform layer normalization before encoder block.
-                - decoder_normalize_before (bool): Whether to perform layer normalization before decoder block.
-                - encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder.
-                - decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder.
+                - use_scaled_pos_enc (bool):
+                    Whether to use trainable scaled positional encoding.
+                - use_batch_norm (bool):
+                    Whether to use batch normalization in encoder prenet.
+                - encoder_normalize_before (bool):
+                    Whether to perform layer normalization before encoder block.
+                - decoder_normalize_before (bool):
+                    Whether to perform layer normalization before decoder block.
+                - encoder_concat_after (bool): Whether to concatenate
+                    attention layer's input and output in encoder.
+                - decoder_concat_after (bool): Whether to concatenate
+                    attention layer's input and output in decoder.
                 - reduction_factor (int): Reduction factor (for decoder).
                 - encoder_reduction_factor (int): Reduction factor (for encoder).
                 - spk_embed_dim (int): Number of speaker embedding dimenstions.
@@ -407,24 +420,37 @@ class Transformer(TTSInterface, torch.nn.Module):
                 - transformer_init (float): How to initialize transformer parameters.
                 - transformer_lr (float): Initial value of learning rate.
                 - transformer_warmup_steps (int): Optimizer warmup steps.
-                - transformer_enc_dropout_rate (float): Dropout rate in encoder except attention & positional encoding.
-                - transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
-                - transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
-                - transformer_dec_dropout_rate (float): Dropout rate in decoder except attention & positional encoding.
-                - transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
-                - transformer_dec_attn_dropout_rate (float): Dropout rate in deocoder self-attention module.
-                - transformer_enc_dec_attn_dropout_rate (float): Dropout rate in encoder-deocoder attention module.
+                - transformer_enc_dropout_rate (float):
+                    Dropout rate in encoder except attention & positional encoding.
+                - transformer_enc_positional_dropout_rate (float):
+                    Dropout rate after encoder positional encoding.
+                - transformer_enc_attn_dropout_rate (float):
+                    Dropout rate in encoder self-attention module.
+                - transformer_dec_dropout_rate (float):
+                    Dropout rate in decoder except attention & positional encoding.
+                - transformer_dec_positional_dropout_rate (float):
+                    Dropout rate after decoder positional encoding.
+                - transformer_dec_attn_dropout_rate (float):
+                    Dropout rate in deocoder self-attention module.
+                - transformer_enc_dec_attn_dropout_rate (float):
+                    Dropout rate in encoder-deocoder attention module.
                 - eprenet_dropout_rate (float): Dropout rate in encoder prenet.
                 - dprenet_dropout_rate (float): Dropout rate in decoder prenet.
                 - postnet_dropout_rate (float): Dropout rate in postnet.
-                - use_masking (bool): Whether to apply masking for padded part in loss calculation.
-                - use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
-                - bce_pos_weight (float): Positive sample weight in bce calculation (only for use_masking=true).
+                - use_masking (bool):
+                    Whether to apply masking for padded part in loss calculation.
+                - use_weighted_masking (bool):
+                    Whether to apply weighted masking in loss calculation.
+                - bce_pos_weight (float): Positive sample weight in bce calculation
+                    (only for use_masking=true).
                 - loss_type (str): How to calculate loss.
                 - use_guided_attn_loss (bool): Whether to use guided attention loss.
-                - num_heads_applied_guided_attn (int): Number of heads in each layer to apply guided attention loss.
-                - num_layers_applied_guided_attn (int): Number of layers to apply guided attention loss.
-                - modules_applied_guided_attn (list): List of module names to apply guided attention loss.
+                - num_heads_applied_guided_attn (int):
+                    Number of heads in each layer to apply guided attention loss.
+                - num_layers_applied_guided_attn (int):
+                    Number of layers to apply guided attention loss.
+                - modules_applied_guided_attn (list):
+                    List of module names to apply guided attention loss.
                 - guided-attn-loss-sigma (float) Sigma in guided attention loss.
                 - guided-attn-loss-lambda (float): Lambda in guided attention loss.
 
@@ -615,7 +641,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            spembs (Tensor, optional): Batch of speaker embedding vectors
+                (B, spk_embed_dim).
 
         Returns:
             Tensor: Loss value.
@@ -630,7 +657,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             ys = ys[:, :max_olen]
             labels = labels[:, :max_olen]
 
-        # thin out input frames for reduction factor (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+        # thin out input frames for reduction factor
+        # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
         if self.encoder_reduction_factor > 1:
             B, Lmax, idim = xs.shape
             if Lmax % self.encoder_reduction_factor != 0:
@@ -814,7 +842,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                 "Attention constraint is not yet supported in Transformer. Not enabled."
             )
 
-        # thin out input frames for reduction factor (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+        # thin out input frames for reduction factor
+        # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
         if self.encoder_reduction_factor > 1:
             Lmax, idim = x.shape
             if Lmax % self.encoder_reduction_factor != 0:
@@ -917,7 +946,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             ilens (LongTensor): Batch of lengths of each input batch (B,).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embedding vectors (B, spk_embed_dim).
+            spembs (Tensor, optional): Batch of speaker embedding vectors
+                (B, spk_embed_dim).
             skip_output (bool, optional): Whether to skip calculate the final output.
             keep_tensor (bool, optional): Whether to keep original tensor.
 
@@ -926,7 +956,8 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         """
         with torch.no_grad():
-            # thin out input frames for reduction factor (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+            # thin out input frames for reduction factor
+            # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
             if self.encoder_reduction_factor > 1:
                 B, Lmax, idim = xs.shape
                 if Lmax % self.encoder_reduction_factor != 0:
@@ -950,7 +981,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             if self.spk_embed_dim is not None:
                 hs = self._integrate_with_spk_embed(hs, spembs)
 
-            # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
+            # thin out frames for reduction factor
+            # (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
                 ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
                 olens_in = olens.new([olen // self.reduction_factor for olen in olens])
@@ -959,14 +991,6 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # add first zero frame and remove last frame for auto-regressive
             ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
-
-            # if conv2d, modify mask
-            if "conv2d" in self.transformer_input_layer:
-                ilens_ds_st = ilens_ds.new(
-                    [((ilen - 2 + 1) // 2 - 2 + 1) // 2 for ilen in ilens_ds]
-                )
-            else:
-                ilens_ds_st = ilens_ds
 
             # forward decoder
             y_masks = self._target_mask(olens_in)
@@ -1107,10 +1131,13 @@ class Transformer(TTSInterface, torch.nn.Module):
 
     @property
     def base_plot_keys(self):
-        """Return base key names to plot during training. keys should match what `chainer.reporter` reports.
+        """Return base key names to plot during training.
+            keys should match what `chainer.reporter` reports.
 
-        If you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
-        also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
+        If you add the key `loss`, the reporter will report `main/loss`
+            and `validation/main/loss` values.
+        also `loss.png` will be created as a figure visulizing `main/loss`
+            and `validation/main/loss` values.
 
         Returns:
             list: List of strings which are base keys to plot during training.
