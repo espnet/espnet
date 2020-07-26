@@ -15,6 +15,7 @@ import torch.nn.functional as F
 
 from typeguard import check_argument_types
 
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
@@ -74,6 +75,7 @@ class Energy(AbsFeatsExtract):
         self,
         input: torch.Tensor,
         input_lengths: torch.Tensor,
+        feats_lengths: torch.Tensor = None,
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -87,15 +89,28 @@ class Energy(AbsFeatsExtract):
         # input_stft: (..., F, 2) -> (..., F)
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
         energy = torch.sqrt(torch.clamp(input_power.sum(dim=1), min=1.0e-10))
-        energy = energy.unsqueeze(-1)
 
-        # (Optional): Average by duration
+        # (Optional): Adjust length to match with the mel-spectrogram
+        if feats_lengths is not None:
+            energy = [
+                self._adjust_num_frames(e[:el], fl)
+                for e, el, fl in zip(energy, energy_lengths, feats_lengths)
+            ]
+            energy_lengths = feats_lengths
+
+        # (Optional): Average by duration to calculate token-wise energy
         if self.use_token_averaged_energy:
             energy = [
-                self._average_by_duration(e, d) for e, d in zip(energy, durations)
+                self._average_by_duration(e[:el], d)
+                for e, el, d in zip(energy, energy_lengths, durations)
             ]
             energy_lengths = durations_lengths
-        return energy, energy_lengths
+
+        # Padding
+        if isinstance(energy, list):
+            energy = pad_list(energy, 0.0)
+
+        return energy.unsqueeze(-1), energy_lengths
 
     @staticmethod
     def _average_by_duration(x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
@@ -108,3 +123,11 @@ class Energy(AbsFeatsExtract):
             for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
         ]
         return torch.stack(x_avg).unsqueeze(-1)
+
+    @staticmethod
+    def _adjust_num_frames(x: torch.Tensor, num_frames: torch.Tensor) -> torch.Tensor:
+        if num_frames > len(x):
+            x = F.pad(x, (0, num_frames - len(x)))
+        elif num_frames < len(x):
+            x = x[:num_frames]
+        return x

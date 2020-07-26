@@ -43,8 +43,12 @@ class ESPnetTTSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
+        durations: torch.Tensor = None,
+        durations_lengths: torch.Tensor = None,
         pitch: torch.Tensor = None,
+        pitch_lengths: torch.Tensor = None,
         energy: torch.Tensor = None,
+        energy_lengths: torch.Tensor = None,
         spembs: torch.Tensor = None,
         **kwargs
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -53,10 +57,34 @@ class ESPnetTTSModel(AbsESPnetModel):
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
         else:
             feats, feats_lengths = speech, speech_lengths
+
+        # Extract auxiliary features
         if self.pitch_extract is not None and pitch is None:
-            pitch, pitch_lengths = self.pitch_extract(speech, speech_lengths)
+            if self.pitch_extract.use_token_averaged_f0:
+                pitch, pitch_lengths = self.pitch_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
+            else:
+                pitch, pitch_lengths = self.pitch_extract(
+                    speech, speech_lengths, feats_lengths=feats_lengths,
+                )
         if self.energy_extract is not None and energy is None:
-            energy, energy_lengths = self.energy_extract(speech, speech_lengths)
+            if self.energy_extract.use_token_averaged_energy:
+                energy, energy_lengths = self.energy_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
+            else:
+                energy, energy_lengths = self.energy_extract(
+                    speech, speech_lengths, feats_lengths=feats_lengths,
+                )
 
         # Normalize
         if self.normalize is not None:
@@ -66,9 +94,14 @@ class ESPnetTTSModel(AbsESPnetModel):
         if self.energy_normalize is not None:
             energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
 
-        if pitch is not None:
+        # Update kwargs for additional auxiliary inputs
+        if spembs is not None:
+            kwargs.update(spembs=spembs)
+        if durations is not None:
+            kwargs.update(durations=durations, durations_lengths=durations_lengths)
+        if self.pitch_extract is not None and pitch is not None:
             kwargs.update(pitch=pitch, pitch_lengths=pitch_lengths)
-        if energy is not None:
+        if self.energy_extract is not None and energy is not None:
             kwargs.update(energy=energy, energy_lengths=energy_lengths)
 
         return self.tts(
@@ -76,7 +109,6 @@ class ESPnetTTSModel(AbsESPnetModel):
             text_lengths=text_lengths,
             speech=feats,
             speech_lengths=feats_lengths,
-            spembs=spembs,
             **kwargs,
         )
 
@@ -86,6 +118,8 @@ class ESPnetTTSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
+        durations: torch.Tensor = None,
+        durations_lengths: torch.Tensor = None,
         pitch: torch.Tensor = None,
         pitch_lengths: torch.Tensor = None,
         energy: torch.Tensor = None,
@@ -99,9 +133,31 @@ class ESPnetTTSModel(AbsESPnetModel):
         feats_dict = {"feats": feats, "feats_lengths": feats_lengths}
 
         if self.pitch_extract is not None:
-            pitch, pitch_lengths = self.pitch_extract(speech, speech_lengths)
+            if self.pitch_extract.use_token_averaged_f0:
+                pitch, pitch_lengths = self.pitch_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
+            else:
+                pitch, pitch_lengths = self.pitch_extract(
+                    speech, speech_lengths, feats_lengths=feats_lengths,
+                )
         if self.energy_extract is not None:
-            energy, energy_lengths = self.energy_extract(speech, speech_lengths)
+            if self.energy_extract.use_token_averaged_energy:
+                energy, energy_lengths = self.energy_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
+            else:
+                energy, energy_lengths = self.energy_extract(
+                    speech, speech_lengths, feats_lengths=feats_lengths,
+                )
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:

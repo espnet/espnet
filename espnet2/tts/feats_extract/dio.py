@@ -10,7 +10,6 @@ from typing import Tuple
 from typing import Union
 
 import humanfriendly
-import librosa
 import numpy as np
 import pyworld
 import torch
@@ -67,17 +66,30 @@ class Dio(AbsFeatsExtract):
         self,
         input: torch.Tensor,
         input_lengths: torch.Tensor,
+        feats_lengths: torch.Tensor = None,
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        pitch = [self._calculate_f0(input_) for input_ in input]
+        # F0 extraction
+        pitch = [self._calculate_f0(x[:xl]) for x, xl in zip(input, input_lengths)]
+
+        # (Optional): Adjust length to match with the mel-spectrogram
+        if feats_lengths is not None:
+            pitch = [
+                self._adjust_num_frames(p, fl) for p, fl in zip(pitch, feats_lengths)
+            ]
+
+        # (Optional): Average by duration to calculate token-wise f0
         if self.use_token_averaged_f0:
             pitch = [self._average_by_duration(p, d) for p, d in zip(pitch, durations)]
             pitch_lengths = durations_lengths
         else:
             pitch_lengths = input.new_tensor([len(p) for p in pitch], dtype=torch.long)
+
+        # Padding
         pitch = pad_list(pitch, 0.0)
-        return pitch, pitch_lengths
+
+        return pitch.unsqueeze(-1), pitch_lengths
 
     def _calculate_f0(self, input: torch.Tensor) -> torch.Tensor:
         x = input.cpu().numpy().astype(np.double)
@@ -89,22 +101,20 @@ class Dio(AbsFeatsExtract):
             frame_period=self.frame_period,
         )
         f0 = pyworld.stonemask(x, f0, timeaxis, self.fs)
-        f0 = self._adjust_num_frames(x, f0)
         if self.use_continuous_f0:
             f0 = self._convert_to_continuous_f0(f0)
         if self.use_log_f0:
             nonzero_idxs = np.where(f0 != 0)[0]
             f0[nonzero_idxs] = np.log(f0[nonzero_idxs])
-        return input.new_tensor(f0.reshape(-1, 1), dtype=torch.float)
+        return input.new_tensor(f0.reshape(-1), dtype=torch.float)
 
-    def _adjust_num_frames(self, x: np.array, f0: np.array) -> np.array:
-        num_frames = librosa.samples_to_frames(len(x), self.hop_length, self.n_fft)
-        num_frames += 1
-        if num_frames > len(f0):
-            f0 = np.pad(f0, ((0, num_frames - len(f0))))
-        elif num_frames < len(f0):
-            f0 = f0[:num_frames]
-        return f0
+    @staticmethod
+    def _adjust_num_frames(x: torch.Tensor, num_frames: torch.Tensor) -> torch.Tensor:
+        if num_frames > len(x):
+            x = F.pad(x, (0, num_frames - len(x)))
+        elif num_frames < len(x):
+            x = x[:num_frames]
+        return x
 
     @staticmethod
     def _convert_to_continuous_f0(f0: np.array) -> np.array:
