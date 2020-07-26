@@ -11,6 +11,7 @@ from typing import Union
 
 import humanfriendly
 import torch
+import torch.nn.functional as F
 
 from typeguard import check_argument_types
 
@@ -32,6 +33,7 @@ class Energy(AbsFeatsExtract):
         pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
+        use_token_averaged_energy: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -43,6 +45,7 @@ class Energy(AbsFeatsExtract):
         self.hop_length = hop_length
         self.win_length = win_length
         self.window = window
+        self.use_token_averaged_energy = use_token_averaged_energy
 
         self.stft = Stft(
             n_fft=n_fft,
@@ -68,10 +71,14 @@ class Energy(AbsFeatsExtract):
         )
 
     def forward(
-        self, input: torch.Tensor, input_lengths: torch.Tensor
+        self,
+        input: torch.Tensor,
+        input_lengths: torch.Tensor,
+        durations: torch.Tensor = None,
+        durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        input_stft, feats_lens = self.stft(input, input_lengths)
+        input_stft, energy_lengths = self.stft(input, input_lengths)
 
         assert input_stft.dim() >= 4, input_stft.shape
         # "2" refers to the real/imag parts of Complex
@@ -80,4 +87,24 @@ class Energy(AbsFeatsExtract):
         # input_stft: (..., F, 2) -> (..., F)
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
         energy = torch.sqrt(torch.clamp(input_power.sum(dim=1), min=1.0e-10))
-        return energy.unsqueeze(-1), feats_lens
+        energy = energy.unsqueeze(-1)
+
+        # (Optional): Average by duration
+        if self.use_token_averaged_energy:
+            energy = [
+                self._average_by_duration(e, d) for e, d in zip(energy, durations)
+            ]
+            energy_lengths = durations_lengths
+        return energy, energy_lengths
+
+    @staticmethod
+    def _average_by_duration(x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
+        assert d.sum() == len(x)
+        d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
+        x_avg = [
+            x[start:end].masked_select(x[start:end].ne(0.0)).mean(dim=0)
+            if len(x[start:end].masked_select(x[start:end].ne(0.0))) != 0
+            else x.new_tensor(0.0)
+            for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
+        ]
+        return torch.stack(x_avg).unsqueeze(-1)
