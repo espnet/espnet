@@ -810,7 +810,6 @@ if ! "${skip_eval}"; then
                 done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
                 for i in $(seq "${_nj}"); do
                     mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
-                    mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
                     rm -rf "${_logdir}/output.${i}"/att_ws
                 done
             fi
