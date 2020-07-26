@@ -24,8 +24,8 @@ from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.fill_missing_args import fill_missing_args
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
-    GuidedAttentionLoss,
-    Tacotron2Loss,
+    GuidedAttentionLoss,  # noqa: H301
+    Tacotron2Loss,  # noqa: H301
 )
 
 
@@ -754,8 +754,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     @property
     def base_plot_keys(self):
         """Return base key names to plot during training.
-        keys should match what `chainer.reporter` reports.
 
+        keys should match what `chainer.reporter` reports.
         If you add the key `loss`, the reporter will report `main/loss`
             and `validation/main/loss` values.
         also `loss.png` will be created as a figure visulizing `main/loss`

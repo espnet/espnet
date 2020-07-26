@@ -23,7 +23,8 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 def get_parser():
     """Get parser of training arguments."""
     parser = configargparse.ArgumentParser(
-        description="Train a new voice conversion (VC) model on one CPU, one or multiple GPUs",
+        description="Train a new voice conversion (VC) model on one CPU, "
+        "one or multiple GPUs",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
@@ -38,7 +39,8 @@ def get_parser():
     parser.add(
         "--config3",
         is_config_file=True,
-        help="third config file path that overwrites the settings in `--config` and `--config2`.",
+        help="third config file path that overwrites the settings "
+        "in `--config` and `--config2`.",
     )
 
     parser.add_argument(
@@ -132,7 +134,8 @@ def get_parser():
         "--batch-count",
         default="auto",
         choices=BATCH_COUNT_CHOICES,
-        help="How to count batch_size. The default (auto) will find how to count by args.",
+        help="How to count batch_size. "
+        "The default (auto) will find how to count by args.",
     )
     parser.add_argument(
         "--batch-size",
@@ -172,7 +175,8 @@ def get_parser():
         default=100,
         type=int,
         metavar="ML",
-        help="When --batch-count=seq, batch size is reduced if the input sequence length > ML.",
+        help="When --batch-count=seq, "
+        "batch size is reduced if the input sequence length > ML.",
     )
     parser.add_argument(
         "--maxlen-out",
@@ -180,7 +184,8 @@ def get_parser():
         default=200,
         type=int,
         metavar="ML",
-        help="When --batch-count=seq, batch size is reduced if the output sequence length > ML",
+        help="When --batch-count=seq, "
+        "batch size is reduced if the output sequence length > ML",
     )
     parser.add_argument(
         "--num-iter-processes",
@@ -242,7 +247,8 @@ def get_parser():
         default=3,
         type=int,
         nargs="?",
-        help="Number of epochs to wait without improvement before stopping the training",
+        help="Number of epochs to wait without improvement "
+        "before stopping the training",
     )
     parser.add_argument(
         "--grad-clip", default=1, type=float, help="Gradient norm threshold to clip"

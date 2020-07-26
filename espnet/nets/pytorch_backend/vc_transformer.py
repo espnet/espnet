@@ -29,8 +29,8 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
 from espnet.nets.pytorch_backend.e2e_tts_transformer import (
-    GuidedMultiHeadAttentionLoss,
-    TTSPlot,
+    GuidedMultiHeadAttentionLoss,  # noqa: H301
+    TTSPlot, # noqa: H301
 )
 
 
@@ -763,7 +763,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_in, T_in)
                 enc_attn_loss = self.attn_criterion(
                     att_ws, ilens_ds_st, ilens_ds_st
-                )  # TODO: is changing to ilens_ds_st right?
+                )  # TODO(unilight): is changing to ilens_ds_st right?
                 loss = loss + enc_attn_loss
                 report_keys += [{"enc_attn_loss": enc_attn_loss.item()}]
             # calculate for decoder
@@ -799,7 +799,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_in)
                 enc_dec_attn_loss = self.attn_criterion(
                     att_ws, ilens_ds_st, olens_in
-                )  # TODO: is changing to ilens_ds_st right?
+                )  # TODO(unilight): is changing to ilens_ds_st right?
                 loss = loss + enc_dec_attn_loss
                 report_keys += [{"enc_dec_attn_loss": enc_dec_attn_loss.item()}]
 
@@ -1132,8 +1132,8 @@ class Transformer(TTSInterface, torch.nn.Module):
     @property
     def base_plot_keys(self):
         """Return base key names to plot during training.
-            keys should match what `chainer.reporter` reports.
 
+        keys should match what `chainer.reporter` reports.
         If you add the key `loss`, the reporter will report `main/loss`
             and `validation/main/loss` values.
         also `loss.png` will be created as a figure visulizing `main/loss`

@@ -33,7 +33,8 @@ def get_parser():
     parser.add(
         "--config3",
         is_config_file=True,
-        help="third config file path that overwrites the settings in `--config` and `--config2`.",
+        help="third config file path that overwrites the settings "
+        "in `--config` and `--config2`.",
     )
 
     parser.add_argument("--ngpu", default=0, type=int, help="Number of GPUs")

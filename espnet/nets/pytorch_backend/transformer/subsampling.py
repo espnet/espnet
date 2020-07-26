@@ -63,7 +63,6 @@ class Conv2dSubsampling(torch.nn.Module):
             return the positioning encoding.
 
         """
-
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
         return self.out[key]
