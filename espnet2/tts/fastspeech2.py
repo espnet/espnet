@@ -80,6 +80,7 @@ class FastSpeech2(AbsTTS):
         energy_predictor_dropout: float = 0.5,
         energy_embed_kernel_size: int = 9,
         energy_embed_dropout: float = 0.5,
+        stop_gradient_from_energy_predictor: bool = False,
         # pitch predictor
         pitch_predictor_layers: int = 2,
         pitch_predictor_chans: int = 384,
@@ -87,6 +88,7 @@ class FastSpeech2(AbsTTS):
         pitch_predictor_dropout: float = 0.5,
         pitch_embed_kernel_size: int = 9,
         pitch_embed_dropout: float = 0.5,
+        stop_gradient_from_pitch_predictor: bool = False,
         # pretrained spk emb
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
@@ -124,6 +126,8 @@ class FastSpeech2(AbsTTS):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
+        self.stop_gradient_from_pitch_predictor = stop_gradient_from_pitch_predictor
+        self.stop_gradient_from_energy_predictor = stop_gradient_from_energy_predictor
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.use_gst = use_gst
         self.spk_embed_dim = spk_embed_dim
@@ -408,11 +412,18 @@ class FastSpeech2(AbsTTS):
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
 
-        # forward duration predictor and length regulator
+        # forward duration predictor and variance predictors
         d_masks = make_pad_mask(ilens).to(xs.device)
 
-        p_outs = self.pitch_predictor(hs, d_masks.unsqueeze(-1))
-        e_outs = self.energy_predictor(hs, d_masks.unsqueeze(-1))
+        if self.stop_gradient_from_pitch_predictor:
+            p_outs = self.pitch_predictor(hs.detach(), d_masks.unsqueeze(-1))
+        else:
+            p_outs = self.pitch_predictor(hs, d_masks.unsqueeze(-1))
+        if self.stop_gradient_from_energy_predictor:
+            e_outs = self.energy_predictor(hs.detach(), d_masks.unsqueeze(-1))
+        else:
+            e_outs = self.energy_predictor(hs, d_masks.unsqueeze(-1))
+
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
             # use prediction in inference
