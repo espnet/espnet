@@ -867,9 +867,8 @@ if ! "${skip_eval}"; then
             _logdir="${_dir}/log"
             mkdir -p "${_logdir}"
 
-            # NOTE(kan-bayashi): Overwrite speech arguments if teacher dumpdir is provided
-            if [ -n "${teacher_dumpdir}" ]; then
-                # TODO(kan-bayashi): Make this part more flexible
+            # Overwrite speech arguments if use knowledge distillation
+            if [ -n "${teacher_dumpdir}" ] && [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
                 _speech_data="${teacher_dumpdir}/${dset}/denorm"
                 _scp=feats.scp
                 _type=npy
@@ -972,7 +971,8 @@ if ! "${skip_upload}"; then
 
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
-            _checkout="git checkout $(git show -s --format=%H)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
         else
             _creator_name="$(whoami)"
             _checkout=""
