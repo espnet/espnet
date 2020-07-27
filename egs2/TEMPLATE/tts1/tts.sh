@@ -35,19 +35,19 @@ skip_upload=true     # Skip packing and uploading stages
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
-inference_nj=32         # The number of parallel jobs in decoding.
-gpu_inference=false     # Whether to perform gpu decoding.
+inference_nj=32      # The number of parallel jobs in decoding.
+gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 
 # Data preparation related
-local_data_opts= # Options to be passed to local/data.sh.
+local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
-feats_type=raw              # Feature type (fbank or stft or raw).
-audio_format=flac           # Audio format (only in feats_type=raw).
-min_wav_duration=0.1        # Minimum duration in second
-max_wav_duration=20         # Maximum duration in second
+feats_type=raw       # Feature type (fbank or stft or raw).
+audio_format=flac    # Audio format (only in feats_type=raw).
+min_wav_duration=0.1 # Minimum duration in second
+max_wav_duration=20  # Maximum duration in second
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
@@ -65,8 +65,8 @@ blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 
 # Training related
-train_config=      # Config for training.
-train_args=        # Arguments for training, e.g., "--max_epoch 1".
+train_config=""    # Config for training.
+train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
 tts_exp=""         # Specify the direcotry path for experiment. If this option is specified, tag is ignored.
@@ -76,23 +76,23 @@ teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
 
 # Decoding related
-inference_config= # Config for decoding.
-inference_args=   # Arguments for decoding, e.g., "--threshold 0.75".
-               # Note that it will overwrite args in inference config.
-inference_tag=""  # Suffix for decoding directory.
+inference_config="" # Config for decoding.
+inference_args=""   # Arguments for decoding, e.g., "--threshold 0.75".
+                    # Note that it will overwrite args in inference config.
+inference_tag=""    # Suffix for decoding directory.
 inference_model=train.loss.best.pth # Model path for decoding e.g.,
-                                 # inference_model=train.loss.best.pth
-                                 # inference_model=3epoch.pth
-                                 # inference_model=valid.acc.best.pth
-                                 # inference_model=valid.loss.ave.pth
+                                    # inference_model=train.loss.best.pth
+                                    # inference_model=3epoch.pth
+                                    # inference_model=valid.acc.best.pth
+                                    # inference_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
-download_model= # Download a model from Model Zoo and use it for decoding
+download_model=""   # Download a model from Model Zoo and use it for decoding
 
 # [Task dependent] Set the datadir name created by local/data.sh
-train_set=       # Name of training set.
-valid_set=       # Name of validation set used for monitoring/tuning network training
-test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-srctexts=        # Texts to create token list. Multiple items can be specified.
+train_set=""     # Name of training set.
+valid_set=""     # Name of validation set used for monitoring/tuning network training
+test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
+srctexts=""      # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
 token_type=phn   # Transcription type.
 cleaner=tacotron # Text cleaner.
