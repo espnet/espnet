@@ -48,7 +48,6 @@ feats_type=raw              # Feature type (fbank or stft or raw).
 audio_format=flac           # Audio format (only in feats_type=raw).
 min_wav_duration=0.1        # Minimum duration in second
 max_wav_duration=20         # Maximum duration in second
-write_collected_feats=false # Whether to dump features in stats collection.
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
@@ -57,8 +56,9 @@ n_mels=80         # The number of mel basis.
 n_fft=1024        # The number of fft points.
 n_shift=256       # The number of shift points.
 win_length=null   # Window length.
-f0min=80          # Maximum f0 (only for FastSpeech2)
-f0max=800         # Minimum f0 (only for FastSpeech2)
+# Only used for the model using pitch features (e.g. FastSpeech2)
+f0min=80          # Maximum f0 for pitch extraction.
+f0max=800         # Minimum f0 for pitch extraction.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol
@@ -69,9 +69,11 @@ train_config=      # Config for training.
 train_args=        # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
-tts_exp=           # Specify the direcotry path for experiment. If this option is specified, tag is ignored.
+tts_exp=""         # Specify the direcotry path for experiment. If this option is specified, tag is ignored.
+tts_stats_dir=""   # Specify the direcotry path for statistics. If empty, automatically decided
 num_splits=1       # Number of splitting for tts corpus
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
+write_collected_feats=false # Whether to dump features in stats collection.
 
 # Decoding related
 inference_config= # Config for decoding.
@@ -113,8 +115,8 @@ Options:
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes
     --nj             # The number of parallel jobs (default="${nj}").
-    --inference_nj      # The number of parallel jobs in decoding (default="${inference_nj}").
-    --gpu_inference     # Whether to perform gpu decoding (default="${gpu_inference}").
+    --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
+    --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
 
@@ -133,41 +135,45 @@ Options:
     --n_fft          # The number of fft points (default="${n_fft}").
     --n_shift        # The number of shift points (default="${n_shift}").
     --win_length     # Window length (default="${win_length}").
+    --f0min          # Maximum f0 for pitch extraction (default="${f0min}").
+    --f0max          # Minimum f0 for pitch extraction (default="${f0max}").
     --oov            # Out of vocabrary symbol (default="${oov}").
     --blank          # CTC blank symbol (default="${blank}").
-    --sos_eos=       # sos and eos symbole (default="${sos_eos}").
+    --sos_eos        # sos and eos symbole (default="${sos_eos}").
 
     # Training related
-    --train_config # Config for training (default="${train_config}").
-    --train_args   # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
-                   # Note that it will overwrite args in train config.
-    --tag          # Suffix for training directory (default="${tag}").
-    --tts_exp      # Specify the direcotry path for experiment. If this option is specified, tag is ignored (default="${tts_exp}").
-    --num_splits   # Number of splitting for tts corpus (default="${num_splits}").
+    --train_config  # Config for training (default="${train_config}").
+    --train_args    # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
+                    # Note that it will overwrite args in train config.
+    --tag           # Suffix for training directory (default="${tag}").
+    --tts_exp       # Specify the direcotry path for experiment. If this option is specified, tag is ignored (default="${tts_exp}").
+    --tts_stats_dir # Specify the direcotry path for statistics. If empty, automatically decided (default="${tts_stats_dir}").
+    --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
+    --write_collected_feats # Whether to dump features in statistics collection (default="${write_collected_feats}").
 
     # Decoding related
-    --inference_config     # Config for decoding (default="${inference_config}").
-    --inference_args       # Arguments for decoding, e.g., "--threshold 0.75" (default="${inference_args}").
+    --inference_config  # Config for decoding (default="${inference_config}").
+    --inference_args    # Arguments for decoding, e.g., "--threshold 0.75" (default="${inference_args}").
                         # Note that it will overwrite args in inference config.
-    --inference_tag        # Suffix for decoding directory (default="${inference_tag}").
-    --inference_model      # Model path for decoding (default=${inference_model}).
+    --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
+    --inference_model   # Model path for decoding (default=${inference_model}).
     --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
-    --download_model   # Download a model from Model Zoo and use it for decoding  (default="${download_model}").
+    --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
-    --train_set         # Name of training set (required).
-    --valid_set         # Name of validation set used for monitoring/tuning network training (required).
-    --test_sets         # Names of test sets (required).
-                        # Note that multiple items (e.g., both dev and eval sets) can be specified.
-    --srctexts          # Texts to create token list (required).
-                        # Note that multiple items can be specified.
-    --nlsyms_txt        # Non-linguistic symbol list (default="${nlsyms_txt}").
-    --token_type        # Transcription type (default="${token_type}").
-    --cleaner           # Text cleaner (default="${cleaner}").
-    --g2p               # g2p method (default="${g2p}").
-    --lang              # The language type of corpus (default=${lang}).
-    --text_fold_length   # fold_length for text data
-    --speech_fold_length # fold_length for speech data
+    --train_set          # Name of training set (required).
+    --valid_set          # Name of validation set used for monitoring/tuning network training (required).
+    --test_sets          # Names of test sets (required).
+                         # Note that multiple items (e.g., both dev and eval sets) can be specified.
+    --srctexts           # Texts to create token list (required).
+                         # Note that multiple items can be specified.
+    --nlsyms_txt         # Non-linguistic symbol list (default="${nlsyms_txt}").
+    --token_type         # Transcription type (default="${token_type}").
+    --cleaner            # Text cleaner (default="${cleaner}").
+    --g2p                # g2p method (default="${g2p}").
+    --lang               # The language type of corpus (default="${lang}").
+    --text_fold_length   # Fold length for text data (default="${text_fold_length}").
+    --speech_fold_length # Fold length for speech data (default="${speech_fold_length}").
 EOF
 )
 
@@ -238,12 +244,14 @@ if [ -z "${inference_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-tts_stats_dir="${expdir}/tts_stats_${feats_type}_${token_type}"
-if [ "${cleaner}" != none ]; then
-    tts_stats_dir+="_${cleaner}"
-fi
-if [ "${token_type}" = phn ]; then
-    tts_stats_dir+="_${g2p}"
+if [ -z "${tts_stats_dir}" ]; then
+    tts_stats_dir="${expdir}/tts_stats_${feats_type}_${token_type}"
+    if [ "${cleaner}" != none ]; then
+        tts_stats_dir+="_${cleaner}"
+    fi
+    if [ "${token_type}" = phn ]; then
+        tts_stats_dir+="_${g2p}"
+    fi
 fi
 # The directory used for training commands
 if [ -z "${tts_exp}" ]; then
@@ -560,7 +568,9 @@ if ! "${skip_train}"; then
         fi
 
         if [ -z "${teacher_dumpdir}" ]; then
-            # CASE 1: Standard training
+            #####################################
+            #     CASE 1: AR model training     #
+            #####################################
             _feats_type="$(<${_train_dir}/feats_type)"
 
             if [ "${_feats_type}" = raw ]; then
@@ -622,122 +632,59 @@ if ! "${skip_train}"; then
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
         else
-            # CASE 2: Knowledge distillation training
+            #####################################
+            #   CASE 2: Non-AR model training   #
+            #####################################
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
             _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
             _fold_length="${speech_fold_length}"
 
-            if [ "${num_splits}" -gt 1 ]; then
-                # If you met a memory error when parsing text files, this option may help you.
-                # The corpus is split into subsets and each subset is used for training one by one in order,
-                # so the memory footprint can be limited to the memory required for each dataset.
-
-                _split_dir="${teacher_dumpdir}/splits${num_splits}"
-                _scps=""
-                if [ -e ${_teacher_train_dir}/probs ]; then
-                    # Knowledge distillation case
-                    _scp=feats.scp
-                    _type=npy
-                    _scps+="${_teacher_train_dir}/denorm/${_scp} "
-                    _scps+="${_teacher_train_dir}/speech_shape "
-                    _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
-                    _opts+="--odim=${_odim} "
-                else
-                    # Teacher forcing case
-                    if [ "${feats_type}" = raw ]; then
-                        _scp=wav.scp
-                        _type=sound
-                        _fold_length="$((speech_fold_length * n_shift))"
-                        _opts+="--feats_extract fbank "
-                        _opts+="--feats_extract_conf fs=${fs} "
-                        _opts+="--feats_extract_conf fmin=${fmin} "
-                        _opts+="--feats_extract_conf fmax=${fmax} "
-                        _opts+="--feats_extract_conf n_mels=${n_mels} "
-                        _opts+="--feats_extract_conf hop_length=${n_shift} "
-                        _opts+="--feats_extract_conf n_fft=${n_fft} "
-                        _opts+="--feats_extract_conf win_length=${win_length} "
-                    else
-                        _scp=feats.scp
-                        _type=kaldi_ark
-                        _odim="$(head -n 1 "${tts_stats_dir}/train/speech_shape" | cut -f 2 -d ",")"
-                        _opts+="--odim=${_odim} "
-                    fi
-                    _scps+="${_train_dir}/${_scp} "
-                    _scps+="${tts_stats_dir}/speech_shape "
-                fi
-                if [ ! -f "${_split_dir}/.done" ]; then
-                    rm -f "${_split_dir}/.done"
-                    python3 -m espnet2.bin.split_scps \
-                      --scps \
-                          "${_train_dir}/text" \
-                          "${_teacher_train_dir}/durations" \
-                          "${_teacher_train_dir}/focus_rates" \
-                          "${tts_stats_dir}/text_shape.${token_type}" \
-                          ${_scps} \
-                      --num_splits "${num_splits}" \
-                      --output_dir "${_split_dir}"
-                    touch "${_split_dir}/.done"
-                else
-                    log "${_split_dir}/.done exists. Spliting is skipped"
-                fi
-
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-                _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
-                _opts+="--train_shape_file ${_split_dir}/speech_shape "
-                _opts+="--multiple_iterator true "
-
-            else
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
-                _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
-                _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
-                if [ -e ${_teacher_train_dir}/probs ]; then
-                    # Knowledge distillation case
-                    _scp=feats.scp
-                    _type=npy
-                    _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
-                    _opts+="--odim=${_odim} "
-                    _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/denorm/${_scp},speech,${_type} "
-                    _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape "
-                else
-                    # Teacher forcing case
-                    if [ "${feats_type}" = raw ]; then
-                        _scp=wav.scp
-                        _type=sound
-                        _fold_length="$((speech_fold_length * n_shift))"
-                        _opts+="--feats_extract fbank "
-                        _opts+="--feats_extract_conf fs=${fs} "
-                        _opts+="--feats_extract_conf fmin=${fmin} "
-                        _opts+="--feats_extract_conf fmax=${fmax} "
-                        _opts+="--feats_extract_conf n_mels=${n_mels} "
-                        _opts+="--feats_extract_conf hop_length=${n_shift} "
-                        _opts+="--feats_extract_conf n_fft=${n_fft} "
-                        _opts+="--feats_extract_conf win_length=${win_length} "
-                    else
-                        _scp=feats.scp
-                        _type=kaldi_ark
-                        _odim="$(head -n 1 "${tts_stats_dir}/train/speech_shape" | cut -f 2 -d ",")"
-                        _opts+="--odim=${_odim} "
-                    fi
-                    _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
-                    _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
-                fi
-            fi
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
+            _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
+
             if [ -e ${_teacher_train_dir}/probs ]; then
-                # Knowledge distillation case
+                # Knowledge distillation case: use the outputs of the teacher model as the target
+                _scp=feats.scp
+                _type=npy
+                _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
+                _opts+="--odim=${_odim} "
+                _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/denorm/${_scp},speech,${_type} "
+                _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape "
                 _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/denorm/${_scp},speech,${_type} "
                 _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape "
             else
-                # Teacher forcing case
+                # Teacher forcing case: use groundtruth as the target
+                if [ "${feats_type}" = raw ]; then
+                    _scp=wav.scp
+                    _type=sound
+                    _fold_length="$((speech_fold_length * n_shift))"
+                    _opts+="--feats_extract fbank "
+                    _opts+="--feats_extract_conf fs=${fs} "
+                    _opts+="--feats_extract_conf fmin=${fmin} "
+                    _opts+="--feats_extract_conf fmax=${fmax} "
+                    _opts+="--feats_extract_conf n_mels=${n_mels} "
+                    _opts+="--feats_extract_conf hop_length=${n_shift} "
+                    _opts+="--feats_extract_conf n_fft=${n_fft} "
+                    _opts+="--feats_extract_conf win_length=${win_length} "
+                else
+                    _scp=feats.scp
+                    _type=kaldi_ark
+                    _odim="$(head -n 1 "${tts_stats_dir}/train/speech_shape" | cut -f 2 -d ",")"
+                    _opts+="--odim=${_odim} "
+                fi
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+                _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
                 _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
                 _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
             fi
         fi
 
-        # Check extra inputs (For FastSpeech2)
+        # If there are dumped files of additional inputs, we use it to reduce computational cost
+        # NOTE (kan-bayashi): Use dumped files of the target features as well?
         if [ -e "${tts_stats_dir}/train/collect_feats/pitch.scp" ]; then
             _scp=pitch.scp
             _type=npy
@@ -755,7 +702,7 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
         fi
 
-        # Check extra statistics (For FastSpeech2)
+        # Check extra statistics
         if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
             _opts+="--pitch_normalize_conf stats_file=${tts_stats_dir}/train/pitch_stats.npz "
         fi
