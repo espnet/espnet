@@ -1,5 +1,5 @@
 
-if [ $# -eq 1 ] || [ $# -gt 2 ]; then
+if [ $# -eq 0 ] || [ $# -gt 2 ]; then
     echo "Usage: $0 CUDA_HOME [NCCL_HOME]"
     return 1
 fi
