@@ -171,7 +171,7 @@ $ make KALDI=<kaldi-root> CONDA=<conda-root> CONDA_ENV_NAME=<name>
 
 Note that
 - If there are no conda tools at the path, new conda is created there.
-- If there are already conda and already the environment too, the creation of new environment is skipped.
+- If there already exists conda and its environment, the creation of a new environment is skipped.
 
 #### C.) create virtualenv from an existing python
 
