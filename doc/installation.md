@@ -132,7 +132,7 @@ $ cd <any-place>
 $ git clone https://github.com/espnet/espnet
 ```
 
-Before installing ESPnet, setup some environment variables ralated to CUDA.
+Before installing ESPnet, set up some environment variables related to CUDA.
 
 ```sh
 $ cd <espnet-root>/tools
