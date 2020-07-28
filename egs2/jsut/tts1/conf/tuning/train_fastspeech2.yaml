@@ -1,5 +1,5 @@
 # This configuration is for ESPnet2 to train FastSpeech2.
-# It requires only a single GPU with 24 GB memory and it
+# It requires only a single GPU with 12 GB memory and it
 # takes ~2 days to finish the training on Titan V.
 
 # Compared to the original FastSpeech2 paper, we use token
