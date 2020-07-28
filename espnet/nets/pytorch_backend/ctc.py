@@ -24,6 +24,7 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        self.probs = None  # for visualization
 
         # In case of Pytorch >= 1.2.0, CTC will be always builtin
         self.ctc_type = (
@@ -120,6 +121,16 @@ class CTC(torch.nn.Module):
             logging.info("ctc loss:" + str(float(self.loss)))
 
         return self.loss
+
+    def softmax(self, hs_pad):
+        """softmax of frame activations
+
+        :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
+        :return: log softmax applied 3d tensor (B, Tmax, odim)
+        :rtype: torch.Tensor
+        """
+        self.probs = F.softmax(self.ctc_lo(hs_pad), dim=2)
+        return self.probs
 
     def log_softmax(self, hs_pad):
         """log_softmax of frame activations

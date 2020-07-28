@@ -368,9 +368,12 @@ class E2E(ASRInterface, torch.nn.Module):
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
-            if self.error_calculator is not None:
+            if not self.training and self.error_calculator is not None:
                 ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
                 cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+            # for visualization
+            if not self.training:
+                self.ctc.softmax(hs_pad)
 
         # 5. compute cer/wer
         if self.training or self.error_calculator is None or self.decoder is None:
@@ -753,5 +756,27 @@ class E2E(ASRInterface, torch.nn.Module):
             if isinstance(m, DynamicConvolution2D):
                 ret[name + "_time"] = m.attn_t.cpu().numpy()
                 ret[name + "_freq"] = m.attn_f.cpu().numpy()
+        self.train()
+        return ret
+
+    def calculate_all_ctc_probs(self, xs_pad, ilens, ys_pad):
+        """E2E CTC probability calculation.
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :return: CTC probability (B, Tmax, vocab)
+        :rtype: float ndarray
+        """
+        ret = None
+        if self.mtlalpha == 0:
+            return ret
+
+        self.eval()
+        with torch.no_grad():
+            self.forward(xs_pad, ilens, ys_pad)
+        for name, m in self.named_modules():
+            if isinstance(m, CTC) and m.probs is not None:
+                ret = m.probs.cpu().numpy()
         self.train()
         return ret
