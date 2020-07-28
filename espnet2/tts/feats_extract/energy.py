@@ -126,12 +126,7 @@ class Energy(AbsFeatsExtract):
     def _average_by_duration(x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
         assert d.sum() == len(x)
         d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
-        x_avg = [
-            x[start:end].masked_select(x[start:end].ne(0.0)).mean(dim=0)
-            if len(x[start:end].masked_select(x[start:end].ne(0.0))) != 0
-            else x.new_tensor(0.0)
-            for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
-        ]
+        x_avg = [x[start:end].mean() for start, end in zip(d_cumsum[:-1], d_cumsum[1:])]
         return torch.stack(x_avg)
 
     @staticmethod
