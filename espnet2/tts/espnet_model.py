@@ -46,7 +46,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         energy: torch.Tensor = None,
         energy_lengths: torch.Tensor = None,
         spembs: torch.Tensor = None,
-        **kwargs
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         # Extract features
         if self.feats_extract is not None:
