@@ -75,7 +75,7 @@ requirements = {
     ],
 }
 try:
-    # NOTE(kamo): There packages are not listed if installing from pypi server
+    # NOTE(kamo): These packages are not listed if installing from the PyPI server
     import torch
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
