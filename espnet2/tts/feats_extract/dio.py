@@ -23,7 +23,22 @@ from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 
 class Dio(AbsFeatsExtract):
-    """F0 estimation with dio + stonemask algortihm."""
+    """F0 estimation with dio + stonemask algortihm.
+
+    This is f0 extractor based on dio + stonmask algorithm introduced in `WORLD:
+    a vocoder-based high-quality speech synthesis system for real-time applications`_.
+
+    .. _`WORLD: a vocoder-based high-quality speech synthesis system for real-time
+        applications`: https://doi.org/10.1587/transinf.2015EDP7457
+
+    Note:
+        This module based on numpy implementaion. Therefore, the computational graph
+        is not connected.
+
+    Todo:
+        Replace this module with pytorch-based implementation.
+
+    """
 
     def __init__(
         self,
