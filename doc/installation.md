@@ -153,7 +153,7 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON_VERSION=3.6 TH_VERSION=1.3.1
 ```
 
-By default, the environment is named as `espnet`. If you dislike the name,
+By default, the environment is named `espnet`. If you prefer the other name,
 
 ```sh
 $ cd <espnet-root>/tools
