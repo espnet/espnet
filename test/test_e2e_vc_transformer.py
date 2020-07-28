@@ -11,9 +11,9 @@ import torch
 
 from argparse import Namespace
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.e2e_vc_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_vc_transformer import Transformer
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 def make_transformer_args(**kwargs):
