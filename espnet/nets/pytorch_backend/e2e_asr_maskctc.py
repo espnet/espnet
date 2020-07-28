@@ -82,7 +82,7 @@ class E2E(E2ETransformer):
         self.hs_pad = hs_pad
 
         # 2. forward decoder
-        if self.decoder is not None:
+        if self.mtlalpha > 0.0:
             ys_in_pad, ys_out_pad = mask_uniform(
                 ys_pad, self.mask_token, self.eos, self.ignore_id
             )
@@ -162,10 +162,14 @@ class E2E(E2ETransformer):
         self.eval()
         h = self.encode(x).unsqueeze(0)
 
+        # greedy ctc outputs
         ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(h)).max(dim=-1)
         y_hat = torch.stack([x[0] for x in groupby(ctc_ids[0])])
         y_idx = torch.nonzero(y_hat != 0).squeeze(-1)
 
+        # calculate token-level ctc probabilities by taking 
+        # the maximum probability of consecutive frames with
+        # the same ctc symbols
         probs_hat = []
         cnt = 0
         for i, y in enumerate(y_hat.tolist()):
@@ -176,17 +180,18 @@ class E2E(E2ETransformer):
                 cnt += 1
         probs_hat = torch.from_numpy(numpy.array(probs_hat))
 
+        # mask ctc outputs based on ctc probabilities
         p_thres = recog_args.maskctc_probability_threshold
         mask_idx = torch.nonzero(probs_hat[y_idx] < p_thres).squeeze(-1)
         confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
         mask_num = len(mask_idx)
 
-        y_in = torch.zeros(1, len(y_idx) + 1, dtype=torch.long) + self.mask_token
+        y_in = torch.zeros(1, len(y_idx), dtype=torch.long) + self.mask_token
         y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
-        y_in[0][-1] = self.eos
 
         logging.info("ctc:{}".format(n2s(y_in[0].tolist())))
 
+        # iterative decoding
         if not mask_num == 0:
             K = recog_args.maskctc_n_iterations
             num_iter = K if mask_num >= K and K > 0 else mask_num
@@ -195,8 +200,8 @@ class E2E(E2ETransformer):
                 pred, _ = self.decoder(
                     y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None
                 )
-                pred_sc, pred_id = pred[0][mask_idx].max(dim=-1)
-                cand = torch.topk(pred_sc, mask_num // num_iter, -1)[1]
+                pred_score, pred_id = pred[0][mask_idx].max(dim=-1)
+                cand = torch.topk(pred_score, mask_num // num_iter, -1)[1]
                 y_in[0][mask_idx[cand]] = pred_id[cand]
                 mask_idx = torch.nonzero(y_in[0] == self.mask_token).squeeze(-1)
 
@@ -210,7 +215,7 @@ class E2E(E2ETransformer):
 
             logging.info("msk:{}".format(n2s(y_in[0].tolist())))
 
-        ret = y_in.tolist()[0][:-1]
+        ret = y_in.tolist()[0]
         hyp = {"score": 0.0, "yseq": [self.sos] + ret + [self.eos]}
 
         return [hyp]
