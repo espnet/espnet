@@ -55,11 +55,11 @@ class E2E(E2ETransformer):
         odim += 1 # for the mask token
 
         super().__init__(idim, odim, args, ignore_id)
+        assert 0.0 <= self.mtlalpha < 1.0, "mtlalpha should be [0.0, 1.0)"
 
         self.mask_token = odim - 1
         self.sos = odim - 2
         self.eos = odim - 2
-
         self.odim = odim
 
     def forward(self, xs_pad, ilens, ys_pad):
@@ -82,22 +82,18 @@ class E2E(E2ETransformer):
         self.hs_pad = hs_pad
 
         # 2. forward decoder
-        if self.mtlalpha > 0.0:
-            ys_in_pad, ys_out_pad = mask_uniform(
-                ys_pad, self.mask_token, self.eos, self.ignore_id
-            )
-            ys_mask = (ys_in_pad != self.ignore_id).unsqueeze(-2)
-            pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
-            self.pred_pad = pred_pad
+        ys_in_pad, ys_out_pad = mask_uniform(
+            ys_pad, self.mask_token, self.eos, self.ignore_id
+        )
+        ys_mask = (ys_in_pad != self.ignore_id).unsqueeze(-2)
+        pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
+        self.pred_pad = pred_pad
 
-            # 3. compute attention loss
-            loss_att = self.criterion(pred_pad, ys_out_pad)
-            self.acc = th_accuracy(
-                pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
-            )
-        else:
-            loss_att = None
-            self.acc = None
+        # 3. compute attention loss
+        loss_att = self.criterion(pred_pad, ys_out_pad)
+        self.acc = th_accuracy(
+            pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
+        )
 
         # 4. compute ctc loss
         cer_ctc = None
@@ -118,16 +114,11 @@ class E2E(E2ETransformer):
             ys_hat = pred_pad.argmax(dim=-1)
             cer, wer = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
-        # copied from e2e_asr
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
             loss_att_data = float(loss_att)
             loss_ctc_data = None
-        elif alpha == 1:
-            self.loss = loss_ctc
-            loss_att_data = None
-            loss_ctc_data = float(loss_ctc)
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
             loss_att_data = float(loss_att)
@@ -167,7 +158,7 @@ class E2E(E2ETransformer):
         y_hat = torch.stack([x[0] for x in groupby(ctc_ids[0])])
         y_idx = torch.nonzero(y_hat != 0).squeeze(-1)
 
-        # calculate token-level ctc probabilities by taking 
+        # calculate token-level ctc probabilities by taking
         # the maximum probability of consecutive frames with
         # the same ctc symbols
         probs_hat = []
