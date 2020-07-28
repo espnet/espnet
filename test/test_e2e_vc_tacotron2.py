@@ -14,13 +14,14 @@ import torch
 from argparse import Namespace
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.vc_tacotron2 import Tacotron2
+from espnet.nets.pytorch_backend.e2e_vc_tacotron2 import Tacotron2
 
 
 def make_taco2_args(**kwargs):
     defaults = dict(
         use_speaker_embedding=False,
         spk_embed_dim=None,
+        input_layer="linear",
         elayers=1,
         eunits=32,
         econv_layers=2,
