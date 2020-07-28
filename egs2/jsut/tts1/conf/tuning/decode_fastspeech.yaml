@@ -1,0 +1,8 @@
+# This configuration is the decoding setting for FastSpeech 1 or 2.
+# You can control the speed of generated speech via alpha.
+
+##########################################################
+#                    DECODING SETTING                    #
+##########################################################
+speed_control_alpha: 1 # alpha to control the speed of genrated speech
+                       # 1 < alpha makes slower and 1 > alpha makes faster
