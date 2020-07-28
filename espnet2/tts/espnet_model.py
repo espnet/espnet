@@ -147,6 +147,8 @@ class ESPnetTTSModel(AbsESPnetModel):
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         durations: torch.Tensor = None,
+        pitch: torch.Tensor = None,
+        energy: torch.Tensor = None,
         **decode_config,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         kwargs = {}
@@ -172,7 +174,8 @@ class ESPnetTTSModel(AbsESPnetModel):
                 )[0][0]
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
-            kwargs["pitch"] = pitch
+            if pitch is not None:
+                kwargs["pitch"] = pitch
 
             if self.energy_extract is not None:
                 energy = self.energy_extract(
@@ -182,7 +185,8 @@ class ESPnetTTSModel(AbsESPnetModel):
                 )[0][0]
             if self.energy_normalize is not None:
                 energy = self.energy_normalize(energy[None])[0][0]
-            kwargs["energy"] = energy
+            if energy is not None:
+                kwargs["energy"] = energy
 
         if spembs is not None:
             kwargs["spembs"] = spembs
