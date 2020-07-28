@@ -306,12 +306,12 @@ class FastSpeech2(AbsTTS):
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            durations (LongTensor): Batch of padded durations (B, Tmax).
-            durations_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
-            pitch (Tensor): Batch of padded token-averaged pitch (B, Tmax, 1).
-            pitch_lengths (LongTensor): Batch of lengths of each pitch (B, Tmax).
-            energy (Tensor): Batch of padded token-averaged energy (B, Tmax, 1).
-            energy_lengths (LongTensor): Batch of lengths of each energy (B, Tmax).
+            durations (LongTensor): Batch of padded durations (B, Tmax + 1).
+            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).
+            pitch (Tensor): Batch of padded token-averaged pitch (B, Tmax + 1, 1).
+            pitch_lengths (LongTensor): Batch of pitch lengths (B, Tmax + 1).
+            energy (Tensor): Batch of padded token-averaged energy (B, Tmax + 1, 1).
+            energy_lengths (LongTensor): Batch of energy lengths (B, Tmax + 1).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
 
         Returns:
@@ -480,9 +480,9 @@ class FastSpeech2(AbsTTS):
             text (LongTensor): Input sequence of characters (T,).
             speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
-            durations (LongTensor, optional): Groundtruth of duration (T,).
-            pitch (Tensor, optional): Groundtruth of token-averaged pitch (T, 1).
-            energy (Tensor, optional): Groundtruth of token-averaged energy (T, 1).
+            durations (LongTensor, optional): Groundtruth of duration (T + 1,).
+            pitch (Tensor, optional): Groundtruth of token-averaged pitch (T + 1, 1).
+            energy (Tensor, optional): Groundtruth of token-averaged energy (T + 1, 1).
             alpha (float, optional): Alpha to control the speed.
             use_teacher_forcing (bool, optional): Whether to use teacher forcing.
                 If true, groundtruth of duration, pitch and energy will be used.
@@ -501,11 +501,9 @@ class FastSpeech2(AbsTTS):
 
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
-        xs = x.unsqueeze(0)
-        ys, olens = None, None
+        xs, ys = x.unsqueeze(0), None
         if y is not None:
             ys = y.unsqueeze(0)
-            olens = torch.tensor([y.shape[0]], dtype=torch.long, device=y.device)
         if spemb is not None:
             spembs = spemb.unsqueeze(0)
 
@@ -513,11 +511,11 @@ class FastSpeech2(AbsTTS):
             # use groundtruth of duration, pitch, and energy
             ds, ps, es = d.unsqueeze(0), p.unsqueeze(0), e.unsqueeze(0)
             _, outs, *_ = self._forward(
-                xs, ilens, ys, olens, ds, ps, es, spembs=spembs,
+                xs, ilens, ys, ds=ds, ps=ps, es=es, spembs=spembs,
             )  # (1, L, odim)
         else:
             _, outs, *_ = self._forward(
-                xs, ilens, ys, olens, spembs=spembs, is_inference=True, alpha=alpha,
+                xs, ilens, ys, spembs=spembs, is_inference=True, alpha=alpha,
             )  # (1, L, odim)
 
         return outs[0], None, None

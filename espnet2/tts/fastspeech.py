@@ -355,8 +355,8 @@ class FastSpeech(AbsTTS):
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            durations (LongTensor): Batch of padded durations (B, Tmax).
-            durations_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
+            durations (LongTensor): Batch of padded durations (B, Tmax + 1).
+            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
 
         Returns:
@@ -430,7 +430,7 @@ class FastSpeech(AbsTTS):
             text (LongTensor): Input sequence of characters (T,).
             speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
-            durations (LongTensor, optional): Groundtruth of duration (T,).
+            durations (LongTensor, optional): Groundtruth of duration (T + 1,).
             alpha (float, optional): Alpha to control the speed.
             use_teacher_forcing (bool, optional): Whether to use teacher forcing.
                 If true, groundtruth of duration, pitch and energy will be used.
@@ -441,8 +441,7 @@ class FastSpeech(AbsTTS):
             None: Dummy for compatibility.
 
         """
-        x = text
-        y = speech
+        x, y = text, speech
         spemb, d = spembs, durations
 
         # add eos at the last of sequence
@@ -450,11 +449,9 @@ class FastSpeech(AbsTTS):
 
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
-        xs = x.unsqueeze(0)
-        ys, olens = None, None
+        xs, ys = x.unsqueeze(0), None
         if y is not None:
             ys = y.unsqueeze(0)
-            olens = torch.tensor([y.shape[0]], dtype=torch.long, device=y.device)
         if spemb is not None:
             spembs = spemb.unsqueeze(0)
 
@@ -462,12 +459,12 @@ class FastSpeech(AbsTTS):
             # use groundtruth of duration, pitch, and energy
             ds = d.unsqueeze(0)
             _, outs, *_ = self._forward(
-                xs, ilens, ys, olens, ds, spembs=spembs,
+                xs, ilens, ys, ds=ds, spembs=spembs,
             )  # (1, L, odim)
         else:
             # inference
             _, outs, _ = self._forward(
-                xs, ilens, ys, olens, spembs=spembs, is_inference=True, alpha=alpha,
+                xs, ilens, ys, spembs=spembs, is_inference=True, alpha=alpha,
             )  # (1, L, odim)
 
         return outs[0], None, None
