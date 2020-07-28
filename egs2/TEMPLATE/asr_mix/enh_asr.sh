@@ -124,8 +124,8 @@ train_set=       # Name of training set.
 valid_set=       # Name of validation set used for monitoring/tuning network training
 test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=        # Used for the training of BPE and LM and the creation of a vocabulary list.
-lm_dev_text=     # Text file path of language model development set.
-lm_test_text=    # Text file path of language model evaluation set.
+lm_dev_text=dump/raw/dev_srctexts_with_spk     # Text file path of language model development set.
+lm_test_text=dump/raw/test_srctexts_with_spk    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
@@ -269,12 +269,29 @@ fi
 
 # The directory used for collect-stats mode
 enh_stats_dir="${expdir}/enh_stats_${fs}"
-# The directory used for training commands
-enh_exp="${expdir}/enh_${enh_tag}"
-
 if [ -n "${speed_perturb_factors}" ]; then
   enh_stats_dir="${enh_stats_dir}_sp"
   enh_exp="${enh_exp}_sp"
+fi
+
+asr_stats_dir="${expdir}/asr_stats_${feats_type}"
+if [ -n "${speed_perturb_factors}" ]; then
+    asr_stats_dir="${asr_stats_dir}_sp"
+fi
+lm_stats_dir="${expdir}/lm_stats"
+
+# The directory used for training commands
+enh_exp="${expdir}/enh_${enh_tag}"
+
+
+if [ -z "${asr_exp}" ]; then
+    asr_exp="${expdir}/asr_${asr_tag}"
+fi
+if [ -n "${speed_perturb_factors}" ]; then
+    asr_exp="${asr_exp}_sp"
+fi
+if [ -z "${lm_exp}" ]; then
+    lm_exp="${expdir}/lm_${lm_tag}"
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -451,6 +468,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
     elif [ "${token_type}" = char ]; then
         log "Stage 5: Generate character level token_list from ${data_feats}/srctexts"
+        # shellcheck disable=SC2002
+        cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
+        # TODO: the valid should also be cat together.
         _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
     else
@@ -494,12 +514,178 @@ fi
 
 # ========================== Data preparation is done here. ==========================
 
+# ========================== LM Begins ==========================
+if "${use_lm}"; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+        # TODO: the srctexts should gets another one to aovid the duplicated keys
+        log "Stage 6: LM collect stats: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+
+        _opts=
+        if [ -n "${lm_config}" ]; then
+            # To generate the config file: e.g.
+            #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
+            _opts+="--config ${lm_config} "
+        fi
+
+        # 1. Split the key file
+        _logdir="${lm_stats_dir}/logdir"
+        mkdir -p "${_logdir}"
+        # Get the minimum number among ${nj} and the number lines of input files
+        _nj=$(min "${nj}" "$(<${data_feats}/srctexts_with_spk wc -l)" "$(<${lm_dev_text} wc -l)")
+
+        key_file="${data_feats}/srctexts_with_spk"
+        split_scps=""
+        for n in $(seq ${_nj}); do
+            split_scps+=" ${_logdir}/train.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
+        key_file="${lm_dev_text}"
+        split_scps=""
+        for n in $(seq ${_nj}); do
+            split_scps+=" ${_logdir}/dev.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
+        # 2. Submit jobs
+        log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
+        # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
+        #       but it's used only for deciding the sample ids.
+
+        # shellcheck disable=SC2086
+        ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+            python3 -m espnet2.bin.lm_train \
+                --collect_stats true \
+                --use_preprocessor true \
+                --bpemodel "${bpemodel}" \
+                --token_type "${lm_token_type}"\
+                --token_list "${lm_token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --train_data_path_and_name_and_type "${data_feats}/srctexts_with_spk,text,text" \
+                --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
+                --train_shape_file "${_logdir}/train.JOB.scp" \
+                --valid_shape_file "${_logdir}/dev.JOB.scp" \
+                --output_dir "${_logdir}/stats.JOB" \
+                ${_opts} ${lm_args}
+
+        # 3. Aggregate shape files
+        _opts=
+        for i in $(seq "${_nj}"); do
+            _opts+="--input_dir ${_logdir}/stats.${i} "
+        done
+        # shellcheck disable=SC2086
+        python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
+
+        # Append the num-tokens at the last dimensions. This is used for batch-bins count
+        <"${lm_stats_dir}/train/text_shape" \
+            awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${lm_stats_dir}/train/text_shape.${lm_token_type}"
+
+        <"${lm_stats_dir}/valid/text_shape" \
+            awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${lm_stats_dir}/valid/text_shape.${lm_token_type}"
+    fi
 
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+        log "Stage 7: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+
+        _opts=
+        if [ -n "${lm_config}" ]; then
+            # To generate the config file: e.g.
+            #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
+            _opts+="--config ${lm_config} "
+        fi
+
+        if [ "${num_splits_lm}" -gt 1 ]; then
+            # If you met a memory error when parsing text files, this option may help you.
+            # The corpus is split into subsets and each subset is used for training one by one in order,
+            # so the memory footprint can be limited to the memory required for each dataset.
+
+            _split_dir="${lm_stats_dir}/splits${num_splits_lm}"
+            if [ ! -f "${_split_dir}/.done" ]; then
+                rm -f "${_split_dir}/.done"
+                python3 -m espnet2.bin.split_scps \
+                  --scps "${data_feats}/srctexts_with_spk" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+                  --num_splits "${num_splits_lm}" \
+                  --output_dir "${_split_dir}"
+                touch "${_split_dir}/.done"
+            else
+                log "${_split_dir}/.done exists. Spliting is skipped"
+            fi
+
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/srctexts_with_spk,text,text "
+            _opts+="--train_shape_file ${_split_dir}/text_shape.${lm_token_type} "
+            _opts+="--multiple_iterator true "
+
+        else
+            pwd
+            _opts+="--train_data_path_and_name_and_type ${data_feats}/srctexts_with_spk,text,text "
+            _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
+        fi
+
+        # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
+
+        log "LM training started... log: '${lm_exp}/train.log'"
+        # shellcheck disable=SC2086
+        python3 -m espnet2.bin.launch \
+            --cmd "${cuda_cmd} --name ${lm_exp}/train.log" \
+            --log "${lm_exp}"/train.log \
+            --ngpu "${ngpu}" \
+            --num_nodes "${num_nodes}" \
+            --init_file_prefix "${asr_exp}"/.dist_init_ \
+            --multiprocessing_distributed true -- \
+            python3 -m espnet2.bin.lm_train \
+                --ngpu "${ngpu}" \
+                --use_preprocessor true \
+                --bpemodel "${bpemodel}" \
+                --token_type "${lm_token_type}"\
+                --token_list "${lm_token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
+                --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
+                --fold_length "${lm_fold_length}" \
+                --resume true \
+                --output_dir "${lm_exp}" \
+                ${_opts} ${lm_args}
+
+    fi
+
+
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Calc perplexity: ${lm_test_text}"
+        _opts=
+        # TODO(kamo): Parallelize?
+        log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
+        # shellcheck disable=SC2086
+        ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
+            python3 -m espnet2.bin.lm_calc_perplexity \
+                --ngpu "${ngpu}" \
+                --data_path_and_name_and_type "${lm_test_text},text,text" \
+                --train_config "${lm_exp}"/config.yaml \
+                --model_file "${lm_exp}/${decode_lm}" \
+                --output_dir "${lm_exp}/perplexity_test" \
+                ${_opts}
+        log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
+
+    fi
+
+else
+    log "Stage 6-8: Skip lm-related stages: use_lm=${use_lm}"
+fi
+# ========================== LM Done here.==========================
+
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     _enh_train_dir="${data_feats}/${train_set}"
     _enh_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 5: Enhancement collect stats: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
+    log "Stage 9: Enhancement collect stats: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
 
     _opts=
     if [ -n "${enh_config}" ]; then
@@ -587,10 +773,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     _enh_train_dir="${data_feats}/${train_set}"
     _enh_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 6: Enhancemnt Frontend Training: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
+    log "Stage 10: Enhancemnt Frontend Training: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
 
     _opts=
     if [ -n "${enh_config}" ]; then
@@ -662,8 +848,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 fi
 
 
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-    log "Stage 7: Enhance Speech: training_dir=${enh_exp}"
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    log "Stage 11: Enhance Speech: training_dir=${enh_exp}"
 
     if ${gpu_inference}; then
         _cmd=${cuda_cmd}
