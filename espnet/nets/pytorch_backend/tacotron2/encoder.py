@@ -26,8 +26,9 @@ class Encoder(torch.nn.Module):
     This is a module of encoder of Spectrogram prediction network in Tacotron2,
     which described in `Natural TTS
     Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_.
-    This is the encoder which converts the
-    sequence of characters into the sequence of hidden states.
+    This is the encoder which converts either a
+    sequence of characters or acoustic features
+    into the sequence of hidden states.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
@@ -37,9 +38,8 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         idim,
-        use_embed=True,
+        input_layer="embed",
         embed_dim=512,
-        encoder_reduction_factor=1,
         elayers=1,
         eunits=512,
         econv_layers=3,
@@ -54,8 +54,7 @@ class Encoder(torch.nn.Module):
 
         Args:
             idim (int) Dimension of the inputs.
-            use_embed (bool, optional) Whether to use embedding table or not.
-            encoder_reduction_factor (int, optional) Encoder reduction factor.
+            :param str input_layer: input layer type
             embed_dim (int, optional) Dimension of character embedding.
             elayers (int, optional) The number of encoder blstm layers.
             eunits (int, optional) The number of encoder blstm units.
@@ -71,24 +70,19 @@ class Encoder(torch.nn.Module):
         # store the hyperparameters
         self.idim = idim
         self.use_residual = use_residual
-        self.use_embed = use_embed
 
         # define network layer modules
-        # If use_embed is true, the input is character sequence.
-        #   Then, use embed.
-        # Else, the input is acoustic feature sequence.
-        #   Then, use a linear layer to project to econv_chans dimension (for residual)
-        if use_embed:
+        if input_layer == "linear":
+            self.input_layer = torch.nn.Linear(idim, econv_chans)
+        elif input_layer == "embed":
             self.embed = torch.nn.Embedding(idim, embed_dim, padding_idx=padding_idx)
         else:
-            self.input_layer = torch.nn.Linear(
-                idim * encoder_reduction_factor, econv_chans
-            )
+            raise ValueError("unknown input_layer: " + input_layer)
 
         if econv_layers > 0:
             self.convs = torch.nn.ModuleList()
             for layer in six.moves.range(econv_layers):
-                ichans = econv_chans if layer > 0 or not use_embed else embed_dim
+                ichans = embed_dim if layer == 0 and input_layer == "embed" else econv_chans
                 if use_batch_norm:
                     self.convs += [
                         torch.nn.Sequential(
@@ -148,16 +142,7 @@ class Encoder(torch.nn.Module):
             LongTensor: Batch of lengths of each sequence (B,)
 
         """
-        # If use_embed is true, the input is character sequence.
-        #   Then, use embed.
-        # Else, the input is acoustic feature sequence.
-        #   Then, use a linear layer.
-        if self.use_embed:
-            xs = self.embed(xs)
-        else:
-            xs = self.input_layer(xs)
-
-        xs = xs.transpose(1, 2)
+        xs = self.embed(xs).transpose(1, 2)
         if self.convs is not None:
             for i in six.moves.range(len(self.convs)):
                 if self.use_residual:

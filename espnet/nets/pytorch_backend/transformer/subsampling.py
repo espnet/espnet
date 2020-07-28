@@ -24,11 +24,6 @@ class Conv2dSubsampling(torch.nn.Module):
     def __init__(self, idim, odim, dropout_rate, pos_enc=None):
         """Construct an Conv2dSubsampling object."""
         super(Conv2dSubsampling, self).__init__()
-        if pos_enc:
-            self.pos_enc = pos_enc
-        else:
-            self.pos_enc = PositionalEncoding(odim, dropout_rate)
-
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, odim, 3, 2),
             torch.nn.ReLU(),
@@ -36,7 +31,8 @@ class Conv2dSubsampling(torch.nn.Module):
             torch.nn.ReLU(),
         )
         self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim), self.pos_enc
+            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim),
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
         )
 
     def forward(self, x, x_mask):

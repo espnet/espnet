@@ -2,7 +2,7 @@
 
 # v1.1: encoder-reduction-factor=1, reduction-factor=4, batch-size=1113600
 
-model-module: espnet.nets.pytorch_backend.vc_tacotron2:Tacotron2
+model-module: espnet.nets.pytorch_backend.e2e_vc_tacotron2:Tacotron2
 
 # encoder related
 elayers: 1
