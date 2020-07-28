@@ -9,11 +9,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts.abs_tts import AbsTTS
-from espnet2.tts.fastspeech import FastSpeech
-from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.tts.tacotron2 import Tacotron2
-from espnet2.tts.transformer import Transformer
 
 
 class ESPnetTTSModel(AbsESPnetModel):
@@ -60,31 +56,21 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         # Extract auxiliary features
         if self.pitch_extract is not None and pitch is None:
-            if self.pitch_extract.use_token_averaged_f0:
-                pitch, pitch_lengths = self.pitch_extract(
-                    speech,
-                    speech_lengths,
-                    feats_lengths=feats_lengths,
-                    durations=durations,
-                    durations_lengths=durations_lengths,
-                )
-            else:
-                pitch, pitch_lengths = self.pitch_extract(
-                    speech, speech_lengths, feats_lengths=feats_lengths,
-                )
+            pitch, pitch_lengths = self.pitch_extract(
+                speech,
+                speech_lengths,
+                feats_lengths=feats_lengths,
+                durations=durations,
+                durations_lengths=durations_lengths,
+            )
         if self.energy_extract is not None and energy is None:
-            if self.energy_extract.use_token_averaged_energy:
-                energy, energy_lengths = self.energy_extract(
-                    speech,
-                    speech_lengths,
-                    feats_lengths=feats_lengths,
-                    durations=durations,
-                    durations_lengths=durations_lengths,
-                )
-            else:
-                energy, energy_lengths = self.energy_extract(
-                    speech, speech_lengths, feats_lengths=feats_lengths,
-                )
+            energy, energy_lengths = self.energy_extract(
+                speech,
+                speech_lengths,
+                feats_lengths=feats_lengths,
+                durations=durations,
+                durations_lengths=durations_lengths,
+            )
 
         # Normalize
         if self.normalize is not None:
@@ -133,31 +119,21 @@ class ESPnetTTSModel(AbsESPnetModel):
         feats_dict = {"feats": feats, "feats_lengths": feats_lengths}
 
         if self.pitch_extract is not None:
-            if self.pitch_extract.use_token_averaged_f0:
-                pitch, pitch_lengths = self.pitch_extract(
-                    speech,
-                    speech_lengths,
-                    feats_lengths=feats_lengths,
-                    durations=durations,
-                    durations_lengths=durations_lengths,
-                )
-            else:
-                pitch, pitch_lengths = self.pitch_extract(
-                    speech, speech_lengths, feats_lengths=feats_lengths,
-                )
+            pitch, pitch_lengths = self.pitch_extract(
+                speech,
+                speech_lengths,
+                feats_lengths=feats_lengths,
+                durations=durations,
+                durations_lengths=durations_lengths,
+            )
         if self.energy_extract is not None:
-            if self.energy_extract.use_token_averaged_energy:
-                energy, energy_lengths = self.energy_extract(
-                    speech,
-                    speech_lengths,
-                    feats_lengths=feats_lengths,
-                    durations=durations,
-                    durations_lengths=durations_lengths,
-                )
-            else:
-                energy, energy_lengths = self.energy_extract(
-                    speech, speech_lengths, feats_lengths=feats_lengths,
-                )
+            energy, energy_lengths = self.energy_extract(
+                speech,
+                speech_lengths,
+                feats_lengths=feats_lengths,
+                durations=durations,
+                durations_lengths=durations_lengths,
+            )
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
@@ -168,48 +144,50 @@ class ESPnetTTSModel(AbsESPnetModel):
     def inference(
         self,
         text: torch.Tensor,
-        spembs: torch.Tensor = None,
         speech: torch.Tensor = None,
-        threshold: float = 0.5,
-        minlenratio: float = 0.0,
-        maxlenratio: float = 10.0,
-        use_teacher_forcing: bool = False,
-        use_att_constraint: bool = False,
-        backward_window: int = 1,
-        forward_window: int = 3,
-        speed_control_alpha: float = 1.0,
+        spembs: torch.Tensor = None,
+        durations: torch.Tensor = None,
+        **decode_config,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         kwargs = {}
-
-        if isinstance(self.tts, (Tacotron2, Transformer)):
-            kwargs.update(
-                {
-                    "threshold": threshold,
-                    "maxlenratio": maxlenratio,
-                    "minlenratio": minlenratio,
-                    "use_teacher_forcing": use_teacher_forcing,
-                }
-            )
-        if isinstance(self.tts, Tacotron2):
-            kwargs.update(
-                {
-                    "use_att_constraint": use_att_constraint,
-                    "forward_window": forward_window,
-                    "backward_window": backward_window,
-                }
-            )
-        if isinstance(self.tts, (FastSpeech, FastSpeech2)):
-            kwargs.update({"alpha": speed_control_alpha})
-
-        if use_teacher_forcing or getattr(self.tts, "use_gst", False):
+        if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
             if speech is None:
                 raise RuntimeError("missing required argument: 'speech'")
             if self.feats_extract is not None:
-                speech = self.feats_extract(speech[None])[0][0]
+                feats = self.feats_extract(speech[None])[0][0]
+            else:
+                feats = speech
             if self.normalize is not None:
-                speech = self.normalize(speech[None])[0][0]
-            kwargs["speech"] = speech
-        outs, probs, att_ws = self.tts.inference(text=text, spembs=spembs, **kwargs)
+                feats = self.normalize(feats[None])[0][0]
+            kwargs["speech"] = feats
+
+            if durations is not None:
+                kwargs["durations"] = durations
+
+            if self.pitch_extract is not None:
+                pitch = self.pitch_extract(
+                    speech[None],
+                    feats_lengths=torch.LongTensor([len(feats)]),
+                    durations=durations[None],
+                )[0][0]
+            if self.pitch_normalize is not None:
+                pitch = self.pitch_normalize(pitch[None])[0][0]
+            kwargs["pitch"] = pitch
+
+            if self.energy_extract is not None:
+                energy = self.energy_extract(
+                    speech[None],
+                    feats_lengths=torch.LongTensor([len(feats)]),
+                    durations=durations[None],
+                )[0][0]
+            if self.energy_normalize is not None:
+                energy = self.energy_normalize(energy[None])[0][0]
+            kwargs["energy"] = energy
+
+        if spembs is not None:
+            kwargs["spembs"] = spembs
+
+        outs, probs, att_ws = self.tts.inference(text=text, **kwargs, **decode_config)
 
         if self.normalize is not None:
             # NOTE: normalize.inverse is in-place operation
