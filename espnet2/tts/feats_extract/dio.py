@@ -85,11 +85,17 @@ class Dio(AbsFeatsExtract):
     def forward(
         self,
         input: torch.Tensor,
-        input_lengths: torch.Tensor,
+        input_lengths: torch.Tensor = None,
         feats_lengths: torch.Tensor = None,
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        # If not provide, we assume that the inputs have the same length
+        if input_lengths is None:
+            input_lengths = (
+                input.new_ones(input.shape[0], dtype=torch.long) * input.shape[1]
+            )
+
         # F0 extraction
         pitch = [self._calculate_f0(x[:xl]) for x, xl in zip(input, input_lengths)]
 

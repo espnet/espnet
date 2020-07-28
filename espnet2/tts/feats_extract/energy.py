@@ -78,7 +78,7 @@ class Energy(AbsFeatsExtract):
     def forward(
         self,
         input: torch.Tensor,
-        input_lengths: torch.Tensor,
+        input_lengths: torch.Tensor = None,
         feats_lengths: torch.Tensor = None,
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
