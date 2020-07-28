@@ -470,7 +470,7 @@ if ! "${skip_train}"; then
             _opts+="--odim=${_odim} "
         fi
 
-        # Add extra configs for FastSpeech2
+        # Add extra configs for additional inputs
         # NOTE(kan-bayashi): We always pass this options but not used in default
         _opts+="--pitch_extract_conf fs=${fs} "
         _opts+="--pitch_extract_conf n_fft=${n_fft} "
@@ -823,11 +823,17 @@ if ! "${skip_eval}"; then
             _logdir="${_dir}/log"
             mkdir -p "${_logdir}"
 
-            # Overwrite speech arguments if use knowledge distillation
-            if [ -n "${teacher_dumpdir}" ] && [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
-                _speech_data="${teacher_dumpdir}/${dset}/denorm"
-                _scp=feats.scp
-                _type=npy
+            _ex_opts=""
+            if [ -n "${teacher_dumpdir}" ]; then
+                # Use groundtruth of durations
+                _teacher_dir="${teacher_dumpdir}/${dset}"
+                _ex_opts+="--data_path_and_name_and_type ${_teacher_dir}/durations,durations,text_int "
+                # Overwrite speech arguments if use knowledge distillation
+                if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
+                    _speech_data="${teacher_dumpdir}/${dset}/denorm"
+                    _scp=feats.scp
+                    _type=npy
+                fi
             fi
 
             # 0. Copy feats_type
@@ -856,7 +862,7 @@ if ! "${skip_eval}"; then
                     --train_config "${tts_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
                     --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${_ex_opts} ${inference_args}
 
             # 3. Concatenates the output files from each jobs
             mkdir -p "${_dir}"/{norm,denorm,wav}
