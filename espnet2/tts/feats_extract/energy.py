@@ -72,7 +72,7 @@ class Energy(AbsFeatsExtract):
             center=self.stft.center,
             pad_mode=self.stft.pad_mode,
             normalized=self.stft.normalized,
-            use_token_averaged_energy=self.use_token_averaged_energy
+            use_token_averaged_energy=self.use_token_averaged_energy,
         )
 
     def forward(
