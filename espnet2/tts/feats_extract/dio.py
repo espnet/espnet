@@ -32,11 +32,11 @@ class Dio(AbsFeatsExtract):
         applications`: https://doi.org/10.1587/transinf.2015EDP7457
 
     Note:
-        This module based on numpy implementaion. Therefore, the computational graph
+        This module is based on NumPy implementation. Therefore, the computational graph
         is not connected.
 
     Todo:
-        Replace this module with pytorch-based implementation.
+        Replace this module with PyTorch-based implementation.
 
     """
 

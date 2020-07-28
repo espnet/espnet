@@ -302,15 +302,15 @@ class FastSpeech2(AbsTTS):
         """Calculate forward propagation.
 
         Args:
-            text (LongTensor): Batch of padded character ids (B, Tmax).
+            text (LongTensor): Batch of padded token ids (B, Tmax).
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
             durations (LongTensor): Batch of padded durations (B, Tmax).
             durations_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
-            pitch (Tensor): Batch of padded pitch (B, Tmax, 1).
+            pitch (Tensor): Batch of padded token-averaged pitch (B, Tmax, 1).
             pitch_lengths (LongTensor): Batch of lengths of each pitch (B, Tmax).
-            energy (Tensor): Batch of padded energy (B, Tmax, 1).
+            energy (Tensor): Batch of padded token-averaged energy (B, Tmax, 1).
             energy_lengths (LongTensor): Batch of lengths of each energy (B, Tmax).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
 
@@ -342,7 +342,7 @@ class FastSpeech2(AbsTTS):
             xs, ilens, ys, olens, ds, ps, es, spembs=spembs, is_inference=False
         )
 
-        # modifiy mod part of groundtruth
+        # modify mod part of groundtruth
         if self.reduction_factor > 1:
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)

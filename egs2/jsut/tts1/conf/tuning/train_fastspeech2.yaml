@@ -72,7 +72,7 @@ optim_conf:            # keyword arguments for selected optimizer
     lr: 1.0            # learning rate
 scheduler: noamlr      # scheduler type
 scheduler_conf:        # keyword arguments for selected scheduler
-    model_size: 384    # model size, a.k.a., attention dimenstion
+    model_size: 384    # model size, a.k.a., attention dimension
     warmup_steps: 4000 # the number of warmup steps
 
 ##########################################################

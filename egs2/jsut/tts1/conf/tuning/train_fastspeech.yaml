@@ -2,7 +2,7 @@
 # It requires only a single GPU with 12 GB memory and it
 # takes ~2 days to finish the training on Titan V.
 
-# As default, we assume that the training is based on knowledge
+# As a default, we assume that the training is based on knowledge
 # distillation, i.e., using teacher model outputs as the target.
 # This assumes that we always use feat_type=fbank. If you use
 # teacher forcing, please be careful to change batch_bins
@@ -50,7 +50,7 @@ optim_conf:            # keyword arguments for selected optimizer
     lr: 1.0            # learning rate
 scheduler: noamlr      # scheduler type
 scheduler_conf:        # keyword arguments for selected scheduler
-    model_size: 384    # model size, a.k.a., attention dimenstion
+    model_size: 384    # model size, a.k.a., attention dimension
     warmup_steps: 4000 # the number of warmup steps
 
 ##########################################################
