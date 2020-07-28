@@ -96,12 +96,22 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 ## Installation
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
 - If you just need the Python module only:
-    ```bash
-    pip install torch  # Install some dependencies manually
+    ```sh
     pip install espnet
     # To install latest
     # pip install git+https://github.com/espnet/espnet
     ```
+
+    You need to install some packages.
+
+    ```sh
+    pip install torch
+    pip install chainer==6.0.0 cupy==6.0.0    # [Option] If you'll use ESPnet1
+    pip install torchaudio                    # [Option] If you'll use enhancement task
+    pip install torch_optimizer               # [Option] If you'll use additional optimizers in ESPnet2
+    ```
+
+    There are some required packages depending on each task other than above. If you meet ImportError, please intall them at that time.
 
 ## Usage
 See [Usage](https://espnet.github.io/espnet/tutorial.html).
