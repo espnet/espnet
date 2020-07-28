@@ -26,6 +26,7 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.duration_calculator import DurationCalculator
 from espnet2.tts.fastspeech import FastSpeech
+from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
 from espnet2.utils import config_argparse
@@ -91,7 +92,6 @@ class Text2Speech:
                     "threshold": threshold,
                     "maxlenratio": maxlenratio,
                     "minlenratio": minlenratio,
-                    "use_teacher_forcing": use_teacher_forcing,
                 }
             )
         if isinstance(self.tts, Tacotron2):
@@ -102,8 +102,10 @@ class Text2Speech:
                     "backward_window": backward_window,
                 }
             )
-        if isinstance(self.tts, FastSpeech):
+        if isinstance(self.tts, (FastSpeech, FastSpeech2)):
             decode_config.update({"alpha": speed_control_alpha})
+        decode_config.update({"use_teacher_forcing": use_teacher_forcing})
+
         self.decode_config = decode_config
 
         if vocoder_conf is None:
@@ -126,6 +128,7 @@ class Text2Speech:
         self,
         text: Union[str, torch.Tensor, np.ndarray],
         speech: Union[torch.Tensor, np.ndarray] = None,
+        durations: Union[torch.Tensor, np.ndarray] = None,
     ):
         assert check_argument_types()
 
@@ -138,6 +141,8 @@ class Text2Speech:
         batch = {"text": text}
         if speech is not None:
             batch["speech"] = speech
+        if durations is not None:
+            batch["durations"] = durations
 
         batch = to_device(batch, self.device)
         outs, outs_denorm, probs, att_ws = self.model.inference(
