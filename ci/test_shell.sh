@@ -14,7 +14,7 @@ if ! [ -x "$(command -v shellcheck)" ]; then
     wget https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz
     tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 fi
-. tools/venv/bin/activate
+. tools/activate_python.sh
 
 set -euo pipefail
 

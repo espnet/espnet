@@ -9,11 +9,7 @@ export LC_ALL=C
 
 export PATH=$MAIN_ROOT/tools/moses/scripts/tokenizer/:$MAIN_ROOT/tools/moses/scripts/generic/:$MAIN_ROOT/tools/moses/scripts/recaser/:$MAIN_ROOT/tools/moses/scripts/training/:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
-if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
-    source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
-else
-    source $MAIN_ROOT/tools/venv/bin/activate
-fi
+. $MAIN_ROOT/tools/activate_python.sh
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 
 export OMP_NUM_THREADS=1

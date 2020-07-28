@@ -18,10 +18,10 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
-        # DNN related
-        # 'torch==1.0.1',  # Installation from anaconda is recommended for PyTorch
-        "chainer==6.0.0",
-        # 'cupy==6.0.0',  # Do not install cupy as default
+        # DNN related packages are installed by Makefile
+        # 'torch==1.0.1'
+        # "chainer==6.0.0",
+        # 'cupy==6.0.0',
         "tensorboard>=1.14",  # For pytorch>=1.1.0
         "tensorboardX>=1.8",  # For pytorch<1.1.0
         # Signal processing related
@@ -75,22 +75,25 @@ requirements = {
     ],
 }
 try:
+    # NOTE(kamo): These packages are not listed if installing from the PyPI server
     import torch
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
         requirements["install"].append("torch_optimizer")
 
-    if LooseVersion(torch.__version__) == LooseVersion("1.5.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        pass
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("torchaudio==0.5.1")
-    elif LooseVersion(torch.__version__) == LooseVersion("1.5.0"):
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
         requirements["install"].append("torchaudio==0.5.0")
-    elif LooseVersion(torch.__version__) == LooseVersion("1.4.0"):
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
         requirements["install"].append("torchaudio==0.4.0")
-    elif LooseVersion(torch.__version__) == LooseVersion("1.3.1"):
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.3.1"):
         requirements["install"].append("torchaudio==0.3.2")
-    elif LooseVersion(torch.__version__) == LooseVersion("1.3.0"):
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
         requirements["install"].append("torchaudio==0.3.1")
-    elif LooseVersion(torch.__version__) == LooseVersion("1.2.0"):
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
         requirements["install"].append("torchaudio==0.3.0")
 
     del torch

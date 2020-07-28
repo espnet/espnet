@@ -19,10 +19,7 @@ $CXX -v
     make moses.done
     rm kaldi.done
 )
-if [ -z "${PS1:-}" ]; then
-    PS1=__dummy__
-fi
-. tools/venv/bin/activate
+. tools/activate_python.sh
 python --version
 
 pip install -U wheel
