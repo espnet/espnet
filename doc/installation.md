@@ -199,7 +199,7 @@ $ rm -f activate_python.sh; touch activate_python.sh
 $ make KALDI=<kaldi-root> USE_PIP=0
 ```
 
-If your Python is anaconda, you don't need to give `USE_PIP`.
+If your Python is anaconda, you don't need to provide `USE_PIP`.
 
 ```sh
 $ cd <espnet-root>/tools
