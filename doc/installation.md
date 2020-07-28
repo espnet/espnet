@@ -160,14 +160,17 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> CONDA_ENV_NAME=<name>
 ```
 
-#### B.) create environment in existing anaconda
+#### B.) create environment in existing anaconda/ change the installation path of anaconda
 
 If you already have anaconda and you'll create an environment of ESPnet.
 
 ```sh
 $ cd <espnet-root>/tools
-$ make KALDI=<kaldi-root> CONDA=<conda-root> CONDA_ENV_NAME=<name>
+$ CONDA_TOOLS_DIR=$(dirname ${CONDA_EXE})/..
+$ make KALDI=<kaldi-root> CONDA=${CONDA_TOOLS_DIR} CONDA_ENV_NAME=<name>
 ```
+
+Before executing this command, check the existance of `${CONDA_TOOLS_DIR}/etc/profile.d/conda.sh`
 
 Note that
 - If there are no conda tools at the path, new conda is created there.
