@@ -468,7 +468,11 @@ class FastSpeech2(AbsTTS):
         text: torch.Tensor,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        durations: torch.Tensor = None,
+        pitch: torch.Tensor = None,
+        energy: torch.Tensor = None,
         alpha: float = 1.0,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -476,7 +480,12 @@ class FastSpeech2(AbsTTS):
             text (LongTensor): Input sequence of characters (T,).
             speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
+            durations (LongTensor, optional): Groundtruth of duration (T,).
+            pitch (Tensor, optional): Groundtruth of token-averaged pitch (T, 1).
+            energy (Tensor, optional): Groundtruth of token-averaged energy (T, 1).
             alpha (float, optional): Alpha to control the speed.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
+                If true, groundtruth of duration, pitch and energy will be used.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -484,9 +493,8 @@ class FastSpeech2(AbsTTS):
             None: Dummy for compatibility.
 
         """
-        x = text
-        y = speech
-        spemb = spembs
+        x, y = text, speech
+        spemb, d, p, e = spembs, durations, pitch, energy
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
@@ -501,10 +509,16 @@ class FastSpeech2(AbsTTS):
         if spemb is not None:
             spembs = spemb.unsqueeze(0)
 
-        # inference
-        _, outs, *_ = self._forward(
-            xs, ilens, ys, olens, spembs=spembs, is_inference=True, alpha=alpha,
-        )  # (1, L, odim)
+        if use_teacher_forcing:
+            # use groundtruth of duration, pitch, and energy
+            ds, ps, es = d.unsqueeze(0), p.unsqueeze(0), e.unsqueeze(0)
+            _, outs, *_ = self._forward(
+                xs, ilens, ys, olens, ds, ps, es, spembs=spembs,
+            )  # (1, L, odim)
+        else:
+            _, outs, *_ = self._forward(
+                xs, ilens, ys, olens, spembs=spembs, is_inference=True, alpha=alpha,
+            )  # (1, L, odim)
 
         return outs[0], None, None
 
