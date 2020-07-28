@@ -66,9 +66,13 @@ class Energy(AbsFeatsExtract):
         return dict(
             fs=self.fs,
             n_fft=self.n_fft,
-            n_shift=self.hop_length,
+            hop_length=self.hop_length,
             window=self.window,
             win_length=self.win_length,
+            center=self.stft.center,
+            pad_mode=self.stft.pad_mode,
+            normalized=self.stft.normalized,
+            use_token_averaged_energy=self.use_token_averaged_energy
         )
 
     def forward(
