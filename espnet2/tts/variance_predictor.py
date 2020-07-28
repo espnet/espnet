@@ -29,6 +29,7 @@ class VariancePredictor(torch.nn.Module):
         n_layers: int = 2,
         n_chans: int = 384,
         kernel_size: int = 3,
+        bias: bool = True,
         dropout_rate: float = 0.5,
     ):
         """Initilize duration predictor module.
@@ -54,6 +55,7 @@ class VariancePredictor(torch.nn.Module):
                         kernel_size,
                         stride=1,
                         padding=(kernel_size - 1) // 2,
+                        bias=bias,
                     ),
                     torch.nn.ReLU(),
                     LayerNorm(n_chans, dim=1),
