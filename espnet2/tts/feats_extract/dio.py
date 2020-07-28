@@ -3,6 +3,8 @@
 
 """F0 extractor using DIO + Stonemask algorithm."""
 
+import logging
+
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -72,9 +74,12 @@ class Dio(AbsFeatsExtract):
         return dict(
             fs=self.fs,
             n_fft=self.n_fft,
-            n_shift=self.n_shift,
+            hop_length=self.hop_length,
             f0min=self.f0min,
             f0max=self.f0max,
+            use_token_averaged_f0=self.use_token_averaged_f0,
+            use_continuous_f0=self.use_continuous_f0,
+            use_log_f0=self.use_log_f0,
         )
 
     def forward(
@@ -138,7 +143,9 @@ class Dio(AbsFeatsExtract):
 
     @staticmethod
     def _convert_to_continuous_f0(f0: np.array) -> np.array:
-        assert not (f0 == 0).all(), "All frames seems to be unvoiced."
+        if (f0 == 0).all():
+            logging.warn("All frames seems to be unvoiced.")
+            return f0
 
         # padding start and end of f0 sequence
         start_f0 = f0[f0 != 0][0]
