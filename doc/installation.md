@@ -132,7 +132,7 @@ $ cd <any-place>
 $ git clone https://github.com/espnet/espnet
 ```
 
-Before installing ESPnet, setup some environment variables ralated to CUDA.
+Before installing ESPnet, set up some environment variables related to CUDA.
 
 ```sh
 $ cd <espnet-root>/tools
@@ -153,7 +153,7 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON_VERSION=3.6 TH_VERSION=1.3.1
 ```
 
-By default, the environment is named as `espnet`. If you dislike the name,
+By default, the environment is named `espnet`. If you prefer the other name,
 
 ```sh
 $ cd <espnet-root>/tools
@@ -171,7 +171,7 @@ $ make KALDI=<kaldi-root> CONDA=<conda-root> CONDA_ENV_NAME=<name>
 
 Note that
 - If there are no conda tools at the path, new conda is created there.
-- If there are already conda and already the environment too, the creation of new environment is skipped.
+- If there already exists conda and its environment, the creation of a new environment is skipped.
 
 #### C.) create virtualenv from an existing python
 
@@ -199,7 +199,7 @@ $ rm -f activate_python.sh; touch activate_python.sh
 $ make KALDI=<kaldi-root> USE_PIP=0
 ```
 
-If your Python is anaconda, you don't need to give `USE_PIP`.
+If your Python is anaconda, you don't need to provide `USE_PIP`.
 
 ```sh
 $ cd <espnet-root>/tools
