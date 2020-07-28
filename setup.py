@@ -49,6 +49,9 @@ requirements = {
         "torch_complex",
         "pytorch_wpe",
         "mir-eval>=0.6",
+        # VC related
+        "fastdtw",
+        "pyworld",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [

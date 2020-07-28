@@ -76,8 +76,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Transformer based end-to-end MT (new!)
 
 ### VC: Voice conversion
-- End-to-end VC based on cascaded ASR+TTS (new!)
-- Baseline system for Voice Conversion Challenge 2020!
+- Transformer and Tacotron2 based parallel VC using melspectrogram (new!)
+- End-to-end VC based on cascaded ASR+TTS (Baseline system for Voice Conversion Challenge 2020!)
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
@@ -418,8 +418,15 @@ Available pretrained vocoder models in the demo script are listed as follows:
 
 ### VC results
 
-The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system. In VCC2020, the objective is intra/cross lingual nonparallel VC. A cascade method of ASR+TTS is developed.
-You can download converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
+- Transformer and Tacotron2 based VC
+
+You can listen to some samples on the [demo webpage](https://unilight.github.io/Publication-Demos/publications/transformer-vc/).
+
+- Cascade ASR+TTS as one of the baseline systems of VCC2020
+
+The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system.
+In VCC2020, the objective is intra/cross lingual nonparallel VC.
+You can download converted samples of the cascade ASR+TTS baseline system [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
 
 ### CTC Forced Alignment demo
