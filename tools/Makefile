@@ -67,17 +67,20 @@ showenv_cuda:
 endif
 
 ifneq ($(strip $(PYTHON)),)
+# venv case
 showenv:
-	@echo Kaldi=$(KALDI)
+	@echo KALDI=$(KALDI)
 	@echo PYTHON=$(PYTHON)
-	@echo Torch=$(TH_VERSION)
-	@echo Chainer=$(CHAINER_VERSION)
+	@echo TH_VERSION=$(TH_VERSION)
+	@echo CHAINER_VERSION=$(CHAINER_VERSION)
 else
+# anaconda case
 showenv:
-	@echo Kaldi=$(KALDI)
-	@echo Conda with PYTHON=$(PYTHON_VERSION)
-	@echo Torch=$(TH_VERSION)
-	@echo Chainer=$(CHAINER_VERSION)
+	@echo KALDI=$(KALDI)
+	@echo PYTHON_VERSION=$(PYTHON_VERSION)
+	@echo USE_PIP=$(USE_PIP)
+	@echo TH_VERSION=$(TH_VERSION)
+	@echo CHAINER_VERSION=$(CHAINER_VERSION)
 endif
 #########################################
 
@@ -114,7 +117,7 @@ endif
 ifneq ($(strip $(USE_PIP)),)
 pytorch.done: activate_python.sh
 	. ./activate_python.sh; pip install pip --upgrade
-	. ./activate_python.sh; pip install -U numpy  # Workaround for "ImportError: numpy.core.multiarray failed to import"
+	. ./activate_python.sh; pip install numpy --upgrade  # Workaround for "ImportError: numpy.core.multiarray failed to import"
 	. ./activate_python.sh; pip install $(PIP_PYTORCH)
 	touch pytorch.done
 else
