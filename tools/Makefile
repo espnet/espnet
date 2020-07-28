@@ -8,8 +8,10 @@ CONDA_ENV_NAME := espnet
 # The python version installed in the conda setup
 # NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
 PYTHON_VERSION := 3.7.3
-# If empty string is given, chainer is not installed
+# If empty string is given, chainer is not installed. Note that ESPnet doesn't support any versions except for chainer=6.0.0
 CHAINER_VERSION := 6.0.0
+# Disable cupy installation
+NO_CUPY :=
 # PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1
 TH_VERSION := 1.4.0
 # Use a prebuild Kaldi to omit the installation
@@ -34,19 +36,31 @@ endif
 ifeq ($(strip $(CPU_ONLY)),)
 # Derive CUDA version from nvcc
 CUDA_VERSION = $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
+CUDA_VERSION_WITHOUT_DOT = $(strip $(subst .,,$(CUDA_VERSION)))
 CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
-PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cu$(strip $(subst .,,$(CUDA_VERSION)))/torch_stable.html
-PIP_CHAINER := chainer==$(CHAINER_VERSION) cupy-cuda$(strip $(subst .,,$(CUDA_VERSION)))==$(CHAINER_VERSION)
+PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cu$(CUDA_VERSION_WITHOUT_DOT)/torch_stable.html
+
 else
 CONDA_PYTORCH := pytorch=$(TH_VERSION) cpuonly
 PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cpu/torch_stable.html
+NO_CUPY := 0
+endif
+
+ifeq ($(shell expr $(CUDA_VERSION_WITHOUT_DOT) \>= 102), 1)
+# cupy==6.0.0 doesn't support CUDA=10.2 or later
+NO_CUPY := 0
+endif
+
+ifneq ($(strip $(NO_CUPY)),)
 PIP_CHAINER := chainer==$(CHAINER_VERSION)
+else
+PIP_CHAINER := chainer==$(CHAINER_VERSION) cupy-cuda$(CUDA_VERSION_WITHOUT_DOT)==$(CHAINER_VERSION)
 endif
 
 
 .PHONY: all clean
 
-all: showenv showenv_cuda kaldi.done python check_install
+all: showenv kaldi.done python check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done chainer_ctc.done chainer.done
@@ -61,29 +75,28 @@ extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
 ifneq ($(strip $(PYTHON)),)
 # venv case
 showenv:
-	@echo KALDI=$(KALDI)
 	@echo PYTHON=$(PYTHON)
-	@echo TH_VERSION=$(TH_VERSION)
-	@echo CHAINER_VERSION=$(CHAINER_VERSION)
 else
 # anaconda case
 showenv:
-	@echo KALDI=$(KALDI)
 	@echo CONDA=$(CONDA)
 	@echo CONDA_ENV_NAME=$(CONDA_ENV_NAME)
 	@echo PYTHON_VERSION=$(PYTHON_VERSION)
 	@echo USE_PIP=$(USE_PIP)
-	@echo TH_VERSION=$(TH_VERSION)
-	@echo CHAINER_VERSION=$(CHAINER_VERSION)
 endif
-
 ifeq ($(strip $(CPU_ONLY)),)
-showenv_cuda:
 	@echo CUDA_VERSION=$(CUDA_VERSION)
 else
-showenv_cuda:
 	@echo Perform on CPU mode: CPU_ONLY=$(CPU_ONLY)
 endif
+	@echo KALDI=$(KALDI)
+	@echo TH_VERSION=$(TH_VERSION)
+	@echo CONDA_PYTORCH=$(CONDA_PYTORCH)
+	@echo PIP_PYTORCH=$(PIP_PYTORCH)
+	@echo CHAINER_VERSION=$(CHAINER_VERSION)
+	@echo PIP_CHAINER=$(PIP_CHAINER)
+	@echo NO_CUPY=$(NO_CUPY)
+
 #########################################
 
 
@@ -175,9 +188,21 @@ PESQ/P862_annex_A_2005_CD/source/PESQ:
 
 check_install: kaldi.done python
 ifeq ($(strip $(CPU_ONLY)),)
+
+ifneq ($(strip $(NO_CUPY)),)
+	. ./activate_python.sh; python check_install.py --no-cupy
+else
 	. ./activate_python.sh; python check_install.py
+endif
+
+else
+
+ifneq ($(strip $(NO_CUPY)),)
+	. ./activate_python.sh; python check_install.py --no-cuda --no-cupy
 else
 	. ./activate_python.sh; python check_install.py --no-cuda
+endif
+
 endif
 
 
