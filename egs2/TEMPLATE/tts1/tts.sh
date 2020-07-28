@@ -767,6 +767,7 @@ if [ -n "${download_model}" ]; then
     ln -sf "${_model_file}" "${tts_exp}"
     ln -sf "${_train_config}" "${tts_exp}"
     inference_model=$(basename "${_model_file}")
+
 fi
 
 
@@ -830,7 +831,7 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_teacher_dir}/durations,durations,text_int "
                 # Overwrite speech arguments if use knowledge distillation
                 if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
-                    _speech_data="${teacher_dumpdir}/${dset}/denorm"
+                    _speech_data="${_teacher_dir}/denorm"
                     _scp=feats.scp
                     _type=npy
                 fi
