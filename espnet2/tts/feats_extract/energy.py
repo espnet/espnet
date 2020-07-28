@@ -83,11 +83,16 @@ class Energy(AbsFeatsExtract):
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # 1. Domain-conversion: e.g. Stft: time -> time-freq
+        # If not provide, we assume that the inputs have the same length
+        if input_lengths is None:
+            input_lengths = (
+                input.new_ones(input.shape[0], dtype=torch.long) * input.shape[1]
+            )
+
+        # Domain-conversion: e.g. Stft: time -> time-freq
         input_stft, energy_lengths = self.stft(input, input_lengths)
 
         assert input_stft.dim() >= 4, input_stft.shape
-        # "2" refers to the real/imag parts of Complex
         assert input_stft.shape[-1] == 2, input_stft.shape
 
         # input_stft: (..., F, 2) -> (..., F)
