@@ -58,14 +58,6 @@ extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
 
 
 ################ Logging ################
-ifeq ($(strip $(CPU_ONLY)),)
-showenv_cuda:
-	@echo CUDA_VERSION=$(CUDA_VERSION)
-else
-showenv_cuda:
-	@echo Perform on CPU mode: CPU_ONLY=$(CPU_ONLY)
-endif
-
 ifneq ($(strip $(PYTHON)),)
 # venv case
 showenv:
@@ -77,10 +69,20 @@ else
 # anaconda case
 showenv:
 	@echo KALDI=$(KALDI)
+	@echo CONDA=$(CONDA)
+	@echo CONDA_ENV_NAME=$(CONDA_ENV_NAME)
 	@echo PYTHON_VERSION=$(PYTHON_VERSION)
 	@echo USE_PIP=$(USE_PIP)
 	@echo TH_VERSION=$(TH_VERSION)
 	@echo CHAINER_VERSION=$(CHAINER_VERSION)
+endif
+
+ifeq ($(strip $(CPU_ONLY)),)
+showenv_cuda:
+	@echo CUDA_VERSION=$(CUDA_VERSION)
+else
+showenv_cuda:
+	@echo Perform on CPU mode: CPU_ONLY=$(CPU_ONLY)
 endif
 #########################################
 
