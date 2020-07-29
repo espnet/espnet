@@ -107,12 +107,12 @@ def get_idx_lm_state(lm_states, idx, lm_type, lm_layers):
 
     """
     if lm_type == "wordlm":
-        return lm_states[idx]
+        idx_state = lm_states[idx]
+    else:
+        idx_state = {}
 
-    idx_state = {}
-
-    idx_state["c"] = [lm_states["c"][layer][idx] for layer in range(lm_layers)]
-    idx_state["h"] = [lm_states["h"][layer][idx] for layer in range(lm_layers)]
+        idx_state["c"] = [lm_states["c"][layer][idx] for layer in range(lm_layers)]
+        idx_state["h"] = [lm_states["h"][layer][idx] for layer in range(lm_layers)]
 
     return idx_state
 
@@ -126,22 +126,22 @@ def get_batch_lm_states(lm_states_list, lm_type, lm_layers):
         lm_layers (int): number of LM layers
 
     Returns:
-       beam_states (list): batch of LM states
+       batch_states (list): batch of LM states
 
     """
     if lm_type == "wordlm":
-        return lm_states_list
+        batch_states = lm_states_list
+    else:
+        batch_states = {}
 
-    batch_states = {}
-
-    batch_states["c"] = [
-        torch.stack([state["c"][layer] for state in lm_states_list])
-        for layer in range(lm_layers)
-    ]
-    batch_states["h"] = [
-        torch.stack([state["h"][layer] for state in lm_states_list])
-        for layer in range(lm_layers)
-    ]
+        batch_states["c"] = [
+            torch.stack([state["c"][layer] for state in lm_states_list])
+            for layer in range(lm_layers)
+        ]
+        batch_states["h"] = [
+            torch.stack([state["h"][layer] for state in lm_states_list])
+            for layer in range(lm_layers)
+        ]
 
     return batch_states
 
