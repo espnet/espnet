@@ -12,7 +12,7 @@ PYTHON_VERSION := 3.7.3
 CHAINER_VERSION := 6.0.0
 # Disable cupy installation
 NO_CUPY :=
-# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1
+# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.6.0
 TH_VERSION := 1.4.0
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
