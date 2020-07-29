@@ -26,7 +26,6 @@ class BeamformerNet(AbsEnhancement):
         hop_length: int = 128,
         center: bool = True,
         window: Optional[str] = "hann",
-        pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
         # Dereverberation options
@@ -64,7 +63,6 @@ class BeamformerNet(AbsEnhancement):
             hop_length=hop_length,
             center=center,
             window=window,
-            pad_mode=pad_mode,
             normalized=normalized,
             onesided=onesided,
         )
