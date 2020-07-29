@@ -336,7 +336,7 @@ def test_attention_masking(model_dict):
     a(xs, xs, xs, x_masks)
     aws = a.attn.detach().numpy()
     for aw, ilen in zip(aws, batch["ilens"]):
-        ilen = floor(floor(((ilen - 1) / 2) - 1) / 2)  # due to 4x down sampling
+        ilen = floor(floor(((ilen - 1) // 2) - 1) / 2)  # due to 4x down sampling
         assert not np.isnan(aw[:, :ilen, :ilen]).any()
         np.testing.assert_almost_equal(
             aw[:, :ilen, :ilen].sum(),
@@ -354,7 +354,7 @@ def test_attention_masking(model_dict):
     a(ys, xs, xs, xy_masks)
     aws = a.attn.detach().numpy()
     for aw, ilen, olen in zip(aws, batch["ilens"], batch["olens"]):
-        ilen = floor(floor(((ilen - 1) / 2) - 1) / 2)  # due to 4x down sampling
+        ilen = floor(floor(((ilen - 1) // 2) - 1) / 2)  # due to 4x down sampling
         assert not np.isnan(aw[:, :olen, :ilen]).any()
         np.testing.assert_almost_equal(
             aw[:, :olen, :ilen].sum(), float(aw.shape[0] * olen), decimal=4
