@@ -6,7 +6,7 @@ set -euo pipefail
 
 $CXX -v
 
-( 
+(
     set -euo pipefail
     cd tools
     # To suppress the installation for Kaldi
@@ -16,12 +16,10 @@ $CXX -v
     else
         make PYTHON="$(which python)" TH_VERSION="${TH_VERSION}"
     fi
+    make moses.done
     rm kaldi.done
 )
-if [ -z "${PS1:-}" ]; then
-    PS1=__dummy__
-fi
-. tools/venv/bin/activate
+. tools/activate_python.sh
 python --version
 
 pip install -U wheel

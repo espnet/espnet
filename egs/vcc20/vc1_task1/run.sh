@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=10        # numebr of parallel jobs
+nj=10        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -44,7 +44,7 @@ model=model.loss.best
 voc=PWG                         # GL or PWG
 voc_expdir=downloads/pwg_task1  # If use provided pretrained models, set to desired dir, ex. `downloads/pwg_task1`
                                 # If use manually trained models, set to `../voc1/exp/<expdir>`
-voc_checkpoint=                 # If not specified, automatically set to the latest checkpoint 
+voc_checkpoint=                 # If not specified, automatically set to the latest checkpoint
 griffin_lim_iters=64            # the number of iterations of Griffin-Lim
 
 # pretrained model related
@@ -58,7 +58,7 @@ finetuned_model_name=           # Only set to `tts1_[trgspk]`
 db_root=downloads/official_v1.0_training
 eval_db_root=downloads/official_v1.0_training    # Same as `db_root` in training
 list_dir=local/lists
-spk=TEF1 
+spk=TEF1
 
 # vc configuration
 srcspk=                                         # Ex. SEF1
@@ -99,7 +99,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
         local/pretrained_model_download.sh ${pretrained_model_dir} ${pretrained_model_name}
     fi
     echo "Pretrained TTS model exists: ${pretrained_model_name}"
-    
+
     if [ ! -d ${voc_expdir} ]; then
         echo "Downloading pretrained PWG model..."
         local/pretrained_model_download.sh ${pretrained_model_dir} pwg_task1
@@ -245,7 +245,7 @@ fi
 expdir=exp/${expname}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Text-to-speech model fine-tuning"
-    
+
     mkdir -p ${expdir}
 
     # copy x-vector into expdir
@@ -274,7 +274,7 @@ fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding, Synthesis"
-    
+
     pids=() # initialize pids
     for name in ${dev_set}; do
     (
@@ -301,7 +301,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
-    
+
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Synthesis"
 
@@ -406,7 +406,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         ${test_list_file}
 
 fi
-    
+
 if [ -z ${tts_model_dir} ]; then
     echo "Please specify tts_model_dir!"
     exit 1
@@ -431,7 +431,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     sed -i "s~${trgspk}_~${srcspk}_${trgspk}_~g" ${tts_datadir}/utt2spk
     data2json.sh --trans_type ${trans_type} \
          ${tts_datadir} ${dict} > ${tts_datadir}/data.json
-    
+
     # use the avg x-vector in target speaker training set
     echo "Updating x vector..."
     sed "s~spk~${tts_model_dir}/spk~g" ${tts_model_dir}/spk_xvector.scp > ${tts_datadir}/spk_xvector.scp
@@ -497,7 +497,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         hdf5_norm_dir=${outdir}_denorm/${pairname}/hdf5_norm
         [ ! -e "${wav_dir}" ] && mkdir -p ${wav_dir}
         [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
-        
+
         # normalize and dump them
         echo "Normalizing..."
         ${train_cmd} "${hdf5_norm_dir}/normalize.log" \
