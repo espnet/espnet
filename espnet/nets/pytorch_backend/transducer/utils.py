@@ -55,8 +55,8 @@ def is_prefix(x, pref):
     """Check prefix.
 
     Args:
-        x (list): list of predicted id
-        pref (list): list of predict id
+        x (list): token id sequence
+        pref (list): token id sequence
 
     Returns:
        (boolean): whether pref is a prefix of x.
@@ -73,11 +73,11 @@ def is_prefix(x, pref):
 
 
 def substract(x, subset):
-    """Remove elements of subset if predicted sequences exist in x.
+    """Remove elements of subset if corresponding token id sequence exist in x.
 
     Args:
-        x (list): beam search predicted sequences
-        subset (list): beam search predicted sequences
+        x (list): set of hypothesis
+        subset (list): subset of hypothesis
 
     Returns:
        final (list of dict): new set
@@ -94,16 +94,16 @@ def substract(x, subset):
 
 
 def get_idx_lm_state(lm_states, idx, lm_type, lm_layers):
-    """Get lm state for given id.
+    """Get LM state from batch for given id.
 
     Args:
-        lm_states (list or dict): lm_states for beam
-        idx (int): index to extract state from beam state
-        lm_type (str): type of lm
-        lm_layers (int): number of lm layers
+        lm_states (list or dict): batch of LM states
+        idx (int): index to extract state from batch state
+        lm_type (str): type of LM
+        lm_layers (int): number of LM layers
 
     Returns:
-       idx_state (dict): dict of lm state for given id
+       idx_state (dict): LM state for given id
 
     """
     if lm_type == "wordlm":
@@ -117,33 +117,33 @@ def get_idx_lm_state(lm_states, idx, lm_type, lm_layers):
     return idx_state
 
 
-def get_beam_lm_states(lm_states_list, lm_type, lm_layers):
-    """Create beam lm states.
+def get_batch_lm_states(lm_states_list, lm_type, lm_layers):
+    """Create batch of LM states.
 
     Args:
-        lm_states (list or dict): list of lm states
-        lm_type (str): type of lm
-        lm_layers (int): number of lm layers
+        lm_states (list or dict): list of individual LM states
+        lm_type (str): type of LM
+        lm_layers (int): number of LM layers
 
     Returns:
-       beam_states (list): list of lm states for beam
+       beam_states (list): batch of LM states
 
     """
     if lm_type == "wordlm":
         return lm_states_list
 
-    beam_states = {}
+    batch_states = {}
 
-    beam_states["c"] = [
+    batch_states["c"] = [
         torch.stack([state["c"][layer] for state in lm_states_list])
         for layer in range(lm_layers)
     ]
-    beam_states["h"] = [
+    batch_states["h"] = [
         torch.stack([state["h"][layer] for state in lm_states_list])
         for layer in range(lm_layers)
     ]
 
-    return beam_states
+    return batch_states
 
 
 def recombine_hyps(hyps):
@@ -171,3 +171,48 @@ def recombine_hyps(hyps):
             final.append(hyp)
 
     return hyps
+
+
+def pad_sequence(seqlist, pad_token):
+    """Left pad list of token id sequences.
+
+    Args:
+        seqlist (list): list of token id sequences
+        pad_token (int): padding token id
+
+    Returns:
+        final (list): list of padded token id sequences
+
+    """
+    maxlen = max(len(x) for x in seqlist)
+
+    final = [([pad_token] * (maxlen - len(x))) + x for x in seqlist]
+
+    return final
+
+
+def pad_state(state, pred_length, pad_token):
+    """Left pad batch of states and trim if necessary.
+
+    Args:
+        state (list): list of of L decoder states (B, ?, dec_dim)
+        pred_length (int): maximum length authorized (trimming)
+        pad_token (int): padding token id
+
+    Returns:
+        final (list): list of L padded decoder states (B, pred_length, dec_dim)
+
+    """
+    batch = len(state)
+    maxlen = max([s.size(0) for s in state])
+    ddim = state[0].size(1)
+
+    final_dims = (batch, maxlen, ddim)
+    final = state[0].data.new(*final_dims).fill_(pad_token)
+
+    for i, s in enumerate(state):
+        final[i, (maxlen - s.size(0)) : maxlen, :] = s
+
+    trim_val = final[0].size(0) - (pred_length - 1)
+
+    return final[:, trim_val:, :]
