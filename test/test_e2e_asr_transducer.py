@@ -6,7 +6,11 @@ import numpy as np
 import pytest
 import torch
 
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet.nets.pytorch_backend.transducer.utils import get_batch_lm_states
+from espnet.nets.pytorch_backend.transducer.utils import get_idx_lm_state
 
 
 def get_default_train_args(**kwargs):
@@ -76,6 +80,43 @@ def get_default_scope_inputs():
     olens = [4, 3]
 
     return idim, odim, ilens, olens
+
+
+def get_lm():
+    n_vocab = 3
+    n_layers = 1
+    n_units = 4
+    batchsize = 5
+
+    char_list = ["<blank>", "<space>", "a", "b", "c", "d", "<eos>"]
+
+    rnnlm = lm_pytorch.ClassifierWithState(
+        lm_pytorch.RNNLM(len(char_list), n_layers, n_units, typ="lstm")
+    )
+
+    return rnnlm
+
+
+def get_wordlm():
+    n_vocab = 3
+    n_layers = 2
+    n_units = 10
+    batchsize = 5
+
+    char_list = ["<blank>", "<space>", "a", "b", "c", "d", "<eos>"]
+    word_list = ["<blank>", "<unk>", "ab", "id", "ac", "bd", "<eos>"]
+
+    char_dict = {x: i for i, x in enumerate(char_list)}
+    word_dict = {x: i for i, x in enumerate(word_list)}
+
+    rnnlm = lm_pytorch.ClassifierWithState(
+        lm_pytorch.RNNLM(len(word_list), n_layers, n_units)
+    )
+    word_rnnlm = lm_pytorch.ClassifierWithState(
+        extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor, word_dict, char_dict)
+    )
+
+    return word_rnnlm
 
 
 def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
@@ -216,6 +257,14 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
             },
             {},
         ),
+        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_lm()}),
+        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "nsc", "rnnlm": get_lm()}),
+        ({}, {"beam_size": 2, "search_type": "nsc", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_lm()}),
+        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_lm()}),
+        ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
     ],
 )
 def test_pytorch_transducer_trainable_and_decodable(
