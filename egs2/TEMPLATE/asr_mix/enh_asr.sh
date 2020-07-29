@@ -253,7 +253,45 @@ else
     lm_token_type="${token_type}"
 fi
 
+
 # Set tag for naming of model directory
+if [ -z "${asr_tag}" ]; then
+    if [ -n "${asr_config}" ]; then
+        asr_tag="$(basename "${asr_config}" .yaml)_${feats_type}_${token_type}"
+    else
+        asr_tag="train_${feats_type}_${token_type}"
+    fi
+    # Add overwritten arg's info
+    if [ -n "${asr_args}" ]; then
+        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    fi
+fi
+if [ -z "${lm_tag}" ]; then
+    if [ -n "${lm_config}" ]; then
+        lm_tag="$(basename "${lm_config}" .yaml)_${lm_token_type}"
+    else
+        lm_tag="train_${lm_token_type}"
+    fi
+    # Add overwritten arg's info
+    if [ -n "${lm_args}" ]; then
+        lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    fi
+fi
+if [ -z "${decode_tag}" ]; then
+    if [ -n "${decode_config}" ]; then
+        decode_tag="$(basename "${decode_config}" .yaml)"
+    else
+        decode_tag=decode
+    fi
+    # Add overwritten arg's info
+    if [ -n "${decode_args}" ]; then
+        decode_tag+="$(echo "${decode_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    fi
+    if "${use_lm}"; then
+        decode_tag+="_lm_${lm_tag}_$(echo "${decode_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+fi
 if [ -z "${enh_tag}" ]; then
     if [ -n "${enh_config}" ]; then
         enh_tag="$(basename "${enh_config}" .yaml)_${feats_type}"
@@ -267,28 +305,20 @@ if [ -z "${enh_tag}" ]; then
 fi
 
 
-# The directory used for collect-stats mode
-enh_stats_dir="${expdir}/enh_stats_${fs}"
-if [ -n "${speed_perturb_factors}" ]; then
-  enh_stats_dir="${enh_stats_dir}_sp"
-  enh_exp="${enh_exp}_sp"
-fi
 
-asr_stats_dir="${expdir}/asr_stats_${feats_type}"
+# The directory used for collect-stats mode
+joint_stats_dir="${expdir}/joint_stats_${feats_type}_${fs}"
 if [ -n "${speed_perturb_factors}" ]; then
-    asr_stats_dir="${asr_stats_dir}_sp"
+    joint_stats_dir="${joint_stats_dir}_sp"
 fi
 lm_stats_dir="${expdir}/lm_stats"
 
 # The directory used for training commands
-enh_exp="${expdir}/enh_${enh_tag}"
-
-
 if [ -z "${asr_exp}" ]; then
-    asr_exp="${expdir}/asr_${asr_tag}"
+    joint_exp="${expdir}/joint_${enh_tag}_${asr_tag}"
 fi
 if [ -n "${speed_perturb_factors}" ]; then
-    asr_exp="${asr_exp}_sp"
+    joint_exp="${joint_exp}_sp"
 fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
@@ -429,6 +459,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             <"${data_feats}/org/${dset}/${spk}.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                 >"${data_feats}/${dset}/${spk}.scp"
+        done
+        for spk in ${_spk_list}; do
+            <"${data_feats}/org/${dset}/text_${spk}" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/text_${spk}"
         done
 
 
@@ -683,15 +718,21 @@ fi
 
 
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    _enh_train_dir="${data_feats}/${train_set}"
-    _enh_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 9: Enhancement collect stats: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
+    _joint_train_dir="${data_feats}/${train_set}"
+    _joint_valid_dir="${data_feats}/${valid_set}"
+    log "Stage 9: Joint collect stats: train_set=${_joint_train_dir}, valid_set=${_joint_valid_dir}"
 
     _opts=
     if [ -n "${enh_config}" ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.enh_train --print_config --optim adam
-        _opts+="--config ${enh_config} "
+        # _opts+="--enh_config ${enh_config} "
+         _opts+=""
+    fi
+    if [ -n "${asr_config}" ]; then
+        # To generate the config file: e.g.
+        #   % python3 -m espnet2.bin.enh_train --print_config --optim adam
+        _opts+="--config ${asr_config} "
     fi
 
     _scp=wav.scp
@@ -699,13 +740,13 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     _type=sound
 
     # 1. Split the key file
-    _logdir="${enh_stats_dir}/logdir"
+    _logdir="${joint_stats_dir}/logdir"
     mkdir -p "${_logdir}"
 
     # Get the minimum number among ${nj} and the number lines of input files
-    _nj=$(min "${nj}" "$(<${_enh_train_dir}/${_scp} wc -l)" "$(<${_enh_valid_dir}/${_scp} wc -l)")
+    _nj=$(min "${nj}" "$(<${_joint_train_dir}/${_scp} wc -l)" "$(<${_joint_valid_dir}/${_scp} wc -l)")
 
-    key_file="${_enh_train_dir}/${_scp}"
+    key_file="${_joint_train_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
@@ -713,7 +754,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
-    key_file="${_enh_valid_dir}/${_scp}"
+    key_file="${_joint_valid_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/valid.${n}.scp"
@@ -722,26 +763,28 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Submit jobs
-    log "Enhancement collect-stats started... log: '${_logdir}/stats.*.log'"
+    log "Joint collect-stats started... log: '${_logdir}/stats.*.log'"
 
     # prepare train and valid data parameters
-    _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
-    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,sound "
+    _train_data_param="--train_data_path_and_name_and_type ${_joint_train_dir}/wav.scp,speech_mix,sound "
+    _valid_data_param="--valid_data_path_and_name_and_type ${_joint_valid_dir}/wav.scp,speech_mix,sound "
     for spk in $(seq "${spk_num}"); do
-        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/text_spk${spk},text_ref${spk},text "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/text_spk${spk},text_ref${spk},text "
     done
 
     if $use_dereverb_ref; then
         # reference for dereverberation
-        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/dereverb.scp,dereverb_ref,sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/dereverb.scp,dereverb_ref,sound "
     fi
 
     if $use_noise_ref; then
         # reference for denoising
         _train_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
-            "--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "; done)
+            "--train_data_path_and_name_and_type ${_joint_train_dir}/noise${n}.scp,noise_ref${n},sound "; done)
         _valid_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
             "--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "; done)
     fi
@@ -752,9 +795,15 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 
     # shellcheck disable=SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        python3 -m espnet2.bin.enh_train \
+        python3 -m espnet2.bin.enh_asr_train \
             --collect_stats true \
             --use_preprocessor true \
+            --bpemodel "${bpemodel}" \
+            --token_type "${token_type}" \
+            --token_list "${token_list}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
+            --cleaner "${cleaner}" \
+            --g2p "${g2p}" \
             ${_train_data_param} \
             ${_valid_data_param} \
             --train_shape_file "${_logdir}/train.JOB.scp" \
@@ -768,15 +817,15 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
     # shellcheck disable=SC2086
-    python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
+    python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${joint_stats_dir}"
 
 fi
 
 
 if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-    _enh_train_dir="${data_feats}/${train_set}"
+    _joint_train_dir="${data_feats}/${train_set}"
     _enh_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 10: Enhancemnt Frontend Training: train_set=${_enh_train_dir}, valid_set=${_enh_valid_dir}"
+    log "Stage 10: Enhancemnt Frontend Training: train_set=${_joint_train_dir}, valid_set=${_enh_valid_dir}"
 
     _opts=
     if [ -n "${enh_config}" ]; then
@@ -792,35 +841,35 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     # _opts+="--frontend_conf fs=${fs} "
 
     # prepare train and valid data parameters
-    _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
-    _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
+    _train_data_param="--train_data_path_and_name_and_type ${_joint_train_dir}/wav.scp,speech_mix,sound "
+    _train_shape_param="--train_shape_file ${joint_stats_dir}/train/speech_mix_shape "
     _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,sound "
-    _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+    _valid_shape_param="--valid_shape_file ${joint_stats_dir}/valid/speech_mix_shape "
     _fold_length_param="--fold_length ${_fold_length} "
     for spk in $(seq "${spk_num}"); do
-        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
-        _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/speech_ref${spk}_shape "
         _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
-        _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
+        _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/speech_ref${spk}_shape "
         _fold_length_param+="--fold_length ${_fold_length} "
     done
 
     if $use_dereverb_ref; then
         # reference for dereverberation
-        _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
-        _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref_shape "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/dereverb.scp,dereverb_ref,sound "
+        _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/dereverb_ref_shape "
         _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
-        _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref_shape "
+        _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/dereverb_ref_shape "
         _fold_length_param+="--fold_length ${_fold_length} "
     fi
 
     if $use_noise_ref; then
         # reference for denoising
         for n in $(seq "${noise_type_num}"); do
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "
-            _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/noise_ref${n}_shape "
+            _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/noise${n}.scp,noise_ref${n},sound "
+            _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/noise_ref${n}_shape "
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "
-            _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/noise_ref${n}_shape "
+            _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/noise_ref${n}_shape "
             _fold_length_param+="--fold_length ${_fold_length} "
         done
     fi
@@ -835,7 +884,14 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         --num_nodes "${num_nodes}" \
         --init_file_prefix "${enh_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
-        python3 -m espnet2.bin.enh_train \
+        python3 -m espnet2.bin.enh_asr_train \
+            --use_preprocessor true \
+            --bpemodel "${bpemodel}" \
+            --token_type "${token_type}" \
+            --token_list "${token_list}" \
+            --non_linguistic_symbols "${nlsyms_txt}" \
+            --cleaner "${cleaner}" \
+            --g2p "${g2p}" \
             ${_train_data_param} \
             ${_valid_data_param} \
             ${_train_shape_param} \
@@ -979,7 +1035,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 
     _opts=
     if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${enh_stats_dir}/train/feats_stats.npz "
+        _opts+="--option ${joint_stats_dir}/train/feats_stats.npz "
     fi
 
     # shellcheck disable=SC2086

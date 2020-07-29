@@ -8,8 +8,46 @@ best_model_criterion:
 -   - valid
     - acc
     - max
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
 keep_nbest_models: 10
 
+optim: adam
+batch_type: folded
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+val_scheduler_criterion:
+    - valid
+    - loss
+    -
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.7
+    patience: 1
+
+# Enhancement Related
+enh: tf_masking
+enh_conf:
+    mask_type: PSM
+    n_fft: 256
+    hop_length: 128
+    rnn_type: blstm
+    layer: 3
+    unit: 896
+    dropout: 0.5
+    num_spk: 2
+    utt_mvn: False
+    none_linear: relu
+
+# ASR Related
 encoder: transformer
 encoder_conf:
     output_size: 256
@@ -32,14 +70,8 @@ decoder_conf:
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
 
-model_conf:
+asr_model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
 
-optim: adam
-optim_conf:
-    lr: 0.005
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 60000
