@@ -38,6 +38,7 @@ def make_train_args(**kwargs):
         sym_blank="<blank>",
         report_cer=False,
         report_wer=False,
+        search_type="default",
         score_norm_transducer=True,
         beam_size=1,
         nbest=1,
@@ -281,7 +282,7 @@ def test_sa_transducer_mask(module):
         ({"report_wer": True}, {}),
         ({"report_cer": True, "beam_size": 2}, {}),
         ({"report_wer": True, "beam_size": 2}, {}),
-        ({"report_cer": True, "report_wer": True, "beam_suze": 2}, {}),
+        ({"report_cer": True, "report_wer": True, "beam_size": 2}, {}),
         ({"report_wer": True, "report_wer": True, "score_norm_transducer": False}, {}),
     ],
 )
