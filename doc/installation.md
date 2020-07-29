@@ -141,7 +141,7 @@ $ . ./setup_cuda_env.sh /usr/local/cuda
 # $ . ./setup_cuda_env.sh /usr/local/cuda /usr/local/nccl
 ```
 
-#### A.) create miniconda environment (default)
+#### Option A) create miniconda environment (default)
 ```sh
 $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root>
@@ -160,7 +160,7 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> CONDA_ENV_NAME=<name>
 ```
 
-#### B.) create environment in existing anaconda/ change the installation path of anaconda
+#### Option B) create environment in existing anaconda/change the installation path of anaconda
 
 If you already have anaconda and you'll create an environment of ESPnet.
 
@@ -176,7 +176,7 @@ Note that
 - If there are no conda tools at the path, new conda is created there.
 - If there already exists conda and its environment, the creation of a new environment is skipped.
 
-#### C.) create virtualenv from an existing python
+#### Option C) create virtualenv from an existing python
 
 If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
 
@@ -193,7 +193,7 @@ $ cd <espnet-root>/tools
 $ make KALDI=<kaldi-root> PYTHON=/usr/bin/python3.6 TH_VERSION=1.3.1
 ```
 
-#### D.) using the existing Python/Anaconda without creating new environment
+#### Option D) using the existing Python/Anaconda without creating new environment
 You can skip the installation of new environment by creating `activate_python.sh`.
 
 ```sh
@@ -212,7 +212,9 @@ $ make KALDI=<kaldi-root>
 
 In this case, you can use `TH_VERSION` too.
 
-#### E) installation for CPU-only
+Note that we don't append `--user` option when pip instllation, so you must have write privilege to your Python.
+
+#### Option E) installation for CPU-only
 
 If you don't have `nvcc` command, packages are installed for CPU mode by default.
 If you'll turn it on manually, give `CPU_ONLY` option.
@@ -226,18 +228,29 @@ This option is enabled for any of the install configuration.
 
 
 ### Step 3) installation check
-
 You can check whether the install is succeeded via the following commands
+
 ```sh
 $ cd <espnet-root>/tools
 $ make check_install
 ```
-or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
-If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
 ```sh
 $ cd <espnet-root>/tools
 $ make clean_python
 $ make python
+```
+
+### Step 4) [Option] Manual installation
+If you are stuck in some troubles when installation, you can also install them ignoring the Makefile.
+
+Note that the Python interpreter used in ESPnet experiments is written in `<espnet-root>/tools/activate_python.sh`,
+so you need to activate it before installing python packages.
+
+```sh
+cd <espnet-root>/tools
+. activate_python.sh
+pip3 install <some-package>
+./installers/install_<some-tool>.sh
 ```
