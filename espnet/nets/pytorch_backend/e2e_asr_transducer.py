@@ -24,8 +24,10 @@ from espnet.nets.pytorch_backend.transformer.mask import target_mask
 
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
-from espnet.nets.pytorch_backend.transducer.rnn_decoders import decoder_for
-from espnet.nets.pytorch_backend.transducer.transformer_decoder import Decoder
+from espnet.nets.pytorch_backend.transducer.rnn_att_decoder import DecoderRNNTAtt
+from espnet.nets.pytorch_backend.transducer.rnn_decoder import DecoderRNNT
+from espnet.nets.pytorch_backend.transducer.search import search_interface
+from espnet.nets.pytorch_backend.transducer.transformer_decoder import DecoderTT
 from espnet.nets.pytorch_backend.transducer.transformer_encoder import Encoder
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
 
@@ -339,6 +341,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 raise ValueError(
                     "Transformer-based blocks in transducer mode should be"
                     "defined individually in the YAML file."
+                    "See egs/vivos/asr1/conf/transducer/* for more info."
                 )
 
             self.subsample = get_subsample(args, mode="asr", arch="transformer")
@@ -369,9 +372,10 @@ class E2E(ASRInterface, torch.nn.Module):
                 raise ValueError(
                     "Transformer-based blocks in transducer mode should be"
                     "defined individually in the YAML file."
+                    "See egs/vivos/asr1/conf/transducer/* for more info."
                 )
 
-            self.decoder = Decoder(
+            self.decoder = DecoderTT(
                 odim,
                 encoder_out,
                 args.joint_dim,
@@ -391,9 +395,33 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             if args.rnnt_mode == "rnnt-att":
                 self.att = att_for(args)
-                self.dec = decoder_for(args, odim, self.att)
+
+                self.dec = DecoderRNNTAtt(
+                    args.eprojs,
+                    odim,
+                    args.dtype,
+                    args.dlayers,
+                    args.dunits,
+                    blank_id,
+                    self.att,
+                    args.dec_embed_dim,
+                    args.joint_dim,
+                    args.dropout_rate_decoder,
+                    args.dropout_rate_embed_decoder,
+                )
             else:
-                self.dec = decoder_for(args, odim)
+                self.dec = DecoderRNNT(
+                    args.eprojs,
+                    odim,
+                    args.dtype,
+                    args.dlayers,
+                    args.dunits,
+                    blank_id,
+                    args.dec_embed_dim,
+                    args.joint_dim,
+                    args.dropout_rate_decoder,
+                    args.dropout_rate_embed_decoder,
+                )
 
         if hasattr(self, "most_dom_list"):
             self.most_dom_dim = sorted(
@@ -553,28 +581,15 @@ class E2E(ASRInterface, torch.nn.Module):
             h = self.encode_transformer(x)
         else:
             h = self.encode_rnn(x)
-        params = [h, recog_args]
 
         if "transformer" in self.dtype:
             decoder = self.decoder
         else:
             decoder = self.dec
 
-        if recog_args.beam_size == 1:
-            nbest_hyps = decoder.recognize(*params)
-        else:
-            params.append(rnnlm)
+        params = [decoder, h, recog_args, rnnlm]
 
-            if recog_args.search_type == "default":
-                nbest_hyps = decoder.recognize_beam_default(*params)
-            elif recog_args.search_type == "nsc":
-                nbest_hyps = decoder.recognize_beam_nsc(*params)
-            elif recog_args.search_type == "tsd":
-                nbest_hyps = decoder.recognize_beam_tsd(*params)
-            elif recog_args.search_type == "alsd":
-                nbest_hyps = decoder.recognize_beam_alsd(*params)
-            else:
-                raise NotImplementedError
+        nbest_hyps = search_interface(*params)
 
         return nbest_hyps
 
