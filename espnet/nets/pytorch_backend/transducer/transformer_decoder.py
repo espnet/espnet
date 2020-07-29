@@ -1,6 +1,5 @@
 """Decoder definition for transformer-transducer models."""
 
-import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -9,18 +8,15 @@ from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     DecoderLayer,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.transducer.utils import get_beam_lm_states
-from espnet.nets.pytorch_backend.transducer.utils import get_idx_lm_state
-from espnet.nets.pytorch_backend.transducer.utils import is_prefix
-from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
-from espnet.nets.pytorch_backend.transducer.utils import substract
+from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
+from espnet.nets.pytorch_backend.transducer.utils import pad_state
 
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
-class Decoder(torch.nn.Module):
+class DecoderTT(torch.nn.Module):
     """Decoder module for transformer-transducer models.
 
     Args:
@@ -90,6 +86,7 @@ class Decoder(torch.nn.Module):
 
         self.lin_out = torch.nn.Linear(jdim, odim)
 
+        self.dunits = ddim
         self.odim = odim
 
         self.blank = blank
@@ -129,9 +126,9 @@ class Decoder(torch.nn.Module):
 
         Args:
             h_enc (torch.Tensor):
-                batch of expanded hidden state (batch, maxlen_in, 1, Henc)
+                batch of expanded hidden state (batch, maxlen_in, 1, enc_dim)
             h_dec (torch.Tensor):
-                batch of expanded hidden state (batch, 1, maxlen_out, Hdec)
+                batch of expanded hidden state (batch, 1, maxlen_out, dec_dim)
 
         Returns:
             z (torch.Tensor): output (batch, maxlen_in, maxlen_out, odim)
@@ -142,570 +139,120 @@ class Decoder(torch.nn.Module):
 
         return z
 
-    def forward_one_step(self, tgt, tgt_mask, cache=None):
+    def zero_state(self, init_tensor=None):
+        """Initialize decoder states.
+
+        Args:
+            init_tensor (torch.Tensor): input features (B, dec_dim)
+
+        Returns:
+            state (torch.Tensor): list of L decoder states (None)
+
+        """
+        state = [None] * len(self.decoders)
+
+        return state
+
+    def forward_one_step(self, hyp, init_tensor=None):
         """Forward one step.
 
         Args:
-            tgt (torch.Tensor): input token ids, int64 (batch, maxlen_out)
-                                if input_layer == "embed"
-                                input tensor (batch, maxlen_out, #mels)
-                                in the other cases
-            tgt_mask (torch.Tensor): input token mask,  (batch, Tmax)
-                                     dtype=torch.uint8 in PyTorch 1.2-
-                                     dtype=torch.bool in PyTorch 1.2+ (include 1.2)
+            hyp (dict): hypothese
+
+        Returns:
+            tgt (torch.Tensor): decoder outputs (1, dec_dim)
+            new_state (list): list of L decoder states (1, max_length, dec_dim)
+            lm_tokens (torch.Tensor): input token id for LM (1)
 
         """
+        tgt = to_device(self, torch.tensor(hyp["yseq"]).unsqueeze(0))
+        lm_tokens = tgt[:, -1]
+        tgt_mask = to_device(self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0))
+
+        state = hyp["dec_state"]
+
         tgt = self.embed(tgt)
 
-        if cache is None:
-            cache = [None] * len(self.decoders)
-        new_cache = []
-
-        for c, decoder in zip(cache, self.decoders):
-            tgt, tgt_mask = decoder(tgt, tgt_mask, cache=c)
-            new_cache.append(tgt)
+        new_state = []
+        for s, decoder in zip(state, self.decoders):
+            tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
+            new_state.append(tgt)
 
         if self.normalize_before:
             tgt = self.after_norm(tgt[:, -1])
         else:
             tgt = tgt[:, -1]
 
-        return tgt, new_cache
+        return tgt, new_state, None, lm_tokens
 
-    def recognize(self, h, recog_args):
-        """Greedy search implementation for transformer-transducer.
-
-        Args:
-            h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
-            recog_args (Namespace): argument Namespace containing options
-
-        Returns:
-            hyp (list of dicts): 1-best decoding results
-
-        """
-        hyp = {"score": 0.0, "yseq": [self.blank]}
-
-        ys = to_device(self, torch.tensor(hyp["yseq"], dtype=torch.long)).unsqueeze(0)
-        ys_mask = to_device(self, subsequent_mask(1).unsqueeze(0))
-        y, c = self.forward_one_step(ys, ys_mask, None)
-
-        for i, hi in enumerate(h):
-            ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
-            logp, pred = torch.max(ytu, dim=0)
-
-            if pred != self.blank:
-                hyp["yseq"].append(int(pred))
-                hyp["score"] += float(logp)
-
-                ys = to_device(self, torch.tensor(hyp["yseq"]).unsqueeze(0))
-                ys_mask = to_device(
-                    self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0)
-                )
-
-                y, c = self.forward_one_step(ys, ys_mask, c)
-
-        return [hyp]
-
-    def recognize_beam_default(self, h, recog_args, rnnlm=None):
-        """Beam search implementation.
+    def forward_batch_one_step(self, hyps, state, att_w=None, att_params=None):
+        """Forward batch one step.
 
         Args:
-            h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
-            recog_args (Namespace): argument Namespace containing options
-            rnnlm (torch.nn.Module): language model module
+            hyps (list of dict): batch of hypothesis
+            state (list): list of L decoder states (B, max_len, dec_dim)
 
         Returns:
-            nbest_hyps (list of dicts): n-best decoding results
+            tgt (torch.Tensor): decoder output (B, dec_dim)
+            new_state (list): list of L decoder states (B, max_len, dec_dim)
+            lm_tokens (torch.Tensor): input token ids for LM (B)
 
         """
-        beam = recog_args.beam_size
-        k_range = min(beam, self.odim)
+        tokens = [h["yseq"] for h in hyps]
+        tokens = pad_sequence(tokens, self.blank)
+        batch = len(tokens)
 
-        nbest = recog_args.nbest
-        normscore = recog_args.score_norm_transducer
-
-        kept_hyps = [
-            {"score": 0.0, "yseq": [self.blank], "cache": None, "lm_state": None}
-        ]
-
-        for hi in h:
-            hyps = kept_hyps
-            kept_hyps = []
-
-            while True:
-                new_hyp = max(hyps, key=lambda x: x["score"])
-                hyps.remove(new_hyp)
-
-                ys = to_device(self, torch.tensor(new_hyp["yseq"]).unsqueeze(0))
-                ys_mask = to_device(
-                    self, subsequent_mask(len(new_hyp["yseq"])).unsqueeze(0)
-                )
-
-                y, c = self.forward_one_step(ys, ys_mask, new_hyp["cache"])
-
-                ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
-
-                if rnnlm:
-                    rnnlm_state, rnnlm_scores = rnnlm.predict(
-                        new_hyp["lm_state"], ys[:, -1]
-                    )
-
-                for k in range(self.odim):
-                    beam_hyp = {
-                        "score": new_hyp["score"] + float(ytu[k]),
-                        "yseq": new_hyp["yseq"][:],
-                        "cache": new_hyp["cache"],
-                    }
-
-                    if rnnlm:
-                        beam_hyp["lm_state"] = new_hyp["lm_state"]
-
-                    if k == self.blank:
-                        kept_hyps.append(beam_hyp)
-                    else:
-                        beam_hyp["yseq"].append(int(k))
-                        beam_hyp["cache"] = c
-
-                        if rnnlm:
-                            beam_hyp["lm_state"] = rnnlm_state
-                            beam_hyp["score"] += (
-                                recog_args.lm_weight * rnnlm_scores[0][k]
-                            )
-
-                        hyps.append(beam_hyp)
-
-                hyps_max = float(max(hyps, key=lambda x: x["score"])["score"])
-                kept_most_prob = len(
-                    sorted(kept_hyps, key=lambda x: float(x["score"]) > hyps_max)
-                )
-                if kept_most_prob >= k_range:
-                    break
-
-        if normscore:
-            nbest_hyps = sorted(
-                kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
-            )[:nbest]
-        else:
-            nbest_hyps = sorted(kept_hyps, key=lambda x: x["score"], reverse=True)[
-                :nbest
-            ]
-
-        return nbest_hyps
-
-    def recognize_beam_nsc(self, h, recog_args, rnnlm=None):
-        """N-step constrained beam search implementation.
-
-        Based and modified from https://arxiv.org/pdf/2002.03577.pdf
-
-        Args:
-            h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
-            recog_args (Namespace): argument Namespace containing options
-            rnnlm (torch.nn.Module): language model module
-
-        Returns:
-            nbest_hyps (list of dicts): n-best decoding results
-
-        """
-
-        def pad_sequence(seqlist):
-            maxlen = max(len(x) for x in seqlist)
-
-            final = [([self.blank] * (maxlen - len(x))) + x for x in seqlist]
-
-            return final
-
-        def pad_cache(cache, pred_length):
-            batch = len(cache)
-            maxlen = max([c.size(0) for c in cache])
-            ddim = cache[0].size(1)
-
-            final_dims = (batch, maxlen, ddim)
-            final = cache[0].data.new(*final_dims).fill_(0)
-
-            for i, c in enumerate(cache):
-                final[i, (maxlen - c.size(0)) : maxlen, :] = c
-
-            trim_val = final[0].size(0) - (pred_length - 1)
-
-            return final[:, trim_val:, :]
-
-        beam = recog_args.beam_size
-        w_range = min(beam, self.odim)
-
-        nstep = recog_args.nstep
-        prefix_alpha = recog_args.prefix_alpha
-
-        nbest = recog_args.nbest
-
-        w_tokens = [self.blank for _ in range(w_range)]
-        w_tokens = torch.LongTensor(w_tokens).view(w_range, -1)
-
-        w_tokens_mask = (
-            subsequent_mask(w_tokens.size(-1)).unsqueeze(0).expand(w_range, -1, -1)
+        b_tokens = to_device(self, torch.LongTensor(tokens).view(batch, -1))
+        tgt_mask = to_device(
+            self, subsequent_mask(b_tokens.size(-1)).unsqueeze(0).expand(batch, -1, -1)
         )
 
-        w_y, w_c = self.forward_one_step(w_tokens, w_tokens_mask, None)
+        tgt = self.embed(b_tokens)
 
-        cache = []
+        new_state = []
+        for s, decoder in zip(state, self.decoders):
+            tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
+            new_state.append(tgt)
+
+        if self.normalize_before:
+            tgt = self.after_norm(tgt[:, -1])
+        else:
+            tgt = tgt[:, -1]
+
+        return tgt, new_state, None, b_tokens[:, -1]
+
+    def get_idx_dec_state(self, state, idx, att_state=None):
+        """Get decoder state from batch for given id.
+
+        Args:
+            state (list): list of L decoder states (B, max_len, dec_dim)
+            idx (int): index to extract state from beam state
+
+        Returns:
+            state (list): list of L decoder states (max_len, dec_dim)
+            idx_state (dict): dict of lm state for given id
+
+        """
+        state_idx = [state[layer][idx] for layer in range(len(self.decoders))]
+
+        return state_idx, None
+
+    def get_batch_dec_states(self, state, hyps):
+        """Create batch of decoder states.
+
+        Args:
+            state (list): input list of decoder states (B, max_len, dec_dim)
+            hyps (list): batch of hypothesis
+
+        Returns:
+            state (list): output list of L decoder states (B, max_len, dec_dim)
+
+        """
+        max_length = max([len(h["yseq"]) for h in hyps])
+
         for layer in range(len(self.decoders)):
-            cache.append(w_c[layer][0])
-
-        if rnnlm:
-            w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(
-                None, w_tokens[:, -1], w_range
+            state[layer] = pad_state(
+                [h["dec_state"][layer] for h in hyps], max_length, self.blank
             )
 
-            if hasattr(rnnlm.predictor, "wordlm"):
-                lm_type = "wordlm"
-                lm_layers = len(w_rnnlm_states[0])
-            else:
-                lm_type = "lm"
-                lm_layers = len(w_rnnlm_states["c"])
-
-            rnnlm_states = get_idx_lm_state(w_rnnlm_states, 0, lm_type, lm_layers)
-            rnnlm_scores = w_rnnlm_scores[0]
-        else:
-            rnnlm_states = None
-            rnnlm_scores = None
-
-        kept_hyps = [
-            {
-                "score": 0.0,
-                "yseq": [self.blank],
-                "cache": cache,
-                "y": [w_y[0]],
-                "lm_states": rnnlm_states,
-                "lm_scores": rnnlm_scores,
-            }
-        ]
-
-        for hi in h:
-            hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
-            kept_hyps = []
-
-            for j in range(len(hyps) - 1):
-                for i in range((j + 1), len(hyps)):
-                    if (
-                        is_prefix(hyps[j]["yseq"], hyps[i]["yseq"])
-                        and (len(hyps[j]["yseq"]) - len(hyps[i]["yseq"]))
-                        <= prefix_alpha
-                    ):
-                        next_id = len(hyps[i]["yseq"])
-
-                        ytu = torch.log_softmax(self.joint(hi, hyps[i]["y"][-1]), dim=0)
-
-                        curr_score = float(hyps[i]["score"]) + float(
-                            ytu[hyps[j]["yseq"][next_id]]
-                        )
-
-                        for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
-                            ytu = torch.log_softmax(
-                                self.joint(hi, hyps[j]["y"][k]), dim=0
-                            )
-
-                            curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
-
-                        hyps[j]["score"] = np.logaddexp(
-                            float(hyps[j]["score"]), curr_score
-                        )
-
-            S = []
-            V = []
-            for n in range(nstep):
-                h_enc = hi.unsqueeze(0).expand(w_range, -1)
-
-                w_y = torch.stack([hyp["y"][-1] for hyp in hyps])
-
-                if len(hyps) == 1:
-                    w_y = w_y.expand(w_range, -1)
-
-                w_logprobs = torch.log_softmax(self.joint(h_enc, w_y), dim=-1).view(-1)
-
-                if rnnlm:
-                    w_rnnlm_scores = torch.stack([hyp["lm_scores"] for hyp in hyps])
-
-                    if len(hyps) == 1:
-                        w_rnnlm_scores = w_rnnlm_scores.expand(w_range, -1)
-
-                    w_rnnlm_scores = w_rnnlm_scores.contiguous().view(-1)
-
-                for i, hyp in enumerate(hyps):
-                    pos_k = i * self.odim
-                    k_i = w_logprobs.narrow(0, pos_k, self.odim)
-
-                    if rnnlm:
-                        lm_k_i = w_rnnlm_scores.narrow(0, pos_k, self.odim)
-
-                    for k in range(self.odim):
-                        curr_score = float(k_i[k])
-
-                        w_hyp = {
-                            "yseq": hyp["yseq"][:],
-                            "score": hyp["score"] + curr_score,
-                            "cache": hyp["cache"],
-                            "y": hyp["y"][:],
-                            "lm_states": hyp["lm_states"],
-                            "lm_scores": hyp["lm_scores"],
-                        }
-
-                        if k == self.blank:
-                            S.append(w_hyp)
-                        else:
-                            w_hyp["yseq"].append(int(k))
-
-                            if rnnlm:
-                                w_hyp["score"] += recog_args.lm_weight * lm_k_i[k]
-
-                            V.append(w_hyp)
-
-                V = sorted(V, key=lambda x: x["score"], reverse=True)
-                V = substract(V, hyps)[:w_range]
-
-                w_tokens = pad_sequence([v["yseq"] for v in V])
-                w_tokens = torch.LongTensor(w_tokens).view(w_range, -1)
-
-                w_tokens_mask = (
-                    subsequent_mask(w_tokens.size(-1))
-                    .unsqueeze(0)
-                    .expand(w_range, -1, -1)
-                )
-
-                for layer in range(len(self.decoders)):
-                    w_c[layer] = pad_cache(
-                        [v["cache"][layer] for v in V], w_tokens.size(1)
-                    )
-
-                w_y, w_c = self.forward_one_step(w_tokens, w_tokens_mask, w_c)
-
-                if rnnlm:
-                    w_rnnlm_states = get_beam_lm_states(
-                        [v["lm_states"] for v in V], lm_type, lm_layers
-                    )
-
-                    w_rnnlm_states, w_rnnlm_scores = rnnlm.buff_predict(
-                        w_rnnlm_states, w_tokens[:, -1], w_range
-                    )
-
-                if n < (nstep - 1):
-                    for i, v in enumerate(V):
-                        v["cache"] = [
-                            w_c[layer][i] for layer in range(len(self.decoders))
-                        ]
-                        v["y"].append(w_y[i])
-
-                        if rnnlm:
-                            v["lm_states"] = get_idx_lm_state(
-                                w_rnnlm_states, i, lm_type, lm_layers
-                            )
-                            v["lm_scores"] = w_rnnlm_scores[i]
-
-                    hyps = V[:]
-                else:
-                    w_logprobs = torch.log_softmax(self.joint(h_enc, w_y), dim=-1).view(
-                        -1
-                    )
-                    blank_score = w_logprobs[0 :: self.odim]
-
-                    for i, v in enumerate(V):
-                        if nstep != 1:
-                            v["score"] += float(blank_score[i])
-
-                        v["cache"] = [
-                            w_c[layer][i] for layer in range(len(self.decoders))
-                        ]
-                        v["y"].append(w_y[i])
-
-                        if rnnlm:
-                            v["lm_states"] = get_idx_lm_state(
-                                w_rnnlm_states, i, lm_type, lm_layers
-                            )
-                            v["lm_scores"] = w_rnnlm_scores[i]
-
-            kept_hyps = sorted((S + V), key=lambda x: x["score"], reverse=True)[
-                :w_range
-            ]
-
-        nbest_hyps = sorted(
-            kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
-        )[:nbest]
-
-        return nbest_hyps
-
-    def recognize_beam_tsd(self, h, recog_args, rnnlm=None):
-        """Time synchronous beam search implementation.
-
-        Based on https://ieeexplore.ieee.org/document/9053040
-
-        Args:
-            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
-            recog_args (Namespace): argument Namespace containing options
-            rnnlm (torch.nn.Module): language module
-
-        Returns:
-            nbest_hyps (list of dicts): n-best decoding results
-
-        """
-        beam = recog_args.beam_size
-        w_range = min(beam, self.odim)
-
-        max_sym_exp = recog_args.nstep
-        nbest = recog_args.nbest
-
-        B = [{"yseq": [self.blank], "score": 0.0, "cache": None, "lm_state": None}]
-
-        for hi in h:
-            A = []
-            C = B
-
-            for v in range(max_sym_exp):
-                D = []
-
-                for hyp in C:
-                    ys = to_device(self, torch.tensor(hyp["yseq"]).unsqueeze(0))
-                    ys_mask = to_device(
-                        self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0)
-                    )
-
-                    y, c = self.forward_one_step(ys, ys_mask, hyp["cache"])
-
-                    ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
-
-                    seq_A = [h["yseq"] for h in A]
-
-                    if hyp["yseq"] not in seq_A:
-                        new_hyp = {
-                            "score": hyp["score"] + float(ytu[0]),
-                            "yseq": hyp["yseq"][:],
-                            "cache": hyp["cache"],
-                            "lm_state": hyp["lm_state"],
-                        }
-
-                        A.append(new_hyp)
-                    else:
-                        dict_pos = seq_A.index(hyp["yseq"])
-
-                        A[dict_pos]["score"] = np.logaddexp(
-                            A[dict_pos]["score"], (hyp["score"] + float(ytu[0]))
-                        )
-
-                    if rnnlm:
-                        rnnlm_state, rnnlm_scores = rnnlm.predict(
-                            hyp["lm_state"], ys[:, -1]
-                        )
-
-                    if v < max_sym_exp:
-                        for k in range(1, self.odim):
-                            beam_hyp = {
-                                "score": hyp["score"] + float(ytu[k]),
-                                "yseq": hyp["yseq"][:],
-                                "cache": c,
-                                "lm_state": hyp["lm_state"],
-                            }
-
-                            beam_hyp["yseq"].append(int(k))
-
-                            if rnnlm:
-                                beam_hyp["lm_state"] = rnnlm_state
-
-                                beam_hyp["score"] += (
-                                    recog_args.lm_weight * rnnlm_scores[0][k]
-                                )
-
-                            D.append(beam_hyp)
-
-                C = sorted(D, key=lambda x: x["score"], reverse=True)[:w_range]
-
-            B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
-
-        nbest_hyps = sorted(B, key=lambda x: x["score"], reverse=True)[:nbest]
-
-        return nbest_hyps
-
-    def recognize_beam_alsd(self, h, recog_args, rnnlm=None):
-        """Alignment-length synchronous beam search implementation.
-
-        Based on https://ieeexplore.ieee.org/document/9053040
-
-        Args:
-            h (torch.Tensor): encoder hidden state sequences (Tmax, Henc)
-            recog_args (Namespace): argument Namespace containing options
-            rnnlm (torch.nn.Module): language module
-
-        Returns:
-            nbest_hyps (list of dicts): n-best decoding results
-
-        """
-        beam = recog_args.beam_size
-        w_range = min(beam, self.odim)
-
-        h_length = int(h.size(0))
-        u_max = min(recog_args.u_max, (h_length - 1))
-
-        nbest = recog_args.nbest
-
-        B = [{"score": 0.0, "yseq": [self.blank], "cache": None, "lm_state": None}]
-
-        final = []
-
-        for i in range(h_length + u_max):
-            A = []
-
-            for hyp in B:
-                u = len(hyp["yseq"]) - 1
-                t = i - u + 1
-
-                if t > (h_length - 1):
-                    continue
-
-                ys = to_device(self, torch.tensor(hyp["yseq"]).unsqueeze(0))
-                ys_mask = to_device(
-                    self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0)
-                )
-
-                y, c = self.forward_one_step(ys, ys_mask, hyp["cache"])
-
-                ytu = torch.log_softmax(self.joint(h[t], y[0]), dim=0)
-
-                new_hyp = {
-                    "score": hyp["score"] + float(ytu[0]),
-                    "yseq": hyp["yseq"][:],
-                    "cache": hyp["cache"],
-                    "lm_state": hyp["lm_state"],
-                }
-
-                A.append(new_hyp)
-
-                if t == (h_length - 1):
-                    final.append(new_hyp)
-
-                if rnnlm:
-                    rnnlm_state, rnnlm_scores = rnnlm.predict(
-                        hyp["lm_state"], ys[:, -1]
-                    )
-
-                for k in range(1, self.odim):
-                    beam_hyp = {
-                        "score": hyp["score"] + float(ytu[k]),
-                        "yseq": hyp["yseq"][:],
-                        "cache": c,
-                        "lm_state": hyp["lm_state"],
-                    }
-
-                    beam_hyp["yseq"].append(int(k))
-
-                    if rnnlm:
-                        beam_hyp["lm_state"] = rnnlm_state
-                        beam_hyp["score"] += recog_args.lm_weight * rnnlm_scores[0][k]
-
-                    A.append(beam_hyp)
-
-            B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
-            B = recombine_hyps(B)
-
-        # temp. fix: final can end-up empty with t-t, investigation in progress.
-        if final:
-            nbest_hyps = sorted(final, key=lambda x: x["score"], reverse=True)[:nbest]
-        else:
-            nbest_hyps = sorted(B, key=lambda x: x["score"], reverse=True)[:nbest]
-
-        return nbest_hyps
+        return state, None
