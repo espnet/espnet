@@ -477,7 +477,7 @@ class E2E(STInterface, torch.nn.Module):
                 hyps += [seq_hat_text.split(" ")]
                 list_of_refs += [[seq_true_text.split(" ")]]
 
-            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
+            self.bleu = nltk.bleu_score.corpus_bleu(list_of_refs, hyps) * 100
 
         asr_ctc_weight = self.mtlalpha
         self.loss_asr = (
@@ -754,6 +754,31 @@ class E2E(STInterface, torch.nn.Module):
             )
         self.train()
         return att_ws
+
+    def calculate_all_ctc_probs(self, xs_pad, ilens, ys_pad, ys_pad_src):
+        """E2E CTC probability calculation.
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor
+            ys_pad_src: batch of padded token id sequence tensor (B, Lmax)
+        :return: CTC probability (B, Tmax, vocab)
+        :rtype: float ndarray
+        """
+        probs = None
+        if self.asr_weight == 0 or self.mtlalpha == 0:
+            return probs
+
+        self.eval()
+        with torch.no_grad():
+            # 1. Encoder
+            hpad, hlens, _ = self.enc(xs_pad, ilens)
+
+            # 2. CTC probs
+            probs = self.ctc.softmax(hpad).cpu().numpy()
+        self.train()
+        return probs
 
     def subsample_frames(self, x):
         """Subsample speeh frames in the encoder."""

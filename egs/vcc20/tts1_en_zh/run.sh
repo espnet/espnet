@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpu in training
-nj=64        # numebr of parallel jobs
+nj=64        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 1, get more log)
 seed=1       # random seed number
@@ -78,7 +78,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         utils/fix_data_dir.sh data/${spk}
         utils/validate_data_dir.sh --no-feats data/${spk}
     done
-    
+
     # prepare the CSMSC dataset
     echo "Processing csmsc..."
     local/data_prep_csmsc.sh ${csmsc_db}/CSMSC data/csmsc zh_ZH
@@ -117,7 +117,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             data/${x} \
             exp/make_fbank/${x} \
             ${fbankdir}
-    
+
         # make a dev set
         utils/subset_data_dir.sh --last data/${x} 500 data/${x}_tmp
         utils/subset_data_dir.sh --last data/${x}_tmp 250 data/${x}_${eval_set}
@@ -150,19 +150,19 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
-    
+
     dict=data/lang_1${trans_type}/${train_set}_units.txt
     nlsyms=data/lang_1${trans_type}/${train_set}_non_lang_syms.txt
     echo "dictionary: ${dict}"
     mkdir -p data/lang_1${trans_type}/
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    
+
     echo "make a non-linguistic symbol list"
     [ -e ${nlsyms} ] && rm ${nlsyms}
     echo "<en_US>" >> ${nlsyms}
     echo "<zh_ZH>" >> ${nlsyms}
-    
+
     text2token.py -s 1 -n 1 -l ${nlsyms} --trans_type ${trans_type} \
         data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
@@ -273,7 +273,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-    
+
     pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
     (

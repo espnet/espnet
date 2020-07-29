@@ -26,8 +26,9 @@ class Encoder(torch.nn.Module):
     This is a module of encoder of Spectrogram prediction network in Tacotron2,
     which described in `Natural TTS
     Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_.
-    This is the encoder which converts the
-    sequence of characters into the sequence of hidden states.
+    This is the encoder which converts either a
+    sequence of characters or acoustic features
+    into the sequence of hidden states.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
@@ -37,6 +38,7 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         idim,
+        input_layer="embed",
         embed_dim=512,
         elayers=1,
         eunits=512,
@@ -52,6 +54,7 @@ class Encoder(torch.nn.Module):
 
         Args:
             idim (int) Dimension of the inputs.
+            :param str input_layer: input layer type
             embed_dim (int, optional) Dimension of character embedding.
             elayers (int, optional) The number of encoder blstm layers.
             eunits (int, optional) The number of encoder blstm units.
@@ -69,11 +72,19 @@ class Encoder(torch.nn.Module):
         self.use_residual = use_residual
 
         # define network layer modules
-        self.embed = torch.nn.Embedding(idim, embed_dim, padding_idx=padding_idx)
+        if input_layer == "linear":
+            self.embed = torch.nn.Linear(idim, econv_chans)
+        elif input_layer == "embed":
+            self.embed = torch.nn.Embedding(idim, embed_dim, padding_idx=padding_idx)
+        else:
+            raise ValueError("unknown input_layer: " + input_layer)
+
         if econv_layers > 0:
             self.convs = torch.nn.ModuleList()
             for layer in six.moves.range(econv_layers):
-                ichans = embed_dim if layer == 0 else econv_chans
+                ichans = (
+                    embed_dim if layer == 0 and input_layer == "embed" else econv_chans
+                )
                 if use_batch_norm:
                     self.convs += [
                         torch.nn.Sequential(
@@ -122,7 +133,9 @@ class Encoder(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            xs (Tensor): Batch of the padded sequence of character ids (B, Tmax).
+            xs (Tensor): Batch of the padded sequence.
+                Either character ids (B, Tmax)
+                    or acoustic feature (B, Tmax, idim * encoder_reduction_factor).
                 Padded value should be 0.
             ilens (LongTensor): Batch of lengths of each input batch (B,).
 
@@ -151,13 +164,13 @@ class Encoder(torch.nn.Module):
         """Inference.
 
         Args:
-            x (Tensor): The sequeunce of character ids (T,).
+            x (Tensor): The sequeunce of character ids (T,)
+                    or acoustic feature (T, idim * encoder_reduction_factor).
 
         Returns:
             Tensor: The sequences of encoder states(T, eunits).
 
         """
-        assert len(x.size()) == 1
         xs = x.unsqueeze(0)
         ilens = [x.size(0)]
 

@@ -8,27 +8,27 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
-epochs: 3
+epochs: 1
 accum-grad: 1
-patience: 2
+patience: 0
 transformer-lr: 5.0
 transformer-warmup-steps: 10
 
 # network architecture
 ## encoder related
 etype: transformer
-elayers: 2
-eunits: 32
+elayers: 1
+eunits: 4
 subsample: "1_2_2_1_1"
 ## decoder related
 dtype: transformer
 dlayers: 1
-dunits: 30
+dunits: 4
 ## attention related
-adim: 32
+adim: 4
 aheads: 2
 ## joint network related
-joint-dim: 30
+joint-dim: 4
 
 # transducer related
 ## mtlalpha should be set to 1.0 (CTC) to use transducer

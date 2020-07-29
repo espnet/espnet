@@ -8,14 +8,8 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin
 export LC_ALL=C
 
 
-if [ -z "${PS1:-}" ]; then
-    PS1=__dummy__
-fi
-if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
-    source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
-else
-    source $MAIN_ROOT/tools/venv/bin/activate
-fi
+
+. $MAIN_ROOT/tools/activate_python.sh
 
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 export PATH=${KALDI_ROOT}/tools/sph2pipe_v2.5:$PATH

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. tools/venv/bin/activate
+. tools/activate_python.sh
 
 if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi

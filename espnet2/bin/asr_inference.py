@@ -147,7 +147,6 @@ class Speech2Text:
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
-        self.lm_train_args = lm_train_args
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
