@@ -186,6 +186,9 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     for f in egs2/*/tts1/conf/train*.yaml; do
         python -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
+    for f in egs2/*/enh1/conf/train*.yaml; do
+        python -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
+    done
 fi
 
 # These files must be same each other.
