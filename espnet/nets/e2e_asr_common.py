@@ -16,6 +16,8 @@ import sys
 
 from itertools import groupby
 
+from espnet.nets.pytorch_backend.transducer.search import search_interface
+
 
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     """End detection.
@@ -266,6 +268,7 @@ class ErrorCalculatorTrans(object):
             "beam_size": args.beam_size,
             "nbest": args.nbest,
             "space": args.sym_space,
+            "search_type": "default",
             "score_norm_transducer": args.score_norm_transducer,
         }
 
@@ -299,10 +302,7 @@ class ErrorCalculatorTrans(object):
         batch_nbest = []
 
         for b in six.moves.range(batchsize):
-            if self.recog_args.beam_size == 1:
-                nbest_hyps = self.dec.recognize(hs_pad[b], self.recog_args)
-            else:
-                nbest_hyps = self.dec.recognize_beam_default(hs_pad[b], self.recog_args)
+            nbest_hyps = search_interface(self.dec, hs_pad[b], self.recog_args, None)
             batch_nbest.append(nbest_hyps)
 
         ys_hat = [nbest_hyp[0]["yseq"][1:] for nbest_hyp in batch_nbest]
