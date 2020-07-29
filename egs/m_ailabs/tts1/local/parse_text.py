@@ -12,14 +12,16 @@ import os
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lang_tag", type=str, default=None, nargs="?",
-                        help="language tag (can be used for multi lingual case)")
-    parser.add_argument("--spk_tag", type=str,
-                        help="speaker tag")
-    parser.add_argument("jsons", nargs="+", type=str,
-                        help="*_mls.json filenames")
-    parser.add_argument("out", type=str,
-                        help="output filename")
+    parser.add_argument(
+        "--lang_tag",
+        type=str,
+        default=None,
+        nargs="?",
+        help="language tag (can be used for multi lingual case)",
+    )
+    parser.add_argument("--spk_tag", type=str, help="speaker tag")
+    parser.add_argument("jsons", nargs="+", type=str, help="*_mls.json filenames")
+    parser.add_argument("out", type=str, help="output filename")
     args = parser.parse_args()
 
     dirname = os.path.dirname(args.out)

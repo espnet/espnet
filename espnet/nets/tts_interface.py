@@ -68,6 +68,7 @@ class TTSInterface(object):
     def attention_plot_class(self):
         """Plot attention weights."""
         from espnet.asr.asr_utils import PlotAttentionReport
+
         return PlotAttentionReport
 
     @property
@@ -75,11 +76,13 @@ class TTSInterface(object):
         """Return base key names to plot during training.
 
         The keys should match what `chainer.reporter` reports.
-        if you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
-        also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
+        if you add the key `loss`,
+        the reporter will report `main/loss` and `validation/main/loss` values.
+        also `loss.png` will be created as a figure visulizing `main/loss`
+        and `validation/main/loss` values.
 
         Returns:
             list[str]:  Base keys to plot during training.
 
         """
-        return ['loss']
+        return ["loss"]

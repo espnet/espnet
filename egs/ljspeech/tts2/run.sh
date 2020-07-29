@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=32        # numebr of parallel jobs
+nj=32        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -26,6 +26,10 @@ n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
+
+# char or phn
+# In the case of phn, input transcription is convered to phoneem using https://github.com/Kyubyong/g2p.
+trans_type="char"
 
 # config files
 train_config=conf/train_pytorch_tacotron2+cbhg.yaml
@@ -50,9 +54,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train_no_dev"
-dev_set="dev"
-eval_set="eval"
+train_set="${trans_type}_train_no_dev"
+dev_set="${trans_type}_dev"
+eval_set="${trans_type}_eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -63,7 +67,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
+    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train "${trans_type}"
     utils/validate_data_dir.sh --no-feats data/train
 fi
 
@@ -182,7 +186,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --resume ${resume} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
-           --config ${decode_config}
+           --config ${train_config}
 fi
 
 if [ ${n_average} -gt 0 ]; then

@@ -111,12 +111,14 @@ build_local(){
         if [ "${build_base_image}" = true ] ; then
             docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
         else
-            docker pull espnet/espnet:cuda${ver}-cudnn7
+            if ! [[ -n $( docker images -q espnet/espnet:cuda${ver}-cudnn7)  ]]; then
+                docker pull espnet/espnet:cuda${ver}-cudnn7
+            fi
         fi
         build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
         build_args="${build_args} --build-arg CUDA_VER=${ver}"
         build_args="${build_args} --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE}"
-        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-local . || exit 1
+        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-u18-local . || exit 1
     else
         echo "Parameter invalid: " ${ver}
     fi
@@ -133,10 +135,10 @@ testing(){
     if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
         run_stage=3
     fi
-    for cuda_ver in cpu ${cuda_vers};do    
+    for cuda_ver in cpu ${cuda_vers};do
         for backend in pytorch chainer;do
             if [ "${cuda_ver}" != "cpu" ];then
-                docker_cuda="--docker_cuda ${cuda_ver}"
+                docker_cuda="--docker-cuda ${cuda_ver}"
                 gpu=0
                 ngpu=1
             else
@@ -144,11 +146,45 @@ testing(){
                 gpu=-1
                 ngpu=0
             fi
-            ( ./run.sh --docker_egs an4/asr1 ${docker_cuda} --docker_cmd run.sh --docker_gpu ${gpu} \
-                        --verbose 1 --backend ${backend} --ngpu ${ngpu} \
-                        --stage ${run_stage} --tag train_nodev_${backend}_cuda${cuda_ver}) || exit 1
-            run_stage=3
+            ( ./run.sh ${docker_cuda} \
+                        --docker-egs an4/asr1 \
+                        --docker-cmd run.sh \
+                        --docker-gpu ${gpu} \
+                        --verbose 1 \
+                        --backend ${backend} \
+                        --ngpu ${ngpu} \
+                        --stage ${run_stage} \
+                        --tag train_nodev_${backend}_cuda${cuda_ver} ) || exit 1
         done
+    done
+
+    echo "ESPnet egs Done. Press <enter> to continue with ESPnet2 egs"
+    read enter
+    # Test for espnet2
+    run_stage=-1
+    if [ -f ../egs2/an4/asr1/dump/raw/train_nodev/text ]; then 
+        run_stage=9
+    fi
+    for cuda_ver in cpu ${cuda_vers};do
+        if [ "${cuda_ver}" != "cpu" ];then
+            docker_cuda="--docker-cuda ${cuda_ver}"
+            gpu=0
+            ngpu=1
+        else
+            docker_cuda=""
+            gpu=-1
+            ngpu=0
+        fi
+        ( ./run.sh ${docker_cuda} \
+                    --docker-egs an4/asr1  \
+                    --docker-cmd run.sh \
+                    --docker-gpu ${gpu} \
+                    --is-egs2 \
+                    --ngpu ${ngpu} \
+                    --stage ${run_stage} \
+                    --asr_tag train_nodev_cuda${cuda_ver} \
+                    --lm_tag train_nodev_cuda${cuda_ver}) || exit 1
+        run_stage=3
     done
 }
 

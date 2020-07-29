@@ -35,21 +35,35 @@ class Decoder(chainer.Chain):
         self.sos = odim - 1
         self.eos = odim - 1
         initialW = chainer.initializers.Uniform if initialW is None else initialW
-        initial_bias = chainer.initializers.Uniform if initial_bias is None else initial_bias
+        initial_bias = (
+            chainer.initializers.Uniform if initial_bias is None else initial_bias
+        )
         with self.init_scope():
             self.output_norm = LayerNorm(args.adim)
             self.pe = PositionalEncoding(args.adim, args.dropout_rate)
-            stvd = 1. / np.sqrt(args.adim)
-            self.output_layer = L.Linear(args.adim, odim, initialW=initialW(scale=stvd),
-                                         initial_bias=initial_bias(scale=stvd))
-            self.embed = L.EmbedID(odim, args.adim, ignore_label=-1,
-                                   initialW=chainer.initializers.Normal(scale=1.0))
+            stvd = 1.0 / np.sqrt(args.adim)
+            self.output_layer = L.Linear(
+                args.adim,
+                odim,
+                initialW=initialW(scale=stvd),
+                initial_bias=initial_bias(scale=stvd),
+            )
+            self.embed = L.EmbedID(
+                odim,
+                args.adim,
+                ignore_label=-1,
+                initialW=chainer.initializers.Normal(scale=1.0),
+            )
         for i in range(args.dlayers):
-            name = 'decoders.' + str(i)
-            layer = DecoderLayer(args.adim, d_units=args.dunits,
-                                 h=args.aheads, dropout=args.dropout_rate,
-                                 initialW=initialW,
-                                 initial_bias=initial_bias)
+            name = "decoders." + str(i)
+            layer = DecoderLayer(
+                args.adim,
+                d_units=args.dunits,
+                h=args.aheads,
+                dropout=args.dropout_rate,
+                initialW=initialW,
+                initial_bias=initial_bias,
+            )
             self.add_link(name, layer)
         self.n_layers = args.dlayers
 
@@ -63,8 +77,7 @@ class Decoder(chainer.Chain):
             ndarray: Mask with dimensions (B, S, T).
 
         """
-        mask = (target_block[:, None, :] >= 0) * \
-            (source_block[:, :, None] >= 0)
+        mask = (target_block[:, None, :] >= 0) * (source_block[:, :, None] >= 0)
         # (batch, source_length, target_length)
         return mask
 
@@ -93,7 +106,7 @@ class Decoder(chainer.Chain):
         e = e.reshape(-1, dims)
         source = source.reshape(-1, dims)
         for i in range(self.n_layers):
-            e = self['decoders.' + str(i)](e, source, xy_mask, yy_mask, batch)
+            e = self["decoders." + str(i)](e, source, xy_mask, yy_mask, batch)
         return self.output_layer(self.output_norm(e)).reshape(batch, length, -1)
 
     def recognize(self, e, yy_mask, source):

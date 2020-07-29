@@ -1,0 +1,13 @@
+lm_conf:
+    unit: 1000   # 2 for character LMs
+    nlayers: 1   # 650 for character LMs
+optim: sgd       # adam for character LMs
+batch_type: folded
+batch_size: 64
+max_epoch: 20    # number of epochs
+patience: 3
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1

@@ -10,7 +10,7 @@ egs/                 # The complete recipe for each corpora
     an4/             # AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial
       asr1/          # ASR recipe
           - run.sh   # Executable script
-          - cmd.sh   # To select the backend for job scheduler 
+          - cmd.sh   # To select the backend for job scheduler
           - path.sh  # Setup script for environment variables
           - conf/    # Containing COnfiguration files
           - steps/   # The utils scripts from Kaldi
@@ -44,23 +44,7 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Recognition and scoring
 
 ### Setup in your cluster
-Change `cmd.sh` according to your cluster setup.
-If you run experiments with your local machine, you don't have to change it.
-For more information about `cmd.sh` see [Parallelization in Kaldi
-](http://kaldi-asr.org/doc/queue.html).
-It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
-
-You also changing the configuration to use specified backend:
-
-
-|cmd     |Backend                                  | configuration file|
-|--------| :--------------------------------------:| :---------------: |
-|run.pl  | Local machine (default)                 |-                  |
-|queue.pl|Sun grid engine, or grid endine like tool|conf/queue.conf    |
-|slurm.pl|Slurm                                    |conf/queue.conf    |
-|pbs.pl  |PBS/Torque                               |conf/pbs.conf      |
-|ssh.pl  |SSH                                      |.queue/machines    |
-
+See [Using Job scheduling system](./parallelization.md)
 
 ### Logging
 
@@ -97,7 +81,7 @@ Note that we would not include the installation of Tensorboard to simplify our i
 
 ### Change options in run.sh
 
-We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to paser command line arguments in shell script and it's used in run.sh: 
+We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to paser command line arguments in shell script and it's used in run.sh:
 
 e.g. If the script has `ngpu` option
 
@@ -149,12 +133,13 @@ echo 2
 
 ### Multiple GPU TIPs
 - Note that if you want to use multiple GPUs, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
-- Currently, we only support multiple GPU training within a single node. We don't support the distributed setup across multiple nodes. We also don't support GPU decoding.
+- Currently, espnet1 only supports multiple GPU training within a single node. The distributed setup across multiple nodes is only supported in [espnet2](https://espnet.github.io/espnet/espnet2_distributed.html). 
+- We don't support multiple GPU inference. Instead, please split the recognition task for multiple jobs and distribute these split jobs to multiple GPUs.
 - If you could not get enough speed improvement with multiple GPUs, you should first check the GPU usage by `nvidia-smi`. If the GPU-Util percentage is low, the bottleneck would come from the disk access. You can apply data prefetching by `--n-iter-processes 2` in your `run.sh` to mitigate the problem. Note that this data prefetching consumes a lot of CPU memory, so please be careful when you increase the number of processes.
 
 ### Start from the middle stage or stop at specified stage
 
-`run.sh` has multiple stages including data prepration, traning, and etc., so you may likely want to start 
+`run.sh` has multiple stages including data prepration, traning, and etc., so you may likely want to start
 from the specified stage if some stages are failed by some reason for example.
 
 You can start from specified stage as following and stop the process at the specifed stage:
@@ -185,6 +170,29 @@ $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
 (i.e., `--recog_model model.loss.best`).
 - The pure attention mode requires to set the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`), appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.
 - About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics. 
+
+### Transducer
+
+ESPnet also support transducer-based models through CTC mode.
+To be used, the following should be set in the training config:
+
+```
+criterion: loss
+mtlalpha: 1.0
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
+```
+
+Several transducer architectures are currently available by using different options:
+- RNN-Transducer (default)
+- RNN-Transducer with attention decoder (`rnnt-mode: 'rnnt-att'`)
+- Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
+- Transformer/RNN-Transducer (`etype: transformer` and `dtype: lstm`)
+
+Additional notes:
+- Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
+- There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
+- Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
+- RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`). Pre-initialization for transformer-decoder is not supported yet.
 
 ### Changing the training configuration
 
@@ -231,7 +239,28 @@ Basically, this option makes training iteration faster than `--batch-count seq`.
 
     This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
+### How to use finetuning
 
+ESPnet currently supports two finetuning operations: transfer learning (1.x) and freezing (2.).
+
+1.1. Transfer learning option is split between encoder initialization (`--enc-init`) and decoder initialization (`--dec-init`). However, the same model can be specified for both options. Each option takes a snapshot path (e.g.: `exp/[model]/results/snapshot.ep.1`) or model path (e.g.: `exp/[model]/results/model.loss.best`) as argument.
+
+1.2. Additionally, a list of modules (separated by a comma) can be specified to control the modules to transfer using `--enc-init-mods` and `--dec-init-mods` options.
+It should be noted the user doesn't need to specify each module individually, only a partial matching (beginning of the string) is needed.
+
+Example 1: `--enc-init-mods='enc.'` means all encoder modules should be transfered.
+
+Example 2: `--enc-init-mods='enc.embed.,enc.0.'` means encoder embedding layer and first layer should be transfered.
+
+2. Freezing option can be used through `--freeze-mods`. Similarly to `--(enc|dec)-init-mods`, the option take a list of modules (separated by a comma). The behaviour being the same (partial matching).
+
+Example 1: `--freeze-mods='enc.embed.'` means encoder embedding layer should be frozen.
+
+Example 2: `--freeze-mods='dec.embed,dec.0.'` means decoder embedding layer and first layer should be frozen.
+
+3. RNN-based and Transformer-based models have different key names for encoder and decoder parts:
+ - RNN model has `enc` for encoder and `dec` for decoder.
+ - Transformer has `encoder` for encoder and `decoder` for decoder.
 
 ### Known issues
 
