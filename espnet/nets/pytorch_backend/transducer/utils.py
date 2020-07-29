@@ -158,7 +158,7 @@ def recombine_hyps(hyps):
     """
     final = []
 
-    for i, hyp in enumerate(hyps):
+    for hyp in hyps:
         seq_final = [f["yseq"] for f in final if f["yseq"]]
 
         if hyp["yseq"] in seq_final:
