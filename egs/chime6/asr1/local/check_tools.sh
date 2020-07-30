@@ -48,13 +48,8 @@ command -v phonetisaurus-align &>/dev/null \
 command -v BeamformIt &>/dev/null \
   || { echo  >&2 "BeamformIt not found on PATH. Please use the script $KALDI_ROOT/tools/extras/install_beamformit.sh to install it"; exit 1; }
 
-miniconda_dir=$HOME/miniconda3/
-if [ ! -d $miniconda_dir ]; then
-    echo "$miniconda_dir does not exist. Please run '../../../tools/extras/install_miniconda.sh'"
-fi
-
 # check if WPE is installed
-result=`$miniconda_dir/bin/python -c "\
+result=`python -c "\
 try:
     import nara_wpe
     print('1')
@@ -67,10 +62,10 @@ if [ "$result" != "1" ]; then
 fi
 
 # this is used for the audio synchronization
-sox_conda=`command -v ${miniconda_dir}/bin/sox 2>/dev/null`
+sox_conda=`command -v ../../../tools/venv/bin/sox 2>/dev/null`
 if [ -z "${sox_conda}" ]; then
   echo "install conda sox (v14.4.2)" 
-  ${miniconda_dir}/bin/conda install -c conda-forge sox
+  conda install -c conda-forge sox
 fi
 
 exit  0

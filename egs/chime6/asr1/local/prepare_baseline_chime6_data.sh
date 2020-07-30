@@ -299,8 +299,6 @@ if [ $stage -le 15 ] && [[ ${enhancement} == *gss* ]]; then
   if [ ! -f pb_chime5/cache/chime6.json ]; then
     (
     cd pb_chime5
-    miniconda_dir=$HOME/miniconda3/
-    export PATH=$miniconda_dir/bin:$PATH
     export CHIME6_DIR=$chime6_corpus
     make cache/chime6.json
     )

@@ -45,18 +45,12 @@ if [ ! -d pb_chime5/ ]; then
   exit 1
 fi
 
-miniconda_dir=$HOME/miniconda3/
-if [ ! -d $miniconda_dir/ ]; then
-  echo "$miniconda_dir/ does not exist. Please run '../../../tools/extras/install_miniconda.sh'"
-  exit 1
-fi
-
 enhanced_dir=$(utils/make_absolute.sh $enhanced_dir) || \
   { echo "Could not make absolute '$enhanced_dir'" && exit 1; }
 
 $cmd JOB=1:$nj $log_dir/log/enhance_${session_id}.JOB.log \
   cd pb_chime5/ '&&' \
-  $miniconda_dir/bin/python -m pb_chime5.scripts.kaldi_run with \
+  python -m pb_chime5.scripts.kaldi_run with \
     chime6=True \
     storage_dir=$enhanced_dir \
     session_id=$session_id \
