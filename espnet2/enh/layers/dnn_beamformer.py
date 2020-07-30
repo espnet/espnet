@@ -114,7 +114,7 @@ class DNN_Beamformer(torch.nn.Module):
         def apply_beamforming(data, ilens, psd_speech, psd_n, beamformer_type):
             # u: (B, C)
             if self.ref_channel < 0:
-                u, _ = self.ref(psd_speech.type(data.dtype), ilens)
+                u, _ = self.ref(psd_speech.to(dtype=data.dtype), ilens)
             else:
                 # (optional) Create onehot vector for fixed reference microphone
                 u = torch.zeros(
@@ -135,7 +135,7 @@ class DNN_Beamformer(torch.nn.Module):
                     "Not supporting beamformer_type={}".format(beamformer_type)
                 )
 
-            return enhanced.type(data.dtype), ws.type(data.dtype)
+            return enhanced.to(dtype=data.dtype), ws.to(dtype=data.dtype)
 
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)

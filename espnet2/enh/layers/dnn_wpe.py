@@ -84,7 +84,7 @@ class DNN_WPE(torch.nn.Module):
                 delay=self.delay,
                 inverse_power=self.inverse_power,
             )
-            enhanced = enhanced.type(data.dtype)
+            enhanced = enhanced.to(dtype=data.dtype)
             enhanced.masked_fill_(make_pad_mask(ilens, enhanced.real), 0)
 
         # (B, F, C, T) -> (B, T, C, F)
