@@ -17,7 +17,7 @@ if ! command -v parallel-wavegan-train > /dev/null; then
     echo "Error: Please install via \`. ./path.sh && pip install -U parallel_wavegan\`" >&2
     return 1
 fi
-if ! python -c "import pytorch_lamb" > /dev/null; then
+if ! python3 -c "import pytorch_lamb" > /dev/null; then
     echo "Error: pytorch_lamb is not installed." >&2
     echo "Error: Please install via https://github.com/cybertronai/pytorch-lamb" >&2
     return 1

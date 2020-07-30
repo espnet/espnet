@@ -13,7 +13,7 @@ export LD_LIBRARY_PATH=$MAIN_ROOT/tools/lib:$MAIN_ROOT/tools/lib64:$LD_LIBRARY_P
 export OMP_NUM_THREADS=1
 
 # check extra module installation
-if ! python -c "import pyopenjtalk" > /dev/null; then
+if ! python3 -c "import pyopenjtalk" > /dev/null; then
     echo "Error: pyopenjtalk is not installed." >&2
     echo "Error: please install pyopenjtalk and its dependencies as follows:" >&2
     echo "Error: cd ${MAIN_ROOT}/tools && make pyopenjtalk.done" >&2

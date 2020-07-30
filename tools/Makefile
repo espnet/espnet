@@ -131,9 +131,9 @@ endif
 
 ifneq ($(strip $(USE_PIP)),)
 pytorch.done: activate_python.sh
-	. ./activate_python.sh; pip install pip --upgrade
-	. ./activate_python.sh; pip install numpy --upgrade  # Workaround for "ImportError: numpy.core.multiarray failed to import"
-	. ./activate_python.sh; pip install $(PIP_PYTORCH)
+	. ./activate_python.sh; pip3 install pip --upgrade
+	. ./activate_python.sh; pip3 install numpy --upgrade  # Workaround for "ImportError: numpy.core.multiarray failed to import"
+	. ./activate_python.sh; pip3 install $(PIP_PYTORCH)
 	touch pytorch.done
 else
 pytorch.done: activate_python.sh
@@ -142,11 +142,11 @@ pytorch.done: activate_python.sh
 endif
 
 espnet.done: pytorch.done
-	. ./activate_python.sh && pip install -e ..  # Install editable mode by default
+	. ./activate_python.sh && pip3 install -e ..  # Install editable mode by default
 	touch espnet.done
 
 chainer.done: espnet.done
-	. ./activate_python.sh && pip install ${PIP_CHAINER}
+	. ./activate_python.sh && pip3 install ${PIP_CHAINER}
 	touch chainer.done
 
 warp-ctc.done: pytorch.done
@@ -198,9 +198,9 @@ endif
 else
 
 ifneq ($(strip $(NO_CUPY)),)
-	. ./activate_python.sh; python check_install.py --no-cuda --no-cupy
+	. ./activate_python.sh; python3 check_install.py --no-cuda --no-cupy
 else
-	. ./activate_python.sh; python check_install.py --no-cuda
+	. ./activate_python.sh; python3 check_install.py --no-cuda
 endif
 
 endif

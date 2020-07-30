@@ -912,7 +912,7 @@ if ! "${skip_upload}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
 
-        python -m espnet2.bin.pack tts \
+        python3 -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
             --model_file "${tts_exp}"/"${inference_model}" \
             --option ${tts_stats_dir}/train/feats_stats.npz  \

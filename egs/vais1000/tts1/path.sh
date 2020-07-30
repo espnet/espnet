@@ -15,7 +15,7 @@ export OMP_NUM_THREADS=1
 export PYTHONIOENCODING=UTF-8
 
 # check extra module installation
-if ! python -c "import underthesea" > /dev/null; then
+if ! python3 -c "import underthesea" > /dev/null; then
     echo "Error: underthesea is not installed." >&2
     echo "Error: please install underthesea:" >&2
     echo "Error: . ./path.sh && pip install underthesea" >&2
