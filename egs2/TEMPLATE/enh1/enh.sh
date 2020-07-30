@@ -633,6 +633,7 @@ if ! "${skip_eval}"; then
                     END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
             done
         done
+        ./scripts/utils/show_enh_score.sh ${enh_exp} > "${enh_exp}/RESULTS.TXT"
 
     fi
 else
