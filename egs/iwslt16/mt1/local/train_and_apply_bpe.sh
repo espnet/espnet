@@ -29,23 +29,23 @@ TRG_BPE_CODE=${dumpdir}/vocab/vocab.${tgt_lang}_bpe16000
 
 # learn bpe merge operation
 echo "learn bpe merge operation"
-python subword-nmt/subword_nmt/learn_bpe.py -s $nbpe < ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang} > ${SRC_BPE_CODE}
-python subword-nmt/subword_nmt/learn_bpe.py -s $nbpe < ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang} > ${TRG_BPE_CODE}
+python3 subword-nmt/subword_nmt/learn_bpe.py -s $nbpe < ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang} > ${SRC_BPE_CODE}
+python3 subword-nmt/subword_nmt/learn_bpe.py -s $nbpe < ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang} > ${TRG_BPE_CODE}
 
 # apply bpe operation
 echo "apply bpe splitting"
 # train
-python subword-nmt/subword_nmt/apply_bpe.py -c ${SRC_BPE_CODE} < ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang} > ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang}_bpe${nbpe}
-python subword-nmt/subword_nmt/apply_bpe.py -c ${TRG_BPE_CODE} < ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang} > ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang}_bpe${nbpe}
+python3 subword-nmt/subword_nmt/apply_bpe.py -c ${SRC_BPE_CODE} < ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang} > ${dumpdir}/${train_set}/train.tkn.tc.clean.${src_lang}_bpe${nbpe}
+python3 subword-nmt/subword_nmt/apply_bpe.py -c ${TRG_BPE_CODE} < ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang} > ${dumpdir}/${train_set}/train.tkn.tc.clean.${tgt_lang}_bpe${nbpe}
 
 
 # valid
-python subword-nmt/subword_nmt/apply_bpe.py -c ${SRC_BPE_CODE} < ${dumpdir}/${train_dev}/tst2012.tkn.tc.${src_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.tc.${src_lang}_bpe${nbpe}
-python subword-nmt/subword_nmt/apply_bpe.py -c ${TRG_BPE_CODE} < ${dumpdir}/${train_dev}/tst2012.tkn.tc.${tgt_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.tc.${tgt_lang}_bpe${nbpe}
+python3 subword-nmt/subword_nmt/apply_bpe.py -c ${SRC_BPE_CODE} < ${dumpdir}/${train_dev}/tst2012.tkn.tc.${src_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.tc.${src_lang}_bpe${nbpe}
+python3 subword-nmt/subword_nmt/apply_bpe.py -c ${TRG_BPE_CODE} < ${dumpdir}/${train_dev}/tst2012.tkn.tc.${tgt_lang} > ${dumpdir}/${train_dev}/tst2012.tkn.tc.${tgt_lang}_bpe${nbpe}
 
 # test
 for ts in $(echo ${trans_set} | tr '_' ' '); do
     name=`echo $ts | cut -d'.' -f1`
-    python subword-nmt/subword_nmt/apply_bpe.py -c ${SRC_BPE_CODE} < ${dumpdir}/${ts}/${name}.tkn.tc.${src_lang} > ${dumpdir}/${ts}/${name}.tkn.tc.${src_lang}_bpe${nbpe}
-    python subword-nmt/subword_nmt/apply_bpe.py -c ${TRG_BPE_CODE} < ${dumpdir}/${ts}/${name}.tkn.tc.${tgt_lang} > ${dumpdir}/${ts}/${name}.tkn.tc.${tgt_lang}_bpe${nbpe}
+    python3 subword-nmt/subword_nmt/apply_bpe.py -c ${SRC_BPE_CODE} < ${dumpdir}/${ts}/${name}.tkn.tc.${src_lang} > ${dumpdir}/${ts}/${name}.tkn.tc.${src_lang}_bpe${nbpe}
+    python3 subword-nmt/subword_nmt/apply_bpe.py -c ${TRG_BPE_CODE} < ${dumpdir}/${ts}/${name}.tkn.tc.${tgt_lang} > ${dumpdir}/${ts}/${name}.tkn.tc.${tgt_lang}_bpe${nbpe}
 done

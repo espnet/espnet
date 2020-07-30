@@ -1,7 +1,6 @@
 MAIN_ROOT=$PWD/../../..
 KALDI_ROOT=$MAIN_ROOT/tools/kaldi
 
-[ -f $KALDI_ROOT/tools/env.sh ] && . $KALDI_ROOT/tools/env.sh
 export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin:$PWD:$PATH
 [ ! -f $KALDI_ROOT/tools/config/common_path.sh ] && echo >&2 "The standard file $KALDI_ROOT/tools/config/common_path.sh is not present -> Exit!" && exit 1
 . $KALDI_ROOT/tools/config/common_path.sh
@@ -17,7 +16,7 @@ if ! command -v parallel-wavegan-train > /dev/null; then
     echo "Error: Please install via \`. ./path.sh && pip install -U parallel_wavegan\`" >&2
     return 1
 fi
-if ! python -c "import pytorch_lamb" > /dev/null; then
+if ! python3 -c "import pytorch_lamb" > /dev/null; then
     echo "Error: pytorch_lamb is not installed." >&2
     echo "Error: Please install via https://github.com/cybertronai/pytorch-lamb" >&2
     return 1

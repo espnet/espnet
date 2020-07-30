@@ -15,10 +15,10 @@ git clone https://github.com/kpu/kenlm.git
     mkdir build
     (
         set -euo pipefail
-        cd build && cmake .. && make 
+        cd build && cmake .. && make
     )
     (
         set -euo pipefail
-        python setup.py install
+        python3 setup.py install
     )
 )

@@ -1190,7 +1190,7 @@ if ! "${skip_upload}"; then
             _opts+="--option ${bpemodel} "
         fi
         # shellcheck disable=SC2086
-        python -m espnet2.bin.pack asr \
+        python3 -m espnet2.bin.pack asr \
             --asr_train_config "${asr_exp}"/config.yaml \
             --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
             ${_opts} \
