@@ -548,16 +548,15 @@ def search_interface(decoder, h, recog_args, rnnlm):
 
     if recog_args.beam_size == 1:
         nbest_hyps = greedy_search(decoder, h, recog_args)
+    elif recog_args.search_type == "default":
+        nbest_hyps = default_beam_search(decoder, h, recog_args, rnnlm)
+    elif recog_args.search_type == "nsc":
+        nbest_hyps = nsc_beam_search(decoder, h, recog_args, rnnlm)
+    elif recog_args.search_type == "tsd":
+        nbest_hyps = time_sync_decoding(decoder, h, recog_args, rnnlm)
+    elif recog_args.search_type == "alsd":
+        nbest_hyps = align_length_sync_decoding(decoder, h, recog_args, rnnlm)
     else:
-        if recog_args.search_type == "default":
-            nbest_hyps = default_beam_search(decoder, h, recog_args, rnnlm)
-        elif recog_args.search_type == "nsc":
-            nbest_hyps = nsc_beam_search(decoder, h, recog_args, rnnlm)
-        elif recog_args.search_type == "tsd":
-            nbest_hyps = time_sync_decoding(decoder, h, recog_args, rnnlm)
-        elif recog_args.search_type == "alsd":
-            nbest_hyps = align_length_sync_decoding(decoder, h, recog_args, rnnlm)
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     return nbest_hyps
