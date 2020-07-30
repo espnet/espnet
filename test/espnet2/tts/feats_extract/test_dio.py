@@ -18,13 +18,14 @@ def test_forward(use_continuous_f0, use_log_f0, use_token_averaged_f0):
         use_log_f0=use_log_f0,
         use_token_averaged_f0=use_token_averaged_f0,
     )
-    x = torch.randn(2, 256)
+    xs = torch.randn(2, 256)
     if not use_token_averaged_f0:
-        layer(x, torch.LongTensor([256, 128]))
+        layer(xs, torch.LongTensor([256, 128]))
     else:
-        d = torch.LongTensor([[1, 2, 2], [3, 0, 0]])
+        ds = torch.LongTensor([[3, 0, 2], [3, 0, 0]])
         dlens = torch.LongTensor([3, 1])
-        layer(x, torch.LongTensor([256, 128]), durations=d, durations_lengths=dlens)
+        ps, _ = layer(xs, torch.LongTensor([256, 128]), durations=ds, durations_lengths=dlens)
+        assert torch.isnan(ps).sum() == 0
 
 
 def test_output_size():

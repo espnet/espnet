@@ -12,13 +12,16 @@ def test_forward(use_token_averaged_energy):
         fs="16k",
         use_token_averaged_energy=use_token_averaged_energy,
     )
-    x = torch.randn(2, 256)
+    xs = torch.randn(2, 256)
     if not use_token_averaged_energy:
-        layer(x, torch.LongTensor([256, 128]))
+        layer(xs, torch.LongTensor([256, 128]))
     else:
-        d = torch.LongTensor([[1, 2, 2], [3, 0, 0]])
+        ds = torch.LongTensor([[3, 0, 2], [3, 0, 0]])
         dlens = torch.LongTensor([3, 1])
-        layer(x, torch.LongTensor([256, 128]), durations=d, durations_lengths=dlens)
+        es, _ = layer(
+            xs, torch.LongTensor([256, 128]), durations=ds, durations_lengths=dlens
+        )
+        assert torch.isnan(es).sum() == 0
 
 
 def test_output_size():
