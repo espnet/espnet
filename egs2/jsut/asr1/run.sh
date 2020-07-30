@@ -19,7 +19,7 @@ valid_set=dev
 test_sets="dev eval1"
 
 asr_config=conf/train_asr_rnn.yaml
-decode_config=conf/decode_rnn.yaml
+inference_config=conf/decode_rnn.yaml
 lm_config=conf/train_lm.yaml
 ./asr.sh \
     --lang jp \
@@ -28,7 +28,7 @@ lm_config=conf/train_lm.yaml
     --fs ${fs} \
     --local_data_opts "--fs ${fs}" \
     --asr_config "${asr_config}" \
-    --decode_config "${decode_config}" \
+    --inference_config "${inference_config}" \
     --lm_config "${lm_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
