@@ -5,6 +5,9 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
+from espnet.nets.pytorch_backend.transducer.decoder_interface import (
+    TransducerDecoderInterface,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     DecoderLayer,  # noqa: H301
 )
@@ -16,7 +19,7 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
-class DecoderTT(torch.nn.Module):
+class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
     """Decoder module for transformer-transducer models.
 
     Args:
@@ -230,7 +233,7 @@ class DecoderTT(torch.nn.Module):
 
         Returns:
             state (list): list of L decoder states (max_len, dec_dim)
-            idx_state (dict): dict of lm state for given id
+            idx_state (dict): decoder state for given id
 
         """
         state_idx = [state[layer][idx] for layer in range(len(self.decoders))]

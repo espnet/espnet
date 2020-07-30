@@ -5,9 +5,12 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
+from espnet.nets.pytorch_backend.transducer.decoder_interface import (
+    TransducerDecoderInterface,  # noqa: H301
+)
 
 
-class DecoderRNNTAtt(torch.nn.Module):
+class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
     """RNNT-Att Decoder module.
 
     Args:
