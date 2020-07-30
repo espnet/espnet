@@ -108,8 +108,8 @@ class TFMaskingNet(AbsEnhancement):
             predicted_spectrums = None
         else:
             # apply mask
-            predict_magnitude = [m * input_magnitude for m in masks]
-            predicted_spectrums = [pm * input_phase for pm in predict_magnitude]
+            predict_magnitude = [input_magnitude * m for m in masks]
+            predicted_spectrums = [input_phase * pm for pm in predict_magnitude]
 
         masks = OrderedDict(
             zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
