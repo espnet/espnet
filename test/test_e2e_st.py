@@ -501,6 +501,33 @@ def test_calculate_all_attentions(module, atype):
         print(att_ws.shape)
 
 
+@pytest.mark.parametrize(
+    "module, mtlalpha",
+    [
+        ("espnet.nets.pytorch_backend.e2e_st", 0.0),
+        ("espnet.nets.pytorch_backend.e2e_st", 0.5),
+        ("espnet.nets.pytorch_backend.e2e_st", 1.0),
+    ],
+)
+def test_calculate_all_ctc_probs(module, mtlalpha):
+    m = importlib.import_module(module)
+    args = make_arg(mtlalpha=mtlalpha, asr_weight=0.3)
+    if "pytorch" in module:
+        batch = prepare_inputs("pytorch")
+    else:
+        batch = prepare_inputs("chainer")
+    model = m.E2E(40, 5, args)
+    with chainer.no_backprop_mode():
+        if "pytorch" in module:
+            ctc_probs = model.calculate_all_ctc_probs(*batch)
+            if mtlalpha > 0:
+                print(ctc_probs.shape)
+            else:
+                assert ctc_probs is None
+        else:
+            raise NotImplementedError
+
+
 def test_torch_save_and_load():
     m = importlib.import_module("espnet.nets.pytorch_backend.e2e_st")
     utils = importlib.import_module("espnet.asr.asr_utils")

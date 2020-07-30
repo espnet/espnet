@@ -6,7 +6,9 @@ class TensorboardLogger(Extension):
 
     default_name = "espnet_tensorboard_logger"
 
-    def __init__(self, logger, att_reporter=None, entries=None, epoch=0):
+    def __init__(
+        self, logger, att_reporter=None, ctc_reporter=None, entries=None, epoch=0
+    ):
         """Init the extension
 
         :param SummaryWriter logger: The logger to use
@@ -16,6 +18,7 @@ class TensorboardLogger(Extension):
         """
         self._entries = entries
         self._att_reporter = att_reporter
+        self._ctc_reporter = ctc_reporter
         self._logger = logger
         self._epoch = epoch
 
@@ -40,3 +43,9 @@ class TensorboardLogger(Extension):
         ):
             self._epoch = trainer.updater.get_iterator("main").epoch
             self._att_reporter.log_attentions(self._logger, trainer.updater.iteration)
+        if (
+            self._ctc_reporter is not None
+            and trainer.updater.get_iterator("main").epoch > self._epoch
+        ):
+            self._epoch = trainer.updater.get_iterator("main").epoch
+            self._ctc_reporter.log_ctc_probs(self._logger, trainer.updater.iteration)

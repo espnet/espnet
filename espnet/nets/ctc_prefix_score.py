@@ -205,9 +205,9 @@ class CTCPrefixScoreTH(object):
         # convert ids to BHS space (S: scoring_num)
         if scoring_idmap is not None:
             snum = self.scoring_num
-            hyp_idx = (
-                torch.div(best_ids, self.odim) + (self.idx_b * n_hyps).view(-1, 1)
-            ).view(-1)
+            hyp_idx = (best_ids // self.odim + (self.idx_b * n_hyps).view(-1, 1)).view(
+                -1
+            )
             label_ids = torch.fmod(best_ids, self.odim).view(-1)
             score_idx = scoring_idmap[hyp_idx, label_ids]
             score_idx[score_idx == -1] = 0

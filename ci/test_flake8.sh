@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. tools/venv/bin/activate
+. tools/activate_python.sh
 
 set -euo pipefail
 

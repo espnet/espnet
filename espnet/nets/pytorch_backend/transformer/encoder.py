@@ -104,6 +104,13 @@ class Encoder(torch.nn.Module):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+        elif input_layer == "conv2d-scaled-pos-enc":
+            self.embed = Conv2dSubsampling(
+                idim,
+                attention_dim,
+                dropout_rate,
+                pos_enc_class(attention_dim, positional_dropout_rate),
+            )
         elif input_layer == "conv2d6":
             self.embed = Conv2dSubsampling6(idim, attention_dim, dropout_rate)
         elif input_layer == "conv2d8":
