@@ -24,7 +24,9 @@ def test_forward(use_continuous_f0, use_log_f0, use_token_averaged_f0):
     else:
         ds = torch.LongTensor([[3, 0, 2], [3, 0, 0]])
         dlens = torch.LongTensor([3, 1])
-        ps, _ = layer(xs, torch.LongTensor([256, 128]), durations=ds, durations_lengths=dlens)
+        ps, _ = layer(
+            xs, torch.LongTensor([256, 128]), durations=ds, durations_lengths=dlens
+        )
         assert torch.isnan(ps).sum() == 0
 
 
