@@ -31,7 +31,6 @@ class Energy(AbsFeatsExtract):
         hop_length: int = 256,
         window: Optional[str] = "hann",
         center: bool = True,
-        pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
         use_token_averaged_energy: bool = True,
@@ -54,7 +53,6 @@ class Energy(AbsFeatsExtract):
             hop_length=hop_length,
             window=window,
             center=center,
-            pad_mode=pad_mode,
             normalized=normalized,
             onesided=onesided,
         )
@@ -70,7 +68,6 @@ class Energy(AbsFeatsExtract):
             window=self.window,
             win_length=self.win_length,
             center=self.stft.center,
-            pad_mode=self.stft.pad_mode,
             normalized=self.stft.normalized,
             use_token_averaged_energy=self.use_token_averaged_energy,
         )
