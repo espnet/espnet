@@ -260,7 +260,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         else
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
         fi
-        if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
             recog_opts=${recog_opts}" --batchsize 0"
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
