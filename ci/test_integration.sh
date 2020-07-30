@@ -164,7 +164,7 @@ echo "==== [ESPnet2] ENH ==="
 feats_types="raw"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --ngpu 0 --stage 2 --stop-stage 9 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1 --num_spk=1"
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 9 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1"
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data

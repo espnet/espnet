@@ -11,5 +11,6 @@ set -o pipefail
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test" \
+    --enh_config ./conf/train.yaml \
     --inference_model "valid.loss.best.pth" \
     "$@"
