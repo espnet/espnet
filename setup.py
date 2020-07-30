@@ -40,6 +40,7 @@ requirements = {
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
+        "pyworld>=0.2.10",
         "nnmnkwii",
         "espnet_tts_frontend",
         # ASR frontend related

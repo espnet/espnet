@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Fastspeech related modules for ESPnet2."""
+"""Fastspeech2 related modules for ESPnet2."""
 
 from typing import Dict
 from typing import Sequence
@@ -11,12 +9,13 @@ from typing import Tuple
 
 import torch
 import torch.nn.functional as F
+
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
-    FeedForwardTransformerLoss as FastSpeechLoss,  # NOQA
-)
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
+from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (
+    DurationPredictorLoss,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -29,75 +28,21 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.gst.style_encoder import StyleEncoder
+from espnet2.tts.variance_predictor import VariancePredictor
 
 
-class FastSpeech(AbsTTS):
-    """FastSpeech module for end-to-end text-to-speech.
+class FastSpeech2(AbsTTS):
+    """FastSpeech2 module.
 
-    This is a module of FastSpeech, feed-forward Transformer with duration predictor
-    described in `FastSpeech: Fast, Robust and Controllable Text to Speech`_, which
-    does not require any auto-regressive processing during inference, resulting in
-    fast decoding compared with auto-regressive Transformer.
+    This is a module of FastSpeech2 described in `FastSpeech 2: Fast and
+    High-Quality End-to-End Text to Speech`_. Instead of quantized pitch and
+    energy, we use token-averaged value introduced in `FastPitch: Parallel
+    Text-to-speech with Pitch Prediction`_.
 
-    .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
-        https://arxiv.org/pdf/1905.09263.pdf
-
-    Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        elayers (int, optional): Number of encoder layers.
-        eunits (int, optional): Number of encoder hidden units.
-        dlayers (int, optional): Number of decoder layers.
-        dunits (int, optional): Number of decoder hidden units.
-        use_scaled_pos_enc (bool, optional):
-            Whether to use trainable scaled positional encoding.
-        encoder_normalize_before (bool, optional):
-            Whether to perform layer normalization before encoder block.
-        decoder_normalize_before (bool, optional):
-            Whether to perform layer normalization before decoder block.
-        encoder_concat_after (bool, optional): Whether to concatenate attention
-            layer's input and output in encoder.
-        decoder_concat_after (bool, optional): Whether to concatenate attention
-            layer's input and output in decoder.
-        duration_predictor_layers (int, optional): Number of duration predictor layers.
-        duration_predictor_chans (int, optional): Number of duration predictor channels.
-        duration_predictor_kernel_size (int, optional):
-            Kernel size of duration predictor.
-        spk_embed_dim (int, optional): Number of speaker embedding dimensions.
-        spk_embed_integration_type: How to integrate speaker embedding.
-        use_gst (str, optional): Whether to use global style token.
-        gst_tokens (int, optional): The number of GST embeddings.
-        gst_heads (int, optional): The number of heads in GST multihead attention.
-        gst_conv_layers (int, optional): The number of conv layers in GST.
-        gst_conv_chans_list: (Sequence[int], optional):
-            List of the number of channels of conv layers in GST.
-        gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
-        gst_conv_stride (int, optional): Stride size of conv layers in GST.
-        gst_gru_layers (int, optional): The number of GRU layers in GST.
-        gst_gru_units (int, optional): The number of GRU units in GST.
-        reduction_factor (int, optional): Reduction factor.
-        transformer_enc_dropout_rate (float, optional):
-            Dropout rate in encoder except attention & positional encoding.
-        transformer_enc_positional_dropout_rate (float, optional):
-            Dropout rate after encoder positional encoding.
-        transformer_enc_attn_dropout_rate (float, optional):
-            Dropout rate in encoder self-attention module.
-        transformer_dec_dropout_rate (float, optional):
-            Dropout rate in decoder except attention & positional encoding.
-        transformer_dec_positional_dropout_rate (float, optional):
-            Dropout rate after decoder positional encoding.
-        transformer_dec_attn_dropout_rate (float, optional):
-            Dropout rate in deocoder self-attention module.
-        init_type (str, optional):
-            How to initialize transformer parameters.
-        init_enc_alpha (float, optional):
-            Initial value of alpha in scaled pos encoding of the encoder.
-        init_dec_alpha (float, optional):
-            Initial value of alpha in scaled pos encoding of the decoder.
-        use_masking (bool, optional):
-            Whether to apply masking for padded part in loss calculation.
-        use_weighted_masking (bool, optional):
-            Whether to apply weighted masking in loss calculation.
+    .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:
+        https://arxiv.org/abs/2006.04558
+    .. _`FastPitch: Parallel Text-to-speech with Pitch Prediction`:
+        https://arxiv.org/abs/2006.06873
 
     """
 
@@ -123,12 +68,31 @@ class FastSpeech(AbsTTS):
         decoder_normalize_before: bool = False,
         encoder_concat_after: bool = False,
         decoder_concat_after: bool = False,
+        reduction_factor: int = 1,
+        # duration predictor
         duration_predictor_layers: int = 2,
         duration_predictor_chans: int = 384,
         duration_predictor_kernel_size: int = 3,
-        reduction_factor: int = 1,
+        # energy predictor
+        energy_predictor_layers: int = 2,
+        energy_predictor_chans: int = 384,
+        energy_predictor_kernel_size: int = 3,
+        energy_predictor_dropout: float = 0.5,
+        energy_embed_kernel_size: int = 9,
+        energy_embed_dropout: float = 0.5,
+        stop_gradient_from_energy_predictor: bool = False,
+        # pitch predictor
+        pitch_predictor_layers: int = 2,
+        pitch_predictor_chans: int = 384,
+        pitch_predictor_kernel_size: int = 3,
+        pitch_predictor_dropout: float = 0.5,
+        pitch_embed_kernel_size: int = 9,
+        pitch_embed_dropout: float = 0.5,
+        stop_gradient_from_pitch_predictor: bool = False,
+        # pretrained spk emb
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
+        # GST
         use_gst: bool = False,
         gst_tokens: int = 10,
         gst_heads: int = 4,
@@ -153,7 +117,7 @@ class FastSpeech(AbsTTS):
         use_masking: bool = False,
         use_weighted_masking: bool = False,
     ):
-        """Initialize FastSpeech module."""
+        """Initialize FastSpeech2 module."""
         assert check_argument_types()
         super().__init__()
 
@@ -162,6 +126,8 @@ class FastSpeech(AbsTTS):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
+        self.stop_gradient_from_pitch_predictor = stop_gradient_from_pitch_predictor
+        self.stop_gradient_from_energy_predictor = stop_gradient_from_energy_predictor
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.use_gst = use_gst
         self.spk_embed_dim = spk_embed_dim
@@ -228,6 +194,44 @@ class FastSpeech(AbsTTS):
             dropout_rate=duration_predictor_dropout_rate,
         )
 
+        # define pitch predictor
+        self.pitch_predictor = VariancePredictor(
+            idim=adim,
+            n_layers=pitch_predictor_layers,
+            n_chans=pitch_predictor_chans,
+            kernel_size=pitch_predictor_kernel_size,
+            dropout_rate=pitch_predictor_dropout,
+        )
+        # NOTE(kan-bayashi): We use continuous pitch + FastPitch style avg
+        self.pitch_embed = torch.nn.Sequential(
+            torch.nn.Conv1d(
+                in_channels=1,
+                out_channels=adim,
+                kernel_size=pitch_embed_kernel_size,
+                padding=(pitch_embed_kernel_size - 1) // 2,
+            ),
+            torch.nn.Dropout(pitch_embed_dropout),
+        )
+
+        # define energy predictor
+        self.energy_predictor = VariancePredictor(
+            idim=adim,
+            n_layers=energy_predictor_layers,
+            n_chans=energy_predictor_chans,
+            kernel_size=energy_predictor_kernel_size,
+            dropout_rate=energy_predictor_dropout,
+        )
+        # NOTE(kan-bayashi): We use continuous enegy + FastPitch style avg
+        self.energy_embed = torch.nn.Sequential(
+            torch.nn.Conv1d(
+                in_channels=1,
+                out_channels=adim,
+                kernel_size=energy_embed_kernel_size,
+                padding=(energy_embed_kernel_size - 1) // 2,
+            ),
+            torch.nn.Dropout(energy_embed_dropout),
+        )
+
         # define length regulator
         self.length_regulator = LengthRegulator()
 
@@ -277,9 +281,110 @@ class FastSpeech(AbsTTS):
         )
 
         # define criterions
-        self.criterion = FastSpeechLoss(
+        self.criterion = FastSpeech2Loss(
             use_masking=use_masking, use_weighted_masking=use_weighted_masking
         )
+
+    def forward(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        durations: torch.Tensor,
+        durations_lengths: torch.Tensor,
+        pitch: torch.Tensor,
+        pitch_lengths: torch.Tensor,
+        energy: torch.Tensor,
+        energy_lengths: torch.Tensor,
+        spembs: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        """Calculate forward propagation.
+
+        Args:
+            text (LongTensor): Batch of padded token ids (B, Tmax).
+            text_lengths (LongTensor): Batch of lengths of each input (B,).
+            speech (Tensor): Batch of padded target features (B, Lmax, odim).
+            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
+            durations (LongTensor): Batch of padded durations (B, Tmax + 1).
+            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).
+            pitch (Tensor): Batch of padded token-averaged pitch (B, Tmax + 1, 1).
+            pitch_lengths (LongTensor): Batch of pitch lengths (B, Tmax + 1).
+            energy (Tensor): Batch of padded token-averaged energy (B, Tmax + 1, 1).
+            energy_lengths (LongTensor): Batch of energy lengths (B, Tmax + 1).
+            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
+
+        Returns:
+            Tensor: Loss scalar value.
+            Dict: Statistics to be monitored.
+            Tensor: Weight value.
+
+        """
+        text = text[:, : text_lengths.max()]  # for data-parallel
+        speech = speech[:, : speech_lengths.max()]  # for data-parallel
+        durations = durations[:, : durations_lengths.max()]  # for data-parallel
+        pitch = pitch[:, : pitch_lengths.max()]  # for data-parallel
+        energy = energy[:, : energy_lengths.max()]  # for data-parallel
+
+        batch_size = text.size(0)
+
+        # Add eos at the last of sequence
+        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
+        for i, l in enumerate(text_lengths):
+            xs[i, l] = self.eos
+        ilens = text_lengths + 1
+
+        ys, ds, ps, es = speech, durations, pitch, energy
+        olens = speech_lengths
+
+        # forward propagation
+        before_outs, after_outs, d_outs, p_outs, e_outs = self._forward(
+            xs, ilens, ys, olens, ds, ps, es, spembs=spembs, is_inference=False
+        )
+
+        # modify mod part of groundtruth
+        if self.reduction_factor > 1:
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
+            max_olen = max(olens)
+            ys = ys[:, :max_olen]
+
+        # calculate loss
+        if self.postnet is None:
+            after_outs = None
+
+        # calculate loss
+        l1_loss, duration_loss, pitch_loss, energy_loss = self.criterion(
+            after_outs=after_outs,
+            before_outs=before_outs,
+            d_outs=d_outs,
+            p_outs=p_outs,
+            e_outs=e_outs,
+            ys=ys,
+            ds=ds,
+            ps=ps,
+            es=es,
+            ilens=ilens,
+            olens=olens,
+        )
+        loss = l1_loss + duration_loss + pitch_loss + energy_loss
+
+        stats = dict(
+            l1_loss=l1_loss.item(),
+            duration_loss=duration_loss.item(),
+            pitch_loss=pitch_loss.item(),
+            energy_loss=energy_loss.item(),
+            loss=loss.item(),
+        )
+
+        # report extra information
+        if self.use_scaled_pos_enc:
+            stats.update(
+                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+            )
+
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        return loss, stats, weight
 
     def _forward(
         self,
@@ -288,6 +393,8 @@ class FastSpeech(AbsTTS):
         ys: torch.Tensor = None,
         olens: torch.Tensor = None,
         ds: torch.Tensor = None,
+        ps: torch.Tensor = None,
+        es: torch.Tensor = None,
         spembs: torch.Tensor = None,
         is_inference: bool = False,
         alpha: float = 1.0,
@@ -305,13 +412,31 @@ class FastSpeech(AbsTTS):
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
 
-        # forward duration predictor and length regulator
+        # forward duration predictor and variance predictors
         d_masks = make_pad_mask(ilens).to(xs.device)
+
+        if self.stop_gradient_from_pitch_predictor:
+            p_outs = self.pitch_predictor(hs.detach(), d_masks.unsqueeze(-1))
+        else:
+            p_outs = self.pitch_predictor(hs, d_masks.unsqueeze(-1))
+        if self.stop_gradient_from_energy_predictor:
+            e_outs = self.energy_predictor(hs.detach(), d_masks.unsqueeze(-1))
+        else:
+            e_outs = self.energy_predictor(hs, d_masks.unsqueeze(-1))
+
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
+            # use prediction in inference
+            p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
+            e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
+            hs = hs + e_embs + p_embs
             hs = self.length_regulator(hs, d_outs, ilens, alpha)  # (B, Lmax, adim)
         else:
-            d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
+            d_outs = self.duration_predictor(hs, d_masks)
+            # use groundtruth in training
+            p_embs = self.pitch_embed(ps.transpose(1, 2)).transpose(1, 2)
+            e_embs = self.energy_embed(es.transpose(1, 2)).transpose(1, 2)
+            hs = hs + e_embs + p_embs
             hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
 
         # forward decoder
@@ -336,84 +461,7 @@ class FastSpeech(AbsTTS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        return before_outs, after_outs, d_outs
-
-    def forward(
-        self,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        durations: torch.Tensor,
-        durations_lengths: torch.Tensor,
-        spembs: torch.Tensor = None,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
-
-        Args:
-            text (LongTensor): Batch of padded character ids (B, Tmax).
-            text_lengths (LongTensor): Batch of lengths of each input (B,).
-            speech (Tensor): Batch of padded target features (B, Lmax, odim).
-            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            durations (LongTensor): Batch of padded durations (B, Tmax + 1).
-            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).
-            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
-
-        Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value.
-
-        """
-        text = text[:, : text_lengths.max()]  # for data-parallel
-        speech = speech[:, : speech_lengths.max()]  # for data-parallel
-        durations = durations[:, : durations_lengths.max()]  # for data-parallel
-
-        batch_size = text.size(0)
-
-        # Add eos at the last of sequence
-        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
-        for i, l in enumerate(text_lengths):
-            xs[i, l] = self.eos
-        ilens = text_lengths + 1
-
-        ys, ds = speech, durations
-        olens = speech_lengths
-
-        # forward propagation
-        before_outs, after_outs, d_outs = self._forward(
-            xs, ilens, ys, olens, ds, spembs=spembs, is_inference=False
-        )
-
-        # modifiy mod part of groundtruth
-        if self.reduction_factor > 1:
-            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
-            max_olen = max(olens)
-            ys = ys[:, :max_olen]
-
-        # calculate loss
-        if self.postnet is None:
-            after_outs = None
-        l1_loss, duration_loss = self.criterion(
-            after_outs, before_outs, d_outs, ys, ds, ilens, olens
-        )
-        loss = l1_loss + duration_loss
-
-        stats = dict(
-            l1_loss=l1_loss.item(),
-            duration_loss=duration_loss.item(),
-            loss=loss.item(),
-        )
-
-        # report extra information
-        if self.use_scaled_pos_enc:
-            stats.update(
-                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
-                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
-            )
-
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        return before_outs, after_outs, d_outs, p_outs, e_outs
 
     def inference(
         self,
@@ -421,6 +469,8 @@ class FastSpeech(AbsTTS):
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         durations: torch.Tensor = None,
+        pitch: torch.Tensor = None,
+        energy: torch.Tensor = None,
         alpha: float = 1.0,
         use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -431,6 +481,8 @@ class FastSpeech(AbsTTS):
             speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
             durations (LongTensor, optional): Groundtruth of duration (T + 1,).
+            pitch (Tensor, optional): Groundtruth of token-averaged pitch (T + 1, 1).
+            energy (Tensor, optional): Groundtruth of token-averaged energy (T + 1, 1).
             alpha (float, optional): Alpha to control the speed.
             use_teacher_forcing (bool, optional): Whether to use teacher forcing.
                 If true, groundtruth of duration, pitch and energy will be used.
@@ -442,7 +494,7 @@ class FastSpeech(AbsTTS):
 
         """
         x, y = text, speech
-        spemb, d = spembs, durations
+        spemb, d, p, e = spembs, durations, pitch, energy
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
@@ -457,13 +509,12 @@ class FastSpeech(AbsTTS):
 
         if use_teacher_forcing:
             # use groundtruth of duration, pitch, and energy
-            ds = d.unsqueeze(0)
+            ds, ps, es = d.unsqueeze(0), p.unsqueeze(0), e.unsqueeze(0)
             _, outs, *_ = self._forward(
-                xs, ilens, ys, ds=ds, spembs=spembs,
+                xs, ilens, ys, ds=ds, ps=ps, es=es, spembs=spembs,
             )  # (1, L, odim)
         else:
-            # inference
-            _, outs, _ = self._forward(
+            _, outs, *_ = self._forward(
                 xs, ilens, ys, spembs=spembs, is_inference=True, alpha=alpha,
             )  # (1, L, odim)
 
@@ -527,3 +578,115 @@ class FastSpeech(AbsTTS):
         if self.use_scaled_pos_enc:
             self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
             self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
+
+
+class FastSpeech2Loss(torch.nn.Module):
+    """Loss function module for FastSpeech2."""
+
+    def __init__(self, use_masking: bool = True, use_weighted_masking: bool = False):
+        """Initialize feed-forward Transformer loss module.
+
+        Args:
+            use_masking (bool):
+                Whether to apply masking for padded part in loss calculation.
+            use_weighted_masking (bool):
+                Whether to weighted masking in loss calculation.
+
+        """
+        assert check_argument_types()
+        super().__init__()
+
+        assert (use_masking != use_weighted_masking) or not use_masking
+        self.use_masking = use_masking
+        self.use_weighted_masking = use_weighted_masking
+
+        # define criterions
+        reduction = "none" if self.use_weighted_masking else "mean"
+        self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
+        self.mse_criterion = torch.nn.MSELoss(reduction=reduction)
+        self.duration_criterion = DurationPredictorLoss(reduction=reduction)
+
+    def forward(
+        self,
+        after_outs: torch.Tensor,
+        before_outs: torch.Tensor,
+        d_outs: torch.Tensor,
+        p_outs: torch.Tensor,
+        e_outs: torch.Tensor,
+        ys: torch.Tensor,
+        ds: torch.Tensor,
+        ps: torch.Tensor,
+        es: torch.Tensor,
+        ilens: torch.Tensor,
+        olens: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Calculate forward propagation.
+
+        Args:
+            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
+            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
+            d_outs (LongTensor): Batch of outputs of duration predictor (B, Tmax).
+            p_outs (Tensor): Batch of outputs of pitch predictor (B, Tmax, 1).
+            e_outs (Tensor): Batch of outputs of energy predictor (B, Tmax, 1).
+            ys (Tensor): Batch of target features (B, Lmax, odim).
+            ds (LongTensor): Batch of durations (B, Tmax).
+            ps (Tensor): Batch of target token-averaged pitch (B, Tmax, 1).
+            es (Tensor): Batch of target token-averaged energy (B, Tmax, 1).
+            ilens (LongTensor): Batch of the lengths of each input (B,).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: L1 loss value.
+            Tensor: Duration predictor loss value.
+            Tensor: Pitch predictor loss value.
+            Tensor: Energy predictor loss value.
+
+        """
+        # apply mask to remove padded part
+        if self.use_masking:
+            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            before_outs = before_outs.masked_select(out_masks)
+            if after_outs is not None:
+                after_outs = after_outs.masked_select(out_masks)
+            ys = ys.masked_select(out_masks)
+            duration_masks = make_non_pad_mask(ilens).to(ys.device)
+            d_outs = d_outs.masked_select(duration_masks)
+            ds = ds.masked_select(duration_masks)
+            pitch_masks = make_non_pad_mask(ilens).unsqueeze(-1).to(ys.device)
+            p_outs = p_outs.masked_select(pitch_masks)
+            e_outs = e_outs.masked_select(pitch_masks)
+            ps = ps.masked_select(pitch_masks)
+            es = es.masked_select(pitch_masks)
+
+        # calculate loss
+        l1_loss = self.l1_criterion(before_outs, ys)
+        if after_outs is not None:
+            l1_loss += self.l1_criterion(after_outs, ys)
+        duration_loss = self.duration_criterion(d_outs, ds)
+        pitch_loss = self.mse_criterion(p_outs, ps)
+        energy_loss = self.mse_criterion(e_outs, es)
+
+        # make weighted mask and apply it
+        if self.use_weighted_masking:
+            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            out_weights = out_masks.float() / out_masks.sum(dim=1, keepdim=True).float()
+            out_weights /= ys.size(0) * ys.size(2)
+            duration_masks = make_non_pad_mask(ilens).to(ys.device)
+            duration_weights = (
+                duration_masks.float() / duration_masks.sum(dim=1, keepdim=True).float()
+            )
+            duration_weights /= ds.size(0)
+
+            # apply weight
+            l1_loss = l1_loss.mul(out_weights).masked_select(out_masks).sum()
+            duration_loss = (
+                duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
+            )
+            pitch_masks = duration_masks.unsqueeze(-1)
+            pitch_weights = duration_weights.unsqueeze(-1)
+            pitch_loss = pitch_loss.mul(pitch_weights).masked_select(pitch_masks).sum()
+            energy_loss = (
+                energy_loss.mul(pitch_weights).masked_select(pitch_masks).sum()
+            )
+
+        return l1_loss, duration_loss, pitch_loss, energy_loss

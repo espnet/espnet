@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.tts.fastspeech import FastSpeech
+from espnet2.tts.fastspeech2 import FastSpeech2
 
 
 @pytest.mark.parametrize("postnet_layers", [0, 1])
@@ -11,14 +11,19 @@ from espnet2.tts.fastspeech import FastSpeech
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize("use_gst", [True, False])
-def test_fastspeech(
+@pytest.mark.parametrize(
+    "use_masking, use_weighted_masking", [[True, False], [False, True]]
+)
+def test_fastspeech2(
     postnet_layers,
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
     use_gst,
+    use_masking,
+    use_weighted_masking,
 ):
-    model = FastSpeech(
+    model = FastSpeech2(
         idim=10,
         odim=5,
         adim=4,
@@ -31,6 +36,21 @@ def test_fastspeech(
         postnet_chans=4,
         postnet_filts=5,
         reduction_factor=reduction_factor,
+        duration_predictor_layers=2,
+        duration_predictor_chans=4,
+        duration_predictor_kernel_size=3,
+        energy_predictor_layers=2,
+        energy_predictor_chans=4,
+        energy_predictor_kernel_size=3,
+        energy_predictor_dropout=0.5,
+        energy_embed_kernel_size=9,
+        energy_embed_dropout=0.5,
+        pitch_predictor_layers=2,
+        pitch_predictor_chans=4,
+        pitch_predictor_kernel_size=3,
+        pitch_predictor_dropout=0.5,
+        pitch_embed_kernel_size=9,
+        pitch_embed_dropout=0.5,
         spk_embed_dim=spk_embed_dim,
         spk_embed_integration_type=spk_embed_integration_type,
         use_gst=use_gst,
@@ -42,6 +62,8 @@ def test_fastspeech(
         gst_conv_stride=2,
         gst_gru_layers=1,
         gst_gru_units=4,
+        use_masking=use_masking,
+        use_weighted_masking=use_weighted_masking,
     )
 
     inputs = dict(
@@ -50,8 +72,12 @@ def test_fastspeech(
         speech=torch.randn(2, 4 * reduction_factor, 5),
         speech_lengths=torch.tensor([4, 2], dtype=torch.long) * reduction_factor,
         durations=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.long),
+        pitch=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.float).unsqueeze(-1),
+        energy=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.float).unsqueeze(-1),
         # NOTE(kan-bayashi): +1 for eos
         durations_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
+        pitch_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
+        energy_lengths=torch.tensor([2 + 1, 1 + 1], dtype=torch.long),
     )
     if spk_embed_dim is not None:
         inputs.update(spembs=torch.randn(2, spk_embed_dim))
@@ -69,5 +95,7 @@ def test_fastspeech(
         model.inference(**inputs)
 
         # teacher forcing
-        inputs.update(durations=torch.tensor([2, 2, 1], dtype=torch.long))
+        inputs.update(durations=torch.tensor([2, 2, 0], dtype=torch.long))
+        inputs.update(pitch=torch.tensor([2, 2, 0], dtype=torch.float).unsqueeze(-1))
+        inputs.update(energy=torch.tensor([2, 2, 0], dtype=torch.float).unsqueeze(-1))
         model.inference(**inputs, use_teacher_forcing=True)
