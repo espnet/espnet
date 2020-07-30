@@ -1,29 +1,19 @@
 # If a Python interpreter is specified, then creates a virtualenv from it
-# PYTHON := /usr/bin/python3.7
-PYTHON :=
-# If you already have anaconda and you'll create an env in it,
-# Give the path with "CONDA". e.g. make CONDA=/your/anaconda
-CONDA := venv
-CONDA_ENV_NAME := espnet
-# The python version installed in the conda setup
-# NOTE(kan-bayashi): Use 3.7.3 to avoid sentencepiece installation error
-PYTHON_VERSION := 3.7.3
 # If empty string is given, chainer is not installed. Note that ESPnet doesn't support any versions except for chainer=6.0.0
 CHAINER_VERSION := 6.0.0
 # Disable cupy installation
 NO_CUPY :=
 # PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.6.0
 TH_VERSION := 1.4.0
-# Use a prebuild Kaldi to omit the installation
-KALDI :=
 WGET := wget --tries=3
 
 # Use pip for pytorch installation even if you have anaconda
-ifneq ($(strip $(PYTHON)),)
-USE_PIP := 0
-else
+ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
 USE_PIP :=
+else
+USE_PIP := 1
 endif
+
 
 # Set if install binaries on CPU mode e.g. make CPU_ONLY=1
 # If you don't have any GPUs, this value will be set automatically
@@ -60,7 +50,7 @@ endif
 
 .PHONY: all clean
 
-all: showenv kaldi.done python check_install
+all: kaldi showenv python check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done chainer_ctc.done chainer.done
@@ -71,25 +61,23 @@ endif
 extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
 
 
+kaldi:
+	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
+
+activate_python.sh:
+	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_anaconda.sh"; exit 1; }
+
 ################ Logging ################
-ifneq ($(strip $(PYTHON)),)
-# venv case
-showenv:
-	@echo PYTHON=$(PYTHON)
-else
-# anaconda case
-showenv:
-	@echo CONDA=$(CONDA)
-	@echo CONDA_ENV_NAME=$(CONDA_ENV_NAME)
-	@echo PYTHON_VERSION=$(PYTHON_VERSION)
-	@echo USE_PIP=$(USE_PIP)
-endif
+showenv: activate_python.sh
 ifeq ($(strip $(CPU_ONLY)),)
+	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
 	@echo CUDA_VERSION=$(CUDA_VERSION)
 else
 	@echo Perform on CPU mode: CPU_ONLY=$(CPU_ONLY)
 endif
-	@echo KALDI=$(KALDI)
+	@echo PYTHON=$(shell . ./activate_python.sh && command -v python3)
+	@echo PYTHON_VERSION=$(shell . ./activate_python.sh && python3 --version)
+	@echo USE_PIP=$(USE_PIP)
 	@echo TH_VERSION=$(TH_VERSION)
 	@echo CONDA_PYTORCH=$(CONDA_PYTORCH)
 	@echo PIP_PYTORCH=$(PIP_PYTORCH)
@@ -99,41 +87,10 @@ endif
 
 #########################################
 
-
-ifneq ($(strip $(KALDI)),)
-kaldi.done:
-	test -d $(KALDI)
-	ln -s $(abspath $(KALDI)) kaldi  # put a symbolic link
-	touch kaldi.done
-else
-kaldi.done:
-	# make KALDI=... is mandatory now
-	@echo 'Error:'
-	@echo '  Please install Kaldi and'
-	@echo '    # make KALDI=<kaldi-root>'
-	@echo '  Where <kaldi-root> is the path of Kaldi.'
-	exit 1
-endif
-
-ifneq ($(strip $(PYTHON)),)
-activate_python.sh:
-	test -d venv || $(PYTHON) -m venv venv
-	echo ". $(CURDIR)/venv/bin/activate" > activate_python.sh
-else
-activate_python.sh:
-	./installers/install_anaconda.sh "$(CONDA_ENV_NAME)" $(PYTHON_VERSION) $(CONDA)
-	echo 'if [ -z "$${PS1:-}" ]; then' > activate_python.sh.bak
-	echo '    PS1=__dummy__' >> activate_python.sh.bak
-	echo 'fi' >> activate_python.sh.bak
-	echo ". $(abspath $(CONDA))/etc/profile.d/conda.sh && conda deactivate && conda activate $(CONDA_ENV_NAME)" >> activate_python.sh.bak
-	mv activate_python.sh.bak activate_python.sh
-endif
-
 ifneq ($(strip $(USE_PIP)),)
 pytorch.done: activate_python.sh
-	. ./activate_python.sh; pip3 install pip --upgrade
-	. ./activate_python.sh; pip3 install numpy --upgrade  # Workaround for "ImportError: numpy.core.multiarray failed to import"
-	. ./activate_python.sh; pip3 install $(PIP_PYTORCH)
+	. ./activate_python.sh && python3 -m pip install numpy --upgrade  # Workaround for "ImportError: numpy.core.multiarray failed to import"
+	. ./activate_python.sh && python3 -m pip install $(PIP_PYTORCH)
 	touch pytorch.done
 else
 pytorch.done: activate_python.sh
@@ -142,11 +99,11 @@ pytorch.done: activate_python.sh
 endif
 
 espnet.done: pytorch.done
-	. ./activate_python.sh && pip3 install -e ..  # Install editable mode by default
+	. ./activate_python.sh && python3 -m pip install -e ..  # Install editable mode by default
 	touch espnet.done
 
 chainer.done: espnet.done
-	. ./activate_python.sh && pip3 install ${PIP_CHAINER}
+	. ./activate_python.sh && python3 -m pip install ${PIP_CHAINER}
 	touch chainer.done
 
 warp-ctc.done: pytorch.done
@@ -186,13 +143,13 @@ PESQ/P862_annex_A_2005_CD/source/PESQ:
 	./installers/install_pesq.sh
 
 
-check_install: kaldi.done python
+check_install: python
 ifeq ($(strip $(CPU_ONLY)),)
 
 ifneq ($(strip $(NO_CUPY)),)
-	. ./activate_python.sh; python check_install.py --no-cupy
+	. ./activate_python.sh; python3 check_install.py --no-cupy
 else
-	. ./activate_python.sh; python check_install.py
+	. ./activate_python.sh; python3 check_install.py
 endif
 
 else
@@ -207,14 +164,12 @@ endif
 
 
 clean: clean_extra
-	rm -rf kaldi venv warp-ctc warp-transducer chainer_ctc
-	rm -f miniconda.sh
+	rm -rf warp-ctc warp-transducer chainer_ctc
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf venv warp-ctc warp-transducer chainer_ctc
-	rm -f miniconda.sh
+	rm -rf warp-ctc warp-transducer chainer_ctc
 	rm -f warp-ctc.done chainer_ctc.done espnet.done chainer.done pytorch.done warp-transducer.done
 	find . -iname "*.pyc" -delete
 
