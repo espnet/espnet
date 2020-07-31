@@ -194,7 +194,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         Args:
             hyps (list of dict): batch of hypothesis
-            (tuple): decoder and attention states
+            state (tuple): decoder and attention states
                 (
                  (L x (B, max_len, dec_dim),
                  None,
@@ -235,7 +235,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """Get decoder state from batch for given id.
 
         Args:
-            (tuple): decoder and attention states
+            state (tuple): decoder and attention states
                 (L x (B, max_len, dec_dim), None)
             idx (int): index to extract state from beam state
 
@@ -253,7 +253,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """Create batch of decoder states.
 
         Args:
-            (tuple): decoder and attention states
+            state (tuple): decoder and attention states
                 (L x (B, max_len, dec_dim), None)
             hyps (list): batch of hypothesis
 

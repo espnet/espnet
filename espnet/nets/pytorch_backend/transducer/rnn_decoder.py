@@ -77,7 +77,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             ey (torch.Tensor): batch of input features (B, Emb_dim)
 
         Returns:
-            (list): list of L zero-init hidden and cell state (B, Hdec)
+            (list): list of L zero-init hidden and cell state (B, dec_dim)
 
         """
         z_list = [ey.new_zeros(ey.size(0), self.dunits)]
@@ -94,11 +94,11 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         Args:
             ey (torch.Tensor): batch of input features (B, Emb_dim)
-            dstate (list): list of L input hidden and cell state (B, Hdec)
+            dstate (list): list of L input hidden and cell state (B, dec_dim)
 
         Returns:
-            output (torch.Tensor): batch of output features (B, Hdec)
-            dstate (list): list of L output hidden and cell state (B, Hdec)
+            output (torch.Tensor): batch of output features (B, dec_dim)
+            dstate (list): list of L output hidden and cell state (B, dec_dim)
 
         """
         if dstate is None:
@@ -130,8 +130,8 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """Joint computation of z.
 
         Args:
-            h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, Henc)
-            h_dec (torch.Tensor): batch of expanded hidden state (B, 1, U, Hdec)
+            h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, enc_dim)
+            h_dec (torch.Tensor): batch of expanded hidden state (B, 1, U, dec_dim)
 
         Returns:
             z (torch.Tensor): output (B, T, U, odim)
@@ -200,7 +200,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         Args:
             hyps (list of dict): batch of hypothesis
-            (tuple): batch of decoder and attention states
+            state (tuple): batch of decoder and attention states
                 (
                  (L x (B, dec_dim), (L x (B, dec_dim)),
                  None,
@@ -229,7 +229,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """Get decoder state from batch for given id.
 
         Args:
-            (tuple): batch of decoder and attention states
+            state (tuple): batch of decoder and attention states
                 ((L x (B, dec_dim), (L x (B, dec_dim)), None)
             idx (int): index to extract state from batch state
 
@@ -247,7 +247,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """Create batch of decoder states.
 
         Args:
-            (tuple): batch of decoder and attention states
+            state (tuple): batch of decoder and attention states
                 ((L x (B, dec_dim), (L x (B, dec_dim)), None)
             hyps (list): batch of hypothesis
 

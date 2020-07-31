@@ -227,7 +227,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         Args:
             hyps (list of dict): batch of hypothesis
-            (tuple): batch of decoder and attention states
+            state (tuple): batch of decoder and attention states
                 (
                  (L x (B, dec_dim), (L x (B, dec_dim)),
                  (B, max_len),
@@ -260,7 +260,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         """Get decoder and attention state from batch for given id.
 
         Args:
-            (tuple): decoder and attention states
+            state (tuple): decoder and attention states
                 ((L x (B, dec_dim), (L x (B, dec_dim)), (B, max_len))
             idx (int): index to extract state from batch state
 
@@ -280,7 +280,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         """Create batch of decoder and attention states.
 
         Args:
-            (tuple): batch of decoder and attention states
+            state (tuple): batch of decoder and attention states
                 ((L x (B, dec_dim), (L x (B, dec_dim)), (B, max_len))
             hyps (list): batch of hypothesis
 
