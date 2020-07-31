@@ -85,7 +85,9 @@ try:
         requirements["install"].append("torch_optimizer")
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        pass
+        # Due to https://github.com/pytorch/pytorch/issues/42213,
+        # use torchaudio.functional.istft instead of torch.functional.istft
+        requirements["install"].append("torchaudio==0.6.0")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("torchaudio==0.5.1")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
