@@ -408,6 +408,8 @@ def train(args):
         int(valid_json[utts[0]]["input"][i]["shape"][-1]) for i in range(args.num_encs)
     ]
     odim = int(valid_json[utts[0]]["output"][0]["shape"][-1])
+    if hasattr(args, "decoder_mode") and args.decoder_mode == "maskctc":
+        odim += 1  # for the <mask> token
     for i in range(args.num_encs):
         logging.info("stream{}: input dims : {}".format(i + 1, idim_list[i]))
     logging.info("#output dims: " + str(odim))
@@ -688,6 +690,34 @@ def train(args):
     else:
         att_reporter = None
 
+    # Save CTC prob at each epoch
+    if mtl_mode in ["ctc", "mtl"] and args.num_save_ctc > 0:
+        # NOTE: sort it by output lengths
+        data = sorted(
+            list(valid_json.items())[: args.num_save_ctc],
+            key=lambda x: int(x[1]["output"][0]["shape"][0]),
+            reverse=True,
+        )
+        if hasattr(model, "module"):
+            ctc_vis_fn = model.module.calculate_all_ctc_probs
+            plot_class = model.module.ctc_plot_class
+        else:
+            ctc_vis_fn = model.calculate_all_ctc_probs
+            plot_class = model.ctc_plot_class
+        ctc_reporter = plot_class(
+            ctc_vis_fn,
+            data,
+            args.outdir + "/ctc_prob",
+            converter=converter,
+            transform=load_cv,
+            device=device,
+            ikey="output",
+            iaxis=1,
+        )
+        trainer.extend(ctc_reporter, trigger=(1, "epoch"))
+    else:
+        ctc_reporter = None
+
     # Make a plot for training and validation values
     if args.num_encs > 1:
         report_keys_loss_ctc = [
@@ -826,7 +856,11 @@ def train(args):
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         trainer.extend(
-            TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+            TensorboardLogger(
+                SummaryWriter(args.tensorboard_dir),
+                att_reporter=att_reporter,
+                ctc_reporter=ctc_reporter,
+            ),
             trigger=(args.report_interval_iters, "iteration"),
         )
     # Run the training
@@ -979,6 +1013,10 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
+                elif hasattr(model, "decoder_mode") and model.decoder_mode == "maskctc":
+                    nbest_hyps = model.recognize_maskctc(
+                        feat, args, train_args.char_list
+                    )
                 else:
                     nbest_hyps = model.recognize(
                         feat, args, train_args.char_list, rnnlm

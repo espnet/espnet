@@ -474,6 +474,8 @@ class E2E(STInterface, torch.nn.Module):
                 cer_ctc = self.error_calculator_asr(
                     ys_hat_ctc.cpu(), ys_pad.cpu(), is_ctc=True
                 )
+                # for visualization
+                self.ctc.softmax(hs_pad)
         return loss_att, acc, loss_ctc, cer_ctc, cer, wer
 
     def forward_mt(self, xs_pad, ys_in_pad, ys_out_pad, ys_mask):
@@ -716,5 +718,30 @@ class E2E(STInterface, torch.nn.Module):
                 isinstance(m, MultiHeadedAttention) and m.attn is not None
             ):  # skip MHA for submodules
                 ret[name] = m.attn.cpu().numpy()
+        self.train()
+        return ret
+
+    def calculate_all_ctc_probs(self, xs_pad, ilens, ys_pad, ys_pad_src):
+        """E2E CTC probability calculation.
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_src:
+            batch of padded token id sequence tensor (B, Lmax)
+        :return: CTC probability (B, Tmax, vocab)
+        :rtype: float ndarray
+        """
+        ret = None
+        if self.asr_weight == 0 or self.mtlalpha == 0:
+            return ret
+
+        self.eval()
+        with torch.no_grad():
+            self.forward(xs_pad, ilens, ys_pad, ys_pad_src)
+        ret = None
+        for name, m in self.named_modules():
+            if isinstance(m, CTC) and m.probs is not None:
+                ret = m.probs.cpu().numpy()
         self.train()
         return ret

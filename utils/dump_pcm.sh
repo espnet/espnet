@@ -75,7 +75,7 @@ done
 utils/validate_data_dir.sh --no-text --no-feats ${data}
 
 if ${write_utt2num_frames}; then
-    opts="--write-num-frames=ark,t:${logdir}/utt2num_frames.JOB"
+    opts="--write-num-frames=ark,t:${logdir}/utt2num_frames.JOB "
 else
     opts=
 fi

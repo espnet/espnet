@@ -143,9 +143,7 @@ class BeamformerNet(AbsEnhancement):
         # wave -> stft -> magnitude specturm
         input_spectrum, flens = self.stft(input, ilens)
         # (Batch, Frames, Freq) or (Batch, Frames, Channels, Freq)
-        input_spectrum = ComplexTensor(
-            input_spectrum[..., 0], input_spectrum[..., 1]
-        ).double()
+        input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
         if self.normalize_input:
             input_spectrum = input_spectrum / abs(input_spectrum).max()
 
@@ -212,9 +210,7 @@ class BeamformerNet(AbsEnhancement):
         # (B, T, F) -> (B, T, F, 2)
         if isinstance(enhanced, list):
             # multi-speaker output
-            enhanced = [
-                torch.stack([enh.real, enh.imag], dim=-1).float() for enh in enhanced
-            ]
+            enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
         else:
             # single-speaker output
             enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1).float()

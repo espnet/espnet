@@ -59,7 +59,7 @@ jobs:
       - run:
           name: codecov
           command: |
-            source ./tools/venv/bin/activate
+            . ./tools/activate_python.sh
             bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
           path: egs/mini_an4/asr1/exp
