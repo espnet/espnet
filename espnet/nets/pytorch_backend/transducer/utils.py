@@ -93,7 +93,7 @@ def substract(x, subset):
     return final
 
 
-def get_idx_lm_state(lm_states, idx, lm_type, lm_layers):
+def select_lm_state(lm_states, idx, lm_type, lm_layers):
     """Get LM state from batch for given id.
 
     Args:
@@ -117,7 +117,7 @@ def get_idx_lm_state(lm_states, idx, lm_type, lm_layers):
     return idx_state
 
 
-def get_batch_lm_states(lm_states_list, lm_type, lm_layers):
+def create_lm_batch_state(lm_states_list, lm_type, lm_layers):
     """Create batch of LM states.
 
     Args:
