@@ -91,21 +91,22 @@ class CommonPreprocessor(AbsPreprocessor):
         assert check_return_type(data)
         return data
 
+
 class CommonPreprocessor_multi(AbsPreprocessor):
     def __init__(
-            self,
-            train: bool,
-            token_type: str = None,
-            token_list: Union[Path, str, Iterable[str]] = None,
-            bpemodel: Union[Path, str, Iterable[str]] = None,
-            text_cleaner: Collection[str] = None,
-            g2p_type: str = None,
-            unk_symbol: str = "<unk>",
-            space_symbol: str = "<space>",
-            non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
-            delimiter: str = None,
-            speech_name: str = "speech",
-            text_name: list = ['text'],
+        self,
+        train: bool,
+        token_type: str = None,
+        token_list: Union[Path, str, Iterable[str]] = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: str = None,
+        speech_name: str = "speech",
+        text_name: list = ["text"],
     ):
         super().__init__(train)
         self.train = train
@@ -134,7 +135,7 @@ class CommonPreprocessor_multi(AbsPreprocessor):
             self.token_id_converter = None
 
     def __call__(
-            self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
         assert check_argument_types()
 

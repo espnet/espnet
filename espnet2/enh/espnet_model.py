@@ -204,9 +204,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 )
 
                 # compute TF masking loss
-                tf_loss, perm = self._permutation_loss(
-                    mask_ref, mask_pre_, loss_func
-                )
+                tf_loss, perm = self._permutation_loss(mask_ref, mask_pre_, loss_func)
 
                 if "dereverb" in mask_pre:
                     if dereverb_speech_ref is None:
@@ -226,9 +224,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
                     tf_loss = (
                         tf_loss
-                        + loss_func(
-                            dereverb_mask_ref, mask_pre["dereverb"]
-                        ).mean()
+                        + loss_func(dereverb_mask_ref, mask_pre["dereverb"]).mean()
                     )
 
                 if "noise1" in mask_pre:

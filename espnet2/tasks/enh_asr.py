@@ -239,7 +239,7 @@ class ASRTask(AbsTask):
                 token_list=args.token_list,
                 bpemodel=args.bpemodel,
                 non_linguistic_symbols=args.non_linguistic_symbols,
-                text_name =['text_ref1','text_ref2'],
+                text_name=["text_ref1", "text_ref2"],
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
             )
@@ -282,7 +282,6 @@ class ASRTask(AbsTask):
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
-
 
         # 0. Build pre enhancement model
         enh_model = enh_choices.get_class(args.enh)(**args.enh_conf)

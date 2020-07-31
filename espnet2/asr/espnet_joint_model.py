@@ -144,7 +144,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 phase_mix = mix_spec / (abs(mix_spec) + eps)
                 # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
                 cos_theta = (
-                        phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
+                    phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
                 )
                 mask = (abs(r) / (abs(mix_spec) + eps)) * cos_theta
                 mask = (
@@ -158,7 +158,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 phase_mix = mix_spec / (abs(mix_spec) + eps)
                 # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
                 cos_theta = (
-                        phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
+                    phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
                 )
                 mask = (abs(r).pow(2) / (abs(mix_spec).pow(2) + eps)) * cos_theta
                 mask = mask.clamp(min=-1, max=1)
@@ -176,7 +176,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         text_ref2: torch.Tensor,
         text_ref1_lengths: torch.Tensor,
         text_ref2_lengths: torch.Tensor,
-        **kwargs
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Enhancement + Frontend + Encoder + Decoder + Calc loss
 
@@ -186,8 +186,10 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             text: (Batch, Length)
             text_lengths: (Batch,)
         """
-        assert (text_ref1_lengths.dim() == text_ref2_lengths.dim() == 1), \
-            (text_ref1_lengths.shape, text_ref2_lengths.shape)
+        assert text_ref1_lengths.dim() == text_ref2_lengths.dim() == 1, (
+            text_ref1_lengths.shape,
+            text_ref2_lengths.shape,
+        )
         # Check that batch_size is unified
         assert (
             speech_mix.shape[0]
@@ -196,33 +198,61 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             == text_ref1_lengths.shape[0]
             == text_ref2.shape[0]
             == text_ref2_lengths.shape[0]
-        ), (speech_mix.shape, speech_mix_lengths.shape, text_ref1.shape, text_ref1_lengths.shape)
+        ), (
+            speech_mix.shape,
+            speech_mix_lengths.shape,
+            text_ref1.shape,
+            text_ref1_lengths.shape,
+        )
         batch_size = speech_mix.shape[0]
 
         # for data-parallel
-        text_length_max = max(text_ref1_lengths.max(),text_ref2_lengths.max())
-        text_ref1 = torch.cat([text_ref1,torch.ones(
-            batch_size,text_length_max, dtype=text_ref1.dtype).to(text_ref1.device)
-                               * self.idx_blank], dim=1)
-        text_ref2 = torch.cat([text_ref2,torch.ones(
-            batch_size,text_length_max, dtype=text_ref1.dtype).to(text_ref1.device)
-                               * self.idx_blank], dim=1)
-        text_ref1 = text_ref1[:, : text_length_max]
-        text_ref2 = text_ref2[:, : text_length_max]
+        text_length_max = max(text_ref1_lengths.max(), text_ref2_lengths.max())
+        text_ref1 = torch.cat(
+            [
+                text_ref1,
+                torch.ones(batch_size, text_length_max, dtype=text_ref1.dtype).to(
+                    text_ref1.device
+                )
+                * self.idx_blank,
+            ],
+            dim=1,
+        )
+        text_ref2 = torch.cat(
+            [
+                text_ref2,
+                torch.ones(batch_size, text_length_max, dtype=text_ref1.dtype).to(
+                    text_ref1.device
+                )
+                * self.idx_blank,
+            ],
+            dim=1,
+        )
+        text_ref1 = text_ref1[:, :text_length_max]
+        text_ref2 = text_ref2[:, :text_length_max]
 
         # 0. Enhancement
         # make sure the speech_pre is the raw waveform with same size.
         loss_enh, perm, speech_pre = self.forward_enh(
-            speech_mix, speech_mix_lengths,speech_ref1=speech_ref1,speech_ref2=speech_ref2
+            speech_mix,
+            speech_mix_lengths,
+            speech_ref1=speech_ref1,
+            speech_ref2=speech_ref2,
         )
         # speech_pre: (bs,num_spk,T)
-        assert speech_pre[:,0].shape == speech_mix.shape
+        assert speech_pre[:, 0].shape == speech_mix.shape
 
         # Pack the separated speakers into the ASR part.
-        speech_pre_all = speech_pre.view(-1,speech_mix.shape[-1]) # (bs*num_spk, T)
-        speech_pre_lengths = torch.stack([speech_mix_lengths,speech_mix_lengths],dim=1).view(-1)
-        text_ref_all=torch.stack([text_ref1,text_ref2],dim=1).view(batch_size*2,-1)
-        text_ref_lengths = torch.stack([text_ref1_lengths,text_ref2_lengths],dim=1).view(-1)
+        speech_pre_all = speech_pre.view(-1, speech_mix.shape[-1])  # (bs*num_spk, T)
+        speech_pre_lengths = torch.stack(
+            [speech_mix_lengths, speech_mix_lengths], dim=1
+        ).view(-1)
+        text_ref_all = torch.stack([text_ref1, text_ref2], dim=1).view(
+            batch_size * 2, -1
+        )
+        text_ref_lengths = torch.stack(
+            [text_ref1_lengths, text_ref2_lengths], dim=1
+        ).view(-1)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech_pre_all, speech_pre_lengths)
@@ -245,7 +275,9 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         # 2c. RNN-T branch
         if self.rnnt_decoder is not None:
-            _ = self._calc_rnnt_loss(encoder_out, encoder_out_lens, text_ref_all, text_ref_lengths)
+            _ = self._calc_rnnt_loss(
+                encoder_out, encoder_out_lens, text_ref_all, text_ref_lengths
+            )
 
         if self.ctc_weight == 0.0:
             loss_asr = loss_att
@@ -276,7 +308,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         return loss, stats, weight
 
     def collect_feats(
-        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, ** kwargs
+        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
     ) -> Dict[str, torch.Tensor]:
         # for data-parallel
         speech_mix = speech_mix[:, : speech_mix_lengths.max()]
@@ -398,11 +430,11 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
     # Enhancement related, basicly from the espnet2/enh/espnet_model.py
     def forward_enh(
-            self,
-            speech_mix: torch.Tensor,
-            speech_mix_lengths: torch.Tensor = None,
-            resort_pre: bool = True,
-            **kwargs,
+        self,
+        speech_mix: torch.Tensor,
+        speech_mix_lengths: torch.Tensor = None,
+        resort_pre: bool = True,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -521,10 +553,10 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     )[0]
 
                     tf_loss = (
-                            tf_loss
-                            + self.tf_l1_loss(
-                        dereverb_mask_ref, mask_pre["dereverb"]
-                    ).mean()
+                        tf_loss
+                        + self.tf_l1_loss(
+                            dereverb_mask_ref, mask_pre["dereverb"]
+                        ).mean()
                     )
 
                 if "noise1" in mask_pre:
@@ -592,20 +624,19 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             si_snr = -si_snr_loss
             loss = si_snr_loss
 
-
         if resort_pre:
             # speech_pre : list[(bs,T)] of spk
             # perm : list[(num_spk)] of batch
-            speech_pre_list=[]
+            speech_pre_list = []
             for batch_idx, p in enumerate(perm):
-                batch_list=[]
+                batch_list = []
                 for spk_idx in p:
-                    batch_list.append(speech_pre[spk_idx][batch_idx]) # spk,T
-                speech_pre_list.append(torch.stack(batch_list,dim=0))
+                    batch_list.append(speech_pre[spk_idx][batch_idx])  # spk,T
+                speech_pre_list.append(torch.stack(batch_list, dim=0))
 
-            speech_pre = torch.stack(speech_pre_list,dim=0) #bs,num_spk,T
+            speech_pre = torch.stack(speech_pre_list, dim=0)  # bs,num_spk,T
         else:
-            speech_pre = torch.stack(speech_pre,dim=1) #bs,num_spk,T
+            speech_pre = torch.stack(speech_pre, dim=1)  # bs,num_spk,T
 
         return loss, perm, speech_pre
 
@@ -696,7 +727,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
         pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (
-                torch.sum(e_noise ** 2, dim=1) + eps
+            torch.sum(e_noise ** 2, dim=1) + eps
         )
         # print('pair_si_snr',pair_wise_si_snr[0,:])
         pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + eps)  # [B]
@@ -735,5 +766,5 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         perm_list = [p for p in permutations(range(num_spk))]
         perm_detail = []
         for p in perm:
-            perm_detail.append(perm_list[p]) # egs: list([1,0]) or list([0,2,1])
+            perm_detail.append(perm_list[p])  # egs: list([1,0]) or list([0,2,1])
         return loss.mean(), perm_detail
