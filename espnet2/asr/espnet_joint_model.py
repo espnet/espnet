@@ -73,10 +73,14 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         # get loss type for model training
         self.loss_type = getattr(self.enh_model, "loss_type", None)
         assert self.loss_type in (
-            "mask",  # loss(predicted_mask, target_label)
-            "magnitude",  # loss(enhanced_magnitude_spectrum, target_magnitude_spectrum)
-            "spectrum",  # loss(enhanced_complex_spectrum, target_complex_spectrum)
-            "si_snr",  # si_snr(enhanced_waveform, target_waveform)
+            # mse_loss(predicted_mask, target_label)
+            "mask_mse",
+            # mse_loss(enhanced_magnitude_spectrum, target_magnitude_spectrum)
+            "magnitude",
+            # mse_loss(enhanced_complex_spectrum, target_complex_spectrum)
+            "spectrum",
+            # si_snr(enhanced_waveform, target_waveform)
+            "si_snr",
         ), self.loss_type
 
         self.frontend = frontend
@@ -520,7 +524,12 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 tf_loss, perm = self._permutation_loss(
                     spectrum_ref, spectrum_pre, self.tf_mse_loss
                 )
-            elif self.loss_type == "mask":
+            elif self.loss_type.startswith("mask"):
+                if self.loss_type == "mask_mse":
+                    loss_func = self.tf_mse_loss
+                else:
+                    raise ValueError("Unsupported loss type: %s" % self.loss_type)
+
                 assert mask_pre is not None
                 mask_pre_ = [
                     mask_pre["spk{}".format(spk + 1)] for spk in range(self.num_spk)
@@ -532,9 +541,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 )
 
                 # compute TF masking loss
-                tf_loss, perm = self._permutation_loss(
-                    mask_ref, mask_pre_, self.tf_mse_loss
-                )
+                tf_loss, perm = self._permutation_loss(mask_ref, mask_pre_, loss_func)
 
                 if "dereverb" in mask_pre:
                     if dereverb_speech_ref is None:
@@ -554,9 +561,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
                     tf_loss = (
                         tf_loss
-                        + self.tf_l1_loss(
-                            dereverb_mask_ref, mask_pre["dereverb"]
-                        ).mean()
+                        + loss_func(dereverb_mask_ref, mask_pre["dereverb"]).mean()
                     )
 
                 if "noise1" in mask_pre:
@@ -583,7 +588,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                         for n in range(self.num_noise_type)
                     ]
                     tf_noise_loss, perm_n = self._permutation_loss(
-                        noise_mask_ref, mask_noise_pre, self.tf_mse_loss
+                        noise_mask_ref, mask_noise_pre, loss_func
                     )
                     tf_loss = tf_loss + tf_noise_loss
             else:

@@ -97,7 +97,7 @@ def test_beamformer_net_forward_backward(
     est_speech, flens, masks = model(
         torch.randn(2, 16, 2, requires_grad=True), ilens=torch.LongTensor([16, 12])
     )
-    if loss_type == "mask":
+    if loss_type.startswith("mask"):
         assert est_speech is None
         loss = sum([abs(m).mean() for m in masks.values()])
     else:

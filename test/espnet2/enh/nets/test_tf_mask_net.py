@@ -17,7 +17,7 @@ from espnet2.enh.nets.tf_mask_net import TFMaskingNet
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("utt_mvn", [True, False])
 @pytest.mark.parametrize("mask_type", ["IRM"])
-@pytest.mark.parametrize("loss_type", ["mask", "magnitude", "spectrum"])
+@pytest.mark.parametrize("loss_type", ["mask_mse", "magnitude", "spectrum"])
 def test_tf_mask_net_forward_backward(
     n_fft,
     win_length,
@@ -48,7 +48,7 @@ def test_tf_mask_net_forward_backward(
     )
     model.train()
 
-    if loss_type == "mask":
+    if loss_type.startswith("mask"):
         # mask backward
         est_speech, flens, masks = model(
             torch.randn(2, 16, requires_grad=True), ilens=torch.LongTensor([16, 12])
@@ -75,7 +75,7 @@ def test_tf_mask_net_forward_backward(
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("utt_mvn", [True, False])
 @pytest.mark.parametrize("mask_type", ["IRM"])
-@pytest.mark.parametrize("loss_type", ["mask", "magnitude", "spectrum"])
+@pytest.mark.parametrize("loss_type", ["mask_mse", "magnitude", "spectrum"])
 def test_tf_mask_net_consistency(
     n_fft,
     win_length,
