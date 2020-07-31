@@ -31,10 +31,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # get loss type for model training
         self.loss_type = getattr(self.enh_model, "loss_type", None)
         assert self.loss_type in (
-            "mask_mse",  # mse_loss(predicted_mask, target_label)
-            "magnitude",  # mse_loss(enhanced_magnitude_spectrum, target_magnitude_spectrum)
-            "spectrum",  # mse_loss(enhanced_complex_spectrum, target_complex_spectrum)
-            "si_snr",  # si_snr(enhanced_waveform, target_waveform)
+            # mse_loss(predicted_mask, target_label)
+            "mask_mse",
+            # mse_loss(enhanced_magnitude_spectrum, target_magnitude_spectrum)
+            "magnitude",
+            # mse_loss(enhanced_complex_spectrum, target_complex_spectrum)
+            "spectrum",
+            # si_snr(enhanced_waveform, target_waveform)
+            "si_snr",
         ), self.loss_type
         # for multi-channel signal
         self.ref_channel = getattr(self.enh_model, "ref_channel", -1)

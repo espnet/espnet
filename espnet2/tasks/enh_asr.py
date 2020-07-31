@@ -231,7 +231,8 @@ class ASRTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        # TODO(Jing): ask Kamo if it ok to support several args, like text_name = 'text_ref1' and 'text_ref2'
+        # TODO(Jing): ask Kamo if it ok to support several args,
+        # like text_name = 'text_ref1' and 'text_ref2'
         if args.use_preprocessor:
             retval = CommonPreprocessor_multi(
                 train=train,
