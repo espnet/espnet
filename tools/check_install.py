@@ -36,6 +36,7 @@ COMPATIBLE_TORCH_VERSIONS = (
     "1.4.0",
     "1.5.0",
     "1.5.1",
+    "1.6.0",
 )
 
 
@@ -48,14 +49,22 @@ def main(args):
         default=False,
         help="Disable cuda-related tests",
     )
+    parser.add_argument(
+        "--no-cupy",
+        action="store_true",
+        default=False,
+        help="Disable cupy test",
+    )
     args = parser.parse_args(args)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logging.info(f"python version = {sys.version}")
 
     library_list = []
+    if args.no_cuda:
+        args.no_cupy = True
 
-    if not args.no_cuda:
+    if not args.no_cupy:
         library_list.append(("cupy", ("6.0.0")))
 
     # check torch installation at first

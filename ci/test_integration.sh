@@ -77,6 +77,42 @@ echo "==== ASR Mix (backend=pytorch, model=transformer) ==="
 rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1
 
+# test st recipe
+cd ./egs/mini_an4/st1 || exit 1
+echo "==== ST (backend=pytorch) ==="
+./run.sh
+echo "==== ST (backend=pytorch asr0.3) ==="
+./run.sh --stage 4 --train_config conf/train_asr0.3.yaml
+echo "==== ST (backend=pytorch ctc asr0.3) ==="
+./run.sh --stage 4 --train_config conf/train_ctc_asr0.3.yaml
+echo "==== ST (backend=pytorch mt0.3) ==="
+./run.sh --stage 4 --train_config conf/train_mt0.3.yaml
+echo "==== ST (backend=pytorch asr0.2 mt0.2) ==="
+./run.sh --stage 4 --train_config conf/train_asr0.2_mt0.2.yaml
+echo "==== ST (backend=pytorch, model=transformer) ==="
+./run.sh --stage 4 --train_config conf/train_transformer.yaml
+echo "==== ST (backend=pytorch asr0.3, model=transformer) ==="
+./run.sh --stage 4 --train_config conf/train_transformer_asr0.3.yaml
+echo "==== ST (backend=pytorch ctc asr0.3, model=transformer) ==="
+./run.sh --stage 4 --train_config conf/train_transformer_ctc_asr0.3.yaml
+echo "==== ST (backend=pytorch mt0.3, model=transformer) ==="
+./run.sh --stage 4 --train_config conf/train_transformer_mt0.3.yaml
+echo "==== ST (backend=pytorch asr0.2 mt0.2, model=transformer) ==="
+./run.sh --stage 4 --train_config conf/train_transformer_asr0.2_mt0.2.yaml
+# Remove generated files in order to reduce the disk usage
+rm -rf exp tensorboard dump data
+cd "${cwd}" || exit 1
+
+# test mt recipe
+cd ./egs/mini_an4/mt1 || exit 1
+echo "==== MT (backend=pytorch) ==="
+./run.sh
+echo "==== MT (backend=pytorch, model=transformer) ==="
+./run.sh --stage 4 --train_config conf/train_transformer.yaml
+# Remove generated files in order to reduce the disk usage
+rm -rf exp tensorboard dump data
+cd "${cwd}" || exit 1
+
 # test tts recipe
 cd ./egs/mini_an4/tts1 || exit 1
 echo "==== TTS (backend=pytorch) ==="
@@ -100,7 +136,7 @@ done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --feats-type "${t}" --token-type "${t2}" \
+        ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
     done
 done
@@ -115,7 +151,7 @@ echo "==== [ESPnet2] TTS ==="
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --ngpu 0 --stage 2 --stop-stage 8 --feats-type "${t}" --train-args "--max_epoch 1"
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 8 --skip-upload false --feats-type "${t}" --train-args "--max_epoch 1"
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -128,15 +164,15 @@ cd "${cwd}" || exit 1
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
-if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
+if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        python -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+        python3 -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
-        python -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+        python3 -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
     for f in egs2/*/tts1/conf/train*.yaml; do
-        python -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
+        python3 -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi
 

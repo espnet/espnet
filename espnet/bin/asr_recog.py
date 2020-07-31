@@ -206,6 +206,22 @@ def get_parser():
     parser.add_argument(
         "--streaming-offset-margin", type=int, default=1, help="Offset margin"
     )
+    # non-autoregressive related
+    # Mask CTC related. See https://arxiv.org/abs/2005.08700 for the detail.
+    parser.add_argument(
+        "--maskctc-n-iterations",
+        type=int,
+        default=10,
+        help="Number of decoding iterations."
+        "For Mask CTC, set 0 to predict 1 mask/iter.",
+    )
+    parser.add_argument(
+        "--maskctc-probability-threshold",
+        type=float,
+        default=0.999,
+        help="Threshold probability for CTC output",
+    )
+
     return parser
 
 

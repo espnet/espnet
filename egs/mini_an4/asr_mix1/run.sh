@@ -79,7 +79,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         exit 1
     fi
 
-    python local/data_prep.py ${an4_root} ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+    python3 local/data_prep.py ${an4_root} ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
 
     for x in test train; do
         for f in text wav.scp utt2spk; do
@@ -260,7 +260,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         else
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
         fi
-        if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
             recog_opts=${recog_opts}" --batchsize 0"
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
