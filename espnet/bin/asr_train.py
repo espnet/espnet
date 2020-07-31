@@ -296,7 +296,7 @@ def get_parser(parser=None, required=True):
         "--criterion",
         default="acc",
         type=str,
-        choices=["loss", "acc"],
+        choices=["loss", "loss_eps_decay_only", "acc"],
         help="Criterion to perform epsilon decay",
     )
     parser.add_argument(
