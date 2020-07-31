@@ -621,7 +621,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             si_snr_loss, perm = self._permutation_loss(
                 speech_ref, speech_pre, self.si_snr_loss_zeromean
             )
-            si_snr = -si_snr_loss
             loss = si_snr_loss
 
         if resort_pre:
