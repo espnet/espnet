@@ -47,14 +47,20 @@ fs=16k            # Sampling rate.
 min_wav_duration=0.1   # Minimum duration in second
 max_wav_duration=20    # Maximum duration in second
 
-# Enhancement model related
-enh_tag=    # Suffix to the result dir for enhancement model training.
-enh_config= # Config for ehancement model training.
-enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
+# Joint model related
+joint_tag=    # Suffix to the result dir for enhancement model training.
+joint_config= # Config for ehancement model training.
+joint_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
+joint_exp=    # Specify the direcotry path for ASR experiment. If this option is specified, joint_tag is ignored.
+
+# Enhancement model related
 spk_num=2
 noise_type_num=1
+
+# ASR model related
 feats_normalize=global_mvn  # Normalizaton layer type
+num_splits_asr=1   # Number of splitting for lm corpus
 
 # Training data related
 use_dereverb_ref=false
@@ -97,14 +103,6 @@ num_splits_lm=1   # Number of splitting for lm corpus
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
 
-# ASR model related
-asr_tag=    # Suffix to the result dir for asr model training.
-asr_exp=    # Specify the direcotry path for ASR experiment. If this option is specified, asr_tag is ignored.
-asr_config= # Config for asr model training.
-asr_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
-            # Note that it will overwrite args in asr config.
-feats_normalize=global_mvn  # Normalizaton layer type
-num_splits_asr=1   # Number of splitting for lm corpus
 
 # Decoding related
 decode_tag=    # Suffix to the result dir for decoding.
@@ -164,9 +162,9 @@ Options:
 
 
     # Enhancemnt model related
-    --enh_tag    # Suffix to the result dir for enhancement model training (default="${enh_tag}").
-    --enh_config # Config for enhancement model training (default="${enh_config}").
-    --enh_args   # Arguments for enhancement model training, e.g., "--max_epoch 10" (default="${enh_args}").
+    --joint_tag    # Suffix to the result dir for enhancement model training (default="${joint_tag}").
+    --joint_config # Config for enhancement model training (default="${joint_config}").
+    --joint_args   # Arguments for enhancement model training, e.g., "--max_epoch 10" (default="${joint_args}").
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
     --noise_type_num  # Number of noise types in the input audio (default="${noise_type_num}")
@@ -255,15 +253,15 @@ fi
 
 
 # Set tag for naming of model directory
-if [ -z "${asr_tag}" ]; then
-    if [ -n "${asr_config}" ]; then
-        asr_tag="$(basename "${asr_config}" .yaml)_${feats_type}_${token_type}"
+if [ -z "${joint_tag}" ]; then
+    if [ -n "${joint_config}" ]; then
+        joint_tag="$(basename "${joint_config}" .yaml)_${feats_type}_${token_type}"
     else
-        asr_tag="train_${feats_type}_${token_type}"
+        joint_tag="train_${feats_type}_${token_type}"
     fi
     # Add overwritten arg's info
-    if [ -n "${asr_args}" ]; then
-        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    if [ -n "${joint_args}" ]; then
+        joint_tag+="$(echo "${joint_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
 if [ -z "${lm_tag}" ]; then
@@ -292,18 +290,6 @@ if [ -z "${decode_tag}" ]; then
     fi
     decode_tag+="_asr_model_$(echo "${decode_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
-if [ -z "${enh_tag}" ]; then
-    if [ -n "${enh_config}" ]; then
-        enh_tag="$(basename "${enh_config}" .yaml)_${feats_type}"
-    else
-        enh_tag="train_${feats_type}"
-    fi
-    # Add overwritten arg's info
-    if [ -n "${enh_args}" ]; then
-        enh_tag+="$(echo "${enh_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
-    fi
-fi
-
 
 
 # The directory used for collect-stats mode
@@ -314,8 +300,8 @@ fi
 lm_stats_dir="${expdir}/lm_stats"
 
 # The directory used for training commands
-if [ -z "${asr_exp}" ]; then
-    joint_exp="${expdir}/joint_${enh_tag}_${asr_tag}"
+if [ -z "${joint_exp}" ]; then
+    joint_exp="${expdir}/joint_${joint_tag}"
 fi
 if [ -n "${speed_perturb_factors}" ]; then
     joint_exp="${joint_exp}_sp"
@@ -672,7 +658,7 @@ if "${use_lm}"; then
             --log "${lm_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
-            --init_file_prefix "${asr_exp}"/.dist_init_ \
+            --init_file_prefix "${joint_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
             python3 -m espnet2.bin.lm_train \
                 --ngpu "${ngpu}" \
@@ -723,16 +709,10 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     log "Stage 9: Joint collect stats: train_set=${_joint_train_dir}, valid_set=${_joint_valid_dir}"
 
     _opts=
-    if [ -n "${enh_config}" ]; then
+    if [ -n "${joint_config}" ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.enh_train --print_config --optim adam
-        # _opts+="--enh_config ${enh_config} "
-         _opts+=""
-    fi
-    if [ -n "${asr_config}" ]; then
-        # To generate the config file: e.g.
-        #   % python3 -m espnet2.bin.enh_train --print_config --optim adam
-        _opts+="--config ${asr_config} "
+        _opts+="--config ${joint_config} "
     fi
 
     _scp=wav.scp
@@ -809,7 +789,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${asr_args}
+            ${_opts} ${joint_args}
 
     # 3. Aggregate shape files
     _opts=
@@ -828,10 +808,10 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     log "Stage 10: Joint model Training: train_set=${_joint_train_dir}, valid_set=${_joint_valid_dir}"
 
     _opts=
-    if [ -n "${asr_config}" ]; then
+    if [ -n "${joint_config}" ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.enh_train --print_config --optim adam
-        _opts+="--config ${asr_config} "
+        _opts+="--config ${joint_config} "
     fi
 
     _scp=wav.scp
@@ -904,7 +884,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             ${_fold_length_param} \
             --resume true \
             --output_dir "${joint_exp}" \
-            ${_opts} ${asr_args}
+            ${_opts} ${joint_args}
 
 fi
 

@@ -259,7 +259,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             loss = loss_asr
         else:
             loss = (1 - self.enh_weight) * loss_asr + self.enh_weight * loss_enh
-        print('att,ctc,enh',loss_att,loss_ctc,loss_enh)
 
         stats = dict(
             loss=loss.detach(),
@@ -566,6 +565,10 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     speech_mix, speech_lengths
                 )
                 self.enh_model.training = self.training
+            else:
+                speech_pre, *__ = self.enh_model.forward_rawwav(
+                    speech_mix, speech_lengths
+                )
 
             loss = tf_loss
 
