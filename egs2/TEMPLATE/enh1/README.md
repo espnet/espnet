@@ -51,7 +51,7 @@ espnet2/
 │   ├── __init__.py
 │   ├── abs_enh.py
 │   ├── espnet_model.py
-│   ├── layers
+│   ├── funcs
 │   │   ├── __init__.py
 │   │   ├── conv_beamformer.py
 │   │   ├── dnn_beamformer.py
