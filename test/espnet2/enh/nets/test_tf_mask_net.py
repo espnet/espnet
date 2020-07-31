@@ -14,7 +14,7 @@ from espnet2.enh.nets.tf_mask_net import TFMaskingNet
 @pytest.mark.parametrize("unit", [8])
 @pytest.mark.parametrize("dropout", [0.0, 0.2])
 @pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("none_linear", ["relu", "sigmoid", "tanh"])
+@pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("utt_mvn", [True, False])
 @pytest.mark.parametrize("mask_type", ["IRM"])
 @pytest.mark.parametrize("loss_type", ["mask", "magnitude", "spectrum"])
@@ -27,7 +27,7 @@ def test_tf_mask_net_forward_backward(
     unit,
     dropout,
     num_spk,
-    none_linear,
+    nonlinear,
     utt_mvn,
     mask_type,
     loss_type,
@@ -41,7 +41,7 @@ def test_tf_mask_net_forward_backward(
         unit=unit,
         dropout=dropout,
         num_spk=num_spk,
-        none_linear=none_linear,
+        nonlinear=nonlinear,
         utt_mvn=utt_mvn,
         mask_type=mask_type,
         loss_type=loss_type,
@@ -72,7 +72,7 @@ def test_tf_mask_net_forward_backward(
 @pytest.mark.parametrize("unit", [8])
 @pytest.mark.parametrize("dropout", [0.0, 0.2])
 @pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("none_linear", ["relu", "sigmoid", "tanh"])
+@pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("utt_mvn", [True, False])
 @pytest.mark.parametrize("mask_type", ["IRM"])
 @pytest.mark.parametrize("loss_type", ["mask", "magnitude", "spectrum"])
@@ -85,7 +85,7 @@ def test_tf_mask_net_consistency(
     unit,
     dropout,
     num_spk,
-    none_linear,
+    nonlinear,
     utt_mvn,
     mask_type,
     loss_type,
@@ -99,7 +99,7 @@ def test_tf_mask_net_consistency(
         unit=unit,
         dropout=dropout,
         num_spk=num_spk,
-        none_linear=none_linear,
+        nonlinear=nonlinear,
         utt_mvn=utt_mvn,
         mask_type=mask_type,
         loss_type=loss_type,
@@ -164,7 +164,7 @@ def test_tf_mask_net_invalid_norm_type():
             unit=8,
             dropout=0.0,
             num_spk=2,
-            none_linear="fff",
+            nonlinear="fff",
         )
 
 
