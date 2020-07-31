@@ -22,10 +22,10 @@ class TFMaskingNet(AbsEnhancement):
         unit: int = 512,
         dropout: float = 0.0,
         num_spk: int = 2,
-        none_linear: str = "sigmoid",
+        nonlinear: str = "sigmoid",
         utt_mvn: bool = False,
         mask_type: str = "IRM",
-        loss_type: str = "mask",
+        loss_type: str = "mask_mse",
     ):
         super(TFMaskingNet, self).__init__()
 
@@ -33,7 +33,7 @@ class TFMaskingNet(AbsEnhancement):
         self.num_bin = n_fft // 2 + 1
         self.mask_type = mask_type
         self.loss_type = loss_type
-        if loss_type not in ("mask", "magnitude", "spectrum"):
+        if loss_type not in ("mask_mse", "magnitude", "spectrum"):
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
@@ -57,14 +57,14 @@ class TFMaskingNet(AbsEnhancement):
             [torch.nn.Linear(unit, self.num_bin) for _ in range(self.num_spk)]
         )
 
-        if none_linear not in ("sigmoid", "relu", "tanh"):
-            raise ValueError("Not supporting none_linear={}".format(none_linear))
+        if nonlinear not in ("sigmoid", "relu", "tanh"):
+            raise ValueError("Not supporting nonlinear={}".format(nonlinear))
 
-        self.none_linear = {
+        self.nonlinear = {
             "sigmoid": torch.nn.Sigmoid(),
             "relu": torch.nn.ReLU(),
             "tanh": torch.nn.Tanh(),
-        }[none_linear]
+        }[nonlinear]
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """Forward.
@@ -101,10 +101,10 @@ class TFMaskingNet(AbsEnhancement):
         masks = []
         for linear in self.linear:
             y = linear(x)
-            y = self.none_linear(y)
+            y = self.nonlinear(y)
             masks.append(y)
 
-        if self.training and self.loss_type == "mask":
+        if self.training and self.loss_type.startswith("mask"):
             predicted_spectrums = None
         else:
             # apply mask

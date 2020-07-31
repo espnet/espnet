@@ -4,8 +4,8 @@ from pytorch_wpe import wpe_one_iteration
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 
 class DNN_WPE(torch.nn.Module):
@@ -20,6 +20,7 @@ class DNN_WPE(torch.nn.Module):
         taps: int = 5,
         delay: int = 3,
         use_dnn_mask: bool = True,
+        nonlinear: str = "sigmoid",
         iterations: int = 1,
         normalization: bool = False,
     ):
@@ -35,7 +36,14 @@ class DNN_WPE(torch.nn.Module):
 
         if self.use_dnn_mask:
             self.mask_est = MaskEstimator(
-                wtype, widim, wlayers, wunits, wprojs, dropout_rate, nmask=1
+                wtype,
+                widim,
+                wlayers,
+                wunits,
+                wprojs,
+                dropout_rate,
+                nmask=1,
+                nonlinear=nonlinear,
             )
 
     def forward(

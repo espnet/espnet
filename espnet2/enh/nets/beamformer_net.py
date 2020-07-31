@@ -20,7 +20,7 @@ class BeamformerNet(AbsEnhancement):
         num_spk: int = 1,
         normalize_input: bool = False,
         mask_type: str = "IPM^2",
-        loss_type: str = "mask",
+        loss_type: str = "mask_mse",
         # STFT options
         n_fft: int = 512,
         win_length: int = None,
@@ -40,6 +40,7 @@ class BeamformerNet(AbsEnhancement):
         taps: int = 5,
         delay: int = 3,
         use_dnn_mask_for_wpe: bool = True,
+        wnonlinear: str = "crelu",
         # Beamformer options
         use_beamformer: bool = True,
         bnet_type: str = "blstmp",
@@ -49,6 +50,7 @@ class BeamformerNet(AbsEnhancement):
         badim: int = 320,
         ref_channel: int = -1,
         use_noise_mask: bool = True,
+        bnonlinear: str = "sigmoid",
         beamformer_type="mvdr",
         bdropout_rate=0.0,
     ):
@@ -56,7 +58,7 @@ class BeamformerNet(AbsEnhancement):
 
         self.mask_type = mask_type
         self.loss_type = loss_type
-        if loss_type not in ("mask", "spectrum"):
+        if loss_type not in ("mask_mse", "spectrum"):
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.num_spk = num_spk
@@ -96,6 +98,7 @@ class BeamformerNet(AbsEnhancement):
                 dropout_rate=wdropout_rate,
                 iterations=iterations,
                 use_dnn_mask=use_dnn_mask_for_wpe,
+                nonlinear=wnonlinear,
             )
         else:
             self.wpe = None
@@ -110,6 +113,7 @@ class BeamformerNet(AbsEnhancement):
                 blayers=blayers,
                 num_spk=num_spk,
                 use_noise_mask=use_noise_mask,
+                nonlinear=bnonlinear,
                 dropout_rate=bdropout_rate,
                 badim=badim,
                 ref_channel=ref_channel,
@@ -152,7 +156,7 @@ class BeamformerNet(AbsEnhancement):
         enhanced = input_spectrum
         masks = OrderedDict()
 
-        if self.training and self.loss_type == "mask":
+        if self.training and self.loss_type.startswith("mask"):
             # Only estimating masks for training
             if self.use_wpe:
                 if input_spectrum.dim() == 3:

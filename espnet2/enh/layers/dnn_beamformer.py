@@ -12,10 +12,10 @@ from espnet.nets.pytorch_backend.frontends.beamformer import get_mvdr_vector
 from espnet.nets.pytorch_backend.frontends.beamformer import (
     get_power_spectral_density_matrix,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
 from espnet2.enh.layers.conv_beamformer import get_covariances
 from espnet2.enh.layers.conv_beamformer import get_WPD_filter_v2
 from espnet2.enh.layers.conv_beamformer import perform_WPD_filtering
+from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
@@ -39,6 +39,7 @@ class DNN_Beamformer(torch.nn.Module):
         bprojs: int = 320,
         num_spk: int = 1,
         use_noise_mask: bool = True,
+        nonlinear: str = "sigmoid",
         dropout_rate: float = 0.0,
         badim: int = 320,
         ref_channel: int = -1,
@@ -51,7 +52,14 @@ class DNN_Beamformer(torch.nn.Module):
         super().__init__()
         bnmask = num_spk + 1 if use_noise_mask else num_spk
         self.mask = MaskEstimator(
-            btype, bidim, blayers, bunits, bprojs, dropout_rate, nmask=bnmask
+            btype,
+            bidim,
+            blayers,
+            bunits,
+            bprojs,
+            dropout_rate,
+            nmask=bnmask,
+            nonlinear=nonlinear,
         )
         self.ref = AttentionReference(bidim, badim) if ref_channel < 0 else None
         self.ref_channel = ref_channel

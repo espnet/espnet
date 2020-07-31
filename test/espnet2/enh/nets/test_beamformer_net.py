@@ -22,6 +22,7 @@ from espnet2.enh.nets.beamformer_net import BeamformerNet
 @pytest.mark.parametrize("taps", [5])
 @pytest.mark.parametrize("delay", [3])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [False])
+@pytest.mark.parametrize("wnonlinear", ["sigmoid", "relu", "tanh", "crelu"])
 @pytest.mark.parametrize("use_beamformer", [True])
 @pytest.mark.parametrize("bnet_type", ["blstmp"])
 @pytest.mark.parametrize("blayers", [3])
@@ -30,6 +31,7 @@ from espnet2.enh.nets.beamformer_net import BeamformerNet
 @pytest.mark.parametrize("badim", [10])
 @pytest.mark.parametrize("ref_channel", [-1, 0])
 @pytest.mark.parametrize("use_noise_mask", [True, False])
+@pytest.mark.parametrize("bnonlinear", ["sigmoid", "relu", "tanh", "crelu"])
 @pytest.mark.parametrize("beamformer_type", ["mvdr", "mpdr", "wpd"])
 @pytest.mark.parametrize("bdropout_rate", [0.0, 0.2])
 def test_beamformer_net_forward_backward(
@@ -49,6 +51,7 @@ def test_beamformer_net_forward_backward(
     taps,
     delay,
     use_dnn_mask_for_wpe,
+    wnonlinear,
     use_beamformer,
     bnet_type,
     blayers,
@@ -57,6 +60,7 @@ def test_beamformer_net_forward_backward(
     badim,
     ref_channel,
     use_noise_mask,
+    bnonlinear,
     beamformer_type,
     bdropout_rate,
 ):
