@@ -786,7 +786,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         _train_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
             "--train_data_path_and_name_and_type ${_joint_train_dir}/noise${n}.scp,noise_ref${n},sound "; done)
         _valid_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
-            "--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "; done)
+            "--valid_data_path_and_name_and_type ${_joint_valid_dir}/noise${n}.scp,noise_ref${n},sound "; done)
     fi
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
@@ -809,7 +809,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${enh_args}
+            ${_opts} ${asr_args}
 
     # 3. Aggregate shape files
     _opts=
@@ -824,14 +824,14 @@ fi
 
 if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     _joint_train_dir="${data_feats}/${train_set}"
-    _enh_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 10: Enhancemnt Frontend Training: train_set=${_joint_train_dir}, valid_set=${_enh_valid_dir}"
+    _joint_valid_dir="${data_feats}/${valid_set}"
+    log "Stage 10: Joint model Training: train_set=${_joint_train_dir}, valid_set=${_joint_valid_dir}"
 
     _opts=
-    if [ -n "${enh_config}" ]; then
+    if [ -n "${asr_config}" ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.enh_train --print_config --optim adam
-        _opts+="--config ${enh_config} "
+        _opts+="--config ${asr_config} "
     fi
 
     _scp=wav.scp
@@ -843,14 +843,19 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
     # prepare train and valid data parameters
     _train_data_param="--train_data_path_and_name_and_type ${_joint_train_dir}/wav.scp,speech_mix,sound "
     _train_shape_param="--train_shape_file ${joint_stats_dir}/train/speech_mix_shape "
-    _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,sound "
+    _valid_data_param="--valid_data_path_and_name_and_type ${_joint_valid_dir}/wav.scp,speech_mix,sound "
     _valid_shape_param="--valid_shape_file ${joint_stats_dir}/valid/speech_mix_shape "
     _fold_length_param="--fold_length ${_fold_length} "
     for spk in $(seq "${spk_num}"); do
         _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/text_spk${spk},text_ref${spk},text "
         _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/speech_ref${spk}_shape "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/text_ref${spk}_shape "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/text_spk${spk},text_ref${spk},text "
         _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/speech_ref${spk}_shape "
+        _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/text_ref${spk}_shape "
+        _fold_length_param+="--fold_length ${_fold_length} "
         _fold_length_param+="--fold_length ${_fold_length} "
     done
 
@@ -858,7 +863,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         # reference for dereverberation
         _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/dereverb.scp,dereverb_ref,sound "
         _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/dereverb_ref_shape "
-        _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/dereverb.scp,dereverb_ref,sound "
         _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/dereverb_ref_shape "
         _fold_length_param+="--fold_length ${_fold_length} "
     fi
@@ -868,21 +873,21 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         for n in $(seq "${noise_type_num}"); do
             _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/noise${n}.scp,noise_ref${n},sound "
             _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/noise_ref${n}_shape "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/noise${n}.scp,noise_ref${n},sound "
             _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/noise_ref${n}_shape "
             _fold_length_param+="--fold_length ${_fold_length} "
         done
     fi
 
 
-    log "enh training started... log: '${enh_exp}/train.log'"
+    log "enh training started... log: '${joint_exp}/train.log'"
     # shellcheck disable=SC2086
     python3 -m espnet2.bin.launch \
-        --cmd "${cuda_cmd} --name ${enh_exp}/train.log --mem ${mem}" \
-        --log "${enh_exp}"/train.log \
+        --cmd "${cuda_cmd} --name ${joint_exp}/train.log --mem ${mem}" \
+        --log "${joint_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
-        --init_file_prefix "${enh_exp}"/.dist_init_ \
+        --init_file_prefix "${joint_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
         python3 -m espnet2.bin.enh_asr_train \
             --use_preprocessor true \
@@ -898,14 +903,14 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
             ${_valid_shape_param} \
             ${_fold_length_param} \
             --resume true \
-            --output_dir "${enh_exp}" \
-            ${_opts} ${enh_args}
+            --output_dir "${joint_exp}" \
+            ${_opts} ${asr_args}
 
 fi
 
 
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-    log "Stage 11: Enhance Speech: training_dir=${enh_exp}"
+    log "Stage 11: Enhance Speech: training_dir=${joint_exp}"
 
     if ${gpu_inference}; then
         _cmd=${cuda_cmd}
@@ -919,7 +924,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
 
     for dset in "${valid_set}" ${test_sets}; do
         _data="${data_feats}/${dset}"
-        _dir="${enh_exp}/enhanced_${dset}"
+        _dir="${joint_exp}/enhanced_${dset}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -945,8 +950,8 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
                 --fs "${fs}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
-                --enh_train_config "${enh_exp}"/config.yaml \
-                --enh_model_file "${enh_exp}"/"${inference_enh_model}" \
+                --enh_train_config "${joint_exp}"/config.yaml \
+                --enh_model_file "${joint_exp}"/"${inference_enh_model}" \
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${inference_args}
 
@@ -974,8 +979,8 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
     for dset in "${valid_set}" ${test_sets}; do
         _data="${data_feats}/${dset}"
-        _inf_dir="${enh_exp}/enhanced_${dset}"
-        _dir="${enh_exp}/enhanced_${dset}/scoring"
+        _inf_dir="${joint_exp}/enhanced_${dset}"
+        _dir="${joint_exp}/enhanced_${dset}/scoring"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -1031,7 +1036,7 @@ fi
 
 
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-    log "[Option] Stage 9: Pack model: ${enh_exp}/packed.zip"
+    log "[Option] Stage 9: Pack model: ${joint_exp}/packed.zip"
 
     _opts=
     if [ "${feats_normalize}" = global_mvn ]; then
@@ -1040,11 +1045,11 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
 
     # shellcheck disable=SC2086
     python -m espnet2.bin.pack enh \
-        --train_config.yaml "${enh_exp}"/config.yaml \
-        --model_file.pth "${enh_exp}"/"${inference_enh_model}" \
+        --train_config.yaml "${joint_exp}"/config.yaml \
+        --model_file.pth "${joint_exp}"/"${inference_enh_model}" \
         ${_opts} \
-        --option "${enh_exp}"/RESULTS.TXT \
-        --outpath "${enh_exp}/packed.zip"
+        --option "${joint_exp}"/RESULTS.TXT \
+        --outpath "${joint_exp}/packed.zip"
 
 fi
 

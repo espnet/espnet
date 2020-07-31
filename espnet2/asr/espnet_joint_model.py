@@ -103,6 +103,10 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         else:
             self.error_calculator = None
 
+        # TODO(Jing): find out the -1 or 0 here
+        # self.idx_blank = token_list.index(sym_blank) # 0
+        self.idx_blank = -1
+
     def _create_mask_label(self, mix_spec, ref_spec, mask_type="IAM"):
         """Create mask label.
 
@@ -197,6 +201,12 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         # for data-parallel
         text_length_max = max(text_ref1_lengths.max(),text_ref2_lengths.max())
+        text_ref1 = torch.cat([text_ref1,torch.ones(
+            batch_size,text_length_max, dtype=text_ref1.dtype).to(text_ref1.device)
+                               * self.idx_blank], dim=1)
+        text_ref2 = torch.cat([text_ref2,torch.ones(
+            batch_size,text_length_max, dtype=text_ref1.dtype).to(text_ref1.device)
+                               * self.idx_blank], dim=1)
         text_ref1 = text_ref1[:, : text_length_max]
         text_ref2 = text_ref2[:, : text_length_max]
 
@@ -205,22 +215,24 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         loss_enh, perm, speech_pre = self.forward_enh(
             speech_mix, speech_mix_lengths,speech_ref1=speech_ref1,speech_ref2=speech_ref2
         )
-        if isinstance(speech_pre, list):
-            # multi-speaker list[(bs,T)]
-            assert speech_pre[0].shape == speech_mix.shape
-        else:
-            # single-speaker: (bs,T)
-            assert speech_pre.shape == speech_mix.shape
+        # speech_pre: (bs,num_spk,T)
+        assert speech_pre[:,0].shape == speech_mix.shape
+
+        # Pack the separated speakers into the ASR part.
+        speech_pre_all = speech_pre.view(-1,speech_mix.shape[-1]) # (bs*num_spk, T)
+        speech_pre_lengths = torch.stack([speech_mix_lengths,speech_mix_lengths],dim=1).view(-1)
+        text_ref_all=torch.stack([text_ref1,text_ref2],dim=1).view(batch_size*2,-1)
+        text_ref_lengths = torch.stack([text_ref1_lengths,text_ref2_lengths],dim=1).view(-1)
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(speech_mix, speech_mix_lengths)
+        encoder_out, encoder_out_lens = self.encode(speech_pre_all, speech_pre_lengths)
 
         # 2a. Attention-decoder branch
         if self.ctc_weight == 1.0:
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
         else:
             loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-                encoder_out, encoder_out_lens, text_ref1, text_ref1_lengths
+                encoder_out, encoder_out_lens, text_ref_all, text_ref_lengths
             )
 
         # 2b. CTC branch
@@ -228,12 +240,12 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             loss_ctc, cer_ctc = None, None
         else:
             loss_ctc, cer_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, text_ref1, text_ref1_lengths
+                encoder_out, encoder_out_lens, text_ref_all, text_ref_lengths
             )
 
         # 2c. RNN-T branch
         if self.rnnt_decoder is not None:
-            _ = self._calc_rnnt_loss(encoder_out, encoder_out_lens, text_ref1, text_ref1_lengths)
+            _ = self._calc_rnnt_loss(encoder_out, encoder_out_lens, text_ref_all, text_ref_lengths)
 
         if self.ctc_weight == 0.0:
             loss_asr = loss_att
@@ -242,13 +254,18 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         else:
             loss_asr = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
+        if self.enh_weight == 0.0:
+            loss_enh = None
+            loss = loss_asr
+        else:
+            loss = (1 - self.enh_weight) * loss_asr + self.enh_weight * loss_enh
         print('att,ctc,enh',loss_att,loss_ctc,loss_enh)
-        loss = (1 - self.enh_weight) * loss_asr + self.enh_weight * loss_enh
 
         stats = dict(
             loss=loss.detach(),
             loss_att=loss_att.detach() if loss_att is not None else None,
             loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
+            loss_enh=loss_enh.detach() if loss_enh is not None else None,
             acc=acc_att,
             cer=cer_att,
             wer=wer_att,
@@ -385,6 +402,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             self,
             speech_mix: torch.Tensor,
             speech_mix_lengths: torch.Tensor = None,
+            resort_pre: bool = True,
             **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -571,6 +589,21 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             si_snr = -si_snr_loss
             loss = si_snr_loss
 
+
+        if resort_pre:
+            # speech_pre : list[(bs,T)] of spk
+            # perm : list[(num_spk)] of batch
+            speech_pre_list=[]
+            for batch_idx, p in enumerate(perm):
+                batch_list=[]
+                for spk_idx in p:
+                    batch_list.append(speech_pre[spk_idx][batch_idx]) # spk,T
+                speech_pre_list.append(torch.stack(batch_list,dim=0))
+
+            speech_pre = torch.stack(speech_pre_list,dim=0) #bs,num_spk,T
+        else:
+            speech_pre = torch.stack(speech_pre,dim=1) #bs,num_spk,T
+
         return loss, perm, speech_pre
 
     @staticmethod
@@ -678,7 +711,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             criterion (function): Loss function
             perm: (batch)
         Returns:
-            torch.Tensor: (batch)
+            loss: torch.Tensor: (batch)
+            perm: list[(num_spk)]
         """
         num_spk = len(ref)
 
@@ -695,6 +729,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         else:
             loss = losses[torch.arange(losses.shape[0]), perm]
 
-        perm = [p for p in permutations(range(num_spk))][perm] # egs: [1,0] or [0,2,1]
-
-        return loss.mean(), perm
+        perm_list = [p for p in permutations(range(num_spk))]
+        perm_detail = []
+        for p in perm:
+            perm_detail.append(perm_list[p]) # egs: list([1,0]) or list([0,2,1])
+        return loss.mean(), perm_detail

@@ -9,9 +9,6 @@ best_model_criterion:
     - acc
     - max
 -   - valid
-    - si_snr
-    - max
--   - valid
     - loss
     - min
 keep_nbest_models: 10
@@ -26,7 +23,6 @@ optim_conf:
 val_scheduler_criterion:
     - valid
     - loss
-    -
 scheduler: reducelronplateau
 scheduler_conf:
     mode: min
@@ -75,3 +71,4 @@ asr_model_conf:
     lsm_weight: 0.1
     length_normalized_loss: false
 
+#enh_weight: 0.5
