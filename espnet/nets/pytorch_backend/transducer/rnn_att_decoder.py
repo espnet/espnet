@@ -76,7 +76,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         self.ignore_id = -1
         self.blank = blank
 
-    def zero_state(self, ey):
+    def init_state(self, ey):
         """Initialize decoder states.
 
         Args:
@@ -108,11 +108,11 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         """
         if dstate is None:
-            z_prev, c_prev = self.zero_state(ey)
+            z_prev, c_prev = self.init_state(ey)
         else:
             z_prev, c_prev = dstate
 
-        z_list, c_list = self.zero_state(ey)
+        z_list, c_list = self.init_state(ey)
 
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
@@ -167,7 +167,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         att_w = None
         self.att[0].reset()
 
-        z_list, c_list = self.zero_state(hs_pad)
+        z_list, c_list = self.init_state(hs_pad)
         eys = self.dropout_emb(self.embed(ys_in_pad))
 
         z_all = []
@@ -190,7 +190,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def forward_one_step(self, hyp, init_tensor):
+    def score(self, hyp, init_tensor):
         """Forward one step.
 
         Args:
@@ -199,8 +199,8 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
-            state (tuple): tuple of list of L decoder states (1, dec_dim)
-            att_w (torch.Tensor): attention weights (1, max_len)
+            (tuple): decoder and attention states
+                ((L x (1, dec_dim), (L x (1, dec_dim)), (1, max_len))
             lm_tokens (torch.Tensor): input token id for LM (1)
 
         """
@@ -210,28 +210,34 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         ey = self.embed(vy)
 
         att_c, att_w = self.att[0](
-            init_tensor, [init_tensor.size(1)], hyp["dec_state"][0][0], hyp["att_w"],
+            init_tensor,
+            [init_tensor.size(1)],
+            hyp["dec_state"][0][0],
+            hyp["att_state"],
         )
 
         ey = torch.cat((ey[0], att_c), dim=1)
 
         y, state = self.rnn_forward(ey, hyp["dec_state"])
 
-        return y, state, att_w, lm_tokens
+        return y, (state, att_w), lm_tokens
 
-    def forward_batch_one_step(self, hyps, state, att_w, att_params):
+    def batch_score(self, hyps, state):
         """Forward batch one step.
 
         Args:
             hyps (list of dict): batch of hypothesis
-            state (tuple): tuple of list of L decoder states (B, dec_dim)
-            att_w (torch.Tensor): batch of attention weights (B, max_len)
-            att_params (list): attention parameters
+            (tuple): batch of decoder and attention states
+                (
+                 (L x (B, dec_dim), (L x (B, dec_dim)),
+                 (B, max_len),
+                 List[att_paramaters]
+                )
 
         Returns:
             tgt (torch.Tensor): decoder output (B, dec_dim)
-            new_state (tuple): tuple of list of L decoder states (B, dec_dim)
-            att_w (torch.Tensor): batch of attention weights (B, max_len)
+            (tuple): batch of decoder and attention states
+                ((L x (B, dec_dim), (L x (B, dec_dim)), (B, max_len))
             lm_tokens (torch.Tensor): input token ids for LM (B)
 
         """
@@ -242,52 +248,53 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         ey = self.embed(tokens)
 
-        att_c, att_w = self.att[0](att_params[1], att_params[0], state[0][0], att_w)
+        att_c, att_w = self.att[0](state[2][1], state[2][0], state[0][0][0], state[1])
 
         ey = torch.cat((ey, att_c), dim=1)
 
-        y, state = self.rnn_forward(ey, state)
+        y, dec_state = self.rnn_forward(ey, state[0])
 
-        return y, state, att_w, tokens
+        return y, (dec_state, att_w), tokens
 
-    def get_idx_dec_state(self, state, idx, att_state):
+    def select_state(self, state, idx):
         """Get decoder and attention state from batch for given id.
 
         Args:
-            state (tuple): tuple of list of L decoder states (B, dec_dim)
+            (tuple): decoder and attention states
+                ((L x (B, dec_dim), (L x (B, dec_dim)), (B, max_len))
             idx (int): index to extract state from batch state
-            att_state (torch.Tensor): attention state (B, max_len)
 
         Returns:
-            state (tuple): tuple of list of L decoder states (dec_dim)
-            att_w (torch.Tensor): attention_state (max_len)
+            (tuple): decoder and attention states
+                ((L x (1, dec_dim), (L x (1, dec_dim)), (1, max_len))
 
         """
-        zlist = [state[0][layer][idx] for layer in range(self.dlayers)]
-        clist = [state[1][layer][idx] for layer in range(self.dlayers)]
+        zlist = [state[0][0][layer][idx] for layer in range(self.dlayers)]
+        clist = [state[0][1][layer][idx] for layer in range(self.dlayers)]
 
-        att_w = att_state[idx] if att_state is not None else att_state
+        att_state = state[1][idx] if state[1] is not None else state[1]
 
-        return (zlist, clist), att_w
+        return ((zlist, clist), att_state)
 
-    def get_batch_dec_states(self, state, hyps):
+    def create_batch_state(self, state, hyps):
         """Create batch of decoder and attention states.
 
         Args:
-            state (tuple): tuple of list of decoder states (B, dec_dim)
+            (tuple): batch of decoder and attention states
+                ((L x (B, dec_dim), (L x (B, dec_dim)), (B, max_len))
             hyps (list): batch of hypothesis
 
         Returns:
-            state (tuple): tuple of list of L decoder states (B, dec_dim)
-            att_w (torch.Tensor): batch of attention weights (B, max_len)
+            (tuple): batch of decoder and attention states
+                ((L x (B, dec_dim), (L x (B, dec_dim)), (B, max_len))
         """
         for layer in range(self.dlayers):
-            state[0][layer] = torch.stack([h["dec_state"][0][layer] for h in hyps])
-            state[1][layer] = torch.stack([h["dec_state"][1][layer] for h in hyps])
+            state[0][0][layer] = torch.stack([h["dec_state"][0][layer] for h in hyps])
+            state[0][1][layer] = torch.stack([h["dec_state"][1][layer] for h in hyps])
 
-        att_w = torch.stack([h["att_w"] for h in hyps])
+        att_w = torch.stack([h["att_state"] for h in hyps])
 
-        return state, att_w
+        return (state[0], att_w)
 
     def calculate_all_attentions(self, hs_pad, hlens, ys_pad):
         """Calculate all of attentions.
@@ -320,7 +327,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         self.att[0].reset()
 
         eys = self.embed(ys_in_pad)
-        z_list, c_list = self.zero_state(eys)
+        z_list, c_list = self.init_state(eys)
 
         for i in range(olength):
             att_c, att_w = self.att[0](

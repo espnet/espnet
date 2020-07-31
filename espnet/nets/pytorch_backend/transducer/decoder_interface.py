@@ -1,5 +1,6 @@
 """Transducer decoder interface module."""
 
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -11,10 +12,8 @@ import torch
 class TransducerDecoderInterface:
     """Decoder interface for transducer models."""
 
-    def zero_state(
-        self, init_tensor: torch.Tensor = None
-    ) -> Union[Tuple[List[torch.Tensor], List[torch.Tensor]], List[torch.Tensor]]:
-        """Initialize decoder states.
+    def init_state(self, init_tensor: torch.Tensor = None) -> Any:
+        """Initialize decoder and attention states.
 
         Args:
             init_tensor: input features
@@ -25,13 +24,11 @@ class TransducerDecoderInterface:
         """
         raise NotImplementedError("zero_state method is not implemented")
 
-    def forward_one_step(
+    def score(
         self,
         hyp: Dict[str, Union[float, List, torch.Tensor, None]],
         init_tensor: torch.Tensor = None,
-    ) -> Union[
-        List[torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor]], torch.Tensor
-    ]:
+    ) -> Union[Tuple[Any], torch.Tensor]:
         """Forward one step.
 
         Args:
@@ -40,20 +37,17 @@ class TransducerDecoderInterface:
 
         Returns:
             tgt: decoder outputs
-            new_state: new decoder state
-            att_w: attention weights
+            (state, att_w): new decoder and attention states
             lm_tokens: input token id for LM
 
         """
         raise NotImplementedError("forward_one_step method is not implemented")
 
-    def forward_batch_one_step(
+    def batch_score(
         self,
         hyps: List[Dict[str, Union[float, List, torch.Tensor, None]]],
-        state: Union[List, Tuple[List[torch.Tensor], List[torch.Tensor]]],
-        att_w: torch.Tensor = None,
-        att_params: List[Union[int, torch.Tensor]] = None,
-    ) -> Union[List, Tuple[List[torch.Tensor], List[torch.Tensor]], torch.Tensor]:
+        state: Tuple[Any],
+    ) -> Union[Tuple[Any], torch.Tensor]:
         """Forward batch one step.
 
         Args:
@@ -71,12 +65,7 @@ class TransducerDecoderInterface:
         """
         raise NotImplementedError("forward_batch_one_step method is not implemented")
 
-    def get_idx_dec_state(
-        self,
-        state: Union[List, Tuple[List[torch.Tensor]]],
-        idx: int,
-        att_state: torch.Tensor = None,
-    ) -> Union[List, Tuple[List[torch.Tensor], List[torch.Tensor]], int]:
+    def select_state(self, state: Tuple[Any], idx: int) -> Tuple[Any]:
         """Get decoder state from batch for given id.
 
         Args:
@@ -90,11 +79,11 @@ class TransducerDecoderInterface:
         """
         raise NotImplementedError("get_idx_dec_state method is not implemented")
 
-    def get_batch_dec_states(
+    def create_batch_state(
         self,
-        state: List[Union[List, Tuple[List[torch.Tensor], List[torch.Tensor]]]],
+        state: Tuple[Any],
         hyps: List[Dict[str, Union[float, List, torch.Tensor, None]]],
-    ) -> Union[List, Tuple[List[torch.Tensor], List[torch.Tensor]]]:
+    ) -> Tuple[Any]:
         """Create batch of decoder states.
 
         Args:

@@ -5,10 +5,10 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.transducer.utils import get_batch_lm_states
-from espnet.nets.pytorch_backend.transducer.utils import get_idx_lm_state
+from espnet.nets.pytorch_backend.transducer.utils import create_lm_batch_state
 from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
+from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import substract
 
 
@@ -25,11 +25,16 @@ def greedy_search(decoder, h, recog_args):
 
     """
     init_tensor = h.unsqueeze(0)
-    state = decoder.zero_state(init_tensor)
+    dec_state = decoder.init_state(init_tensor)
 
-    hyp = {"score": 0.0, "yseq": [decoder.blank], "dec_state": state, "att_w": None}
+    hyp = {
+        "score": 0.0,
+        "yseq": [decoder.blank],
+        "dec_state": dec_state,
+        "att_state": None,
+    }
 
-    y, state, att_w, _ = decoder.forward_one_step(hyp, init_tensor)
+    y, state, _ = decoder.score(hyp, init_tensor)
 
     for i, hi in enumerate(h):
         ytu = torch.log_softmax(decoder.joint(hi, y[0]), dim=0)
@@ -39,10 +44,10 @@ def greedy_search(decoder, h, recog_args):
             hyp["yseq"].append(int(pred))
             hyp["score"] += float(logp)
 
-            hyp["dec_state"] = state
-            hyp["att_w"] = att_w if att_w is None else att_w[:]
+            hyp["dec_state"] = state[0]
+            hyp["att_state"] = state[1]
 
-            y, state, att_w, _ = decoder.forward_one_step(hyp, init_tensor)
+            y, state, _ = decoder.score(hyp, init_tensor)
 
     return [hyp]
 
@@ -67,15 +72,15 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
     normscore = recog_args.score_norm_transducer
 
     init_tensor = h.unsqueeze(0)
-    state = decoder.zero_state(init_tensor)
+    dec_state = decoder.init_state(init_tensor)
 
     kept_hyps = [
         {
             "score": 0.0,
             "yseq": [decoder.blank],
-            "dec_state": state,
+            "dec_state": dec_state,
+            "att_state": None,
             "lm_state": None,
-            "att_w": None,
         }
     ]
 
@@ -87,7 +92,7 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
             new_hyp = max(hyps, key=lambda x: x["score"])
             hyps.remove(new_hyp)
 
-            y, state, att_w, lm_tokens = decoder.forward_one_step(new_hyp, init_tensor)
+            y, state, lm_tokens = decoder.score(new_hyp, init_tensor)
 
             ytu = F.log_softmax(decoder.joint(hi, y[0]), dim=0)
 
@@ -101,15 +106,15 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
                     "score": new_hyp["score"] + float(ytu[k]),
                     "yseq": new_hyp["yseq"][:],
                     "dec_state": new_hyp["dec_state"],
+                    "att_state": new_hyp["att_state"],
                     "lm_state": new_hyp["lm_state"],
-                    "att_w": new_hyp["att_w"],
                 }
 
                 if k == decoder.blank:
                     kept_hyps.append(beam_hyp)
                 else:
-                    beam_hyp["dec_state"] = state
-                    beam_hyp["att_w "] = att_w if att_w is None else att_w[:]
+                    beam_hyp["dec_state"] = state[0]
+                    beam_hyp["att_state"] = state[1]
 
                     beam_hyp["yseq"].append(int(k))
 
@@ -158,14 +163,14 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
     nbest = recog_args.nbest
 
     init_tensor = h.unsqueeze(0)
-    state = decoder.zero_state(init_tensor)
+    dec_state = decoder.init_state(init_tensor)
 
     B = [
         {
             "yseq": [decoder.blank],
             "score": 0.0,
-            "dec_state": state,
-            "att_w": None,
+            "dec_state": dec_state,
+            "att_state": None,
             "lm_state": None,
         }
     ]
@@ -178,7 +183,7 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
             D = []
 
             for hyp in C:
-                y, state, att_w, lm_tokens = decoder.forward_one_step(hyp, init_tensor)
+                y, state, lm_tokens = decoder.score(hyp, init_tensor)
 
                 ytu = F.log_softmax(decoder.joint(hi, y[0]), dim=0)
 
@@ -189,7 +194,7 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
                         "score": hyp["score"] + float(ytu[0]),
                         "yseq": hyp["yseq"][:],
                         "dec_state": hyp["dec_state"],
-                        "att_w": hyp["att_w"],
+                        "att_state": hyp["att_state"],
                         "lm_state": hyp["lm_state"],
                     }
 
@@ -211,8 +216,8 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
                         beam_hyp = {
                             "score": hyp["score"] + float(ytu[k]),
                             "yseq": hyp["yseq"][:],
-                            "dec_state": state,
-                            "att_w": att_w if att_w is None else att_w[:],
+                            "dec_state": state[0],
+                            "att_state": state[1],
                             "lm_state": hyp["lm_state"],
                         }
 
@@ -260,14 +265,14 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
     nbest = recog_args.nbest
 
     init_tensor = h.unsqueeze(0)
-    state = decoder.zero_state(init_tensor)
+    dec_state = decoder.init_state(init_tensor)
 
     B = [
         {
             "yseq": [decoder.blank],
             "score": 0.0,
-            "dec_state": state,
-            "att_w": None,
+            "dec_state": dec_state,
+            "att_state": None,
             "lm_state": None,
         }
     ]
@@ -284,7 +289,7 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
             if t > (h_length - 1):
                 continue
 
-            y, state, att_w, lm_tokens = decoder.forward_one_step(hyp, init_tensor)
+            y, state, lm_tokens = decoder.score(hyp, init_tensor)
 
             ytu = F.log_softmax(decoder.joint(h[t], y[0]), dim=0)
 
@@ -292,7 +297,7 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
                 "score": hyp["score"] + float(ytu[0]),
                 "yseq": hyp["yseq"][:],
                 "dec_state": hyp["dec_state"],
-                "att_w": hyp["att_w"],
+                "att_state": hyp["att_state"],
                 "lm_state": hyp["lm_state"],
             }
 
@@ -308,8 +313,8 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
                 beam_hyp = {
                     "score": hyp["score"] + float(ytu[k]),
                     "yseq": hyp["yseq"][:],
-                    "dec_state": state,
-                    "att_w": att_w if att_w is None else att_w[:],
+                    "dec_state": state[0],
+                    "att_state": state[1],
                     "lm_state": hyp["lm_state"],
                 }
 
@@ -355,17 +360,17 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
     nbest = recog_args.nbest
 
-    w_state = decoder.zero_state(torch.zeros((w_range, decoder.dunits)))
+    w_dec_state = decoder.init_state(torch.zeros((w_range, decoder.dunits)))
 
     init_tokens = [{"yseq": [decoder.blank]} for _ in range(w_range)]
 
     att_params = ([h.size(0)] * w_range, h.unsqueeze(0).expand(w_range, -1, -1))
 
-    w_y, w_state, w_att_w, w_lm_tokens = decoder.forward_batch_one_step(
-        init_tokens, w_state, None, att_params
+    w_y, w_state, w_lm_tokens = decoder.batch_score(
+        init_tokens, (w_dec_state, None, att_params)
     )
 
-    state, att_w = decoder.get_idx_dec_state(w_state, 0, w_att_w)
+    state = decoder.select_state(w_state, 0)
 
     if rnnlm:
         w_lm_states, w_lm_scores = rnnlm.buff_predict(None, w_lm_tokens, w_range)
@@ -377,7 +382,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
             lm_type = "lm"
             lm_layers = len(w_lm_states["c"])
 
-        lm_state = get_idx_lm_state(w_lm_states, 0, lm_type, lm_layers)
+        lm_state = select_lm_state(w_lm_states, 0, lm_type, lm_layers)
         lm_scores = w_lm_scores[0]
     else:
         lm_state = None
@@ -387,9 +392,9 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
         {
             "yseq": [decoder.blank],
             "score": 0.0,
-            "dec_state": state,
-            "att_w": att_w,
             "y": [w_y[0]],
+            "dec_state": state[0],
+            "att_state": state[1],
             "lm_state": lm_state,
             "lm_scores": lm_scores,
         }
@@ -453,9 +458,9 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
                     w_hyp = {
                         "yseq": hyp["yseq"][:],
                         "score": hyp["score"] + curr_score,
-                        "dec_state": hyp["dec_state"],
-                        "att_w": hyp["att_w"],
                         "y": hyp["y"][:],
+                        "dec_state": hyp["dec_state"],
+                        "att_state": hyp["att_state"],
                         "lm_state": hyp["lm_state"],
                         "lm_scores": hyp["lm_scores"],
                     }
@@ -473,13 +478,11 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
             V = sorted(V, key=lambda x: x["score"], reverse=True)
             V = substract(V, hyps)[:w_range]
 
-            w_state, w_att_w = decoder.get_batch_dec_states(w_state, V)
-            w_y, w_state, w_att_w, w_lm_tokens = decoder.forward_batch_one_step(
-                V, w_state, w_att_w, att_params
-            )
+            w_state = decoder.create_batch_state(w_state, V)
+            w_y, w_state, w_lm_tokens = decoder.batch_score(V, (*w_state, att_params))
 
             if rnnlm:
-                w_lm_states = get_batch_lm_states(
+                w_lm_states = create_lm_batch_state(
                     [v["lm_state"] for v in V], lm_type, lm_layers
                 )
                 w_lm_states, w_lm_scores = rnnlm.buff_predict(
@@ -488,14 +491,15 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
             if n < (nstep - 1):
                 for i, v in enumerate(V):
-                    v["dec_state"], v["att_w"] = decoder.get_idx_dec_state(
-                        w_state, i, w_att_w
-                    )
-
                     v["y"].append(w_y[i])
 
+                    new_state = decoder.select_state(w_state, i)
+
+                    v["dec_state"] = new_state[0]
+                    v["att_state"] = new_state[1]
+
                     if rnnlm:
-                        v["lm_state"] = get_idx_lm_state(
+                        v["lm_state"] = select_lm_state(
                             w_lm_states, i, lm_type, lm_layers
                         )
                         v["lm_scores"] = w_lm_scores[i]
@@ -509,14 +513,15 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
                     if nstep != 1:
                         v["score"] += float(blank_score[i])
 
-                    v["dec_state"], v["att_w"] = decoder.get_idx_dec_state(
-                        w_state, i, w_att_w
-                    )
-
                     v["y"].append(w_y[i])
 
+                    new_state = decoder.select_state(w_state, i)
+
+                    v["dec_state"] = new_state[0]
+                    v["att_state"] = new_state[1]
+
                     if rnnlm:
-                        v["lm_state"] = get_idx_lm_state(
+                        v["lm_state"] = select_lm_state(
                             w_lm_states, i, lm_type, lm_layers
                         )
                         v["lm_scores"] = w_lm_scores[i]

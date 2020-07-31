@@ -142,7 +142,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def zero_state(self, init_tensor=None):
+    def init_state(self, init_tensor=None):
         """Initialize decoder states.
 
         Args:
@@ -156,7 +156,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         return state
 
-    def forward_one_step(self, hyp, init_tensor=None):
+    def score(self, hyp, init_tensor=None):
         """Forward one step.
 
         Args:
@@ -164,7 +164,8 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         Returns:
             tgt (torch.Tensor): decoder outputs (1, dec_dim)
-            new_state (list): list of L decoder states (1, max_length, dec_dim)
+            (tuple): decoder and attention states
+                (L x (1, max_len, dec_dim), None)
             lm_tokens (torch.Tensor): input token id for LM (1)
 
         """
@@ -186,18 +187,24 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         else:
             tgt = tgt[:, -1]
 
-        return tgt, new_state, None, lm_tokens
+        return tgt, (new_state, None), lm_tokens
 
-    def forward_batch_one_step(self, hyps, state, att_w=None, att_params=None):
+    def batch_score(self, hyps, state):
         """Forward batch one step.
 
         Args:
             hyps (list of dict): batch of hypothesis
-            state (list): list of L decoder states (B, max_len, dec_dim)
+            (tuple): decoder and attention states
+                (
+                 (L x (B, max_len, dec_dim),
+                 None,
+                 None
+                )
 
         Returns:
             tgt (torch.Tensor): decoder output (B, dec_dim)
-            new_state (list): list of L decoder states (B, max_len, dec_dim)
+            (tuple): decoder and attention states
+                (L x (B, max_len, dec_dim), None)
             lm_tokens (torch.Tensor): input token ids for LM (B)
 
         """
@@ -213,7 +220,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         tgt = self.embed(b_tokens)
 
         new_state = []
-        for s, decoder in zip(state, self.decoders):
+        for s, decoder in zip(state[0], self.decoders):
             tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
             new_state.append(tgt)
 
@@ -222,40 +229,44 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         else:
             tgt = tgt[:, -1]
 
-        return tgt, new_state, None, b_tokens[:, -1]
+        return tgt, (new_state, None), b_tokens[:, -1]
 
-    def get_idx_dec_state(self, state, idx, att_state=None):
+    def select_state(self, state, idx):
         """Get decoder state from batch for given id.
 
         Args:
-            state (list): list of L decoder states (B, max_len, dec_dim)
+            (tuple): decoder and attention states
+                (L x (B, max_len, dec_dim), None)
             idx (int): index to extract state from beam state
 
         Returns:
-            state (list): list of L decoder states (max_len, dec_dim)
+            (tuple): decoder and attention states
+                (L x (1, max_len, dec_dim), None)
             idx_state (dict): decoder state for given id
 
         """
-        state_idx = [state[layer][idx] for layer in range(len(self.decoders))]
+        state_idx = [state[0][layer][idx] for layer in range(len(self.decoders))]
 
-        return state_idx, None
+        return (state_idx, None)
 
-    def get_batch_dec_states(self, state, hyps):
+    def create_batch_state(self, state, hyps):
         """Create batch of decoder states.
 
         Args:
-            state (list): input list of decoder states (B, max_len, dec_dim)
+            (tuple): decoder and attention states
+                (L x (B, max_len, dec_dim), None)
             hyps (list): batch of hypothesis
 
         Returns:
-            state (list): output list of L decoder states (B, max_len, dec_dim)
+            (tuple): decoder and attention states
+                (L x (B, max_len, dec_dim), None)
 
         """
         max_length = max([len(h["yseq"]) for h in hyps])
 
         for layer in range(len(self.decoders)):
-            state[layer] = pad_state(
+            state[0][layer] = pad_state(
                 [h["dec_state"][layer] for h in hyps], max_length, self.blank
             )
 
-        return state, None
+        return (state[0], None)
