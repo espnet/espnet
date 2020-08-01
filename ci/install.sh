@@ -9,15 +9,18 @@ $CXX -v
 (
     set -euo pipefail
     cd tools
-    # To suppress the installation for Kaldi
-    touch kaldi.done
+
+    # To skip error
+    mkdir -p kaldi/egs/wsj/s5/utils && touch kaldi/egs/wsj/s5/utils/parse_options.sh
     if ${USE_CONDA}; then
-        make PYTHON_VERSION="${ESPNET_PYTHON_VERSION}" TH_VERSION="${TH_VERSION}"
+        ./setup_anaconda.sh venv espnet ${ESPNET_PYTHON_VERSION}
     else
-        make PYTHON="$(which python)" TH_VERSION="${TH_VERSION}"
+        ./setup_python.sh $(which python3) venv
     fi
+    make TH_VERSION="${TH_VERSION}"
+
     make moses.done
-    rm kaldi.done
+    rm -rf kaldi
 )
 . tools/activate_python.sh
 python3 --version

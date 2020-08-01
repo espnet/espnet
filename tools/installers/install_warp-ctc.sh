@@ -60,17 +60,17 @@ if "${torch_12_plus}"; then
 elif "${torch_11_plus}"; then
 
     if [ -z "${cuda_version}" ]; then
-        pip3 install warpctc-pytorch11-cpu;
+        python3 -m pip install warpctc-pytorch11-cpu;
     else
-        pip3 install warpctc-pytorch11-cuda"${cuda_version}"
+        python3 -m pip install warpctc-pytorch11-cuda"${cuda_version}"
     fi
 
 elif "${torch_10_plus}"; then
 
     if [ -z "${cuda_version}" ]; then
-        pip3 install warpctc-pytorch10-cpu
+        python3 -m pip install warpctc-pytorch10-cpu
     else
-        pip3 install warpctc-pytorch10-cuda"${cuda_version}"
+        python3 -m pip install warpctc-pytorch10-cuda"${cuda_version}"
     fi
 
 else
@@ -89,7 +89,7 @@ else
             cd build && cmake .. && ${MAKE}
         )
 
-        pip3 install cffi
+        python3 -m pip install cffi
         (
             set -euo pipefail
             cd pytorch_binding && python3 setup.py installl
