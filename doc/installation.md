@@ -3,54 +3,49 @@
 
 - Python 3.6.1+
 - gcc 4.9+ for PyTorch1.0.0+
-- cmake3 for some extensions
-    ```sh
-    # e.g. Ubuntu
-    $ sudo apt-get install cmake
-    # e.g. Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
-    $ conda install cmake
-    ```
-
-We often use audio converter tools in several recipes:
-
-- sox
-    ```sh
-    # e.g. Ubuntu
-    $ sudo apt-get install sox
-    # e.g. CentOS
-    $ sudo yum install sox
-    # e.g. Using anaconda
-    $ conda install -c conda-forge sox
-    ```
-- sndfile
-    ```sh
-    # e.g. Ubuntu
-    $ sudo apt-get install libsndfile1-dev
-    # e.g. CentOS
-    $ sudo yum install libsndfile
-    ```
-- ffmpeg (This is not required when installataion, but used in some recipes)
-    ```sh
-    # e.g. Ubuntu
-    $ sudo apt-get install ffmpeg
-    # e.g. CentOS
-    $ sudo yum install ffmpeg
-    # e.g. Using anaconda
-    $ conda install -c conda-forge ffmpeg
-    ```
-- flac (This is not required when installataion, but used in some recipes)
-    ```sh
-    # e.g. Ubuntu
-    $ sudo apt-get install flac
-    # e.g. CentOS
-    $ sudo yum install flac
-    ```
 
 Optionally, GPU environment requires the following libraries:
 
 - Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
 - Cudnn 6+, 7+
 - NCCL 2.0+ (for the use of multi-GPUs)
+
+(If you'll use anaconda environment at installation step2,
+the following packages are installed using Anaconda, so you can skip them.)
+
+- cmake3 for some extensions
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install cmake
+    ```
+- sox
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install sox
+    # For CentOS
+    $ sudo yum install sox
+    ```
+- sndfile
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install libsndfile1-dev
+    # For CentOS
+    $ sudo yum install libsndfile
+    ```
+- ffmpeg (This is not required when installataion, but used in some recipes)
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install ffmpeg
+    # For CentOS
+    $ sudo yum install ffmpeg
+    ```
+- flac (This is not required when installataion, but used in some recipes)
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install flac
+    # For CentOS
+    $ sudo yum install flac
+    ```
 
 ### Supported Linux distributions and other requirements
 
@@ -75,9 +70,6 @@ Related links:
 Kaldi's requirements:
 - OS: Ubuntu, CentOS, MacOSX, Windows, Cygwin, etc.
 - GCC >= 4.7
-
-We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh).
-
 
 1. Git clone Kaldi
 
@@ -118,18 +110,20 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ cd <kaldi-root>/src
     # [By default MKL is used] ESPnet uses only feature extractor, so you can disable CUDA
     $ ./configure --use-cuda=no
-    # e.g. With OpenBLAS]
+    # [With OpenBLAS]
     # $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
     # ./configure --cudatk-dir=/usr/local/cuda-10.0
     $ make -j clean depend; make -j <NUM-CPU>
     ```
+We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh).
 
 ### Step 2) Installation ESPnet
 1. Git clone ESPnet
     ```sh
     $ cd <any-place>
     $ git clone https://github.com/espnet/espnet
+    ```
 1. Put Kaldi at espnet/tools
 
     Create a symbolic link to Kaldi directory.
@@ -137,19 +131,21 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     ```sh
     $ cd <espnet-root>/tools
     $ ln -s <kaldi-root> .
+    ```
 1. Setup CUDA environment
 
     Specify your CUDA directory.
 
     ```sh
     $ cd <espnet-root>/tools
-    $ . ./setup_cuda_env.sh /usr/local/cuda
+    $ . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
     # If you have NCCL (If you'll install pytorch from anaconda, NCCL is also bundled, so you don't need to give it)
-    # $ . ./setup_cuda_env.sh /usr/local/cuda /usr/local/nccl
+    # $ . ./setup_cuda_env.sh <cuda-root> <nccl-root> # e.g. <nccl-root> = /usr/local/nccl
+    ```
 1. Setup Python
 
     You must select one of `setup_anaconda.sh` or `setup_python.sh`.
-Both scripts create `activate_python.sh` there. It controls the Python used in ESPnet.
+    Both scripts create `activate_python.sh` there. It controls the Python used in ESPnet.
 
     - Option A) Setup Anaconda environment
 
@@ -159,7 +155,7 @@ Both scripts create `activate_python.sh` there. It controls the Python used in E
         ```
 
         If `[conda-env-name]` and `[python-version]` are omitted,
-        the root environment and the default Python of Anaconda are used respectively.
+        the root environment and the default Python of Anaconda are selected respectively.
 
         This script tries to create a new miniconda at `venv` if it doesn't exist.
         If you already have Anaconda and you'll use it then,
@@ -179,7 +175,7 @@ Both scripts create `activate_python.sh` there. It controls the Python used in E
 
         Note that we never add `--user` option when pip install in this installation flow,
         so you need to have write privilege to your Python.
-        (e.g. If you'll /usr/bin/python3, you must install it with sudo privilege.)
+        (e.g. If you'll use /usr/bin/python3, you must install ESPnet with sudo privilege.)
 
         We recommend you creating `venv` to avoid the problem.
         You can create a virtual environment from your Python as follows,
@@ -187,6 +183,7 @@ Both scripts create `activate_python.sh` there. It controls the Python used in E
         ```sh
         $ cd <espnet-root>/tools
         $ ./setup_python.sh $(command -v python3) venv
+        ```
 1. Install ESPnet
 
     ```sh
@@ -194,7 +191,7 @@ Both scripts create `activate_python.sh` there. It controls the Python used in E
     $ make
     ```
 
-    The Makefile tries to intall ESPnet and all dependencies including PyTorch.
+    The Makefile tries to install ESPnet and all dependencies including PyTorch.
     You can also specify PyTorch version, for example:
 
     ```sh

@@ -9,9 +9,11 @@ WGET := wget --tries=3
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
+IS_CONDA := 0
 USE_PIP :=
 else
-USE_PIP := 1
+IS_CONDA :=
+USE_PIP := 0
 endif
 
 
@@ -50,7 +52,7 @@ endif
 
 .PHONY: all clean
 
-all: kaldi showenv python check_install
+all: kaldi showenv python conda_packages.done check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done chainer_ctc.done chainer.done
@@ -59,7 +61,6 @@ python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorc
 endif
 
 extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
-
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
@@ -77,6 +78,7 @@ else
 endif
 	@echo PYTHON=$(shell . ./activate_python.sh && command -v python3)
 	@echo PYTHON_VERSION=$(shell . ./activate_python.sh && python3 --version)
+	@echo IS_CONDA=$(IS_CONDA)
 	@echo USE_PIP=$(USE_PIP)
 	@echo TH_VERSION=$(TH_VERSION)
 	@echo CONDA_PYTORCH=$(CONDA_PYTORCH)
@@ -86,6 +88,29 @@ endif
 	@echo NO_CUPY=$(NO_CUPY)
 
 #########################################
+
+cmake.done: activate_python.sh
+	. ./activate_python.sh && { command -v cmake || conda install -y cmake; }
+	touch cmake.done
+flac.done: activate_python.sh
+	. ./activate_python.sh && { command -v flac || conda install -y libflac -c conda-forge; }
+	touch flac.done
+ffmpeg.done: activate_python.sh
+	. ./activate_python.sh && { command -v ffmpeg || conda install -y ffmpeg -c conda-forge; }
+	touch ffmpeg.done
+sox.done: activate_python.sh
+	. ./activate_python.sh && { command -v sox || conda install -y sox -c conda-forge; }
+	touch sox.done
+sndfile.done: activate_python.sh
+	. ./activate_python.sh && { python -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile -c conda-forge; }
+	touch sndfile.done
+ifneq ($(strip $(IS_CONDA)),)
+conda_packages.done: cmake.done flac.done ffmpeg.done sox.done sndfile.done
+else
+conda_packages.done:
+endif
+	touch conda_packages.done
+
 
 ifneq ($(strip $(USE_PIP)),)
 pytorch.done: activate_python.sh
@@ -98,7 +123,8 @@ pytorch.done: activate_python.sh
 	touch pytorch.done
 endif
 
-espnet.done: pytorch.done
+# NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
+espnet.done: pytorch.done conda_packages.done
 	. ./activate_python.sh && python3 -m pip install -e ..  # Install editable mode by default
 	touch espnet.done
 
@@ -106,11 +132,12 @@ chainer.done: espnet.done
 	. ./activate_python.sh && python3 -m pip install ${PIP_CHAINER}
 	touch chainer.done
 
-warp-ctc.done: pytorch.done
+# NOTE(kamo): Add conda_packages.done if cmake is used
+warp-ctc.done: pytorch.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_warp-ctc.sh
 	touch warp-ctc.done
 
-warp-transducer.done: pytorch.done
+warp-transducer.done: pytorch.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_warp-transducer.sh
 	touch warp-transducer.done
 
@@ -122,7 +149,7 @@ nkf.done:
 	./installers/install_nkf.sh
 	touch nkf.done
 
-pyopenjtalk.done: espnet.done
+pyopenjtalk.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_pyopenjtalk.sh
 	touch pyopenjtalk.done
 
@@ -134,7 +161,7 @@ mwerSegmenter.done:
 	./installers/install_mwerSegmenter.sh
 	touch mwerSegmenter.done
 
-kenlm.done: espnet.done
+kenlm.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_kenlm.sh
 	touch kenlm.done
 
