@@ -126,8 +126,6 @@ class SubReporter:
         self._finished = False
         self.total_count = total_count
         self.count = 0
-        self.prev_count = 0
-        self.prev_positions = {}
 
     def get_total_count(self) -> int:
         """Returns the number of iterations over all epochs."""
@@ -152,30 +150,34 @@ class SubReporter:
         for key2, v in stats.items():
             if key2 in _reserved:
                 raise RuntimeError(f"{key2} is reserved.")
-            # if None value, the key is not registered
             if v is None:
-                continue
+                v = np.nan
             r = to_reported_value(v, weight)
             self.stats[key2].append(r)
 
-    def log_message(self) -> str:
+    def log_message(self, start: int = None, end: int = None) -> str:
         if self._finished:
             raise RuntimeError("Already finished")
-        if self.count == 0:
+        if start is None:
+            start = 0
+        if start < 0:
+            start = self.count + start
+        if end is None:
+            end = self.count
+
+        if self.count == 0 or start == end:
             return ""
 
-        message = (
-            f"{self.epoch}epoch:{self.key}:"
-            f"{self.prev_count + 1}-{self.count}batch: "
-        )
+        message = f"{self.epoch}epoch:{self.key}:" f"{start + 1}-{end}batch: "
 
-        stats = list(self.stats.items())
-
-        for idx, (key2, stats) in enumerate(stats):
+        for idx, (key2, stats) in enumerate(self.stats.items()):
+            if len(stats) != self.count:
+                raise RuntimeError(
+                    "The registered stats must have same number of values: "
+                    f"{len(stats)} != {self.count}"
+                )
             # values: List[ReportValue]
-            pos = self.prev_positions.setdefault(key2, 0)
-            self.prev_positions[key2] = len(stats)
-            values = stats[pos:]
+            values = stats[start:end]
             if idx != 0 and idx != len(stats):
                 message += ", "
 
@@ -186,9 +188,24 @@ class SubReporter:
                 message += f"{key2}={v:.3f}"
             else:
                 message += f"{key2}={v:.3e}"
-
-        self.prev_count = self.count
         return message
+
+    def tensorboard_add_scalar(self, summary_writer: SummaryWriter, start: int = None):
+        if start is None:
+            start = 0
+        if start < 0:
+            start = self.count + start
+
+        for key2, stats in self.stats.items():
+            if len(stats) != self.count:
+                raise RuntimeError(
+                    "The registered stats must have same number of values: "
+                    f"{len(stats)} != {self.count}"
+                )
+            # values: List[ReportValue]
+            values = stats[start:]
+            v = aggregate(values)
+            summary_writer.add_scalar(key2, v, self.total_count)
 
     def finished(self) -> None:
         self._finished = True
@@ -476,7 +493,7 @@ class Reporter:
         keys2 = set.union(*[set(self.get_keys2(k)) for k in self.get_keys()])
         for key2 in keys2:
             summary_writer.add_scalars(
-                key2,
+                key2 + " (epoch)",
                 {
                     k: self.stats[epoch][k][key2]
                     for k in self.get_keys(epoch)
