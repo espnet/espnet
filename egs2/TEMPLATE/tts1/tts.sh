@@ -722,9 +722,15 @@ if ! "${skip_train}"; then
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
         log "TTS training started... log: '${tts_exp}/train.log'"
+        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+            # SGE can't include "/" in a job name
+            jobname="$(basename ${tts_exp})"
+        else
+            jobname="${tts_exp}/train.log"
+        fi
         # shellcheck disable=SC2086
         python3 -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${tts_exp}/train.log" \
+            --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${tts_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \

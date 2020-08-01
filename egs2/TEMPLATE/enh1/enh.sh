@@ -481,9 +481,15 @@ if ! "${skip_train}"; then
 
 
         log "enh training started... log: '${enh_exp}/train.log'"
+        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+            # SGE can't include "/" in a job name
+            jobname="$(basename ${enh_exp})"
+        else
+            jobname="${enh_exp}/train.log"
+        fi
         # shellcheck disable=SC2086
         python3 -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${enh_exp}/train.log" \
+            --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${enh_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \

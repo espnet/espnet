@@ -706,9 +706,15 @@ if ! "${skip_train}"; then
             # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
             log "LM training started... log: '${lm_exp}/train.log'"
+            if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+                # SGE can't include "/" in a job name
+                jobname="$(basename ${lm_exp})"
+            else
+                jobname="${lm_exp}/train.log"
+            fi
             # shellcheck disable=SC2086
             python3 -m espnet2.bin.launch \
-                --cmd "${cuda_cmd} --name ${lm_exp}/train.log" \
+                --cmd "${cuda_cmd} --name ${jobname}" \
                 --log "${lm_exp}"/train.log \
                 --ngpu "${ngpu}" \
                 --num_nodes "${num_nodes}" \
@@ -918,9 +924,15 @@ if ! "${skip_train}"; then
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
         log "ASR training started... log: '${asr_exp}/train.log'"
+        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+            # SGE can't include "/" in a job name
+            jobname="$(basename ${asr_exp})"
+        else
+            jobname="${asr_exp}/train.log"
+        fi
         # shellcheck disable=SC2086
         python3 -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${asr_exp}/train.log" \
+            --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${asr_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
