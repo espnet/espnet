@@ -213,3 +213,7 @@ if ! [ -x "$(command -v bats)" ]; then
     git clone https://github.com/bats-core/bats-core.git
 fi
 bats test_utils/integration_test_*.bats
+
+echo "=== report ==="
+
+coverage report
