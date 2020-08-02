@@ -11,6 +11,7 @@ fi
 . ./path.sh
 
 # general configuration
+python=python3
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
@@ -228,8 +229,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     n_unks=$(grep tokenid ${feat_align_dir}/data.json | \
                 sed -e 's/.*: "\(.*\)".*/\1/' | \
                 awk -v unk_id=${unk_id} '
-                    BEGIN{cnt=0} 
-                    {for (i=1;i<=NF;i++) {if ($i==unk_id) {cnt+=1}}} 
+                    BEGIN{cnt=0}
+                    {for (i=1;i<=NF;i++) {if ($i==unk_id) {cnt+=1}}}
                     END{print cnt}
                 '
             )
@@ -244,7 +245,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     feat_align_dir=${align_dir}/dump
 
     ${decode_cmd} ${align_dir}/log/align.log \
-        asr_ctc_align.py \
+        ${python} -m espnet.bin.asr_ctc_align \
         --config ${align_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
