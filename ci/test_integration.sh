@@ -136,21 +136,22 @@ cd "${cwd}" || exit 1
 
 # [ESPnet2] test asr recipe
 cd ./egs2/mini_an4/asr1 || exit 1
+ln -sf ${cwd}/.coverage .
 echo "==== [ESPnet2] ASR ==="
 ./run.sh --stage 1 --stop-stage 1
 feats_types="raw fbank_pitch"
 token_types="bpe char"
 for t in ${feats_types}; do
-    ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}"
+    ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
 done
 for t in ${token_types}; do
-    ./run.sh --stage 5 --stop-stage 5 --token-type "${t}"
+    ./run.sh --stage 5 --stop-stage 5 --token-type "${t}" --python "${python}"
 done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
         ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
-            --asr-args "--max_epoch=1" --lm-args "--max_epoch=1"
+            --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --python "${python}"
     done
 done
 # Remove generated files in order to reduce the disk usage
@@ -159,12 +160,13 @@ cd "${cwd}" || exit 1
 
 # [ESPnet2] test tts recipe
 cd ./egs2/mini_an4/tts1 || exit 1
+ln -sf ${cwd}/.coverage .
 echo "==== [ESPnet2] TTS ==="
-./run.sh --stage 1 --stop-stage 1
+./run.sh --stage 1 --stop-stage 1 --python "${python}"
 feats_types="raw fbank stft"
 for t in ${feats_types}; do
     echo "==== feats_type=${t} ==="
-    ./run.sh --ngpu 0 --stage 2 --stop-stage 8 --skip-upload false --feats-type "${t}" --train-args "--max_epoch 1"
+    ./run.sh --ngpu 0 --stage 2 --stop-stage 8 --skip-upload false --feats-type "${t}" --train-args "--max_epoch 1" --python "${python}"
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -173,12 +175,13 @@ cd "${cwd}" || exit 1
 # [ESPnet2] test enh recipe
 if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/enh1 || exit 1
+    ln -sf ${cwd}/.coverage .
     echo "==== [ESPnet2] ENH ==="
-    ./run.sh --stage 1 --stop-stage 1
+    ./run.sh --stage 1 --stop-stage 1 --python "${python}"
     feats_types="raw"
     for t in ${feats_types}; do
         echo "==== feats_type=${t} ==="
-        ./run.sh --ngpu 0 --stage 2 --stop-stage 9 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1"
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 9 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1" --python "${python}"
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data

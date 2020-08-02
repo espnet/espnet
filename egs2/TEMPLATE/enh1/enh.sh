@@ -36,6 +36,7 @@ dumpdir=dump     # Directory to dump features.
 inference_nj=32     # The number of parallel jobs in decoding.
 gpu_inference=false # Whether to perform gpu decoding.
 expdir=exp       # Directory to save experiments.
+python=python3       # Specify python to execute espnet commands
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -96,6 +97,7 @@ Options:
     --gpu_inference # Whether to use gpu for inference (default="${gpu_inference}").
     --dumpdir       # Directory to dump features (default="${dumpdir}").
     --expdir        # Directory to save experiments (default="${expdir}").
+    --python         # Specify python to execute espnet commands (default="${python}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -411,7 +413,7 @@ if ! "${skip_train}"; then
 
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            python3 -m espnet2.bin.enh_train \
+            ${python} -m espnet2.bin.enh_train \
                 --collect_stats true \
                 --use_preprocessor true \
                 ${_train_data_param} \
@@ -427,7 +429,7 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         # shellcheck disable=SC2086
-        python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
 
     fi
 
@@ -493,14 +495,14 @@ if ! "${skip_train}"; then
             jobname="${enh_exp}/train.log"
         fi
         # shellcheck disable=SC2086
-        python3 -m espnet2.bin.launch \
+        ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${enh_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${enh_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            python3 -m espnet2.bin.enh_train \
+            ${python} -m espnet2.bin.enh_train \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 ${_train_shape_param} \
@@ -553,7 +555,7 @@ if ! "${skip_eval}"; then
             log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
-                python3 -m espnet2.bin.enh_inference \
+                ${python} -m espnet2.bin.enh_inference \
                     --ngpu "${_ngpu}" \
                     --fs "${fs}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
@@ -616,7 +618,7 @@ if ! "${skip_eval}"; then
             log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
-                python3 -m espnet2.bin.enh_scoring \
+                ${python} -m espnet2.bin.enh_scoring \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_ref_scp} \
@@ -652,7 +654,7 @@ if ! "${skip_upload}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Pack model: ${packed_model}"
 
-        python3 -m espnet2.bin.pack enh \
+        ${python} -m espnet2.bin.pack enh \
             --train_config "${enh_exp}"/config.yaml \
             --model_file "${enh_exp}"/"${inference_model}" \
             --option "${enh_exp}"/RESULTS.TXT \
