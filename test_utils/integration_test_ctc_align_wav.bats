@@ -23,6 +23,7 @@ setup() {
     echo "batchsize: 0" > ${tmpdir}/align.yaml
 
     ../../../utils/ctc_align_wav.sh \
+        --python "coverage run --append" \
         --stop-stage 2 \
         --models ${model} \
         --align_dir ${tmpdir} \

@@ -7,6 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
+python=python3
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
@@ -149,7 +150,7 @@ mkdir -p ${expdir}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        mt_train.py \
+        ${python} -m espnet.bin.mt_train \
         --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -179,7 +180,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            mt_trans.py \
+            ${python} -m espnet.bin.mt_trans \
             --config ${decode_config} \
             --ngpu ${decode_ngpu} \
             --backend ${backend} \
