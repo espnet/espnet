@@ -99,6 +99,7 @@ class TasNet(AbsEnhancement):
         norm_type: str = "gLN",
         causal: bool = False,
         mask_nonlinear: str = "relu",
+        loss_type: str = "si_snr",
     ):
         """Main tasnet class.
 
@@ -131,6 +132,10 @@ class TasNet(AbsEnhancement):
             R,
             num_spk,
         )
+        self.loss_type = loss_type
+        if loss_type != "si_snr":
+            raise ValueError("Unsupported loss type: %s" % loss_type)
+
         self.norm_type = norm_type
         self.causal = causal
         self.mask_nonlinear = mask_nonlinear

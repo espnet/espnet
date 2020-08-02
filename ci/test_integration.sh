@@ -157,6 +157,20 @@ done
 rm -rf exp dump data
 cd "${cwd}" || exit 1
 
+# [ESPnet2] test enh recipe
+if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
+    cd ./egs2/mini_an4/enh1 || exit 1
+    echo "==== [ESPnet2] ENH ==="
+    ./run.sh --stage 1 --stop-stage 1
+    feats_types="raw"
+    for t in ${feats_types}; do
+        echo "==== feats_type=${t} ==="
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 9 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1"
+    done
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}" || exit 1
+fi
 
 # TODO(karita): test mt, st?
 
@@ -173,6 +187,9 @@ if python3 -c 'import torch as t; from distutils.version import LooseVersion as 
     done
     for f in egs2/*/tts1/conf/train*.yaml; do
         python3 -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
+    done
+    for f in egs2/*/enh1/conf/train*.yaml; do
+        python -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
     done
 fi
 

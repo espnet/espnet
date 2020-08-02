@@ -11,7 +11,7 @@ sample_rate=8k
 
 train_set=tr_spatialized_anechoic_multich
 valid_set=cv_spatialized_anechoic_multich
-test_sets="cv_spatialized_anechoic_multich tt_spatialized_anechoic_multich "
+test_sets="tt_spatialized_anechoic_multich"
 
 ./enh.sh \
     --train_set "${train_set}" \
@@ -23,4 +23,5 @@ test_sets="cv_spatialized_anechoic_multich tt_spatialized_anechoic_multich "
     --enh_config ./conf/tuning/train_enh_beamformer_no_wpe.yaml \
     --use_dereverb_ref false \
     --use_noise_ref false \
+    --inference_model "valid.loss.best.pth" \
     "$@"

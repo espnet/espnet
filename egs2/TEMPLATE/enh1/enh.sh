@@ -72,9 +72,9 @@ scoring_protocol="STOI SDR SAR SIR"
 ref_channel=0
 
 # [Task dependent] Set the datadir name created by local/data.sh
-train_set=     # Name of training set.
+train_set=       # Name of training set.
 valid_set=       # Name of development set.
-test_sets=     # Names of evaluation sets. Multiple items can be specified.
+test_sets=       # Names of evaluation sets. Multiple items can be specified.
 enh_speech_fold_length=800 # fold_length for speech data during enhancement training
 lang=noinfo      # The language type of corpus
 
@@ -229,7 +229,7 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
-        log "Stage 3: Format wav.scp: data/ -> ${data_feats}/org/"
+        log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
 
         # ====== Recreating "wav.scp" ======
         # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
@@ -240,8 +240,13 @@ if ! "${skip_data_prep}"; then
         # i.e. the input file format and rate is same as the output.
 
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
-            rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 # "segments" is used for splitting wav files which are written in "wav".scp
@@ -271,11 +276,11 @@ if ! "${skip_data_prep}"; then
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --out-filename "${spk}.scp" \
                     --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                    "data/${dset}/${spk}.scp" "${data_feats}/org/${dset}" \
-                    "${data_feats}/org/${dset}/logs/${spk}" "${data_feats}/org/${dset}/data/${spk}"
+                    "data/${dset}/${spk}.scp" "${data_feats}${_suf}/${dset}" \
+                    "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
 
             done
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
 
         done
     fi
@@ -634,6 +639,7 @@ if ! "${skip_eval}"; then
                     END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
             done
         done
+        ./scripts/utils/show_enh_score.sh ${enh_exp} > "${enh_exp}/RESULTS.TXT"
 
     fi
 else
@@ -646,9 +652,10 @@ if ! "${skip_upload}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Pack model: ${packed_model}"
 
-        python -m espnet2.bin.pack tts \
+        python3 -m espnet2.bin.pack enh \
             --train_config "${enh_exp}"/config.yaml \
             --model_file "${enh_exp}"/"${inference_model}" \
+            --option "${enh_exp}"/RESULTS.TXT \
             --option "${enh_stats_dir}"/train/feats_stats.npz  \
             --outpath "${packed_model}"
     fi
