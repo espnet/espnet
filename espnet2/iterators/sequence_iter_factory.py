@@ -34,10 +34,7 @@ class SequenceIterFactory(AbsIterFactory):
 
         self.batches = list(batches)
         self.dataset = dataset
-        if num_iters_per_epoch is not None and num_iters_per_epoch < len(batches):
-            self.num_iters_per_epoch = num_iters_per_epoch
-        else:
-            self.num_iters_per_epoch = None
+        self.num_iters_per_epoch = num_iters_per_epoch
         self.shuffle = shuffle
         self.seed = seed
         self.num_workers = num_workers
@@ -51,29 +48,61 @@ class SequenceIterFactory(AbsIterFactory):
 
         if self.num_iters_per_epoch is not None:
             N = len(self.batches)
-            real_epoch, offset = divmod(self.num_iters_per_epoch * epoch, N)
+            # If corpus size is larger than the num_per_epoch
+            if self.num_iters_per_epoch < N:
+                N = len(self.batches)
+                real_epoch, offset = divmod(self.num_iters_per_epoch * epoch, N)
 
-            if offset >= self.num_iters_per_epoch:
-                current_batches = list(self.batches)
-                if shuffle:
-                    np.random.RandomState(real_epoch + self.seed).shuffle(
-                        current_batches
+                if offset >= self.num_iters_per_epoch:
+                    current_batches = list(self.batches)
+                    if shuffle:
+                        np.random.RandomState(real_epoch + self.seed).shuffle(
+                            current_batches
+                        )
+                    batches = current_batches[
+                        offset - self.num_iters_per_epoch : offset
+                    ]
+                else:
+                    prev_batches = list(self.batches)
+                    current_batches = list(self.batches)
+                    if shuffle:
+                        np.random.RandomState(real_epoch - 1 + self.seed).shuffle(
+                            prev_batches
+                        )
+                        np.random.RandomState(real_epoch + self.seed).shuffle(
+                            current_batches
+                        )
+                    batches = (
+                        prev_batches[offset - self.num_iters_per_epoch :]
+                        + current_batches[:offset]
                     )
-                batches = current_batches[offset - self.num_iters_per_epoch : offset]
+
+            # If corpus size is less than the num_per_epoch
             else:
-                prev_batches = list(self.batches)
+                _epoch, _cursor = divmod(self.num_iters_per_epoch * (epoch - 1), N)
+                _remain = self.num_iters_per_epoch
+                batches = []
                 current_batches = list(self.batches)
                 if shuffle:
-                    np.random.RandomState(real_epoch - 1 + self.seed).shuffle(
-                        prev_batches
-                    )
-                    np.random.RandomState(real_epoch + self.seed).shuffle(
-                        current_batches
-                    )
-                batches = (
-                    prev_batches[offset - self.num_iters_per_epoch :]
-                    + current_batches[:offset]
-                )
+                    np.random.RandomState(_epoch + self.seed).shuffle(current_batches)
+                while _remain > 0:
+
+                    _batches = current_batches[_cursor : _cursor + _remain]
+                    batches += _batches
+                    if _cursor + _remain >= N:
+                        _epoch += 1
+                        _cursor = 0
+                        current_batches = list(self.batches)
+                        if shuffle:
+                            np.random.RandomState(_epoch + self.seed).shuffle(
+                                current_batches
+                            )
+                    else:
+                        _cursor = _cursor + _remain
+                    _remain -= len(_batches)
+
+                assert len(batches) == self.num_iters_per_epoch
+
         else:
             batches = list(self.batches)
             if shuffle:
