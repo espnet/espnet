@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+touch .coverage
+
 # test asr recipe
 cwd=$(pwd)
 cd ./egs/mini_an4/asr1 || exit 1
