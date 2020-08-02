@@ -217,3 +217,4 @@ bats test_utils/integration_test_*.bats
 echo "=== report ==="
 
 coverage report
+coverage xml
