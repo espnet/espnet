@@ -39,6 +39,7 @@ inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
+python=python3       # Specify python to execute espnet commands
 
 # Data preparation related
 local_data_opts="" # Options to be passed to local/data.sh.
@@ -119,6 +120,7 @@ Options:
     --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
+    --python         # Specify python to execute espnet commands (default="${python}").
 
     # Data prep related
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
@@ -418,7 +420,7 @@ if ! "${skip_data_prep}"; then
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
 
-        python3 -m espnet2.bin.tokenize_text \
+        ${python} -m espnet2.bin.tokenize_text \
               --token_type "${token_type}" -f 2- \
               --input "${data_feats}/srctexts" --output "${token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
@@ -516,7 +518,7 @@ if ! "${skip_train}"; then
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            python3 -m espnet2.bin.tts_train \
+            ${python} -m espnet2.bin.tts_train \
                 --collect_stats true \
                 --write_collected_feats "${write_collected_feats}" \
                 --use_preprocessor true \
@@ -542,7 +544,7 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
-        python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
         <"${tts_stats_dir}/train/text_shape" \
@@ -602,7 +604,7 @@ if ! "${skip_train}"; then
                 _split_dir="${tts_stats_dir}/splits${num_splits}"
                 if [ ! -f "${_split_dir}/.done" ]; then
                     rm -f "${_split_dir}/.done"
-                    python3 -m espnet2.bin.split_scps \
+                    ${python} -m espnet2.bin.split_scps \
                       --scps \
                           "${_train_dir}/text" \
                           "${_train_dir}/${_scp}" \
@@ -729,14 +731,14 @@ if ! "${skip_train}"; then
             jobname="${tts_exp}/train.log"
         fi
         # shellcheck disable=SC2086
-        python3 -m espnet2.bin.launch \
+        ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${tts_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${tts_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            python3 -m espnet2.bin.tts_train \
+            ${python} -m espnet2.bin.tts_train \
                 --use_preprocessor true \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \
@@ -860,7 +862,7 @@ if ! "${skip_eval}"; then
             log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
-                python3 -m espnet2.bin.tts_inference \
+                ${python} -m espnet2.bin.tts_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/text,text,text" \
                     --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
@@ -918,7 +920,7 @@ if ! "${skip_upload}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
 
-        python3 -m espnet2.bin.pack tts \
+        ${python} -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
             --model_file "${tts_exp}"/"${inference_model}" \
             --option ${tts_stats_dir}/train/feats_stats.npz  \
