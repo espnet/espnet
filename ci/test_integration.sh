@@ -3,6 +3,7 @@
 # test asr recipe
 cwd=$(pwd)
 cd ./egs/mini_an4/asr1 || exit 1
+ln -sf ../../../.coverage .
 . path.sh  # source here to avoid undefined variable errors
 
 set -euo pipefail
@@ -69,6 +70,8 @@ cd ${cwd} || exit 1
 
 # test asr_mix recipe
 cd ./egs/mini_an4/asr_mix1 || exit 1
+ln -sf ../../../.coverage .
+
 echo "==== ASR Mix (backend=pytorch, model=rnn) ==="
 ./run.sh --train-config conf/train_multispkr.yaml
 echo "==== ASR Mix (backend=pytorch, model=transformer) ==="
@@ -79,6 +82,8 @@ cd "${cwd}" || exit 1
 
 # test st recipe
 cd ./egs/mini_an4/st1 || exit 1
+ln -sf ../../../.coverage .
+
 echo "==== ST (backend=pytorch) ==="
 ./run.sh
 echo "==== ST (backend=pytorch asr0.3) ==="
@@ -105,6 +110,8 @@ cd "${cwd}" || exit 1
 
 # test mt recipe
 cd ./egs/mini_an4/mt1 || exit 1
+ln -sf ../../../.coverage .
+
 echo "==== MT (backend=pytorch) ==="
 ./run.sh
 echo "==== MT (backend=pytorch, model=transformer) ==="
@@ -115,6 +122,8 @@ cd "${cwd}" || exit 1
 
 # test tts recipe
 cd ./egs/mini_an4/tts1 || exit 1
+ln -sf ../../../.coverage .
+
 echo "==== TTS (backend=pytorch) ==="
 ./run.sh
 # Remove generated files in order to reduce the disk usage
@@ -156,9 +165,6 @@ done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}" || exit 1
-
-
-# TODO(karita): test mt, st?
 
 
 # [ESPnet2] Validate configuration files

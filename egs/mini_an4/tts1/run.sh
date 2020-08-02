@@ -156,7 +156,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        tts_train.py \
+        coverage run --append -m espnet.bin.tts_train \
            --backend ${backend} \
            --ngpu ${ngpu} \
            --minibatches ${N} \
@@ -190,7 +190,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
-            tts_decode.py \
+            coverage run --append -m espnet.bin.tts_decode \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
