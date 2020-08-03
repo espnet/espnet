@@ -94,6 +94,20 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         self.blank = blank
 
+    def init_state(self, init_tensor=None):
+        """Initialize decoder states.
+
+        Args:
+            init_tensor (torch.Tensor): input features (B, dec_dim)
+
+        Returns:
+            state (torch.Tensor): list of L decoder states (None)
+
+        """
+        state = [None] * len(self.decoders)
+
+        return state
+
     def forward(self, tgt, tgt_mask, memory):
         """Forward transformer-transducer decoder.
 
@@ -141,20 +155,6 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         z = self.lin_out(z)
 
         return z
-
-    def init_state(self, init_tensor=None):
-        """Initialize decoder states.
-
-        Args:
-            init_tensor (torch.Tensor): input features (B, dec_dim)
-
-        Returns:
-            state (torch.Tensor): list of L decoder states (None)
-
-        """
-        state = [None] * len(self.decoders)
-
-        return state
 
     def score(self, hyp, init_tensor=None):
         """Forward one step.

@@ -13,7 +13,6 @@ from espnet.nets.asr_interface import ASRInterface
 
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
@@ -557,12 +556,14 @@ class E2E(ASRInterface, torch.nn.Module):
         ilens = [x.shape[0]]
 
         x = x[:: self.subsample[0], :]
-        h = to_device(self, to_torch_tensor(x).float())
+        p = next(self.parameters())
+        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
+
         hs = h.contiguous().unsqueeze(0)
 
-        h, _, _ = self.enc(hs, ilens)
+        hs, _, _ = self.enc(hs, ilens)
 
-        return h[0]
+        return hs.squeeze(0)
 
     def recognize(self, x, recog_args, char_list=None, rnnlm=None):
         """Recognize input features.

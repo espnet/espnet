@@ -74,37 +74,39 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """Initialize decoder states.
 
         Args:
-            ey (torch.Tensor): batch of input features (B, Emb_dim)
+            ey (torch.Tensor): batch of input features (B, emb_dim / dec_dim)
 
         Returns:
-            (list): list of L zero-init hidden and cell state (B, dec_dim)
+            (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
 
         """
-        z_list = [ey.new_zeros(ey.size(0), self.dunits)]
-        c_list = [ey.new_zeros(ey.size(0), self.dunits)]
-
-        for _ in range(1, self.dlayers):
-            z_list.append(ey.new_zeros(ey.size(0), self.dunits))
-            c_list.append(ey.new_zeros(ey.size(0), self.dunits))
+        z_list = [
+            to_device(self, torch.zeros(ey.size(0), self.dunits))
+            for _ in range(self.dlayers)
+        ]
+        c_list = [
+            to_device(self, torch.zeros(ey.size(0), self.dunits))
+            for _ in range(self.dlayers)
+        ]
 
         return (z_list, c_list)
 
-    def rnn_forward(self, ey, dstate):
+    def rnn_forward(self, ey, state):
         """RNN forward.
 
         Args:
-            ey (torch.Tensor): batch of input features (B, Emb_dim)
-            dstate (list): list of L input hidden and cell state (B, dec_dim)
+            ey (torch.Tensor): batch of input features (B, emb_dim)
+            (tuple): (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
 
         Returns:
             output (torch.Tensor): batch of output features (B, dec_dim)
-            dstate (list): list of L output hidden and cell state (B, dec_dim)
+            (tuple): (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
 
         """
-        if dstate is None:
+        if state is None:
             z_prev, c_prev = self.init_state(ey)
         else:
-            z_prev, c_prev = dstate
+            z_prev, c_prev = state
 
         z_list, c_list = self.init_state(ey)
 
@@ -157,12 +159,12 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """
         olength = ys_in_pad.size(1)
 
-        z_list, c_list = self.init_state(hs_pad)
+        state = self.init_state(hs_pad)
         eys = self.dropout_embed(self.embed(ys_in_pad))
 
         z_all = []
         for i in range(olength):
-            y, (z_list, c_list) = self.rnn_forward(eys[:, i, :], (z_list, c_list))
+            y, state = self.rnn_forward(eys[:, i, :], state)
             z_all.append(y)
         h_dec = torch.stack(z_all, dim=1)
 
@@ -238,10 +240,10 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 ((L x (1, dec_dim), (L x (1, dec_dim)), None)
 
         """
-        zlist = [state[0][0][layer][idx] for layer in range(self.dlayers)]
-        clist = [state[0][1][layer][idx] for layer in range(self.dlayers)]
+        z_list = [state[0][0][layer][idx] for layer in range(self.dlayers)]
+        c_list = [state[0][1][layer][idx] for layer in range(self.dlayers)]
 
-        return ((zlist, clist), None)
+        return ((z_list, c_list), None)
 
     def create_batch_state(self, state, hyps):
         """Create batch of decoder states.

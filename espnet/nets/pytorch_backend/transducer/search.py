@@ -551,7 +551,7 @@ def search_interface(decoder, h, recog_args, rnnlm):
     if hasattr(decoder, "att"):
         decoder.att[0].reset()
 
-    if recog_args.beam_size == 1:
+    if recog_args.beam_size <= 1:
         nbest_hyps = greedy_search(decoder, h, recog_args)
     elif recog_args.search_type == "default":
         nbest_hyps = default_beam_search(decoder, h, recog_args, rnnlm)

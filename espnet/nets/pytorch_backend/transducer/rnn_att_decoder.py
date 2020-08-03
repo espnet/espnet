@@ -80,37 +80,38 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         """Initialize decoder states.
 
         Args:
-            ey (torch.Tensor): batch of input features (B, (emb_dim + eprojs))
+            ey (torch.Tensor): batch of input features (B, (emb_dim + eprojs) / dec_dim)
 
         Return:
-            z_list : list of L zero-init hidden state (B, dec_dim)
-            c_list : list of L zero-init cell state (B, dec_dim)
+            (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
 
         """
-        z_list = [ey.new_zeros(ey.size(0), self.dunits)]
-        c_list = [ey.new_zeros(ey.size(0), self.dunits)]
+        z_list = [
+            to_device(self, torch.zeros(ey.size(0), self.dunits))
+            for _ in range(self.dlayers)
+        ]
+        c_list = [
+            to_device(self, torch.zeros(ey.size(0), self.dunits))
+            for _ in range(self.dlayers)
+        ]
 
-        for _ in range(1, self.dlayers):
-            z_list.append(ey.new_zeros(ey.size(0), self.dunits))
-            c_list.append(ey.new_zeros(ey.size(0), self.dunits))
+        return (z_list, c_list)
 
-        return z_list, c_list
-
-    def rnn_forward(self, ey, dstate):
+    def rnn_forward(self, ey, state):
         """RNN forward.
 
         Args:
             ey (torch.Tensor): batch of input features (B, (emb_dim + eprojs))
-            dstate (list): list of L input hidden and cell state (B, dec_dim)
+            state (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
         Returns:
             y (torch.Tensor): decoder output for one step (B, dec_dim)
-            (list): list of L output hidden and cell state (B, dec_dim)
+            (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
 
         """
-        if dstate is None:
+        if state is None:
             z_prev, c_prev = self.init_state(ey)
         else:
-            z_prev, c_prev = dstate
+            z_prev, c_prev = state
 
         z_list, c_list = self.init_state(ey)
 
@@ -167,18 +168,18 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         att_w = None
         self.att[0].reset()
 
-        z_list, c_list = self.init_state(hs_pad)
+        state = self.init_state(hs_pad)
         eys = self.dropout_emb(self.embed(ys_in_pad))
 
         z_all = []
         for i in range(olength):
             att_c, att_w = self.att[0](
-                hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w
+                hs_pad, hlens, self.dropout_dec[0](state[0][0]), att_w
             )
 
             ey = torch.cat((eys[:, i, :], att_c), dim=1)
 
-            y, (z_list, c_list) = self.rnn_forward(ey, (z_list, c_list))
+            y, state = self.rnn_forward(ey, state)
             z_all.append(y)
 
         h_dec = torch.stack(z_all, dim=1)
@@ -269,12 +270,12 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
                 ((L x (1, dec_dim), (L x (1, dec_dim)), (1, max_len))
 
         """
-        zlist = [state[0][0][layer][idx] for layer in range(self.dlayers)]
-        clist = [state[0][1][layer][idx] for layer in range(self.dlayers)]
+        z_list = [state[0][0][layer][idx] for layer in range(self.dlayers)]
+        c_list = [state[0][1][layer][idx] for layer in range(self.dlayers)]
 
         att_state = state[1][idx] if state[1] is not None else state[1]
 
-        return ((zlist, clist), att_state)
+        return ((z_list, c_list), att_state)
 
     def create_batch_state(self, state, hyps):
         """Create batch of decoder and attention states.
@@ -327,14 +328,14 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         self.att[0].reset()
 
         eys = self.embed(ys_in_pad)
-        z_list, c_list = self.init_state(eys)
+        state = self.init_state(eys)
 
         for i in range(olength):
             att_c, att_w = self.att[0](
-                hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w
+                hs_pad, hlens, self.dropout_dec[0](state[0][0]), att_w
             )
             ey = torch.cat((eys[:, i, :], att_c), dim=1)
-            _, (z_list, c_list) = self.rnn_forward(ey, (z_list, c_list))
+            _, state = self.rnn_forward(ey, state)
 
             att_ws.append(att_w)
 
