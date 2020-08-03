@@ -9,6 +9,7 @@ early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
 epochs: 1
+report-interval-iters: 1
 accum-grad: 1
 patience: 0
 transformer-lr: 5.0
