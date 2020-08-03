@@ -111,6 +111,7 @@ def get_parser():
         "--metric",
         default="",
         type=str,
+        nargs="?",
         choices=["acc", "bleu", "cer_ctc", "loss", "perplexity"],
     )
     return parser
