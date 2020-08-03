@@ -1,7 +1,6 @@
 MAIN_ROOT=$PWD/../../..
 KALDI_ROOT=$MAIN_ROOT/tools/kaldi
 
-[ -f $KALDI_ROOT/tools/env.sh ] && . $KALDI_ROOT/tools/env.sh
 export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin:$PWD:$PATH
 [ ! -f $KALDI_ROOT/tools/config/common_path.sh ] && echo >&2 "The standard file $KALDI_ROOT/tools/config/common_path.sh is not present -> Exit!" && exit 1
 . $KALDI_ROOT/tools/config/common_path.sh
@@ -15,7 +14,7 @@ export OMP_NUM_THREADS=1
 export PYTHONIOENCODING=UTF-8
 
 # check extra module installation
-if ! python -c "import underthesea" > /dev/null; then
+if ! python3 -c "import underthesea" > /dev/null; then
     echo "Error: underthesea is not installed." >&2
     echo "Error: please install underthesea:" >&2
     echo "Error: . ./path.sh && pip install underthesea" >&2

@@ -36,6 +36,7 @@ dumpdir=dump     # Directory to dump features.
 inference_nj=32     # The number of parallel jobs in decoding.
 gpu_inference=false # Whether to perform gpu decoding.
 expdir=exp       # Directory to save experiments.
+python=python3       # Specify python to execute espnet commands
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -72,9 +73,9 @@ scoring_protocol="STOI SDR SAR SIR"
 ref_channel=0
 
 # [Task dependent] Set the datadir name created by local/data.sh
-train_set=     # Name of training set.
+train_set=       # Name of training set.
 valid_set=       # Name of development set.
-test_sets=     # Names of evaluation sets. Multiple items can be specified.
+test_sets=       # Names of evaluation sets. Multiple items can be specified.
 enh_speech_fold_length=800 # fold_length for speech data during enhancement training
 lang=noinfo      # The language type of corpus
 
@@ -96,6 +97,7 @@ Options:
     --gpu_inference # Whether to use gpu for inference (default="${gpu_inference}").
     --dumpdir       # Directory to dump features (default="${dumpdir}").
     --expdir        # Directory to save experiments (default="${expdir}").
+    --python         # Specify python to execute espnet commands (default="${python}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -229,7 +231,7 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
-        log "Stage 3: Format wav.scp: data/ -> ${data_feats}/org/"
+        log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
 
         # ====== Recreating "wav.scp" ======
         # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
@@ -240,8 +242,13 @@ if ! "${skip_data_prep}"; then
         # i.e. the input file format and rate is same as the output.
 
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}/org/${dset}"
-            rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel}
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 # "segments" is used for splitting wav files which are written in "wav".scp
@@ -271,11 +278,11 @@ if ! "${skip_data_prep}"; then
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --out-filename "${spk}.scp" \
                     --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                    "data/${dset}/${spk}.scp" "${data_feats}/org/${dset}" \
-                    "${data_feats}/org/${dset}/logs/${spk}" "${data_feats}/org/${dset}/data/${spk}"
+                    "data/${dset}/${spk}.scp" "${data_feats}${_suf}/${dset}" \
+                    "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
 
             done
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
 
         done
     fi
@@ -406,7 +413,7 @@ if ! "${skip_train}"; then
 
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            python3 -m espnet2.bin.enh_train \
+            ${python} -m espnet2.bin.enh_train \
                 --collect_stats true \
                 --use_preprocessor true \
                 ${_train_data_param} \
@@ -422,7 +429,7 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         # shellcheck disable=SC2086
-        python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
 
     fi
 
@@ -481,15 +488,21 @@ if ! "${skip_train}"; then
 
 
         log "enh training started... log: '${enh_exp}/train.log'"
+        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+            # SGE can't include "/" in a job name
+            jobname="$(basename ${enh_exp})"
+        else
+            jobname="${enh_exp}/train.log"
+        fi
         # shellcheck disable=SC2086
-        python3 -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${enh_exp}/train.log" \
+        ${python} -m espnet2.bin.launch \
+            --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${enh_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${enh_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            python3 -m espnet2.bin.enh_train \
+            ${python} -m espnet2.bin.enh_train \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 ${_train_shape_param} \
@@ -542,7 +555,7 @@ if ! "${skip_eval}"; then
             log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
-                python3 -m espnet2.bin.enh_inference \
+                ${python} -m espnet2.bin.enh_inference \
                     --ngpu "${_ngpu}" \
                     --fs "${fs}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
@@ -605,7 +618,7 @@ if ! "${skip_eval}"; then
             log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
-                python3 -m espnet2.bin.enh_scoring \
+                ${python} -m espnet2.bin.enh_scoring \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_ref_scp} \
@@ -628,6 +641,7 @@ if ! "${skip_eval}"; then
                     END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
             done
         done
+        ./scripts/utils/show_enh_score.sh ${enh_exp} > "${enh_exp}/RESULTS.TXT"
 
     fi
 else
@@ -640,9 +654,10 @@ if ! "${skip_upload}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Pack model: ${packed_model}"
 
-        python -m espnet2.bin.pack tts \
+        ${python} -m espnet2.bin.pack enh \
             --train_config "${enh_exp}"/config.yaml \
             --model_file "${enh_exp}"/"${inference_model}" \
+            --option "${enh_exp}"/RESULTS.TXT \
             --option "${enh_stats_dir}"/train/feats_stats.npz  \
             --outpath "${packed_model}"
     fi

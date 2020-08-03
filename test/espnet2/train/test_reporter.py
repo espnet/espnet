@@ -12,6 +12,11 @@ from espnet2.train.reporter import Average
 from espnet2.train.reporter import ReportedValue
 from espnet2.train.reporter import Reporter
 
+if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
+    from torch.utils.tensorboard import SummaryWriter
+else:
+    from tensorboardX import SummaryWriter
+
 
 @pytest.mark.parametrize("weight1,weight2", [(None, None), (19, np.array(9))])
 def test_register(weight1, weight2):
@@ -23,7 +28,6 @@ def test_register(weight1, weight2):
             "int": 6,
             "np": np.random.random(),
             "torch": torch.rand(1),
-            "none": None,
         }
         sub.register(stats1, weight1)
         stats2 = {
@@ -31,7 +35,6 @@ def test_register(weight1, weight2):
             "int": 100,
             "np": np.random.random(),
             "torch": torch.rand(1),
-            "none": None,
         }
         sub.register(stats2, weight2)
         assert sub.get_epoch() == 1
@@ -171,7 +174,7 @@ def test_check_early_stopping():
     assert results == [False, False, False, True]
 
 
-def test_logging():
+def test_logging(tmp_path):
     reporter = Reporter()
     key1 = uuid.uuid4().hex
     key2 = uuid.uuid4().hex
@@ -180,6 +183,7 @@ def test_logging():
         {"aa": 0.5, "bb": 3.0},
         {"aa": 0.2, "bb": 3.0},
     ]
+    writer = SummaryWriter(tmp_path)
     for e in range(len(stats_list)):
         reporter.set_epoch(e + 1)
         with reporter.observe(key1) as sub:
@@ -187,10 +191,21 @@ def test_logging():
         with reporter.observe(key2) as sub:
             sub.register(stats_list[e])
             logging.info(sub.log_message())
+            logging.info(sub.log_message(-1))
+            logging.info(sub.log_message(0, 1))
+            sub.tensorboard_add_scalar(writer, -1)
         with pytest.raises(RuntimeError):
             logging.info(sub.log_message())
 
     logging.info(reporter.log_message())
+
+    with reporter.observe(key1) as sub:
+        sub.register({"aa": 0.1, "bb": 0.4})
+        sub.register({"aa": 0.1})
+        with pytest.raises(RuntimeError):
+            logging.info(sub.log_message())
+        with pytest.raises(RuntimeError):
+            sub.tensorboard_add_scalar(writer)
 
 
 def test_has_key():
@@ -263,10 +278,6 @@ def test_tensorboard_add_scalar(tmp_path: Path):
         stats1 = {"aa": 0.6}
         sub.register(stats1)
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-        from torch.utils.tensorboard import SummaryWriter
-    else:
-        from tensorboardX import SummaryWriter
     writer = SummaryWriter(tmp_path)
     reporter.tensorboard_add_scalar(writer)
 

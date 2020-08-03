@@ -40,6 +40,7 @@ requirements = {
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
+        "pyworld>=0.2.10",
         "nnmnkwii",
         "espnet_tts_frontend",
         # ASR frontend related
@@ -85,7 +86,9 @@ try:
         requirements["install"].append("torch_optimizer")
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        pass
+        # Due to https://github.com/pytorch/pytorch/issues/42213,
+        # use torchaudio.functional.istft instead of torch.functional.istft
+        requirements["install"].append("torchaudio==0.6.0")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("torchaudio==0.5.1")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
@@ -113,7 +116,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.8.0",
+    version="0.9.0",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",
