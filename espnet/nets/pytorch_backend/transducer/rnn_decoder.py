@@ -177,7 +177,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def score(self, hyp, init_tensor=None):
+    def score(self, hyp, cache, init_tensor=None):
         """Forward one step.
 
         Args:
@@ -185,6 +185,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
+            cache (dict): cache of pred net.
             (tuple): decoder and attention states
                 ((L x (1, dec_dim), (L x (1, dec_dim)), None)
             lm_tokens (torch.Tensor): input token id for LM (1)
@@ -193,9 +194,15 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         vy = to_device(self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long))
         lm_tokens = vy[0]
 
-        ey = self.embed(vy)
+        str_yseq = "".join([str(x) for x in hyp["yseq"]])
 
-        y, state = self.rnn_forward(ey[0], hyp["dec_state"])
+        if str_yseq in cache:
+            y, state = cache[str_yseq]
+        else:
+            ey = self.embed(vy)
+
+            y, state = self.rnn_forward(ey[0], hyp["dec_state"])
+            cache[str_yseq] = (y, state)
 
         return y, (state, None), lm_tokens
 

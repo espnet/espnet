@@ -481,8 +481,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
         """
         # 1. encoder
+        xs_pad = xs_pad[:, : max(ilens)]
+
         if "transformer" in self.etype:
-            xs_pad = xs_pad[:, : max(ilens)]
             src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
 
             hs_pad, hs_mask = self.encoder(xs_pad, src_mask)

@@ -34,7 +34,9 @@ def greedy_search(decoder, h, recog_args):
         "att_state": None,
     }
 
-    y, state, _ = decoder.score(hyp, init_tensor)
+    cache = {}
+
+    y, state, _ = decoder.score(hyp, cache, init_tensor)
 
     for i, hi in enumerate(h):
         ytu = torch.log_softmax(decoder.joint(hi, y[0]), dim=0)
@@ -47,7 +49,7 @@ def greedy_search(decoder, h, recog_args):
             hyp["dec_state"] = state[0]
             hyp["att_state"] = state[1]
 
-            y, state, _ = decoder.score(hyp, init_tensor)
+            y, state, _ = decoder.score(hyp, cache, init_tensor)
 
     return [hyp]
 
@@ -84,6 +86,8 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
         }
     ]
 
+    cache = {}
+
     for hi in h:
         hyps = kept_hyps
         kept_hyps = []
@@ -92,7 +96,7 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
             new_hyp = max(hyps, key=lambda x: x["score"])
             hyps.remove(new_hyp)
 
-            y, state, lm_tokens = decoder.score(new_hyp, init_tensor)
+            y, state, lm_tokens = decoder.score(new_hyp, cache, init_tensor)
 
             ytu = F.log_softmax(decoder.joint(hi, y[0]), dim=0)
 
@@ -175,6 +179,8 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
         }
     ]
 
+    cache = {}
+
     for hi in h:
         A = []
         C = B
@@ -183,7 +189,7 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
             D = []
 
             for hyp in C:
-                y, state, lm_tokens = decoder.score(hyp, init_tensor)
+                y, state, lm_tokens = decoder.score(hyp, cache, init_tensor)
 
                 ytu = F.log_softmax(decoder.joint(hi, y[0]), dim=0)
 
@@ -277,6 +283,8 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
         }
     ]
 
+    cache = {}
+
     final = []
 
     for i in range(h_length + u_max):
@@ -289,7 +297,7 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
             if t > (h_length - 1):
                 continue
 
-            y, state, lm_tokens = decoder.score(hyp, init_tensor)
+            y, state, lm_tokens = decoder.score(hyp, cache, init_tensor)
 
             ytu = F.log_softmax(decoder.joint(h[t], y[0]), dim=0)
 

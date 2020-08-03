@@ -191,7 +191,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def score(self, hyp, init_tensor):
+    def score(self, hyp, cache, init_tensor):
         """Forward one step.
 
         Args:
@@ -208,18 +208,24 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         vy = to_device(self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long))
         lm_tokens = vy[0]
 
-        ey = self.embed(vy)
+        str_yseq = "".join([str(x) for x in hyp["yseq"]])
 
-        att_c, att_w = self.att[0](
-            init_tensor,
-            [init_tensor.size(1)],
-            hyp["dec_state"][0][0],
-            hyp["att_state"],
-        )
+        if str_yseq in cache:
+            y, (state, att_w) = cache[str_yseq]
+        else:
+            ey = self.embed(vy)
 
-        ey = torch.cat((ey[0], att_c), dim=1)
+            att_c, att_w = self.att[0](
+                init_tensor,
+                [init_tensor.size(1)],
+                hyp["dec_state"][0][0],
+                hyp["att_state"],
+            )
 
-        y, state = self.rnn_forward(ey, hyp["dec_state"])
+            ey = torch.cat((ey[0], att_c), dim=1)
+
+            y, state = self.rnn_forward(ey, hyp["dec_state"])
+            cache[str_yseq] = (y, (state, att_w))
 
         return y, (state, att_w), lm_tokens
 

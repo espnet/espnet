@@ -191,7 +191,44 @@ def pad_sequence(seqlist, pad_token):
     return final
 
 
-def pad_state(state, pred_length, pad_token):
+def check_state(state, max_len, pad_token):
+    """Left pad or trim state according to max_len.
+
+    Args:
+        state (list): list of of L decoder states (in_len, dec_dim)
+        max_len (int): maximum length authorized
+        pad_token (int): padding token id
+
+    Returns:
+        final (list): list of L padded decoder states (1, max_len, dec_dim)
+
+    """
+    if state is None or max_len < 1 or state[0].size(1) == max_len:
+        return state
+
+    curr_len = state[0].size(1)
+
+    if curr_len > max_len:
+        trim_val = int(state[0].size(1) - max_len)
+
+        for i, s in enumerate(state):
+            state[i] = s[:, trim_val:, :]
+    else:
+        layers = len(state)
+        ddim = state[0].size(2)
+
+        final_dims = (1, max_len, ddim)
+        final = [state[0].data.new(*final_dims).fill_(pad_token) for _ in range(layers)]
+
+        for i, s in enumerate(state):
+            final[i][:, (max_len - s.size(1)) : max_len, :] = s
+
+        return final
+
+    return state
+
+
+def pad_batch_state(state, pred_length, pad_token):
     """Left pad batch of states and trim if necessary.
 
     Args:

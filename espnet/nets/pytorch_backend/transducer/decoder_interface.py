@@ -27,12 +27,14 @@ class TransducerDecoderInterface:
     def score(
         self,
         hyp: Dict[str, Union[float, List, torch.Tensor, None]],
+        cache: Dict[str, Tuple[Any]],
         init_tensor: torch.Tensor = None,
     ) -> Union[Tuple[Any], torch.Tensor]:
         """Forward one step.
 
         Args:
             hyp: hypothese
+            cache: pairs of (y, state) for each token sequence (key)
             init_tensor: initial tensor for attention decoder
 
         Returns:

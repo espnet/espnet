@@ -11,8 +11,9 @@ from espnet.nets.pytorch_backend.transducer.decoder_interface import (
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     DecoderLayer,  # noqa: H301
 )
+from espnet.nets.pytorch_backend.transducer.utils import check_state
+from espnet.nets.pytorch_backend.transducer.utils import pad_batch_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
-from espnet.nets.pytorch_backend.transducer.utils import pad_state
 
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -156,7 +157,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def score(self, hyp, init_tensor=None):
+    def score(self, hyp, cache, init_tensor=None):
         """Forward one step.
 
         Args:
@@ -171,23 +172,32 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """
         tgt = to_device(self, torch.tensor(hyp["yseq"]).unsqueeze(0))
         lm_tokens = tgt[:, -1]
-        tgt_mask = to_device(self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0))
 
-        state = hyp["dec_state"]
+        str_yseq = "".join([str(x) for x in hyp["yseq"]])
 
-        tgt = self.embed(tgt)
-
-        new_state = []
-        for s, decoder in zip(state, self.decoders):
-            tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
-            new_state.append(tgt)
-
-        if self.normalize_before:
-            tgt = self.after_norm(tgt[:, -1])
+        if str_yseq in cache:
+            y, new_state = cache[str_yseq]
         else:
-            tgt = tgt[:, -1]
+            tgt_mask = to_device(self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0))
 
-        return tgt, (new_state, None), lm_tokens
+            state = hyp["dec_state"]
+            state = check_state(state, (tgt.size(1) - 1), self.blank)
+
+            tgt = self.embed(tgt)
+
+            new_state = []
+            for s, decoder in zip(state, self.decoders):
+                tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
+                new_state.append(tgt)
+
+            if self.normalize_before:
+                y = self.after_norm(tgt[:, -1])
+            else:
+                y = tgt[:, -1]
+
+            cache[str_yseq] = (y, new_state)
+
+        return y, (new_state, None), lm_tokens
 
     def batch_score(self, hyps, state):
         """Forward batch one step.
@@ -265,7 +275,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         max_length = max([len(h["yseq"]) for h in hyps])
 
         for layer in range(len(self.decoders)):
-            state[0][layer] = pad_state(
+            state[0][layer] = pad_batch_state(
                 [h["dec_state"][layer] for h in hyps], max_length, self.blank
             )
 
