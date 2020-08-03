@@ -96,11 +96,13 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         Args:
             ey (torch.Tensor): batch of input features (B, emb_dim)
-            (tuple): (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
+            (tuple): (tuple): batch of decoder states
+                                (L x (B, dec_dim), L x (B, dec_dim))
 
         Returns:
             output (torch.Tensor): batch of output features (B, dec_dim)
-            (tuple): (tuple): batch of decoder states (L x (B, dec_dim), L x (B, dec_dim))
+            (tuple): (tuple): batch of decoder states
+                                (L x (B, dec_dim), L x (B, dec_dim))
 
         """
         if state is None:
