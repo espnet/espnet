@@ -57,7 +57,7 @@ class EncoderLayer(nn.Module):
         """Compute encoded features.
 
         :param torch.Tensor x: encoded source features (batch, max_time_in, size)
-        :param torch.Tensor mask: mask for x (batch, max_time_in)
+        :param torch.Tensor mask: mask for x (batch, 1, max_time_in)
         :param torch.Tensor cache: cache for x (batch, max_time_in - 1, size)
         :rtype: Tuple[torch.Tensor, torch.Tensor]
         """
@@ -71,7 +71,6 @@ class EncoderLayer(nn.Module):
             assert cache.shape == (x.shape[0], x.shape[1] - 1, self.size)
             x_q = x[:, -1:, :]
             residual = residual[:, -1:, :]
-            mask = None if mask is None else mask[:, -1:, :]
 
         if self.concat_after:
             x_concat = torch.cat((x, self.self_attn(x_q, x, x, mask)), dim=-1)
