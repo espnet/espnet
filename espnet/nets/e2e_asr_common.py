@@ -301,6 +301,8 @@ class ErrorCalculatorTrans(object):
         batchsize = int(hs_pad.size(0))
         batch_nbest = []
 
+        hs_pad = hs_pad.to(next(self.dec.parameters()).device)
+
         for b in six.moves.range(batchsize):
             nbest_hyps = search_interface(self.dec, hs_pad[b], self.recog_args, None)
             batch_nbest.append(nbest_hyps)
