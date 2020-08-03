@@ -25,6 +25,12 @@ decode_config=conf/decode.yaml # multi-encoders conf/decode_mulenc2.yaml
 # decoding parameter
 trans_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
+# model average realted (only for transformer)
+n_average=2                  # the number of MT models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best MT models will be averaged.
+                             # if false, the last `n_average` MT models will be averaged.
+metric=bleu                  # loss/acc/bleu
+
 # preprocessing related
 src_case=lc.rm
 tgt_case=tc
@@ -168,6 +174,23 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        # Average MT models
+        if ${use_valbest_average}; then
+            trans_model=model.val${n_average}.avg.best
+            opt="--log ${expdir}/results/log --metric ${metric}"
+        else
+            trans_model=model.last${n_average}.avg.best
+            opt="--log"
+        fi
+        average_checkpoints.py \
+            ${opt} \
+            --backend ${backend} \
+            --snapshots ${expdir}/results/snapshot.ep.* \
+            --out ${expdir}/results/${trans_model} \
+            --num ${n_average}
+    fi
+
     nj=2
 
     pids=() # initialize pids
