@@ -58,16 +58,16 @@ class MultiHeadedAttention(nn.Module):
     def forward_attention(self, value, scores, mask):
         """Compute attention context vector.
 
-        :param torch.Tensor value: (batch, time2, size)
-        :param torch.Tensor scores: (batch, time1, time2)
-        :param torch.Tensor mask: (batch, time1, time2)
-        :return torch.Tensor transformed `value` (batch, time2, d_model)
+        :param torch.Tensor value: (batch, head, time2, size)
+        :param torch.Tensor scores: (batch, head, time1, time2)
+        :param torch.Tensor mask: (batch, 1, time2) or (batch, time1, time2)
+        :return torch.Tensor transformed `value` (batch, time1, d_model)
             weighted by the attention score (batch, time1, time2)
 
         """
         n_batch = value.size(0)
         if mask is not None:
-            mask = mask.unsqueeze(1).eq(0)  # (batch, 1, time1, time2)
+            mask = mask.unsqueeze(1).eq(0)  # (batch, 1, *, time2)
             min_value = float(
                 numpy.finfo(torch.tensor(0, dtype=scores.dtype).numpy().dtype).min
             )
@@ -92,10 +92,10 @@ class MultiHeadedAttention(nn.Module):
         :param torch.Tensor query: (batch, time1, size)
         :param torch.Tensor key: (batch, time2, size)
         :param torch.Tensor value: (batch, time2, size)
-        :param torch.Tensor mask: (batch, time1, time2)
+        :param torch.Tensor mask: (batch, 1, time2) or (batch, time1, time2)
         :param torch.nn.Dropout dropout:
-        :return torch.Tensor: attentined and transformed `value` (batch, time1, d_model)
-             weighted by the query dot key attention (batch, head, time1, time2)
+        :return torch.Tensor: attention-ed and transformed `value` (batch, time1, d_model)
+             weighted by the query dot key attention (batch, time1, time2)
         """
         q, k, v = self.forward_qkv(query, key, value)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
