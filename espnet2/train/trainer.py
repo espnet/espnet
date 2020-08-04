@@ -378,7 +378,6 @@ class Trainer:
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
                 all_steps_are_invalid = False
-                reporter.register({})
                 continue
 
             with reporter.measure_time("forward_time"):
@@ -458,11 +457,11 @@ class Trainer:
                         },
                         train_time=time.perf_counter() - start_time,
                     ),
-                    # Suppress to increment the internal counter.
-                    not_increment_count=True,
                 )
                 start_time = time.perf_counter()
 
+            # NOTE(kamo): Call log_message() after increment_count()
+            reporter.next()
             if iiter % log_interval == 0:
                 logging.info(reporter.log_message(-log_interval))
                 if summary_writer is not None:
@@ -503,7 +502,6 @@ class Trainer:
 
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
-                reporter.register({})
                 continue
 
             _, stats, weight = model(**batch)
@@ -513,6 +511,7 @@ class Trainer:
                 stats, weight = recursive_average(stats, weight, distributed)
 
             reporter.register(stats, weight)
+            reporter.next()
 
         else:
             if distributed:
@@ -591,6 +590,4 @@ class Trainer:
                         summary_writer.add_figure(
                             f"{k}_{id_}", fig, reporter.get_epoch()
                         )
-
-                    # Dummy register() stimulates to increment the counter
-                    reporter.register({})
+            reporter.next()
