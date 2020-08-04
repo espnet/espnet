@@ -102,7 +102,7 @@ sox.done: activate_python.sh
 	. ./activate_python.sh && { command -v sox || conda install -y sox -c conda-forge; }
 	touch sox.done
 sndfile.done: activate_python.sh
-	. ./activate_python.sh && { python -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile -c conda-forge; }
+	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile -c conda-forge; }
 	touch sndfile.done
 ifneq ($(strip $(IS_CONDA)),)
 conda_packages.done: cmake.done flac.done ffmpeg.done sox.done sndfile.done
@@ -129,7 +129,7 @@ espnet.done: pytorch.done conda_packages.done
 	touch espnet.done
 
 chainer.done: espnet.done
-	. ./activate_python.sh && python3 -m pip install ${PIP_CHAINER}
+	. ./activate_python.sh && python3 -m pip install $(PIP_CHAINER)
 	touch chainer.done
 
 # NOTE(kamo): Add conda_packages.done if cmake is used
