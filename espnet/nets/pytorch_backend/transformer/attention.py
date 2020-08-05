@@ -94,8 +94,7 @@ class MultiHeadedAttention(nn.Module):
         :param torch.Tensor value: (batch, time2, size)
         :param torch.Tensor mask: (batch, 1, time2) or (batch, time1, time2)
         :param torch.nn.Dropout dropout:
-        :return torch.Tensor: attention-ed and transformed `value` (batch, time1, d_model)
-             weighted by the query dot key attention (batch, time1, time2)
+        :return torch.Tensor: attention output (batch, time1, d_model)
         """
         q, k, v = self.forward_qkv(query, key, value)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
@@ -152,8 +151,7 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         :param torch.Tensor pos_emb: (batch, time1, size)
         :param torch.Tensor mask: (batch, time1, time2)
         :param torch.nn.Dropout dropout:
-        :return torch.Tensor: attentined and transformed `value` (batch, time1, d_model)
-             weighted by the query dot key attention (batch, head, time1, time2)
+        :return torch.Tensor: attention output  (batch, time1, d_model)
         """
         q, k, v = self.forward_qkv(query, key, value)
         q = q.transpose(1, 2)  # (batch, time1, head, d_k)
