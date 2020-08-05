@@ -129,6 +129,9 @@ def create_lm_batch_state(lm_states_list, lm_type, lm_layers):
        batch_states (list): batch of LM states
 
     """
+    if lm_states_list[0] is None:
+        return None
+
     if lm_type == "wordlm":
         batch_states = lm_states_list
     else:
