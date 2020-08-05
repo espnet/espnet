@@ -568,6 +568,21 @@ def test_model_trainable_and_decodable(module, num_encs, model_dict):
     att_w = plot.get_attention_weight(0, att_ws[num_encs][0])
     plot._plot_and_save_attention(att_w, "{}/han.png".format(tmpdir), han_mode=True)
 
+    # test CTC plot
+    ctc_probs = model.calculate_all_ctc_probs(
+        *convert_batch(batchset[0], "pytorch", idim=40, odim=5, num_inputs=num_encs)
+    )
+    from espnet.asr.asr_utils import PlotCTCReport
+
+    tmpdir = tempfile.mkdtemp()
+    plot = PlotCTCReport(
+        model.calculate_all_ctc_probs, batchset[0], tmpdir, None, None, None
+    )
+    if args.mtlalpha > 0:
+        for i in range(num_encs):
+            # ctc-encoder
+            plot._plot_and_save_ctc(ctc_probs[i][0], "{}/ctc{}.png".format(tmpdir, i))
+
     # test decodable
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = [np.random.randn(10, 40) for _ in range(num_encs)]

@@ -36,6 +36,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet.utils.fill_missing_args import fill_missing_args
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -239,6 +240,10 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
@@ -522,7 +527,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
-        """E2E beam search.
+        """E2E batch beam search.
 
         :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace recog_args: argument Namespace containing options
@@ -607,6 +612,7 @@ class E2E(ASRInterface, torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
@@ -620,8 +626,38 @@ class E2E(ASRInterface, torch.nn.Module):
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
-
+        self.train()
         return att_ws
+
+    def calculate_all_ctc_probs(self, xs_pad, ilens, ys_pad):
+        """E2E CTC probability calculation.
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :return: CTC probability (B, Tmax, vocab)
+        :rtype: float ndarray
+        """
+        probs = None
+        if self.mtlalpha == 0:
+            return probs
+
+        self.eval()
+        with torch.no_grad():
+            # 0. Frontend
+            if self.frontend is not None:
+                hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
+                hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+            else:
+                hs_pad, hlens = xs_pad, ilens
+
+            # 1. Encoder
+            hpad, hlens, _ = self.enc(hs_pad, hlens)
+
+            # 2. CTC probs
+            probs = self.ctc.softmax(hpad).cpu().numpy()
+        self.train()
+        return probs
 
     def subsample_frames(self, x):
         """Subsample speeh frames in the encoder."""

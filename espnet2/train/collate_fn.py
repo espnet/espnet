@@ -94,8 +94,6 @@ def common_collate_fn(
         tensor = pad_list(tensor_list, pad_value)
         output[key] = tensor
 
-        assert all(len(d[key]) != 0 for d in data), [len(d[key]) for d in data]
-
         # lens: (Batch,)
         if key not in not_sequence:
             lens = torch.tensor([d[key].shape[0] for d in data], dtype=torch.long)

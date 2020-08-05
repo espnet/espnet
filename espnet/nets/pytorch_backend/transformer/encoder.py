@@ -6,14 +6,19 @@
 
 """Encoder definition."""
 
+import logging
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
 from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
+from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
+from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -21,6 +26,8 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 
 
 def _pre_hook(
@@ -64,8 +71,12 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         idim,
+        selfattention_layer_type="selfattn",
         attention_dim=256,
         attention_heads=4,
+        conv_wshare=4,
+        conv_kernel_length=11,
+        conv_usebias=False,
         linear_units=2048,
         num_blocks=6,
         dropout_rate=0.1,
@@ -93,6 +104,17 @@ class Encoder(torch.nn.Module):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+        elif input_layer == "conv2d-scaled-pos-enc":
+            self.embed = Conv2dSubsampling(
+                idim,
+                attention_dim,
+                dropout_rate,
+                pos_enc_class(attention_dim, positional_dropout_rate),
+            )
+        elif input_layer == "conv2d6":
+            self.embed = Conv2dSubsampling6(idim, attention_dim, dropout_rate)
+        elif input_layer == "conv2d8":
+            self.embed = Conv2dSubsampling8(idim, attention_dim, dropout_rate)
         elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
@@ -111,6 +133,125 @@ class Encoder(torch.nn.Module):
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
+        positionwise_layer, positionwise_layer_args = self.get_positionwise_layer(
+            positionwise_layer_type,
+            attention_dim,
+            linear_units,
+            dropout_rate,
+            positionwise_conv_kernel_size,
+        )
+        if selfattention_layer_type == "selfattn":
+            logging.info("encoder self-attention layer type = self-attention")
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, attention_dropout_rate
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        elif selfattention_layer_type == "lightconv":
+            logging.info("encoder self-attention layer type = lightweight convolution")
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    LightweightConvolution(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        elif selfattention_layer_type == "lightconv2d":
+            logging.info(
+                "encoder self-attention layer "
+                "type = lightweight convolution 2-dimentional"
+            )
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    LightweightConvolution2D(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        elif selfattention_layer_type == "dynamicconv":
+            logging.info("encoder self-attention layer type = dynamic convolution")
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    DynamicConvolution(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        elif selfattention_layer_type == "dynamicconv2d":
+            logging.info(
+                "encoder self-attention layer type = dynamic convolution 2-dimentional"
+            )
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    attention_dim,
+                    DynamicConvolution2D(
+                        conv_wshare,
+                        attention_dim,
+                        attention_dropout_rate,
+                        conv_kernel_length,
+                        lnum,
+                        use_bias=conv_usebias,
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
+        if self.normalize_before:
+            self.after_norm = LayerNorm(attention_dim)
+
+    def get_positionwise_layer(
+        self,
+        positionwise_layer_type="linear",
+        attention_dim=256,
+        linear_units=2048,
+        dropout_rate=0.1,
+        positionwise_conv_kernel_size=1,
+    ):
+        """Define positionwise layer."""
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
             positionwise_layer_args = (attention_dim, linear_units, dropout_rate)
@@ -132,21 +273,7 @@ class Encoder(torch.nn.Module):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
-        self.encoders = repeat(
-            num_blocks,
-            lambda: EncoderLayer(
-                attention_dim,
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, attention_dropout_rate
-                ),
-                positionwise_layer(*positionwise_layer_args),
-                dropout_rate,
-                normalize_before,
-                concat_after,
-            ),
-        )
-        if self.normalize_before:
-            self.after_norm = LayerNorm(attention_dim)
+        return positionwise_layer, positionwise_layer_args
 
     def forward(self, xs, masks):
         """Encode input sequence.
@@ -156,7 +283,10 @@ class Encoder(torch.nn.Module):
         :return: position embedded tensor and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
-        if isinstance(self.embed, (Conv2dSubsampling, VGG2L)):
+        if isinstance(
+            self.embed,
+            (Conv2dSubsampling, Conv2dSubsampling6, Conv2dSubsampling8, VGG2L),
+        ):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)

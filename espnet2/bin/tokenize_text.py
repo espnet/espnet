@@ -6,8 +6,11 @@ import sys
 from typing import List
 from typing import Optional
 
+from typeguard import check_argument_types
+
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.cleaner import TextCleaner
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
@@ -71,7 +74,11 @@ def tokenize(
     remove_non_linguistic_symbols: bool,
     cutoff: int,
     add_symbol: List[str],
+    cleaner: Optional[str],
+    g2p: Optional[str],
 ):
+    assert check_argument_types()
+
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
@@ -87,6 +94,7 @@ def tokenize(
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
+    cleaner = TextCleaner(cleaner)
     tokenizer = build_tokenizer(
         token_type=token_type,
         bpemodel=bpemodel,
@@ -94,6 +102,7 @@ def tokenize(
         space_symbol=space_symbol,
         non_linguistic_symbols=non_linguistic_symbols,
         remove_non_linguistic_symbols=remove_non_linguistic_symbols,
+        g2p_type=g2p,
     )
 
     counter = Counter()
@@ -112,6 +121,7 @@ def tokenize(
             else:
                 line = delimiter.join(tokens)
 
+        line = cleaner(line)
         tokens = tokenizer.text2tokens(line)
         if not write_vocabulary:
             fout.write(" ".join(tokens) + "\n")
@@ -123,9 +133,18 @@ def tokenize(
         return
 
     # ======= write_vocabulary mode from here =======
-    # Sort by the number of occurrences
-    words_and_counts = list(sorted(counter.items(), key=lambda x: x[1]))
+    # Sort by the number of occurrences in descending order
+    # and filter lower frequency words than cutoff value
+    words_and_counts = list(
+        filter(lambda x: x[1] > cutoff, sorted(counter.items(), key=lambda x: -x[1]))
+    )
+    # Restrict the vocabulary size
+    if vocabulary_size > 0:
+        if vocabulary_size < len(add_symbol):
+            raise RuntimeError(f"vocabulary_size is too small: {vocabulary_size}")
+        words_and_counts = words_and_counts[: vocabulary_size - len(add_symbol)]
 
+    # Parse the values of --add_symbol
     for symbol_and_id in add_symbol:
         # e.g symbol="<blank>:0"
         try:
@@ -141,19 +160,13 @@ def tokenize(
             idx = len(words_and_counts) + 1 + idx
         words_and_counts.insert(idx, (symbol, None))
 
-    total_count = sum(counter.values())
-    invocab_count = 0
-    for nvocab, (w, c) in enumerate(words_and_counts, 1):
+    # Write words
+    for w, c in words_and_counts:
         fout.write(w + "\n")
-        if c is not None:
-            invocab_count += c
-            if c <= cutoff:
-                break
 
-        # Note that nvocab includes appended symbol, e.g. even <blank> or <sos/eos>
-        if nvocab >= vocabulary_size > 0:
-            break
-
+    # Logging
+    total_count = sum(counter.values())
+    invocab_count = sum(c for w, c in words_and_counts if c is not None)
     logging.info(f"OOV rate = {(total_count - invocab_count) / total_count * 100} %")
 
 
@@ -185,7 +198,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--token_type",
         "-t",
         default="char",
-        choices=["char", "bpe", "word"],
+        choices=["char", "bpe", "word", "phn"],
         help="Token type",
     )
     parser.add_argument("--delimiter", "-d", default=None, help="The delimiter")
@@ -201,6 +214,28 @@ def get_parser() -> argparse.ArgumentParser:
         type=str2bool,
         default=False,
         help="Remove non-language-symbols from tokens",
+    )
+    parser.add_argument(
+        "--cleaner",
+        type=str_or_none,
+        choices=[None, "tacotron", "jaconv", "vietnamese"],
+        default=None,
+        help="Apply text cleaning",
+    )
+    parser.add_argument(
+        "--g2p",
+        type=str_or_none,
+        choices=[
+            None,
+            "g2p_en",
+            "g2p_en_no_space",
+            "pyopenjtalk",
+            "pyopenjtalk_kana",
+            "pypinyin_g2p",
+            "pypinyin_g2p_phone",
+        ],
+        default=None,
+        help="Specify g2p method if --token_type=phn",
     )
 
     group = parser.add_argument_group("write_vocabulary mode related")

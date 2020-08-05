@@ -33,6 +33,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class E2E(MTInterface, torch.nn.Module):
@@ -86,7 +87,53 @@ class E2E(MTInterface, torch.nn.Module):
             type=strtobool,
             help="normalize loss by length",
         )
-
+        group.add_argument(
+            "--transformer-encoder-selfattn-layer-type",
+            type=str,
+            default="selfattn",
+            choices=["selfattn", "lightconv", "dynamicconv"],
+            help="transformer encoder self-attention layer type",
+        )
+        group.add_argument(
+            "--transformer-decoder-selfattn-layer-type",
+            type=str,
+            default="selfattn",
+            choices=["selfattn", "lightconv", "dynamicconv"],
+            help="transformer decoder self-attention layer type",
+        )
+        # Lightweight/Dynamic convolution related parameters.
+        # See https://arxiv.org/abs/1912.11793v2
+        # and https://arxiv.org/abs/1901.10430 for detail of the method.
+        # Configurations used in the first paper are in
+        # egs/{csj, librispeech}/asr1/conf/tuning/ld_conv/
+        group.add_argument(
+            "--wshare",
+            default=4,
+            type=int,
+            help="Number of parameter shargin for lightweight convolution",
+        )
+        group.add_argument(
+            "--ldconv-encoder-kernel-length",
+            default="21_23_25_27_29_31_33_35_37_39_41_43",
+            type=str,
+            help="kernel size for lightweight/dynamic convolution: "
+            'Encoder side. For example, "21_23_25" means kernel length 21 for '
+            "First layer, 23 for Second layer and so on.",
+        )
+        group.add_argument(
+            "--ldconv-decoder-kernel-length",
+            default="11_13_15_17_19_21",
+            type=str,
+            help="kernel size for lightweight/dynamic convolution: "
+            'Decoder side. For example, "21_23_25" means kernel length 21 for '
+            "First layer, 23 for Second layer and so on.",
+        )
+        group.add_argument(
+            "--ldconv-usebias",
+            type=strtobool,
+            default=False,
+            help="use bias term in lightweight/dynamic convolution",
+        )
         group.add_argument(
             "--dropout-rate",
             default=0.1,
@@ -139,12 +186,20 @@ class E2E(MTInterface, torch.nn.Module):
         :param Namespace args: argument Namespace containing options
         """
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
         self.encoder = Encoder(
             idim=idim,
+            selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_encoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.eunits,
             num_blocks=args.elayers,
             input_layer="embed",
@@ -154,8 +209,12 @@ class E2E(MTInterface, torch.nn.Module):
         )
         self.decoder = Decoder(
             odim=odim,
+            selfattention_layer_type=args.transformer_decoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_decoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.dunits,
             num_blocks=args.dlayers,
             dropout_rate=args.dropout_rate,
@@ -202,7 +261,6 @@ class E2E(MTInterface, torch.nn.Module):
 
     def reset_parameters(self, args):
         """Initialize parameters."""
-        # initialize parameters
         initialize(self, args.transformer_init)
         torch.nn.init.normal_(
             self.encoder.embed[0].weight, mean=0, std=args.adim ** -0.5
@@ -492,15 +550,15 @@ class E2E(MTInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
-        :return: attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
+        :return: attention weights (B, H, Lmax, Tmax)
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
             if isinstance(m, MultiHeadedAttention) and m.attn is not None:
                 ret[name] = m.attn.cpu().numpy()
+        self.train()
         return ret

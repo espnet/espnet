@@ -21,10 +21,15 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.espnet_model import ESPnetTTSModel
+from espnet2.tts.fastspeech import FastSpeech
+from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.tts.feats_extract.dio import Dio
+from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -37,6 +42,20 @@ feats_extractor_choices = ClassChoices(
     type_check=AbsFeatsExtract,
     default="fbank",
 )
+pitch_extractor_choices = ClassChoices(
+    "pitch_extract",
+    classes=dict(dio=Dio),
+    type_check=AbsFeatsExtract,
+    default=None,
+    optional=True,
+)
+energy_extractor_choices = ClassChoices(
+    "energy_extract",
+    classes=dict(energy=Energy),
+    type_check=AbsFeatsExtract,
+    default=None,
+    optional=True,
+)
 normalize_choices = ClassChoices(
     "normalize",
     classes=dict(global_mvn=GlobalMVN),
@@ -44,8 +63,30 @@ normalize_choices = ClassChoices(
     default="global_mvn",
     optional=True,
 )
+pitch_normalize_choices = ClassChoices(
+    "pitch_normalize",
+    classes=dict(global_mvn=GlobalMVN),
+    type_check=AbsNormalize,
+    default=None,
+    optional=True,
+)
+energy_normalize_choices = ClassChoices(
+    "energy_normalize",
+    classes=dict(global_mvn=GlobalMVN),
+    type_check=AbsNormalize,
+    default=None,
+    optional=True,
+)
 tts_choices = ClassChoices(
-    "tts", classes=dict(tacotron2=Tacotron2), type_check=AbsTTS, default="tacotron2"
+    "tts",
+    classes=dict(
+        tacotron2=Tacotron2,
+        transformer=Transformer,
+        fastspeech=FastSpeech,
+        fastspeech2=FastSpeech2,
+    ),
+    type_check=AbsTTS,
+    default="tacotron2",
 )
 
 
@@ -61,6 +102,14 @@ class TTSTask(AbsTask):
         normalize_choices,
         # --tts and --tts_conf
         tts_choices,
+        # --pitch_extract and --pitch_extract_conf
+        pitch_extractor_choices,
+        # --pitch_normalize and --pitch_normalize_conf
+        pitch_normalize_choices,
+        # --energy_extract and --energy_extract_conf
+        energy_extractor_choices,
+        # --energy_normalize and --energy_normalize_conf
+        energy_normalize_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -100,15 +149,15 @@ class TTSTask(AbsTask):
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
-            default=False,
+            default=True,
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
             "--token_type",
             type=str,
-            default="bpe",
-            choices=["bpe", "char", "word"],
-            help="The text will be tokenized " "in the specified level token",
+            default="phn",
+            choices=["bpe", "char", "word", "phn"],
+            help="The text will be tokenized in the specified level token",
         )
         group.add_argument(
             "--bpemodel",
@@ -121,6 +170,29 @@ class TTSTask(AbsTask):
             type=str_or_none,
             help="non_linguistic_symbols file path",
         )
+        parser.add_argument(
+            "--cleaner",
+            type=str_or_none,
+            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            default=None,
+            help="Apply text cleaning",
+        )
+        parser.add_argument(
+            "--g2p",
+            type=str_or_none,
+            choices=[
+                None,
+                "g2p_en",
+                "g2p_en_no_space",
+                "pyopenjtalk",
+                "pyopenjtalk_kana",
+                "pypinyin_g2p",
+                "pypinyin_g2p_phone",
+            ],
+            default=None,
+            help="Specify g2p method if --token_type=phn",
+        )
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -150,6 +222,8 @@ class TTSTask(AbsTask):
                 token_list=args.token_list,
                 bpemodel=args.bpemodel,
                 non_linguistic_symbols=args.non_linguistic_symbols,
+                text_cleaner=args.cleaner,
+                g2p_type=args.g2p,
             )
         else:
             retval = None
@@ -168,10 +242,10 @@ class TTSTask(AbsTask):
     @classmethod
     def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "spcs")
+            retval = ("spembs", "durations", "pitch", "energy")
         else:
             # Inference mode
-            retval = ("spembs",)
+            retval = ("spembs", "speech", "durations")
         return retval
 
     @classmethod
@@ -216,10 +290,38 @@ class TTSTask(AbsTask):
         tts_class = tts_choices.get_class(args.tts)
         tts = tts_class(idim=vocab_size, odim=odim, **args.tts_conf)
 
-        # 4. Build model
+        # 4. Extra components
+        pitch_extract = None
+        energy_extract = None
+        pitch_normalize = None
+        energy_normalize = None
+        if getattr(args, "pitch_extract", None) is not None:
+            pitch_extract_class = pitch_extractor_choices.get_class(args.pitch_extract)
+            pitch_extract = pitch_extract_class(**args.pitch_extract_conf)
+        if getattr(args, "energy_extract", None) is not None:
+            energy_extract_class = energy_extractor_choices.get_class(
+                args.energy_extract
+            )
+            energy_extract = energy_extract_class(**args.energy_extract_conf)
+        if getattr(args, "pitch_normalize", None) is not None:
+            pitch_normalize_class = pitch_normalize_choices.get_class(
+                args.pitch_normalize
+            )
+            pitch_normalize = pitch_normalize_class(**args.pitch_normalize_conf)
+        if getattr(args, "energy_normalize", None) is not None:
+            energy_normalize_class = energy_normalize_choices.get_class(
+                args.energy_normalize
+            )
+            energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
+
+        # 5. Build model
         model = ESPnetTTSModel(
             feats_extract=feats_extract,
+            pitch_extract=pitch_extract,
+            energy_extract=energy_extract,
             normalize=normalize,
+            pitch_normalize=pitch_normalize,
+            energy_normalize=energy_normalize,
             tts=tts,
             **args.model_conf,
         )

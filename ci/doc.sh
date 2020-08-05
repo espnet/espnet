@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 
-# to suppress errors during doc generation of utils/ when USE_CONDA=false in travis
-mkdir -p tools/venv/bin
-touch tools/venv/bin/activate
-. tools/venv/bin/activate
+. tools/activate_python.sh
 
 if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi

@@ -104,7 +104,7 @@ def get_results(result_file, result_key):
     tmp_id = None
     tmp_ret = {}
 
-    with open(result_file, "r") as f:
+    with codecs.open(result_file, "r", encoding="utf-8") as f:
         line = f.readline()
         while line:
             x = line.rstrip()

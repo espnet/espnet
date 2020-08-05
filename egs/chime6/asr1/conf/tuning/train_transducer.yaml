@@ -1,0 +1,46 @@
+# minibatch related
+batch-size: 22
+maxlen-in: 800
+maxlen-out: 150
+
+# optimization related
+# A special criterion to avoid a local optimum.
+# This allows an improvement of up to 5% in WER abs.
+criterion: loss_eps_decay_only
+early-stop-criterion: "validation/main/loss"
+save-interval-iters: 0
+sortagrad: 0
+opt: adadelta
+epochs: 10
+patience: 0
+weight-decay: 1e-6
+
+# network architecture
+## encoder related
+etype: vggblstm
+elayers: 6
+eunits: 512
+eprojs: 512
+subsample: "1_1_1_1_1"
+dropout-rate: 0.4
+## decoder related
+dtype: lstm
+dlayers: 2
+dec-embed-dim: 256
+dunits: 256
+dropout-rate-decoder: 0.4
+dropout-rate-embed-decoder: 0.4
+## attention related
+atype: location
+adim: 256
+aheads: 1
+awin: 5
+aconv-chans: 10
+aconv-filts: 100
+## joint network related
+joint-dim: 256
+
+# transducer related
+mtlalpha: 1.0 # mtlalpha should be set to 1.0 (CTC) to use transducer
+rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

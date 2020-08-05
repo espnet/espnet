@@ -26,6 +26,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class Reporter(chainer.Chain):
@@ -219,6 +220,10 @@ class E2E(MTInterface, torch.nn.Module):
         """
         super(E2E, self).__init__()
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         self.etype = args.etype
         self.verbose = args.verbose
         # NOTE: for self.build method
@@ -374,7 +379,7 @@ class E2E(MTInterface, torch.nn.Module):
                 hyps += [seq_hat_text.split(" ")]
                 list_of_refs += [[seq_true_text.split(" ")]]
 
-            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
+            self.bleu = nltk.bleu_score.corpus_bleu(list_of_refs, hyps) * 100
 
         loss_data = float(self.loss)
         if not math.isnan(loss_data):
@@ -443,7 +448,7 @@ class E2E(MTInterface, torch.nn.Module):
         return y
 
     def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
-        """E2E beam search.
+        """E2E batch beam search.
 
         :param list xs:
             list of input source text feature arrays [(T_1, D), (T_2, D), ...]
@@ -487,6 +492,7 @@ class E2E(MTInterface, torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             # 1. Encoder
             xs_pad, ys_pad = self.target_language_biasing(xs_pad, ilens, ys_pad)
@@ -494,5 +500,5 @@ class E2E(MTInterface, torch.nn.Module):
 
             # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
-
+        self.train()
         return att_ws

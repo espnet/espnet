@@ -43,6 +43,8 @@ def make_arg(**kwargs):
         dunits=16,
         sym_space="<space>",
         sym_blank="<blank>",
+        transformer_decoder_selfattn_layer_type="selfattn",
+        transformer_encoder_selfattn_layer_type="selfattn",
         transformer_init="pytorch",
         transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
@@ -51,6 +53,10 @@ def make_arg(**kwargs):
         report_wer=False,
         mtlalpha=0.0,  # for CTC-ASR
         lsm_weight=0.001,
+        wshare=4,
+        ldconv_encoder_kernel_length="21_23_25_27_29_31_33_35_37_39_41_43",
+        ldconv_decoder_kernel_length="11_13_15_17_19_21",
+        ldconv_usebias=False,
         char_list=["<blank>", "a", "e", "i", "o", "u"],
         ctc_type="warpctc",
         asr_weight=0.0,
@@ -124,10 +130,51 @@ def test_transformer_mask(module):
     assert not numpy.isnan(a.attn[0, :, :3, :3].detach().numpy()).any()
 
 
+ldconv_lconv_args = dict(
+    transformer_decoder_selfattn_layer_type="lightconv",
+    transformer_encoder_selfattn_layer_type="lightconv",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_dconv_args = dict(
+    transformer_decoder_selfattn_layer_type="dynamicconv",
+    transformer_encoder_selfattn_layer_type="dynamicconv",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_lconv2d_args = dict(
+    transformer_decoder_selfattn_layer_type="lightconv2d",
+    transformer_encoder_selfattn_layer_type="lightconv2d",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+ldconv_dconv2d_args = dict(
+    transformer_decoder_selfattn_layer_type="dynamicconv2d",
+    transformer_encoder_selfattn_layer_type="dynamicconv2d",
+    wshare=4,
+    ldconv_encoder_kernel_length="5_7_11",
+    ldconv_decoder_kernel_length="3_7",
+    ldconv_usebias=False,
+)
+
+
 @pytest.mark.parametrize(
     "module, model_dict",
     [
         ("pytorch", {"asr_weight": 0.0, "mt_weight": 0.0}),  # pure E2E-ST
+        ("pytorch", ldconv_lconv_args),
+        ("pytorch", ldconv_dconv_args),
+        ("pytorch", ldconv_lconv2d_args),
+        ("pytorch", ldconv_dconv2d_args),
         (
             "pytorch",
             {"asr_weight": 0.1, "mtlalpha": 0.0, "mt_weight": 0.0},
@@ -196,6 +243,15 @@ def test_transformer_trainable_and_decodable(module, model_dict):
         from espnet.nets.pytorch_backend.transformer import plot
 
         plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+
+        # test CTC plot
+        ctc_probs = model.calculate_all_ctc_probs(
+            x[0:1], ilens[0:1], y_tgt[0:1], y_src[0:1]
+        )
+        if args.asr_weight > 0 and args.mtlalpha > 0:
+            print(ctc_probs.shape)
+        else:
+            assert ctc_probs is None
 
         # test decodable
         with torch.no_grad():

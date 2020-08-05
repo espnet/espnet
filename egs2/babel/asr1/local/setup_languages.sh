@@ -75,5 +75,6 @@ done
 
 for l in ${recog}; do
   ln -s ${cwd}/data/${l}/data/eval_${l} ${cwd}/data/eval_${l}
+  ln -s ${cwd}/data/${l}/data/dev_${l} ${cwd}/data/dev_${l}
 done
 

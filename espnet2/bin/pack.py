@@ -1,7 +1,7 @@
 import argparse
 from typing import Type
 
-from espnet2.utils.pack_funcs import pack
+from espnet2.main_funcs.pack_funcs import pack
 
 
 class PackedContents:
@@ -10,13 +10,19 @@ class PackedContents:
 
 
 class ASRPackedContents(PackedContents):
-    files = ["asr_model_file.pth", "lm_file.pth"]
-    yaml_files = ["asr_train_config.yaml", "lm_train_config.yaml"]
+    # These names must be consistent with the argument of inference functions
+    files = ["asr_model_file", "lm_file"]
+    yaml_files = ["asr_train_config", "lm_train_config"]
 
 
 class TTSPackedContents(PackedContents):
-    files = ["model_file.pth"]
-    yaml_files = ["train_config.yaml"]
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
+class EnhPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
 
 
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
@@ -26,25 +32,18 @@ def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents
     for key in contents.files:
         parser.add_argument(f"--{key}", type=str, default=None)
     parser.add_argument("--option", type=str, action="append", default=[])
-    parser.add_argument(
-        "--mode",
-        type=str,
-        default="w:gz",
-        choices=["w", "w:gz", "w:bz2", "w:xz"],
-        help="Compression mode",
-    )
 
 
 def get_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Pack input files to archive format. If the external file path "
-        "are written in the input yaml files, then the paths are "
-        "rewritten to the archived name",
-    )
+    parser = argparse.ArgumentParser(description="Pack input files to archive format")
     subparsers = parser.add_subparsers()
 
     # Create subparser for ASR
-    for name, contents in [("asr", ASRPackedContents), ("tts", TTSPackedContents)]:
+    for name, contents in [
+        ("asr", ASRPackedContents),
+        ("tts", TTSPackedContents),
+        ("enh", EnhPackedContents),
+    ]:
         parser_asr = subparsers.add_parser(
             name, formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
@@ -69,11 +68,7 @@ def main(cmd=None):
         y: getattr(args, y) for y in args.contents.files if getattr(args, y) is not None
     }
     pack(
-        yaml_files=yaml_files,
-        files=files,
-        option=args.option,
-        outpath=args.outpath,
-        mode=args.mode,
+        yaml_files=yaml_files, files=files, option=args.option, outpath=args.outpath,
     )
 
 
