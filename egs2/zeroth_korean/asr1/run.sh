@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 train_set="train_nodev"
-dev_set="train_dev"
-eval_sets="test_clean"
+valid_set="train_dev"
+test_sets="test_clean"
 
 ./asr.sh \
     --feats_type fbank_pitch \
@@ -17,6 +17,6 @@ eval_sets="test_clean"
     --lm_config conf/train_lm.yaml \
     --asr_config conf/train_asr_transformer.yaml \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_sets}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --srctexts "data/train_data_01/text" "$@"

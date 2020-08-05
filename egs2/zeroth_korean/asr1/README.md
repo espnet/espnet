@@ -11,32 +11,29 @@ https://github.com/goodatlas/zeroth
 
 # RESULTS
 ## Environments
-- date: `Wed Jul 22 04:21:53 KST 2020`
+- date: `Thu Aug  6 05:13:08 KST 2020`
 - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
 - espnet version: `espnet 0.7.0`
 - pytorch version: `pytorch 1.2.0`
-- Git hash: `7b49f17089020b9dce2f4a84f1d1d12ff3e03d26`
-  - Commit date: `Tue Jul 21 17:06:10 2020 +0900`
+- Git hash: `f2bd4912e32735487182c6f0cfddbf30e569a476`
+  - Commit date: `Thu Aug 6 08:31:46 2020 +0900`
 
 ## asr_train_asr_transformer_fbank_pitch_bpe
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_test_clean_decode_asr_model_valid.acc.best|457|6641|97.3|1.5|1.2|0.3|3.0|17.3|
-|decode_train_dev_decode_asr_model_valid.acc.best|220|3216|98.7|0.9|0.4|0.0|1.3|10.5|
+|457|6641|97.4|1.5|1.2|0.2|2.9|14.4|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_test_clean_decode_asr_model_valid.acc.best|457|25472|98.5|0.4|1.2|0.2|1.7|17.3|
-|decode_train_dev_decode_asr_model_valid.acc.best|220|12291|99.4|0.1|0.5|0.0|0.6|10.5|
+|457|25472|98.5|0.4|1.1|0.2|1.7|14.4|
 
 ### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_test_clean_decode_asr_model_valid.acc.best|457|13591|98.1|0.6|1.3|0.2|2.1|17.3|
-|decode_train_dev_decode_asr_model_valid.acc.best|220|6419|99.2|0.2|0.6|0.0|0.8|10.5|
+|457|13591|98.1|0.7|1.1|0.3|2.1|14.4|
 
