@@ -23,17 +23,17 @@ https://github.com/goodatlas/zeroth
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|457|6641|97.4|1.5|1.2|0.2|2.9|14.4|
+|inference_test_clean_inference_asr_model_valid.acc.best|457|6641|97.4|1.5|1.2|0.2|2.9|14.4|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|457|25472|98.5|0.4|1.1|0.2|1.7|14.4|
+|inference_test_clean_inference_asr_model_valid.acc.best|457|25472|98.5|0.4|1.1|0.2|1.7|14.4|
 
 ### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|457|13591|98.1|0.7|1.1|0.3|2.1|14.4|
+|inference_test_clean_inference_asr_model_valid.acc.best|457|13591|98.1|0.7|1.1|0.3|2.1|14.4|
 
