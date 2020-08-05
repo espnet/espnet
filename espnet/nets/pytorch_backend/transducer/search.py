@@ -167,17 +167,27 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
     nbest = recog_args.nbest
 
     init_tensor = h.unsqueeze(0)
-    dec_state = decoder.init_state(init_tensor)
+
+    w_state = (decoder.init_state(torch.zeros((w_range, decoder.dunits))), None)
+    dec_state = decoder.select_state(w_state, 0)
 
     B = [
         {
             "yseq": [decoder.blank],
             "score": 0.0,
-            "dec_state": dec_state,
+            "dec_state": dec_state[0],
             "att_state": None,
             "lm_state": None,
         }
     ]
+
+    if rnnlm:
+        if hasattr(rnnlm.predictor, "wordlm"):
+            lm_type = "wordlm"
+            lm_layers = len(rnnlm.predictor.wordlm.rnn)
+        else:
+            lm_type = "lm"
+            lm_layers = len(rnnlm.predictor.rnn)
 
     cache = {}
 
@@ -188,16 +198,21 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
         for v in range(max_sym_exp):
             D = []
 
-            for hyp in C:
-                y, state, lm_tokens = decoder.score(hyp, cache, init_tensor)
+            w_y, w_state, w_lm_tokens = decoder.batch_score(
+                C, w_state, cache, init_tensor
+            )
 
-                ytu = F.log_softmax(decoder.joint(hi, y[0]), dim=0)
+            h_enc = hi.unsqueeze(0).expand(w_range, -1)
 
-                seq_A = [h["yseq"] for h in A]
+            w_logprobs = F.log_softmax(decoder.joint(h_enc, w_y), dim=-1).view(-1)
+            w_blank = w_logprobs[0 :: decoder.odim]
 
+            seq_A = [h["yseq"] for h in A]
+
+            for i, hyp in enumerate(C):
                 if hyp["yseq"] not in seq_A:
                     new_hyp = {
-                        "score": hyp["score"] + float(ytu[0]),
+                        "score": hyp["score"] + float(w_blank[i]),
                         "yseq": hyp["yseq"][:],
                         "dec_state": hyp["dec_state"],
                         "att_state": hyp["att_state"],
@@ -209,31 +224,51 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
                     dict_pos = seq_A.index(hyp["yseq"])
 
                     A[dict_pos]["score"] = np.logaddexp(
-                        A[dict_pos]["score"], (hyp["score"] + float(ytu[0]))
+                        A[dict_pos]["score"], (hyp["score"] + float(w_blank[i]))
                     )
 
+            if v < max_sym_exp:
                 if rnnlm:
-                    rnnlm_state, rnnlm_scores = rnnlm.predict(
-                        hyp["lm_state"], lm_tokens
+                    w_lm_states = create_lm_batch_state(
+                        [c["lm_state"] for c in C], lm_type, lm_layers
                     )
 
-                if v < max_sym_exp:
+                    w_lm_states, w_lm_scores = rnnlm.buff_predict(
+                        w_lm_states, w_lm_tokens, len(C)
+                    )
+
+                    w_lm_scores = w_lm_scores.contiguous().view(-1)
+
+                for i, hyp in enumerate(C):
+                    pos_k = i * decoder.odim
+                    k_i = w_logprobs.narrow(0, pos_k, decoder.odim)
+
+                    if rnnlm:
+                        lm_k_i = w_lm_scores.narrow(0, pos_k, decoder.odim)
+
                     for k in range(1, decoder.odim):
+                        curr_score = float(k_i[k])
+
                         beam_hyp = {
-                            "score": hyp["score"] + float(ytu[k]),
+                            "score": hyp["score"] + curr_score,
                             "yseq": hyp["yseq"][:],
-                            "dec_state": state[0],
-                            "att_state": state[1],
+                            "dec_state": hyp["dec_state"],
+                            "att_state": hyp["att_state"],
                             "lm_state": hyp["lm_state"],
                         }
 
                         beam_hyp["yseq"].append(int(k))
 
-                        if rnnlm:
-                            beam_hyp["lm_state"] = rnnlm_state
+                        new_state = decoder.select_state(w_state, i)
 
-                            beam_hyp["score"] += (
-                                recog_args.lm_weight * rnnlm_scores[0][k]
+                        beam_hyp["dec_state"] = new_state[0]
+                        beam_hyp["att_state"] = new_state[1]
+
+                        if rnnlm:
+                            beam_hyp["score"] += recog_args.lm_weight * lm_k_i[k]
+
+                            beam_hyp["lm_state"] = select_lm_state(
+                                w_lm_states, i, lm_type, lm_layers
                             )
 
                         D.append(beam_hyp)
@@ -271,25 +306,37 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
     nbest = recog_args.nbest
 
     init_tensor = h.unsqueeze(0)
-    dec_state = decoder.init_state(init_tensor)
+
+    w_state = (decoder.init_state(torch.zeros((w_range, decoder.dunits))), None)
+
+    dec_state = decoder.select_state(w_state, 0)
 
     B = [
         {
             "yseq": [decoder.blank],
             "score": 0.0,
-            "dec_state": dec_state,
+            "dec_state": dec_state[0],
             "att_state": None,
             "lm_state": None,
         }
     ]
+    final = []
+
+    if rnnlm:
+        if hasattr(rnnlm.predictor, "wordlm"):
+            lm_type = "wordlm"
+            lm_layers = len(rnnlm.predictor.wordlm.rnn)
+        else:
+            lm_type = "lm"
+            lm_layers = len(rnnlm.predictor.rnn)
 
     cache = {}
-
-    final = []
 
     for i in range(h_length + u_max):
         A = []
 
+        B_ = []
+        h_states = []
         for hyp in B:
             u = len(hyp["yseq"]) - 1
             t = i - u + 1
@@ -297,42 +344,74 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
             if t > (h_length - 1):
                 continue
 
-            y, state, lm_tokens = decoder.score(hyp, cache, init_tensor)
+            B_.append(hyp)
+            h_states.append((t, h[t]))
 
-            ytu = F.log_softmax(decoder.joint(h[t], y[0]), dim=0)
+        if B_:
+            w_y, w_state, w_lm_tokens = decoder.batch_score(
+                B_, w_state, cache, init_tensor
+            )
 
-            new_hyp = {
-                "score": hyp["score"] + float(ytu[0]),
-                "yseq": hyp["yseq"][:],
-                "dec_state": hyp["dec_state"],
-                "att_state": hyp["att_state"],
-                "lm_state": hyp["lm_state"],
-            }
+            h_enc = torch.stack([h[1] for h in h_states])
 
-            A.append(new_hyp)
-
-            if t == (h_length - 1):
-                final.append(new_hyp)
+            w_logprobs = F.log_softmax(decoder.joint(h_enc, w_y), dim=-1).view(-1)
+            w_blank = w_logprobs[0 :: decoder.odim]
 
             if rnnlm:
-                rnnlm_state, rnnlm_scores = rnnlm.predict(hyp["lm_state"], lm_tokens)
+                w_lm_states = create_lm_batch_state(
+                    [b["lm_state"] for b in B_], lm_type, lm_layers
+                )
 
-            for k in range(1, decoder.odim):
-                beam_hyp = {
-                    "score": hyp["score"] + float(ytu[k]),
+                w_lm_states, w_lm_scores = rnnlm.buff_predict(
+                    w_lm_states, w_lm_tokens, len(B_)
+                )
+
+                w_lm_scores = w_lm_scores.contiguous().view(-1)
+
+            for i, hyp in enumerate(B_):
+                new_hyp = {
+                    "score": hyp["score"] + float(w_blank[i]),
                     "yseq": hyp["yseq"][:],
-                    "dec_state": state[0],
-                    "att_state": state[1],
+                    "dec_state": hyp["dec_state"],
+                    "att_state": hyp["att_state"],
                     "lm_state": hyp["lm_state"],
                 }
 
-                beam_hyp["yseq"].append(int(k))
+                A.append(new_hyp)
+
+                if h_states[i][0] == (h_length - 1):
+                    final.append(new_hyp)
+
+                pos_k = i * decoder.odim
+                k_i = w_logprobs.narrow(0, pos_k, decoder.odim)
 
                 if rnnlm:
-                    beam_hyp["lm_state"] = rnnlm_state
-                    beam_hyp["score"] += recog_args.lm_weight * rnnlm_scores[0][k]
+                    lm_k_i = w_lm_scores.narrow(0, pos_k, decoder.odim)
 
-                A.append(beam_hyp)
+                for k in range(1, decoder.odim):
+                    beam_hyp = {
+                        "score": hyp["score"] + float(k_i[k]),
+                        "yseq": hyp["yseq"][:],
+                        "dec_state": hyp["dec_state"],
+                        "att_state": hyp["att_state"],
+                        "lm_state": hyp["lm_state"],
+                    }
+
+                    new_state = decoder.select_state(w_state, i)
+
+                    beam_hyp["dec_state"] = new_state[0]
+                    beam_hyp["att_state"] = new_state[1]
+
+                    beam_hyp["yseq"].append(int(k))
+
+                    A.append(beam_hyp)
+
+                    if rnnlm:
+                        beam_hyp["score"] += recog_args.lm_weight * lm_k_i[k]
+
+                        beam_hyp["lm_state"] = select_lm_state(
+                            w_lm_states, i, lm_type, lm_layers
+                        )
 
         B = sorted(A, key=lambda x: x["score"], reverse=True)[:w_range]
         B = recombine_hyps(B)
@@ -368,14 +447,17 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
     nbest = recog_args.nbest
 
-    w_dec_state = decoder.init_state(torch.zeros((w_range, decoder.dunits)))
+    cache = {}
 
-    init_tokens = [{"yseq": [decoder.blank]} for _ in range(w_range)]
+    init_tensor = h.unsqueeze(0)
 
-    att_params = ([h.size(0)] * w_range, h.unsqueeze(0).expand(w_range, -1, -1))
+    w_state = (decoder.init_state(torch.zeros((w_range, decoder.dunits))), None)
+    state = decoder.select_state(w_state, 0)
+
+    init_tokens = [{"yseq": [decoder.blank], "dec_state": state[0], "att_state": None}]
 
     w_y, w_state, w_lm_tokens = decoder.batch_score(
-        init_tokens, (w_dec_state, None, att_params)
+        init_tokens, w_state, cache, init_tensor
     )
 
     state = decoder.select_state(w_state, 0)
@@ -385,10 +467,10 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
         if hasattr(rnnlm.predictor, "wordlm"):
             lm_type = "wordlm"
-            lm_layers = len(w_lm_states[0])
+            lm_layers = len(rnnlm.predictor.wordlm.rnn)
         else:
             lm_type = "lm"
-            lm_layers = len(w_lm_states["c"])
+            lm_layers = len(rnnlm.predictor.rnn)
 
         lm_state = select_lm_state(w_lm_states, 0, lm_type, lm_layers)
         lm_scores = w_lm_scores[0]
@@ -436,21 +518,13 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
         S = []
         V = []
         for n in range(nstep):
-            h_enc = hi.unsqueeze(0).expand(w_range, -1)
-
+            h_enc = hi.unsqueeze(0)
             w_y = torch.stack([hyp["y"][-1] for hyp in hyps])
-
-            if len(hyps) == 1:
-                w_y = w_y.expand(w_range, -1)
 
             w_logprobs = F.log_softmax(decoder.joint(h_enc, w_y), dim=-1).view(-1)
 
             if rnnlm:
                 w_lm_scores = torch.stack([hyp["lm_scores"] for hyp in hyps])
-
-                if len(hyps) == 1:
-                    w_lm_scores = w_lm_scores.expand(w_range, -1)
-
                 w_lm_scores = w_lm_scores.contiguous().view(-1)
 
             for i, hyp in enumerate(hyps):
@@ -486,8 +560,13 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
             V = sorted(V, key=lambda x: x["score"], reverse=True)
             V = substract(V, hyps)[:w_range]
 
-            w_state = decoder.create_batch_state(w_state, V)
-            w_y, w_state, w_lm_tokens = decoder.batch_score(V, (*w_state, att_params))
+            l_state = [(v["dec_state"], v["att_state"]) for v in V]
+            l_tokens = [v["yseq"] for v in V]
+
+            w_state = decoder.create_batch_states(w_state, l_state, l_tokens)
+            w_y, w_state, w_lm_tokens = decoder.batch_score(
+                V, w_state, cache, init_tensor
+            )
 
             if rnnlm:
                 w_lm_states = create_lm_batch_state(
