@@ -48,7 +48,4 @@ def target_mask(ys_in_pad, ignore_id):
     """
     ys_mask = ys_in_pad != ignore_id
     m = subsequent_mask(ys_mask.size(-1), device=ys_mask.device).unsqueeze(0)
-
-    #ys_mask.unsqueeze(-2).shape: (1, Lmax, Lmax)
-    #m.shape: (B, 1, Lmax)
     return ys_mask.unsqueeze(-2) & m
