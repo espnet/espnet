@@ -13,7 +13,9 @@ import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformerLoss
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
+    FeedForwardTransformerLoss as FastSpeechLoss,  # NOQA
+)
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -275,7 +277,7 @@ class FastSpeech(AbsTTS):
         )
 
         # define criterions
-        self.criterion = FeedForwardTransformerLoss(
+        self.criterion = FastSpeechLoss(
             use_masking=use_masking, use_weighted_masking=use_weighted_masking
         )
 
@@ -334,10 +336,7 @@ class FastSpeech(AbsTTS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        if is_inference:
-            return before_outs, after_outs, d_outs
-        else:
-            return before_outs, after_outs, ds, d_outs
+        return before_outs, after_outs, d_outs
 
     def forward(
         self,
@@ -356,8 +355,8 @@ class FastSpeech(AbsTTS):
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            durations (LongTensor): Batch of padded durations (B, Tmax).
-            durations_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
+            durations (LongTensor): Batch of padded durations (B, Tmax + 1).
+            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
 
         Returns:
@@ -382,7 +381,7 @@ class FastSpeech(AbsTTS):
         olens = speech_lengths
 
         # forward propagation
-        before_outs, after_outs, ds, d_outs = self._forward(
+        before_outs, after_outs, d_outs = self._forward(
             xs, ilens, ys, olens, ds, spembs=spembs, is_inference=False
         )
 
@@ -394,13 +393,10 @@ class FastSpeech(AbsTTS):
 
         # calculate loss
         if self.postnet is None:
-            l1_loss, duration_loss = self.criterion(
-                None, before_outs, d_outs, ys, ds, ilens, olens
-            )
-        else:
-            l1_loss, duration_loss = self.criterion(
-                after_outs, before_outs, d_outs, ys, ds, ilens, olens
-            )
+            after_outs = None
+        l1_loss, duration_loss = self.criterion(
+            after_outs, before_outs, d_outs, ys, ds, ilens, olens
+        )
         loss = l1_loss + duration_loss
 
         stats = dict(
@@ -424,7 +420,9 @@ class FastSpeech(AbsTTS):
         text: torch.Tensor,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        durations: torch.Tensor = None,
         alpha: float = 1.0,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -432,7 +430,10 @@ class FastSpeech(AbsTTS):
             text (LongTensor): Input sequence of characters (T,).
             speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
+            durations (LongTensor, optional): Groundtruth of duration (T + 1,).
             alpha (float, optional): Alpha to control the speed.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
+                If true, groundtruth of duration, pitch and energy will be used.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -440,27 +441,31 @@ class FastSpeech(AbsTTS):
             None: Dummy for compatibility.
 
         """
-        x = text
-        y = speech
-        spemb = spembs
+        x, y = text, speech
+        spemb, d = spembs, durations
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
 
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
-        xs = x.unsqueeze(0)
-        ys, olens = None, None
+        xs, ys = x.unsqueeze(0), None
         if y is not None:
             ys = y.unsqueeze(0)
-            olens = torch.tensor([y.shape[0]], dtype=torch.long, device=y.device)
         if spemb is not None:
             spembs = spemb.unsqueeze(0)
 
-        # inference
-        _, outs, _ = self._forward(
-            xs, ilens, ys, olens, spembs=spembs, is_inference=True, alpha=alpha,
-        )  # (1, L, odim)
+        if use_teacher_forcing:
+            # use groundtruth of duration, pitch, and energy
+            ds = d.unsqueeze(0)
+            _, outs, *_ = self._forward(
+                xs, ilens, ys, ds=ds, spembs=spembs,
+            )  # (1, L, odim)
+        else:
+            # inference
+            _, outs, _ = self._forward(
+                xs, ilens, ys, spembs=spembs, is_inference=True, alpha=alpha,
+            )  # (1, L, odim)
 
         return outs[0], None, None
 

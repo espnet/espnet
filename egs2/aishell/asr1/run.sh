@@ -10,7 +10,7 @@ valid_set=dev
 test_sets="dev test"
 
 asr_config=conf/train_asr_rnn.yaml
-decode_config=conf/decode_asr_rnn.yaml
+inference_config=conf/decode_asr_rnn.yaml
 
 lm_config=conf/train_lm.yaml
 use_lm=true
@@ -29,7 +29,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --use_word_lm ${use_wordlm}                        \
     --lm_config "${lm_config}"                         \
     --asr_config "${asr_config}"                       \
-    --decode_config "${decode_config}"                 \
+    --inference_config "${inference_config}"                 \
     --train_set "${train_set}"                         \
     --valid_set "${valid_set}"                         \
     --test_sets "${test_sets}"                         \

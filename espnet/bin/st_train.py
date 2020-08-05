@@ -350,6 +350,12 @@ def get_parser(parser=None, required=True):
         help="Number of samples of attention to be saved",
     )
     parser.add_argument(
+        "--num-save-ctc",
+        default=3,
+        type=int,
+        help="Number of samples of CTC probability to be saved",
+    )
+    parser.add_argument(
         "--grad-noise",
         type=strtobool,
         default=False,

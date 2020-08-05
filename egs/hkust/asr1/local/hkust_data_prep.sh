@@ -66,7 +66,7 @@ find $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
 
 #transcripts normalization and segmentation
 #(this needs external tools),
-python -c "import mmseg" 2>/dev/null || \
+python3 -c "import mmseg" 2>/dev/null || \
   (echo "mmseg is not found. Checkout tools/extra/install_mmseg.sh" && exit 1;)
 
 cat $train_dir/transcripts.txt |\
@@ -75,7 +75,7 @@ cat $train_dir/transcripts.txt |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  python local/hkust_segment.py |\
+  python3 local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $train_dir/text || exit 1;
 
 cat $dev_dir/transcripts.txt |\
@@ -84,7 +84,7 @@ cat $dev_dir/transcripts.txt |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  python local/hkust_segment.py |\
+  python3 local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $dev_dir/text || exit 1;
 
 # some data is corrupted. Delete them

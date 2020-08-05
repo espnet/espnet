@@ -14,7 +14,7 @@ test_sets="valid_dev_${lang} valid_test_${lang}"
 
 asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
-decode_config=conf/decode_asr.yaml
+inference_config=conf/decode_asr.yaml
 
 
 ./asr.sh \
@@ -26,7 +26,7 @@ decode_config=conf/decode_asr.yaml
     --nbpe 150 \
     --feats_type raw \
     --asr_config "${asr_config}" \
-    --decode_config "${decode_config}" \
+    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
