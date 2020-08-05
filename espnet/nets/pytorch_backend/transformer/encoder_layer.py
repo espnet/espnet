@@ -57,7 +57,8 @@ class EncoderLayer(nn.Module):
         """Compute encoded features.
 
         :param torch.Tensor x: encoded source features (batch, max_time_in, size)
-        :param torch.Tensor mask: mask for x (batch, max_time_in)
+        :param torch.Tensor mask: mask for x
+            (batch, 1, max_time_in) or (batch, max_time_in, max_time_in)
         :param torch.Tensor cache: cache for x (batch, max_time_in - 1, size)
         :rtype: Tuple[torch.Tensor, torch.Tensor]
         """
