@@ -4,12 +4,12 @@ adim: 512
 aheads: 8
 backend: pytorch
 # https://github.com/espnet/espnet/issues/1167
-batch-bins: 16000000
+batch-bins: 22000000
 dlayers: 6
 dropout-rate: 0.1
 dunits: 2048
 elayers: 12
-epochs: 20
+epochs: 100
 eunits: 2048
 grad-clip: 5
 lsm-weight: 0.1
@@ -22,6 +22,6 @@ transformer-attn-dropout-rate: 0.0
 transformer-init: pytorch
 transformer-input-layer: conv2d
 transformer-length-normalized-loss: false
-transformer-lr: 10.0
-transformer-warmup-steps: 25000
+transformer-lr: 5
+transformer-warmup-steps: 20000
 
