@@ -321,16 +321,10 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 2. forward decoder
         if self.decoder is not None:
-            if self.decoder_mode == "maskctc":
-                ys_in_pad, ys_out_pad = mask_uniform(
-                    ys_pad, self.mask_token, self.eos, self.ignore_id
-                )
-                ys_mask = (ys_in_pad != self.ignore_id).unsqueeze(-2)
-            else:
-                ys_in_pad, ys_out_pad = add_sos_eos(
-                    ys_pad, self.sos, self.eos, self.ignore_id
-                )
-                ys_mask = target_mask(ys_in_pad, self.ignore_id)
+            ys_in_pad, ys_out_pad = add_sos_eos(
+                ys_pad, self.sos, self.eos, self.ignore_id
+            )
+            ys_mask = target_mask(ys_in_pad, self.ignore_id)
             pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
             self.pred_pad = pred_pad
 
