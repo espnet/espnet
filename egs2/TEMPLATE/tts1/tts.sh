@@ -724,7 +724,7 @@ if ! "${skip_train}"; then
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
         log "TTS training started... log: '${tts_exp}/train.log'"
-        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+        if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${tts_exp})"
         else
