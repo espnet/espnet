@@ -85,7 +85,7 @@ class E2E(E2ETransformer):
         ys_in_pad, ys_out_pad = mask_uniform(
             ys_pad, self.mask_token, self.eos, self.ignore_id
         )
-        ys_mask = (ys_in_pad != self.ignore_id).unsqueeze(-2)
+        ys_mask = (ys_out_pad != self.ignore_id).unsqueeze(-2)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 
@@ -96,10 +96,8 @@ class E2E(E2ETransformer):
         )
 
         # 4. compute ctc loss
-        cer_ctc = None
-        if self.mtlalpha == 0.0:
-            loss_ctc = None
-        else:
+        loss_ctc, cer_ctc = None, None
+        if self.mtlalpha > 0:
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
@@ -189,7 +187,7 @@ class E2E(E2ETransformer):
 
             for t in range(num_iter - 1):
                 pred, _ = self.decoder(
-                    y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None
+                    y_in, None, h, None
                 )
                 pred_score, pred_id = pred[0][mask_idx].max(dim=-1)
                 cand = torch.topk(pred_score, mask_num // num_iter, -1)[1]
@@ -200,7 +198,7 @@ class E2E(E2ETransformer):
 
             # predict leftover masks (|masks| < mask_num // num_iter)
             pred, pred_mask = self.decoder(
-                y_in, (y_in != self.ignore_id).unsqueeze(-2), h, None
+                y_in, None, h, None
             )
             y_in[0][mask_idx] = pred[0][mask_idx].argmax(dim=-1)
 
