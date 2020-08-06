@@ -488,7 +488,7 @@ if ! "${skip_train}"; then
 
 
         log "enh training started... log: '${enh_exp}/train.log'"
-        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+        if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${enh_exp})"
         else
