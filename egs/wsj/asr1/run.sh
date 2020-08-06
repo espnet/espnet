@@ -248,20 +248,21 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-            average_opts=
-            if ${use_valbest_average}; then
-                recog_model=model.val${n_average}.avg.best
-                average_opts="--log ${expdir}/results/log"
-            else
-                recog_model=model.last${n_average}.avg.best
-            fi
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
+        average_opts=
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            average_opts="--log ${expdir}/results/log"
+        else
             recog_model=model.last${n_average}.avg.best
-            average_checkpoints.py --backend ${backend} \
-                                   --snapshots ${expdir}/results/snapshot.ep.* \
-                                   --out ${expdir}/results/${recog_model} \
-                                   --num ${n_average} \
-                                   ${average_opt}
+        fi
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${recog_model} \
+                               --num ${n_average} \
+                               ${average_opt}
     fi
 
     pids=() # initialize pids

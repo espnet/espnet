@@ -11,10 +11,10 @@ if ! [ -x "$(command -v bats)" ]; then
 fi
 if ! [ -x "$(command -v shellcheck)" ]; then
     echo "=== install shellcheck ==="
-    wget https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz
+    wget https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz 
     tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 fi
-. tools/venv/bin/activate
+. tools/activate_python.sh
 
 set -euo pipefail
 

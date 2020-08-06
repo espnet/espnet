@@ -63,9 +63,9 @@ class DecoderLayer(nn.Module):
         Args:
             tgt (torch.Tensor):
                 decoded previous target features (batch, max_time_out, size)
-            tgt_mask (torch.Tensor): mask for x (batch, max_time_out)
+            tgt_mask (torch.Tensor): mask for x (batch, max_time_out, max_time_out)
             memory (torch.Tensor): encoded source features (batch, max_time_in, size)
-            memory_mask (torch.Tensor): mask for memory (batch, max_time_in)
+            memory_mask (torch.Tensor): mask for memory (batch, 1, max_time_in)
             cache (torch.Tensor): cached output (batch, max_time_out-1, size)
 
         """

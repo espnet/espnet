@@ -8,40 +8,40 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-torch_12_plus=$(python <<EOF
+torch_12_plus=$(python3 <<EOF
 from distutils.version import LooseVersion as V
 import torch
 
-if V(torch.__version__) >= V("1.2"): 
+if V(torch.__version__) >= V("1.2"):
     print("true")
 else:
     print("false")
 EOF
 )
 
-torch_11_plus=$(python <<EOF
+torch_11_plus=$(python3 <<EOF
 from distutils.version import LooseVersion as V
 import torch
 
-if V(torch.__version__) >= V("1.1"): 
+if V(torch.__version__) >= V("1.1"):
     print("true")
 else:
     print("false")
 EOF
 )
 
-torch_10_plus=$(python <<EOF
+torch_10_plus=$(python3 <<EOF
 from distutils.version import LooseVersion as V
 import torch
 
-if V(torch.__version__) >= V("1.0"): 
+if V(torch.__version__) >= V("1.0"):
     print("true")
 else:
     print("false")
 EOF
 )
 
-cuda_version=$(python <<EOF
+cuda_version=$(python3 <<EOF
 import torch
 if torch.cuda.is_available():
     version=torch.version.cuda.split(".")
@@ -60,39 +60,39 @@ if "${torch_12_plus}"; then
 elif "${torch_11_plus}"; then
 
     if [ -z "${cuda_version}" ]; then
-        pip install warpctc-pytorch11-cpu; 
-    else 
-        pip install warpctc-pytorch11-cuda"${cuda_version}"
-    fi 
+        python3 -m pip install warpctc-pytorch11-cpu;
+    else
+        python3 -m pip install warpctc-pytorch11-cuda"${cuda_version}"
+    fi
 
 elif "${torch_10_plus}"; then
 
     if [ -z "${cuda_version}" ]; then
-        pip install warpctc-pytorch10-cpu
+        python3 -m pip install warpctc-pytorch10-cpu
     else
-        pip install warpctc-pytorch10-cuda"${cuda_version}"
-    fi 
+        python3 -m pip install warpctc-pytorch10-cuda"${cuda_version}"
+    fi
 
 else
 
     rm -rf warp-ctc
     git clone https://github.com/espnet/warp-ctc.git
-    ( 
+    (
         set -euo pipefail
 
         cd warp-ctc
         git checkout -b pytorch-0.4 remotes/origin/pytorch-0.4
         mkdir build
-        
-        ( 
+
+        (
             set -euo pipefail
             cd build && cmake .. && ${MAKE}
         )
 
-        pip install cffi
-        ( 
+        python3 -m pip install cffi
+        (
             set -euo pipefail
-            cd pytorch_binding && python setup.py installl
+            cd pytorch_binding && python3 setup.py installl
         )
     )
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. tools/venv/bin/activate
+. tools/activate_python.sh
 
 set -euo pipefail
 
@@ -15,6 +15,6 @@ fi
 # flake8
 "$(dirname $0)"/test_flake8.sh
 # pycodestyle
-pycodestyle -r ${modules} --show-source --show-pep8 
+pycodestyle -r ${modules} --show-source --show-pep8
 
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/tools/chainer_ctc/ext/warp-ctc/build" pytest -q

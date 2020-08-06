@@ -209,6 +209,7 @@ class Trainer:
                     schedulers=schedulers,
                     iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
+                    summary_writer=summary_writer,
                     options=trainer_options,
                 )
 
@@ -331,6 +332,7 @@ class Trainer:
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         reporter: SubReporter,
+        summary_writer: Optional[SummaryWriter],
         options: TrainerOptions,
     ) -> bool:
         assert check_argument_types()
@@ -376,11 +378,11 @@ class Trainer:
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
                 all_steps_are_invalid = False
-                reporter.register({})
                 continue
 
             with reporter.measure_time("forward_time"):
                 loss, stats, weight = model(**batch)
+            stats = {k: v for k, v in stats.items() if v is not None}
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for loss and stats
                 loss = (loss * weight.type(loss.dtype)).sum()
@@ -455,13 +457,15 @@ class Trainer:
                         },
                         train_time=time.perf_counter() - start_time,
                     ),
-                    # Suppress to increment the internal counter.
-                    not_increment_count=True,
                 )
                 start_time = time.perf_counter()
 
+            # NOTE(kamo): Call log_message() after next()
+            reporter.next()
             if iiter % log_interval == 0:
-                logging.info(reporter.log_message())
+                logging.info(reporter.log_message(-log_interval))
+                if summary_writer is not None:
+                    reporter.tensorboard_add_scalar(summary_writer, -log_interval)
 
         else:
             if distributed:
@@ -498,7 +502,6 @@ class Trainer:
 
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
-                reporter.register({})
                 continue
 
             _, stats, weight = model(**batch)
@@ -508,6 +511,7 @@ class Trainer:
                 stats, weight = recursive_average(stats, weight, distributed)
 
             reporter.register(stats, weight)
+            reporter.next()
 
         else:
             if distributed:
@@ -586,6 +590,4 @@ class Trainer:
                         summary_writer.add_figure(
                             f"{k}_{id_}", fig, reporter.get_epoch()
                         )
-
-                    # Dummy register() stimulates to increment the counter
-                    reporter.register({})
+            reporter.next()
