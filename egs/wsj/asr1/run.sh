@@ -156,7 +156,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --output-json-path ${feat_tr_dir}/data.json
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && [ ! ${skip_lm_training} ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_lm_training}; then
     echo "stage 3: LM Preparation"
 
     if [ -z ${lmtag} ]; then
@@ -269,7 +269,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for rtask in ${recog_set}; do
     (
         recog_opts=
-        if [ ! ${skip_lm_training} ]; then
+        if ! ${skip_lm_training}; then
             if [ -z ${lmtag} ]; then
                 lmtag="nolm"
             fi
