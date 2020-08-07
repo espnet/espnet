@@ -5,9 +5,6 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
-from espnet.nets.pytorch_backend.transducer.decoder_interface import (
-    TransducerDecoderInterface,  # noqa: H301
-)
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     DecoderLayer,  # noqa: H301
 )
@@ -18,6 +15,8 @@ from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
+
+from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
 class DecoderTT(TransducerDecoderInterface, torch.nn.Module):

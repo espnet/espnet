@@ -16,7 +16,7 @@ import sys
 
 from itertools import groupby
 
-from espnet.nets.pytorch_backend.transducer.search import search_interface
+from espnet.nets.beam_search_transducer import search_interface
 
 
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):

@@ -3,9 +3,8 @@
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
-from espnet.nets.pytorch_backend.transducer.decoder_interface import (
-    TransducerDecoderInterface,  # noqa: H301
-)
+
+from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
 class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):

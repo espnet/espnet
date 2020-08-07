@@ -10,6 +10,7 @@ from chainer import reporter
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.beam_search_transducer import search_interface
 
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -24,7 +25,6 @@ from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.rnn_att_decoder import DecoderRNNTAtt
 from espnet.nets.pytorch_backend.transducer.rnn_decoder import DecoderRNNT
-from espnet.nets.pytorch_backend.transducer.search import search_interface
 from espnet.nets.pytorch_backend.transducer.transformer_decoder import DecoderTT
 from espnet.nets.pytorch_backend.transducer.transformer_encoder import Encoder
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
