@@ -149,7 +149,12 @@ def get_parser():
         type=str,
         default="default",
         choices=["default", "nsc", "tsd", "alsd"],
-        help="Type of beam search implementation to use during inference.",
+        help="""Type of beam search implementation to use during inference.
+        Can be either: default beam search, n-step constrained beam search ("nsc"),
+        time-synchronous decoding ("tsd") or alignment-length synchronous decoding
+        ("alsd").
+        Additional associated parameters: "nstep" (for nsc and tsd), "prefix-alpha"
+        (for nsc) and "u-max" (for alsd)""",
     )
     parser.add_argument(
         "--nstep",
