@@ -29,7 +29,7 @@ cat << EOF
 EOF
 
 python3 << EOF
-import sys, espnet, chainer, torch
+import sys, espnet, torch
 pyversion = sys.version.replace('\n', ' ')
 
 print(f"""- python version: \`{pyversion}\`
