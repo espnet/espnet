@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2020 Electronics and Telecommunications Research Institute (Hoon Chung)
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
