@@ -463,7 +463,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
     state = decoder.select_state(w_state, 0)
 
     if rnnlm:
-        w_lm_states, w_lm_scores = rnnlm.buff_predict(None, w_lm_tokens, w_range)
+        w_lm_states, w_lm_scores = rnnlm.buff_predict(None, w_lm_tokens, 1)
 
         if hasattr(rnnlm.predictor, "wordlm"):
             lm_type = "wordlm"

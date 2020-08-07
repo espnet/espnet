@@ -278,7 +278,9 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         )
         batch_y = torch.stack(_y)
 
-        lm_tokens = pad_sequence([h["yseq"] for h in hyps], self.blank)
+        lm_tokens = to_device(
+            self, torch.LongTensor([h["yseq"][-1] for h in hyps]).view(final_batch)
+        )
 
         return batch_y, batch_states, lm_tokens
 
