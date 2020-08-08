@@ -860,7 +860,7 @@ class AbsTask(ABC):
                 scheduler.load_state_dict(state)
         if scaler is not None:
             if states["scaler"] is None:
-                logging.warning("scaler state is not found. Maybe dtype is changed")
+                logging.warning("scaler state is not found")
             else:
                 scaler.load_state_dict(states["scaler"])
 
