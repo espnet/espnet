@@ -1,4 +1,5 @@
 import argparse
+from contextlib import contextmanager
 import dataclasses
 from dataclasses import is_dataclass
 from distutils.version import LooseVersion
@@ -46,6 +47,17 @@ if torch.distributed.is_available():
         from torch.distributed import reduce_op as ReduceOp
 else:
     ReduceOp = None
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    from torch.cuda.amp import autocast
+    from torch.cuda.amp import GradScaler
+else:
+    # Nothing to do if torch<1.6.0
+    @contextmanager
+    def autocast(enabled=True):
+        yield
+
+    GradScaler = None
 
 
 @dataclasses.dataclass
@@ -111,6 +123,7 @@ class Trainer:
         valid_iter_factory: AbsIterFactory,
         plot_attention_iter_factory: Optional[AbsIterFactory],
         reporter: Reporter,
+        scaler: Optional[GradScaler],
         output_dir: Path,
         max_epoch: int,
         seed: int,
@@ -127,22 +140,6 @@ class Trainer:
         # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
 
-        # NOTE(kamo): trainer_options doesn't always have "train_dtype"
-        use_apex = getattr(trainer_options, "train_dtype", "") in (
-            "O0",
-            "O1",
-            "O2",
-            "O3",
-        )
-        if use_apex:
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    "You need to install apex. "
-                    "See https://github.com/NVIDIA/apex#linux"
-                )
-
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == max_epoch + 1:
             logging.warning(
@@ -150,8 +147,6 @@ class Trainer:
             )
 
         if distributed_option.distributed:
-            # Use torch DDP instead of apex DDP
-            # https://github.com/NVIDIA/apex/issues/494
             dp_model = torch.nn.parallel.DistributedDataParallel(
                 model,
                 device_ids=(
@@ -168,7 +163,6 @@ class Trainer:
                 ),
             )
         elif distributed_option.ngpu > 1:
-            # apex.amp supports DataParallel now.
             dp_model = torch.nn.parallel.DataParallel(
                 model, device_ids=list(range(distributed_option.ngpu)),
             )
@@ -209,6 +203,7 @@ class Trainer:
                     schedulers=schedulers,
                     iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
+                    scaler=scaler,
                     summary_writer=summary_writer,
                     options=trainer_options,
                 )
@@ -257,7 +252,7 @@ class Trainer:
                             s.state_dict() if s is not None else None
                             for s in schedulers
                         ],
-                        "amp": amp.state_dict() if use_apex else None,
+                        "scaler": scaler.state_dict() if scaler is not None else None,
                     },
                     output_dir / "checkpoint.pth",
                 )
@@ -331,6 +326,7 @@ class Trainer:
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
+        scaler: Optional[GradScaler],
         reporter: SubReporter,
         summary_writer: Optional[SummaryWriter],
         options: TrainerOptions,
@@ -350,7 +346,6 @@ class Trainer:
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
-        use_apex = options.train_dtype in ("O0", "O1", "O2", "O3")
 
         if log_interval is None:
             try:
@@ -380,42 +375,44 @@ class Trainer:
                 all_steps_are_invalid = False
                 continue
 
-            with reporter.measure_time("forward_time"):
-                loss, stats, weight = model(**batch)
-            stats = {k: v for k, v in stats.items() if v is not None}
-            if ngpu > 1 or distributed:
-                # Apply weighted averaging for loss and stats
-                loss = (loss * weight.type(loss.dtype)).sum()
+            with autocast(scaler is not None):
+                with reporter.measure_time("forward_time"):
+                    loss, stats, weight = model(**batch)
+                stats = {k: v for k, v in stats.items() if v is not None}
+                if ngpu > 1 or distributed:
+                    # Apply weighted averaging for loss and stats
+                    loss = (loss * weight.type(loss.dtype)).sum()
 
-                # if distributed, this method can also apply all_reduce()
-                stats, weight = recursive_average(stats, weight, distributed)
+                    # if distributed, this method can also apply all_reduce()
+                    stats, weight = recursive_average(stats, weight, distributed)
 
-                # Now weight is summation over all workers
-                loss /= weight
-            if distributed:
-                # NOTE(kamo): Multiply world_size because DistributedDataParallel
-                # automatically normalizes the gradient by world_size.
-                loss *= torch.distributed.get_world_size()
+                    # Now weight is summation over all workers
+                    loss /= weight
+                if distributed:
+                    # NOTE(kamo): Multiply world_size because DistributedDataParallel
+                    # automatically normalizes the gradient by world_size.
+                    loss *= torch.distributed.get_world_size()
+
+                loss /= accum_grad
 
             reporter.register(stats, weight)
 
-            loss /= accum_grad
             with reporter.measure_time("backward_time"):
-                if use_apex:
-                    try:
-                        from apex import amp
-                    except ImportError:
-                        logging.error(
-                            "You need to install apex. "
-                            "See https://github.com/NVIDIA/apex#linux"
-                        )
-
-                    with amp.scale_loss(loss, optimizers) as scaled_loss:
-                        scaled_loss.backward()
+                if scaler is not None:
+                    # Scales loss.  Calls backward() on scaled loss
+                    # to create scaled gradients.
+                    # Backward passes under autocast are not recommended.
+                    # Backward ops run in the same dtype autocast chose
+                    # for corresponding forward ops.
+                    scaler.scale(loss).backward()
                 else:
                     loss.backward()
 
             if iiter % accum_grad == 0:
+                if scaler is not None:
+                    # Unscales the gradients of optimizer's assigned params in-place
+                    scaler.unscale_(optimizer)
+
                 # gradient noise injection
                 if grad_noise:
                     add_gradient_noise(
@@ -441,7 +438,14 @@ class Trainer:
                 else:
                     all_steps_are_invalid = False
                     with reporter.measure_time("optim_step_time"):
-                        optimizer.step()
+                        if scaler is not None:
+                            # scaler.step() first unscales the gradients of
+                            # the optimizer's assigned params.
+                            scaler.step(optimizer)
+                            # Updates the scale for next iteration.
+                            scaler.update()
+                        else:
+                            optimizer.step()
                     if isinstance(scheduler, AbsBatchStepScheduler):
                         scheduler.step()
                 optimizer.zero_grad()
