@@ -165,7 +165,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --debugmode ${debugmode} \
             --verbose ${verbose} \
             --data-json ${dumpdir}/${rtask}/delta${do_delta}/data.json \
-            --output data/${rtask}/segments \
+            --output data/${rtask}/aligned_segments \
             --model ${align_model} \
             --api ${api} \
             --utt-text data/dev/utt_text || exit 1;
