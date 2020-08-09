@@ -15,6 +15,15 @@ def average_nbest_models(
     best_model_criterion: Sequence[Sequence[str]],
     nbest: int,
 ) -> None:
+    """Generate averaged model from n-best models
+
+    Args:
+        output_dir: The directory contains the model file for each epoch
+        reporter: Reporter instance
+        best_model_criterion: Give criterions to decide the best model.
+            e.g. [("valid", "loss", "min"), ("train", "acc", "max")]
+        nbest:
+    """
     assert check_argument_types()
     # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
     nbest_epochs = [
@@ -62,7 +71,15 @@ def average_nbest_models(
                     for k in avg:
                         avg[k] += states[k]
             for k in avg:
-                avg[k] /= len(epoch_and_values)
+                if str(avg[k].dtype).startswith("torch.int"):
+                    # For int type, not averaged, but only accumulated.
+                    # e.g. BatchNorm.num_batches_tracked
+                    # (If there are any cases that requires averaging
+                    #  or the other reducing method, e.g. max/min, for integer type,
+                    #  please report.)
+                    pass
+                else:
+                    avg[k] /= len(epoch_and_values)
 
             # 2.b Save the ave model and create a symlink
             torch.save(avg, op)
