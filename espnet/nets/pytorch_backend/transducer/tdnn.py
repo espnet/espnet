@@ -9,13 +9,6 @@ class TDNN(torch.nn.Module):
 
     Reference: https://www.danielpovey.com/files/2015_interspeech_multisplice.pdf
 
-    This implementation exploits Conv1d's dilation argument.
-    Thus, temporal context is defined as a value encapsulating following constraints:
-        - Context must be symmetric
-        - Spacing between each element of the context must be equal.
-
-    Unfold usage is based on cvqluu's implementation (https://github.com/cvqluu/TDNN)
-
     Args:
         idim (int): dimension of inputs
         odim (int): dimension of outputs
@@ -44,13 +37,12 @@ class TDNN(torch.nn.Module):
         self.batch_norm = batch_norm
         self.relu = relu
 
-        self.kernel = torch.nn.Linear((idim * ctx_size), odim)
+        self.tdnn = torch.nn.Conv1d(
+            idim, odim, ctx_size, stride=stride, dilation=dilation
+        )
 
         if self.batch_norm:
             self.bn = torch.nn.BatchNorm1d(odim)
-
-        if self.relu:
-            self.rel = torch.nn.ReLU()
 
     def forward(self, xs, masks):
         """Forward TDNN.
@@ -64,29 +56,23 @@ class TDNN(torch.nn.Module):
             masks (torch.Tensor): output mask (B, 1, new_seq_len)
 
         """
-        xs = F.unfold(
-            xs.unsqueeze(1),
-            (self.ctx_size, self.idim),
-            stride=(self.stride, self.idim),
-            dilation=(self.dilation, 1),
-        )
-
-        xs = xs.transpose(1, 2)
-        xs = self.kernel(xs)
+        xs = xs.transpose(1, 2).contiguous()
+        xs = self.tdnn(xs)
 
         if self.batch_norm:
-            xs = xs.transpose(1, 2)
             xs = self.bn(xs)
-            xs = xs.transpose(1, 2)
 
         if self.relu:
-            xs = self.rel(xs)
+            xs = F.relu(xs)
+
+        xs = xs.transpose(1, 2).contiguous()
 
         if masks is not None:
             sub = (self.ctx_size - 1) * self.dilation
 
             if sub != 0:
-                masks = masks[:, :, : -((self.ctx_size - 1) * self.dilation)]
+                masks = masks[:, :, :-sub]
+
             masks = masks[:, :, :: self.stride]
 
         return xs, masks
