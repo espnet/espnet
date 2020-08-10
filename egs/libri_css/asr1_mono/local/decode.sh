@@ -9,10 +9,11 @@
 # Apache 2.0
 
 # Begin configuration section.
-nj=8
+nj=32
 stage=0
 score_sad=true
 diarizer_stage=0
+diarizer_name=spectral
 decode_diarize_stage=0
 decode_oracle_stage=0
 
@@ -47,8 +48,6 @@ $use_oracle_segments && [ $stage -le 6 ] && stage=6
 if [ -z `pip freeze | grep webrtcvad` ]; then
   pip install webrtcvad
 fi
-
-
 
 #######################################################################
 # Perform SAD on the dev/eval data using py-webrtcvad package
@@ -107,31 +106,36 @@ fi
 # Perform diarization on the dev/eval data
 #######################################################################
 if [ $stage -le 3 ]; then
+  if [[ ! ${diarizer_name} =~ (agglomerative|bhmm|spectral) ]]; then
+    echo "$0: Unknown diarizer name: ${diarizer_name}"
+    exit 0
+  fi
+
   for datadir in ${test_sets}; do
     ref_rttm=data/${datadir}/ref_rttm
     steps/segmentation/convert_utt2spk_and_segments_to_rttm.py data/${datadir}/utt2spk.bak \
       data/${datadir}/segments.bak $ref_rttm
     diar_nj=$(wc -l < "data/$datadir/wav.scp") # This is important especially for VB-HMM
 
-    local/diarize_spectral.sh --nj $diar_nj --cmd "$train_cmd" --stage $diarizer_stage \
+    local/diarize_${diarizer_name}.sh --nj $diar_nj --cmd "$train_cmd" --stage $diarizer_stage \
       --ref-rttm $ref_rttm \
       exp/xvector_nnet_1a \
       data/${datadir} \
-      exp/${datadir}_diarization
+      exp/${datadir}_diarization_${diarizer_name}
   done
 fi
 
 #######################################################################
-# Decode diarized output using trained chain model
+# Decode diarized output using trained E2E ASR Tranformer model
 #######################################################################
 if [ $stage -le 4 ]; then
   for datadir in ${test_sets}; do
     local/decode_diarized.sh --stage $decode_diarize_stage \
       --recog_model ${recog_model} --expdir ${expdir} \
       --lang_model ${lang_model} --lmexpdir ${lmexpdir} \
-      --decode_config ${decode_config} \
-      exp/${datadir}_diarization data/$datadir \
-      data/${datadir}_diarized || exit 1
+      --decode_config ${decode_config} --decode_nj ${nj} \
+      exp/${datadir}_diarization_${diarizer_name} data/$datadir \
+      data/${datadir}_diarized_${diarizer_name} || exit 1
   done
 fi
 
@@ -141,10 +145,10 @@ fi
 if [ $stage -le 5 ]; then
   # final scoring to get the challenge result
   local/score_reco_diarized.sh \
-    --dev_decodedir ${expdir}/decode_dev_diarized_${recog_model}_$(basename ${decode_config%.*}) \
-    --dev_datadir dev_diarized \
-    --eval_decodedir ${expdir}/decode_eval_diarized_${recog_model}_$(basename ${decode_config%.*}) \
-    --eval_datadir eval_diarized
+    --dev_decodedir ${expdir}/decode_dev_diarized_${diarizer_name}_${recog_model}_$(basename ${decode_config%.*}) \
+    --dev_datadir dev_diarized_${diarizer_name} \
+    --eval_decodedir ${expdir}/decode_eval_diarized_${diarizer_name}_${recog_model}_$(basename ${decode_config%.*}) \
+    --eval_datadir eval_diarized_${diarizer_name}
 fi
 
 $use_oracle_segments || exit 0
@@ -184,7 +188,7 @@ if [ $stage -le 7 ]; then
   local/decode_oracle.sh --stage $decode_oracle_stage \
     --recog_model ${recog_model} --expdir ${expdir} \
     --lang_model ${lang_model} --lmexpdir ${lmexpdir} \
-    --decode_config ${decode_config} \
+    --decode_config ${decode_config} --decode_nj ${nj} \
     --test_sets "$test_sets"
 fi
 

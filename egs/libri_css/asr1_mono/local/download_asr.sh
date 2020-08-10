@@ -23,6 +23,8 @@ set -e -o pipefail
 mkdir -p downloads
 dir=$(mktemp -d -p downloads)
 
+# Large Transformer E2E ASR model with Transformer LM
+# Trained on LibriSpeech 960 with SpecAugment and LibriSpeech LM data
 download_from_google_drive.sh \
 	"https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p" \
 	${dir}  ".tar.gz"

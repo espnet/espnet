@@ -81,7 +81,7 @@ if [ $stage -le 5 ]; then
     $out_dir $out_dir/xvectors_${name} $model_dir/plda
 fi
 
-hyp_rttm=${out_dir}/rttm.vb
+hyp_rttm=${out_dir}/rttm
 
 # For scoring the diarization system, we use the same tool that was
 # used in the DIHARD II challenge. This is available at:

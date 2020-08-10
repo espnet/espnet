@@ -8,6 +8,8 @@
 
 # Begin configuration section.
 stage=0
+nj=32
+diarizer_name=spectral
 
 # Different stages
 decode_stage=0
@@ -60,8 +62,8 @@ fi
 # local/decode.sh script.
 ##########################################################################
 if [ $stage -le 3 ]; then
-  local/decode.sh --stage $decode_stage \
-    --test-sets "$test_sets" \
+  local/decode.sh --stage $decode_stage --diarizer_name ${diarizer_name} \
+    --test-sets "$test_sets" --nj ${nj} \
     --use-oracle-segments $use_oracle_segments
 fi
 
