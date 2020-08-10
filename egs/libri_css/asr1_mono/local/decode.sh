@@ -13,7 +13,7 @@ nj=32
 stage=0
 score_sad=true
 diarizer_stage=0
-diarizer_name=spectral
+diarizer_type=spectral
 decode_diarize_stage=0
 decode_oracle_stage=0
 
@@ -106,8 +106,8 @@ fi
 # Perform diarization on the dev/eval data
 #######################################################################
 if [ $stage -le 3 ]; then
-  if [[ ! ${diarizer_name} =~ (agglomerative|bhmm|spectral) ]]; then
-    echo "$0: Unknown diarizer name: ${diarizer_name}"
+  if [[ ! ${diarizer_type} =~ (agglomerative|bhmm|spectral) ]]; then
+    echo "$0: Unknown diarizer name: ${diarizer_type}"
     exit 0
   fi
 
@@ -117,11 +117,11 @@ if [ $stage -le 3 ]; then
       data/${datadir}/segments.bak $ref_rttm
     diar_nj=$(wc -l < "data/$datadir/wav.scp") # This is important especially for VB-HMM
 
-    local/diarize_${diarizer_name}.sh --nj $diar_nj --cmd "$train_cmd" --stage $diarizer_stage \
+    local/diarize_${diarizer_type}.sh --nj $diar_nj --cmd "$train_cmd" --stage $diarizer_stage \
       --ref-rttm $ref_rttm \
       exp/xvector_nnet_1a \
       data/${datadir} \
-      exp/${datadir}_diarization_${diarizer_name}
+      exp/${datadir}_diarization_${diarizer_type}
   done
 fi
 
@@ -134,8 +134,8 @@ if [ $stage -le 4 ]; then
       --recog_model ${recog_model} --expdir ${expdir} \
       --lang_model ${lang_model} --lmexpdir ${lmexpdir} \
       --decode_config ${decode_config} --decode_nj ${nj} \
-      exp/${datadir}_diarization_${diarizer_name} data/$datadir \
-      data/${datadir}_diarized_${diarizer_name} || exit 1
+      exp/${datadir}_diarization_${diarizer_type} data/$datadir \
+      data/${datadir}_diarized_${diarizer_type} || exit 1
   done
 fi
 
@@ -145,10 +145,10 @@ fi
 if [ $stage -le 5 ]; then
   # final scoring to get the challenge result
   local/score_reco_diarized.sh \
-    --dev_decodedir ${expdir}/decode_dev_diarized_${diarizer_name}_${recog_model}_$(basename ${decode_config%.*}) \
-    --dev_datadir dev_diarized_${diarizer_name} \
-    --eval_decodedir ${expdir}/decode_eval_diarized_${diarizer_name}_${recog_model}_$(basename ${decode_config%.*}) \
-    --eval_datadir eval_diarized_${diarizer_name}
+    --dev_decodedir ${expdir}/decode_dev_diarized_${diarizer_type}_${recog_model}_$(basename ${decode_config%.*}) \
+    --dev_datadir dev_diarized_${diarizer_type} \
+    --eval_decodedir ${expdir}/decode_eval_diarized_${diarizer_type}_${recog_model}_$(basename ${decode_config%.*}) \
+    --eval_datadir eval_diarized_${diarizer_type}
 fi
 
 $use_oracle_segments || exit 0

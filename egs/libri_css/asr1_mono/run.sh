@@ -9,7 +9,7 @@
 # Begin configuration section.
 stage=0
 nj=32
-diarizer_name=spectral
+diarizer_type=spectral # choose between spectral, bhmm or agglomerative
 
 # Different stages
 decode_stage=0
@@ -62,7 +62,7 @@ fi
 # local/decode.sh script.
 ##########################################################################
 if [ $stage -le 3 ]; then
-  local/decode.sh --stage $decode_stage --diarizer_name ${diarizer_name} \
+  local/decode.sh --stage $decode_stage --diarizer_type ${diarizer_type} \
     --test-sets "$test_sets" --nj ${nj} \
     --use-oracle-segments $use_oracle_segments
 fi
