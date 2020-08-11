@@ -262,7 +262,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                                --snapshots ${expdir}/results/snapshot.ep.* \
                                --out ${expdir}/results/${recog_model} \
                                --num ${n_average} \
-                               ${average_opt}
+                               ${average_opts}
     fi
 
     pids=() # initialize pids
