@@ -1029,10 +1029,13 @@ class AbsTask(ABC):
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
-            logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
-            yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
+        if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
+                logging.info(
+                    f'Saving the configuration in {output_dir / "config.yaml"}'
+                )
+                yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
         # 6. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
