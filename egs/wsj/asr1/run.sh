@@ -249,7 +249,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]]; then
         average_opts=
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best
@@ -257,7 +258,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         else
             recog_model=model.last${n_average}.avg.best
         fi
-        recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
                                --snapshots ${expdir}/results/snapshot.ep.* \
                                --out ${expdir}/results/${recog_model} \
@@ -269,7 +269,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for rtask in ${recog_set}; do
     (
         recog_opts=
-        if ! ${skip_lm_training}; then
+        if ${skip_lm_training}; then
             if [ -z ${lmtag} ]; then
                 lmtag="nolm"
             fi

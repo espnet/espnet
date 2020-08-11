@@ -85,7 +85,7 @@ class E2E(E2ETransformer):
         ys_in_pad, ys_out_pad = mask_uniform(
             ys_pad, self.mask_token, self.eos, self.ignore_id
         )
-        ys_mask = (ys_out_pad != self.ignore_id).unsqueeze(-2)
+        ys_mask = (ys_in_pad != self.eos).unsqueeze(-2)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 
