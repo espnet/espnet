@@ -8,7 +8,6 @@
 """Masking funcitons for Mask CTC."""
 
 import numpy
-import torch
 
 
 def mask_uniform(ys_pad, mask_token, eos, ignore_id):
