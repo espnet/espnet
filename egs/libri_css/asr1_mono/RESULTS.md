@@ -2,6 +2,14 @@
 
 This example demonstrates usage of pre-trained LibriSpeech model
 for the decoding of [LibriCSS](https://arxiv.org/abs/2001.11482) dataset.
+ - E2E ASR model is trained on LibriSpeech 960h data with SpecAugment
+data augmentation using
+[this](https://github.com/espnet/espnet/tree/47f51a77906c4c44d0da23da04e68676e4b931ab/egs/librispeech/asr1) recipe.
+It has Transformer Encoder-Decoder architecture with 12 layers in Encoder
+and 6 layers in Decoder.
+ - External Transformer LM is trained on LibriSpeech LM training data using
+[the same](https://github.com/espnet/espnet/tree/47f51a77906c4c44d0da23da04e68676e4b931ab/egs/librispeech/asr1) recipe.
+It has Transformer architecture with 16 layers.
 
 ### Oracle Segmentation
 |Subset|0L|0S|OV10|OV20|OV30|OV40|WER (avg.)|
