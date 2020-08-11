@@ -158,7 +158,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Aligning"
 
     for rtask in ${recog_set}; do
-
+	# results are written to data/dev/aligned_segments
         ${python} -m espnet.utils.ctc_align \
             --config ${align_config} \
             --ngpu ${ngpu} \
@@ -168,6 +168,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --output data/${rtask}/aligned_segments \
             --model ${align_model} \
             --api ${api} \
-            --utt-text data/dev/utt_text || exit 1;
+            --utt-text data/${rtask}/utt_text || exit 1;
     done
 fi
+
+
