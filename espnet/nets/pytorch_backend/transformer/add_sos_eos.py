@@ -6,7 +6,6 @@
 
 """Unility funcitons for Transformer."""
 
-import numpy
 import torch
 
 
