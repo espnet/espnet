@@ -52,7 +52,7 @@ class E2E(E2ETransformer):
         :param int odim: dimension of outputs
         :param Namespace args: argument Namespace containing options
         """
-        odim += 1 # for the mask token
+        odim += 1  # for the mask token
 
         super().__init__(idim, odim, args, ignore_id)
         assert 0.0 <= self.mtlalpha < 1.0, "mtlalpha should be [0.0, 1.0)"
@@ -141,11 +141,14 @@ class E2E(E2ETransformer):
         :return: decoding result
         :rtype: list
         """
-        def num2str(char_list, mask_token, mask_char = "_"):
+
+        def num2str(char_list, mask_token, mask_char="_"):
             def f(yl):
                 cl = [char_list[y] if y != mask_token else mask_char for y in yl]
                 return "".join(cl).replace("<space>", " ")
+
             return f
+
         n2s = num2str(char_list, self.mask_token)
 
         self.eval()
@@ -186,9 +189,7 @@ class E2E(E2ETransformer):
             num_iter = K if mask_num >= K and K > 0 else mask_num
 
             for t in range(num_iter - 1):
-                pred, _ = self.decoder(
-                    y_in, None, h, None
-                )
+                pred, _ = self.decoder(y_in, None, h, None)
                 pred_score, pred_id = pred[0][mask_idx].max(dim=-1)
                 cand = torch.topk(pred_score, mask_num // num_iter, -1)[1]
                 y_in[0][mask_idx[cand]] = pred_id[cand]
@@ -197,9 +198,7 @@ class E2E(E2ETransformer):
                 logging.info("msk:{}".format(n2s(y_in[0].tolist())))
 
             # predict leftover masks (|masks| < mask_num // num_iter)
-            pred, pred_mask = self.decoder(
-                y_in, None, h, None
-            )
+            pred, pred_mask = self.decoder(y_in, None, h, None)
             y_in[0][mask_idx] = pred[0][mask_idx].argmax(dim=-1)
 
             logging.info("msk:{}".format(n2s(y_in[0].tolist())))
