@@ -4,6 +4,7 @@
 
 """
 Mask CTC based non-autoregressive speech recognition model (pytorch).
+
 See https://arxiv.org/abs/2005.08700 for the detail.
 
 """
@@ -17,8 +18,8 @@ import torch
 
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.maskctc.add_mask import mask_uniform
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
 
