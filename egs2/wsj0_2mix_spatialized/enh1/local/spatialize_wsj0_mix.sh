@@ -4,7 +4,7 @@
 # Apache 2.0
 
 min_or_max=min
-sample_rate=8000
+sample_rate=8k
 nj=16
 
 . utils/parse_options.sh
@@ -41,8 +41,8 @@ if [ $# -ne 3 ]; then
 fi
 
 dir=$1
-wsj0_2mix_wav=$3
-wsj0_2mix_spatialized_wav=$2
+wsj0_2mix_wav=$2
+wsj0_2mix_spatialized_wav=$3
 
 
 if ! command -v matlab >/dev/null 2>&1; then

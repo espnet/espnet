@@ -155,7 +155,7 @@ def get_WPD_filter(
     Phi: ComplexTensor,
     Rf: ComplexTensor,
     reference_vector: torch.Tensor,
-    eps: float = 1e-15,
+    eps: float = 1e-8,
 ) -> ComplexTensor:
     """Return the WPD vector.
 
@@ -183,25 +183,16 @@ def get_WPD_filter(
     Returns:
         filter_matrix (ComplexTensor): (B, F, (btaps + 1) * C)
     """
-    try:
-        inv_Rf = inv(Rf)
-    except Exception:
-        try:
-            reg_coeff_tensor = (
-                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-4
-            )
-            Rf = Rf / 10e4
-            Phi = Phi / 10e4
-            Rf += reg_coeff_tensor
-            inv_Rf = inv(Rf)
-        except Exception:
-            reg_coeff_tensor = (
-                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
-            )
-            Rf = Rf / 10e10
-            Phi = Phi / 10e10
-            Rf += reg_coeff_tensor
-            inv_Rf = inv(Rf)
+    B, F = Rf.shape[:2]
+    Cbtaps = Rf.size(-1)
+    eye = torch.eye(Cbtaps, dtype=Rf.dtype, device=Rf.device)
+    shape = [1 for _ in range(Rf.dim() - 2)] + [Cbtaps, Cbtaps]
+    eye = eye.view(*shape).repeat(B, F, 1, 1)
+    with torch.no_grad():
+        epsilon = FC.trace(Rf).real.abs()[..., None, None] * eps
+        # in case that correlation_matrix is all-zero
+        epsilon = epsilon + eps
+    inv_Rf = inv(Rf + epsilon * eye)
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     numerator = FC.einsum("...ec,...cd->...ed", [inv_Rf, Phi])
@@ -217,7 +208,7 @@ def get_WPD_filter_v2(
     Phi: ComplexTensor,
     Rf: ComplexTensor,
     reference_vector: torch.Tensor,
-    eps: float = 1e-15,
+    eps: float = 1e-8,
 ) -> ComplexTensor:
     """Return the WPD vector with filter v2.
 
@@ -249,25 +240,16 @@ def get_WPD_filter_v2(
         filter_matrix (ComplexTensor): (B, F, (btaps+1) * C)
     """
     C = reference_vector.shape[-1]
-    try:
-        inv_Rf = inv(Rf)
-    except Exception:
-        try:
-            reg_coeff_tensor = (
-                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-4
-            )
-            Rf = Rf / 10e4
-            Phi = Phi / 10e4
-            Rf += reg_coeff_tensor
-            inv_Rf = inv(Rf)
-        except Exception:
-            reg_coeff_tensor = (
-                ComplexTensor(torch.rand_like(Rf.real), torch.rand_like(Rf.real)) * 1e-1
-            )
-            Rf = Rf / 10e10
-            Phi = Phi / 10e10
-            Rf += reg_coeff_tensor
-            inv_Rf = inv(Rf)
+    B, F = Rf.shape[:2]
+    Cbtaps = Rf.size(-1)
+    eye = torch.eye(Cbtaps, dtype=Rf.dtype, device=Rf.device)
+    shape = [1 for _ in range(Rf.dim() - 2)] + [Cbtaps, Cbtaps]
+    eye = eye.view(*shape).repeat(B, F, 1, 1)
+    with torch.no_grad():
+        epsilon = FC.trace(Rf).real.abs()[..., None, None] * eps
+        # in case that correlation_matrix is all-zero
+        epsilon = epsilon + eps
+    inv_Rf = inv(Rf + epsilon * eye)
     # (B, F, (btaps+1) * C, (btaps+1) * C) --> (B, F, (btaps+1) * C, C)
     inv_Rf_pruned = inv_Rf[..., :C]
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)

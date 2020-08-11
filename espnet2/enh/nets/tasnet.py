@@ -70,6 +70,7 @@ def remove_pad(inputs, inputs_lengths):
     Args:
         inputs: torch.Tensor, [B, C, T] or [B, T], B is batch size
         inputs_lengths: torch.Tensor, [B]
+
     Returns:
         results: a list containing B items, each item is [C, T], T varies
     """
@@ -115,6 +116,7 @@ class TasNet(AbsEnhancement):
             norm_type: BN, gLN, cLN
             causal: causal or non-causal
             mask_nonlinear: use which non-linear function to generate mask
+
         Reference:
             Luo Y, Mesgarani N. Tasnet: time-domain audio
             separation network for real-time, single-channel speech separation
@@ -162,6 +164,7 @@ class TasNet(AbsEnhancement):
         Args:
             mixture: [M, T], M is batch size, T is #samples
             ilens (torch.Tensor): input lengths [Batch]
+
         Returns:
             est_source: [M, C, T]
             lens:  [Batch]
@@ -248,6 +251,7 @@ class Encoder(nn.Module):
 
         Args:
             mixture: [M, T], M is batch size, T is #samples
+
         Returns:
             mixture_w: [M, N, K], where K = (T-L)/(L/2)+1 = 2T/L-1
         """
@@ -270,6 +274,7 @@ class Decoder(nn.Module):
         Args:
             mixture_w: [M, N, K]
             est_mask: [M, C, N, K]
+
         Returns:
             est_source: [M, C, T]
         """
@@ -342,7 +347,8 @@ class TemporalConvNet(nn.Module):
 
         Args:
             mixture_w: [M, N, K], M is batch size
-        returns:
+
+        Returns:
             est_mask: [M, C, N, K]
         """
         M, N, K = mixture_w.size()
@@ -393,6 +399,7 @@ class TemporalBlock(nn.Module):
 
         Args:
             x: [M, B, K]
+
         Returns:
             [M, B, K]
         """
@@ -445,6 +452,7 @@ class DepthwiseSeparableConv(nn.Module):
 
         Args:
             x: [M, H, K]
+
         Returns:
             result: [M, B, K]
         """
@@ -463,6 +471,7 @@ class Chomp1d(nn.Module):
 
         Args:
             x: [M, H, Kpad]
+
         Returns:
             [M, H, K]
         """
@@ -509,6 +518,7 @@ class ChannelwiseLayerNorm(nn.Module):
 
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
+
         Returns:
             cLN_y: [M, N, K]
         """
@@ -536,6 +546,7 @@ class GlobalLayerNorm(nn.Module):
 
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
+
         Returns:
             gLN_y: [M, N, K]
         """
