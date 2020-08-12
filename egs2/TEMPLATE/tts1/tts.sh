@@ -180,6 +180,8 @@ EOF
 )
 
 log "$0 $*"
+# Save command line args for logging (they will be lost after utils/parse_options.sh)
+run_args=$(pyscripts/utils/print_args.py $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -514,7 +516,11 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # 2. Submit jobs
+        # 2. Generate run.sh
+        log "Generate '${tts_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${tts_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${tts_stats_dir}/run.sh"; chmod +x "${tts_stats_dir}/run.sh"
+
+        # 3. Submit jobs
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -539,7 +545,7 @@ if ! "${skip_train}"; then
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${train_args}
 
-        # 3. Aggregate shape files
+        # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
@@ -721,10 +727,13 @@ if ! "${skip_train}"; then
             _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
+        log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${tts_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts_exp}/run.sh"; chmod +x "${tts_exp}/run.sh"
+
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
         log "TTS training started... log: '${tts_exp}/train.log'"
-        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+        if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${tts_exp})"
         else
@@ -825,6 +834,10 @@ if ! "${skip_eval}"; then
             _opts+="--vocoder_conf fmax=${fmax} "
         fi
 
+        log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${tts_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts_exp}/${inference_tag}/run.sh"; chmod +x "${tts_exp}/${inference_tag}/run.sh"
+
+
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _speech_data="${_data}"
@@ -858,7 +871,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Submit decoding jobs
+            # 3. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
@@ -873,7 +886,7 @@ if ! "${skip_eval}"; then
                     --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
-            # 3. Concatenates the output files from each jobs
+            # 4. Concatenates the output files from each jobs
             mkdir -p "${_dir}"/{norm,denorm,wav}
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/norm/feats.scp"

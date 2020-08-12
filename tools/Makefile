@@ -42,12 +42,7 @@ ifeq ($(shell expr $(CUDA_VERSION_WITHOUT_DOT) \>= 102), 1)
 # cupy==6.0.0 doesn't support CUDA=10.2 or later
 NO_CUPY := 0
 endif
-
-ifneq ($(strip $(NO_CUPY)),)
 PIP_CHAINER := chainer==$(CHAINER_VERSION)
-else
-PIP_CHAINER := chainer==$(CHAINER_VERSION) cupy-cuda$(CUDA_VERSION_WITHOUT_DOT)==$(CHAINER_VERSION)
-endif
 
 
 .PHONY: all clean
@@ -129,7 +124,17 @@ espnet.done: pytorch.done conda_packages.done
 	touch espnet.done
 
 chainer.done: espnet.done
+ifneq ($(strip $(NO_CUPY)),)
 	. ./activate_python.sh && python3 -m pip install $(PIP_CHAINER)
+else
+	# Precompiled cupy==6.0.0 for python>=3.8 is not provided
+	. ./activate_python.sh && \
+		if python3 -c "import sys; from distutils.version import LooseVersion as L; assert L(sys.version) <= L('3.7')" 2>1 /dev/null; then \
+			python3 -m pip install $(PIP_CHAINER) cupy-cuda$(CUDA_VERSION_WITHOUT_DOT)==$(CHAINER_VERSION); \
+		else \
+			python3 -m pip install $(PIP_CHAINER) cupy==$(CHAINER_VERSION); \
+		fi
+endif
 	touch chainer.done
 
 # NOTE(kamo): Add conda_packages.done if cmake is used

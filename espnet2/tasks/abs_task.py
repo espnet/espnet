@@ -1,6 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
 import argparse
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 import functools
 import logging
@@ -122,6 +123,17 @@ try:
     del apex
 except ImportError:
     pass
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    from torch.cuda.amp import autocast
+    from torch.cuda.amp import GradScaler
+else:
+    # Nothing to do if torch<1.6.0
+    @contextmanager
+    def autocast(enabled=True):
+        yield
+
+    GradScaler = None
+
 
 scheduler_classes = dict(
     ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
@@ -483,9 +495,14 @@ class AbsTask(ABC):
         group.add_argument(
             "--train_dtype",
             default="float32",
-            choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
-            help="Data type for training. O0,O1,.. flags require apex. "
-            "See https://nvidia.github.io/apex/amp.html#opt-levels",
+            choices=["float16", "float32", "float64"],
+            help="Data type for training.",
+        )
+        group.add_argument(
+            "--use_amp",
+            type=str2bool,
+            default=False,
+            help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
         )
         group.add_argument(
             "--log_interval",
@@ -827,8 +844,8 @@ class AbsTask(ABC):
         reporter: Reporter,
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
+        scaler: Optional[GradScaler],
         ngpu: int = 0,
-        use_apex: bool = False,
     ):
         states = torch.load(
             checkpoint,
@@ -841,15 +858,11 @@ class AbsTask(ABC):
         for scheduler, state in zip(schedulers, states["schedulers"]):
             if scheduler is not None:
                 scheduler.load_state_dict(state)
-        if use_apex and states["amp"] is not None:
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    "You need to install apex. "
-                    "See https://github.com/NVIDIA/apex#linux"
-                )
-            amp.load_state_dict(states["amp"])
+        if scaler is not None:
+            if states["scaler"] is None:
+                logging.warning("scaler state is not found")
+            else:
+                scaler.load_state_dict(states["scaler"])
 
         logging.info(f"The training was resumed using {checkpoint}")
 
@@ -979,29 +992,13 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        if args.train_dtype in ("float16", "float32", "float64"):
-            dtype = getattr(torch, args.train_dtype)
-        else:
-            dtype = torch.float32
-        model = model.to(dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu")
+        model = model.to(
+            dtype=getattr(torch, args.train_dtype),
+            device="cuda" if args.ngpu > 0 else "cpu",
+        )
 
         # 3. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
-
-        # For apex support
-        use_apex = args.train_dtype in ("O0", "O1", "O2", "O3")
-        if use_apex:
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    "You need to install apex. "
-                    "See https://github.com/NVIDIA/apex#linux"
-                )
-                raise
-            model, optimizers = amp.initialize(
-                model, optimizers, opt_level=args.train_dtype
-            )
 
         # 4. Build schedulers
         schedulers = []
@@ -1032,10 +1029,13 @@ class AbsTask(ABC):
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
-            logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
-            yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
+        if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
+                logging.info(
+                    f'Saving the configuration in {output_dir / "config.yaml"}'
+                )
+                yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
         # 6. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
@@ -1055,6 +1055,14 @@ class AbsTask(ABC):
 
         # 7. Resume the training state from the previous epoch
         reporter = Reporter()
+        if args.use_amp:
+            if LooseVersion(torch.__version__) < LooseVersion("1.6.0"):
+                raise RuntimeError(
+                    "Require torch>=1.6.0 for  Automatic Mixed Precision"
+                )
+            scaler = GradScaler()
+        else:
+            scaler = None
         if args.resume and (output_dir / "checkpoint.pth").exists():
             cls.resume(
                 checkpoint=output_dir / "checkpoint.pth",
@@ -1062,8 +1070,8 @@ class AbsTask(ABC):
                 optimizers=optimizers,
                 schedulers=schedulers,
                 reporter=reporter,
+                scaler=scaler,
                 ngpu=args.ngpu,
-                use_apex=use_apex,
             )
 
         if args.dry_run:
@@ -1210,6 +1218,7 @@ class AbsTask(ABC):
                 valid_iter_factory=valid_iter_factory,
                 plot_attention_iter_factory=plot_attention_iter_factory,
                 reporter=reporter,
+                scaler=scaler,
                 output_dir=output_dir,
                 max_epoch=args.max_epoch,
                 seed=args.seed,
@@ -1365,9 +1374,6 @@ class AbsTask(ABC):
         name: str,
     ) -> AbsIterFactory:
         assert check_argument_types()
-        if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            train_dtype = "float32"
-
         dataset = ESPnetDataset(
             data_path_and_name_and_type,
             float_dtype=train_dtype,
@@ -1447,9 +1453,6 @@ class AbsTask(ABC):
         name: str,
     ) -> AbsIterFactory:
         assert check_argument_types()
-        if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            train_dtype = "float32"
-
         dataset = ESPnetDataset(
             data_path_and_name_and_type,
             float_dtype=train_dtype,
@@ -1607,9 +1610,6 @@ class AbsTask(ABC):
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         assert check_argument_types()
-        if dtype in ("float32", "O0", "O1", "O2", "O3"):
-            dtype = "float32"
-
         # For backward compatibility for pytorch DataLoader
         if collate_fn is not None:
             kwargs = dict(collate_fn=collate_fn)
