@@ -518,7 +518,7 @@ class Reporter:
         keys2 = set.union(*[set(self.get_keys2(k)) for k in self.get_keys()])
         for key2 in keys2:
             summary_writer.add_scalars(
-                key2 + " (epoch)",
+                key2 + "_epoch",
                 {
                     k: self.stats[epoch][k][key2]
                     for k in self.get_keys(epoch)
