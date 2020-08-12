@@ -7,17 +7,6 @@
 dataDir=$1
 lmDir=$2
 
-exists(){
-	command -v "$1" >/dev/null 2>&1
-}
-
-# check morfessor installation 
-if ! exists morfessor; then
-	echo "You appear to not have Morfessor installed, either on your path."
-    echo "See tools/extras/install_morfessor.sh installation instructions."
-	exit 1
-fi
-
 trans=$dataDir/text
 echo "Re-segment transcripts: $trans --------------------------------------------"
 if [ ! -f $trans ]; then
