@@ -19,7 +19,6 @@ stop_stage=3
 
 skip_segmentation=false
 
-datadir=./downloads
 ndev_utt=220
 
 log "$0 $*"
@@ -30,6 +29,7 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
+. ./db.sh
 . ./path.sh
 . ./cmd.sh
 
@@ -39,15 +39,15 @@ test_set="test_clean"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 1: Data Download"
-    mkdir -p ${datadir}
-    local/download_and_untar.sh ${datadir}
+    mkdir -p "${ZEROTH_KOREAN}"
+    local/download_and_untar.sh "${ZEROTH_KOREAN}"
 fi
 
 if [ $stage -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   # format the data as Kaldi data directories
   for part in train_data_01 test_data_01; do
   	# use underscore-separated names in data directories.
-  	local/data_prep.sh ${datadir} ${part}
+  	local/data_prep.sh "${ZEROTH_KOREAN}" "${part}"
   done
 fi  
 
