@@ -54,9 +54,9 @@ def get_parser():
     )
     parser.add_argument(
         "--output",
-        type=str,
+        type=configargparse.FileType('w'),
         required=True,
-        help="Segments output file",
+        help="Output segments file",
     )
     parser.add_argument(
         "--utt-text", type=str, help="Text separated into utts"
@@ -73,7 +73,7 @@ def get_parser():
     )
     # ctc-segmentation related
     parser.add_argument(
-        "--subsampling-factor", type=str, default=None, help="Subsampling factor."
+        "--subsampling-factor", type=int, default=None, help="Subsampling factor."
         "If the encoder sub-samples its input, the number of frames at the CTC layer is reduced by this factor."
         "For example, a BLSTMP with subsampling 1_2_2_1_1 has a subsampling factor of 4."
     )

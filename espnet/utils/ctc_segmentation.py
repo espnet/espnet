@@ -100,28 +100,27 @@ def ctc_align(args, device):
         config.min_window_size = args.min_window_size
     if args.max_window_size is not None:
         config.max_window_size = args.max_window_size
-    # decode ctc and align
-    with open(args.output, "w") as f:
-        for idx, name in enumerate(js.keys(), 1):
-            logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
-            batch = [(name, js[name])]
-            feat, label = load_inputs_and_targets(batch)
-            feat = feat[0]
-            with torch.no_grad():
-                # Encode input frames
-                enc_output = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
-                # Apply ctc layer to obtain log character probabilities
-                lpz = model.ctc.log_softmax(enc_output)[0].cpu().numpy()
-            # Prepare the text for aligning
-            ground_truth_mat, utt_begin_indices = prepare_text(config, text[name], train_args.char_list)
-            # Align using CTC segmentation
-            timings, char_probs, char_list = ctc_segmentation(config, lpz, ground_truth_mat)
-            # Obtain list of utterances with corresponding time intervals and confidence score
-            segments = determine_utterance_segments(config, utt_begin_indices, char_probs, timings, text[name])
-            # Write to "segments" file
-            for i, boundary in enumerate(segments):
-                utt_segment  = f"{segment_names[name][i]} {name} {boundary[0]:.2f} {boundary[1]:.2f} {boundary[2]:.7f}\n"
-                f.write(utt_segment)
+    # Iterate over audio files to decode and align
+    for idx, name in enumerate(js.keys(), 1):
+        logging.info("(%d/%d) Aligning " + name, idx, len(js.keys()))
+        batch = [(name, js[name])]
+        feat, label = load_inputs_and_targets(batch)
+        feat = feat[0]
+        with torch.no_grad():
+            # Encode input frames
+            enc_output = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
+            # Apply ctc layer to obtain log character probabilities
+            lpz = model.ctc.log_softmax(enc_output)[0].cpu().numpy()
+        # Prepare the text for aligning
+        ground_truth_mat, utt_begin_indices = prepare_text(config, text[name], train_args.char_list)
+        # Align using CTC segmentation
+        timings, char_probs, char_list = ctc_segmentation(config, lpz, ground_truth_mat)
+        # Obtain list of utterances with corresponding time intervals and confidence score
+        segments = determine_utterance_segments(config, utt_begin_indices, char_probs, timings, text[name])
+        # Write to "segments" file
+        for i, boundary in enumerate(segments):
+            utt_segment  = f"{segment_names[name][i]} {name} {boundary[0]:.2f} {boundary[1]:.2f} {boundary[2]:.9f}\n"
+            args.output.write(utt_segment)
     return 0
 
 
@@ -135,8 +134,8 @@ def ctc_segmentation(config, lpz, ground_truth):
     :return:
     """
     blank = 0
-    audio_duration = lpz.shape[0]/config.index_duration_in_seconds
-    logging.info(f"Starting alignment: {len(ground_truth)} chars to {audio_duration}s audio ({lpz.shape[0]} indices).")
+    audio_duration = lpz.shape[0] * config.index_duration_in_seconds
+    logging.info(f"Alignment: {len(ground_truth)} chars to {audio_duration:.2f}s audio ({lpz.shape[0]} indices).")
     if len(ground_truth) > lpz.shape[0] and config.skip_prob <= config.max_prob:
         raise AssertionError("Audio is shorter than text!")
     window_size = config.min_window_size

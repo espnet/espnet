@@ -55,6 +55,9 @@ train_dev=dev_trim
 recog_set="dev test"
 models=tedlium2.rnn.v2
 
+# parameters for alignment
+subsampling_factor=4  # this factor depends on whether the encoder uses subsampling
+min_score=-1.5   # minium confidence score in log space
 
 download_dir=models
 align_model=
@@ -166,8 +169,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --verbose ${verbose} \
             --data-json ${dumpdir}/${rtask}/delta${do_delta}/data.json \
             --model ${align_model} \
+            --subsampling-factor ${subsampling_factor}
             --api ${api} \
             --utt-text data/${rtask}/utt_text \
             --output data/${rtask}/aligned_segments || exit 1;
+    done
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 4: Removing unreliable utterances"
+
+    for rtask in ${recog_set}; do
+        unfiltered=data/${rtask}/aligned_segments
+        filtered=data/${rtask}/aligned_segments_clean
+
+        awk -v ms=${min_score} '{ if ($5 > ms) {print} }' unfiltered > filtered
     done
 fi
