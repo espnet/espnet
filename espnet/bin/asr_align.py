@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 # Copyright 2020 Johns Hopkins University (Xuankai Chang)
-# 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
+#           2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """End-to-end speech recognition model CTC alignment script."""
@@ -19,14 +19,14 @@ from espnet.utils.ctc_segmentation import ctc_align
 def get_parser():
     """Get default arguments."""
     parser = configargparse.ArgumentParser(
-        description="Transcribe text from speech using "
-                    "a speech recognition model on one CPU or GPU",
+        description="Align text to audio using CTC segmentation."
+                    "using a pre-trained speech recognition model.",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
     # general configuration
     parser.add("--config", is_config_file=True, help="Decoding config file path.")
-    parser.add_argument("--ngpu", type=int, default=0, help="Number of GPUs")
+    parser.add_argument("--ngpu", type=int, default=0, help="Number of GPUs (max. 1 is supported)")
     parser.add_argument(
         "--dtype",
         choices=("float16", "float32", "float64"),
@@ -53,7 +53,7 @@ def get_parser():
         "--data-json", type=str, help="Json of recognition data for audio and text"
     )
     parser.add_argument(
-        "--utt-text", type=str, help="Text separated into utts"
+        "--utt-text", type=str, help="Text separated into utterances"
     )
     # model (parameter) related
     parser.add_argument(

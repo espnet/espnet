@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 # Copyright 2020 Johns Hopkins University (Xuankai Chang)
-# 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
+#           2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """
     ctc_segmentation.py
@@ -148,7 +148,7 @@ def ctc_segmentation(config, lpz, ground_truth):
         offsets = np.zeros([len(ground_truth)], dtype=np.int)
         # Run actual alignment of utterances
         t, c = cython_fill_table(table, lpz.astype(np.float32), np.array(ground_truth), offsets, blank)
-        logging.info("Max prob: " + str(table[:, c].max()) + " at " + str(t))
+        logging.debug(f"Max. joint probability to align text to audio: {table[:, c].max()} at time index {t}")
         # Backtracking
         timings = np.zeros([len(ground_truth)])
         char_probs = np.zeros([lpz.shape[0]])
@@ -188,12 +188,13 @@ def ctc_segmentation(config, lpz, ground_truth):
                     char_list[offsets[c] + t] = config.self_transition
                     t -= 1
         except IndexError:
-            # If the backtracking was not successful, this usually means the window was too small
+            logging.warning("IndexError: Backtracking was not successful, the window size might be too small.")
             window_size *= 2
-            logging.error("IndexError: Increasing the window size to: " + str(window_size))
             if window_size < config.max_window_size:
+                logging.warning("Increasing the window size to: " + str(window_size))
                 continue
             else:
+                logging.error("Maximum window size reached.")
                 raise
         break
     return timings, char_probs, char_list

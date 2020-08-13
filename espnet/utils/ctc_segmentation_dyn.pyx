@@ -1,7 +1,7 @@
 #!/usr/bin/env false
 # encoding: utf-8
 
-# 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
+# Copyright 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """
     ctc_segmentation_dyn.pyx
@@ -47,7 +47,7 @@ def cython_fill_table(np.ndarray[np.float32_t, ndim=2] table,
 
     # Compute the mean offset between two window positions
     mean_offset = (lpz.shape[0] - table.shape[0]) / float(table.shape[1])
-    logging.info("Mean offset: " + str(mean_offset))
+    logging.debug(f"Average character duration: {mean_offset} (indices)")
     lower_offset = int(mean_offset)
     higher_offset = lower_offset + 1
     # calculation of the trellis diagram table

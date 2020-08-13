@@ -58,9 +58,11 @@ train_dev=dev_trim
 recog_set="dev test"
 models=tedlium2.rnn.v2
 
-# parameters for alignment
-subsampling_factor=4  # this factor depends on whether the encoder uses subsampling
-min_score=-1.5   # minium confidence score in log space
+# Parameters for CTC alignment
+# The subsampling factor depends on whether the encoder uses subsampling
+subsampling_factor=4
+# minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
+min_confidence_score=-5.0
 
 download_dir=models
 align_model=
@@ -161,7 +163,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Aligning"
+    echo "stage 3: Alignments using CTC segmentation"
 
     for rtask in ${recog_set}; do
 	    # results are written to data/$rtask/aligned_segments
@@ -180,12 +182,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 4: Removing unreliable utterances"
+    echo "stage 4: Removing utterances with low confidence scores"
 
     for rtask in ${recog_set}; do
         unfiltered=data/${rtask}/aligned_segments
         filtered=data/${rtask}/aligned_segments_clean
 
-        awk -v ms=${min_score} '{ if ($5 > ms) {print} }' unfiltered > filtered
+        awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${unfiltered} > ${filtered}
+        echo "Written `wc -l < ${filtered}` of `wc -l < ${unfiltered}` utterances to ${filtered}"
     done
 fi
