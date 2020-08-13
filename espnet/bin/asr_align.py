@@ -5,7 +5,24 @@
 #           2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""End-to-end speech recognition model CTC alignment script."""
+"""
+This program performs CTC segmentation to align utterances within audio files.
+
+Inputs:
+    `--data-json`: A json containing list of utterances and audio files
+    `--model`: An already trained ASR model
+
+Output:
+    `--output`: A plain `segments` file with utterance positions in the audio files.
+
+Selected parameters:
+    `--min-window-size`: Minimum window size considered for a single utterance. The
+        current default value should be OK in most cases.
+    `--subsampling-factor`: If the encoder sub-samples its input, the number of
+        frames at the CTC layer is reduced by this factor.
+    `--frame-duration`: This is the non-overlapping duration of a single frame in
+        milliseconds (the inverse of frames per millisecond).
+"""
 
 import configargparse
 import logging
@@ -20,13 +37,15 @@ def get_parser():
     """Get default arguments."""
     parser = configargparse.ArgumentParser(
         description="Align text to audio using CTC segmentation."
-                    "using a pre-trained speech recognition model.",
+        "using a pre-trained speech recognition model.",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
     # general configuration
     parser.add("--config", is_config_file=True, help="Decoding config file path.")
-    parser.add_argument("--ngpu", type=int, default=0, help="Number of GPUs (max. 1 is supported)")
+    parser.add_argument(
+        "--ngpu", type=int, default=0, help="Number of GPUs (max. 1 is supported)"
+    )
     parser.add_argument(
         "--dtype",
         choices=("float16", "float32", "float64"),
@@ -52,9 +71,7 @@ def get_parser():
     parser.add_argument(
         "--data-json", type=str, help="Json of recognition data for audio and text"
     )
-    parser.add_argument(
-        "--utt-text", type=str, help="Text separated into utterances"
-    )
+    parser.add_argument("--utt-text", type=str, help="Text separated into utterances")
     # model (parameter) related
     parser.add_argument(
         "--model", type=str, required=True, help="Model file parameters to read"
@@ -67,22 +84,34 @@ def get_parser():
     )
     # ctc-segmentation related
     parser.add_argument(
-        "--subsampling-factor", type=int, default=None, help="Subsampling factor."
+        "--subsampling-factor",
+        type=int,
+        default=None,
+        help="Subsampling factor."
         "If the encoder sub-samples its input, the number of frames at the CTC layer is reduced by this factor."
-        "For example, a BLSTMP with subsampling 1_2_2_1_1 has a subsampling factor of 4."
+        "For example, a BLSTMP with subsampling 1_2_2_1_1 has a subsampling factor of 4.",
     )
     parser.add_argument(
-        "--frame-duration", type=int, default=None, help="Non-overlapping duration of a single frame in milliseconds."
+        "--frame-duration",
+        type=int,
+        default=None,
+        help="Non-overlapping duration of a single frame in milliseconds.",
     )
     parser.add_argument(
-        "--min-window-size", type=int, default=None, help="Minimum window size considered for utterance."
+        "--min-window-size",
+        type=int,
+        default=None,
+        help="Minimum window size considered for utterance.",
     )
     parser.add_argument(
-        "--max-window-size", type=int, default=None, help="Maximum window size considered for utterance."
+        "--max-window-size",
+        type=int,
+        default=None,
+        help="Maximum window size considered for utterance.",
     )
     parser.add_argument(
         "--output",
-        type=configargparse.FileType('w'),
+        type=configargparse.FileType("w"),
         required=True,
         help="Output segments file",
     )
