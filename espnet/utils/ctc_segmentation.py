@@ -21,7 +21,7 @@ from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.utils.io_utils import LoadInputsAndTargets
 
-# import for trellis function
+# import for table of character probabilities mapped to time
 pyximport.install(setup_args={"include_dirs": np.get_include()}, build_dir="build", build_in_temp=False)
 from espnet.utils.ctc_segmentation_dyn import cython_fill_table
 
@@ -101,27 +101,27 @@ def ctc_align(args, device):
     if args.max_window_size is not None:
         config.max_window_size = args.max_window_size
     # decode ctc and align
-    with torch.no_grad():
-        with open(args.output, "w") as f:
-            for idx, name in enumerate(js.keys(), 1):
-                logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
-                batch = [(name, js[name])]
-                feat, label = load_inputs_and_targets(batch)
-                feat = feat[0]
+    with open(args.output, "w") as f:
+        for idx, name in enumerate(js.keys(), 1):
+            logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
+            batch = [(name, js[name])]
+            feat, label = load_inputs_and_targets(batch)
+            feat = feat[0]
+            with torch.no_grad():
                 # Encode input frames
                 enc_output = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
                 # Apply ctc layer to obtain log character probabilities
                 lpz = model.ctc.log_softmax(enc_output)[0].cpu().numpy()
-                # Prepare the text for aligning
-                ground_truth_mat, utt_begin_indices = prepare_text(text[name], train_args.char_list)
-                # Align using CTC segmentation
-                timings, char_probs, char_list = ctc_segmentation(config, lpz, ground_truth_mat)
-                # Obtain list of utterances with corresponding time intervals and confidence score
-                segments = determine_utterance_segments(utt_begin_indices, char_probs, timings, text[name])
-                # Write to "segments" file
-                for i, boundary in enumerate(segments):
-                    utt_segment  = f"{segment_names[name][i]} {name} {boundary[0]} {boundary[1]} {boundary[2]}\n"
-                    f.write(utt_segment)
+            # Prepare the text for aligning
+            ground_truth_mat, utt_begin_indices = prepare_text(config, text[name], train_args.char_list)
+            # Align using CTC segmentation
+            timings, char_probs, char_list = ctc_segmentation(config, lpz, ground_truth_mat)
+            # Obtain list of utterances with corresponding time intervals and confidence score
+            segments = determine_utterance_segments(config, utt_begin_indices, char_probs, timings, text[name])
+            # Write to "segments" file
+            for i, boundary in enumerate(segments):
+                utt_segment  = f"{segment_names[name][i]} {name} {boundary[0]:.2f} {boundary[1]:.2f} {boundary[2]:.7f}\n"
+                f.write(utt_segment)
     return 0
 
 
@@ -135,9 +135,9 @@ def ctc_segmentation(config, lpz, ground_truth):
     :return:
     """
     blank = 0
-    logging.info("Audio length: " + str(lpz.shape[0]))
-    logging.info("Text length: " + str(len(ground_truth)))
-    if len(ground_truth) > lpz.shape[0] and skip_prob <= config.max_prob:
+    audio_duration = lpz.shape[0]/config.index_duration_in_seconds
+    logging.info(f"Starting alignment: {len(ground_truth)} chars to {audio_duration}s audio ({lpz.shape[0]} indices).")
+    if len(ground_truth) > lpz.shape[0] and config.skip_prob <= config.max_prob:
         raise AssertionError("Audio is shorter than text!")
     window_size = config.min_window_size
     # Try multiple window lengths if it fails
@@ -250,24 +250,24 @@ def determine_utterance_segments(config, utt_begin_indices, char_probs, timings,
         utterance-wise alignments from char-wise alignments
 
     :param config: an instance of CtcSegmentationParameters
-    :param utt_begin_indices: list of frame indices of utterance start
+    :param utt_begin_indices: list of time indices of utterance start
     :param char_probs:  character positioned probabilities obtained from backtracking
-    :param timings:  mapping of frame indices to seconds
+    :param timings:  mapping of time indices to seconds
     :param text: list of utterances
     :return: segments, a list of: utterance start and end in seconds, and its confidence score
     """
 
-    def compute_time(index, alignment_type):
+    def compute_time(index, align_type):
         """
         Compute start and end time of utterance.
         :param index:  frame index value
-        :param alignment_type:  one of ["begin", "end"]
+        :param align_type:  one of ["begin", "end"]
         :return: start/end time of utterance in seconds
         """
         middle = (timings[index] + timings[index - 1]) / 2
-        if alignment_type == "begin":
+        if align_type == "begin":
             return max(timings[index + 1] - 0.5, middle)
-        elif alignment_type == "end":
+        elif align_type == "end":
             return min(timings[index - 1] + 0.5, middle)
 
     segments = []

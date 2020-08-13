@@ -42,15 +42,24 @@ def get_parser():
     )
     parser.add_argument("--debugmode", type=int, default=1, help="Debugmode")
     parser.add_argument("--verbose", "-V", type=int, default=1, help="Verbose option")
+    parser.add_argument(
+        "--preprocess-conf",
+        type=str,
+        default=None,
+        help="The configuration file for the pre-processing",
+    )
     # task related
     parser.add_argument(
-        "--align-json", type=str, help="Filename of recognition data (json)"
+        "--data-json", type=str, help="Json of recognition data for audio and text"
     )
     parser.add_argument(
-        "--result-label",
+        "--output",
         type=str,
         required=True,
-        help="Filename of result label data (json)",
+        help="Segments output file",
+    )
+    parser.add_argument(
+        "--utt-text", type=str, help="Text separated into utts"
     )
     # model (parameter) related
     parser.add_argument(

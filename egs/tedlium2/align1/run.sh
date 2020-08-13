@@ -15,7 +15,7 @@ ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=0      # verbose option
+verbose=1      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
@@ -158,18 +158,16 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Aligning"
 
     for rtask in ${recog_set}; do
-	# results are written to data/dev/aligned_segments
-        ${python} -m espnet.utils.ctc_align \
+	    # results are written to data/dev/aligned_segments
+        ${python} -m espnet.bin.asr_align \
             --config ${align_config} \
             --ngpu ${ngpu} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
             --data-json ${dumpdir}/${rtask}/delta${do_delta}/data.json \
-            --output data/${rtask}/aligned_segments \
             --model ${align_model} \
             --api ${api} \
-            --utt-text data/${rtask}/utt_text || exit 1;
+            --utt-text data/${rtask}/utt_text \
+            --output data/${rtask}/aligned_segments || exit 1;
     done
 fi
-
-
