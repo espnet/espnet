@@ -1,25 +1,32 @@
 #!/usr/bin/env false
 # encoding: utf-8
-"""
-2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
 
+# 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""
+    ctc_segmentation_dyn.pyx
 This file is part of CTC segmentation to extract utterance alignments within an audio file.
 For a description, see https://arxiv.org/abs/2007.09127
 """
+
+import logging
 import numpy as np
 cimport numpy as np
 
-def cython_fill_table(np.ndarray[np.float32_t, ndim=2] table, np.ndarray[np.float32_t, ndim=2] lpz, np.ndarray[np.int_t, ndim=2] ground_truth, np.ndarray[np.int_t, ndim=1] offsets, np.ndarray[np.int_t, ndim=1] utt_begin_indices, int blank, float argskip_prob):
+
+def cython_fill_table(np.ndarray[np.float32_t, ndim=2] table,
+                      np.ndarray[np.float32_t, ndim=2] lpz,
+                      np.ndarray[np.int_t, ndim=2] ground_truth,
+                      np.ndarray[np.int_t, ndim=1] offsets,
+                      int blank):
     """
-    Fill the Trellis diagram in the form of a table.
+    Fill the table of transition probabilities.
 
     :param table: table filled with maximum joint probabilities k_{t,j}
     :param lpz: character probabilities of each time frame
     :param ground_truth: label sequence
-    :param offsets: window offsets per character (array of zeros)
-    :param utt_begin_indices: not used; reserved
+    :param offsets: window offsets per character (given as array of zeros)
     :param blank: label ID of the blank symbol, usually 0
-    :param argskip_prob: not used; reserved
     :return:
     """
     cdef int c
@@ -40,7 +47,7 @@ def cython_fill_table(np.ndarray[np.float32_t, ndim=2] table, np.ndarray[np.floa
 
     # Compute the mean offset between two window positions
     mean_offset = (lpz.shape[0] - table.shape[0]) / float(table.shape[1])
-    print("Mean offset: " + str(mean_offset))
+    logging.info("Mean offset: " + str(mean_offset))
     lower_offset = int(mean_offset)
     higher_offset = lower_offset + 1
     # calculation of the trellis diagram table
