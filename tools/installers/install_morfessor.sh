@@ -5,17 +5,11 @@
 #
 
 # Modified by Hoon Chung 2020 (ETRI) 
+set -euo pipefail
 
 echo "#### installing morfessor"
 dirname=morfessor
-if [ ! -d ./$dirname ]; then
-  mkdir -p ./$dirname
-  git clone https://github.com/aalto-speech/morfessor.git morfessor ||
-    {
-      echo  >&2 "$0: Error git clone operation "
-      echo  >&2 "  Failed in cloning the github repository (https://github.com/aalto-speech/morfessor.git)"
-      exit
-    }
-fi
-
+rm -rf "${dirname}"
+mkdir -p ./"${dirname}"
+git clone https://github.com/aalto-speech/morfessor.git "${dirname}"
 echo >&2 "installation of MORFESSOR finished successfully"
