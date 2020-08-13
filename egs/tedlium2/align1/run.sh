@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# CTC segmentation example recipe
+
+# Copyright 2017, 2020 Johns Hopkins University (Shinji Watanabe, Xuankai Chang)
+# 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -15,7 +18,7 @@ ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=0      # verbose option
+verbose=1      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
@@ -55,6 +58,11 @@ train_dev=dev_trim
 recog_set="dev test"
 models=tedlium2.rnn.v2
 
+# Parameters for CTC alignment
+# The subsampling factor depends on whether the encoder uses subsampling
+subsampling_factor=4
+# minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
+min_confidence_score=-5.0
 
 download_dir=models
 align_model=
@@ -97,19 +105,19 @@ fi
 
 # Check file existence
 if [ ! -f "${cmvn}" ]; then
-    echo "No such CMVN file: ${cmvn}"
+    echo "CMVN file not found: ${cmvn}"
     exit 1
 fi
 if [ ! -f "${align_model}" ]; then
-    echo "No such E2E model: ${align_model}"
+    echo "E2E model file not found: ${align_model}"
     exit 1
 fi
 if [ ! -f "${align_config}" ]; then
-    echo "No such config file: ${align_config}"
+    echo "Config file not found: ${align_config}"
     exit 1
 fi
 if [ ! -f "${dict}" ]; then
-    echo "No such Dictionary file: ${dict}"
+    echo "Dictionary not found: ${dict}"
     exit 1
 fi
 
@@ -155,19 +163,32 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Aligning"
+    echo "stage 3: Alignments using CTC segmentation"
 
     for rtask in ${recog_set}; do
-
-        ${python} -m espnet.utils.ctc_align \
+	    # results are written to data/$rtask/aligned_segments
+        ${python} -m espnet.bin.asr_align \
             --config ${align_config} \
             --ngpu ${ngpu} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
             --data-json ${dumpdir}/${rtask}/delta${do_delta}/data.json \
-            --output data/${rtask}/aligned_segments \
             --model ${align_model} \
+            --subsampling-factor ${subsampling_factor} \
             --api ${api} \
-            --utt-text data/dev/utt_text || exit 1;
+            --utt-text data/${rtask}/utt_text \
+            --output data/${rtask}/aligned_segments || exit 1;
+    done
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 4: Removing utterances with low confidence scores"
+
+    for rtask in ${recog_set}; do
+        unfiltered=data/${rtask}/aligned_segments
+        filtered=data/${rtask}/aligned_segments_clean
+
+        awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${unfiltered} > ${filtered}
+        echo "Written `wc -l < ${filtered}` of `wc -l < ${unfiltered}` utterances to ${filtered}"
     done
 fi
