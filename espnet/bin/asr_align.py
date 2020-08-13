@@ -53,12 +53,6 @@ def get_parser():
         "--data-json", type=str, help="Json of recognition data for audio and text"
     )
     parser.add_argument(
-        "--output",
-        type=configargparse.FileType('w'),
-        required=True,
-        help="Output segments file",
-    )
-    parser.add_argument(
         "--utt-text", type=str, help="Text separated into utts"
     )
     # model (parameter) related
@@ -85,6 +79,12 @@ def get_parser():
     )
     parser.add_argument(
         "--max-window-size", type=int, default=None, help="Maximum window size considered for utterance."
+    )
+    parser.add_argument(
+        "--output",
+        type=configargparse.FileType('w'),
+        required=True,
+        help="Output segments file",
     )
     return parser
 

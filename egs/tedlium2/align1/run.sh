@@ -172,7 +172,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --verbose ${verbose} \
             --data-json ${dumpdir}/${rtask}/delta${do_delta}/data.json \
             --model ${align_model} \
-            --subsampling-factor ${subsampling_factor}
+            --subsampling-factor ${subsampling_factor} \
             --api ${api} \
             --utt-text data/${rtask}/utt_text \
             --output data/${rtask}/aligned_segments || exit 1;
