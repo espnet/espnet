@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 # Copyright 2020 Johns Hopkins University (Xuankai Chang)
-#           2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
+#           2020, Technische Universität München;  Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """
@@ -30,15 +30,17 @@ import os
 import sys
 
 # imports for inference
-import json
-import torch
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.utils.io_utils import LoadInputsAndTargets
+import json
+import torch
 
 # imports for CTC segmentation
-from espnet.utils.ctc_segmentation import CtcSegmentationParameters, ctc_segmentation
-from espnet.utils.ctc_segmentation import prepare_text, determine_utterance_segments
+from espnet.utils.ctc_segmentation import ctc_segmentation
+from espnet.utils.ctc_segmentation import CtcSegmentationParameters
+from espnet.utils.ctc_segmentation import determine_utterance_segments
+from espnet.utils.ctc_segmentation import prepare_text
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -97,8 +99,9 @@ def get_parser():
         type=int,
         default=None,
         help="Subsampling factor."
-        "If the encoder sub-samples its input, the number of frames at the CTC layer is reduced by this factor."
-        "For example, a BLSTMP with subsampling 1_2_2_1_1 has a subsampling factor of 4.",
+        "If the encoder sub-samples its input, the number of frames at the CTC layer is"
+        " reduced by this factor. For example, a BLSTMP with subsampling 1_2_2_1_1"
+        " has a subsampling factor of 4.",
     )
     parser.add_argument(
         "--frame-duration",
@@ -172,10 +175,11 @@ def main(args):
 
 
 def ctc_align(args, device):
-    """
-        Parses configuration, infers the CTC posterior probabilities,
-        and then aligns start and end of utterances using CTC segmentation.
-        Results are written to the output file given in the args
+    """ESPnet-specific interface for CTC segmentation.
+
+    Parses configuration, infers the CTC posterior probabilities,
+    and then aligns start and end of utterances using CTC segmentation.
+    Results are written to the output file given in the args.
 
     :param args: given configuration
     :param device: for inference; one of ['cuda', 'cpu']
@@ -241,13 +245,16 @@ def ctc_align(args, device):
         )
         # Align using CTC segmentation
         timings, char_probs, char_list = ctc_segmentation(config, lpz, ground_truth_mat)
-        # Obtain list of utterances with corresponding time intervals and confidence score
+        # Obtain list of utterances with time intervals and confidence score
         segments = determine_utterance_segments(
             config, utt_begin_indices, char_probs, timings, text[name]
         )
         # Write to "segments" file
         for i, boundary in enumerate(segments):
-            utt_segment = f"{segment_names[name][i]} {name} {boundary[0]:.2f} {boundary[1]:.2f} {boundary[2]:.9f}\n"
+            utt_segment = (
+                f"{segment_names[name][i]} {name} {boundary[0]:.2f}"
+                f" {boundary[1]:.2f} {boundary[2]:.9f}\n"
+            )
             args.output.write(utt_segment)
     return 0
 

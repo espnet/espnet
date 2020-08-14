@@ -1,11 +1,13 @@
 #!/usr/bin/env false
 # encoding: utf-8
 
-# Copyright 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
+# Copyright 2020, Technische Universität München; Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-"""
-    ctc_segmentation_dyn.pyx
-This file is part of CTC segmentation to extract utterance alignments within an audio file.
+
+"""CTC segmentation.
+
+This file is part of CTC segmentation to extract utterance alignments
+within an audio file using dynamic programming.
 For a description, see https://arxiv.org/abs/2007.09127
 """
 
@@ -19,8 +21,7 @@ def cython_fill_table(np.ndarray[np.float32_t, ndim=2] table,
                       np.ndarray[np.int_t, ndim=2] ground_truth,
                       np.ndarray[np.int_t, ndim=1] offsets,
                       int blank):
-    """
-    Fill the table of transition probabilities.
+    """Fill the table of transition probabilities.
 
     :param table: table filled with maximum joint probabilities k_{t,j}
     :param lpz: character probabilities of each time frame
@@ -55,7 +56,8 @@ def cython_fill_table(np.ndarray[np.float32_t, ndim=2] table,
     for c in range(table.shape[1]):
         if c > 0:
             # Compute next window offset
-            offset = min(max(0, last_arg_max - table.shape[0] // 2), min(higher_offset, (lpz.shape[0] - table.shape[0]) - offset_sum))
+            offset = min(max(0, last_arg_max - table.shape[0] // 2),
+                         min(higher_offset, (lpz.shape[0] - table.shape[0]) - offset_sum))
             # Compute relative offset to previous columns
             for s in range(ground_truth.shape[1] - 1):
                 cur_offset[s + 1] = cur_offset[s] + offset

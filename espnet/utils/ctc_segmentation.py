@@ -1,11 +1,12 @@
 #!/usr/bin/env false
 # encoding: utf-8
 
-# Copyright 2020, Technische Universität München, Authors: Dominik Winkelbauer, Ludwig Kürzinger
+# Copyright 2020, Technische Universität München; Dominik Winkelbauer, Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-"""
-    ctc_segmentation.py
-This file contains the core functions of CTC segmentation
+
+"""CTC segmentation.
+
+This file contains the core functions of CTC segmentation.
 to extract utterance alignments within an audio file with a given transcription.
 For a description, see https://arxiv.org/abs/2007.09127
 """
@@ -24,9 +25,13 @@ from espnet.utils.ctc_segmentation_dyn import cython_fill_table
 
 
 class CtcSegmentationParameters:
-    """
-    Default values for CTC segmentation.
+    """Default values for CTC segmentation.
+
     May need adjustment according to localization or ASR settings.
+    The character set is taken from the model dict, i.e., usually are generated with
+    SentencePiece. An ASR model trained in the corresponding language and character
+    set is needed. If the character set contains any punctuation characters, "#",
+    or the Greek char "ε", adapt these settings.
     """
 
     max_prob = -10000000000.0
@@ -34,7 +39,7 @@ class CtcSegmentationParameters:
     min_window_size = 8000
     max_window_size = 100000
     subsampling_factor = 1
-    frame_duration_ms = 10  # the non-overlapping duration
+    frame_duration_ms = 10
     score_min_mean_over_L = 30
     space = " "
     underscore = "▁"
@@ -44,12 +49,12 @@ class CtcSegmentationParameters:
 
     @property
     def index_duration_in_seconds(self):
+        """Automatically derive index duration from frame duration and subsampling."""
         return self.frame_duration_ms * self.subsampling_factor / 1000
 
 
 def ctc_segmentation(config, lpz, ground_truth):
-    """
-        Extract character-level utterance alignments
+    """Extract character-level utterance alignments.
 
     :param config: an instance of CtcSegmentationParameters
     :param lpz: probabilities obtained from CTC output
@@ -59,7 +64,9 @@ def ctc_segmentation(config, lpz, ground_truth):
     blank = 0
     audio_duration = lpz.shape[0] * config.index_duration_in_seconds
     logging.info(
-        f"CTC segmentation of {len(ground_truth)} chars to {audio_duration:.2f}s audio ({lpz.shape[0]} indices)."
+        f"CTC segmentation of {len(ground_truth)} chars "
+        f"to {audio_duration:.2f}s audio "
+        f"({lpz.shape[0]} indices)."
     )
     if len(ground_truth) > lpz.shape[0] and config.skip_prob <= config.max_prob:
         raise AssertionError("Audio is shorter than text!")
@@ -78,7 +85,8 @@ def ctc_segmentation(config, lpz, ground_truth):
             table, lpz.astype(np.float32), np.array(ground_truth), offsets, blank
         )
         logging.debug(
-            f"Max. joint probability to align text to audio: {table[:, c].max()} at time index {t}"
+            f"Max. joint probability to align text to audio: "
+            f"{table[:, c].max()} at time index {t}"
         )
         # Backtracking
         timings = np.zeros([len(ground_truth)])
@@ -87,7 +95,7 @@ def ctc_segmentation(config, lpz, ground_truth):
         try:
             # Do until start is reached
             while t != 0 or c != 0:
-                # Calculate the possible transition probabilities towards the current cell
+                # Calculate the possible transition probs towards the current cell
                 min_s = None
                 min_switch_prob_delta = np.inf
                 max_lpz_prob = config.max_prob
@@ -130,7 +138,8 @@ def ctc_segmentation(config, lpz, ground_truth):
                     t -= 1
         except IndexError:
             logging.warning(
-                "IndexError: Backtracking was not successful, the window size might be too small."
+                "IndexError: Backtracking was not successful, "
+                "the window size might be too small."
             )
             window_size *= 2
             if window_size < config.max_window_size:
@@ -144,10 +153,10 @@ def ctc_segmentation(config, lpz, ground_truth):
 
 
 def prepare_text(config, text, char_list):
-    """
-    Prepares the given text for CTC segmentation
-        creates a matrix of character symbols to represent the given text
-        then creates list of char indices depending on the models char list
+    """Prepare the given text for CTC segmentation.
+
+    Creates a matrix of character symbols to represent the given text,
+    then creates list of char indices depending on the models char list.
 
     :param config: an instance of CtcSegmentationParameters
     :param text: iterable of utterance transcriptions
@@ -189,20 +198,19 @@ def prepare_text(config, text, char_list):
 
 
 def determine_utterance_segments(config, utt_begin_indices, char_probs, timings, text):
-    """
-        utterance-wise alignments from char-wise alignments
+    """Utterance-wise alignments from char-wise alignments.
 
     :param config: an instance of CtcSegmentationParameters
     :param utt_begin_indices: list of time indices of utterance start
     :param char_probs:  character positioned probabilities obtained from backtracking
-    :param timings:  mapping of time indices to seconds
+    :param timings: mapping of time indices to seconds
     :param text: list of utterances
-    :return: segments, a list of: utterance start and end in seconds, and its confidence score
+    :return: segments, a list of: utterance start and end [s], and its confidence score
     """
 
     def compute_time(index, align_type):
-        """
-        Compute start and end time of utterance.
+        """Compute start and end time of utterance.
+
         :param index:  frame index value
         :param align_type:  one of ["begin", "end"]
         :return: start/end time of utterance in seconds
@@ -219,7 +227,8 @@ def determine_utterance_segments(config, utt_begin_indices, char_probs, timings,
         end = compute_time(utt_begin_indices[i + 1], "end")
         start_t = int(round(start / config.index_duration_in_seconds))
         end_t = int(round(end / config.index_duration_in_seconds))
-        # Compute confidence score by using the min mean probability after splitting into segments of L frames
+        # Compute confidence score by using the min mean probability
+        #   after splitting into segments of L frames
         n = config.score_min_mean_over_L
         if end_t == start_t:
             min_avg = 0
