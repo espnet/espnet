@@ -47,7 +47,7 @@ else
     conda install -y conda
 fi
 
-conda install -y pip setuptools -c anaconda
+conda install -y pip setuptools
 
 cat << EOF > activate_python.sh
 if [ -z "\${PS1:-}" ]; then
