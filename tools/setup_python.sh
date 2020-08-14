@@ -33,4 +33,4 @@ else
 fi
 
 . ./activate_python.sh
-python3 -m pip install -U pip
+python3 -m pip install -U pip wheel
