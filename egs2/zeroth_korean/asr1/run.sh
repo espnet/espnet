@@ -14,6 +14,7 @@ test_sets="test_clean"
     --token_type bpe \
     --nbpe 5000 \
     --use_lm false \
+    --lang kr \
     --lm_config conf/train_lm.yaml \
     --asr_config conf/train_asr_transformer.yaml \
     --train_set "${train_set}" \
