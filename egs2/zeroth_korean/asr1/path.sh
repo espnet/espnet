@@ -6,8 +6,12 @@ export PATH=${MORFESSOR}/scripts:$PATH
 export PYTHONPATH="${PYTHONPATH:-}:$MORFESSOR"
 if ! command -v morfessor >/dev/null 2>&1; then
   echo "You appear to not have Morfessor installed, either on your path."
-  echo "Run tools/installers/install_morfessor.sh"
+  echo "try: pip install morfessor"
   return 1
+fi
+if ! command -v flac >&/dev/null; then
+   echo "Please install 'flac' on ALL worker nodes!"
+   return 1
 fi
 
 export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin:$PWD:$PATH

@@ -15,7 +15,7 @@ log() {
 SECONDS=0
 
 stage=1
-stop_stage=3
+stop_stage=100000
 
 skip_segmentation=false
 
@@ -37,31 +37,31 @@ train_set="train_nodev"
 train_dev="train_dev"
 test_set="test_clean"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Download"
     mkdir -p "${ZEROTH_KOREAN}"
     local/download_and_untar.sh "${ZEROTH_KOREAN}"
 fi
 
-if [ $stage -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ $stage -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # format the data as Kaldi data directories
   for part in train_data_01 test_data_01; do
   	# use underscore-separated names in data directories.
   	local/data_prep.sh "${ZEROTH_KOREAN}" "${part}"
   done
-fi  
+fi
 
 if ! "${skip_segmentation}"; then
-  if [ $stage -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+  if [ $stage -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # update segmentation of transcripts
     for part in train_data_01 test_data_01; do
       local/update_segmentation.sh data/$part data/local/lm
     done
   fi
-fi  
+fi
 
-if [ $stage -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    
+if [ $stage -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+
   # shuffle whole training set
   utils/shuffle_list.pl data/train_data_01/utt2spk > utt2spk.tmp
 

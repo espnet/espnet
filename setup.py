@@ -32,6 +32,7 @@ requirements = {
         # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
         "sentencepiece<0.1.90,>=0.1.82",
         "nltk>=3.4.5",
+        "morfessor",
         # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
