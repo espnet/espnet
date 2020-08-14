@@ -29,7 +29,16 @@ import logging
 import os
 import sys
 
-from espnet.utils.ctc_segmentation import ctc_align
+# imports for inference
+import json
+import torch
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
+from espnet.nets.asr_interface import ASRInterface
+from espnet.utils.io_utils import LoadInputsAndTargets
+
+# imports for CTC segmentation
+from espnet.utils.ctc_segmentation import CtcSegmentationParameters, ctc_segmentation
+from espnet.utils.ctc_segmentation import prepare_text, determine_utterance_segments
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -122,7 +131,6 @@ def main(args):
     """Run the main decoding function."""
     parser = get_parser()
     args, extra = parser.parse_known_args(args)
-
     # logging info
     if args.verbose == 1:
         logging.basicConfig(
@@ -140,10 +148,8 @@ def main(args):
             format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
         )
         logging.warning("Skip DEBUG/INFO messages")
-
     if args.ngpu == 0 and args.dtype == "float16":
         raise ValueError(f"--dtype {args.dtype} does not support the CPU backend.")
-
     # check CUDA_VISIBLE_DEVICES
     device = "cpu"
     if args.ngpu == 1:
@@ -154,10 +160,8 @@ def main(args):
     elif args.ngpu > 1:
         logging.error("Decoding only supports ngpu=1.")
         sys.exit(1)
-
     # display PYTHONPATH
     logging.info("python path = " + os.environ.get("PYTHONPATH", "(None)"))
-
     # recog
     logging.info("backend = " + args.backend)
     if args.backend == "pytorch":
@@ -165,6 +169,85 @@ def main(args):
     else:
         raise ValueError("Only pytorch is supported.")
     sys.exit(0)
+
+
+def ctc_align(args, device):
+    """
+        Parses configuration,
+        infers the CTC posterior probabilities,
+        and then starts aligns start of end of utterances.
+        Results are written to the output file given in the args
+
+    :param args: given configuration
+    :param device: for inference; one of ['cuda', 'cpu']
+    :return:  0 on success
+    """
+    model, train_args = load_trained_model(args.model)
+    assert isinstance(model, ASRInterface)
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode="asr",
+        load_output=True,
+        sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None
+        else args.preprocess_conf,
+        preprocess_args={"train": False},
+    )
+    logging.info(f"Decoding device={device}")
+    model.to(device=device).eval()
+    # read audio and text json data
+    with open(args.data_json, "rb") as f:
+        js = json.load(f)["utts"]
+    with open(args.utt_text, "r") as f:
+        lines = f.readlines()
+        i = 0
+        text = {}
+        segment_names = {}
+        for name in js.keys():
+            text_per_audio = []
+            segment_names_per_audio = []
+            while i < len(lines) and lines[i].startswith(name):
+                text_per_audio.append(lines[i][lines[i].find(" ") + 1 :])
+                segment_names_per_audio.append(lines[i][: lines[i].find(" ")])
+                i += 1
+            text[name] = text_per_audio
+            segment_names[name] = segment_names_per_audio
+    # apply configuration
+    config = CtcSegmentationParameters()
+    if args.subsampling_factor is not None:
+        config.subsampling_factor = args.subsampling_factor
+    if args.frame_duration is not None:
+        config.frame_duration_ms = args.frame_duration
+    if args.min_window_size is not None:
+        config.min_window_size = args.min_window_size
+    if args.max_window_size is not None:
+        config.max_window_size = args.max_window_size
+    # Iterate over audio files to decode and align
+    for idx, name in enumerate(js.keys(), 1):
+        logging.info(f"(%d/%d) Aligning " + name, idx, len(js.keys()))
+        batch = [(name, js[name])]
+        feat, label = load_inputs_and_targets(batch)
+        feat = feat[0]
+        with torch.no_grad():
+            # Encode input frames
+            enc_output = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
+            # Apply ctc layer to obtain log character probabilities
+            lpz = model.ctc.log_softmax(enc_output)[0].cpu().numpy()
+        # Prepare the text for aligning
+        ground_truth_mat, utt_begin_indices = prepare_text(
+            config, text[name], train_args.char_list
+        )
+        # Align using CTC segmentation
+        timings, char_probs, char_list = ctc_segmentation(config, lpz, ground_truth_mat)
+        # Obtain list of utterances with corresponding time intervals and confidence score
+        segments = determine_utterance_segments(
+            config, utt_begin_indices, char_probs, timings, text[name]
+        )
+        # Write to "segments" file
+        for i, boundary in enumerate(segments):
+            utt_segment = f"{segment_names[name][i]} {name} {boundary[0]:.2f} {boundary[1]:.2f} {boundary[2]:.9f}\n"
+            args.output.write(utt_segment)
+    return 0
 
 
 if __name__ == "__main__":
