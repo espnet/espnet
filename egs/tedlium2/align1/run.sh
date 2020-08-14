@@ -11,39 +11,16 @@
 
 # general configuration
 python=python3
-backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
-N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=1      # verbose option
-resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false
 cmvn=
-
-preprocess_config=conf/specaug.yaml
-train_config=conf/train.yaml
-lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
-
-# rnnlm related
-lm_resume=        # specify a snapshot file to resume LM training
-lmtag=            # tag for managing LMs
-
-# decoding parameter
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
-
-# bpemode (unigram or bpe)
-nbpe=500
-bpemode=unigram
-
-# exp tag
-tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -53,9 +30,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_trim_sp
-train_dev=dev_trim
-recog_set="dev test"
+align_set="dev test"
 models=tedlium2.rnn.v2
 
 # Parameters for CTC alignment
@@ -71,13 +46,9 @@ align_dir=align
 api=v1
 dict=
 
-if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
-    echo "stage -1: Data Download"
-    local/download_data.sh
-fi
-
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    echo "stage -1: Model Download"
+    echo "stage -1: Data and Model Download"
+    local/download_data.sh
     . local/download_model.sh
 fi
 
@@ -98,7 +69,8 @@ if [ -z "${dict}" ]; then
     if [ -z "${dict}" ]; then
         mkdir ${download_dir}/${models}/data/lang_autochar/ -p
         model_config=$(find ${download_dir}/${models}/exp/*/results/model.json | head -n 1)
-        cat $model_config | python -c 'import json,sys;obj=json.load(sys.stdin);[print(char + " " + str(i + 1)) for i, char in enumerate(obj[2]["char_list"])]' > ${download_dir}/${models}/data/lang_autochar/dict.txt
+        dict_from_json_py='import json,sys;obj=json.load(sys.stdin);[print(char + " " + str(i + 1)) for i, char in enumerate(obj[2]["char_list"])]'
+        cat ${model_config} | ${python} -c ${dict_from_json_py} > ${download_dir}/${models}/data/lang_autochar/dict.txt
         dict=${download_dir}/${models}/data/lang_autochar/dict.txt
     fi
 fi
@@ -135,7 +107,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in test dev; do
+    for x in ${align_set}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 1 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
@@ -143,7 +115,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
 
     # dump features for training
-    for rtask in ${recog_set}; do
+    for rtask in ${align_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 1 --do_delta ${do_delta} \
             data/${rtask}/feats.scp ${cmvn} exp/dump_feats/recog/${rtask} \
@@ -155,7 +127,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Json Data Preparation"
 
-    for rtask in ${recog_set}; do
+    for rtask in ${align_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp  \
             data/${rtask} ${dict}  > ${feat_recog_dir}/data.json
@@ -165,7 +137,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Alignments using CTC segmentation"
 
-    for rtask in ${recog_set}; do
+    for rtask in ${align_set}; do
 	    # results are written to data/$rtask/aligned_segments
         ${python} -m espnet.bin.asr_align \
             --config ${align_config} \
@@ -184,11 +156,11 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Removing utterances with low confidence scores"
 
-    for rtask in ${recog_set}; do
+    for rtask in ${align_set}; do
         unfiltered=data/${rtask}/aligned_segments
         filtered=data/${rtask}/aligned_segments_clean
 
         awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${unfiltered} > ${filtered}
-        echo "Written `wc -l < ${filtered}` of `wc -l < ${unfiltered}` utterances to ${filtered}"
+        echo "Written $(wc -l < ${filtered}) of $(wc -l < ${unfiltered}) utterances to ${filtered}"
     done
 fi

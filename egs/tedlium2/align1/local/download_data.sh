@@ -28,7 +28,7 @@ else
 fi
 
 
-num_sph=$(find TEDLIUM_release2/ -name '*.sph' | wc -l)
+num_sph=$(find -L TEDLIUM_release2/ -name '*.sph' | wc -l)
 if [ "$num_sph" != 1514 ]; then
   echo "$0: expected to find 1514 .sph files in the directory db/TEDLIUM_release2, found $num_sph"
   exit 1
