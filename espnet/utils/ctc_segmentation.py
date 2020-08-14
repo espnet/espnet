@@ -16,9 +16,7 @@ import numpy as np
 import pyximport
 
 # import for table of character probabilities mapped to time
-pyximport.install(
-    setup_args={"include_dirs": np.get_include()}
-)
+pyximport.install(setup_args={"include_dirs": np.get_include()})
 from espnet.utils.ctc_segmentation_dyn import cython_fill_table  # noqa: E402
 
 
