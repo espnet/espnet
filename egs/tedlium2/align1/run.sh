@@ -22,6 +22,13 @@ verbose=1      # verbose option
 do_delta=false
 cmvn=
 
+# Parameters for CTC alignment
+# The subsampling factor depends on whether the encoder uses subsampling
+subsampling_factor=4
+# minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
+min_confidence_score=-5.0
+
+
 . utils/parse_options.sh || exit 1;
 
 # Set bash to 'debug' mode, it will exit on :
@@ -33,16 +40,9 @@ set -o pipefail
 align_set="dev test"
 models=tedlium2.rnn.v2
 
-# Parameters for CTC alignment
-# The subsampling factor depends on whether the encoder uses subsampling
-subsampling_factor=4
-# minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
-min_confidence_score=-5.0
-
 download_dir=models
 align_model=
 align_config=
-align_dir=align
 api=v1
 dict=
 
@@ -55,23 +55,23 @@ fi
 
 # Download trained models
 if [ -z "${cmvn}" ]; then
-    cmvn=$(find ${download_dir}/${models} -name "cmvn.ark" | head -n 1)
+    cmvn=$(find -L ${download_dir}/${models} -name "cmvn.ark" | head -n 1)
 fi
 if [ -z "${align_model}" ]; then
-    align_model=$(find ${download_dir}/${models} -name "model*.best*" | head -n 1)
+    align_model=$(find -L ${download_dir}/${models} -name "model*.best*" | head -n 1)
 fi
 if [ -z "${align_config}" ]; then
-    align_config=$(find ${download_dir}/${models} -name "decode*.yaml" | head -n 1)
+    align_config=$(find -L ${download_dir}/${models} -name "decode*.yaml" | head -n 1)
 fi
 if [ -z "${dict}" ]; then
-    dict=$(find ${download_dir}/${models}/data/lang_*char -name "*.txt" | head -n 1) || dict=""
+    dict=$(find -L ${download_dir}/${models}/data/lang_*char -name "*.txt" | head -n 1) || dict=""
 
     if [ -z "${dict}" ]; then
         mkdir ${download_dir}/${models}/data/lang_autochar/ -p
-        model_config=$(find ${download_dir}/${models}/exp/*/results/model.json | head -n 1)
-        dict_from_json_py='import json,sys;obj=json.load(sys.stdin);[print(char + " " + str(i + 1)) for i, char in enumerate(obj[2]["char_list"])]'
-        cat ${model_config} | ${python} -c ${dict_from_json_py} > ${download_dir}/${models}/data/lang_autochar/dict.txt
+        model_config=$(find -L ${download_dir}/${models}/exp/*/results/model.json | head -n 1)
         dict=${download_dir}/${models}/data/lang_autochar/dict.txt
+        cat ${model_config} |
+            ${python} -c 'import json,sys;obj=json.load(sys.stdin);[print(char + " " + str(i + 1)) for i, char in enumerate(obj[2]["char_list"])]' > ${dict}
     fi
 fi
 
