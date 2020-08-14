@@ -173,9 +173,8 @@ def main(args):
 
 def ctc_align(args, device):
     """
-        Parses configuration,
-        infers the CTC posterior probabilities,
-        and then starts aligns start of end of utterances.
+        Parses configuration, infers the CTC posterior probabilities,
+        and then aligns start and end of utterances using CTC segmentation.
         Results are written to the output file given in the args
 
     :param args: given configuration
@@ -222,9 +221,12 @@ def ctc_align(args, device):
         config.min_window_size = args.min_window_size
     if args.max_window_size is not None:
         config.max_window_size = args.max_window_size
+    logging.debug(
+        f"Frame timings: {config.frame_duration_ms}ms * {config.subsampling_factor}"
+    )
     # Iterate over audio files to decode and align
     for idx, name in enumerate(js.keys(), 1):
-        logging.info(f"(%d/%d) Aligning " + name, idx, len(js.keys()))
+        logging.info("(%d/%d) Aligning " + name, idx, len(js.keys()))
         batch = [(name, js[name])]
         feat, label = load_inputs_and_targets(batch)
         feat = feat[0]
