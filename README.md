@@ -44,7 +44,6 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 
 ### ASR: Automatic Speech Recognition
-
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - **Hybrid CTC/attention** based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
@@ -63,6 +62,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Transformer based end-to-end TTS
 - Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS
 - Multi-speaker TTS with pretrained speaker embedding
+- GST-based multispaker model (in ESPnet2)
+- FastSpeech2 model (in ESPnet2)
 - Support phoneme-based TTS for En, Jp, and Zn
 - Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
 
