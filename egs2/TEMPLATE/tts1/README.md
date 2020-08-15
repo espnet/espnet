@@ -9,57 +9,71 @@ TTS recipe consists of 9 stages.
 ### 1. Data preparation
 
 Data preparation stage.
+
 It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets.
 
 See also:
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
 
-### 2. Wav dump or Feature extraction
+### 2. Feature extraction
 
-Feature extraction stage. The processing in this stage is changed according to `--feats_type` option (Default: `feats_type=raw`).
-In the case of `feats_type=raw`, reformat `wav.scp` in date directories.
-In the other cases (`feats_type=fbank`), feature extraction with librosa is performed.
+Feature extraction stage.
+
+The processing in this stage is changed according to `--feats_type` option (Default: `feats_type=raw`).
+In the case of `feats_type=raw`, reformat `wav.scp` in data directories.
+In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with librosa will be performed.
 Since the performance is almost the same, we recommend using `feats_type=raw`.
 
 ### 3. Removal of long / short data
 
-Processing stage to remove long and short utterances from the training and validation data.
+Preprocessing stage to remove long and short utterances from the training and validation data.
+
+You can change the threshold values via `--min_wav_duration` and `--max_wav_duration` options.
 
 ### 4. Token list generation
+
+Token list (dictionary) genearation stage.
 
 It generates token list (dictionary) from `srctexts`.
 You can change the tokenization type via `--token_type` option.
 `token_type=char` and `token_type=phn` are supported.
-If `--cleaner` option is specified, the input text is cleaned with specified cleaner (See [supported text cleaner](#Supported-text-cleaner)).
-If `token_type=phn`, the input text is converted with `g2p` module (See [supported text frontend](#Supported-text-frontend)).
+If `--cleaner` option is specified, the input text is cleaned with the specified cleaner.
+If `token_type=phn`, the input text is converted with the specified `g2p` module.
 
 See also:
-- [Supported text cleaner](#Supported-text-cleaner).
-- [Supported text frontend](#Supported-text-frontend).
+- [Supported text cleaner](#supported-text-cleaner)
+- [Supported text frontend](#supported-text-frontend)
 
 ### 5. TTS statistics collection
 
-Statistics calculation stage.
-It calculates the shape information of the input and output and statistics for feature normalization (mean and variance over training data).
+TTS statistics collection stage.
+
+It collects the shape information of the input and the output and calculates statistics for normalization (mean and variance over training data).
 
 ### 6. TTS training
 
 TTS model training stage.
+
 You can change the training setting via `--train_config` and `--train_args` options.
 
 See also:
-- [Supported text cleaner](#Supported-model).
+- [Supported models](#supported-models)
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 - [Distributed training](https://espnet.github.io/espnet/espnet2_distributed.html)
 
 ### 7. TTS decoding
 
 TTS model decoding stage.
+
 You can change the decoding setting via `--inference_config` and `--inference_args`.
 
-### 8-9. (Optional) Pack results for upload
+See also:
+- [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 
-Packing stage.
+### 8-9. (Optional) Pack results for upload to zenodo
+
+Results packing stage.
+
 It packs the trained model files and upload to [Zenodo](https://zenodo.org/).
 If you want to run this stage, you need to register your account in zenodo.
 
@@ -68,8 +82,7 @@ See also:
 
 ## How to run
 
-Here, we show the procedure to run the recipe.
-As an example, we use `egs2/ljspeech/tts1` recipe.
+We show the procedure to run the recipe using `egs2/ljspeech/tts1`.
 
 Move on the recipe directory.
 ```sh
@@ -134,7 +147,7 @@ Then, you can get the following directories in the recipe directory.
         └── *.best.pth              # symlink to the best model parameter loss
 ```
 In decoding, we use Griffin-Lim for waveform generation.
-If you want to combine with neural vocoder, please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
+If you want to combine with neural vocoders, please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
 See the detail in [decoding with ESPnet-TTS model's feature](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features).
 
 For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop-stage` options.
@@ -145,10 +158,10 @@ $ ./run.sh --stage 3 --stop-stage 3
 ```
 This might helps you to understand each stage's processing and directory structure.
 
-### Train FastSpeech
+### FastSpeech training
 
-If you want to FastSpeech, additional steps with the teacher model are needed since `durations` is needed for the training of FastSpeech.
-Please make sure you already finished training the teacher model (Tacotron2 or Transformer-TTS).
+If you want to FastSpeech, additional steps with the teacher model are needed.
+Please make sure you already finished the training of the teacher model (Tacotron2 or Transformer-TTS).
 
 First, decode all of data including training, validation, and evaluation set.
 ```sh
@@ -159,14 +172,14 @@ $ ./run.sh --stage 7 \
 ```
 This will generate `durations` for training, validation, and evaluation sets in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.best`.
 
-Then, you can train FastSpeech by specifying the directory including duration information via `--teacher_dumpdir` option.
+Then, you can train FastSpeech by specifying the directory including `durations` via `--teacher_dumpdir` option.
 ```sh
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech.yaml \
     --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.best
 ```
 
-In the above example, we use generated mel-spectrogram as the target of FastSpeech (we do not use groundtruth of mel-spectrogram), which is known as knowledge distillation training.
+In the above example, we use generated mel-spectrogram as the target, which is known as knowledge distillation training.
 If you want to use groundtruth mel-spectrogram as the target of FastSpeech, we need to use teacher forcing in decoding.
 ```sh
 $ ./run.sh --stage 7 \
@@ -174,7 +187,7 @@ $ ./run.sh --stage 7 \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "tr_no_dev dev eval1"
 ```
-Then, you can the groundtruth aligned durations in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best`.
+Then, you can get the groundtruth aligned `durations` in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best`.
 
 Then, you can train FastSpeech without knowledge distillation.
 ```sh
@@ -183,7 +196,7 @@ $ ./run.sh --stage 6 \
     --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best
 ````
 
-### Train FastSpeech2
+### FastSpeech2 training
 
 The procedure is almost the same as FastSpeech2 but we **MUST** use teacher forcing in decoding.
 ```sh
@@ -194,7 +207,7 @@ $ ./run.sh --stage 7 \
 ```
 
 To train FastSpeech2, we use additional feature (F0 and energy).
-So we need to start from `stage 5` to calculate additional statistics.
+Therefore, we need to start from `stage 5` to calculate additional statistics.
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_fastspeech.yaml \
@@ -203,7 +216,7 @@ $ ./run.sh --stage 5 \
     --write_collected_feats true
 ```
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
-The use of `--write_collected_feats` is optional but it helps to accelerate the training of FastSpeech2 since f0 extraction is slow compared to the fbank extraction.
+The use of `--write_collected_feats` is optional but it helps to accelerate the training.
 
 ## Supported text frontend
 
@@ -241,7 +254,10 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 
 ### Single speaker model
 
-- [Tacotron 2](https://arxiv.org/abs/1712.05884) [Transformer-TTS](https://arxiv.org/abs/1809.08895) [FastSpeech](https://arxiv.org/abs/1905.09263) [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
+- [Tacotron 2](https://arxiv.org/abs/1712.05884)
+- [Transformer-TTS](https://arxiv.org/abs/1809.08895)
+- [FastSpeech](https://arxiv.org/abs/1905.09263)
+- [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
