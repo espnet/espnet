@@ -8,8 +8,7 @@ TTS recipe consists of 9 stages.
 
 ### 1. Data preparation
 
-Data preparation stage.
-
+Data preparation stage.  
 It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets.
 
 See also:
@@ -17,8 +16,7 @@ See also:
 
 ### 2. Feature extraction
 
-Feature extraction stage.
-
+Feature extraction stage.  
 The processing in this stage is changed according to `--feats_type` option (Default: `feats_type=raw`).
 In the case of `feats_type=raw`, reformat `wav.scp` in data directories.
 In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with librosa will be performed.
@@ -26,14 +24,12 @@ Since the performance is almost the same, we recommend using `feats_type=raw`.
 
 ### 3. Removal of long / short data
 
-Preprocessing stage to remove long and short utterances from the training and validation data.
-
+Preprocessing stage to remove long and short utterances from the training and validation data.  
 You can change the threshold values via `--min_wav_duration` and `--max_wav_duration` options.
 
 ### 4. Token list generation
 
-Token list (dictionary) genearation stage.
-
+Token list (dictionary) genearation stage.  
 It generates token list (dictionary) from `srctexts`.
 You can change the tokenization type via `--token_type` option.
 `token_type=char` and `token_type=phn` are supported.
@@ -46,14 +42,12 @@ See also:
 
 ### 5. TTS statistics collection
 
-TTS statistics collection stage.
-
+TTS statistics collection stage.  
 It collects the shape information of the input and the output and calculates statistics for normalization (mean and variance over training data).
 
 ### 6. TTS training
 
-TTS model training stage.
-
+TTS model training stage.  
 You can change the training setting via `--train_config` and `--train_args` options.
 
 See also:
@@ -63,8 +57,7 @@ See also:
 
 ### 7. TTS decoding
 
-TTS model decoding stage.
-
+TTS model decoding stage.  
 You can change the decoding setting via `--inference_config` and `--inference_args`.
 
 See also:
@@ -72,8 +65,7 @@ See also:
 
 ### 8-9. (Optional) Pack results for upload to zenodo
 
-Results packing stage.
-
+Results packing stage.  
 It packs the trained model files and upload to [Zenodo](https://zenodo.org/).
 If you want to run this stage, you need to register your account in zenodo.
 
