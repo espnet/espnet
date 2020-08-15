@@ -134,7 +134,7 @@ Then, you can get the following directories in the recipe directory.
         └── *.best.pth              # symlink to the best model parameter loss
 ```
 In decoding, we use Griffin-Lim for waveform generation.
-If you want to combine with neural vocoder, please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)].
+If you want to combine with neural vocoder, please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
 See the detail in [decoding with ESPnet-TTS model's feature](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features).
 
 For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop-stage` options.
@@ -150,7 +150,7 @@ This might helps you to understand each stage's processing and directory structu
 If you want to FastSpeech, additional steps with the teacher model are needed since `durations` is needed for the training of FastSpeech.
 Please make sure you already finished training the teacher model (Tacotron2 or Transformer-TTS).
 
-First, decoding all of data including training, validation, and evaluation set.
+First, decode all of data including training, validation, and evaluation set.
 ```sh
 # specify teacher model directory via --tts_exp option
 $ ./run.sh --stage 7 \
@@ -159,7 +159,7 @@ $ ./run.sh --stage 7 \
 ```
 This will generate `durations` for training, validation, and evaluation sets in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.best`.
 
-Then, you can train FastSpeech.
+Then, you can train FastSpeech by specifying the directory including duration information via `--teacher_dumpdir` option.
 ```sh
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech.yaml \
@@ -241,10 +241,7 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 
 ### Single speaker model
 
-- [Tacotron 2](https://arxiv.org/abs/1712.05884)
-- [Transformer-TTS](https://arxiv.org/abs/1809.08895)
-- [FastSpeech](https://arxiv.org/abs/1905.09263)
-- [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
+- [Tacotron 2](https://arxiv.org/abs/1712.05884) [Transformer-TTS](https://arxiv.org/abs/1809.08895) [FastSpeech](https://arxiv.org/abs/1905.09263) [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
@@ -277,6 +274,11 @@ Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` an
 ### How to use trained model in python?
 
 See [use a pretrained model for inference](https://github.com/espnet/espnet_model_zoo#use-a-pretrained-model-for-inference).
+
+### How to finetune the pretrained model?
+
+Please use `--pretrain_path` and `--pretrain_key` options in training config (`*.yaml`).
+See the usage in [abs_task.py](https://github.com/espnet/espnet/blob/3cc59a16c3655f3b39dc2ae19ffafa7bfac879bf/espnet2/tasks/abs_task.py#L1040-L1054).
 
 ### How to add a new model?
 
