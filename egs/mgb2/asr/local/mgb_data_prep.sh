@@ -27,7 +27,12 @@ done
 
 find $db_dir/train/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
-  $train_dir/wav_list                                  #https://www.perl.com/pub/2004/10/14/file_editing.html/
+  $train_dir/wav_list                                 
+
+# generate wav.scp file for training data
+for x in $(cat $train_dir/wav_list); do 
+  echo $x $db_dir/train/wav/$x.wav >> $train_dir/wav.scp
+done
 
 # Creating subset of the train data for quick recipe testing
 head -n $subset $train_dir/wav_list > $train_dir/wav_list.short
