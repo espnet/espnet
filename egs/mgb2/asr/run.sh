@@ -3,6 +3,11 @@
 # Copyright (C) 2020 Kanari AI  (Amir Hussein)
 
 
+# To use this recipe you'll need
+# 1) Download MGB-2 corpus from https://arabicspeech.org/mgb2 into a 
+#    DB directory. After downloading, it must have DB/{train,dev,test}.tar.gz
+
+
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;  
 
@@ -30,10 +35,8 @@ lmtag=            # tag for managing LMs
 nj=200
 process_xml="python"
 
-datadir=/alt-data/speech/mgb2
+datadir=DB
 
-# base url for downloads.
-#data_url= https://arabicspeech.org/mgb2 
 # model average realted (only for transformer)
 n_average=5                  # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
@@ -75,20 +78,15 @@ set -e
 set -u
 set -o pipefail
 
-
 train_set=train_trim_sp
 train_dev=dev_trim
 recog_set="dev test"
 train=train
 
-# TODO: modify the download_data.sh once you get the data URL
-#if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-#    echo "stage -1: Data Download"
-#    for part in train test dev; do
-#        local/download_data.sh ${datadir} ${data_url} ${part}
-#    done
-#fi
 
+if [ $stage -le -1 ]; then
+  local/mgb_extract_data.sh $datadir
+fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
