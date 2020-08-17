@@ -184,9 +184,6 @@ mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     if [ ! -e ${lmdatadir} ]; then
         mkdir -p ${lmdatadir}
         # segmenting the background text
