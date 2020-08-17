@@ -19,10 +19,6 @@ dev_dir=data/dev
 
 for x in $train_dir $dev_dir $test_dir; do
   mkdir -p $x
-#  if [ -f ${x}/wav.scp ]; then
-#    mkdir -p ${x}/.backup
-#    mv $x/{wav.scp,utt2spk,spk2utt,segments,text} ${x}/.backup
-#  fi
 done
 
 find $db_dir/train/wav -type f -name "*.wav" | \
@@ -149,12 +145,6 @@ done
 
 #Creating a file reco2file_and_channel which is used by convert_ctm.pl in local/score.sh script
 awk '{print $1" "$1" A"}' $train_dir/wav.scp > $train_dir/reco2file_and_channel
-
-# Creating utt2spk for train from segments
-#if [ ! -f $train_dir/utt2spk ]; then
-#  cut -d ' ' -f1 $train_dir/segments > $test_dir/utt_id
-#  cut -d '_' -f1-2 $train_dir/utt_id | paste -d ' ' $train_dir/utt_id - > $train_dir/utt2spk
-#fi
 
 if [ ! -f $train_dir/spk2utt ]; then
   utils/utt2spk_to_spk2utt.pl $train_dir/utt2spk > $train_dir/spk2utt
