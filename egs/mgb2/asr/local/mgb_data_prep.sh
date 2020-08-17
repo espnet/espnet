@@ -8,10 +8,11 @@ if [ $# -ne 3 ]; then
   echo "Usage: $0 <DB-dir> <process-xml>"
   exit 1;
 fi
-mer=80
+
 db_dir=$1
 process_xml=$2
 subset=$3  # subset of training data
+mer=$4
 test_dir=data/test
 
 train_dir=data/train
