@@ -1,24 +1,22 @@
 # pytorch large Transformer with specaug (4 GPUs) + Transformer LM (4 GPUs)
 
 - Environments
-  - date: `Mon July  27 2020`
+  - date: `Mon July 7 8:20:00 JST 2020`
   - python version: `3.7.3  [GCC 7.3.0]`
   - espnet version: `espnet 0.6.0`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.0.1.post2`
   - Git hash: `To be added`
-  - Commit date: `Aug 5, 2020`
+  - Commit date: `Aug 5 2020`
 
 - Model files 
-    - model link: `To be added`
-    - training config file: `./conf/train.yaml`
+    - e2e model link: `To be added`
+    - lm model link: `To be added`
+    - lm config file: `./conf/lm_transformer.yaml`
+    - training config file: `./conf/train_pytorch_transformer_large_ngpu4.yaml`
     - decoding config file: `./conf/decode.yaml`
-    - cmvn file: `./data/train_960/cmvn.ark`
-    - e2e file: `./librispeech.transformer.v1/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.val5.avg.best`
-    - e2e JSON file: `./librispeech.transformer.v1/exp/train_960_pytorch_train_pytorch_transformer.v1_aheads8_batch-bins15000000_specaug/results/model.json`
-    - lm file: `./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/rnnlm.model.best`
-    - lm JSON file: `./exp/train_rnnlm_pytorch_lm_transformer_cosine_batchsize32_lr1e-4_layer16_unigram5000_ngpu4/model.json`
-    - dict file: `./data/lang_char`
+    - e2e JSON file: `./exp/train_trim_sp_pytorch_3_specaug/results/model.json`
+    - lm JSON file: `./exp/exp/train_lm_pytorch_lm_transformer_unigram5000_segmented_text/model.json`
 - Results 
 
 best val scores = [0.90567905 0.9056724  0.90525274 0.90449862 0.90426245]
