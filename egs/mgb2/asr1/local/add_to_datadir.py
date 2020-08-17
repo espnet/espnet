@@ -2,7 +2,8 @@
 
 # This script appends utterances dumped out from XML to a Kaldi datadir
 
-import sys, re
+import sys
+import re
 from xml.sax.saxutils import unescape
 
 basename = sys.argv[1]
@@ -38,11 +39,11 @@ for line in sys.stdin:
         segId = "%s_spk-%04d_seg-%07d:%07d" % (basename, spk, start * 100, end * 100)
         spkId = "%s_spk-%04d" % (basename, spk)
 
-        # only add segments where the Matching Error Rate is below the prescribed threshhold
-        if mer_thresh == None or mer <= mer_thresh:
-            print >> segments_file, "%s %s %.2f %.2f" % (segId, basename, start, end)
-            print >> text_file, "%s %s" % (segId, words)
-            print >> utt2spk_file, "%s %s" % (segId, spkId)
+        # only add segments where Matching Error Rate is below the threshhold
+        if mer_thresh is None or mer <= mer_thresh:
+            print(segments_file, "%s %s %.2f %.2f" % (segId, basename, start, end))
+            print(text_file, "%s %s" % (segId, words))
+            print(utt2spk_file, "%s %s" % (segId, spkId))
 
 segments_file.close()
 utt2spk_file.close()
