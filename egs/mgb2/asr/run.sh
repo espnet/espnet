@@ -190,7 +190,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ ! -e ${lmdatadir} ]; then
         mkdir -p ${lmdatadir}
         # segmenting the background text
-        local/text_segmenting.py -f $datadir/train/lm_text/lm_text_clean_bw
+        local/text_segmenting.py -f $datadir/train/lm_text/lm_text_clean_bw -o segmented_text
         mv segmented_text data/local/
         lm_text=data/local/segmented_text
         cut -f 2- -d" " data/train/text | gzip -c > data/local/${train_set}_text.gz
