@@ -3,7 +3,6 @@
 # Copyright (C) 2020 Kanari AI 
 # (Amir Hussein)
 
-
 if [ $# -ne 3 ]; then
   echo "Usage: $0 <DB-dir> <process-xml>"
   exit 1;
@@ -77,10 +76,8 @@ for x in $(cat $dev_dir/wav_list); do
   echo $x $db_dir/dev/wav/$x.wav >> $dev_dir/wav.scp
 done
 
-
 # Creating a file reco2file_and_channel which is used by convert_ctm.pl in local/score.sh script
 awk '{print $1" "$1" A"}' $dev_dir/wav.scp > $dev_dir/reco2file_and_channel
-
 
 # Creating utt2spk for dev from segments
 if [ ! -f $dev_dir/utt2spk ]; then
@@ -141,7 +138,6 @@ done
 # We are testing on non overapped data
 cp ${test_dir}_non_overlap/* $test_dir
 
-
 # Train
 find $db_dir/train/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
@@ -164,7 +160,6 @@ if [ ! -f $train_dir/spk2utt ]; then
   utils/utt2spk_to_spk2utt.pl $train_dir/utt2spk > $train_dir/spk2utt
 fi
 
-
 for dir in $train_dir $dev_dir ${dev_dir}_overlap ${dev_dir}_non_overlap $test_dir ${test_dir}_non_overlap; do
   utils/fix_data_dir.sh $dir
   utils/validate_data_dir.sh --no-feats $dir
@@ -182,6 +177,5 @@ utils/filter_scp.pl $train_dir/wav_list.short ${train_dir}/wav.scp > \
   ${train_subset}/wav.scp
 cp ${train_dir}/{utt2spk,segments,spk2utt,text,reco2file_and_channel} ${train_subset}
 utils/fix_data_dir.sh ${train_subset}
-
 
 echo "Training and Test data preparation succeeded"
