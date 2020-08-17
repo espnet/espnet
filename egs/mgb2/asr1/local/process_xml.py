@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 import sys
 
 
-
 def get_args():
     parser = argparse.ArgumentParser(description="""This script process xml file.""")
     parser.add_argument("xml", type=str, help="""Input xml file""")

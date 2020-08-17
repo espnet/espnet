@@ -77,7 +77,7 @@ def stm(data):
 
 def ctm(data):
     """generate ctm output for test"""
-    
+
     out = codecs.getwriter("utf-8")(sys.stdout)
     for e in data["turn"]:
         tokens = e.text.split()
