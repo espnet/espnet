@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import argparse
 from bs4 import BeautifulSoup
 import sys
-import argparse
+
 
 
 def get_args():
@@ -24,7 +25,7 @@ def process_xml(xml_handle, output_handle):
             [
                 element.string
                 for element in segment.find_all("element")
-                if element.string != None
+                if element.string is not None
             ]
         )
         output_handle.write(
