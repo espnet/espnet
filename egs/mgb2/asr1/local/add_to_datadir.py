@@ -2,8 +2,8 @@
 
 # This script appends utterances dumped out from XML to a Kaldi datadir
 
-import sys
 import re
+import sys
 from xml.sax.saxutils import unescape
 
 basename = sys.argv[1]
