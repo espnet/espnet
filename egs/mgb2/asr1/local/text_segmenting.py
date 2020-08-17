@@ -3,9 +3,8 @@
 # Copyright 2020 Kanari AI (Amir Hussein)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import numpy as np
-import pandas as pd
 import argparse
+import pandas as pd
 
 
 def read_tsv(data_file):
@@ -51,7 +50,6 @@ def get_args():
 
 def main():
     args = get_args()
-    # myfile = pd.read_csv(args.file_dir, header=None, encoding='utf-8', error_bad_lines=False)
     data = read_tsv(args.file_dir)
     myfile = pd.DataFrame(data=data)
     nan_value = float("NaN")
