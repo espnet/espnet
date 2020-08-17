@@ -19,6 +19,10 @@ dev_dir=data/dev
 
 for x in $train_dir $dev_dir $test_dir; do
   mkdir -p $x
+  if [ -f ${x}/wav.scp ]; then
+    mkdir -p ${x}/.backup
+    mv $x/{wav.scp,utt2spk,spk2utt,segments,text} ${x}/.backup
+  fi
 done
 
 find $db_dir/train/wav -type f -name "*.wav" | \
