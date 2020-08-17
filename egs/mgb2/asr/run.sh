@@ -4,7 +4,7 @@
 
 
 . ./path.sh || exit 1;
-. ./cmd.sh || exit 1;
+. ./cmd.sh || exit 1;  
 
 # general configuration
 backend=pytorch
@@ -20,11 +20,14 @@ subset=1100  # in case we want to use subset of training data
 # feature configuration
 do_delta=false
 
+#FILTER OUT SEGMENTS BASED ON MER (Match Error Rate)
+mer=80
+
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
-nj=400
+nj=200
 process_xml="python"
 
 datadir=/alt-data/speech/mgb2
@@ -91,7 +94,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/mgb_data_prep.sh ${datadir} ${process_xml} ${subset}
+    local/mgb_data_prep.sh ${datadir} ${process_xml} ${subset} ${mer}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
