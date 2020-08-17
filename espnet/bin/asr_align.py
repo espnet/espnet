@@ -244,7 +244,9 @@ def ctc_align(args, device):
             config, text[name], train_args.char_list
         )
         # Align using CTC segmentation
-        timings, char_probs, char_list = ctc_segmentation(config, lpz, ground_truth_mat)
+        timings, char_probs, state_list = ctc_segmentation(
+            config, lpz, ground_truth_mat
+        )
         # Obtain list of utterances with time intervals and confidence score
         segments = determine_utterance_segments(
             config, utt_begin_indices, char_probs, timings, text[name]

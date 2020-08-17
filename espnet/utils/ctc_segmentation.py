@@ -27,7 +27,8 @@ class CtcSegmentationParameters:
     The character set is taken from the model dict, i.e., usually are generated with
     SentencePiece. An ASR model trained in the corresponding language and character
     set is needed. If the character set contains any punctuation characters, "#",
-    or the Greek char "ε", adapt these settings.
+    or the Greek char "ε", adapt these settings. If the blank token is not set
+    as "_", adjust the setting.
     """
 
     max_prob = -10000000000.0
@@ -38,7 +39,7 @@ class CtcSegmentationParameters:
     frame_duration_ms = 10
     score_min_mean_over_L = 30
     space = " "
-    underscore = "▁"
+    blank = "▁"
     self_transition = "ε"
     start_of_ground_truth = "#"
     excluded_characters = ".,-?!:»«;'›‹()"
@@ -87,7 +88,7 @@ def ctc_segmentation(config, lpz, ground_truth):
         # Backtracking
         timings = np.zeros([len(ground_truth)])
         char_probs = np.zeros([lpz.shape[0]])
-        char_list = [""] * lpz.shape[0]
+        state_list = [""] * lpz.shape[0]
         try:
             # Do until start is reached
             while t != 0 or c != 0:
@@ -124,13 +125,13 @@ def ctc_segmentation(config, lpz, ground_truth):
                                 offsets[c] + t
                             ) * config.index_duration_in_seconds
                         char_probs[offsets[c] + t] = max_lpz_prob
-                        char_list[offsets[c] + t] = char_list[ground_truth[c, min_s]]
+                        state_list[offsets[c] + t] = state_list[ground_truth[c, min_s]]
                     c -= 1 + min_s
                     t -= 1 - offset
                 else:
                     # Apply reverse stay transition
                     char_probs[offsets[c] + t] = stay_prob
-                    char_list[offsets[c] + t] = config.self_transition
+                    state_list[offsets[c] + t] = config.self_transition
                     t -= 1
         except IndexError:
             logging.warning(
@@ -143,9 +144,10 @@ def ctc_segmentation(config, lpz, ground_truth):
                 continue
             else:
                 logging.error("Maximum window size reached.")
+                logging.error("Check data and character list!")
                 raise
         break
-    return timings, char_probs, char_list
+    return timings, char_probs, state_list
 
 
 def prepare_text(config, text, char_list):
@@ -160,6 +162,7 @@ def prepare_text(config, text, char_list):
                         characters not included in this list are ignored
     :return: label matrix, character index matrix
     """
+    logging.debug(f"Blank character: {char_list[0]} == {config.blank}")
     ground_truth = config.start_of_ground_truth
     utt_begin_indices = []
     for utt in text:
@@ -187,7 +190,7 @@ def prepare_text(config, text, char_list):
             if i - s < 0:
                 continue
             span = ground_truth[i - s : i + 1]
-            span = span.replace(config.space, config.underscore)
+            span = span.replace(config.space, config.blank)
             if span in char_list:
                 ground_truth_mat[i, s] = char_list.index(span)
     return ground_truth_mat, utt_begin_indices
