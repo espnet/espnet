@@ -53,6 +53,8 @@ requirements = {
         # VC related
         "fastdtw",
         "pyworld",
+        # Further stuff
+        "ctc-segmentation",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [

@@ -38,10 +38,10 @@ import json
 import torch
 
 # imports for CTC segmentation
-from espnet.utils.ctc_segmentation import ctc_segmentation
-from espnet.utils.ctc_segmentation import CtcSegmentationParameters
-from espnet.utils.ctc_segmentation import determine_utterance_segments
-from espnet.utils.ctc_segmentation import prepare_text
+from ctc_segmentation import ctc_segmentation
+from ctc_segmentation import CtcSegmentationParameters
+from ctc_segmentation import determine_utterance_segments
+from ctc_segmentation import prepare_text
 
 
 # NOTE: you need this func to generate our sphinx doc
