@@ -11,29 +11,29 @@ https://github.com/goodatlas/zeroth
 
 # RESULTS
 ## Environments
-- date: `Wed Aug 12 05:53:24 KST 2020`
+- date: `Wed Aug 19 01:43:54 KST 2020`
 - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
 - espnet version: `espnet 0.7.0`
 - pytorch version: `pytorch 1.2.0`
-- Git hash: `2f79d10d814d8cff51e276b18eac86b4111aac45`
-  - Commit date: `Sun Aug 9 22:15:38 2020 +0900`
+- Git hash: `7dda2c614e95ae1e6cabb10e2c98032b21c54cf3`
+  - Commit date: `Wed Aug 12 21:24:51 2020 +0900`
 
-## asr_train_asr_transformer_fbank_pitch_bpe
+## asr_train_asr_transformer5_raw_bpe
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|test_clean|457|9253|97.8|1.2|1.0|0.2|2.3|11.4|
+|test_clean|457|9253|97.8|1.4|0.9|0.2|2.4|17.3|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|test_clean|457|28084|98.5|0.5|1.0|0.2|1.7|11.4|
+|test_clean|457|28084|98.6|0.5|0.9|0.2|1.6|17.3|
 
 ### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|test_clean|457|14176|98.1|0.8|1.0|0.1|2.0|11.4|
+|457|14176|98.2|0.9|0.9|0.2|2.0|17.3|
 
