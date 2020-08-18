@@ -102,19 +102,25 @@ class MultiHeadedAttention(nn.Module):
 
 
 class SlidingWindow(nn.Module):
-    def __init__(self, n_feat, left_context = 5, right_context=2):
+    def __init__(self, n_feat, left_context=5, right_context=2):
         super(SlidingWindow, self).__init__()
         self.n_feat = n_feat
         self.left_context = left_context
         self.right_context = right_context
         self.chunk_size = left_context + right_context + 1
-        self.unfold = torch.nn.Unfold(kernel_size=(self.chunk_size, self.n_feat), padding=0)
+        self.unfold = torch.nn.Unfold(
+            kernel_size=(self.chunk_size, self.n_feat), padding=0
+        )
 
     def forward(self, inputs):
-        inputs = torch.nn.functional.pad(inputs, pad=(0, 0, self.left_context, self.right_context), value=0.0).unsqueeze(1)
+        inputs = torch.nn.functional.pad(
+            inputs, pad=(0, 0, self.left_context, self.right_context), value=0.0
+        ).unsqueeze(1)
         inputs = self.unfold(inputs)
 
-        return inputs.transpose(1,2).reshape(-1, self.chunk_size, self.n_feat) #(bt,chunk_size,feautres_size)
+        return inputs.transpose(1, 2).reshape(
+            -1, self.chunk_size, self.n_feat
+        )  # (bt,chunk_size,feautres_size)
 
 
 class ChunkedMultiHeadedAttention(nn.Module):
@@ -123,15 +129,17 @@ class ChunkedMultiHeadedAttention(nn.Module):
         self.MHA = MultiHeadedAttention(n_head, n_feat, dropout_rate)
         self.SW_KV = SlidingWindow(n_feat, left_context, right_context)
         self.SW_mask = SlidingWindow(1, left_context, right_context)
-    
+
     def forward(self, query, key, value, mask):
         b = query.size(0)
         key = self.SW_KV(key)
         value = self.SW_KV(value)
         if mask is not None:
-            mask = self.SW_mask(mask.half().transpose(1,2)).transpose(1,2)
+            mask = self.SW_mask(mask.half().transpose(1, 2)).transpose(1, 2)
 
-        output = self.MHA(query.reshape(-1, 1, self.SW_KV.n_feat), key, value, mask).reshape(b, -1, self.SW_KV.n_feat)
+        output = self.MHA(
+            query.reshape(-1, 1, self.SW_KV.n_feat), key, value, mask
+        ).reshape(b, -1, self.SW_KV.n_feat)
 
         return output
 
