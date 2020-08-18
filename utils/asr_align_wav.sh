@@ -179,7 +179,7 @@ if [ -z "${dict}" ]; then
         mkdir -p ${download_dir}/${models}/data/lang_autochar/
         model_config=$(find -L ${download_dir}/${models}/exp/*/results/model.json | head -n 1)
         dict=${download_dir}/${models}/data/lang_autochar/dict.txt
-        ${python} -c 'import json,sys;obj=json.load(sys.stdin);[print(char + " " + str(i + 1)) for i, char in enumerate(obj[2]["char_list"])]' > ${dict} < ${model_config}
+        python -c 'import json,sys;obj=json.load(sys.stdin);[print(char + " " + str(i + 1)) for i, char in enumerate(obj[2]["char_list"])]' > ${dict} < ${model_config}
     fi
 fi
 
