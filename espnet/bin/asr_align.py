@@ -17,7 +17,8 @@ Output:
 
 Selected parameters:
     `--min-window-size`: Minimum window size considered for a single utterance. The
-        current default value should be OK in most cases.
+        current default value should be OK in most cases. Larger values might
+        give better results; too large values cause IndexErrors.
     `--subsampling-factor`: If the encoder sub-samples its input, the number of
         frames at the CTC layer is reduced by this factor.
     `--frame-duration`: This is the non-overlapping duration of a single frame in
@@ -120,6 +121,12 @@ def get_parser():
         type=int,
         default=None,
         help="Maximum window size considered for utterance.",
+    )
+    parser.add_argument(
+        "--use-dict-blank",
+        type=int,
+        default=None,
+        help="Use the Blank character of the model dictionary.",
     )
     parser.add_argument(
         "--output",
@@ -225,6 +232,9 @@ def ctc_align(args, device):
         config.min_window_size = args.min_window_size
     if args.max_window_size is not None:
         config.max_window_size = args.max_window_size
+    char_list = train_args.char_list
+    if args.use_dict_blank:
+        config.blank = char_list[0]
     logging.debug(
         f"Frame timings: {config.frame_duration_ms}ms * {config.subsampling_factor}"
     )
@@ -241,7 +251,7 @@ def ctc_align(args, device):
             lpz = model.ctc.log_softmax(enc_output)[0].cpu().numpy()
         # Prepare the text for aligning
         ground_truth_mat, utt_begin_indices = prepare_text(
-            config, text[name], train_args.char_list
+            config, text[name], char_list
         )
         # Align using CTC segmentation
         timings, char_probs, state_list = ctc_segmentation(
