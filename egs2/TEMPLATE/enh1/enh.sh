@@ -58,7 +58,6 @@ enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
 spk_num=2
 noise_type_num=1
-feats_normalize=global_mvn  # Normalizaton layer type
 
 # Training data related
 use_dereverb_ref=false
@@ -120,7 +119,6 @@ Options:
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
     --noise_type_num  # Number of noise types in the input audio (default="${noise_type_num}")
-    --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
 
     # Training data related
     --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
