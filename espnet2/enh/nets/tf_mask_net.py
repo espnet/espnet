@@ -81,10 +81,10 @@ class TFMaskingNet(AbsEnhancement):
             separated (List[ComplexTensor]): [(B, T, F), ...]
             ilens (torch.Tensor): (B,)
             predcited masks: OrderedDict[
-                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk1': torch.Tensor(Batch, Frames, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
 
@@ -133,10 +133,10 @@ class TFMaskingNet(AbsEnhancement):
             predcited speech [Batch, num_speaker, sample]
             output lengths
             predcited masks: OrderedDict[
-                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spk1': torch.Tensor(Batch, Frames, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
+                'spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
 

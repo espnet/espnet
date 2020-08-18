@@ -416,6 +416,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         Returns:
             loss (torch.Tensor): (batch)
             perm (torch.Tensor): (batch, num_spk)
+                                 e.g. tensor([[1, 0, 2], [0, 1, 2]])
         """
         assert len(ref) == len(inf), (len(ref), len(inf))
         num_spk = len(ref)
@@ -425,15 +426,30 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 [criterion(ref[s], inf[t]) for s, t in enumerate(permutation)]
             ) / len(permutation)
 
-        all_permutations = list(permutations(range(num_spk)))
-        losses = torch.stack(
-            [pair_loss(p) for p in all_permutations], dim=1
-        )
         if perm is None:
+            device = ref[0].device
+            all_permutations = list(permutations(range(num_spk)))
+            losses = torch.stack([pair_loss(p) for p in all_permutations], dim=1)
             loss, perm = torch.min(losses, dim=1)
-            perm = torch.index_select(torch.LongTensor(all_permutations), 0, perm)
+            perm = torch.index_select(
+                torch.tensor(all_permutations, device=device, dtype=torch.long),
+                0,
+                perm,
+            )
         else:
-            loss = losses[torch.arange(losses.shape[0]), perm]
+            loss = torch.tensor(
+                [
+                    torch.tensor(
+                        [
+                            criterion(
+                                ref[s][batch].unsqueeze(0), inf[t][batch].unsqueeze(0)
+                            )
+                            for s, t in enumerate(p)
+                        ]
+                    ).mean()
+                    for batch, p in enumerate(perm)
+                ]
+            )
 
         return loss.mean(), perm
 

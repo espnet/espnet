@@ -27,14 +27,14 @@ stage=1          # Processes starts from the specified stage.
 stop_stage=10000 # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
-skip_eval=false      # Skip decoding and evaluation stages
+skip_eval=false      # Skip inference and evaluation stages
 skip_upload=true     # Skip packing and uploading stages
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1      # The number of nodes
 nj=32            # The number of parallel jobs.
 dumpdir=dump     # Directory to dump features.
-inference_nj=32     # The number of parallel jobs in decoding.
-gpu_inference=false # Whether to perform gpu decoding.
+inference_nj=32     # The number of parallel jobs in inference.
+gpu_inference=false # Whether to perform gpu inference.
 expdir=exp       # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
 
@@ -87,7 +87,7 @@ Options:
     --stop_stage    # Processes is stopped at the specified stage (default="${stop_stage}").
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_eval      # Skip inference and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --ngpu          # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes     # The number of nodes
@@ -264,11 +264,11 @@ if ! "${skip_data_prep}"; then
             for i in $(seq ${spk_num}); do
                 _spk_list+="spk${i} "
             done
-            if $use_noise_ref; then
+            if $use_noise_ref && [ -n "${_suf}" ]; then
                 # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                 _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
             fi
-            if $use_dereverb_ref; then
+            if $use_dereverb_ref && [ -n "${_suf}" ]; then
                 # reference for dereverberation
                 _spk_list+="dereverb "
             fi
@@ -563,7 +563,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Submit decoding jobs
+            # 2. Submit inference jobs
             log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
@@ -626,7 +626,7 @@ if ! "${skip_eval}"; then
                 _inf_scp+="--inf_scp ${_inf_dir}/spk${spk}.scp "
             done
 
-            # 2. Submit decoding jobs
+            # 2. Submit scoring jobs
             log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
@@ -676,8 +676,8 @@ if ! "${skip_upload}"; then
     fi
 
 
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-        log "Stage 10: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+        log "Stage 12: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
