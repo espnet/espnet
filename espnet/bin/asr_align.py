@@ -23,7 +23,7 @@ Selected parameters:
         frames at the CTC layer is reduced by this factor.
     `--frame-duration`: This is the non-overlapping duration of a single frame in
         milliseconds (the inverse of frames per millisecond).
-    `--use-dict-blank`: Use the Blank character from the model.Useful if in the
+    `--use-dict-blank`: Use the Blank character from the model. Useful if in the
         model dictionary e.g. "<blank>" instead of the default "_" is used.
 """
 
