@@ -342,7 +342,7 @@ If you want to use the above pretrained vocoders, please exactly match the featu
 
 <details><summary>expand</summary><div>
 
-We made a new real-time E2E-TTS demonstration in Google Colab.
+We made a new real-time E2E-TTS demonstration in Google Colab.  
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
