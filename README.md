@@ -58,18 +58,26 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - CTC forced alignment
 
 ### TTS: Text-to-speech
-- Tacotron2 based end-to-end TTS
-- Transformer based end-to-end TTS
-- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS
-- Multi-speaker TTS with pretrained speaker embedding
-- GST-based multispaker model (in ESPnet2)
-- FastSpeech2 model (in ESPnet2)
-- Support phoneme-based TTS for En, Jp, and Zn
-- Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
+- Tacotron2
+- Transformer-TTS
+- FastSpeech
+- FastSpeech2 (in ESPnet2)
+- Multi-speaker model with pretrained speaker embedding
+- Multi-speaker model with GST (in ESPnet2) 
+- Phoneme-based training (En, Jp, and Zn)
+- Integration with neural vocoders (WaveNet, ParallelWaveGAN, and MelGAN)
 
-> To train the neural vocoder, please check the following repositories:
-> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
-> - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
+You can try demo online now!
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
+
+To train the neural vocoder, please check the following repositories:
+- [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
+- [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
+
+> **NOTE**: 
+> - We are moving on ESPnet2-based development for TTS.  
+> - If you are beginner, we recommend using [ESPnet2-TTS](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1). 
 
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
@@ -334,10 +342,11 @@ If you want to use the above pretrained vocoders, please exactly match the featu
 
 <details><summary>expand</summary><div>
 
-(**New!**) We made a new real-time E2E-TTS demonstration in Google Colab.
+We made a new real-time E2E-TTS demonstration in Google Colab.  
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
 
 ---
 
