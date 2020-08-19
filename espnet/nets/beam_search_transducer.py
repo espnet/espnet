@@ -585,9 +585,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
                 for i, v in enumerate(V):
                     v["y"].append(beam_y[i])
 
-                    v["dec_state"], v["att_state"] = decoder.select_state(
-                        beam_state, i
-                    )
+                    v["dec_state"], v["att_state"] = decoder.select_state(beam_state, i)
 
                     if rnnlm:
                         v["lm_state"] = select_lm_state(
@@ -605,9 +603,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
                     v["y"].append(beam_y[i])
 
-                    v["dec_state"], v["att_state"] = decoder.select_state(
-                        beam_state, i
-                    )
+                    v["dec_state"], v["att_state"] = decoder.select_state(beam_state, i)
 
                     if rnnlm:
                         v["lm_state"] = select_lm_state(
