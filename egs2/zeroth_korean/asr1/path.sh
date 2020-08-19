@@ -1,0 +1,37 @@
+MAIN_ROOT=$PWD/../../..
+KALDI_ROOT=$MAIN_ROOT/tools/kaldi
+
+export MORFESSOR=$MAIN_ROOT/tools/morfessor
+export PATH=${MORFESSOR}/scripts:$PATH
+export PYTHONPATH="${PYTHONPATH:-}:$MORFESSOR"
+if ! command -v morfessor >/dev/null 2>&1; then
+  echo "You appear to not have Morfessor installed, either on your path."
+  echo "try: pip install morfessor"
+  return 1
+fi
+if ! command -v flac >&/dev/null; then
+   echo "Please install 'flac' on ALL worker nodes!"
+   return 1
+fi
+
+export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin:$PWD:$PATH
+[ ! -f $KALDI_ROOT/tools/config/common_path.sh ] && echo >&2 "The standard file $KALDI_ROOT/tools/config/common_path.sh is not present -> Exit!" && exit 1
+. $KALDI_ROOT/tools/config/common_path.sh
+export LC_ALL=C
+
+
+
+. $MAIN_ROOT/tools/activate_python.sh
+
+export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
+export PATH=${KALDI_ROOT}/tools/sph2pipe_v2.5:$PATH
+
+export OMP_NUM_THREADS=1
+
+# NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C
+export PYTHONIOENCODING=UTF-8
+
+
+# You need to change or unset NCCL_SOCKET_IFNAME according to your network environment
+# https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html#nccl-socket-ifname
+export NCCL_SOCKET_IFNAME="^lo,docker,virbr,vmnet,vboxnet"
