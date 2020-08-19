@@ -18,6 +18,7 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
+        "ctc-segmentation",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
@@ -53,8 +54,6 @@ requirements = {
         # VC related
         "fastdtw",
         "pyworld",
-        # Further stuff
-        "ctc-segmentation",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [
