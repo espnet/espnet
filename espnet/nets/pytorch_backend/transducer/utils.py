@@ -129,9 +129,6 @@ def create_lm_batch_state(lm_states_list, lm_type, lm_layers):
        batch_states (list): batch of LM states
 
     """
-    if lm_states_list[0] is None:
-        return None
-
     if lm_type == "wordlm":
         batch_states = lm_states_list
     else:
@@ -147,6 +144,38 @@ def create_lm_batch_state(lm_states_list, lm_type, lm_layers):
         ]
 
     return batch_states
+
+
+def init_lm_state(lm_model):
+    """Initialize LM state.
+
+    Args:
+        lm_model (torch.nn.Module): LM module
+
+    Returns:
+        lm_state (dict): initial LM state
+
+    """
+    lm_layers = len(lm_model.rnn)
+    lm_units_typ = lm_model.typ
+    lm_units = lm_model.n_units
+
+    p = next(lm_model.parameters())
+
+    h = [
+        torch.zeros(lm_units).to(device=p.device, dtype=p.dtype)
+        for _ in range(lm_layers)
+    ]
+
+    lm_state = {"h": h}
+
+    if lm_units_typ == "lstm":
+        lm_state["c"] = [
+            torch.zeros(lm_units).to(device=p.device, dtype=p.dtype)
+            for _ in range(lm_layers)
+        ]
+
+    return lm_state
 
 
 def recombine_hyps(hyps):
