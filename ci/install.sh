@@ -18,12 +18,14 @@ $CXX -v
         ./setup_python.sh $(which python3) venv
     fi
     make TH_VERSION="${TH_VERSION}"
-    make extra
 
+    make nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
 python3 --version
+
+pip3 install https://github.com/kpu/kenlm/archive/master.zip
 
 # install espnet
 pip3 install -e ".[test]"
