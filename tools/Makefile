@@ -55,7 +55,7 @@ else
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done
 endif
 
-extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
+extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }

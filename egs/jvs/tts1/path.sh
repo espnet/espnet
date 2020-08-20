@@ -7,7 +7,6 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$PATH
 export LC_ALL=C
 . "${MAIN_ROOT}"/tools/activate_python.sh && . "${MAIN_ROOT}"/tools/extra_path.sh
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
-export LD_LIBRARY_PATH=$MAIN_ROOT/tools/lib:$MAIN_ROOT/tools/lib64:$LD_LIBRARY_PATH
 
 export OMP_NUM_THREADS=1
 
