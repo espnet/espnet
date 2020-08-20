@@ -15,8 +15,6 @@ accum-grad: 4
 # transformer related
 transformer-lr: 10.0
 transformer-warmup-steps: 8000
-transformer-attn-dropout-rate-encoder: 0.0
-transformer-attn-dropout-rate-decoder: 0.0
 
 # network architecture
 ## encoder related
