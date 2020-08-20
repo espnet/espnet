@@ -24,11 +24,7 @@ def make_train_args(**kwargs):
         transformer_dec_input_layer="embed",
         dec_block_arch=[{"type": "transformer", "d_hidden": 4, "d_ff": 4, "heads": 2}],
         dec_block_repeat=1,
-        dropout_rate=0.0,
         dropout_rate_embed_decoder=0.0,
-        dropout_rate_decoder=0.0,
-        transformer_attn_dropout_rate_encoder=0.0,
-        transformer_attn_dropout_rate_decoder=0.0,
         joint_dim=8,
         mtlalpha=1.0,
         trans_type="warp-transducer",
@@ -257,6 +253,50 @@ def test_sa_transducer_mask(module):
         ),
         (
             {
+                "enc_block_arch": [
+                    {
+                        "type": "tdnn",
+                        "idim": 8,
+                        "odim": 8,
+                        "ctx_size": 1,
+                        "dilation": 1,
+                        "stride": 1,
+                        "dropout-rate": 0.3,
+                    },
+                    {
+                        "type": "transformer",
+                        "d_hidden": 8,
+                        "d_ff": 8,
+                        "heads": 2,
+                        "dropout-rate": 0.3,
+                        "att-dropout-rate": 0.2,
+                        "pos-dropout-rate": 0.1,
+                    },
+                ],
+                "enc_repeat_block": 2,
+            },
+            {},
+        ),
+        (
+            {
+                "dec_block_arch": [
+                    {
+                        "type": "transformer",
+                        "d_hidden": 8,
+                        "d_ff": 8,
+                        "heads": 2,
+                        "dropout_rate": 0.3,
+                        "att-dropout-rate": 0.2,
+                        "pos-dropout-rate": 0.1,
+                    },
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                ],
+                "dec_repeat_block": 2,
+            },
+            {},
+        ),
+        (
+            {
                 "dec_block_arch": [
                     {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
                     {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
@@ -269,15 +309,7 @@ def test_sa_transducer_mask(module):
         ({}, {"beam_size": 4, "nbest": 2}),
         ({}, {"beam_size": 5, "score_norm_transducer": False}),
         ({"num_save_attention": 1}, {}),
-        ({"dropout_rate_encoder": 0.1, "dropout_rate_decoder": 0.1}, {}),
         ({"transformer_input_layer": "vgg2l"}, {}),
-        (
-            {
-                "transformer_attn_dropout_rate_encoder": 0.2,
-                "transformer_attn_dropout_rate_decoder": 0.3,
-            },
-            {},
-        ),
         ({"report_cer": True}, {}),
         ({"report_wer": True}, {}),
         ({"report_cer": True, "beam_size": 2}, {}),
