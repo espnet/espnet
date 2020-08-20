@@ -33,7 +33,7 @@ WSJ0=/export/corpora5/LDC/LDC93S6B
 WSJ1=/export/corpora5/LDC/LDC94S13B
 dirha_wsj_folder=/export/b18/ruizhili/data/Data_processed
 #IR_folder=/export/b18/xwang/data/ # folders for Impulse responses for WSJ contamination
-#sph_reader=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+#sph_reader=sph2pipe
 
 # TO DO: fix IR_folder, as well as uncomment matlab preprocess code in stage 0
 # You only need dirha_wsj_folder, just forget WSJ0/1, dirha_folder for now

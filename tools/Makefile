@@ -47,7 +47,7 @@ PIP_CHAINER := chainer==$(CHAINER_VERSION)
 
 .PHONY: all clean
 
-all: kaldi showenv python conda_packages.done check_install
+all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done chainer_ctc.done chainer.done
@@ -55,7 +55,7 @@ else
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done
 endif
 
-extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
+extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
@@ -105,6 +105,14 @@ else
 conda_packages.done:
 endif
 	touch conda_packages.done
+
+
+sctk.done:
+	./installers/install_sctk.sh
+	touch sctk.done
+sph2pipe.done:
+	./installers/install_sph2pipe.sh
+	touch sph2pipe.done
 
 
 ifneq ($(strip $(USE_PIP)),)
@@ -159,7 +167,7 @@ pyopenjtalk.done: espnet.done conda_packages.done
 	touch pyopenjtalk.done
 
 moses.done:
-	git clone https://github.com/moses-smt/mosesdecoder.git moses
+	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
 mwerSegmenter.done:
