@@ -22,7 +22,15 @@ class TDNN(torch.nn.Module):
     """
 
     def __init__(
-        self, idim, odim, ctx_size=5, dilation=1, stride=1, batch_norm=True, relu=True
+        self,
+        idim,
+        odim,
+        ctx_size=5,
+        dilation=1,
+        stride=1,
+        batch_norm=True,
+        relu=True,
+        dropout_rate=0.0,
     ):
         """Construct a TDNN object."""
         super(TDNN, self).__init__()
@@ -43,6 +51,8 @@ class TDNN(torch.nn.Module):
 
         if self.batch_norm:
             self.bn = torch.nn.BatchNorm1d(odim)
+
+        self.dropout = torch.nn.Dropout(p=dropout_rate)
 
     def forward(self, xs, masks):
         """Forward TDNN.
@@ -65,7 +75,7 @@ class TDNN(torch.nn.Module):
         if self.relu:
             xs = F.relu(xs)
 
-        xs = xs.transpose(1, 2).contiguous()
+        xs = self.dropout(xs.transpose(1, 2).contiguous())
 
         if masks is not None:
             sub = (self.ctx_size - 1) * self.dilation
