@@ -1,5 +1,7 @@
 """Set of methods to create transformer-based block."""
 
+from collections import Counter
+
 import torch
 
 from espnet.nets.pytorch_backend.transducer.causal_conv1d import CausalConv1d
@@ -8,13 +10,122 @@ from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+
+
+def check_and_prepare(all_blocks, input_layer):
+    """Check consecutive block shapes match and prepare input parameters.
+
+    Args:
+        all_blocks (list): all blocks main arguments
+        input_layer (str): input layer type
+
+    Return:
+        input_layer (str): input layer type
+        input_layer_odim (int): output dim of input layer
+        input_dropout_rate (float): dropout rate of input layer
+        input_pos_dropout_rate (float): dropout rate of pos. enc. in input layer
+        out_dim (int): output dim of last block
+
+    """
+    if all_blocks[0]["type"] in ("tdnn", "causal-conv1d"):
+        input_layer_odim = all_blocks[0]["idim"]
+    else:
+        input_layer_odim = all_blocks[0]["d_hidden"]
+
+    input_dropout_rate = sorted(
+        Counter(
+            b["dropout-rate"] for b in all_blocks if "dropout-rate" in b
+        ).most_common(),
+        key=lambda x: x[0],
+        reverse=True,
+    )
+
+    input_pos_dropout_rate = sorted(
+        Counter(
+            b["pos-dropout-rate"] for b in all_blocks if "pos-dropout-rate" in b
+        ).most_common(),
+        key=lambda x: x[0],
+        reverse=True,
+    )
+
+    input_dropout_rate = input_dropout_rate[0][0] if input_dropout_rate else 0.0
+    input_pos_dropout_rate = (
+        input_pos_dropout_rate[0][0] if input_pos_dropout_rate else 0.0
+    )
+
+    cmp_io = []
+    for i in range(len(all_blocks)):
+        if "type" in all_blocks[i]:
+            layer_type = all_blocks[i]["type"]
+        else:
+            raise ValueError("type is not defined in the " + str(i) + "th block.")
+
+        if layer_type == "transformer":
+            if not {"d_hidden", "d_ff", "heads"}.issubset(all_blocks[i]):
+                raise ValueError(
+                    "Block "
+                    + str(i)
+                    + ": Transformer layer format is: {'type: transformer', "
+                    "'d_hidden': int, 'd_ff': int, 'heads': int, [...]}"
+                )
+
+            cmp_io.append((all_blocks[i]["d_hidden"], all_blocks[i]["d_hidden"]))
+        elif layer_type == "causal-conv1d":
+            if not {"idim", "odim", "kernel_size"}.issubset(all_blocks[i]):
+                raise ValueError(
+                    "Block "
+                    + str(i)
+                    + ": CausalConv1d layer format is: {'type: causal-conv1d', "
+                    "'idim': int, 'odim': int, 'kernel_size': int}"
+                )
+
+            if i == 0:
+                input_layer = "c-embed"
+
+            cmp_io.append((all_blocks[i]["idim"], all_blocks[i]["odim"]))
+        elif layer_type == "tdnn":
+            if not {"idim", "odim", "ctx_size", "dilation", "stride"}.issubset(
+                all_blocks[i]
+            ):
+                raise ValueError(
+                    "Block " + str(i) + ": TDNN block format is: {'type: tdnn', "
+                    "'idim': int, 'odim': int, 'ctx_size': int, "
+                    "'dilation': int, 'stride': int, [...]}"
+                )
+
+            if i == 0:
+                input_layer = "t-linear"
+
+            cmp_io.append((all_blocks[i]["idim"], all_blocks[i]["odim"]))
+        else:
+            raise NotImplementedError(
+                "Wrong type for block " + str(i) + ". Currently supported: "
+                "tdnn, causal-conv1d or transformer"
+            )
+
+    for i in range(1, len(cmp_io)):
+        if cmp_io[(i - 1)][1] != cmp_io[i][0]:
+            raise ValueError(
+                "Output/Input mismatch between block " + str(i - 1) + " and " + str(i)
+            )
+
+    if all_blocks[-1]["type"] in ("tdnn", "causal-conv1d"):
+        out_dim = all_blocks[-1]["idim"]
+    else:
+        out_dim = all_blocks[-1]["d_hidden"]
+
+    return (
+        input_layer,
+        input_layer_odim,
+        input_dropout_rate,
+        input_pos_dropout_rate,
+        out_dim,
+    )
 
 
 def build_input_layer(
@@ -73,51 +184,34 @@ def build_input_layer(
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
 
 
-def build_transformer_layer(
-    transformer_layer_class,
-    block_arch,
-    pw_layer_type,
-    pw_conv_kernel_size,
-    pos_dropout_rate,
-    att_dropout_rate,
-    dropout_rate,
-):
+def build_transformer_layer(transformer_layer_class, block_arch, pw_layer_type):
     """Build function for Transformer layer.
 
     Args:
         transformer_layer_class (class): whether EncoderLayer or DecoderLayer
         block_arch (dict): layer main arguments
-        pos_layer_type (str): positionwise layer type
-        pos_conv_kernel_size (int) : kernel size for positionwise conv1d layer
-        pos_dropout_rate (float): dropout rate for positional encoding
-        att_dropout_rate (float): dropout rate for attention
-        dropout_rate (float): dropout rate
 
     Returns:
         (function): function to create Transformer layer
 
     """
-    if {"d_hidden", "d_ff", "heads"} > block_arch.keys():
-        raise ValueError(
-            "Transformer layer format is: {'type: transformer', "
-            "'d_hidden': int, 'd_ff': int, 'heads': int}"
-        )
-
     d_hidden = block_arch["d_hidden"]
     d_ff = block_arch["d_ff"]
     heads = block_arch["heads"]
 
+    dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
+    pos_dropout_rate = (
+        block_arch["pos-dropout-rate"] if "pos-dropout-rate" in block_arch else 0.0
+    )
+    att_dropout_rate = (
+        block_arch["att-dropout-rate"] if "att-dropout-rate" in block_arch else 0.0
+    )
+
     if pw_layer_type == "linear":
         pw_layer = PositionwiseFeedForward
-        pw_layer_args = (d_hidden, d_ff, dropout_rate)
-    elif pw_layer_type == "conv1d":
-        pw_layer = MultiLayeredConv1d
-        pw_layer_args = (d_hidden, d_ff, pw_conv_kernel_size, dropout_rate)
-    elif pw_layer_type == "conv1d-linear":
-        pw_layer = Conv1dLinear
-        pw_layer_args = (d_hidden, d_ff, pw_conv_kernel_size, dropout_rate)
+        pw_layer_args = (d_hidden, d_ff, pos_dropout_rate)
     else:
-        raise NotImplementedError("Support only linear or conv1d.")
+        raise NotImplementedError("Support only linear.")
 
     return lambda: transformer_layer_class(
         d_hidden,
@@ -137,12 +231,6 @@ def build_causal_conv1d_layer(block_arch):
         (function): function to create CausalConv1d layer
 
     """
-    if {"idim", "odim", "kernel_size"} > block_arch.keys():
-        raise ValueError(
-            "CausalConv1d layer format is: {'type: causal-conv1d', "
-            "'idim': int, 'odim': int, 'kernel_size': int}"
-        )
-
     idim = block_arch["idim"]
     odim = block_arch["odim"]
     kernel_size = block_arch["kernel_size"]
@@ -160,20 +248,22 @@ def build_tdnn_layer(block_arch):
         (function): function to create TDNN layer
 
     """
-    if {"idim", "odim", "ctx_size", "dilation", "stride"} > block_arch.keys():
-        raise ValueError(
-            "TDNN block format is: {'type: tdnn', "
-            "'idim': int, 'odim': int, 'ctx_size': int, "
-            "'dilation': int, 'stride': int}"
-        )
-
     idim = block_arch["idim"]
     odim = block_arch["odim"]
     ctx_size = block_arch["ctx_size"]
     dilation = block_arch["dilation"]
     stride = block_arch["stride"]
 
-    return lambda: TDNN(idim, odim, ctx_size, dilation, stride)
+    dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
+
+    return lambda: TDNN(
+        idim,
+        odim,
+        ctx_size=ctx_size,
+        dilation=dilation,
+        stride=stride,
+        dropout_rate=dropout_rate,
+    )
 
 
 def build_blocks(
@@ -184,11 +274,7 @@ def build_blocks(
     repeat_block=0,
     pos_enc_class=PositionalEncoding,
     positionwise_layer_type="linear",
-    positionwise_conv_kernel_size=1,
     dropout_rate_embed=0.0,
-    dropout_rate=0.0,
-    positional_dropout_rate=0.0,
-    att_dropout_rate=0.0,
     padding_idx=-1,
 ):
     """Build block for transformer-based models.
@@ -199,13 +285,9 @@ def build_blocks(
         block_arch (list[dict]): list of layer definitions in block
         transformer_layer_class (class): whether EncoderLayer or DecoderLayer
         repeat_block (int): if N > 1, repeat block N times
-        pos_enc_class (class): PositionalEncoding or ScaledPositionalEncoding
-        positionwise_layer_type (str): linear of conv1d
-        positionwise_conv_kernel_size (int) : kernel size of positionwise conv1d layer
-        dropout_rate_embed (float): dropout rate
-        dropout_rate (float): dropout rate
-        positional_dropout_rate (float): dropout rate for positional encoding
-        att_dropout_rate (float): dropout rate for attention
+        pos_enc_class (class): PositionalEncoding
+        positionwise_layer_type (str): linear
+        dropout_rate_embed (float): dropout rate for embedding
         padding_idx (int): padding index for embedding
 
     Returns:
@@ -216,47 +298,13 @@ def build_blocks(
     """
     fn_modules = []
 
-    for i in range(len(block_arch)):
-        if "type" in block_arch[i]:
-            layer_type = block_arch[i]["type"]
-        else:
-            raise ValueError("type is not defined in following block: ", block_arch[i])
-
-        if layer_type == "tdnn":
-            if i == 0:
-                input_layer = "t-linear"
-
-            module = build_tdnn_layer(block_arch[i])
-        elif layer_type == "transformer":
-            module = build_transformer_layer(
-                transformer_layer_class,
-                block_arch[i],
-                positionwise_layer_type,
-                positionwise_conv_kernel_size,
-                positional_dropout_rate,
-                att_dropout_rate,
-                dropout_rate,
-            )
-        elif layer_type == "causal-conv1d":
-            if i == 0:
-                input_layer = "c-embed"
-
-            module = build_causal_conv1d_layer(block_arch[i])
-        else:
-            raise NotImplementedError(
-                "Transformer layer type currently supported: "
-                "tdnn, causal-conv1d or transformer"
-            )
-
-        fn_modules.append(module)
-
-    if repeat_block > 1:
-        fn_modules = fn_modules * repeat_block
-
-    if block_arch[0]["type"] in ("tdnn", "causal-conv1d"):
-        input_layer_odim = block_arch[0]["idim"]
-    else:
-        input_layer_odim = block_arch[0]["d_hidden"]
+    (
+        input_layer,
+        input_layer_odim,
+        input_dropout_rate,
+        input_pos_dropout_rate,
+        out_dim,
+    ) = check_and_prepare(block_arch, input_layer)
 
     in_layer = build_input_layer(
         input_layer,
@@ -264,14 +312,26 @@ def build_blocks(
         input_layer_odim,
         pos_enc_class,
         dropout_rate_embed,
-        dropout_rate,
-        positional_dropout_rate,
+        input_dropout_rate,
+        input_pos_dropout_rate,
         padding_idx,
     )
 
-    if block_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
-        out_dim = block_arch[-1]["idim"]
-    else:
-        out_dim = block_arch[-1]["d_hidden"]
+    for i in range(len(block_arch)):
+        layer_type = block_arch[i]["type"]
+
+        if layer_type == "tdnn":
+            module = build_tdnn_layer(block_arch[i])
+        elif layer_type == "transformer":
+            module = build_transformer_layer(
+                transformer_layer_class, block_arch[i], positionwise_layer_type,
+            )
+        elif layer_type == "causal-conv1d":
+            module = build_causal_conv1d_layer(block_arch[i])
+
+        fn_modules.append(module)
+
+    if repeat_block > 1:
+        fn_modules = fn_modules * repeat_block
 
     return in_layer, MultiSequential(*[fn() for fn in fn_modules]), out_dim

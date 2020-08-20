@@ -19,14 +19,9 @@ class Encoder(torch.nn.Module):
         enc_arch (List[dict]): list of layer definitions
         input_layer (str): input layer type
         repeat_block (int): if N > 1, repeat block N times
-        pos_enc_class (class): PositionalEncoding or ScaledPositionalEncoding
-        positionwise_layer_type (str): linear of conv1d
-        positionwise_conv_kernel_size (int) : kernel size of positionwise conv1d layer
-        dropout_rate (float): dropout rate
-        attention_dropout_rate (float): dropout rate in attention
-        positional_dropout_rate (float): dropout rate after adding positional encoding
+        pos_enc_class (class): PositionalEncoding
+        positionwise_layer_type (str): linear
         normalize_before (bool): whether to use layer_norm before the first block
-        concat_after (bool): whether to concat attention layer's input and output
         padding_idx (int): padding_idx for input_layer=embed
 
     """
@@ -39,12 +34,7 @@ class Encoder(torch.nn.Module):
         repeat_block=0,
         pos_enc_class=PositionalEncoding,
         positionwise_layer_type="linear",
-        positionwise_conv_kernel_size=1,
-        dropout_rate=0.1,
-        positional_dropout_rate=0.0,
-        attention_dropout_rate=0.0,
         normalize_before=True,
-        concat_after=False,
         padding_idx=-1,
     ):
         """Construct an Encoder object."""
@@ -58,10 +48,6 @@ class Encoder(torch.nn.Module):
             repeat_block=repeat_block,
             pos_enc_class=pos_enc_class,
             positionwise_layer_type=positionwise_layer_type,
-            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
-            dropout_rate=dropout_rate,
-            positional_dropout_rate=positional_dropout_rate,
-            att_dropout_rate=attention_dropout_rate,
             padding_idx=padding_idx,
         )
 

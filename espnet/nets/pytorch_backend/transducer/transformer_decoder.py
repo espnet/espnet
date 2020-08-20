@@ -26,17 +26,12 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         odim (int): dimension of outputs
         edim (int): dimension of encoder outputs
         jdim (int): dimension of joint-space
-        dec_arch (List[dict]): list of layer definitions
+        dec_arch (list): list of layer definitions
         input_layer (str): input layer type
         repeat_block (int): if N > 1, repeat block N times
-        pos_enc_class (class): PositionalEncoding or ScaledPositionalEncoding
-        positionwise_layer_type (str): linear of conv1d
-        positionwise_conv_kernel_size (int) : kernel size of positionwise conv1d layer
+        pos_enc_class (class): PositionalEncoding
+        positionwise_layer_type (str): linear
         dropout_rate_embed (float): dropout rate for embedding layer
-        dropout_rate (float): dropout rate
-        attention_dropout_rate (float): dropout rate in attention
-        positional_dropout_rate (float): dropout rate after adding positional encoding
-        use_glu (bool): wheter to use GLU in joint network
         normalize_before (bool): whether to use layer_norm before the first block
         blank (int): blank symbol ID
 
@@ -52,11 +47,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         repeat_block=0,
         pos_enc_class=PositionalEncoding,
         positionwise_layer_type="linear",
-        positionwise_conv_kernel_size=1,
         dropout_rate_embed=0.0,
-        dropout_rate=0.0,
-        positional_dropout_rate=0.0,
-        attention_dropout_rate=0.0,
         normalize_before=True,
         blank=0,
     ):
@@ -71,11 +62,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             repeat_block=repeat_block,
             pos_enc_class=pos_enc_class,
             positionwise_layer_type=positionwise_layer_type,
-            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
             dropout_rate_embed=dropout_rate_embed,
-            dropout_rate=dropout_rate,
-            positional_dropout_rate=positional_dropout_rate,
-            att_dropout_rate=attention_dropout_rate,
             padding_idx=blank,
         )
 

@@ -140,12 +140,6 @@ class E2E(ASRInterface, torch.nn.Module):
             choices=["conv2d", "vgg2l", "linear", "embed"],
             help="transformer encoder input layer type",
         )
-        group.add_argument(
-            "--transformer-attn-dropout-rate-encoder",
-            default=0.0,
-            type=float,
-            help="dropout in transformer decoder attention.",
-        )
         # Attention - RNN
         group.add_argument(
             "--adim",
@@ -250,12 +244,6 @@ class E2E(ASRInterface, torch.nn.Module):
             choices=["linear", "embed"],
             help="transformer decoder input layer type",
         )
-        group.add_argument(
-            "--transformer-attn-dropout-rate-decoder",
-            default=0.0,
-            type=float,
-            help="dropout in transformer decoder attention.",
-        )
         # Transformer
         group.add_argument(
             "--transformer-warmup-steps",
@@ -349,9 +337,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 args.enc_block_arch,
                 input_layer=args.transformer_enc_input_layer,
                 repeat_block=args.enc_block_repeat,
-                dropout_rate=args.dropout_rate,
-                positional_dropout_rate=args.dropout_rate,
-                attention_dropout_rate=args.transformer_attn_dropout_rate_encoder,
             )
 
             encoder_out = self.encoder.enc_out
@@ -381,9 +366,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 input_layer=args.transformer_dec_input_layer,
                 repeat_block=args.dec_block_repeat,
                 dropout_rate_embed=args.dropout_rate_embed_decoder,
-                dropout_rate=args.dropout_rate_decoder,
-                positional_dropout_rate=args.dropout_rate_decoder,
-                attention_dropout_rate=args.transformer_attn_dropout_rate_decoder,
             )
 
             if "transformer" in args.etype:
