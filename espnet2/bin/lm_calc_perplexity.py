@@ -70,7 +70,7 @@ def calc_perplexity(
         key_file=key_file,
         num_workers=num_workers,
         preprocess_fn=LMTask.build_preprocess_fn(train_args, False),
-        collate_fn=LMTask.build_collate_fn(train_args),
+        collate_fn=LMTask.build_collate_fn(train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )

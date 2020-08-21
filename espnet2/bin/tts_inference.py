@@ -250,7 +250,7 @@ def inference(
         key_file=key_file,
         num_workers=num_workers,
         preprocess_fn=TTSTask.build_preprocess_fn(text2speech.train_args, False),
-        collate_fn=TTSTask.build_collate_fn(text2speech.train_args),
+        collate_fn=TTSTask.build_collate_fn(text2speech.train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
