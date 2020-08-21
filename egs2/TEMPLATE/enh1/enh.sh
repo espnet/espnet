@@ -65,7 +65,7 @@ use_noise_ref=false
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
-inference_model=valid.si_snr.best.pth
+inference_model=valid.si_snr.ave.pth
 
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR"
