@@ -19,7 +19,7 @@ stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
-verbose=1      # verbose option
+verbose=2      # verbose option
 
 # feature configuration
 do_delta=false

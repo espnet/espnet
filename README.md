@@ -445,9 +445,9 @@ You can download converted samples of the cascade ASR+TTS baseline system [here]
 <details><summary>expand</summary><div>
 
 [CTC segmentation](https://arxiv.org/abs/2007.09127) determines utterance segments within audio files.
-Audio files labeled with utterance segments can then be combined into a training corpus for ASR models.
+Aligned utterance segments constitute the "labels" of speech datasets.
 
-As demo, we align start and end of utterances within the audio file `ctc_align_test.wav` and the example script `utils/ctc_align_wav.sh`.
+As demo, we align start and end of utterances within the audio file `ctc_align_test.wav`, using the example script `utils/ctc_align_wav.sh`.
 For preparation, set up a data directory:
 
 ```sh
@@ -476,32 +476,25 @@ Choose a pre-trained ASR model that includes a CTC layer to find utterance segme
 ```sh
 # pre-trained ASR model
 model=wsj.transformer_small.v1
-cp ../../wsj/asr1/conf/no_preprocess.yaml ./conf
-# if the model uses subsampling, adapt this factor accordingly
-subsampling_factor=1
-# estimated length of frames per utterance
-min_window_size=500
+mkdir ./conf && cp ../../wsj/asr1/conf/no_preprocess.yaml ./conf
 
 ../../../utils/asr_align_wav.sh \
     --models ${model} \
-    --verbose 2  \
     --align_dir ${align_dir} \
-    --subsampling_factor ${subsampling_factor} \
-    --min-window-size ${min_window_size} \
     --align_config ${align_dir}/align.yaml \
     ${wav} ${align_dir}/utt_text
 ```
 
 Segments are written to `aligned_segments` as a list of file/utterance name, utterance start and end times in seconds and a confidence score.
-The confidence score is a probability in log space and indicates how good the utterance was aligned. If needed, remove bad utterances:
+The confidence score is a probability in log space that indicates how good the utterance was aligned. If needed, remove bad utterances:
 
 ```sh
 min_confidence_score=-5
 awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${align_dir}/aligned_segments
 ```
 
-The sampling rate must be consistent with that of the data used in training.
 The demo script `utils/ctc_align_wav.sh` uses an already pretrained ASR model (see list above for more models).
+The sample rate of the audio must be consistent with that of the data used in training; adjust with `sox` if needed.
 A full example recipe is in `egs/tedlium2/align1/`.
 
 </div></details>
