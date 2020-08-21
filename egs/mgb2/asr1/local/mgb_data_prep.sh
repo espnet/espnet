@@ -4,7 +4,7 @@
 # (Amir Hussein)
 
 if [ $# -ne 3 ]; then
-  echo "Usage: $0 <DB-dir> <process-xml>"
+  echo "Usage: $0 <DB-dir> <process-xml> <data-subset> <mer>"
   exit 1;
 fi
 
