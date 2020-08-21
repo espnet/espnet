@@ -17,7 +17,8 @@ setup() {
     echo "batchsize: 0" > ${tmpdir}/align.yaml
 
     model=wsj.transformer_small.v1
-    blank="<blank>"
+    # if the model uses subsampling, adapt this factor accordingly
+    subsampling_factor=1
     echo "${base} THE SALE OF THE HOTELS" > ${tmpdir}/utt_text
     echo "${base} IS PART OF HOLIDAY'S STRATEGY" >> ${tmpdir}/utt_text
     echo "${base} TO SELL OFF ASSETS" >> ${tmpdir}/utt_text
@@ -30,7 +31,7 @@ setup() {
         --models ${model} \
         --verbose 2  \
         --align_dir ${tmpdir} \
-        --subsampling_factor 4 \
+        --subsampling_factor ${subsampling_factor} \
         --min-window-size 100 \
         --align_config ${tmpdir}/align.yaml \
         ${wav} ${tmpdir}/utt_text
