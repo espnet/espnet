@@ -153,20 +153,26 @@ def get_parser():
         Can be either: default beam search, n-step constrained beam search ("nsc"),
         time-synchronous decoding ("tsd") or alignment-length synchronous decoding
         ("alsd").
-        Additional associated parameters: "nstep" (for nsc and tsd), "prefix-alpha"
-        (for nsc) and "u-max" (for alsd)""",
+        Additional associated parameters: "nstep" + "prefix-alpha" (for nsc),
+        "max-sym-exp" (for tsd) and "u-max" (for alsd)""",
     )
     parser.add_argument(
         "--nstep",
         type=int,
         default=1,
-        help="Number of expansions allowed in NSC beam search or TSD.",
+        help="Number of expansion steps allowed in NSC beam search.",
     )
     parser.add_argument(
         "--prefix-alpha",
         type=int,
         default=2,
         help="Length prefix difference allowed in NSC beam search.",
+    )
+    parser.add_argument(
+        "--max-sym-exp",
+        type=int,
+        default=2,
+        help="Number of symbol expansions allowed in TSD decoding.",
     )
     parser.add_argument(
         "--u-max",

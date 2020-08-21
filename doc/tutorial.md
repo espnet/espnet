@@ -267,7 +267,7 @@ All algorithms share common parameters to control batch size (`batch`) and beam 
 
         # Time-synchronous decoding
         search-type: tsd
-        nstep: number of maximum expansions at each time step
+        max-sym-exp: number of maximum symbol expansions at each time step
 
         # Alignement-length decoding
         search-type: alsd
@@ -275,7 +275,8 @@ All algorithms share common parameters to control batch size (`batch`) and beam 
 
         # N-step Constrained beam search
         search-type: nsc
-        nstep: number of maximum expansions at each time step
+        nstep: number of maximum expansion steps at each time step
+               (N exp. step = N symbol expansion + 1)
         prefix-alpha: maximum prefix length in prefix search
 
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.

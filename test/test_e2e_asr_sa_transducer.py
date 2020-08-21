@@ -55,6 +55,7 @@ def make_recog_args(**kwargs):
         verbose=2,
         search_type="default",
         nstep=1,
+        max_sym_exp=2,
         u_max=30,
         prefix_alpha=2,
         score_norm_transducer=True,
@@ -231,7 +232,10 @@ def test_sa_transducer_mask(module):
             {"beam_size": 2, "search_type": "nsc", "nstep": 3, "prefix_alpha": 1},
         ),
         ({"dec_repeat_block": 2}, {"beam_size": 2, "search_type": "tsd"}),
-        ({"enc_repeat_block": 2}, {"beam_size": 2, "search_type": "tsd", "nstep": 3}),
+        (
+            {"enc_repeat_block": 2},
+            {"beam_size": 2, "search_type": "tsd", "max-sym-exp": 3},
+        ),
         ({"dec_repeat_block": 2}, {"beam_size": 2, "search_type": "alsd"}),
         ({"enc_repeat_block": 2}, {"beam_size": 2, "search_type": "alsd", "u_max": 30}),
         (

@@ -170,7 +170,7 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
     """
     beam = min(recog_args.beam_size, decoder.odim)
 
-    max_sym_exp = recog_args.nstep
+    max_sym_exp = recog_args.max_sym_exp
     nbest = recog_args.nbest
 
     init_tensor = h.unsqueeze(0)
