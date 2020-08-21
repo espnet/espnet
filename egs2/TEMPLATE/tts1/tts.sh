@@ -986,7 +986,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 EOF
 
         # NOTE(kamo): The model file is uploaded here, but not published yet.
-        #   Please confirm your record at Zenodo and publish by youself.
+        #   Please confirm your record at Zenodo and publish by yourself.
 
         # shellcheck disable=SC2086
         espnet_model_zoo_upload \
