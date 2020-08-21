@@ -56,7 +56,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **Transducer** based end-to-end ASR
   - Available: RNN-based encoder/decoder and Transformer-based encoder/decoder w/ customizable architecture.
   - Also support: mixed RNN/Transformer architecture, attention mechanism (RNN decoder), VGG2L (RNN/Transformer encoder), TDNN (Transformer encoder), Causal Conv1d (Transformer decoder) and various decoding algorithms.
-  > Please refer to the [documentation](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
+  > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC forced alignment
 
 ### TTS: Text-to-speech

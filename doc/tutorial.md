@@ -193,8 +193,8 @@ The architecture specification is separated for the encoder and decoder parts, a
 While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a transformer-based architecture definition for transducer is customizable:
 1) Each block (or layer) should be specified individually through `enc-block-arch` or/and `dec-block-arch`
 
-        e.g: TDNN-Transformer encoder
-        ```
+
+        # e.g: TDNN-Transformer encoder
         etype: transformer
         enc-block-arch:
                 - type: tdnn
@@ -207,11 +207,10 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
                   d_hidden: 320
                   d_ff: 320
                   heads: 4
-        ```
+
 2) Each part has different allowed block type: `tdnn` or `transformer` for encoder and `causal-conv1d` or `transformer` for decoder. For each block type, a set of parameters are needed:
 
-        e.g: TDNN
-        ```
+        # TDNN
         - type: tdnn
           idim: input dimension
           odim: output dimension
@@ -219,30 +218,25 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
           dilation: parameter to control the stride of elements within the neighborhood
           stride: stride of the sliding blocks
           [optional: dropout-rate]
-        ```
 
-        e.g: Transformer
-        ```
+        # Transformer
         - type: transformer
           d_hidden: input/output dimension
           d_ff: feed-forward hidden dimension
           heads: number of heads in multi-head attention
           [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
-        ```
 
-        e.g: Causal Conv1D
-        ```
+        # Causal Conv1d
         - type: causal-conv1d
           idim: input dimension
           odim: output dimension
           kernel_size: size of convolving kernel
           stride: stride of the convolution
           dilation: spacing between the kernel points
-        ```
+
 3) Each architecture definition can be repeated by specifying the number of duplications with `enc-block-repeat` or `dec-block-repeat`
 
-        e.g: 2x (Causal-Conv1d + Transformer) decoder
-        ```
+        # e.g.: 2x (Causal-Conv1d + Transformer) decoder
         dtype: transformer
         dec-block-arch:
                 - type: causal-conv1d
@@ -256,7 +250,6 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
                   dropout-rate: 0.1
                   att-dropout-rate: 0.4
         dec-block-repeat: 2
-        ```
 
 For more information about the customizable architecture, please refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer) which cover all cases.
 
@@ -268,30 +261,22 @@ Various decoding algorithms are also available for transducer by setting `search
 
 All algorithms share common parameters to control batch size (`batch`) and beam size (`beam-size`) but each ones have its own parameters:
 
-        e.g: Default beam search
-        ```
+        # Default beam search
         search-type: default
         score-norm-transducer: normalize final scores by length
-        ```
 
-        e.g: Time-synchronous decoding
-        ```
+        # Time-synchronous decoding
         search-type: tsd
         nstep: number of maximum expansions at each time step
-        ```
 
-        e.g: Alignement-length decoding
-        ```
+        # Alignement-length decoding
         search-type: alsd
         u-max: maximum output sequence length
-        ```
 
-        e.g: N-step Constrained beam search
-        ```
+        # N-step Constrained beam search
         search-type: nsc
         nstep: number of maximum expansions at each time step
         prefix-alpha: maximum prefix length in prefix search
-        ```
 
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
 
