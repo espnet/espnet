@@ -39,8 +39,6 @@ def test_ESPnetDataset_sound_scp(sound_scp):
     )
     print(dataset)
     print(dataset.names())
-    assert len(dataset) == 2
-    assert dataset.has_name("data1")
 
     _, data = dataset["a"]
     assert data["data1"].shape == (160000,)
