@@ -81,11 +81,11 @@ inference_config="" # Config for decoding.
 inference_args=""   # Arguments for decoding, e.g., "--threshold 0.75".
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
-inference_model=train.loss.best.pth # Model path for decoding e.g.,
-                                    # inference_model=train.loss.best.pth
-                                    # inference_model=3epoch.pth
-                                    # inference_model=valid.acc.best.pth
-                                    # inference_model=valid.loss.ave.pth
+inference_model=train.loss.ave.pth # Model path for decoding e.g.,
+                                   # inference_model=train.loss.best.pth
+                                   # inference_model=3epoch.pth
+                                   # inference_model=valid.acc.best.pth
+                                   # inference_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
 download_model=""   # Download a model from Model Zoo and use it for decoding
 
