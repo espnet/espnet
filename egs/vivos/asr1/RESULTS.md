@@ -228,6 +228,7 @@
 |decode_test_decode_default_lm_word7184|760|32771|85.3|9.3|5.4|4.2|19.0|100.0|
 |decode_test_decode_nsc|760|32771|86.0|10.0|4.1|4.7|18.8|100.0|
 |decode_test_decode_nsc_lm|760|32771|86.3|9.5|4.2|4.7|18.3|100.0|
+|decode_test_decode_nsc_lm_word7184|760|32771|86.4|9.4|4.2|4.6|18.2|100.0|
 |decode_test_decode_tsd|760|32771|85.8|9.8|4.4|4.5|18.8|100.0|
 |decode_test_decode_tsd_lm|760|32771|86.0|9.3|4.7|4.4|18.4|100.0|
 |decode_test_decode_tsd_lm_word7184|760|32771|86.3|9.0|4.8|4.2|18.0|100.0|
@@ -239,6 +240,7 @@
 |decode_train_dev_decode_default_lm_word7184|100|4007|87.8|9.6|2.6|4.5|16.7|100.0|
 |decode_train_dev_decode_nsc|100|4007|87.8|10.0|2.2|4.6|16.8|100.0|
 |decode_train_dev_decode_nsc_lm|100|4007|88.0|9.9|2.1|4.8|16.8|100.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|4007|88.3|9.5|2.2|4.7|16.4|100.0|
 |decode_train_dev_decode_tsd|100|4007|87.7|10.0|2.3|4.8|17.0|100.0|
 |decode_train_dev_decode_tsd_lm|100|4007|88.1|9.5|2.4|4.5|16.4|100.0|
 |decode_train_dev_decode_tsd_lm_word7184|100|4007|88.4|9.2|2.4|4.4|16.0|100.0|
@@ -255,6 +257,7 @@
 |decode_test_decode_default_lm_word7184|760|7722|66.6|30.7|2.6|0.3|33.7|88.6|
 |decode_test_decode_nsc|760|7722|65.0|33.7|1.2|0.5|35.5|91.7|
 |decode_test_decode_nsc_lm|760|7722|66.2|32.3|1.5|0.4|34.3|90.9|
+|decode_test_decode_nsc_lm_word7184|760|7722|66.9|31.6|1.5|0.5|33.6|90.1|
 |decode_test_decode_tsd|760|7722|65.4|33.1|1.5|0.5|35.1|91.4|
 |decode_test_decode_tsd_lm|760|7722|66.7|31.5|1.9|0.4|33.7|89.9|
 |decode_test_decode_tsd_lm_word7184|760|7722|67.9|30.1|2.0|0.4|32.4|88.4|
@@ -266,6 +269,7 @@
 |decode_train_dev_decode_default_lm_word7184|100|927|69.4|30.2|0.4|0.5|31.2|91.0|
 |decode_train_dev_decode_nsc|100|927|67.4|32.6|0.0|0.3|32.9|96.0|
 |decode_train_dev_decode_nsc_lm|100|927|67.6|32.4|0.0|0.4|32.8|94.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|927|69.3|30.6|0.1|0.4|31.2|93.0|
 |decode_train_dev_decode_tsd|100|927|67.5|32.5|0.0|0.3|32.8|94.0|
 |decode_train_dev_decode_tsd_lm|100|927|68.9|30.9|0.2|0.3|31.4|93.0|
 |decode_train_dev_decode_tsd_lm_word7184|100|927|70.1|29.7|0.2|0.3|30.2|91.0|
