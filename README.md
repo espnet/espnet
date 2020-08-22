@@ -7,7 +7,7 @@
 |ubuntu18/python3.8/pip|||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
 |ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
 |ubuntu18/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|ubuntu16/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|ubuntu20/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
 |debian9/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
 |centos7/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
 |[docs/coverage] python3.8|||||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
@@ -63,7 +63,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - FastSpeech
 - FastSpeech2 (in ESPnet2)
 - Multi-speaker model with pretrained speaker embedding
-- Multi-speaker model with GST (in ESPnet2) 
+- Multi-speaker model with GST (in ESPnet2)
 - Phoneme-based training (En, Jp, and Zn)
 - Integration with neural vocoders (WaveNet, ParallelWaveGAN, and MelGAN)
 
@@ -75,9 +75,9 @@ To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
 - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
 
-> **NOTE**: 
-> - We are moving on ESPnet2-based development for TTS.  
-> - If you are beginner, we recommend using [ESPnet2-TTS](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1). 
+> **NOTE**:
+> - We are moving on ESPnet2-based development for TTS.
+> - If you are beginner, we recommend using [ESPnet2-TTS](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1).
 
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
@@ -342,7 +342,7 @@ If you want to use the above pretrained vocoders, please exactly match the featu
 
 <details><summary>expand</summary><div>
 
-We made a new real-time E2E-TTS demonstration in Google Colab.  
+We made a new real-time E2E-TTS demonstration in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
