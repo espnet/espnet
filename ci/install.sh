@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-$CXX -v
+${CXX:-g++} -v
 
 (
     set -euo pipefail
