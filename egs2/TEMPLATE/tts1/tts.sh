@@ -933,11 +933,19 @@ if ! "${skip_upload}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
 
+        _opts=""
+        if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
+            _opts+=" --option ${tts_stats_dir}/train/pitch_stats.npz"
+        fi
+        if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
+            _opts+=" --option ${tts_stats_dir}/train/energy_stats.npz"
+        fi
         ${python} -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
             --model_file "${tts_exp}"/"${inference_model}" \
             --option ${tts_stats_dir}/train/feats_stats.npz  \
-            --outpath "${packed_model}"
+            --outpath "${packed_model}" \
+            ${_opts}
 
         # NOTE(kamo): If you'll use packed model to inference in this script, do as follows
         #   % unzip ${packed_model}
