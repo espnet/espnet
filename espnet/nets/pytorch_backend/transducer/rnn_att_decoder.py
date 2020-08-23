@@ -79,12 +79,12 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         """Initialize decoder states.
 
         Args:
-            ey (torch.Tensor): batch of input features
+            init_tensor (torch.Tensor): batch of input features
                 (B, (emb_dim + eprojs) / dec_dim)
 
         Return:
-            (tuple): batch of decoder states
-                ([L x (B, dec_dim)], [L x (B, dec_dim)])
+            (tuple): batch of decoder and attention states
+                ([L x (B, dec_dim)], [L x (B, dec_dim)], None)
 
         """
         z_list = [
@@ -96,7 +96,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             for _ in range(self.dlayers)
         ]
 
-        return (z_list, c_list)
+        return ((z_list, c_list), None)
 
     def rnn_forward(self, ey, state):
         """RNN forward.
@@ -112,11 +112,11 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         """
         if state is None:
-            z_prev, c_prev = self.init_state(ey)
+            (z_prev, c_prev), _ = self.init_state(ey)
         else:
             z_prev, c_prev = state
 
-        z_list, c_list = self.init_state(ey)
+        (z_list, c_list), _ = self.init_state(ey)
 
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
@@ -168,10 +168,9 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         hlens = list(map(int, hlens))
 
-        att_w = None
         self.att[0].reset()
 
-        state = self.init_state(hs_pad)
+        state, att_w = self.init_state(hs_pad)
         eys = self.dropout_emb(self.embed(ys_in_pad))
 
         z_all = []
@@ -210,28 +209,29 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         """
         vy = to_device(self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long))
-        lm_tokens = vy[0]
 
         str_yseq = "".join([str(x) for x in hyp["yseq"]])
 
         if str_yseq in cache:
-            y, (state, att_w) = cache[str_yseq]
+            y, state = cache[str_yseq]
         else:
             ey = self.embed(vy)
 
             att_c, att_w = self.att[0](
                 init_tensor,
                 [init_tensor.size(1)],
-                hyp["dec_state"][0][0],
-                hyp["att_state"],
+                hyp["dec_state"][0][0][0],
+                hyp["dec_state"][1],
             )
 
             ey = torch.cat((ey[0], att_c), dim=1)
 
-            y, state = self.rnn_forward(ey, hyp["dec_state"])
-            cache[str_yseq] = (y, (state, att_w))
+            y, dec_state = self.rnn_forward(ey, hyp["dec_state"][0])
+            state = (dec_state, att_w)
 
-        return y, (state, att_w), lm_tokens
+            cache[str_yseq] = (y, state)
+
+        return y, state, vy[0]
 
     def batch_score(self, hyps, batch_states, cache, init_tensor):
         """Forward batch one step.
@@ -254,28 +254,24 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         tokens = []
         process = []
-        _y = [None for _ in range(final_batch)]
-        _states = [(None, None) for _ in range(final_batch)]
+        done = [None for _ in range(final_batch)]
 
         for i, hyp in enumerate(hyps):
             str_yseq = "".join([str(x) for x in hyp["yseq"]])
 
             if str_yseq in cache:
-                _y[i], _states[i] = cache[str_yseq]
+                done[i] = cache[str_yseq]
             else:
                 tokens.append(hyp["yseq"][-1])
-                process.append((str_yseq, (hyp["dec_state"], hyp["att_state"])))
+                process.append((str_yseq, hyp["dec_state"]))
 
         if process:
             batch = len(tokens)
 
             tokens = to_device(self, torch.LongTensor(tokens).view(batch))
-            dec_state = self.init_state(torch.zeros((batch, self.dunits)))
-            att_state = self.init_state(torch.zeros((batch, init_tensor.size(1))))
 
-            state = self.create_batch_states(
-                (dec_state, att_state), [p[1] for p in process]
-            )
+            state = self.init_state(init_tensor)
+            dec_state = self.create_batch_states(state, [p[1] for p in process])
 
             ey = self.embed(tokens)
 
@@ -291,19 +287,17 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         j = 0
 
         for i in range(final_batch):
-            if _y[i] is None:
-                _y[i] = y[j]
-
+            if done[i] is None:
                 new_state = self.select_state((dec_state, att_w), j)
-                _states[i] = new_state
 
-                cache[process[j][0]] = (_y[i], new_state)
+                done[i] = (y[j], new_state)
+                cache[process[j][0]] = (y[j], new_state)
 
                 j += 1
 
-        batch_states = self.create_batch_states(batch_states, [s for s in _states])
+        batch_states = self.create_batch_states(batch_states, [d[1] for d in done])
 
-        batch_y = torch.stack(_y)
+        batch_y = torch.stack([d[0] for d in done])
 
         lm_tokens = to_device(
             self, torch.LongTensor([h["yseq"][-1] for h in hyps]).view(final_batch)
@@ -351,13 +345,13 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             batch_states[0][0][layer] = torch.stack([s[0][0][layer] for s in l_states])
             batch_states[0][1][layer] = torch.stack([s[0][1][layer] for s in l_states])
 
-        att_state = (
+        att_states = (
             torch.stack([s[1] for s in l_states])
             if l_states[0][1] is not None
             else None
         )
 
-        return (batch_states[0], att_state)
+        return (batch_states[0], att_states)
 
     def calculate_all_attentions(self, hs_pad, hlens, ys_pad):
         """Calculate all of attentions.
@@ -385,12 +379,11 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         olength = ys_in_pad.size(1)
 
-        att_w = None
         att_ws = []
         self.att[0].reset()
 
         eys = self.embed(ys_in_pad)
-        state = self.init_state(eys)
+        state, att_w = self.init_state(eys)
 
         for i in range(olength):
             att_c, att_w = self.att[0](
