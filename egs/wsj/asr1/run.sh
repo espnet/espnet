@@ -156,6 +156,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --output-json-path ${feat_tr_dir}/data.json
 fi
 
+# It takes a few days. If you just want to end-to-end ASR without LM,
+# you can skip this by setting skip_lm_training=true
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_lm_training}; then
     echo "stage 3: LM Preparation"
 

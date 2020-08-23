@@ -42,3 +42,8 @@ transformer-init: pytorch
 # Report CER & WER
 report-cer: true
 report-wer: true
+
+### important configurations to specify in run.sh
+# preprocess_config=conf/specaug.yaml
+# use_valbest_average=true
+# n_average=50
