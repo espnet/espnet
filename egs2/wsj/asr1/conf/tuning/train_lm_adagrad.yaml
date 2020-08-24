@@ -1,9 +1,7 @@
 grad_clip: 5.0
 batch_type: folded
-batch_size: 30
-optim: adam
-optim_conf:
-    lr: 0.1
+batch_size: 40
+optim: adagrad
 lm: seq_rnn
 lm_conf:
     unit: 650
