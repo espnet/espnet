@@ -46,7 +46,7 @@ write a WER result in exp/train_trim_sp_pytorch_2_specaug/decode_test_model.val5
     - training config file: `./conf/train_pytorch_transformer_large_ngpu4.yaml`
     - decoding config file: `./conf/decode.yaml`
     - e2e JSON file: `./exp/train_trim_sp_pytorch_3_specaug/results/model.json`
-    - lm JSON file: `./exp/exp/train_lm_pytorch_lm_unigram5000_segmented_text/model.json`
+    - lm JSON file: `./exp/exp/train_lm_unigram5000_segmented_text/model.json`
 - Results 
 
 ```
