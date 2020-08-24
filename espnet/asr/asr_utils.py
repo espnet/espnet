@@ -112,7 +112,9 @@ class PlotAttentionReport(extension.Extension):
         oaxis=0,
     ):
         self.att_vis_fn = att_vis_fn
-        self.data = copy.deepcopy(data)
+        self.data = copy.deepcopy(data)[::-1]
+        # NOTE: inputs to the model is sorted in the descending order
+        # However, data is sorted in the ascending order
         self.outdir = outdir
         self.converter = converter
         self.transform = transform
@@ -188,25 +190,22 @@ class PlotAttentionReport(extension.Extension):
                     logger.add_figure(
                         "%s_att%d" % (self.data[idx][0], i + 1), plot.gcf(), step
                     )
-                    plot.clf()
             # han
             for idx, att_w in enumerate(att_ws[num_encs]):
                 att_w = self.get_attention_weight(idx, att_w)
                 plot = self.draw_han_plot(att_w)
                 logger.add_figure("%s_han" % (self.data[idx][0]), plot.gcf(), step)
-                plot.clf()
         else:
             for idx, att_w in enumerate(att_ws):
                 att_w = self.get_attention_weight(idx, att_w)
                 plot = self.draw_attention_plot(att_w)
                 logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
-                plot.clf()
 
     def get_attention_weights(self):
         """Return attention weights.
 
         Returns:
-            numpy.ndarray: attention weights.float. Its shape would be
+            numpy.ndarray: attention weights. float. Its shape would be
                 differ from backend.
                 * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax), 2)
                   other case => (B, Lmax, Tmax).
@@ -243,6 +242,7 @@ class PlotAttentionReport(extension.Extension):
         """
         import matplotlib.pyplot as plt
 
+        plt.clf()
         att_w = att_w.astype(np.float32)
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
@@ -266,6 +266,7 @@ class PlotAttentionReport(extension.Extension):
         """
         import matplotlib.pyplot as plt
 
+        plt.clf()
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
                 legends = []
@@ -298,6 +299,156 @@ class PlotAttentionReport(extension.Extension):
             plt = self.draw_han_plot(att_w)
         else:
             plt = self.draw_attention_plot(att_w)
+        plt.savefig(filename)
+        plt.close()
+
+
+class PlotCTCReport(extension.Extension):
+    """Plot CTC reporter.
+
+    Args:
+        ctc_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_ctc_probs):
+            Function of CTC visualization.
+        data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.
+        outdir (str): Directory to save figures.
+        converter (espnet.asr.*_backend.asr.CustomConverter): Function to convert data.
+        device (int | torch.device): Device.
+        reverse (bool): If True, input and output length are reversed.
+        ikey (str): Key to access input (for ASR ikey="input", for MT ikey="output".)
+        iaxis (int): Dimension to access input (for ASR iaxis=0, for MT iaxis=1.)
+        okey (str): Key to access output (for ASR okey="input", MT okay="output".)
+        oaxis (int): Dimension to access output (for ASR oaxis=0, for MT oaxis=0.)
+
+    """
+
+    def __init__(
+        self,
+        ctc_vis_fn,
+        data,
+        outdir,
+        converter,
+        transform,
+        device,
+        reverse=False,
+        ikey="input",
+        iaxis=0,
+        okey="output",
+        oaxis=0,
+    ):
+        self.ctc_vis_fn = ctc_vis_fn
+        self.data = copy.deepcopy(data)[::-1]
+        # NOTE: inputs to the model is sorted in the descending order
+        # However, data is sorted in the ascending order
+        self.outdir = outdir
+        self.converter = converter
+        self.transform = transform
+        self.device = device
+        self.reverse = reverse
+        self.ikey = ikey
+        self.iaxis = iaxis
+        self.okey = okey
+        self.oaxis = oaxis
+        if not os.path.exists(self.outdir):
+            os.makedirs(self.outdir)
+
+    def __call__(self, trainer):
+        """Plot and save image file of ctc prob."""
+        ctc_probs = self.get_ctc_probs()
+        if isinstance(ctc_probs, list):  # multi-encoder case
+            num_encs = len(ctc_probs) - 1
+            for i in range(num_encs):
+                for idx, ctc_prob in enumerate(ctc_probs[i]):
+                    filename = "%s/%s.ep.{.updater.epoch}.ctc%d.png" % (
+                        self.outdir,
+                        self.data[idx][0],
+                        i + 1,
+                    )
+                    np_filename = "%s/%s.ep.{.updater.epoch}.ctc%d.npy" % (
+                        self.outdir,
+                        self.data[idx][0],
+                        i + 1,
+                    )
+                    np.save(np_filename.format(trainer), ctc_prob)
+                    self._plot_and_save_ctc(ctc_prob, filename.format(trainer))
+        else:
+            for idx, ctc_prob in enumerate(ctc_probs):
+                filename = "%s/%s.ep.{.updater.epoch}.png" % (
+                    self.outdir,
+                    self.data[idx][0],
+                )
+                np_filename = "%s/%s.ep.{.updater.epoch}.npy" % (
+                    self.outdir,
+                    self.data[idx][0],
+                )
+                np.save(np_filename.format(trainer), ctc_prob)
+                self._plot_and_save_ctc(ctc_prob, filename.format(trainer))
+
+    def log_ctc_probs(self, logger, step):
+        """Add image files of ctc probs to the tensorboard."""
+        ctc_probs = self.get_ctc_probs()
+        if isinstance(ctc_probs, list):  # multi-encoder case
+            num_encs = len(ctc_probs) - 1
+            for i in range(num_encs):
+                for idx, ctc_prob in enumerate(ctc_probs[i]):
+                    plot = self.draw_ctc_plot(ctc_prob)
+                    logger.add_figure(
+                        "%s_att%d" % (self.data[idx][0], i + 1), plot.gcf(), step
+                    )
+        else:
+            for idx, ctc_prob in enumerate(ctc_probs):
+                plot = self.draw_ctc_plot(ctc_prob)
+                logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
+
+    def get_ctc_probs(self):
+        """Return CTC probs.
+
+        Returns:
+            numpy.ndarray: CTC probs. float. Its shape would be
+                differ from backend. (B, Tmax, vocab).
+
+        """
+        batch = self.converter([self.transform(self.data)], self.device)
+        if isinstance(batch, tuple):
+            probs = self.ctc_vis_fn(*batch)
+        else:
+            probs = self.ctc_vis_fn(**batch)
+        return probs
+
+    def draw_ctc_plot(self, ctc_prob):
+        """Plot the ctc_prob matrix.
+
+        Returns:
+            matplotlib.pyplot: pyplot object with CTC prob matrix image.
+
+        """
+        import matplotlib.pyplot as plt
+
+        ctc_prob = ctc_prob.astype(np.float32)
+
+        plt.clf()
+        topk_ids = np.argsort(ctc_prob, axis=1)
+        n_frames, vocab = ctc_prob.shape
+        times_probs = np.arange(n_frames)
+
+        plt.figure(figsize=(20, 8))
+
+        # NOTE: index 0 is reserved for blank
+        for idx in set(topk_ids.reshape(-1).tolist()):
+            if idx == 0:
+                plt.plot(
+                    times_probs, ctc_prob[:, 0], ":", label="<blank>", color="grey"
+                )
+            else:
+                plt.plot(times_probs, ctc_prob[:, idx])
+        plt.xlabel(u"Input [frame]", fontsize=12)
+        plt.ylabel("Posteriors", fontsize=12)
+        plt.xticks(list(range(0, int(n_frames) + 1, 10)))
+        plt.yticks(list(range(0, 2, 1)))
+        plt.tight_layout()
+        return plt
+
+    def _plot_and_save_ctc(self, ctc_prob, filename):
+        plt = self.draw_ctc_plot(ctc_prob)
         plt.savefig(filename)
         plt.close()
 

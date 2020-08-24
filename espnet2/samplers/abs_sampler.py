@@ -14,3 +14,6 @@ class AbsSampler(Sampler, ABC):
     @abstractmethod
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
         raise NotImplementedError
+
+    def generate(self, seed):
+        return list(self)

@@ -146,7 +146,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --preprocess-conf ${preprocess_config} \
         --data-json ${feat_tr_dir}/data.json \
         --mode-subsample "asr" \
-        --arch-subsample "rnn" \
         ${min_io_delta:+--min-io-delta $min_io_delta} \
         --output-json-path ${feat_tr_dir}/data.json
 fi
@@ -245,7 +244,8 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
                                --snapshots ${expdir}/results/snapshot.ep.* \

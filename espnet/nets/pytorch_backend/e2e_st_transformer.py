@@ -261,7 +261,7 @@ class E2E(STInterface, torch.nn.Module):
         )
         # submodule for ASR task
         self.mtlalpha = args.mtlalpha
-        self.asr_weight = getattr(args, "asr_weight", 0.0)
+        self.asr_weight = args.asr_weight
         if self.asr_weight > 0 and args.mtlalpha < 1:
             self.decoder_asr = Decoder(
                 odim=odim,
@@ -276,7 +276,7 @@ class E2E(STInterface, torch.nn.Module):
             )
 
         # submodule for MT task
-        self.mt_weight = getattr(args, "mt_weight", 0.0)
+        self.mt_weight = args.mt_weight
         if self.mt_weight > 0:
             self.encoder_mt = Encoder(
                 idim=odim,
@@ -320,7 +320,6 @@ class E2E(STInterface, torch.nn.Module):
 
     def reset_parameters(self, args):
         """Initialize parameters."""
-        # initialize parameters
         initialize(self, args.transformer_init)
         if self.mt_weight > 0:
             torch.nn.init.normal_(
@@ -335,7 +334,7 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor ilens: batch of lengths of source sequences (B)
         :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
         :param torch.Tensor ys_pad_src: batch of padded target sequences (B, Lmax)
-        :return: ctc loass value
+        :return: ctc loss value
         :rtype: torch.Tensor
         :return: attention loss value
         :rtype: torch.Tensor
@@ -362,8 +361,6 @@ class E2E(STInterface, torch.nn.Module):
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
 
         # 3. compute ST loss
-        loss_asr_att, loss_asr_ctc, loss_mt = 0.0, 0.0, 0.0
-        acc_asr, acc_mt = 0.0, 0.0
         loss_att = self.criterion(pred_pad, ys_out_pad)
 
         self.acc = th_accuracy(
@@ -378,73 +375,27 @@ class E2E(STInterface, torch.nn.Module):
             self.bleu = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         # 5. compute auxiliary ASR loss
-        cer, wer = None, None
-        cer_ctc = None
-        if self.asr_weight > 0:
-            # attention
-            if self.mtlalpha < 1:
-                ys_in_pad_asr, ys_out_pad_asr = add_sos_eos(
-                    ys_pad_src, self.sos, self.eos, self.ignore_id
-                )
-                ys_mask_asr = target_mask(ys_in_pad_asr, self.ignore_id)
-                pred_pad_asr, _ = self.decoder_asr(
-                    ys_in_pad_asr, ys_mask_asr, hs_pad, hs_mask
-                )
-                loss_asr_att = self.criterion(pred_pad_asr, ys_out_pad_asr)
-
-                acc_asr = th_accuracy(
-                    pred_pad_asr.view(-1, self.odim),
-                    ys_out_pad_asr,
-                    ignore_label=self.ignore_id,
-                )
-                if not self.training:
-                    ys_hat_asr = pred_pad_asr.argmax(dim=-1)
-                    cer, wer = self.error_calculator_asr(
-                        ys_hat_asr.cpu(), ys_pad_src.cpu()
-                    )
-
-            # CTC
-            if self.mtlalpha > 0:
-                batch_size = xs_pad.size(0)
-                hs_len = hs_mask.view(batch_size, -1).sum(1)
-                loss_asr_ctc = self.ctc(
-                    hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad_src
-                )
-                ys_hat_ctc = self.ctc.argmax(
-                    hs_pad.view(batch_size, -1, self.adim)
-                ).data
-                if not self.training:
-                    cer_ctc = self.error_calculator_asr(
-                        ys_hat_ctc.cpu(), ys_pad_src.cpu(), is_ctc=True
-                    )
+        loss_asr_att, acc_asr, loss_asr_ctc, cer_ctc, cer, wer = self.forward_asr(
+            hs_pad, hs_mask, ys_pad_src
+        )
 
         # 6. compute auxiliary MT loss
+        loss_mt, acc_mt = 0.0, None
         if self.mt_weight > 0:
-            ilens_mt = torch.sum(ys_pad_src != self.ignore_id, dim=1).cpu().numpy()
-            # NOTE: ys_pad_src is padded with -1
-            ys_src = [y[y != self.ignore_id] for y in ys_pad_src]  # parse padded ys_src
-            ys_zero_pad_src = pad_list(ys_src, self.pad)  # re-pad with zero
-            ys_zero_pad_src = ys_zero_pad_src[:, : max(ilens_mt)]  # for data parallel
-            src_mask_mt = (
-                (~make_pad_mask(ilens_mt.tolist()))
-                .to(ys_zero_pad_src.device)
-                .unsqueeze(-2)
-            )
-            hs_pad_mt, hs_mask_mt = self.encoder_mt(ys_zero_pad_src, src_mask_mt)
-            pred_pad_mt, _ = self.decoder(ys_in_pad, ys_mask, hs_pad_mt, hs_mask_mt)
-            loss_mt = self.criterion(pred_pad_mt, ys_out_pad)
-
-            acc_mt = th_accuracy(
-                pred_pad_mt.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
+            loss_mt, acc_mt = self.forward_mt(
+                ys_pad_src, ys_in_pad, ys_out_pad, ys_mask
             )
 
-        alpha = self.mtlalpha
+        asr_ctc_weight = self.mtlalpha
         self.loss = (
             (1 - self.asr_weight - self.mt_weight) * loss_att
-            + self.asr_weight * (alpha * loss_asr_ctc + (1 - alpha) * loss_asr_att)
+            + self.asr_weight
+            * (asr_ctc_weight * loss_asr_ctc + (1 - asr_ctc_weight) * loss_asr_att)
             + self.mt_weight * loss_mt
         )
-        loss_asr_data = float(alpha * loss_asr_ctc + (1 - alpha) * loss_asr_att)
+        loss_asr_data = float(
+            asr_ctc_weight * loss_asr_ctc + (1 - asr_ctc_weight) * loss_asr_att
+        )
         loss_mt_data = None if self.mt_weight == 0 else float(loss_mt)
         loss_st_data = float(loss_att)
 
@@ -466,6 +417,96 @@ class E2E(STInterface, torch.nn.Module):
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
         return self.loss
+
+    def forward_asr(self, hs_pad, hs_mask, ys_pad):
+        """Forward pass in the auxiliary ASR task.
+
+        :param torch.Tensor hs_pad: batch of padded source sequences (B, Tmax, idim)
+        :param torch.Tensor hs_mask: batch of input token mask (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
+        :return: ASR attention loss value
+        :rtype: torch.Tensor
+        :return: accuracy in ASR attention decoder
+        :rtype: float
+        :return: ASR CTC loss value
+        :rtype: torch.Tensor
+        :return: character error rate from CTC prediction
+        :rtype: float
+        :return: character error rate from attetion decoder prediction
+        :rtype: float
+        :return: word error rate from attetion decoder prediction
+        :rtype: float
+        """
+        loss_att, loss_ctc = 0.0, 0.0
+        acc = None
+        cer, wer = None, None
+        cer_ctc = None
+        if self.asr_weight == 0:
+            return loss_att, acc, loss_ctc, cer_ctc, cer, wer
+
+        # attention
+        if self.mtlalpha < 1:
+            ys_in_pad_asr, ys_out_pad_asr = add_sos_eos(
+                ys_pad, self.sos, self.eos, self.ignore_id
+            )
+            ys_mask_asr = target_mask(ys_in_pad_asr, self.ignore_id)
+            pred_pad, _ = self.decoder_asr(ys_in_pad_asr, ys_mask_asr, hs_pad, hs_mask)
+            loss_att = self.criterion(pred_pad, ys_out_pad_asr)
+
+            acc = th_accuracy(
+                pred_pad.view(-1, self.odim),
+                ys_out_pad_asr,
+                ignore_label=self.ignore_id,
+            )
+            if not self.training:
+                ys_hat_asr = pred_pad.argmax(dim=-1)
+                cer, wer = self.error_calculator_asr(ys_hat_asr.cpu(), ys_pad.cpu())
+
+        # CTC
+        if self.mtlalpha > 0:
+            batch_size = hs_pad.size(0)
+            hs_len = hs_mask.view(batch_size, -1).sum(1)
+            loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
+            if not self.training:
+                ys_hat_ctc = self.ctc.argmax(
+                    hs_pad.view(batch_size, -1, self.adim)
+                ).data
+                cer_ctc = self.error_calculator_asr(
+                    ys_hat_ctc.cpu(), ys_pad.cpu(), is_ctc=True
+                )
+                # for visualization
+                self.ctc.softmax(hs_pad)
+        return loss_att, acc, loss_ctc, cer_ctc, cer, wer
+
+    def forward_mt(self, xs_pad, ys_in_pad, ys_out_pad, ys_mask):
+        """Forward pass in the auxiliary MT task.
+
+        :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)
+        :param torch.Tensor ys_in_pad: batch of padded target sequences (B, Lmax)
+        :param torch.Tensor ys_out_pad: batch of padded target sequences (B, Lmax)
+        :param torch.Tensor ys_mask: batch of input token mask (B, Lmax)
+        :return: MT loss value
+        :rtype: torch.Tensor
+        :return: accuracy in MT decoder
+        :rtype: float
+        """
+        loss, acc = 0.0, None
+        if self.mt_weight == 0:
+            return loss, acc
+
+        ilens = torch.sum(xs_pad != self.ignore_id, dim=1).cpu().numpy()
+        # NOTE: xs_pad is padded with -1
+        xs = [x[x != self.ignore_id] for x in xs_pad]  # parse padded xs
+        xs_zero_pad = pad_list(xs, self.pad)  # re-pad with zero
+        xs_zero_pad = xs_zero_pad[:, : max(ilens)]  # for data parallel
+        src_mask = (~make_pad_mask(ilens.tolist())).to(xs_zero_pad.device).unsqueeze(-2)
+        hs_pad, hs_mask = self.encoder_mt(xs_zero_pad, src_mask)
+        pred_pad, _ = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
+        loss = self.criterion(pred_pad, ys_out_pad)
+        acc = th_accuracy(
+            pred_pad.view(-1, self.odim), ys_out_pad, ignore_label=self.ignore_id
+        )
+        return loss, acc
 
     def scorers(self):
         """Scorers."""
@@ -665,11 +706,10 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
         :param torch.Tensor ys_pad_src:
             batch of padded token id sequence tensor (B, Lmax)
-        :return: attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
+        :return: attention weights (B, H, Lmax, Tmax)
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             self.forward(xs_pad, ilens, ys_pad, ys_pad_src)
         ret = dict()
@@ -678,4 +718,30 @@ class E2E(STInterface, torch.nn.Module):
                 isinstance(m, MultiHeadedAttention) and m.attn is not None
             ):  # skip MHA for submodules
                 ret[name] = m.attn.cpu().numpy()
+        self.train()
+        return ret
+
+    def calculate_all_ctc_probs(self, xs_pad, ilens, ys_pad, ys_pad_src):
+        """E2E CTC probability calculation.
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_src:
+            batch of padded token id sequence tensor (B, Lmax)
+        :return: CTC probability (B, Tmax, vocab)
+        :rtype: float ndarray
+        """
+        ret = None
+        if self.asr_weight == 0 or self.mtlalpha == 0:
+            return ret
+
+        self.eval()
+        with torch.no_grad():
+            self.forward(xs_pad, ilens, ys_pad, ys_pad_src)
+        ret = None
+        for name, m in self.named_modules():
+            if isinstance(m, CTC) and m.probs is not None:
+                ret = m.probs.cpu().numpy()
+        self.train()
         return ret

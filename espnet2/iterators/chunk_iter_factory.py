@@ -13,6 +13,7 @@ from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
+from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class ChunkIterFactory(AbsIterFactory):
@@ -38,8 +39,8 @@ class ChunkIterFactory(AbsIterFactory):
     def __init__(
         self,
         dataset,
-        batches: Sequence[Sequence[Any]],
         batch_size: int,
+        batches: Union[AbsSampler, Sequence[Sequence[Any]]],
         chunk_length: Union[int, str],
         chunk_shift_ratio: float = 0.5,
         num_cache_chunks: int = 1024,

@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+from distutils.version import LooseVersion
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -21,6 +23,14 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    from torch.cuda.amp import autocast
+else:
+    # Nothing to do if torch<1.6.0
+    @contextmanager
+    def autocast(enabled=True):
+        yield
 
 
 class ESPnetASRModel(AbsESPnetModel):
@@ -174,16 +184,17 @@ class ESPnetASRModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        # 1. Extract feats
-        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        with autocast(False):
+            # 1. Extract feats
+            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-        # 2. Data augmentation for spectrogram
-        if self.specaug is not None and self.training:
-            feats, feats_lengths = self.specaug(feats, feats_lengths)
+            # 2. Data augmentation for spectrogram
+            if self.specaug is not None and self.training:
+                feats, feats_lengths = self.specaug(feats, feats_lengths)
 
-        # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-        if self.normalize is not None:
-            feats, feats_lengths = self.normalize(feats, feats_lengths)
+            # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+            if self.normalize is not None:
+                feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)

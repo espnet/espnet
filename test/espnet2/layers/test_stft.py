@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+
 import pytest
 import torch
 
@@ -32,8 +34,14 @@ def test_backward_not_leaf_in():
     y.sum().backward()
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.3"),
+    reason="requires pytorch1.3 or higher",
+)
 def test_inverse():
     layer = Stft()
     x = torch.randn(2, 400, requires_grad=True)
-    with pytest.raises(NotImplementedError):
-        y, _ = layer.inverse(x)
+    y, _ = layer(x)
+    x_lengths = torch.IntTensor([400, 300])
+    raw, _ = layer.inverse(y, x_lengths)
+    raw, _ = layer.inverse(y)
