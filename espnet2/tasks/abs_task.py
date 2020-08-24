@@ -478,7 +478,8 @@ class AbsTask(ABC):
         group.add_argument(
             "--keep_nbest_models",
             type=int,
-            default=10,
+            nargs="+",
+            default=[10],
             help="Remove previous snapshots excluding the n-best scored epochs",
         )
         group.add_argument(
@@ -1170,6 +1171,14 @@ class AbsTask(ABC):
             # Instead of it, define "Options" object and build here.
             trainer_options = cls.trainer.build_options(args)
 
+            if isinstance(args.keep_nbest_models, int):
+                keep_nbest_models = args.keep_nbest_models
+            else:
+                if len(args.keep_nbest_models) == 0:
+                    logging.warning("No keep_nbest_models is given. Change to [1]")
+                    args.keep_nbest_models = [1]
+                keep_nbest_models = max(args.keep_nbest_models)
+
             cls.trainer.run(
                 model=model,
                 optimizers=optimizers,
@@ -1183,7 +1192,7 @@ class AbsTask(ABC):
                 max_epoch=args.max_epoch,
                 seed=args.seed,
                 patience=args.patience,
-                keep_nbest_models=args.keep_nbest_models,
+                keep_nbest_models=keep_nbest_models,
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
