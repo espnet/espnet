@@ -64,7 +64,7 @@ for t in ${evaltypes/SDR/SDR ISR SIR SAR}; do
     done > ${dir}/${t}
 
     # Calculate the mean over files
-    python << EOF > ${dir}/mean_${t}
+    python3 << EOF > ${dir}/mean_${t}
 with open('${dir}/${t}', 'r') as f:
     values = []
     for l in f:

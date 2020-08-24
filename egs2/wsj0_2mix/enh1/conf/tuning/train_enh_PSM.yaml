@@ -36,5 +36,5 @@ enh_conf:
     dropout: 0.5
     num_spk: 2
     utt_mvn: False
-    none_linear: relu
+    nonlinear: relu
     

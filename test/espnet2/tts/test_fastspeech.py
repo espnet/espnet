@@ -67,3 +67,7 @@ def test_fastspeech(
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         model.inference(**inputs)
+
+        # teacher forcing
+        inputs.update(durations=torch.tensor([2, 2, 1], dtype=torch.long))
+        model.inference(**inputs, use_teacher_forcing=True)

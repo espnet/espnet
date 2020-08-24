@@ -230,6 +230,13 @@ def test_transformer_trainable_and_decodable(module, model_dict):
 
         plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
 
+        # test CTC plot
+        ctc_probs = model.calculate_all_ctc_probs(x[0:1], ilens[0:1], y[0:1])
+        if args.mtlalpha > 0:
+            print(ctc_probs.shape)
+        else:
+            assert ctc_probs is None
+
         # test decodable
         with torch.no_grad():
             nbest = model.recognize(x[0, : ilens[0]].numpy(), recog_args)

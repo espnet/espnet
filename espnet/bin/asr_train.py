@@ -296,7 +296,7 @@ def get_parser(parser=None, required=True):
         "--criterion",
         default="acc",
         type=str,
-        choices=["loss", "acc"],
+        choices=["loss", "loss_eps_decay_only", "acc"],
         help="Criterion to perform epsilon decay",
     )
     parser.add_argument(
@@ -328,6 +328,12 @@ def get_parser(parser=None, required=True):
         default=3,
         type=int,
         help="Number of samples of attention to be saved",
+    )
+    parser.add_argument(
+        "--num-save-ctc",
+        default=3,
+        type=int,
+        help="Number of samples of CTC probability to be saved",
     )
     parser.add_argument(
         "--grad-noise",

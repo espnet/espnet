@@ -13,7 +13,7 @@ egs/                 # The complete recipe for each corpora
           - cmd.sh   # To select the backend for job scheduler
           - path.sh  # Setup script for environment variables
           - conf/    # Containing COnfiguration files
-          - steps/   # The utils scripts from Kaldi
+          - steps/   # The steps scripts from Kaldi
           - utils/   # The utils scripts from Kaldi
       tts1/          # TTS recipe
     ...

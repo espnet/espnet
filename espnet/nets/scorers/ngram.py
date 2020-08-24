@@ -96,3 +96,7 @@ class NgramPartScorer(Ngrambase, PartialScorerInterface):
 
         """
         return self.score_partial_(y, next_token, state, x)
+
+    def select_state(self, state, i):
+        """Empty select state for scorer interface."""
+        return state

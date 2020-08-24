@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 # Copyright 2018 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -11,7 +11,7 @@ set -euo pipefail
 
 find $1/fls/*/lab -name "*.lab" | xargs dirname | xargs dirname | sort | uniq > ${TMP}/dir_list.txt
 cat ${TMP}/dir_list.txt | while read -r dir;do
-    
+
     echo ${dir}
 
     # make lab_token
@@ -66,5 +66,5 @@ cat ${TMP}/dir_list.txt | while read -r dir;do
     done
 
     # make lab-like txt file
-    python local/make_lab_w_punc.py ${TMP}/lab_list.txt ${TMP}/txt_sentence.txt ${dir}/new_${LAB}
+    python3 local/make_lab_w_punc.py ${TMP}/lab_list.txt ${TMP}/txt_sentence.txt ${dir}/new_${LAB}
 done

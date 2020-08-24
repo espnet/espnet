@@ -72,7 +72,7 @@ class Speech2Text:
         asr_model, asr_train_args = ASRTask.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
-        asr_model.eval()
+        asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = asr_model.decoder
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
@@ -147,7 +147,6 @@ class Speech2Text:
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
-        self.lm_train_args = lm_train_args
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
@@ -292,7 +291,7 @@ def inference(
         key_file=key_file,
         num_workers=num_workers,
         preprocess_fn=ASRTask.build_preprocess_fn(speech2text.asr_train_args, False),
-        collate_fn=ASRTask.build_collate_fn(speech2text.asr_train_args),
+        collate_fn=ASRTask.build_collate_fn(speech2text.asr_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )

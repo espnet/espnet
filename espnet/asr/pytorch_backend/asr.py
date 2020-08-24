@@ -710,6 +710,34 @@ def train(args):
     else:
         att_reporter = None
 
+    # Save CTC prob at each epoch
+    if mtl_mode in ["ctc", "mtl"] and args.num_save_ctc > 0:
+        # NOTE: sort it by output lengths
+        data = sorted(
+            list(valid_json.items())[: args.num_save_ctc],
+            key=lambda x: int(x[1]["output"][0]["shape"][0]),
+            reverse=True,
+        )
+        if hasattr(model, "module"):
+            ctc_vis_fn = model.module.calculate_all_ctc_probs
+            plot_class = model.module.ctc_plot_class
+        else:
+            ctc_vis_fn = model.calculate_all_ctc_probs
+            plot_class = model.ctc_plot_class
+        ctc_reporter = plot_class(
+            ctc_vis_fn,
+            data,
+            args.outdir + "/ctc_prob",
+            converter=converter,
+            transform=load_cv,
+            device=device,
+            ikey="output",
+            iaxis=1,
+        )
+        trainer.extend(ctc_reporter, trigger=(1, "epoch"))
+    else:
+        ctc_reporter = None
+
     # Make a plot for training and validation values
     if args.num_encs > 1:
         report_keys_loss_ctc = [
@@ -803,6 +831,18 @@ def train(args):
                     lambda best_value, current_value: best_value < current_value,
                 ),
             )
+        # NOTE: In some cases, it may take more than one epoch for the model's loss
+        # to escape from a local minimum.
+        # Thus, restore_snapshot extension is not used here.
+        # see details in https://github.com/espnet/espnet/pull/2171
+        elif args.criterion == "loss_eps_decay_only":
+            trainer.extend(
+                adadelta_eps_decay(args.eps_decay),
+                trigger=CompareValueTrigger(
+                    "validation/main/loss",
+                    lambda best_value, current_value: best_value < current_value,
+                ),
+            )
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(
@@ -848,7 +888,11 @@ def train(args):
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         trainer.extend(
-            TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+            TensorboardLogger(
+                SummaryWriter(args.tensorboard_dir),
+                att_reporter=att_reporter,
+                ctc_reporter=ctc_reporter,
+            ),
             trigger=(args.report_interval_iters, "iteration"),
         )
     # Run the training

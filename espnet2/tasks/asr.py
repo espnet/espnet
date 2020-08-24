@@ -194,7 +194,7 @@ class ASRTask(AbsTask):
 
     @classmethod
     def build_collate_fn(
-        cls, args: argparse.Namespace
+        cls, args: argparse.Namespace, train: bool
     ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
@@ -224,7 +224,9 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
+    def required_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
         if not inference:
             retval = ("speech", "text")
         else:
@@ -233,7 +235,9 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
+    def optional_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
         retval = ()
         assert check_return_type(retval)
         return retval

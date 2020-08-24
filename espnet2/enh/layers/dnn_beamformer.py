@@ -12,10 +12,10 @@ from espnet.nets.pytorch_backend.frontends.beamformer import get_mvdr_vector
 from espnet.nets.pytorch_backend.frontends.beamformer import (
     get_power_spectral_density_matrix,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
 from espnet2.enh.layers.conv_beamformer import get_covariances
 from espnet2.enh.layers.conv_beamformer import get_WPD_filter_v2
 from espnet2.enh.layers.conv_beamformer import perform_WPD_filtering
+from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
@@ -39,6 +39,7 @@ class DNN_Beamformer(torch.nn.Module):
         bprojs: int = 320,
         num_spk: int = 1,
         use_noise_mask: bool = True,
+        nonlinear: str = "sigmoid",
         dropout_rate: float = 0.0,
         badim: int = 320,
         ref_channel: int = -1,
@@ -51,7 +52,14 @@ class DNN_Beamformer(torch.nn.Module):
         super().__init__()
         bnmask = num_spk + 1 if use_noise_mask else num_spk
         self.mask = MaskEstimator(
-            btype, bidim, blayers, bunits, bprojs, dropout_rate, nmask=bnmask
+            btype,
+            bidim,
+            blayers,
+            bunits,
+            bprojs,
+            dropout_rate,
+            nmask=bnmask,
+            nonlinear=nonlinear,
         )
         self.ref = AttentionReference(bidim, badim) if ref_channel < 0 else None
         self.ref_channel = ref_channel
@@ -114,7 +122,7 @@ class DNN_Beamformer(torch.nn.Module):
         def apply_beamforming(data, ilens, psd_speech, psd_n, beamformer_type):
             # u: (B, C)
             if self.ref_channel < 0:
-                u, _ = self.ref(psd_speech.type(data.dtype), ilens)
+                u, _ = self.ref(psd_speech.to(dtype=data.dtype), ilens)
             else:
                 # (optional) Create onehot vector for fixed reference microphone
                 u = torch.zeros(
@@ -135,7 +143,7 @@ class DNN_Beamformer(torch.nn.Module):
                     "Not supporting beamformer_type={}".format(beamformer_type)
                 )
 
-            return enhanced.type(data.dtype), ws.type(data.dtype)
+            return enhanced.to(dtype=data.dtype), ws.to(dtype=data.dtype)
 
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
@@ -260,6 +268,23 @@ class DNN_Beamformer(torch.nn.Module):
         # (..., F, C, T) -> (..., T, C, F)
         masks = [m.transpose(-1, -3) for m in masks]
         return enhanced, ilens, masks
+
+    def predict_mask(
+        self, data: ComplexTensor, ilens: torch.LongTensor
+    ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
+        """Predict masks for beamforming
+
+        Args:
+            data (ComplexTensor): (B, T, C, F), double precision
+            ilens (torch.Tensor): (B,)
+        Returns:
+            masks (torch.Tensor): (B, T, C, F)
+            ilens (torch.Tensor): (B,)
+        """
+        masks, _ = self.mask(data.permute(0, 3, 2, 1).float(), ilens)
+        # (B, F, C, T) -> (B, T, C, F)
+        masks = [m.transpose(-1, -3) for m in masks]
+        return masks, ilens
 
 
 class AttentionReference(torch.nn.Module):

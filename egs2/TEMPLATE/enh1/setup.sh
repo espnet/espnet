@@ -33,7 +33,7 @@ fi
 targets=""
 
 # Copy
-for f in cmd.sh conf; do
+for f in cmd.sh conf local; do
     target="${dir}"/../../TEMPLATE/enh1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
@@ -41,7 +41,7 @@ done
 
 
 # Symlinks to TEMPLATE/enh1
-for f in enh.sh path.sh; do
+for f in enh.sh path.sh scripts; do
     target=../../TEMPLATE/enh1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
@@ -49,7 +49,7 @@ done
 
 
 # Symlinks to TEMPLATE/asr1
-for f in db.sh scripts pyscripts; do
+for f in db.sh pyscripts; do
     target=../../TEMPLATE/asr1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "

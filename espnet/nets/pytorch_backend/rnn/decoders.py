@@ -844,10 +844,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
             )
             accum_padded_beam_ids = (
-                (torch.div(accum_best_ids, self.odim) + pad_b)
-                .view(-1)
-                .data.cpu()
-                .tolist()
+                (accum_best_ids // self.odim + pad_b).view(-1).data.cpu().tolist()
             )
 
             y_prev = yseq[:][:]

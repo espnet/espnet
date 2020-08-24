@@ -19,7 +19,6 @@ class Stft(torch.nn.Module, InversibleInterface):
         hop_length: int = 128,
         window: Optional[str] = "hann",
         center: bool = True,
-        pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
     ):
@@ -32,7 +31,6 @@ class Stft(torch.nn.Module, InversibleInterface):
             self.win_length = win_length
         self.hop_length = hop_length
         self.center = center
-        self.pad_mode = pad_mode
         self.normalized = normalized
         self.onesided = onesided
         if window is not None and not hasattr(torch, f"{window}_window"):
@@ -45,7 +43,6 @@ class Stft(torch.nn.Module, InversibleInterface):
             f"win_length={self.win_length}, "
             f"hop_length={self.hop_length}, "
             f"center={self.center}, "
-            f"pad_mode={self.pad_mode}, "
             f"normalized={self.normalized}, "
             f"onesided={self.onesided}"
         )
@@ -91,7 +88,6 @@ class Stft(torch.nn.Module, InversibleInterface):
             hop_length=self.hop_length,
             center=self.center,
             window=window,
-            pad_mode=self.pad_mode,
             normalized=self.normalized,
             onesided=self.onesided,
         )
@@ -153,7 +149,6 @@ class Stft(torch.nn.Module, InversibleInterface):
             hop_length=self.hop_length,
             win_length=self.win_length,
             center=self.center,
-            pad_mode=self.pad_mode,
             normalized=self.normalized,
             onesided=self.onesided,
             length=ilens.max() if ilens is not None else ilens,

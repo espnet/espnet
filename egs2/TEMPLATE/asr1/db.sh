@@ -56,6 +56,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     YESNO=
     HOW2_TEXT=
     HOW2_FEATS=
+    ZEROTH_KOREAN=downloads
 
 else
     AISHELL=downloads
@@ -115,4 +116,5 @@ else
     YESNO=downloads
     HOW2_TEXT=downloads/how2-300h-v1
     HOW2_FEATS=downloads/fbank_pitch_181516
+    ZEROTH_KOREAN=downloads
 fi
