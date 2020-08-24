@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # This script appends utterances dumped out from XML to a Kaldi datadir
 
