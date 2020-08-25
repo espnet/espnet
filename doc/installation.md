@@ -219,3 +219,10 @@ python3 -m pip install <some-package>
 ./installers/install_<some-tool>.sh
 ```
 
+### Check installation
+You can check whether your installation is succesfully finished by 
+```sh
+cd <espnet-root>/tools
+. ./activate_python.sh; python3 check_install.py
+```
+Note that this check is always called in the last stage of the above installation.

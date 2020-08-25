@@ -13,23 +13,18 @@ from espnet.bin.asr_train import get_parser
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.utils.dynamic_import import dynamic_import
 
+
 if __name__ == "__main__":
     cmd_args = sys.argv[1:]
     parser = get_parser(required=False)
     parser.add_argument("--data-json", type=str, help="data.json")
     parser.add_argument(
-        "--mode-subsample", type=str, required=True, help='one of ("asr", "mt", "st")'
-    )
-    parser.add_argument(
-        "--arch-subsample",
-        type=str,
-        required=True,
-        help='one of ("rnn", "rnn-t", "rnn_mix", "rnn_mulenc", "transformer")',
+        "--mode-subsample", type=str, required=True, help='One of ("asr", "mt", "st")'
     )
     parser.add_argument(
         "--min-io-delta",
         type=float,
-        help="an additional parameter "
+        help="An additional parameter "
         "for controlling the input-output length difference",
         default=0.0,
     )
@@ -45,6 +40,22 @@ if __name__ == "__main__":
         model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
     else:
         model_module = args.model_module
+
+    module_name = model_module.split(":")[0].split(".")[-1]
+    # One of ("rnn", "rnn-t", "rnn_mix", "rnn_mulenc", "transformer")
+    if module_name == "e2e_asr":
+        arch_subsample = "rnn"
+    elif module_name == "e2e_asr_transducer":
+        arch_subsample = "rnn-t"
+    elif module_name == "e2e_asr_mix":
+        arch_subsample = "rnn_mix"
+    elif module_name == "e2e_asr_mulenc":
+        arch_subsample = "rnn_mulenc"
+    elif "transformer" in module_name:
+        arch_subsample = "transformer"
+    else:
+        raise ValueError("Unsupported model module: %s" % model_module)
+
     model_class = dynamic_import(model_module)
     model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
@@ -55,9 +66,7 @@ if __name__ == "__main__":
         # It is performed in max pooling layers at CNN.
         min_io_ratio = 4
     else:
-        subsample = get_subsample(
-            args, mode=args.mode_subsample, arch=args.arch_subsample
-        )
+        subsample = get_subsample(args, mode=args.mode_subsample, arch=arch_subsample)
         # the minimum input-output length ratio for all samples
         min_io_ratio = reduce(mul, subsample)
 

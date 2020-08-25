@@ -435,6 +435,17 @@ class Trainer:
                     logging.warning(
                         f"The grad norm is {grad_norm}. Skipping updating the model."
                     )
+
+                    # Must invoke scaler.update() if unscale_() is used in the iteration
+                    # to avoid the following error:
+                    #   RuntimeError: unscale_() has already been called
+                    #   on this optimizer since the last update().
+                    # Note that if the gradient has inf/nan values,
+                    # scaler.step skips optimizer.step().
+                    if scaler is not None:
+                        scaler.step(optimizer)
+                        scaler.update()
+
                 else:
                     all_steps_are_invalid = False
                     with reporter.measure_time("optim_step_time"):

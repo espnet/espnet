@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-$CXX -v
+${CXX:-g++} -v
 
 (
     set -euo pipefail
@@ -19,7 +19,7 @@ $CXX -v
     fi
     make TH_VERSION="${TH_VERSION}"
 
-    make moses.done
+    make nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
