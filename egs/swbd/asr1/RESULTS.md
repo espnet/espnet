@@ -1,6 +1,7 @@
 # conformer with BPE 2000, specaug, LM decoding
-
-- training config file: `conf/tuning/train_pytorch_conformer.yaml`
+## Models
+- model link: https://drive.google.com/file/d/1n5yD08H8g0bMLeqPXx7MZ8IU5S-o681E/view
+- training config file: `conf/train.yaml`
 - preprocess config file: `conf/specaug.yaml`
 - decoding config file: `conf/decode.yaml`
 
