@@ -12,7 +12,6 @@ import torch
 from espnet.nets.pytorch_backend.conformer.activation import get_activation
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.conformer.subsampling import Conv2dSubsampling
 from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
@@ -30,6 +29,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
 
 class Encoder(torch.nn.Module):
@@ -108,6 +108,7 @@ class Encoder(torch.nn.Module):
             self.embed = Conv2dSubsampling(
                 idim,
                 attention_dim,
+                dropout_rate,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer == "vgg2l":
