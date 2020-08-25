@@ -45,4 +45,4 @@ transformer-encoder-selfattn-layer-type: rel_selfattn
 transformer-encoder-activation-type: swish
 macaron-style: true
 use-cnn-module: true
-cnn-module-kernel: 31
+cnn-module-kernel: 15
