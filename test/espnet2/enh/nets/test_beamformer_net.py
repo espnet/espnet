@@ -7,7 +7,8 @@ from espnet2.enh.nets.beamformer_net import BeamformerNet
 
 
 @pytest.mark.parametrize(
-    "n_fft, win_length, hop_length", [(8, None, 2)],
+    "n_fft, win_length, hop_length",
+    [(8, None, 2)],
 )
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("normalize_input", [True, False])
@@ -106,7 +107,8 @@ def test_beamformer_net_forward_backward(
 
 
 @pytest.mark.parametrize(
-    "n_fft, win_length, hop_length", [(8, None, 2)],
+    "n_fft, win_length, hop_length",
+    [(8, None, 2)],
 )
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("normalize_input", [True, False])

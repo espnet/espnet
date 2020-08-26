@@ -142,7 +142,10 @@ class E2E(MTInterface, torch.nn.Module):
         )
         # Encoder
         group.add_argument(
-            "--elayers", default=6, type=int, help="Number of encoder layers",
+            "--elayers",
+            default=6,
+            type=int,
+            help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",

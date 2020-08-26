@@ -164,7 +164,8 @@ class Trainer:
             )
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
-                model, device_ids=list(range(distributed_option.ngpu)),
+                model,
+                device_ids=list(range(distributed_option.ngpu)),
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,

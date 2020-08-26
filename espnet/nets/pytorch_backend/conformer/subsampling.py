@@ -33,7 +33,8 @@ class Conv2dSubsampling(torch.nn.Module):
             torch.nn.ReLU(),
         )
         self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim), pos_enc_class,
+            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim),
+            pos_enc_class,
         )
 
     def forward(self, x, x_mask):

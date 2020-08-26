@@ -146,7 +146,8 @@ scheduler_classes = dict(
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     scheduler_classes.update(
-        noamlr=NoamLR, warmuplr=WarmupLR,
+        noamlr=NoamLR,
+        warmuplr=WarmupLR,
     )
 if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
     CosineAnnealingWarmRestarts = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
@@ -266,7 +267,8 @@ class AbsTask(ABC):
         assert check_argument_types()
 
         class ArgumentDefaultsRawTextHelpFormatter(
-            argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter,
+            argparse.RawTextHelpFormatter,
+            argparse.ArgumentDefaultsHelpFormatter,
         ):
             pass
 
@@ -334,7 +336,10 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("distributed training related")
         group.add_argument(
-            "--dist_backend", default="nccl", type=str, help="distributed backend",
+            "--dist_backend",
+            default="nccl",
+            type=str,
+            help="distributed backend",
         )
         group.add_argument(
             "--dist_init_method",
@@ -729,7 +734,9 @@ class AbsTask(ABC):
 
     @classmethod
     def build_optimizers(
-        cls, args: argparse.Namespace, model: torch.nn.Module,
+        cls,
+        args: argparse.Namespace,
+        model: torch.nn.Module,
     ) -> List[torch.optim.Optimizer]:
         if cls.num_optimizers != 1:
             raise RuntimeError(
@@ -958,7 +965,9 @@ class AbsTask(ABC):
                 local_args.ngpu = 1
 
                 process = mp.Process(
-                    target=cls.main_worker, args=(local_args,), daemon=False,
+                    target=cls.main_worker,
+                    args=(local_args,),
+                    daemon=False,
                 )
                 process.start()
                 processes.append(process)
@@ -1150,18 +1159,26 @@ class AbsTask(ABC):
             # 8. Build iterator factories
             if args.multiple_iterator:
                 train_iter_factory = cls.build_multiple_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="train",
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="train",
                 )
             else:
                 train_iter_factory = cls.build_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="train",
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="train",
                 )
             valid_iter_factory = cls.build_iter_factory(
-                args=args, distributed_option=distributed_option, mode="valid",
+                args=args,
+                distributed_option=distributed_option,
+                mode="valid",
             )
             if args.num_att_plot != 0:
                 plot_attention_iter_factory = cls.build_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="plot_att",
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="plot_att",
                 )
             else:
                 plot_attention_iter_factory = None
@@ -1211,7 +1228,10 @@ class AbsTask(ABC):
 
     @classmethod
     def build_iter_options(
-        cls, args: argparse.Namespace, distributed_option: DistributedOption, mode: str,
+        cls,
+        args: argparse.Namespace,
+        distributed_option: DistributedOption,
+        mode: str,
     ):
         if mode == "train":
             preprocess_fn = cls.build_preprocess_fn(args, train=True)
@@ -1330,15 +1350,21 @@ class AbsTask(ABC):
 
         if args.iterator_type == "sequence":
             return cls.build_sequence_iter_factory(
-                args=args, iter_options=iter_options, mode=mode,
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
             )
         elif args.iterator_type == "chunk":
             return cls.build_chunk_iter_factory(
-                args=args, iter_options=iter_options, mode=mode,
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
             )
         elif args.iterator_type == "task":
             return cls.build_task_iter_factory(
-                args=args, iter_options=iter_options, mode=mode,
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
             )
         else:
             raise RuntimeError(f"Not supported: iterator_type={args.iterator_type}")
@@ -1410,7 +1436,10 @@ class AbsTask(ABC):
 
     @classmethod
     def build_chunk_iter_factory(
-        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str,
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
     ) -> AbsIterFactory:
         assert check_argument_types()
 
@@ -1479,7 +1508,10 @@ class AbsTask(ABC):
     # NOTE(kamo): Not abstract class
     @classmethod
     def build_task_iter_factory(
-        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str,
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
     ) -> AbsIterFactory:
         """Build task specific iterator factory
 
@@ -1633,7 +1665,9 @@ class AbsTask(ABC):
             if key_file is None:
                 key_file = data_path_and_name_and_type[0][0]
             batch_sampler = UnsortedBatchSampler(
-                batch_size=batch_size, key_file=key_file, drop_last=False,
+                batch_size=batch_size,
+                key_file=key_file,
+                drop_last=False,
             )
             kwargs.update(batch_sampler=batch_sampler)
 
@@ -1642,7 +1676,10 @@ class AbsTask(ABC):
         )
 
         return DataLoader(
-            dataset=dataset, pin_memory=ngpu > 0, num_workers=num_workers, **kwargs,
+            dataset=dataset,
+            pin_memory=ngpu > 0,
+            num_workers=num_workers,
+            **kwargs,
         )
 
     # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~
