@@ -1,72 +1,3 @@
-# mixed RNN/Transformer-Transducer (enc: VGG2L + 6 x Transformer, dec: 1 x LSTM)
-
-- Environments
-  - date: `Sat Aug 22 16:14:35 CEST 2020`
-  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.6.2`
-  - chainer version: `chainer 6.0.0`
-  - pytorch version: `pytorch 1.0.1.post2`
-  - Git hash: `077c8970afb477e059932f7243a9b728c8ab1a69`
-  - Commit date: `Fri Aug 21 16:32:27 2020 +0200`
-
-## CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_test_decode_alsd|760|32771|85.4|10.8|3.9|3.1|17.7|94.2|
-|decode_test_decode_alsd_lm|760|32771|85.9|10.3|3.8|2.9|17.1|93.8|
-|decode_test_decode_alsd_lm_word7184|760|32771|86.0|10.2|3.8|2.9|16.9|92.9|
-|decode_test_decode_default|760|32771|85.5|10.7|3.8|2.9|17.4|94.7|
-|decode_test_decode_default_lm|760|32771|85.6|10.3|4.1|2.7|17.1|94.2|
-|decode_test_decode_default_lm_word7184|760|32771|85.8|10.1|4.1|2.7|16.9|93.7|
-|decode_test_decode_nsc|760|32771|85.6|10.7|3.7|3.0|17.4|95.0|
-|decode_test_decode_nsc_lm|760|32771|86.2|10.2|3.6|2.9|16.6|94.3|
-|decode_test_decode_nsc_lm_word7184|760|32771|86.4|10.1|3.5|2.8|16.4|93.2|
-|decode_test_decode_tsd|760|32771|85.4|10.7|3.9|2.8|17.4|94.9|
-|decode_test_decode_tsd_lm|760|32771|85.8|10.2|4.0|2.6|16.8|94.3|
-|decode_test_decode_tsd_lm_word7184|760|32771|86.1|10.0|4.0|2.5|16.5|92.9|
-|decode_train_dev_decode_alsd|100|4007|86.6|11.2|2.2|2.9|16.3|92.0|
-|decode_train_dev_decode_alsd_lm|100|4007|87.0|10.7|2.3|2.9|15.9|94.0|
-|decode_train_dev_decode_alsd_lm_word7184|100|4007|87.6|10.2|2.2|2.7|15.1|91.0|
-|decode_train_dev_decode_default|100|4007|86.3|11.0|2.6|2.7|16.3|96.0|
-|decode_train_dev_decode_default_lm|100|4007|85.9|10.8|3.3|2.6|16.8|94.0|
-|decode_train_dev_decode_default_lm_word7184|100|4007|86.2|10.8|3.0|2.3|16.1|91.0|
-|decode_train_dev_decode_nsc|100|4007|86.0|11.4|2.5|2.8|16.8|96.0|
-|decode_train_dev_decode_nsc_lm|100|4007|86.6|11.0|2.4|2.7|16.1|96.0|
-|decode_train_dev_decode_nsc_lm_word7184|100|4007|87.0|10.7|2.3|2.5|15.5|92.0|
-|decode_train_dev_decode_tsd|100|4007|86.0|11.2|2.8|2.7|16.7|96.0|
-|decode_train_dev_decode_tsd_lm|100|4007|86.6|10.7|2.7|2.4|15.8|96.0|
-|decode_train_dev_decode_tsd_lm_word7184|100|4007|86.7|10.5|2.8|2.3|15.6|93.0|
-
-## WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_test_decode_alsd|760|7722|63.3|35.7|1.0|0.5|37.2|94.2|
-|decode_test_decode_alsd_lm|760|7722|64.7|34.2|1.1|0.5|35.8|93.8|
-|decode_test_decode_alsd_lm_word7184|760|7722|65.7|33.2|1.1|0.5|34.8|92.9|
-|decode_test_decode_default|760|7722|63.6|35.5|0.9|0.5|36.9|94.7|
-|decode_test_decode_default_lm|760|7722|64.9|33.8|1.3|0.5|35.6|94.2|
-|decode_test_decode_default_lm_word7184|760|7722|66.0|32.7|1.3|0.5|34.5|93.7|
-|decode_test_decode_nsc|760|7722|63.6|35.5|0.8|0.6|37.0|95.0|
-|decode_test_decode_nsc_lm|760|7722|65.5|33.6|0.9|0.5|35.1|94.3|
-|decode_test_decode_nsc_lm_word7184|760|7722|66.5|32.6|0.9|0.5|34.1|93.2|
-|decode_test_decode_tsd|760|7722|63.4|35.7|0.9|0.5|37.1|94.9|
-|decode_test_decode_tsd_lm|760|7722|65.2|33.7|1.1|0.4|35.3|94.3|
-|decode_test_decode_tsd_lm_word7184|760|7722|66.5|32.4|1.1|0.5|33.9|92.9|
-|decode_train_dev_decode_alsd|100|927|64.1|35.8|0.1|0.4|36.4|92.0|
-|decode_train_dev_decode_alsd_lm|100|927|65.6|34.2|0.2|0.4|34.8|94.0|
-|decode_train_dev_decode_alsd_lm_word7184|100|927|66.8|33.0|0.2|0.3|33.5|91.0|
-|decode_train_dev_decode_default|100|927|64.2|35.6|0.2|0.4|36.2|96.0|
-|decode_train_dev_decode_default_lm|100|927|64.7|34.3|1.0|0.3|35.6|94.0|
-|decode_train_dev_decode_default_lm_word7184|100|927|65.7|33.5|0.8|0.3|34.6|91.0|
-|decode_train_dev_decode_nsc|100|927|63.5|36.4|0.1|0.4|36.9|96.0|
-|decode_train_dev_decode_nsc_lm|100|927|65.2|34.6|0.2|0.3|35.2|96.0|
-|decode_train_dev_decode_nsc_lm_word7184|100|927|66.1|33.7|0.2|0.3|34.2|92.0|
-|decode_train_dev_decode_tsd|100|927|63.4|36.5|0.1|0.4|37.0|96.0|
-|decode_train_dev_decode_tsd_lm|100|927|65.2|34.6|0.2|0.3|35.2|96.0|
-|decode_train_dev_decode_tsd_lm_word7184|100|927|65.9|33.8|0.3|0.3|34.4|93.0|
-
 # RNN-Transducer (enc: 4 x BLSTMP, dec: 1 x LSTM)
 
 - Environments
@@ -342,6 +273,213 @@
 |decode_train_dev_decode_tsd|100|927|59.2|39.7|1.1|0.0|40.8|98.0|
 |decode_train_dev_decode_tsd_lm|100|927|61.5|37.0|1.5|0.0|38.5|98.0|
 |decode_train_dev_decode_tsd_lm_word7184|100|927|62.9|35.4|1.7|0.0|37.1|98.0|
+
+# mixed RNN/Transformer-Transducer (enc: VGG2L + 6 x Transformer, dec: 1 x LSTM)
+
+- Environments
+  - date: `Sat Aug 22 16:14:35 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `077c8970afb477e059932f7243a9b728c8ab1a69`
+  - Commit date: `Fri Aug 21 16:32:27 2020 +0200`
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|32771|85.4|10.8|3.9|3.1|17.7|94.2|
+|decode_test_decode_alsd_lm|760|32771|85.9|10.3|3.8|2.9|17.1|93.8|
+|decode_test_decode_alsd_lm_word7184|760|32771|86.0|10.2|3.8|2.9|16.9|92.9|
+|decode_test_decode_default|760|32771|85.5|10.7|3.8|2.9|17.4|94.7|
+|decode_test_decode_default_lm|760|32771|85.6|10.3|4.1|2.7|17.1|94.2|
+|decode_test_decode_default_lm_word7184|760|32771|85.8|10.1|4.1|2.7|16.9|93.7|
+|decode_test_decode_nsc|760|32771|85.6|10.7|3.7|3.0|17.4|95.0|
+|decode_test_decode_nsc_lm|760|32771|86.2|10.2|3.6|2.9|16.6|94.3|
+|decode_test_decode_nsc_lm_word7184|760|32771|86.4|10.1|3.5|2.8|16.4|93.2|
+|decode_test_decode_tsd|760|32771|85.4|10.7|3.9|2.8|17.4|94.9|
+|decode_test_decode_tsd_lm|760|32771|85.8|10.2|4.0|2.6|16.8|94.3|
+|decode_test_decode_tsd_lm_word7184|760|32771|86.1|10.0|4.0|2.5|16.5|92.9|
+|decode_train_dev_decode_alsd|100|4007|86.6|11.2|2.2|2.9|16.3|92.0|
+|decode_train_dev_decode_alsd_lm|100|4007|87.0|10.7|2.3|2.9|15.9|94.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|4007|87.6|10.2|2.2|2.7|15.1|91.0|
+|decode_train_dev_decode_default|100|4007|86.3|11.0|2.6|2.7|16.3|96.0|
+|decode_train_dev_decode_default_lm|100|4007|85.9|10.8|3.3|2.6|16.8|94.0|
+|decode_train_dev_decode_default_lm_word7184|100|4007|86.2|10.8|3.0|2.3|16.1|91.0|
+|decode_train_dev_decode_nsc|100|4007|86.0|11.4|2.5|2.8|16.8|96.0|
+|decode_train_dev_decode_nsc_lm|100|4007|86.6|11.0|2.4|2.7|16.1|96.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|4007|87.0|10.7|2.3|2.5|15.5|92.0|
+|decode_train_dev_decode_tsd|100|4007|86.0|11.2|2.8|2.7|16.7|96.0|
+|decode_train_dev_decode_tsd_lm|100|4007|86.6|10.7|2.7|2.4|15.8|96.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|4007|86.7|10.5|2.8|2.3|15.6|93.0|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|7722|63.3|35.7|1.0|0.5|37.2|94.2|
+|decode_test_decode_alsd_lm|760|7722|64.7|34.2|1.1|0.5|35.8|93.8|
+|decode_test_decode_alsd_lm_word7184|760|7722|65.7|33.2|1.1|0.5|34.8|92.9|
+|decode_test_decode_default|760|7722|63.6|35.5|0.9|0.5|36.9|94.7|
+|decode_test_decode_default_lm|760|7722|64.9|33.8|1.3|0.5|35.6|94.2|
+|decode_test_decode_default_lm_word7184|760|7722|66.0|32.7|1.3|0.5|34.5|93.7|
+|decode_test_decode_nsc|760|7722|63.6|35.5|0.8|0.6|37.0|95.0|
+|decode_test_decode_nsc_lm|760|7722|65.5|33.6|0.9|0.5|35.1|94.3|
+|decode_test_decode_nsc_lm_word7184|760|7722|66.5|32.6|0.9|0.5|34.1|93.2|
+|decode_test_decode_tsd|760|7722|63.4|35.7|0.9|0.5|37.1|94.9|
+|decode_test_decode_tsd_lm|760|7722|65.2|33.7|1.1|0.4|35.3|94.3|
+|decode_test_decode_tsd_lm_word7184|760|7722|66.5|32.4|1.1|0.5|33.9|92.9|
+|decode_train_dev_decode_alsd|100|927|64.1|35.8|0.1|0.4|36.4|92.0|
+|decode_train_dev_decode_alsd_lm|100|927|65.6|34.2|0.2|0.4|34.8|94.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|927|66.8|33.0|0.2|0.3|33.5|91.0|
+|decode_train_dev_decode_default|100|927|64.2|35.6|0.2|0.4|36.2|96.0|
+|decode_train_dev_decode_default_lm|100|927|64.7|34.3|1.0|0.3|35.6|94.0|
+|decode_train_dev_decode_default_lm_word7184|100|927|65.7|33.5|0.8|0.3|34.6|91.0|
+|decode_train_dev_decode_nsc|100|927|63.5|36.4|0.1|0.4|36.9|96.0|
+|decode_train_dev_decode_nsc_lm|100|927|65.2|34.6|0.2|0.3|35.2|96.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|927|66.1|33.7|0.2|0.3|34.2|92.0|
+|decode_train_dev_decode_tsd|100|927|63.4|36.5|0.1|0.4|37.0|96.0|
+|decode_train_dev_decode_tsd_lm|100|927|65.2|34.6|0.2|0.3|35.2|96.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|927|65.9|33.8|0.3|0.3|34.4|93.0|
+
+# Conformer-Transducer (enc: Conv2DSubsampling + 8 x Conformer, dec: 2 x Conformer)
+
+- Environments
+  - date: `Wed Aug 26 11:15:29 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.9.1`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `46991fbc8010e66365235b1a179841e06d34a4db`
+  - Commit date: `Tue Aug 25 10:58:45 2020 +0200`
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|32771|88.1|9.1|2.8|2.7|14.7|91.7|
+|decode_test_decode_alsd_lm|760|32771|88.3|8.9|2.8|2.6|14.3|91.2|
+|decode_test_decode_alsd_lm_word7184|760|32771|88.6|8.6|2.8|2.4|13.8|88.7|
+|decode_test_decode_default|760|32771|88.0|9.2|2.8|2.7|14.7|91.6|
+|decode_test_decode_default_lm|760|32771|88.2|8.8|2.9|2.5|14.3|90.8|
+|decode_test_decode_default_lm_word7184|760|32771|88.3|8.6|3.0|2.4|14.1|89.6|
+|decode_test_decode_nsc|760|32771|87.9|9.2|2.8|2.8|14.8|91.4|
+|decode_test_decode_nsc_lm|760|32771|88.2|9.0|2.9|2.6|14.4|91.2|
+|decode_test_decode_nsc_lm_word7184|760|32771|88.4|8.8|2.9|2.5|14.2|89.9|
+|decode_test_decode_tsd|760|32771|88.0|9.1|2.9|2.7|14.7|91.7|
+|decode_test_decode_tsd_lm|760|32771|88.2|8.8|3.0|2.5|14.3|91.2|
+|decode_test_decode_tsd_lm_word7184|760|32771|88.4|8.6|3.1|2.4|14.0|90.0|
+|decode_train_dev_decode_alsd|100|4007|89.5|9.0|1.5|1.9|12.5|96.0|
+|decode_train_dev_decode_alsd_lm|100|4007|89.7|8.7|1.6|1.7|12.0|95.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|4007|90.1|8.3|1.6|1.5|11.4|94.0|
+|decode_train_dev_decode_default|100|4007|89.5|8.9|1.6|1.9|12.4|96.0|
+|decode_train_dev_decode_default_lm|100|4007|89.6|8.7|1.7|1.8|12.2|95.0|
+|decode_train_dev_decode_default_lm_word7184|100|4007|89.8|8.5|1.7|1.6|11.8|94.0|
+|decode_train_dev_decode_nsc|100|4007|89.3|9.0|1.6|1.8|12.5|96.0|
+|decode_train_dev_decode_nsc_lm|100|4007|89.6|8.7|1.7|1.7|12.1|95.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|4007|89.6|8.7|1.7|1.5|12.0|95.0|
+|decode_train_dev_decode_tsd|100|4007|89.1|9.0|1.8|1.9|12.8|96.0|
+|decode_train_dev_decode_tsd_lm|100|4007|89.5|8.6|1.9|1.7|12.2|95.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|4007|89.8|8.4|1.8|1.5|11.7|94.0|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|7722|66.4|32.8|0.8|0.4|34.0|91.7|
+|decode_test_decode_alsd_lm|760|7722|67.7|31.5|0.9|0.4|32.7|91.2|
+|decode_test_decode_alsd_lm_word7184|760|7722|69.2|29.9|0.9|0.4|31.2|88.7|
+|decode_test_decode_default|760|7722|66.1|33.1|0.8|0.4|34.3|91.6|
+|decode_test_decode_default_lm|760|7722|67.7|31.4|1.0|0.4|32.7|90.8|
+|decode_test_decode_default_lm_word7184|760|7722|68.7|30.2|1.1|0.4|31.7|89.6|
+|decode_test_decode_nsc|760|7722|65.8|33.5|0.7|0.4|34.7|91.4|
+|decode_test_decode_nsc_lm|760|7722|67.0|32.2|0.8|0.4|33.4|91.2|
+|decode_test_decode_nsc_lm_word7184|760|7722|68.2|30.9|0.9|0.4|32.2|89.9|
+|decode_test_decode_tsd|760|7722|66.1|33.1|0.7|0.4|34.3|91.7|
+|decode_test_decode_tsd_lm|760|7722|67.6|31.4|0.9|0.4|32.7|91.2|
+|decode_test_decode_tsd_lm_word7184|760|7722|69.0|30.0|1.0|0.4|31.4|90.0|
+|decode_train_dev_decode_alsd|100|927|68.1|31.8|0.1|0.0|31.9|96.0|
+|decode_train_dev_decode_alsd_lm|100|927|69.5|30.3|0.2|0.0|30.5|95.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|927|71.4|28.4|0.2|0.0|28.6|94.0|
+|decode_train_dev_decode_default|100|927|68.0|31.9|0.1|0.0|32.0|96.0|
+|decode_train_dev_decode_default_lm|100|927|68.9|30.9|0.2|0.0|31.1|95.0|
+|decode_train_dev_decode_default_lm_word7184|100|927|70.7|29.1|0.2|0.0|29.3|94.0|
+|decode_train_dev_decode_nsc|100|927|67.9|32.0|0.1|0.0|32.1|96.0|
+|decode_train_dev_decode_nsc_lm|100|927|69.3|30.5|0.2|0.0|30.7|95.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|927|69.9|29.9|0.2|0.0|30.1|95.0|
+|decode_train_dev_decode_tsd|100|927|67.4|32.4|0.2|0.0|32.6|96.0|
+|decode_train_dev_decode_tsd_lm|100|927|69.1|30.6|0.2|0.0|30.9|95.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|927|71.1|28.7|0.2|0.0|28.9|94.0|
+
+# mixed RNN/Conformer-Transducer (enc: Conv2DSubsampling + 8 x Conformer, dec: 1 x LSTM)
+
+- Environments
+  - date: `Wed Aug 26 11:15:29 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.9.1`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `46991fbc8010e66365235b1a179841e06d34a4db`
+  - Commit date: `Tue Aug 25 10:58:45 2020 +0200`
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|32771|88.5|8.8|2.7|2.6|14.1|90.1|
+|decode_test_decode_alsd_lm|760|32771|88.8|8.6|2.6|2.6|13.8|90.0|
+|decode_test_decode_alsd_lm_word7184|760|32771|89.0|8.4|2.6|2.5|13.5|88.8|
+|decode_test_decode_default|760|32771|88.4|8.8|2.7|2.6|14.1|90.0|
+|decode_test_decode_default_lm|760|32771|88.7|8.6|2.8|2.5|13.8|89.3|
+|decode_test_decode_default_lm_word7184|760|32771|88.8|8.4|2.8|2.5|13.6|88.6|
+|decode_test_decode_nsc|760|32771|88.4|8.8|2.7|2.7|14.2|91.2|
+|decode_test_decode_nsc_lm|760|32771|88.7|8.6|2.7|2.6|13.9|90.3|
+|decode_test_decode_nsc_lm_word7184|760|32771|88.9|8.4|2.7|2.5|13.6|89.6|
+|decode_test_decode_tsd|760|32771|88.4|8.8|2.8|2.6|14.2|91.1|
+|decode_test_decode_tsd_lm|760|32771|88.6|8.5|2.9|2.5|13.9|90.0|
+|decode_test_decode_tsd_lm_word7184|760|32771|88.8|8.3|2.9|2.4|13.5|88.6|
+|decode_train_dev_decode_alsd|100|4007|87.8|10.6|1.6|2.5|14.7|95.0|
+|decode_train_dev_decode_alsd_lm|100|4007|88.2|10.4|1.5|2.2|14.1|96.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|4007|88.4|10.1|1.5|2.1|13.7|95.0|
+|decode_train_dev_decode_default|100|4007|87.6|10.8|1.6|2.4|14.8|95.0|
+|decode_train_dev_decode_default_lm|100|4007|88.2|10.3|1.5|2.4|14.2|94.0|
+|decode_train_dev_decode_default_lm_word7184|100|4007|87.9|10.4|1.6|2.1|14.2|93.0|
+|decode_train_dev_decode_nsc|100|4007|87.9|10.5|1.6|2.5|14.6|95.0|
+|decode_train_dev_decode_nsc_lm|100|4007|87.9|10.5|1.6|2.4|14.5|95.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|4007|88.3|10.2|1.5|2.3|14.0|94.0|
+|decode_train_dev_decode_tsd|100|4007|87.8|10.6|1.6|2.5|14.7|96.0|
+|decode_train_dev_decode_tsd_lm|100|4007|88.0|10.3|1.7|2.2|14.1|95.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|4007|88.3|9.9|1.8|1.9|13.7|94.0|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|7722|69.2|30.2|0.6|0.5|31.3|90.1|
+|decode_test_decode_alsd_lm|760|7722|70.0|29.4|0.6|0.4|30.5|90.0|
+|decode_test_decode_alsd_lm_word7184|760|7722|71.1|28.3|0.6|0.4|29.3|88.8|
+|decode_test_decode_default|760|7722|68.6|30.8|0.6|0.4|31.8|90.0|
+|decode_test_decode_default_lm|760|7722|69.8|29.6|0.7|0.4|30.7|89.3|
+|decode_test_decode_default_lm_word7184|760|7722|70.6|28.7|0.7|0.4|29.8|88.6|
+|decode_test_decode_nsc|760|7722|68.5|30.9|0.6|0.5|31.9|91.1|
+|decode_test_decode_nsc_lm|760|7722|69.6|29.8|0.6|0.5|30.9|90.1|
+|decode_test_decode_nsc_lm_word7184|760|7722|70.7|28.7|0.6|0.4|29.7|89.5|
+|decode_test_decode_tsd|760|7722|68.7|30.7|0.6|0.5|31.8|90.9|
+|decode_test_decode_tsd_lm|760|7722|69.8|29.6|0.7|0.5|30.7|89.9|
+|decode_test_decode_tsd_lm_word7184|760|7722|71.0|28.4|0.7|0.5|29.5|88.4|
+|decode_train_dev_decode_alsd|100|927|65.9|34.1|0.0|0.0|34.1|95.0|
+|decode_train_dev_decode_alsd_lm|100|927|67.7|32.3|0.0|0.0|32.3|96.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|927|68.9|31.1|0.0|0.0|31.1|95.0|
+|decode_train_dev_decode_default|100|927|65.4|34.6|0.0|0.0|34.6|95.0|
+|decode_train_dev_decode_default_lm|100|927|67.0|33.0|0.0|0.0|33.0|94.0|
+|decode_train_dev_decode_default_lm_word7184|100|927|67.9|32.1|0.0|0.0|32.1|93.0|
+|decode_train_dev_decode_nsc|100|927|65.9|34.1|0.0|0.0|34.1|95.0|
+|decode_train_dev_decode_nsc_lm|100|927|66.9|33.1|0.0|0.0|33.1|95.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|927|68.1|31.9|0.0|0.0|31.9|94.0|
+|decode_train_dev_decode_tsd|100|927|65.6|34.4|0.0|0.0|34.4|96.0|
+|decode_train_dev_decode_tsd_lm|100|927|66.9|33.1|0.0|0.0|33.1|95.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|927|68.7|31.3|0.0|0.0|31.3|94.0|
 
 # CTC model (4 x BLSTMP)
 
