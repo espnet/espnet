@@ -70,7 +70,8 @@ def average_nbest_models(
                 for e, _ in epoch_and_values[:n]:
                     if e not in _loaded:
                         _loaded[e] = torch.load(
-                            output_dir / f"{e}epoch.pth", map_location="cpu",
+                            output_dir / f"{e}epoch.pth",
+                            map_location="cpu",
                         )
                     states = _loaded[e]
 

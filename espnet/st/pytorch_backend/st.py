@@ -99,7 +99,8 @@ class CustomConverter(ASRCustomConverter):
         )
 
         ys_pad = pad_list(
-            [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys], self.ignore_id,
+            [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys],
+            self.ignore_id,
         ).to(device)
 
         if self.use_source_text:

@@ -10,7 +10,9 @@ from typeguard import check_argument_types
 
 class TokenIDConverter:
     def __init__(
-        self, token_list: Union[Path, str, Iterable[str]], unk_symbol: str = "<unk>",
+        self,
+        token_list: Union[Path, str, Iterable[str]],
+        unk_symbol: str = "<unk>",
     ):
         assert check_argument_types()
 

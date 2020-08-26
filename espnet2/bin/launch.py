@@ -25,7 +25,9 @@ def get_parser():
         default="utils/run.pl",
     )
     parser.add_argument(
-        "--log", help="The path of log file used by cmd", default="run.log",
+        "--log",
+        help="The path of log file used by cmd",
+        default="run.log",
     )
     parser.add_argument(
         "--max_num_log_files",
@@ -215,7 +217,9 @@ EOF
                 #  i.e. not assigning pty,
                 #  and the program is not killed when SSH connection is closed.
                 process = subprocess.Popen(
-                    ["ssh", host, "bash", heredoc], stdout=f, stderr=f,
+                    ["ssh", host, "bash", heredoc],
+                    stdout=f,
+                    stderr=f,
                 )
 
                 processes.append(process)
