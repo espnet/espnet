@@ -208,7 +208,7 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
                   d_ff: 320
                   heads: 4
 
-2) Each part has different allowed block type: `tdnn` or `transformer` for encoder and `causal-conv1d` or `transformer` for decoder. For each block type, a set of parameters are needed:
+2) Each part has different allowed block type: `tdnn`, `conformer` or `transformer` for encoder and `causal-conv1d` or `transformer` for decoder. For each block type, a set of parameters are needed:
 
         # TDNN
         - type: tdnn
@@ -224,6 +224,16 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
           d_hidden: input/output dimension
           d_ff: feed-forward hidden dimension
           heads: number of heads in multi-head attention
+          [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+
+        # Conformer
+        - type: conformer
+          d_hidden: input/output dimension
+          d_ff: feed-forward hidden dimension
+          heads: number of heads in multi-head attention
+          macaron_style: wheter to use macaron style
+          use_conv_mod: whether to use convolutional module
+          conv_mod_kernel: number of kernel in convolutional module (optional if `use_conv_mod=True`)
           [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
 
         # Causal Conv1d
@@ -290,6 +300,7 @@ Additional notes:
 - There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
 - Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
 - RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`). Pre-initialization for transformer-decoder is not supported yet.
+- Transformer and Conformer blocks within the same architecture part (i.e: encoder) is not supported yet.
 - Customizable architecture is a in-progress work and will be eventually extended to RNN. Please report any encountered error or usage issue.
 
 ### Changing the training configuration
