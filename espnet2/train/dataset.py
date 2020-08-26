@@ -308,9 +308,7 @@ class ESPnetDataset(AbsDataset):
 
     def _build_loader(
         self, path: str, loader_type: str
-    ) -> Mapping[
-        str, Union[np.ndarray, torch.Tensor, str, numbers.Number],
-    ]:
+    ) -> Mapping[str, Union[np.ndarray, torch.Tensor, str, numbers.Number]]:
         """Helper function to instantiate Loader.
 
         Args:

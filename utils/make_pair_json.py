@@ -87,5 +87,9 @@ if __name__ == "__main__":
         out = open(args.out, "w", encoding="utf-8")
 
     json.dump(
-        data, out, indent=4, ensure_ascii=False, separators=(",", ": "),
+        data,
+        out,
+        indent=4,
+        ensure_ascii=False,
+        separators=(",", ": "),
     )
