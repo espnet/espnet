@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # this script is to be used to convert MGB challenge xmls to SCLITE stm
 # format so it can be used as reference for evaluation.
