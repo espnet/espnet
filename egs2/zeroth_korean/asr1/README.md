@@ -35,5 +35,5 @@ https://github.com/goodatlas/zeroth
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|457|14176|98.2|0.9|0.9|0.2|2.0|17.3|
+|test_clean|457|14176|98.2|0.9|0.9|0.2|2.0|17.3|
 
