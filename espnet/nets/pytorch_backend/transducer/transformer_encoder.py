@@ -5,8 +5,6 @@ import torch
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
@@ -19,7 +17,7 @@ class Encoder(torch.nn.Module):
         enc_arch (List[dict]): list of layer definitions
         input_layer (str): input layer type
         repeat_block (int): if N > 1, repeat block N times
-        pos_enc_class (class): PositionalEncoding
+        positional_encoding_type (str): positional encoding type
         positionwise_layer_type (str): linear
         normalize_before (bool): whether to use layer_norm before the first block
         padding_idx (int): padding_idx for input_layer=embed
@@ -32,21 +30,23 @@ class Encoder(torch.nn.Module):
         enc_arch,
         input_layer="linear",
         repeat_block=0,
-        pos_enc_class=PositionalEncoding,
+        positional_encoding_type="abs_pos",
+        self_attn_type="selfattn",
         positionwise_layer_type="linear",
         normalize_before=True,
         padding_idx=-1,
     ):
-        """Construct an Encoder object."""
+        """Construct an Transformer encoder object."""
         super(Encoder, self).__init__()
 
         self.embed, self.encoders, self.enc_out = build_blocks(
+            "encoder",
             idim,
             input_layer,
             enc_arch,
-            EncoderLayer,
             repeat_block=repeat_block,
-            pos_enc_class=pos_enc_class,
+            self_attn_type=self_attn_type,
+            positional_encoding_type=positional_encoding_type,
             positionwise_layer_type=positionwise_layer_type,
             padding_idx=padding_idx,
         )
@@ -75,8 +75,12 @@ class Encoder(torch.nn.Module):
 
         xs, masks = self.encoders(xs, masks)
 
+        if isinstance(xs, tuple):
+            xs = xs[0]
+
         if self.normalize_before:
             xs = self.after_norm(xs)
+
         return xs, masks
 
     def forward_one_step(self, xs, masks, cache=None):
@@ -97,12 +101,20 @@ class Encoder(torch.nn.Module):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)
+
         if cache is None:
             cache = [None for _ in range(len(self.encoders))]
+
         new_cache = []
         for c, e in zip(cache, self.encoders):
             xs, masks = e(xs, masks, cache=c)
+
+            if isinstance(xs, tuple):
+                xs = xs[0]
+
             new_cache.append(xs)
+
         if self.normalize_before:
             xs = self.after_norm(xs)
+
         return xs, masks, new_cache

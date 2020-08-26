@@ -5,14 +5,10 @@ import torch
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
-from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
-    DecoderLayer,  # noqa: H301
-)
 from espnet.nets.pytorch_backend.transducer.utils import check_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_batch_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
 
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
@@ -45,7 +41,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         dec_arch,
         input_layer="embed",
         repeat_block=0,
-        pos_enc_class=PositionalEncoding,
+        positional_encoding_type="abs_pos",
         positionwise_layer_type="linear",
         dropout_rate_embed=0.0,
         normalize_before=True,
@@ -55,12 +51,12 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         self.embed, self.decoders, ddim = build_blocks(
+            "decoder",
             odim,
             input_layer,
             dec_arch,
-            DecoderLayer,
             repeat_block=repeat_block,
-            pos_enc_class=pos_enc_class,
+            positional_encoding_type=positional_encoding_type,
             positionwise_layer_type=positionwise_layer_type,
             dropout_rate_embed=dropout_rate_embed,
             padding_idx=blank,

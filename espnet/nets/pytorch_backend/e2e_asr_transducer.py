@@ -18,7 +18,10 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
@@ -139,6 +142,20 @@ class E2E(ASRInterface, torch.nn.Module):
             default="conv2d",
             choices=["conv2d", "vgg2l", "linear", "embed"],
             help="transformer encoder input layer type",
+        )
+        group.add_argument(
+            "--transformer-enc-positional-encoding-type",
+            type=str,
+            default="abs_pos",
+            choices=["abs_pos", "scaled_abs_pos", "rel_pos"],
+            help="transformer encoder positional encoding layer type",
+        )
+        group.add_argument(
+            "--transformer-enc-self-attn-type",
+            type=str,
+            default="self_attn",
+            choices=["self_attn", "rel_self_attn"],
+            help="transformer encoder self attention type",
         )
         # Attention - RNN
         group.add_argument(
@@ -337,6 +354,8 @@ class E2E(ASRInterface, torch.nn.Module):
                 args.enc_block_arch,
                 input_layer=args.transformer_enc_input_layer,
                 repeat_block=args.enc_block_repeat,
+                positional_encoding_type=args.transformer_enc_positional_encoding_type,
+                self_attn_type=args.transformer_enc_self_attn_type,
             )
 
             encoder_out = self.encoder.enc_out
@@ -616,7 +635,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
             ret = dict()
             for name, m in self.named_modules():
-                if isinstance(m, MultiHeadedAttention):
+                if isinstance(m, MultiHeadedAttention) or isinstance(
+                    m, RelPositionMultiHeadedAttention
+                ):
                     ret[name] = m.attn.cpu().numpy()
 
         self.train()
