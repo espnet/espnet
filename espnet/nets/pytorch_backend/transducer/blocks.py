@@ -505,7 +505,9 @@ def build_blocks(
             module = build_tdnn_layer(block_arch[i])
         elif layer_type == "transformer":
             module = build_transformer_layer(
-                block_part, block_arch[i], positionwise_layer_type,
+                block_part,
+                block_arch[i],
+                positionwise_layer_type,
             )
         elif layer_type == "conformer":
             module = build_conformer_layer(
