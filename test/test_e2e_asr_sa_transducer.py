@@ -18,6 +18,8 @@ def make_train_args(**kwargs):
         transformer_init="pytorch",
         etype="transformer",
         transformer_enc_input_layer="conv2d",
+        transformer_enc_self_attn_type="selfattn",
+        transformer_enc_positional_encoding_type="abs_pos",
         enc_block_arch=[{"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2}],
         enc_block_repeat=1,
         dtype="transformer",
@@ -250,6 +252,39 @@ def test_sa_transducer_mask(module):
                         "stride": 1,
                     },
                     {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                ],
+                "enc_repeat_block": 2,
+            },
+            {},
+        ),
+        (
+            {
+                "enc_block_arch": [
+                    {
+                        "type": "conformer",
+                        "d_hidden": 8,
+                        "d_ff": 8,
+                        "heads": 2,
+                        "macaron_style": False,
+                        "use_conv_mod": False,
+                    }
+                ],
+                "enc_repeat_block": 2,
+            },
+            {},
+        ),
+        (
+            {
+                "enc_block_arch": [
+                    {
+                        "type": "conformer",
+                        "d_hidden": 8,
+                        "d_ff": 8,
+                        "heads": 2,
+                        "macaron_style": True,
+                        "use_conv_mod": True,
+                        "conv_mod_kernel": 3,
+                    }
                 ],
                 "enc_repeat_block": 2,
             },
