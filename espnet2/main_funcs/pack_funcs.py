@@ -38,6 +38,7 @@ class Archiver:
         if self.type == "tar":
             self.fopen = tarfile.open(file, mode=mode)
         elif self.type == "zip":
+
             self.fopen = zipfile.ZipFile(file, mode=mode)
         else:
             raise ValueError(f"Not supported: type={type}")
@@ -60,8 +61,13 @@ class Archiver:
             raise ValueError(f"Not supported: type={self.type}")
 
     def add(self, filename, arcname=None, recursive: bool = True):
+        if arcname is not None:
+            print(f"adding: {arcname}")
+        else:
+            print(f"adding: {filename}")
+
         if recursive and Path(filename).is_dir():
-            for f in Path(filename).glob("**"):
+            for f in Path(filename).glob("**/*"):
                 if f.is_dir():
                     continue
 
@@ -70,7 +76,7 @@ class Archiver:
                 else:
                     _arcname = None
 
-                self.add(f, _arcname, recursive=True)
+                self.add(f, _arcname)
             return
 
         if self.type == "tar":
@@ -81,6 +87,8 @@ class Archiver:
             raise ValueError(f"Not supported: type={self.type}")
 
     def addfile(self, info, fileobj):
+        print(f"adding: {self.get_name_from_info(info)}")
+
         if self.type == "tar":
             return self.fopen.addfile(info, fileobj)
         elif self.type == "zip":
@@ -290,3 +298,5 @@ def pack(
 
         for f in list(yaml_files.values()) + list(files.values()) + list(option):
             archive.add(f)
+
+    print(f"Generate: {outpath}")
