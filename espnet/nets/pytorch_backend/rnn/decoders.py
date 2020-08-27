@@ -763,7 +763,13 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 lpz[0].size(-1),
             )
             ctc_scorer = [
-                CTCPrefixScoreTH(lpz[idx], hlens[idx], 0, self.eos, margin=ctc_margin,)
+                CTCPrefixScoreTH(
+                    lpz[idx],
+                    hlens[idx],
+                    0,
+                    self.eos,
+                    margin=ctc_margin,
+                )
                 for idx in range(self.num_encs)
             ]
 
@@ -963,24 +969,24 @@ class Decoder(torch.nn.Module, ScorerInterface):
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, lang_ids=None):
         """Calculate all of attentions
 
-            :param torch.Tensor hs_pad: batch of padded hidden state sequences
-                                        (B, Tmax, D)
-                                        in multi-encoder case, list of torch.Tensor,
-                                        [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
-            :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
-                                        [in multi-encoder case, list of torch.Tensor,
-                                        [(B), (B), ..., ]
-            :param torch.Tensor ys_pad:
-                batch of padded character id sequence tensor (B, Lmax)
-            :param int strm_idx:
-                stream index for parallel speaker attention in multi-speaker case
-            :param torch.Tensor lang_ids: batch of target language id tensor (B, 1)
-            :return: attention weights with the following shape,
-                1) multi-head case => attention weights (B, H, Lmax, Tmax),
-                2) multi-encoder case =>
-                    [(B, Lmax, Tmax1), (B, Lmax, Tmax2), ..., (B, Lmax, NumEncs)]
-                3) other case => attention weights (B, Lmax, Tmax).
-            :rtype: float ndarray
+        :param torch.Tensor hs_pad: batch of padded hidden state sequences
+                                    (B, Tmax, D)
+                                    in multi-encoder case, list of torch.Tensor,
+                                    [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
+        :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
+                                    [in multi-encoder case, list of torch.Tensor,
+                                    [(B), (B), ..., ]
+        :param torch.Tensor ys_pad:
+            batch of padded character id sequence tensor (B, Lmax)
+        :param int strm_idx:
+            stream index for parallel speaker attention in multi-speaker case
+        :param torch.Tensor lang_ids: batch of target language id tensor (B, 1)
+        :return: attention weights with the following shape,
+            1) multi-head case => attention weights (B, H, Lmax, Tmax),
+            2) multi-encoder case =>
+                [(B, Lmax, Tmax1), (B, Lmax, Tmax2), ..., (B, Lmax, NumEncs)]
+            3) other case => attention weights (B, Lmax, Tmax).
+        :rtype: float ndarray
         """
         # to support mutiple encoder asr mode, in single encoder mode,
         # convert torch.Tensor to List of torch.Tensor

@@ -98,7 +98,7 @@ class LengthBatchSampler(AbsSampler):
         # the samples are redistributed to the other mini-batches
         if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
             for i in range(batch_sizes.pop(-1)):
-                batch_sizes[-(i % len(batch_sizes)) - 2] += 1
+                batch_sizes[-(i % len(batch_sizes)) - 1] += 1
 
         if not self.drop_last:
             # Bug check

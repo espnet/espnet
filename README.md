@@ -7,7 +7,7 @@
 |ubuntu18/python3.8/pip|||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
 |ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
 |ubuntu18/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|ubuntu16/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
+|ubuntu20/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
 |debian9/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
 |centos7/python3.6/conda|||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
 |[docs/coverage] python3.8|||||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
@@ -44,7 +44,6 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 
 ### ASR: Automatic Speech Recognition
-
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - **Hybrid CTC/attention** based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
@@ -56,19 +55,29 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **Transducer** based end-to-end ASR
   - Available: RNN-Transducer, Transformer-Transducer, mixed Transformer/RNN-Transducer
   - Also support: attention mechanism (RNN-decoder), pre-init w/ LM (RNN-decoder), VGG-Transformer (encoder)
-- CTC forced alignment
+- CTC segmentation
 
 ### TTS: Text-to-speech
-- Tacotron2 based end-to-end TTS
-- Transformer based end-to-end TTS
-- Feed-forward Transformer (a.k.a. FastSpeech) based end-to-end TTS
-- Multi-speaker TTS with pretrained speaker embedding
-- Support phoneme-based TTS for En, Jp, and Zn
-- Integration with neural vocoders such as WaveNet, ParallelWaveGAN, and (Multi-band) MelGAN
+- Tacotron2
+- Transformer-TTS
+- FastSpeech
+- FastSpeech2 (in ESPnet2)
+- Multi-speaker model with pretrained speaker embedding
+- Multi-speaker model with GST (in ESPnet2)
+- Phoneme-based training (En, Jp, and Zn)
+- Integration with neural vocoders (WaveNet, ParallelWaveGAN, and MelGAN)
 
-> To train the neural vocoder, please check the following repositories:
-> - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
-> - [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
+You can try demo online now!
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
+
+To train the neural vocoder, please check the following repositories:
+- [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
+- [r9y9/wavenet_vocoder](https://github.com/r9y9/wavenet_vocoder)
+
+> **NOTE**:
+> - We are moving on ESPnet2-based development for TTS.
+> - If you are beginner, we recommend using [ESPnet2-TTS](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1).
 
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
@@ -333,10 +342,11 @@ If you want to use the above pretrained vocoders, please exactly match the featu
 
 <details><summary>expand</summary><div>
 
-(**New!**) We made a new real-time E2E-TTS demonstration in Google Colab.
+We made a new real-time E2E-TTS demonstration in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
 
 ---
 
@@ -430,31 +440,62 @@ In VCC2020, the objective is intra/cross lingual nonparallel VC.
 You can download converted samples of the cascade ASR+TTS baseline system [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
 
-### CTC Forced Alignment demo
+### CTC Segmentation demo
 
 <details><summary>expand</summary><div>
 
-You can align speech in a WAV file using pretrained models.
-Go to a recipe directory and run `utils/ctc_align_wav.sh` as follows:
+[CTC segmentation](https://arxiv.org/abs/2007.09127) determines utterance segments within audio files.
+Aligned utterance segments constitute the "labels" of speech datasets.
+
+As demo, we align start and end of utterances within the audio file `ctc_align_test.wav`, using the example script `utils/ctc_align_wav.sh`.
+For preparation, set up a data directory:
+
 ```sh
-# go to recipe directory and source path of espnet tools
-cd egs/wsj/asr1 && . ./path.sh
-# get example wav file
-mkdir -p alignment
-cp ../../../test_utils/ctc_align_test.wav ./alignment
-# let's generate the ctc alignment of the speech!
-# the transcription of the example wav is:
-# "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
-ctc_align_wav.sh --align_dir ./alignment --models wsj.transformer.v1 ./alignment/ctc_align_test.wav "THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
+cd egs/tedlium2/align1/
+# data directory
+align_dir=data/demo
+mkdir -p ${align_dir}
+# wav file
+base=ctc_align_test
+wav=../../../test_utils/${base}.wav
+# recipe files
+echo "batchsize: 0" > ${align_dir}/align.yaml
+
+cat << EOF > ${align_dir}/utt_text
+${base} THE SALE OF THE HOTELS
+${base} IS PART OF HOLIDAY'S STRATEGY
+${base} TO SELL OFF ASSETS
+${base} AND CONCENTRATE
+${base} ON PROPERTY MANAGEMENT
+EOF
 ```
-where `test.wav` is a WAV file to be aligned.
-The sampling rate must be consistent with that of data used in training.
 
-Available pretrained models in the demo script are listed as below.
+Here, `utt_text` is the file containing the list of utterances.
+Choose a pre-trained ASR model that includes a CTC layer to find utterance segments:
 
-| Model                                                                                            | Notes                                                      |
-| :------                                                                                          | :------                                                    |
-| [wsj.transformer.v1](https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp)            | Transformer-ASR trained on WSJ corpus                  |
+```sh
+# pre-trained ASR model
+model=wsj.transformer_small.v1
+mkdir ./conf && cp ../../wsj/asr1/conf/no_preprocess.yaml ./conf
+
+../../../utils/asr_align_wav.sh \
+    --models ${model} \
+    --align_dir ${align_dir} \
+    --align_config ${align_dir}/align.yaml \
+    ${wav} ${align_dir}/utt_text
+```
+
+Segments are written to `aligned_segments` as a list of file/utterance name, utterance start and end times in seconds and a confidence score.
+The confidence score is a probability in log space that indicates how good the utterance was aligned. If needed, remove bad utterances:
+
+```sh
+min_confidence_score=-5
+awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${align_dir}/aligned_segments
+```
+
+The demo script `utils/ctc_align_wav.sh` uses an already pretrained ASR model (see list above for more models).
+The sample rate of the audio must be consistent with that of the data used in training; adjust with `sox` if needed.
+A full example recipe is in `egs/tedlium2/align1/`.
 
 </div></details>
 

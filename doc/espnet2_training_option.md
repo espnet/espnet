@@ -106,7 +106,7 @@ Checkpoint includes the following states.
 - Optimizer states
 - Scheduler states
 - Reporter state
-- apex.amp state
+- torch.cuda.amp state (from torch=1.6)
 
 ## Change logging interval
 The result in the middle state of the training will be shown by the specified number:
@@ -393,18 +393,12 @@ python -m espnet.bin.asr_train --accum_grad 2
 - Some statistical layers based on mini-batch e.g. BatchNormalization
 - The case that the batch_size is not unified for each iteration.
 
-## Using apex: mixed-precision training
+## Automatic Mixed Precision training
+
 ```bash
-python -m espnet.bin.asr_train --train_dtype float16 # Just training with half precision
-python -m espnet.bin.asr_train --train_dtype float32 # default
-python -m espnet.bin.asr_train --train_dtype float64
-python -m espnet.bin.asr_train --train_dtype O0 # opt_level of apex
-python -m espnet.bin.asr_train --train_dtype O1 # opt_level of apex
-python -m espnet.bin.asr_train --train_dtype O2 # opt_level of apex
-python -m espnet.bin.asr_train --train_dtype O3 # opt_level of apex
+python -m espnet.bin.asr_train --use_amp true
 ```
 
-Note that you need to install apex manually to use mixed-precision: https://github.com/NVIDIA/apex#linux
 
 ## Reproducibility and determinization
 There are some possibilities to make training non-reproducible.

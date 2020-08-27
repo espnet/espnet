@@ -488,7 +488,6 @@ def train(args):
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["output"][0]["shape"][0]),
-            reverse=True,
         )
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions

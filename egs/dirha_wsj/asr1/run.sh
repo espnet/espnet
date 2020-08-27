@@ -45,7 +45,7 @@ wsj0=/export/corpora5/LDC/LDC93S6B
 dirha_folder=/export/b18/xwang/data/dirha_english_wsj_audio
 dirha_wsj_folder=/export/b18/ruizhili/data/Data_processed # output folder for augmented wsj data and dirha data
 IR_folder=/export/b18/xwang/data/DIRHA_English_phrich_released_june2016_realonly_last/Data/Training_IRs # folders for Impulse responses for WSJ contamination
-sph_reader=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+sph_reader=sph2pipe
 
 # exp tag
 tag="" # tag for managing experiments.

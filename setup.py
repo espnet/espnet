@@ -18,6 +18,7 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
+        "ctc-segmentation",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
@@ -32,6 +33,7 @@ requirements = {
         # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
         "sentencepiece<0.1.90,>=0.1.82",
         "nltk>=3.4.5",
+        "morfessor",
         # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
@@ -116,7 +118,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.9.0",
+    version="0.9.1",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

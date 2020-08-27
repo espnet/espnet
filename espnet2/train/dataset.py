@@ -1,9 +1,12 @@
+from abc import ABC
+from abc import abstractmethod
 import collections
 import copy
 import functools
 import logging
 import numbers
 import re
+from typing import Any
 from typing import Callable
 from typing import Collection
 from typing import Dict
@@ -234,7 +237,21 @@ DATA_TYPES = {
 }
 
 
-class ESPnetDataset(Dataset):
+class AbsDataset(Dataset, ABC):
+    @abstractmethod
+    def has_name(self, name) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def names(self) -> Tuple[str, ...]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __getitem__(self, uid) -> Tuple[Any, Dict[str, np.ndarray]]:
+        raise NotImplementedError
+
+
+class ESPnetDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet.
 
     Examples:
@@ -291,9 +308,7 @@ class ESPnetDataset(Dataset):
 
     def _build_loader(
         self, path: str, loader_type: str
-    ) -> Mapping[
-        str, Union[np.ndarray, torch.Tensor, str, numbers.Number],
-    ]:
+    ) -> Mapping[str, Union[np.ndarray, torch.Tensor, str, numbers.Number]]:
         """Helper function to instantiate Loader.
 
         Args:
@@ -334,6 +349,9 @@ class ESPnetDataset(Dataset):
     def names(self) -> Tuple[str, ...]:
         return tuple(self.loader_dict)
 
+    def __iter__(self):
+        return iter(next(iter(self.loader_dict.values())))
+
     def __repr__(self):
         _mes = self.__class__.__name__
         _mes += "("
@@ -341,12 +359,6 @@ class ESPnetDataset(Dataset):
             _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
         _mes += f"\n  preprocess: {self.preprocess})"
         return _mes
-
-    def __len__(self):
-        return len(next(iter(self.loader_dict.values())))
-
-    def __iter__(self):
-        return iter(next(iter(self.loader_dict.values())))
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
         assert check_argument_types()

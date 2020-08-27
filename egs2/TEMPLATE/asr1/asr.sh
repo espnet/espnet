@@ -88,13 +88,13 @@ inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                # Note that it will overwrite args in inference config.
-inference_lm=valid.loss.best.pth       # Language modle path for decoding.
-inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
-                                    # e.g.
-                                    # inference_asr_model=train.loss.best.pth
-                                    # inference_asr_model=3epoch.pth
-                                    # inference_asr_model=valid.acc.best.pth
-                                    # inference_asr_model=valid.loss.ave.pth
+inference_lm=valid.loss.ave.pth       # Language modle path for decoding.
+inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
+                                      # e.g.
+                                      # inference_asr_model=train.loss.best.pth
+                                      # inference_asr_model=3epoch.pth
+                                      # inference_asr_model=valid.acc.best.pth
+                                      # inference_asr_model=valid.loss.ave.pth
 download_model= # Download a model from Model Zoo and use it for decoding
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -201,6 +201,8 @@ EOF
 )
 
 log "$0 $*"
+# Save command line args for logging (they will be lost after utils/parse_options.sh)
+run_args=$(pyscripts/utils/print_args.py $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -282,6 +284,9 @@ if [ -z "${asr_tag}" ]; then
     if [ -n "${asr_args}" ]; then
         asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
+    if [ -n "${speed_perturb_factors}" ]; then
+        asr_tag="${asr_tag}_sp"
+    fi
 fi
 if [ -z "${lm_tag}" ]; then
     if [ -n "${lm_config}" ]; then
@@ -294,21 +299,6 @@ if [ -z "${lm_tag}" ]; then
         lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
-if [ -z "${inference_tag}" ]; then
-    if [ -n "${inference_config}" ]; then
-        inference_tag="$(basename "${inference_config}" .yaml)"
-    else
-        inference_tag=inference
-    fi
-    # Add overwritten arg's info
-    if [ -n "${inference_args}" ]; then
-        inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
-    fi
-    if "${use_lm}"; then
-        inference_tag+="_lm_${lm_tag}_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-    fi
-    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-fi
 
 # The directory used for collect-stats mode
 asr_stats_dir="${expdir}/asr_stats_${feats_type}"
@@ -320,11 +310,25 @@ lm_stats_dir="${expdir}/lm_stats"
 if [ -z "${asr_exp}" ]; then
     asr_exp="${expdir}/asr_${asr_tag}"
 fi
-if [ -n "${speed_perturb_factors}" ]; then
-    asr_exp="${asr_exp}_sp"
-fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
+fi
+
+
+if [ -z "${inference_tag}" ]; then
+    if [ -n "${inference_config}" ]; then
+        inference_tag="$(basename "${inference_config}" .yaml)"
+    else
+        inference_tag=inference
+    fi
+    # Add overwritten arg's info
+    if [ -n "${inference_args}" ]; then
+        inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    fi
+    if "${use_lm}"; then
+        inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -627,11 +631,14 @@ if ! "${skip_train}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Submit jobs
+            # 2. Generate run.sh
+            log "Generate '${lm_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+            mkdir -p "${lm_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${lm_stats_dir}/run.sh"; chmod +x "${lm_stats_dir}/run.sh"
+
+            # 3. Submit jobs
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
-
             # shellcheck disable=SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.lm_train \
@@ -650,7 +657,7 @@ if ! "${skip_train}"; then
                     --output_dir "${_logdir}/stats.JOB" \
                     ${_opts} ${lm_args}
 
-            # 3. Aggregate shape files
+            # 4. Aggregate shape files
             _opts=
             for i in $(seq "${_nj}"); do
                 _opts+="--input_dir ${_logdir}/stats.${i} "
@@ -707,13 +714,17 @@ if ! "${skip_train}"; then
 
             # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
+            log "Generate '${lm_exp}/run.sh'. You can resume the process from stage 7 using this script"
+            mkdir -p "${lm_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${lm_exp}/run.sh"; chmod +x "${lm_exp}/run.sh"
+
             log "LM training started... log: '${lm_exp}/train.log'"
-            if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+            if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
                 # SGE can't include "/" in a job name
                 jobname="$(basename ${lm_exp})"
             else
                 jobname="${lm_exp}/train.log"
             fi
+
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
@@ -812,7 +823,11 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # 2. Submit jobs
+        # 2. Generate run.sh
+        log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
+        mkdir -p "${asr_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${asr_stats_dir}/run.sh"; chmod +x "${asr_stats_dir}/run.sh"
+
+        # 3. Submit jobs
         log "ASR collect-stats started... log: '${_logdir}/stats.*.log'"
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
@@ -838,7 +853,7 @@ if ! "${skip_train}"; then
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${asr_args}
 
-        # 3. Aggregate shape files
+        # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
@@ -923,15 +938,18 @@ if ! "${skip_train}"; then
             _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
         fi
 
-        # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
+        log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 10 using this script"
+        mkdir -p "${asr_exp}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"
 
+        # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
         log "ASR training started... log: '${asr_exp}/train.log'"
-        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+        if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${asr_exp})"
         else
             jobname="${asr_exp}/train.log"
         fi
+
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
@@ -1022,9 +1040,13 @@ if ! "${skip_eval}"; then
             fi
         fi
 
+        # 2. Generate run.sh
+        log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 11 using this script"
+        mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
+
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/inference_${dset}_${inference_tag}"
+            _dir="${asr_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -1079,7 +1101,7 @@ if ! "${skip_eval}"; then
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/inference_${dset}_${inference_tag}"
+            _dir="${asr_exp}/${inference_tag}/${dset}"
 
             for _type in cer wer ter; do
                 [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
@@ -1196,6 +1218,8 @@ if ! "${skip_upload}"; then
         if "${use_lm}"; then
             _opts+="--lm_train_config ${lm_exp}/config.yaml "
             _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            _opts+="--option ${lm_exp}/perplexity_test/ppl "
+            _opts+="--option ${lm_exp}/images "
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
             _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
@@ -1209,6 +1233,7 @@ if ! "${skip_upload}"; then
             --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
             ${_opts} \
             --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/images \
             --outpath "${packed_model}"
     fi
 
@@ -1256,7 +1281,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 EOF
 
         # NOTE(kamo): The model file is uploaded here, but not published yet.
-        #   Please confirm your record at Zenodo and publish it by youself.
+        #   Please confirm your record at Zenodo and publish it by yourself.
 
         # shellcheck disable=SC2086
         espnet_model_zoo_upload \

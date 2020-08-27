@@ -59,7 +59,20 @@ class Archiver:
         else:
             raise ValueError(f"Not supported: type={self.type}")
 
-    def add(self, filename, arcname=None):
+    def add(self, filename, arcname=None, recursive: bool = True):
+        if recursive and Path(filename).is_dir():
+            for f in Path(filename).glob("**"):
+                if f.is_dir():
+                    continue
+
+                if arcname is not None:
+                    _arcname = Path(arcname) / f
+                else:
+                    _arcname = None
+
+                self.add(f, _arcname, recursive=True)
+            return
+
         if self.type == "tar":
             return self.fopen.add(filename, arcname)
         elif self.type == "zip":
@@ -162,7 +175,9 @@ def get_dict_from_cache(meta: Union[Path, str]) -> Optional[Dict[str, str]]:
 
 
 def unpack(
-    input_archive: Union[Path, str], outpath: Union[Path, str], use_cache: bool = True,
+    input_archive: Union[Path, str],
+    outpath: Union[Path, str],
+    use_cache: bool = True,
 ) -> Dict[str, str]:
     """Scan all files in the archive file and return as a dict of files.
 
