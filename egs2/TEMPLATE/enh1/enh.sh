@@ -667,6 +667,7 @@ if ! "${skip_upload}"; then
             --model_file "${enh_exp}"/"${inference_model}" \
             --option "${enh_exp}"/RESULTS.TXT \
             --option "${enh_stats_dir}"/train/feats_stats.npz  \
+            --option "${enh_exp}"/images \
             --outpath "${packed_model}"
     fi
 
