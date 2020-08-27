@@ -157,6 +157,20 @@ class E2E(ASRInterface, torch.nn.Module):
             choices=["self_attn", "rel_self_attn"],
             help="transformer encoder self attention type",
         )
+        group.add_argument(
+            "--transformer-enc-pw-activation-type",
+            type=str,
+            default="relu",
+            choices=["relu", "hardtanh", "selu", "swish"],
+            help="transformer encoder activation type",
+        )
+        group.add_argument(
+            "--transformer-enc-conv-mod-activation-type",
+            type=str,
+            default="relu",
+            choices=["relu", "hardtanh", "selu", "swish"],
+            help="transformer encoder activation type",
+        )
         # Attention - RNN
         group.add_argument(
             "--adim",
@@ -261,7 +275,14 @@ class E2E(ASRInterface, torch.nn.Module):
             choices=["linear", "embed"],
             help="transformer decoder input layer type",
         )
-        # Transformer
+        group.add_argument(
+            "--transformer-dec-pw-activation-type",
+            type=str,
+            default="relu",
+            choices=["relu", "hardtanh", "selu", "swish"],
+            help="transformer decoder activation type",
+        )
+        # Transformer - General
         group.add_argument(
             "--transformer-warmup-steps",
             default=25000,
@@ -309,6 +330,13 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Number of dimensions in joint space",
         )
         group.add_argument(
+            "--joint-activation-type",
+            type=str,
+            default="tanh",
+            choices=["relu", "tanh", "swish"],
+            help="Joint network activation type",
+        )
+        group.add_argument(
             "--score-norm-transducer",
             type=strtobool,
             nargs="?",
@@ -354,8 +382,10 @@ class E2E(ASRInterface, torch.nn.Module):
                 args.enc_block_arch,
                 input_layer=args.transformer_enc_input_layer,
                 repeat_block=args.enc_block_repeat,
-                positional_encoding_type=args.transformer_enc_positional_encoding_type,
                 self_attn_type=args.transformer_enc_self_attn_type,
+                positional_encoding_type=args.transformer_enc_positional_encoding_type,
+                positionwise_activation_type=args.transformer_enc_pw_activation_type,
+                conv_mod_activation_type=args.transformer_enc_conv_mod_activation_type,
             )
 
             encoder_out = self.encoder.enc_out
@@ -384,6 +414,8 @@ class E2E(ASRInterface, torch.nn.Module):
                 args.dec_block_arch,
                 input_layer=args.transformer_dec_input_layer,
                 repeat_block=args.dec_block_repeat,
+                joint_activation_type=args.joint_activation_type,
+                positionwise_activation_type=args.transformer_dec_pw_activation_type,
                 dropout_rate_embed=args.dropout_rate_embed_decoder,
             )
 
@@ -405,6 +437,7 @@ class E2E(ASRInterface, torch.nn.Module):
                     self.att,
                     args.dec_embed_dim,
                     args.joint_dim,
+                    args.joint_activation_type,
                     args.dropout_rate_decoder,
                     args.dropout_rate_embed_decoder,
                 )
@@ -418,6 +451,7 @@ class E2E(ASRInterface, torch.nn.Module):
                     blank_id,
                     args.dec_embed_dim,
                     args.joint_dim,
+                    args.joint_activation_type,
                     args.dropout_rate_decoder,
                     args.dropout_rate_embed_decoder,
                 )

@@ -2,6 +2,7 @@
 
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
@@ -22,6 +23,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         att (torch.nn.Module): attention module
         embed_dim (int): dimension of embeddings
         joint_dim (int): dimension of joint space
+        joint_activation_type (int): joint network activation
         dropout (float): dropout rate
         dropout_embed (float): embedding dropout rate
 
@@ -38,6 +40,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         att,
         embed_dim,
         joint_dim,
+        joint_activation_type="tanh",
         dropout=0.0,
         dropout_embed=0.0,
     ):
@@ -62,6 +65,8 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         self.lin_enc = torch.nn.Linear(eprojs, joint_dim)
         self.lin_dec = torch.nn.Linear(dunits, joint_dim, bias=False)
         self.lin_out = torch.nn.Linear(joint_dim, odim)
+
+        self.joint_activation = get_activation(joint_activation_type)
 
         self.att = att
 
@@ -147,7 +152,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             z (torch.Tensor): output (B, T, U, odim)
 
         """
-        z = torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
+        z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
         z = self.lin_out(z)
 
         return z

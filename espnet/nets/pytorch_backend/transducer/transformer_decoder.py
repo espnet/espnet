@@ -2,6 +2,7 @@
 
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
@@ -25,8 +26,10 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         dec_arch (list): list of layer definitions
         input_layer (str): input layer type
         repeat_block (int): if N > 1, repeat block N times
-        pos_enc_class (class): PositionalEncoding
+        joint_activation_type (str) joint network activation type
+        positional_encoding_type (str): positional encoding type
         positionwise_layer_type (str): linear
+        positionwise_activation_type (str): positionwise activation type
         dropout_rate_embed (float): dropout rate for embedding layer
         normalize_before (bool): whether to use layer_norm before the first block
         blank (int): blank symbol ID
@@ -41,8 +44,10 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         dec_arch,
         input_layer="embed",
         repeat_block=0,
+        joint_activation_type="tanh",
         positional_encoding_type="abs_pos",
         positionwise_layer_type="linear",
+        positionwise_activation_type="relu",
         dropout_rate_embed=0.0,
         normalize_before=True,
         blank=0,
@@ -58,6 +63,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             repeat_block=repeat_block,
             positional_encoding_type=positional_encoding_type,
             positionwise_layer_type=positionwise_layer_type,
+            positionwise_activation_type=positionwise_activation_type,
             dropout_rate_embed=dropout_rate_embed,
             padding_idx=blank,
         )
@@ -69,8 +75,9 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         self.lin_enc = torch.nn.Linear(edim, jdim)
         self.lin_dec = torch.nn.Linear(ddim, jdim, bias=False)
-
         self.lin_out = torch.nn.Linear(jdim, odim)
+
+        self.joint_activation = get_activation(joint_activation_type)
 
         self.dunits = ddim
         self.odim = odim
@@ -132,7 +139,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             z (torch.Tensor): output (B, T, U, odim)
 
         """
-        z = torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
+        z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
         z = self.lin_out(z)
 
         return z

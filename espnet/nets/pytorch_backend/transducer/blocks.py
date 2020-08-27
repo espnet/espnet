@@ -9,6 +9,8 @@ from espnet.nets.pytorch_backend.conformer.encoder_layer import (
     EncoderLayer as ConformerEncoderLayer,  # noqa: H301
 )
 
+from espnet.nets.pytorch_backend.nets_utils import get_activation
+
 from espnet.nets.pytorch_backend.transducer.causal_conv1d import CausalConv1d
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     DecoderLayer,  # noqa: H301
@@ -304,13 +306,14 @@ def build_input_layer(
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
 
 
-def build_transformer_layer(block_part, block_arch, pw_layer_type):
+def build_transformer_layer(block_part, block_arch, pw_layer_type, pw_activation_type):
     """Build function for Transformer layer.
 
     Args:
         transformer_layer_class (class): whether EncoderLayer or DecoderLayer
         block_arch (dict): layer main arguments
         pw_layer_type (str): positionwise layer type
+        pw_activation_type (str): positionwise activation type
 
     Returns:
         (function): function to create Transformer layer
@@ -330,7 +333,8 @@ def build_transformer_layer(block_part, block_arch, pw_layer_type):
 
     if pw_layer_type == "linear":
         pw_layer = PositionwiseFeedForward
-        pw_layer_args = (d_hidden, d_ff, pos_dropout_rate)
+        pw_activation = get_activation(pw_activation_type)
+        pw_layer_args = (d_hidden, d_ff, pos_dropout_rate, pw_activation)
     else:
         raise NotImplementedError("Transformer block only supports linear yet.")
 
@@ -348,16 +352,22 @@ def build_transformer_layer(block_part, block_arch, pw_layer_type):
 
 
 def build_conformer_layer(
-    block_part, block_arch, pw_layer_type, self_attn_class, pos_enc_class
+    block_arch,
+    self_attn_class,
+    pos_enc_class,
+    pw_layer_type,
+    pw_activation_type,
+    conv_mod_activation_type,
 ):
     """Build function for conformer layer.
 
     Args:
-
         block_arch (dict): layer main arguments
-        pw_layer_type (str): positionwise layer type
         self_attn_type (str): self-attention module type
         pos_enc_class (str): positional encoding class
+        pw_layer_type (str): positionwise layer type
+        pw_activation_type (str): positionwise activation type
+        conv_mod_activation_type (str): convolutional module activation type
 
     Returns:
         (function): function to create Transformer layer
@@ -379,13 +389,15 @@ def build_conformer_layer(
 
     if pw_layer_type == "linear":
         pw_layer = PositionwiseFeedForward
-        pw_layer_args = (d_hidden, d_ff, pos_dropout_rate)
+        pw_activation = get_activation(pw_activation_type)
+        pw_layer_args = (d_hidden, d_ff, pos_dropout_rate, pw_activation)
     else:
         raise NotImplementedError("Conformer block only supports linear yet.")
 
     if use_conv_mod:
         conv_layer = ConvolutionModule
-        conv_layers_args = (d_hidden, block_arch["conv_mod_kernel"])
+        conv_activation = get_activation(conv_mod_activation_type)
+        conv_layers_args = (d_hidden, block_arch["conv_mod_kernel"], conv_activation)
 
     return lambda: ConformerEncoderLayer(
         d_hidden,
@@ -451,6 +463,8 @@ def build_blocks(
     self_attn_type="self_attn",
     positional_encoding_type="abs_pos",
     positionwise_layer_type="linear",
+    positionwise_activation_type="relu",
+    conv_mod_activation_type="relu",
     dropout_rate_embed=0.0,
     padding_idx=-1,
 ):
@@ -464,6 +478,8 @@ def build_blocks(
         repeat_block (int): if N > 1, repeat block N times
         positional_encoding_type (str): positional encoding layer type
         positionwise_layer_type (str): linear
+        positionwise_activation_type (str): positionwise activation type
+        conv_mod_activation_type (str): convolutional module activation type
         dropout_rate_embed (float): dropout rate for embedding
         padding_idx (int): padding index for embedding
 
@@ -508,14 +524,16 @@ def build_blocks(
                 block_part,
                 block_arch[i],
                 positionwise_layer_type,
+                positionwise_activation_type,
             )
         elif layer_type == "conformer":
             module = build_conformer_layer(
-                block_part,
                 block_arch[i],
-                positionwise_layer_type,
                 self_attn_class,
                 pos_enc_class,
+                positionwise_layer_type,
+                positionwise_activation_type,
+                conv_mod_activation_type,
             )
         elif layer_type == "causal-conv1d":
             module = build_causal_conv1d_layer(block_arch[i])

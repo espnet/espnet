@@ -19,6 +19,8 @@ class Encoder(torch.nn.Module):
         repeat_block (int): if N > 1, repeat block N times
         positional_encoding_type (str): positional encoding type
         positionwise_layer_type (str): linear
+        positionwise_activation_type (str): positionwise activation type
+        conv_mod_activation_type (str): convolutional module activation type
         normalize_before (bool): whether to use layer_norm before the first block
         padding_idx (int): padding_idx for input_layer=embed
 
@@ -33,6 +35,8 @@ class Encoder(torch.nn.Module):
         positional_encoding_type="abs_pos",
         self_attn_type="selfattn",
         positionwise_layer_type="linear",
+        positionwise_activation_type="relu",
+        conv_mod_activation_type="relu",
         normalize_before=True,
         padding_idx=-1,
     ):
@@ -48,6 +52,8 @@ class Encoder(torch.nn.Module):
             self_attn_type=self_attn_type,
             positional_encoding_type=positional_encoding_type,
             positionwise_layer_type=positionwise_layer_type,
+            positionwise_activation_type=positionwise_activation_type,
+            conv_mod_activation_type=conv_mod_activation_type,
             padding_idx=padding_idx,
         )
 
