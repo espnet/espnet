@@ -943,7 +943,8 @@ if ! "${skip_upload}"; then
         ${python} -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
             --model_file "${tts_exp}"/"${inference_model}" \
-            --option ${tts_stats_dir}/train/feats_stats.npz  \
+            --option "${tts_stats_dir}"/train/feats_stats.npz  \
+            --option "${tts_exp}"/images  \
             --outpath "${packed_model}" \
             ${_opts}
 

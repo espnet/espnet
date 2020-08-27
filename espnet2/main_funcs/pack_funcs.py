@@ -59,7 +59,20 @@ class Archiver:
         else:
             raise ValueError(f"Not supported: type={self.type}")
 
-    def add(self, filename, arcname=None):
+    def add(self, filename, arcname=None, recursive: bool = True):
+        if recursive and Path(filename).is_dir():
+            for f in Path(filename).glob("**"):
+                if f.is_dir():
+                    continue
+
+                if arcname is not None:
+                    _arcname = Path(arcname) / f
+                else:
+                    _arcname = None
+
+                self.add(f, _arcname, recursive=True)
+            return
+
         if self.type == "tar":
             return self.fopen.add(filename, arcname)
         elif self.type == "zip":
