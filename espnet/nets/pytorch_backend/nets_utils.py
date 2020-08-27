@@ -10,6 +10,7 @@ import torch
 
 from espnet.nets.pytorch_backend.conformer.swish import Swish
 
+
 def to_device(m, x):
     """Send tensor into the device of the module.
 
