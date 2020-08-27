@@ -1218,6 +1218,8 @@ if ! "${skip_upload}"; then
         if "${use_lm}"; then
             _opts+="--lm_train_config ${lm_exp}/config.yaml "
             _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            _opts+="--option ${lm_exp}/perplexity_test/ppl "
+            _opts+="--option ${lm_exp}/images "
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
             _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
@@ -1231,6 +1233,7 @@ if ! "${skip_upload}"; then
             --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
             ${_opts} \
             --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/images \
             --outpath "${packed_model}"
     fi
 
