@@ -284,6 +284,9 @@ if [ -z "${asr_tag}" ]; then
     if [ -n "${asr_args}" ]; then
         asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
+    if [ -n "${speed_perturb_factors}" ]; then
+        asr_tag="${asr_tag}_sp"
+    fi
 fi
 if [ -z "${lm_tag}" ]; then
     if [ -n "${lm_config}" ]; then
@@ -306,9 +309,6 @@ lm_stats_dir="${expdir}/lm_stats"
 # The directory used for training commands
 if [ -z "${asr_exp}" ]; then
     asr_exp="${expdir}/asr_${asr_tag}"
-fi
-if [ -n "${speed_perturb_factors}" ]; then
-    asr_exp="${asr_exp}_sp"
 fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
