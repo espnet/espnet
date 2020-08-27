@@ -35,7 +35,8 @@ def sound_scp(tmp_path):
 
 def test_ESPnetDataset_sound_scp(sound_scp):
     dataset = ESPnetDataset(
-        path_name_type_list=[(sound_scp, "data1", "sound")], preprocess=preprocess,
+        path_name_type_list=[(sound_scp, "data1", "sound")],
+        preprocess=preprocess,
     )
     print(dataset)
     print(dataset.names())
@@ -68,7 +69,8 @@ def pipe_wav(tmp_path):
 
 def test_ESPnetDataset_pipe_wav(pipe_wav):
     dataset = ESPnetDataset(
-        path_name_type_list=[(pipe_wav, "data1", "pipe_wav")], preprocess=preprocess,
+        path_name_type_list=[(pipe_wav, "data1", "pipe_wav")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]
@@ -88,16 +90,25 @@ def feats_scp(tmp_path):
     return str(p)
 
 
-def test_ESPnetDataset_feats_scp(feats_scp,):
+def test_ESPnetDataset_feats_scp(
+    feats_scp,
+):
     dataset = ESPnetDataset(
-        path_name_type_list=[(feats_scp, "data2", "kaldi_ark")], preprocess=preprocess,
+        path_name_type_list=[(feats_scp, "data2", "kaldi_ark")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]
-    assert data["data2"].shape == (100, 80,)
+    assert data["data2"].shape == (
+        100,
+        80,
+    )
 
     _, data = dataset["b"]
-    assert data["data2"].shape == (150, 80,)
+    assert data["data2"].shape == (
+        150,
+        80,
+    )
 
 
 @pytest.fixture
@@ -111,14 +122,21 @@ def npy_scp(tmp_path):
 
 def test_ESPnetDataset_npy_scp(npy_scp):
     dataset = ESPnetDataset(
-        path_name_type_list=[(npy_scp, "data3", "npy")], preprocess=preprocess,
+        path_name_type_list=[(npy_scp, "data3", "npy")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]
-    assert data["data3"].shape == (100, 80,)
+    assert data["data3"].shape == (
+        100,
+        80,
+    )
 
     _, data = dataset["b"]
-    assert data["data3"].shape == (150, 80,)
+    assert data["data3"].shape == (
+        150,
+        80,
+    )
 
 
 @pytest.fixture
@@ -132,14 +150,21 @@ def h5file_1(tmp_path):
 
 def test_ESPnetDataset_h5file_1(h5file_1):
     dataset = ESPnetDataset(
-        path_name_type_list=[(h5file_1, "data4", "hdf5")], preprocess=preprocess,
+        path_name_type_list=[(h5file_1, "data4", "hdf5")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]
-    assert data["data4"].shape == (100, 80,)
+    assert data["data4"].shape == (
+        100,
+        80,
+    )
 
     _, data = dataset["b"]
-    assert data["data4"].shape == (150, 80,)
+    assert data["data4"].shape == (
+        150,
+        80,
+    )
 
 
 @pytest.fixture
@@ -158,10 +183,16 @@ def test_ESPnetDataset_rand_float(shape_file):
     )
 
     _, data = dataset["a"]
-    assert data["data5"].shape == (100, 80,)
+    assert data["data5"].shape == (
+        100,
+        80,
+    )
 
     _, data = dataset["b"]
-    assert data["data5"].shape == (150, 80,)
+    assert data["data5"].shape == (
+        150,
+        80,
+    )
 
 
 def test_ESPnetDataset_rand_int(shape_file):
@@ -171,10 +202,16 @@ def test_ESPnetDataset_rand_int(shape_file):
     )
 
     _, data = dataset["a"]
-    assert data["data6"].shape == (100, 80,)
+    assert data["data6"].shape == (
+        100,
+        80,
+    )
 
     _, data = dataset["b"]
-    assert data["data6"].shape == (150, 80,)
+    assert data["data6"].shape == (
+        150,
+        80,
+    )
 
 
 @pytest.fixture
@@ -188,7 +225,8 @@ def text(tmp_path):
 
 def test_ESPnetDataset_text(text):
     dataset = ESPnetDataset(
-        path_name_type_list=[(text, "data7", "text")], preprocess=preprocess,
+        path_name_type_list=[(text, "data7", "text")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]
@@ -231,7 +269,8 @@ def text_int(tmp_path):
 
 def test_ESPnetDataset_text_int(text_int):
     dataset = ESPnetDataset(
-        path_name_type_list=[(text_int, "data8", "text_int")], preprocess=preprocess,
+        path_name_type_list=[(text_int, "data8", "text_int")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]
@@ -252,7 +291,8 @@ def csv_float(tmp_path):
 
 def test_ESPnetDataset_csv_float(csv_float):
     dataset = ESPnetDataset(
-        path_name_type_list=[(csv_float, "data8", "csv_float")], preprocess=preprocess,
+        path_name_type_list=[(csv_float, "data8", "csv_float")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]
@@ -273,7 +313,8 @@ def csv_int(tmp_path):
 
 def test_ESPnetDataset_csv_int(csv_int):
     dataset = ESPnetDataset(
-        path_name_type_list=[(csv_int, "data8", "csv_int")], preprocess=preprocess,
+        path_name_type_list=[(csv_int, "data8", "csv_int")],
+        preprocess=preprocess,
     )
 
     _, data = dataset["a"]

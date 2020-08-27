@@ -12,7 +12,9 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def aggregate_stats_dirs(
-    input_dir: Iterable[Union[str, Path]], output_dir: Union[str, Path], log_level: str,
+    input_dir: Iterable[Union[str, Path]],
+    output_dir: Union[str, Path],
+    log_level: str,
 ):
     logging.basicConfig(
         level=log_level,

@@ -7,7 +7,8 @@ from espnet2.enh.nets.tf_mask_net import TFMaskingNet
 
 
 @pytest.mark.parametrize(
-    "n_fft, win_length, hop_length", [(8, None, 2)],
+    "n_fft, win_length, hop_length",
+    [(8, None, 2)],
 )
 @pytest.mark.parametrize("rnn_type", ["blstm"])
 @pytest.mark.parametrize("layer", [1, 3])
@@ -65,7 +66,8 @@ def test_tf_mask_net_forward_backward(
 
 
 @pytest.mark.parametrize(
-    "n_fft, win_length, hop_length", [(8, None, 2)],
+    "n_fft, win_length, hop_length",
+    [(8, None, 2)],
 )
 @pytest.mark.parametrize("rnn_type", ["blstm"])
 @pytest.mark.parametrize("layer", [1, 3])

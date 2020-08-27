@@ -16,7 +16,8 @@ def test_find_path_and_change_it_recursive():
 
 
 @pytest.mark.parametrize(
-    "type", ["tgz", "tar", "tbz2", "txz", "zip"],
+    "type",
+    ["tgz", "tar", "tbz2", "txz", "zip"],
 )
 def test_pack_unpack(tmp_path: Path, type):
     files = {"abc": str(tmp_path / "foo.pth")}
