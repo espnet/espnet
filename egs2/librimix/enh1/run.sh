@@ -14,12 +14,19 @@ valid_set="dev"
 test_sets="test "
 
 ./enh.sh \
+<<<<<<< HEAD
     ----use_noise_ref true \
+=======
+>>>>>>> add librimix recipe
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --fs "${sample_rate}" \
     --lang en \
     --ngpu 4 \
+<<<<<<< HEAD
     --enh_config ./conf/tuning/train_enh_PSM.yaml \
+=======
+    --enh_config ./conf/tuning/train_enh_PSM_debug.yaml \
+>>>>>>> add librimix recipe
     "$@"

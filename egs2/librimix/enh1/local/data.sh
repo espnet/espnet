@@ -69,6 +69,7 @@ exit
 mkdir -p data/dev
 mkdir -p data/test
 mkdir -p data/train
+<<<<<<< HEAD
 cat data/LibriMix/libri_mix/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $2}' > data/dev/wav.scp
 cat data/LibriMix/libri_mix/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $3}' > data/dev/spk1.scp
 cat data/LibriMix/libri_mix/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $4}' > data/dev/spk2.scp
@@ -89,3 +90,25 @@ cat data/LibriMix/libri_mix/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata/m
 cat data/LibriMix/libri_mix/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $5}' > data/train/noise1.scp
 cat data/LibriMix/libri_mix/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/train/utt2spk
 cat data/LibriMix/libri_mix/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/train/spk2utt
+=======
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $2}' > data/dev/wav.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $3}' > data/dev/spk1.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $4}' > data/dev/spk2.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $5}' > data/dev/noise1.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/dev/utt2spk
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_dev_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/dev/spk2utt
+
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $2}' > data/test/wav.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $3}' > data/test/spk1.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $4}' > data/test/spk2.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $5}' > data/test/noise1.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/test/utt2spk
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/test/spk2utt
+
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $2}' > data/train/wav.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $3}' > data/train/spk1.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $4}' > data/train/spk2.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $5}' > data/train/noise1.scp
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/train/utt2spk
+cat data/LibriMix/libri_mix/Libri2Mix/wav16k/max/metadata/mixture_train-*_mix_both.csv | grep -v mixture_ID | sort -u | awk -F ',' '{print $1, $1}' > data/train/spk2utt
+>>>>>>> add librimix recipe

@@ -2,11 +2,7 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-<<<<<<< HEAD
-batch_size: 40
-=======
-batch_size:  256
->>>>>>> add librimix recipe
+batch_size:  160
 num_workers: 8
 optim_conf:
     lr: 1.0e-03
@@ -33,22 +29,12 @@ enh: tf_masking
 enh_conf:
     mask_type: PSM
     n_fft: 512
-    hop_length: 256
+    hop_length: 160
     rnn_type: blstm
-<<<<<<< HEAD
     layer: 3
-=======
-    layer: 4
->>>>>>> add librimix recipe
-    unit: 1024
+    unit: 768
     dropout: 0.5
     num_spk: 2
-    utt_mvn: False
-<<<<<<< HEAD
-    use_noise_mask: true
+    utt_mvn: True
     nonlinear: relu
-    loss_type: magnitude_l1
-=======
-    nonlinear: relu
->>>>>>> add librimix recipe
     

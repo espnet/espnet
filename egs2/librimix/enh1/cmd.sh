@@ -28,7 +28,11 @@
 
 
 # Select the backend used by run.sh from "local", "stdout", "sge", "slurm", or "ssh"
+<<<<<<< HEAD
 cmd_backend='local'
+=======
+cmd_backend='slurm'
+>>>>>>> add librimix recipe
 
 # Local machine, without any Job scheduling system
 if [ "${cmd_backend}" = local ]; then
