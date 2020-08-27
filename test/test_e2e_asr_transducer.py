@@ -32,6 +32,7 @@ def get_default_train_args(**kwargs):
         dropout_rate_decoder=0.0,
         dropout_rate_embed_decoder=0.0,
         joint_dim=8,
+        joint_activation_type="tanh",
         mtlalpha=1.0,
         rnnt_mode="rnnt",
         use_frontend=False,
