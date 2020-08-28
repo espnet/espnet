@@ -14,15 +14,16 @@ class Encoder(torch.nn.Module):
 
     Args:
         idim (int): input dim
-        enc_arch (List[dict]): list of layer definitions
+        enc_arch (list): list of encoder blocks (type and parameters)
         input_layer (str): input layer type
-        repeat_block (int): if N > 1, repeat block N times
+        repeat_block (int): repeat provided block N times if N > 1
+        self_attn_type (str): type of self-attention
         positional_encoding_type (str): positional encoding type
         positionwise_layer_type (str): linear
         positionwise_activation_type (str): positionwise activation type
         conv_mod_activation_type (str): convolutional module activation type
         normalize_before (bool): whether to use layer_norm before the first block
-        padding_idx (int): padding_idx for input_layer=embed
+        padding_idx (int): padding_idx for embedding input layer (if specified)
 
     """
 
@@ -32,8 +33,8 @@ class Encoder(torch.nn.Module):
         enc_arch,
         input_layer="linear",
         repeat_block=0,
-        positional_encoding_type="abs_pos",
         self_attn_type="selfattn",
+        positional_encoding_type="abs_pos",
         positionwise_layer_type="linear",
         positionwise_activation_type="relu",
         conv_mod_activation_type="relu",

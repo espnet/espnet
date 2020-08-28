@@ -8,12 +8,11 @@ from warprnnt_pytorch import RNNTLoss
 
 
 class TransLoss(nn.Module):
-    """Transducer loss.
+    """Transducer loss module.
 
     Args:
         trans_type (str): type of transducer implementation to calculate loss.
         blank_id (int): blank symbol id
-
     """
 
     def __init__(self, trans_type, blank_id):

@@ -25,12 +25,12 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         jdim (int): dimension of joint-space
         dec_arch (list): list of layer definitions
         input_layer (str): input layer type
-        repeat_block (int): if N > 1, repeat block N times
+        repeat_block (int): repeat provided blocks N times if N > 1
         joint_activation_type (str) joint network activation type
         positional_encoding_type (str): positional encoding type
         positionwise_layer_type (str): linear
         positionwise_activation_type (str): positionwise activation type
-        dropout_rate_embed (float): dropout rate for embedding layer
+        dropout_rate_embed (float): dropout rate for embedding layer (if specified)
         normalize_before (bool): whether to use layer_norm before the first block
         blank (int): blank symbol ID
 

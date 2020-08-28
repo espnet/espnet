@@ -46,12 +46,14 @@ class Reporter(chainer.Chain):
 
 
 class E2E(ASRInterface, torch.nn.Module):
-    """E2E module.
+    """E2E module for transducer models.
 
     Args:
         idim (int): dimension of inputs
         odim (int): dimension of outputs
         args (Namespace): argument Namespace containing options
+        ignore_id (int): padding symbol id
+        blank_id (int): blank symbol id
 
     """
 
@@ -128,48 +130,48 @@ class E2E(ASRInterface, torch.nn.Module):
             type=eval,
             action="append",
             default=None,
-            help="Encoder architecture definition",
+            help="Encoder architecture definition by blocks",
         )
         group.add_argument(
             "--enc-block-repeat",
             default=0,
             type=int,
-            help="If value is greater than 1, repeat N times the provided block",
+            help="Repeat N times the provided encoder blocks if N > 1",
         )
         group.add_argument(
             "--transformer-enc-input-layer",
             type=str,
             default="conv2d",
             choices=["conv2d", "vgg2l", "linear", "embed"],
-            help="transformer encoder input layer type",
+            help="Transformer encoder input layer type",
         )
         group.add_argument(
             "--transformer-enc-positional-encoding-type",
             type=str,
             default="abs_pos",
             choices=["abs_pos", "scaled_abs_pos", "rel_pos"],
-            help="transformer encoder positional encoding layer type",
+            help="Transformer encoder positional encoding layer type",
         )
         group.add_argument(
             "--transformer-enc-self-attn-type",
             type=str,
             default="self_attn",
             choices=["self_attn", "rel_self_attn"],
-            help="transformer encoder self attention type",
+            help="Transformer encoder self-attention type",
         )
         group.add_argument(
             "--transformer-enc-pw-activation-type",
             type=str,
             default="relu",
             choices=["relu", "hardtanh", "selu", "swish"],
-            help="transformer encoder activation type",
+            help="Transformer encoder pointwise activation type",
         )
         group.add_argument(
             "--transformer-enc-conv-mod-activation-type",
             type=str,
-            default="relu",
+            default="swish",
             choices=["relu", "hardtanh", "selu", "swish"],
-            help="transformer encoder activation type",
+            help="Transformer encoder convolutional module activation type",
         )
         # Attention - RNN
         group.add_argument(
@@ -227,7 +229,7 @@ class E2E(ASRInterface, torch.nn.Module):
             default="lstm",
             type=str,
             choices=["lstm", "gru", "transformer"],
-            help="Type of decoder to use.",
+            help="Type of decoder to use",
         )
         group.add_argument(
             "--dropout-rate-decoder",
@@ -239,7 +241,7 @@ class E2E(ASRInterface, torch.nn.Module):
             "--dropout-rate-embed-decoder",
             default=0.0,
             type=float,
-            help="Dropout rate for the decoder embeddings",
+            help="Dropout rate for the decoder embedding layer",
         )
         # Decoder - RNN
         group.add_argument(
@@ -260,34 +262,34 @@ class E2E(ASRInterface, torch.nn.Module):
             type=eval,
             action="append",
             default=None,
-            help="Decoder architecture definition",
+            help="Decoder architecture definition by blocks",
         )
         group.add_argument(
             "--dec-block-repeat",
-            default=0,
+            default=1,
             type=int,
-            help="If value is greater than 1, repeat N times the provided block",
+            help="Repeat N times the provided decoder blocks if N > 1",
         )
         group.add_argument(
             "--transformer-dec-input-layer",
             type=str,
             default="embed",
             choices=["linear", "embed"],
-            help="transformer decoder input layer type",
+            help="Transformer decoder input layer type",
         )
         group.add_argument(
             "--transformer-dec-pw-activation-type",
             type=str,
             default="relu",
             choices=["relu", "hardtanh", "selu", "swish"],
-            help="transformer decoder activation type",
+            help="Transformer decoder pointwise activation type",
         )
         # Transformer - General
         group.add_argument(
             "--transformer-warmup-steps",
             default=25000,
             type=int,
-            help="optimizer warmup steps",
+            help="Optimizer warmup steps",
         )
         group.add_argument(
             "--transformer-init",
@@ -300,7 +302,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 "kaiming_uniform",
                 "kaiming_normal",
             ],
-            help="how to initialize transformer parameters",
+            help="How to initialize transformer parameters",
         )
         group.add_argument(
             "--transformer-lr",
@@ -314,14 +316,14 @@ class E2E(ASRInterface, torch.nn.Module):
             default="warp-transducer",
             type=str,
             choices=["warp-transducer"],
-            help="Type of transducer implementation to calculate loss.",
+            help="Type of transducer implementation to calculate loss",
         )
         group.add_argument(
             "--rnnt-mode",
             default="rnnt",
             type=str,
             choices=["rnnt", "rnnt-att"],
-            help="Transducer mode for RNN decoder.",
+            help="Transducer mode for RNN decoder",
         )
         group.add_argument(
             "--joint-dim",
@@ -357,14 +359,7 @@ class E2E(ASRInterface, torch.nn.Module):
         return PlotAttentionReport
 
     def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0):
-        """Construct an E2E object for transducer model.
-
-        Args:
-            idim (int): dimension of inputs
-            odim (int): dimension of outputs
-            args (Namespace): argument Namespace containing options
-
-        """
+        """Construct an E2E object for transducer model."""
         torch.nn.Module.__init__(self)
 
         if "transformer" in args.etype:
@@ -495,12 +490,16 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.error_calculator = None
 
-        self.logzero = -10000000000.0
         self.loss = None
         self.rnnlm = None
 
     def default_parameters(self, args):
-        """Initialize/reset parameters for transducer."""
+        """Initialize/reset parameters for transducer.
+
+        Args:
+            args (Namespace): argument Namespace containing options
+
+        """
         initializer(self, args)
 
     def forward(self, xs_pad, ilens, ys_pad):
@@ -610,7 +609,7 @@ class E2E(ASRInterface, torch.nn.Module):
             rnnlm (torch.nn.Module): language model module
 
         Returns:
-            y (list): n-best decoding results
+            nbest_hyps (list): n-best decoding results
 
         """
         if "transformer" in self.etype:
@@ -640,8 +639,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
         Returns:
             ret (ndarray): attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
+                1) multi-head case => attention weights (B, H, Lmax, Tmax),
+                2) other case => attention weights (B, Lmax, Tmax).
 
         """
         self.eval()

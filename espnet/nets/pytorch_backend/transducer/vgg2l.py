@@ -4,16 +4,16 @@ import torch
 
 
 class VGG2L(torch.nn.Module):
-    """VGG2L module for transformer encoder."""
+    """VGG2L module for transformer encoder.
+
+    Args:
+        idim (int): dimension of inputs
+        odim (int): dimension of outputs
+
+    """
 
     def __init__(self, idim, odim):
-        """Construct a VGG2L object.
-
-        Args:
-            idim (int): dimension of inputs
-            odim (int): dimension of outputs
-
-        """
+        """Construct a VGG2L object."""
         super(VGG2L, self).__init__()
 
         self.vgg2l = torch.nn.Sequential(

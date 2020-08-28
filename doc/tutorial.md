@@ -191,7 +191,7 @@ Several transducer architectures are currently available:
 The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `transformer` is specified for either, a transformer-based architecture will be used for the corresponding part, otherwise a RNN architecture will be selected.
 
 While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a transformer-based architecture definition for transducer is customizable:
-1) Each block (or layer) should be specified individually through `enc-block-arch` or/and `dec-block-arch`
+1) Each blocks (or layers) for both network part should be specified individually through `enc-block-arch` or/and `dec-block-arch`:
 
 
         # e.g: TDNN-Transformer encoder
@@ -244,7 +244,7 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
           stride: stride of the convolution
           dilation: spacing between the kernel points
 
-3) Each architecture definition can be repeated by specifying the number of duplications with `enc-block-repeat` or `dec-block-repeat`
+3) Each specified block(s) for each network part can be repeated by specifying the number of duplications through `enc-block-repeat` or `dec-block-repeat` parameters:
 
         # e.g.: 2x (Causal-Conv1d + Transformer) decoder
         dtype: transformer
