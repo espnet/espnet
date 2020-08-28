@@ -298,6 +298,25 @@ def test_sa_transducer_mask(module):
             {
                 "enc_block_arch": [
                     {
+                        "type": "conformer",
+                        "d_hidden": 4,
+                        "d_ff": 4,
+                        "heads": 4,
+                        "macaron_style": False,
+                        "use_conv_mod": True,
+                        "conv_mod_kernel": 7,
+                        "transformer_enc_pw_activation_type": "swish",
+                        "transformer_enc_conv_mod_activation_type": "relu",
+                    }
+                ],
+                "enc_repeat_block": 2,
+            },
+            {"transformer_dec_pw_activation_type": "swish"},
+        ),
+        (
+            {
+                "enc_block_arch": [
+                    {
                         "type": "tdnn",
                         "idim": 8,
                         "odim": 8,
@@ -348,9 +367,15 @@ def test_sa_transducer_mask(module):
             },
             {},
         ),
+        ({"transformer_enc_pw_activation_type": "swish"}, {}),
+        ({"transformer_enc_pw_activation_type": "hardtanh"}, {}),
+        ({"transformer_dec_pw_activation_type": "swish"}, {}),
+        ({"transformer_dec_pw_activation_type": "hardtanh"}, {}),
         ({}, {"beam_size": 4}),
         ({}, {"beam_size": 4, "nbest": 2}),
         ({}, {"beam_size": 5, "score_norm_transducer": False}),
+        ({"joint-activation-type": "relu"}, {}),
+        ({"joint-activation-type": "swish"}, {}),
         ({"num_save_attention": 1}, {}),
         ({"transformer_input_layer": "vgg2l"}, {}),
         ({"report_cer": True}, {}),
