@@ -182,8 +182,8 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
 
     if has_transformer and has_conformer:
         raise NotImplementedError(
-            net_part
-            + ": transformer and conformer blocks can't be defined in the same net part."
+            net_part + ": transformer and conformer blocks "
+            "can't be defined in the same net part."
         )
 
     for i in range(1, len(cmp_io)):
