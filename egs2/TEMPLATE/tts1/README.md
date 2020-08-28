@@ -190,7 +190,7 @@ $ ./run.sh --stage 6 \
 
 ### FastSpeech2 training
 
-The procedure is almost the same as FastSpeech2 but we **MUST** use teacher forcing in decoding.
+The procedure is almost the same as FastSpeech but we **MUST** use teacher forcing in decoding.
 ```sh
 $ ./run.sh --stage 7 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
