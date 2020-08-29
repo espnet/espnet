@@ -8,6 +8,7 @@
 - pytorch version: `pytorch 1.6.0`
 - Git hash: `e7d278ade57d8fba9b4f709150c4c499c75f53de`
   - Commit date: `Mon Aug 24 09:45:54 2020 +0900`
+- Pretrained model: https://zenodo.org/record/4003381/
 
 ### WER
 
