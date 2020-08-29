@@ -101,7 +101,7 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 - Multi GPUs training on single/multi nodes (Distributed training)
 - A template recipe which can be applied for all corpora
 - Possible to train any size of corpus without cpu memory error
-- (Under development) More smart system for [providing pretrained models and Python API for inference](https://github.com/espnet/espnet_model_zoo)
+- (Under development) [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 
 ## Installation
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
