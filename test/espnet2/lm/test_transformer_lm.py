@@ -8,7 +8,7 @@ from espnet2.lm.transformer_lm import TransformerLM
 
 @pytest.mark.parametrize("pos_enc", ["sinusoidal", None])
 def test_TransformerLM_backward(pos_enc):
-    model = TransformerLM(10, pos_enc=pos_enc)
+    model = TransformerLM(10, pos_enc=pos_enc, unit=10)
     input = torch.randint(0, 9, [2, 5])
 
     out, h = model(input, None)
@@ -18,7 +18,7 @@ def test_TransformerLM_backward(pos_enc):
 
 @pytest.mark.parametrize("pos_enc", ["sinusoidal", None])
 def test_TransformerLM_score(pos_enc):
-    model = TransformerLM(10, pos_enc=pos_enc)
+    model = TransformerLM(10, pos_enc=pos_enc, unit=10)
     input = torch.randint(0, 9, (12,))
     state = model.init_state(None)
     model.score(input, state, None)
@@ -34,7 +34,7 @@ def test_TransformerLM_invalid_type():
 def test_TransformerLM_beam_search(pos_enc, dtype):
     token_list = ["<blank>", "a", "b", "c", "unk", "<eos>"]
     vocab_size = len(token_list)
-    model = TransformerLM(vocab_size, pos_enc=pos_enc)
+    model = TransformerLM(vocab_size, pos_enc=pos_enc, unit=10)
 
     beam = BeamSearch(
         beam_size=3,
@@ -63,7 +63,7 @@ def test_TransformerLM_batch_beam_search(pos_enc, dtype):
     token_list = ["<blank>", "a", "b", "c", "unk", "<eos>"]
     vocab_size = len(token_list)
 
-    model = TransformerLM(vocab_size, pos_enc=pos_enc)
+    model = TransformerLM(vocab_size, pos_enc=pos_enc, unit=10)
     beam = BatchBeamSearch(
         beam_size=3,
         vocab_size=vocab_size,

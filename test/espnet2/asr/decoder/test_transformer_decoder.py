@@ -38,6 +38,7 @@ def test_TransformerDecoder_backward(
         input_layer=input_layer,
         normalize_before=normalize_before,
         use_output_layer=use_output_layer,
+        linear_units=10,
     )
     x = torch.randn(2, 9, 12)
     x_lens = torch.tensor([9, 7], dtype=torch.long)
@@ -110,6 +111,7 @@ def test_TransformerDecoder_beam_search(
         input_layer=input_layer,
         normalize_before=normalize_before,
         use_output_layer=use_output_layer,
+        linear_units=10,
     )
     beam = BeamSearch(
         beam_size=3,
@@ -159,6 +161,7 @@ def test_TransformerDecoder_batch_beam_search(
         input_layer=input_layer,
         normalize_before=normalize_before,
         use_output_layer=use_output_layer,
+        linear_units=10,
     )
     beam = BatchBeamSearch(
         beam_size=3,
