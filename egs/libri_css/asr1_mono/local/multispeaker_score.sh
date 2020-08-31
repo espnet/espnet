@@ -30,7 +30,7 @@ out_dir=$3
 output_dir=$out_dir/per_speaker_output
 wer_dir=$out_dir/per_speaker_wer
 
-recording_ids=( $(awk '{print $1}' data/$datadir/wav.scp) )
+recording_ids=( $(awk '{print $1}' $datadir/wav.scp) )
 
 for f in $ref_file $hyp_file; do
   [ ! -f $f ] && echo "$0: No such file $f" && exit 1;
@@ -42,8 +42,8 @@ if [ $stage -le 0 ]; then
   mkdir -p $output_dir $wer_dir
   local/wer_output_filter < $ref_file > $output_dir/ref_filt.txt
   local/wer_output_filter < $hyp_file > $output_dir/hyp_filt.txt
-  local/get_perspeaker_output.py --affix "ref" $output_dir/ref_filt.txt data/$datadir/utt2spk.bak $output_dir
-  local/get_perspeaker_output.py --affix "hyp" $output_dir/hyp_filt.txt data/$datadir/utt2spk $output_dir
+  local/get_perspeaker_output.py --affix "ref" $output_dir/ref_filt.txt $datadir/utt2spk.bak $output_dir
+  local/get_perspeaker_output.py --affix "hyp" $output_dir/hyp_filt.txt $datadir/utt2spk $output_dir
 fi
 
 if [ $stage -le 1 ]; then

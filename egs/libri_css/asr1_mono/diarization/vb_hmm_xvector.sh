@@ -64,8 +64,8 @@ except ImportError:
 
 if [ "$result" == "0" ]; then
     echo "Installing kaldi_io and numexpr"
-    python3 -m pip install git+https://github.com/desh2608/kaldi-io-for-python.git@vbx
-    python3 -m pip install numexpr
+    pip install git+https://github.com/desh2608/kaldi-io-for-python.git@vbx
+    pip install numexpr
 fi
 
 if [ $stage -le 0 ]; then
