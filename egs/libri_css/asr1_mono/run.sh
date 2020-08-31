@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-nj=120
+nj=32
 
 # feature configuration
 dumpdir=dump   # directory to dump full features
@@ -59,7 +59,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             local/segment_diarize_oracle.sh data/${rtask} data/${rtask}_oracle
         done
     else
-        xvector_model_dir=$(dirname $(find ${xvector_dir} -name final.raw | head -n 1))
+        xvector_model_dir=$(dirname "$(find ${xvector_dir} -name final.raw | head -n 1)")
         for rtask in ${recog_set}; do
             local/segment.sh data/${rtask}
             local/diarize.sh --cmd "$train_cmd" --nj ${nj} --diarizer-type ${diarizer_type} \
@@ -106,8 +106,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=$(find ${asr_dir} -name *_units.txt | head -n 1)
-bpemodel=$(find ${asr_dir} -name *.model | head -n 1)
+dict=$(find ${asr_dir} -name '*_units.txt' | head -n 1)
+bpemodel=$(find ${asr_dir} -name '*.model' | head -n 1)
 dict_affix=$(basename ${bpemodel} .model)
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -123,14 +123,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
-lmexpdir=$(dirname $(find ${asr_dir} -name ${lang_model} | head -n 1))
+lmexpdir=$(dirname "$(find ${asr_dir} -name ${lang_model} | head -n 1)")
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     echo "Skipped, using pre-trained LM from ${lmexpdir}"
 fi
 
-asrexpdir=$(dirname $(dirname $(find ${asr_dir} -name ${recog_model} | head -n 1)))
+asrexpdir=$(dirname "$(dirname "$(find ${asr_dir} -name ${recog_model} | head -n 1)")")
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
