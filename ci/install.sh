@@ -31,7 +31,7 @@ pip3 install https://github.com/kpu/kenlm/archive/master.zip
 pip3 install -e ".[test]"
 pip3 install -e ".[doc]"
 # TODO(kan-bayashi): remove after update ctc-segmentation
-pip3 install ctc-segmentation
+pip3 install git+https://github.com/lumaku/ctc-segmentation
 
 # [FIXME] hacking==1.1.0 requires flake8<2.7.0,>=2.6.0, but that version has a problem around fstring
 pip3 install -U flake8 flake8-docstrings
