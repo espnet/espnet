@@ -8,8 +8,6 @@ from typing import Dict
 import numpy as np
 import torch
 
-from espnet.nets.pytorch_backend.conformer.swish import Swish
-
 
 def to_device(m, x):
     """Send tensor into the device of the module.
@@ -480,6 +478,9 @@ def rename_state_dict(
 
 def get_activation(act):
     """Return activation function."""
+    # Lazy load to avoid unused import
+    from espnet.nets.pytorch_backend.conformer.swish import Swish
+
     activation_funcs = {
         "hardtanh": torch.nn.Hardtanh,
         "relu": torch.nn.ReLU,
