@@ -15,6 +15,16 @@ from typeguard import check_return_type
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.transformer_decoder import (
+    DynamicConvolution2DTransformerDecoder,  # noqa: H301
+)
+from espnet2.asr.decoder.transformer_decoder import DynamicConvolutionTransformerDecoder
+from espnet2.asr.decoder.transformer_decoder import (
+    LightweightConvolution2DTransformerDecoder,  # noqa: H301
+)
+from espnet2.asr.decoder.transformer_decoder import (
+    LightweightConvolutionTransformerDecoder,  # noqa: H301
+)
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -75,7 +85,14 @@ encoder_choices = ClassChoices(
 )
 decoder_choices = ClassChoices(
     "decoder",
-    classes=dict(transformer=TransformerDecoder, rnn=RNNDecoder),
+    classes=dict(
+        transformer=TransformerDecoder,
+        lightweight_conv=LightweightConvolutionTransformerDecoder,
+        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
+        dynamic_conv=DynamicConvolutionTransformerDecoder,
+        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
+        rnn=RNNDecoder,
+    ),
     type_check=AbsDecoder,
     default="rnn",
 )
