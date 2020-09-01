@@ -18,8 +18,7 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
-        # FIXME(kan-bayashi): Add after update
-        # "ctc-segmentation",
+        "ctc-segmentation>=1.0.6",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
