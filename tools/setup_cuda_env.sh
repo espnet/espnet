@@ -12,6 +12,13 @@ export CFLAGS="-I$CUDA_HOME/include $CFLAGS"
 export CPATH=$CUDA_HOME/include:$CPATH
 export CUDA_PATH=$CUDA_HOME
 
+# Sanity check
+for f in "${CUDA_HOME}"/bin/nvcc "${CUDA_HOME}"/include/cuda.h "${CUDA_HOME}"/lib64/libcublas.so; do
+    if [ ! -f "${f}" ]; then
+        echo "Warning: ${f} is not found!"
+    fi
+done
+
 if [ $# -eq 2 ]; then
     NCCL_HOME="$2"
     echo "NCCL_HOME=${NCCL_HOME}"
