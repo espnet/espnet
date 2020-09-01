@@ -18,6 +18,9 @@ A clear and concise description of what the bug is.
  - Git hash [e.g. 83799e69a0269450587a6857882c73bfb27551d5]
    - Commit date [e.g. Tue Feb 4 14:21:11 2020 +0900]
 ```
+cd <espnet-root>/tools
+. ./activate_python.sh
+
 uname -mrsv
 python3 << EOF
 import sys, espnet, torch
