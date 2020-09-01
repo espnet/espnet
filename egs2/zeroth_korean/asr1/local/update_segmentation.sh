@@ -3,14 +3,20 @@
 # Copyright 2017 Lucas Jo (Atlas Guide)
 # Apache 2.0
 
+set -euo pipefail
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
+
 # do this when the segmentation rule is changed
 dataDir=$1
 lmDir=$2
 
 trans=$dataDir/text
-echo "Re-segment transcripts: $trans --------------------------------------------"
+log "Re-segment transcripts: $trans --------------------------------------------"
 if [ ! -f $trans ]; then
-	echo "transcription file is not found in "$dataDir
+	log "transcription file is not found in "$dataDir
 	exit 1
 fi
 cp $trans $trans".old"

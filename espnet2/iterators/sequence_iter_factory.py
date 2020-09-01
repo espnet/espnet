@@ -1,11 +1,27 @@
 from typing import Any
 from typing import Sequence
+from typing import Union
 
 import numpy as np
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.samplers.abs_sampler import AbsSampler
+
+
+class RawSampler(AbsSampler):
+    def __init__(self, batches):
+        self.batches = batches
+
+    def __len__(self):
+        return len(self.batches)
+
+    def __iter__(self):
+        return iter(self.batches)
+
+    def generate(self, seed):
+        return list(self.batches)
 
 
 class SequenceIterFactory(AbsIterFactory):
@@ -22,7 +38,7 @@ class SequenceIterFactory(AbsIterFactory):
     def __init__(
         self,
         dataset,
-        batches: Sequence[Sequence[Any]],
+        batches: Union[AbsSampler, Sequence[Sequence[Any]]],
         num_iters_per_epoch: int = None,
         seed: int = 0,
         shuffle: bool = False,
@@ -32,7 +48,11 @@ class SequenceIterFactory(AbsIterFactory):
     ):
         assert check_argument_types()
 
-        self.batches = list(batches)
+        if not isinstance(batches, AbsSampler):
+            self.sampler = RawSampler(batches)
+        else:
+            self.sampler = batches
+
         self.dataset = dataset
         self.num_iters_per_epoch = num_iters_per_epoch
         self.shuffle = shuffle
@@ -47,14 +67,14 @@ class SequenceIterFactory(AbsIterFactory):
             shuffle = self.shuffle
 
         if self.num_iters_per_epoch is not None:
-            N = len(self.batches)
+            N = len(self.sampler)
             # If corpus size is larger than the num_per_epoch
             if self.num_iters_per_epoch < N:
-                N = len(self.batches)
+                N = len(self.sampler)
                 real_epoch, offset = divmod(self.num_iters_per_epoch * epoch, N)
 
                 if offset >= self.num_iters_per_epoch:
-                    current_batches = list(self.batches)
+                    current_batches = self.sampler.generate(real_epoch + self.seed)
                     if shuffle:
                         np.random.RandomState(real_epoch + self.seed).shuffle(
                             current_batches
@@ -63,8 +83,8 @@ class SequenceIterFactory(AbsIterFactory):
                         offset - self.num_iters_per_epoch : offset
                     ]
                 else:
-                    prev_batches = list(self.batches)
-                    current_batches = list(self.batches)
+                    prev_batches = self.sampler.generate(real_epoch - 1 + self.seed)
+                    current_batches = self.sampler.generate(real_epoch + self.seed)
                     if shuffle:
                         np.random.RandomState(real_epoch - 1 + self.seed).shuffle(
                             prev_batches
@@ -82,7 +102,7 @@ class SequenceIterFactory(AbsIterFactory):
                 _epoch, _cursor = divmod(self.num_iters_per_epoch * (epoch - 1), N)
                 _remain = self.num_iters_per_epoch
                 batches = []
-                current_batches = list(self.batches)
+                current_batches = self.sampler.generate(_epoch + self.seed)
                 if shuffle:
                     np.random.RandomState(_epoch + self.seed).shuffle(current_batches)
                 while _remain > 0:
@@ -92,7 +112,7 @@ class SequenceIterFactory(AbsIterFactory):
                     if _cursor + _remain >= N:
                         _epoch += 1
                         _cursor = 0
-                        current_batches = list(self.batches)
+                        current_batches = self.sampler.generate(_epoch + self.seed)
                         if shuffle:
                             np.random.RandomState(_epoch + self.seed).shuffle(
                                 current_batches
@@ -104,7 +124,7 @@ class SequenceIterFactory(AbsIterFactory):
                 assert len(batches) == self.num_iters_per_epoch
 
         else:
-            batches = list(self.batches)
+            batches = self.sampler.generate(epoch + self.seed)
             if shuffle:
                 np.random.RandomState(epoch + self.seed).shuffle(batches)
 

@@ -75,7 +75,7 @@ fi
 
 mkdir -p ${logdir}
 
-rm -f ${dir}/wav.scp
+rm -f "${dir}/${out_filename}"
 
 
 opts=

@@ -142,18 +142,25 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     # If you have NCCL (If you'll install pytorch from anaconda, NCCL is also bundled, so you don't need to give it)
     # $ . ./setup_cuda_env.sh <cuda-root> <nccl-root> # e.g. <nccl-root> = /usr/local/nccl
     ```
-1. Setup Python
+1. Setup Python environment
 
-    You must select one of `setup_anaconda.sh` or `setup_python.sh`.
-    Both scripts create `activate_python.sh` there. It controls the Python used in ESPnet.
+    The Python interpreter used in espnet recipes is determined by `<espnet-root>/tools/activate_python.sh`,
+    and in this step, you need to create the file.
+
+    You must select one of setup scripts for Python environment here.
+    We prepare scripts for `Anaconda`, `venv`, and `System Python` environment, so
+    if you'll use the other Python environment manager, e.g. `pipenv`, `pyenv`, or etc.
+    you need to create `activate_python.sh` by yourself.
+
+    If you don't stick to any Python environments, please select `Anaconda` environment.
 
     - Option A) Setup Anaconda environment
 
         ```sh
         $ cd <espnet-root>/tools
-        $ ./setup_anaconda.sh venv [conda-env-name] [python-version]
+        $ ./setup_anaconda.sh [output-dir-name] [conda-env-name] [python-version]
         ```
-
+        If `[output-dir-name]` is omitted, `venv` is generated.
         If `[conda-env-name]` and `[python-version]` are omitted,
         the root environment and the default Python of Anaconda are selected respectively.
 
@@ -166,23 +173,18 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} [conda-env-name] [python-version]
         ```
 
-    - Option B) Setup Python environment
+    - Option B) Setup venv from system Python
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ ./setup_venv.sh $(command -v python3)
+        ```
+
+    - Option C) Setup system Python environment
 
         ```sh
         $ cd <espnet-root>/tools
         $ ./setup_python.sh $(command -v python3)
-        ```
-
-        Note that we never add `--user` option when pip install in this installation flow,
-        so you need to have write privilege to your Python.
-        (e.g. If you'll use /usr/bin/python3, you must install ESPnet with sudo privilege.)
-
-        We recommend you creating `venv` to avoid the problem.
-        You can create a virtual environment from your Python as follows,
-
-        ```sh
-        $ cd <espnet-root>/tools
-        $ ./setup_python.sh $(command -v python3) venv
         ```
 1. Install ESPnet
 
@@ -219,3 +221,10 @@ python3 -m pip install <some-package>
 ./installers/install_<some-tool>.sh
 ```
 
+### Check installation
+You can check whether your installation is succesfully finished by
+```sh
+cd <espnet-root>/tools
+. ./activate_python.sh; python3 check_install.py
+```
+Note that this check is always called in the last stage of the above installation.

@@ -477,8 +477,8 @@ def check_nonlinear(nolinear_type):
 def chose_norm(norm_type, channel_size):
     """The input of normalization will be (M, C, K), where M is batch size.
 
-     C is channel size and K is sequence length.
-     """
+    C is channel size and K is sequence length.
+    """
     if norm_type == "gLN":
         return GlobalLayerNorm(channel_size)
     elif norm_type == "cLN":

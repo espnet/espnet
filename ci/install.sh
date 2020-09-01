@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-$CXX -v
+${CXX:-g++} -v
 
 (
     set -euo pipefail
@@ -19,21 +19,19 @@ $CXX -v
     fi
     make TH_VERSION="${TH_VERSION}"
 
-    make moses.done
+    make nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
 python3 --version
 
-pip3 install -U wheel
-# Fix pip version to avoid this error https://github.com/ethereum/eth-abi/issues/131#issuecomment-620981271
-pip3 install pip==20.0.2
-pip3 install chainer=="${CHAINER_VERSION}"
 pip3 install https://github.com/kpu/kenlm/archive/master.zip
 
 # install espnet
 pip3 install -e ".[test]"
 pip3 install -e ".[doc]"
+# TODO(kan-bayashi): remove after update ctc-segmentation
+pip3 install git+https://github.com/lumaku/ctc-segmentation
 
 # [FIXME] hacking==1.1.0 requires flake8<2.7.0,>=2.6.0, but that version has a problem around fstring
 pip3 install -U flake8 flake8-docstrings

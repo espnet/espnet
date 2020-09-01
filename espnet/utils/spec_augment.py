@@ -205,7 +205,11 @@ def create_dense_flows(flattened_flows, batch_size, image_height, image_width):
 
 
 def interpolate_spline(
-    train_points, train_values, query_points, order, regularization_weight=0.0,
+    train_points,
+    train_values,
+    query_points,
+    order,
+    regularization_weight=0.0,
 ):
     # First, fit the spline to the observed data.
     w, v = solve_interpolation(train_points, train_values, order, regularization_weight)
@@ -258,13 +262,13 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
 def cross_squared_distance_matrix(x, y):
     """Pairwise squared distance between two (batch) matrices' rows (2nd dim).
 
-        Computes the pairwise distances between rows of x and rows of y
-        Args:
-        x: [batch_size, n, d] float `Tensor`
-        y: [batch_size, m, d] float `Tensor`
-        Returns:
-        squared_dists: [batch_size, n, m] float `Tensor`, where
-        squared_dists[b,i,j] = ||x[b,i,:] - y[b,j,:]||^2
+    Computes the pairwise distances between rows of x and rows of y
+    Args:
+    x: [batch_size, n, d] float `Tensor`
+    y: [batch_size, m, d] float `Tensor`
+    Returns:
+    squared_dists: [batch_size, n, m] float `Tensor`, where
+    squared_dists[b,i,j] = ||x[b,i,:] - y[b,j,:]||^2
     """
     x_norm_squared = torch.sum(torch.mul(x, x))
     y_norm_squared = torch.sum(torch.mul(y, y))

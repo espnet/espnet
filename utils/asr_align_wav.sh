@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Johns Hopkins University (Xuankai Chang)
+# 2020 Technische Universität München, Authors: Ludwig Kürzinger, Dominik Winkelbauer
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
@@ -13,11 +14,12 @@ fi
 # general configuration
 python=python3
 backend=pytorch
-stage=0        # start from 0 if you need to start from data preparation
+stage=-1       # start from -1 if you need to start from model download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
-verbose=1      # verbose option
+dumpdir=dump   # directory to dump full features
+verbose=2      # verbose option
 
 # feature configuration
 do_delta=false
@@ -29,10 +31,21 @@ align_config=
 align_dir=align
 api=v1
 
+# Parameters for CTC alignment
+# The subsampling factor depends on whether the encoder uses subsampling
+subsampling_factor=1
+# minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
+min_confidence_score=-5.0
+# minimum length of one utterance
+min_window_size=8000
+
+
 # download related
 models=tedlium2.transformer.v1
 dict=
 nlsyms=
+
+. utils/parse_options.sh || exit 1;
 
 help_message=$(cat <<EOF
 Usage:
@@ -41,11 +54,11 @@ Usage:
 Options:
     --backend <chainer|pytorch>     # chainer or pytorch (Default: pytorch)
     --ngpu <ngpu>                   # Number of GPUs (Default: 0)
-    --align_dir <directory_name>   # Name of directory to store decoding temporary data
+    --align-dir <directory_name>    # Name of directory to store decoding temporary data
     --models <model_name>           # Model name (e.g. tedlium2.transformer.v1)
     --cmvn <path>                   # Location of cmvn.ark
-    --align_model <path>            # Location of E2E model
-    --align_config <path>           # Location of configuration file
+    --align-model <path>            # Location of E2E model
+    --align-config <path>           # Location of configuration file
     --api <api_version>             # API version (v1 or v2, available in only pytorch backend)
     --nlsyms <path>                 # Non-linguistic symbol list
 
@@ -75,7 +88,7 @@ Available models:
     - wsj.transformer_small.v1
 EOF
 )
-. utils/parse_options.sh || exit 1;
+
 
 # make shellcheck happy
 train_cmd=
@@ -92,13 +105,15 @@ if [ ! $# -eq 2 ]; then
     exit 1;
 fi
 
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
 set -o pipefail
 
 # check api version
-if [ "${api}" = "v2" ] && [ "${backend}" = "chainer" ]; then
-    echo "chainer backend does not support api v2." >&2
+if [ "${backend}" = "chainer" ]; then
+    echo "chainer backend is not supported." >&2
     exit 1;
 fi
 
@@ -158,8 +173,13 @@ if [ -z "${wav}" ]; then
 fi
 if [ -z "${dict}" ]; then
     download_models
-    dict=$(find ${download_dir}/${models}/data/lang_*char -name "*.txt" | head -n 1) || \
-        (echo Error: Dictionary file could not be found. Please construct one by yourself following the egs/*/asr1/run.sh. && exit 1;)
+
+    if [ -z "${dict}" ]; then
+        mkdir -p ${download_dir}/${models}/data/lang_autochar/
+        model_config=$(find -L ${download_dir}/${models}/exp/*/results/model.json | head -n 1)
+        dict=${download_dir}/${models}/data/lang_autochar/dict.txt
+        python -c 'import json,sys;obj=json.load(sys.stdin);[print(char + " " + str(i + 1)) for i, char in enumerate(obj[2]["char_list"])]' > ${dict} < ${model_config}
+    fi
 fi
 
 # Check file existence
@@ -189,7 +209,6 @@ if [ ! -n "${text}" ]; then
 fi
 
 base=$(basename $wav .wav)
-align_dir=${align_dir}/${base}
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
@@ -211,6 +230,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj 1 --do_delta ${do_delta} \
         ${align_dir}/data/feats.scp ${cmvn} ${align_dir}/log \
         ${feat_align_dir}
+    utils/fix_data_dir.sh ${align_dir}/data
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -225,18 +245,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     data2json.sh --feat ${feat_align_dir}/feats.scp ${nlsyms_opts} \
         ${align_dir}/data ${dict} > ${feat_align_dir}/data.json || exit 1;
 
-    unk_id=$(grep "<unk>" ${dict} | awk '{print $2}')
-    n_unks=$(grep tokenid ${feat_align_dir}/data.json | \
-                sed -e 's/.*: "\(.*\)".*/\1/' | \
-                awk -v unk_id=${unk_id} '
-                    BEGIN{cnt=0}
-                    {for (i=1;i<=NF;i++) {if ($i==unk_id) {cnt+=1}}}
-                    END{print cnt}
-                '
-            )
-    if [ ${n_unks} -gt 0 ]; then
-        echo "Warning: OOVs in the transcriptions could not be aligned."
-    fi
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -244,22 +252,23 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     align_opts=""
     feat_align_dir=${align_dir}/dump
 
-    ${decode_cmd} ${align_dir}/log/align.log \
-        ${python} -m espnet.bin.asr_ctc_align \
+    ${python} -m espnet.bin.asr_align \
         --config ${align_config} \
         --ngpu ${ngpu} \
-        --backend ${backend} \
         --debugmode ${debugmode} \
         --verbose ${verbose} \
-        --align-json ${feat_align_dir}/data.json \
-        --result-label ${align_dir}/result.json \
+        --data-json ${feat_align_dir}/data.json \
         --model ${align_model} \
+        --subsampling-factor ${subsampling_factor} \
+        --min-window-size ${min_window_size} \
+        --use-dict-blank 1 \
         --api ${api} \
-        ${align_opts} || exit 1;
+        --utt-text ${align_dir}/utt_text \
+        --output ${align_dir}/aligned_segments || exit 1;
 
     echo ""
-    alignment=$(grep ctc_alignment ${align_dir}/result.json | sed -e 's/.*: "\(.*\)".*/\1/' | sed -e 's/<eos>//')
-    echo "Alignment: ${alignment}"
-    echo ""
-    echo "Finished"
+    echo "Segments file: $(wc -l ${align_dir}/aligned_segments)"
+    count_reliable=$(awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${align_dir}/aligned_segments | wc -l)
+    echo "Utterances with min confidence score: ${count_reliable}"
+    echo "Finished."
 fi

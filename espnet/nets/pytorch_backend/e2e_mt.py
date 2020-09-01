@@ -87,7 +87,10 @@ class E2E(MTInterface, torch.nn.Module):
             help="Type of encoder network architecture",
         )
         group.add_argument(
-            "--elayers", default=4, type=int, help="Number of encoder layers",
+            "--elayers",
+            default=4,
+            type=int,
+            help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",
