@@ -35,6 +35,7 @@ from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
+from espnet2.utils.griffin_lim import Spectrogram2Waveform
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
@@ -135,6 +136,7 @@ class Trainer:
         val_scheduler_criterion: Sequence[str],
         trainer_options,
         distributed_option: DistributedOption,
+        feats_extract_config: Dict = None
     ) -> None:
         """Perform training. This method performs the main process of training."""
         assert check_argument_types()
@@ -175,6 +177,8 @@ class Trainer:
 
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+            feats_extract_config['n_shift'] = feats_extract_config.pop('hop_length')
+            spc2wav = Spectrogram2Waveform(griffin_lim_iters=4, **feats_extract_config)
         else:
             summary_writer = None
 
@@ -229,6 +233,17 @@ class Trainer:
                             iterator=plot_attention_iter_factory.build_iter(iepoch),
                             reporter=sub_reporter,
                             options=trainer_options,
+                        )
+                    # evaluate current model on only one text
+                    with reporter.observe("griffin-lim") as sub_reporter:
+                        cls.evaluate_griffin_lim(
+                            model=model,
+                            iterator=valid_iter_factory.build_iter(iepoch),
+                            options=trainer_options,
+                            spc2wav=spc2wav,
+                            summary_writer=summary_writer,
+                            reporter=sub_reporter,
+                            sample_rate=feats_extract_config['fs']
                         )
 
             # 2. LR Scheduler step
@@ -537,6 +552,30 @@ class Trainer:
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+
+    @classmethod
+    @torch.no_grad()
+    def evaluate_griffin_lim(
+        cls,
+        model: torch.nn.Module,
+        iterator: Iterable[Dict[str, torch.Tensor]],
+        options: TrainerOptions,
+        spc2wav: Spectrogram2Waveform,
+        summary_writer: SummaryWriter,
+        reporter: SubReporter,
+        sample_rate: int
+    ) -> None: 
+        assert check_argument_types()
+        ngpu = options.ngpu
+        no_forward_run = options.no_forward_run
+
+        model.eval()
+        _, batch = next(iter(iterator))
+
+        assert isinstance(batch, dict), type(batch)
+        spc = model.inference(to_device(batch['text'][0], "cuda" if ngpu > 0 else "cpu"))[1]
+        wav = spc2wav(spc.cpu().numpy())
+        summary_writer.add_audio("validation_audio", wav / max(np.abs(wav)), reporter.get_epoch(), sample_rate=sample_rate)
 
     @classmethod
     @torch.no_grad()
