@@ -67,6 +67,7 @@ class TrainerOptions:
     grad_noise: bool
     accum_grad: int
     grad_clip: float
+    grad_clip_type: float
     log_interval: Optional[int]
     no_forward_run: bool
 
@@ -343,6 +344,7 @@ class Trainer:
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
         grad_clip = options.grad_clip
+        grad_clip_type = options.grad_clip_type
         log_interval = options.log_interval
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
@@ -426,7 +428,9 @@ class Trainer:
 
                 # compute the gradient norm to check if it is normal or not
                 grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), grad_clip
+                    model.parameters(),
+                    max_norm=grad_clip,
+                    norm_type=grad_clip_type,
                 )
                 # PyTorch<=1.4, clip_grad_norm_ returns float value
                 if not isinstance(grad_norm, torch.Tensor):
