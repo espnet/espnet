@@ -165,7 +165,10 @@ class E2E(STInterface, torch.nn.Module):
         )
         # Encoder
         group.add_argument(
-            "--elayers", default=4, type=int, help="Number of encoder layers",
+            "--elayers",
+            default=4,
+            type=int,
+            help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",
@@ -525,7 +528,12 @@ class E2E(STInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def translate(
-        self, x, trans_args, char_list=None, rnnlm=None, use_jit=False,
+        self,
+        x,
+        trans_args,
+        char_list=None,
+        rnnlm=None,
+        use_jit=False,
     ):
         """Translate input speech.
 

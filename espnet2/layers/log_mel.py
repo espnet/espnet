@@ -35,7 +35,12 @@ class LogMel(torch.nn.Module):
         fmin = 0 if fmin is None else fmin
         fmax = fs / 2 if fmax is None else fmax
         _mel_options = dict(
-            sr=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk,
+            sr=fs,
+            n_fft=n_fft,
+            n_mels=n_mels,
+            fmin=fmin,
+            fmax=fmax,
+            htk=htk,
         )
         self.mel_options = _mel_options
         self.log_base = log_base
@@ -49,7 +54,9 @@ class LogMel(torch.nn.Module):
         return ", ".join(f"{k}={v}" for k, v in self.mel_options.items())
 
     def forward(
-        self, feat: torch.Tensor, ilens: torch.Tensor = None,
+        self,
+        feat: torch.Tensor,
+        ilens: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # feat: (B, T, D1) x melmat: (D1, D2) -> mel_feat: (B, T, D2)
         mel_feat = torch.matmul(feat, self.melmat)

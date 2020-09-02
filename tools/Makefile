@@ -42,17 +42,12 @@ ifeq ($(shell expr $(CUDA_VERSION_WITHOUT_DOT) \>= 102), 1)
 # cupy==6.0.0 doesn't support CUDA=10.2 or later
 NO_CUPY := 0
 endif
-
-ifneq ($(strip $(NO_CUPY)),)
 PIP_CHAINER := chainer==$(CHAINER_VERSION)
-else
-PIP_CHAINER := chainer==$(CHAINER_VERSION) cupy-cuda$(CUDA_VERSION_WITHOUT_DOT)==$(CHAINER_VERSION)
-endif
 
 
 .PHONY: all clean
 
-all: kaldi showenv python conda_packages.done check_install
+all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done chainer_ctc.done chainer.done
@@ -60,7 +55,7 @@ else
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done
 endif
 
-extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done
+extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
@@ -73,6 +68,7 @@ showenv: activate_python.sh
 ifeq ($(strip $(CPU_ONLY)),)
 	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
 	@echo CUDA_VERSION=$(CUDA_VERSION)
+	. ./activate_python.sh && python3 check_pytorch_cuda_compatibility.py $(TH_VERSION) ${CUDA_VERSION} || { echo "Change TH_VERSION or CUDA_VERSION"; exit 1; }
 else
 	@echo Perform on CPU mode: CPU_ONLY=$(CPU_ONLY)
 endif
@@ -102,7 +98,7 @@ sox.done: activate_python.sh
 	. ./activate_python.sh && { command -v sox || conda install -y sox -c conda-forge; }
 	touch sox.done
 sndfile.done: activate_python.sh
-	. ./activate_python.sh && { python -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile -c conda-forge; }
+	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile -c conda-forge; }
 	touch sndfile.done
 ifneq ($(strip $(IS_CONDA)),)
 conda_packages.done: cmake.done flac.done ffmpeg.done sox.done sndfile.done
@@ -110,6 +106,14 @@ else
 conda_packages.done:
 endif
 	touch conda_packages.done
+
+
+sctk.done:
+	./installers/install_sctk.sh
+	touch sctk.done
+sph2pipe.done:
+	./installers/install_sph2pipe.sh
+	touch sph2pipe.done
 
 
 ifneq ($(strip $(USE_PIP)),)
@@ -129,7 +133,17 @@ espnet.done: pytorch.done conda_packages.done
 	touch espnet.done
 
 chainer.done: espnet.done
-	. ./activate_python.sh && python3 -m pip install ${PIP_CHAINER}
+ifneq ($(strip $(NO_CUPY)),)
+	. ./activate_python.sh && python3 -m pip install $(PIP_CHAINER)
+else
+	# Precompiled cupy==6.0.0 for python>=3.8 is not provided
+	. ./activate_python.sh && \
+		if python3 -c "import sys; from distutils.version import LooseVersion as L; assert L(sys.version) < L('3.8')" 2>&1 /dev/null; then \
+			python3 -m pip install $(PIP_CHAINER) cupy-cuda$(CUDA_VERSION_WITHOUT_DOT)==$(CHAINER_VERSION); \
+		else \
+			python3 -m pip install $(PIP_CHAINER) cupy==$(CHAINER_VERSION); \
+		fi
+endif
 	touch chainer.done
 
 # NOTE(kamo): Add conda_packages.done if cmake is used
@@ -154,7 +168,7 @@ pyopenjtalk.done: espnet.done conda_packages.done
 	touch pyopenjtalk.done
 
 moses.done:
-	git clone https://github.com/moses-smt/mosesdecoder.git moses
+	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
 mwerSegmenter.done:

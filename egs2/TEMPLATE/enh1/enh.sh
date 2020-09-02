@@ -58,7 +58,6 @@ enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
 spk_num=2
 noise_type_num=1
-feats_normalize=global_mvn  # Normalizaton layer type
 
 # Training data related
 use_dereverb_ref=false
@@ -66,7 +65,7 @@ use_noise_ref=false
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
-inference_model=valid.si_snr.best.pth
+inference_model=valid.si_snr.ave.pth
 
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR"
@@ -120,7 +119,6 @@ Options:
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
     --noise_type_num  # Number of noise types in the input audio (default="${noise_type_num}")
-    --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
 
     # Training data related
     --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
@@ -148,6 +146,8 @@ EOF
 )
 
 log "$0 $*"
+# Save command line args for logging (they will be lost after utils/parse_options.sh)
+run_args=$(pyscripts/utils/print_args.py $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -382,7 +382,11 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # 2. Submit jobs
+        # 2. Generate run.sh
+        log "Generate '${enh_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${enh_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${enh_stats_dir}/run.sh"; chmod +x "${enh_stats_dir}/run.sh"
+
+        # 3. Submit jobs
         log "Enhancement collect-stats started... log: '${_logdir}/stats.*.log'"
 
         # prepare train and valid data parameters
@@ -423,7 +427,7 @@ if ! "${skip_train}"; then
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${enh_args}
 
-        # 3. Aggregate shape files
+        # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
@@ -486,9 +490,11 @@ if ! "${skip_train}"; then
             done
         fi
 
+        log "Generate '${enh_exp}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${enh_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${enh_exp}/run.sh"; chmod +x "${enh_exp}/run.sh"
 
         log "enh training started... log: '${enh_exp}/train.log'"
-        if [ "$(echo ${cuda_cmd} | sed -e 's/\s*\([a-zA-Z.]*\)\s.*/\1/')" == queue.pl ]; then
+        if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${enh_exp})"
         else
@@ -530,6 +536,8 @@ if ! "${skip_eval}"; then
             _ngpu=0
         fi
 
+        log "Generate '${enh_exp}/run_enhance.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${enh_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${enh_exp}/run_enhance.sh"; chmod +x "${enh_exp}/run_enhance.sh"
         _opts=
 
         for dset in "${valid_set}" ${test_sets}; do
@@ -636,7 +644,7 @@ if ! "${skip_eval}"; then
             for protocol in ${scoring_protocol}; do
                 # shellcheck disable=SC2046
                 paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
-                awk 'BEIGN{sum=0}
+                awk 'BEGIN{sum=0}
                     {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
                     END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
             done
@@ -659,6 +667,7 @@ if ! "${skip_upload}"; then
             --model_file "${enh_exp}"/"${inference_model}" \
             --option "${enh_exp}"/RESULTS.TXT \
             --option "${enh_stats_dir}"/train/feats_stats.npz  \
+            --option "${enh_exp}"/images \
             --outpath "${packed_model}"
     fi
 
@@ -705,7 +714,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 EOF
 
         # NOTE(kamo): The model file is uploaded here, but not published yet.
-        #   Please confirm your record at Zenodo and publish it by youself.
+        #   Please confirm your record at Zenodo and publish it by yourself.
 
         # shellcheck disable=SC2086
         espnet_model_zoo_upload \

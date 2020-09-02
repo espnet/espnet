@@ -44,6 +44,13 @@ class E2E(E2ETransformer):
             help="transformer encoder positional encoding layer type",
         )
         group.add_argument(
+            "--transformer-encoder-activation-type",
+            type=str,
+            default="swish",
+            choices=["relu", "hardtanh", "selu", "swish"],
+            help="transformer encoder activation function type",
+        )
+        group.add_argument(
             "--macaron-style",
             default=False,
             type=strtobool,
@@ -86,6 +93,7 @@ class E2E(E2ETransformer):
             attention_dropout_rate=args.transformer_attn_dropout_rate,
             pos_enc_layer_type=args.transformer_encoder_pos_enc_layer_type,
             selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
+            activation_type=args.transformer_encoder_activation_type,
             macaron_style=args.macaron_style,
             use_cnn_module=args.use_cnn_module,
             cnn_module_kernel=args.cnn_module_kernel,

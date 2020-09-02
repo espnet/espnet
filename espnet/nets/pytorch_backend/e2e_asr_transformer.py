@@ -443,7 +443,7 @@ class E2E(ASRInterface, torch.nn.Module):
             lpz = self.ctc.argmax(enc_output)
             collapsed_indices = [x[0] for x in groupby(lpz[0])]
             hyp = [x for x in filter(lambda x: x != self.blank, collapsed_indices)]
-            nbest_hyps = [{"score": 0.0, "yseq": hyp}]
+            nbest_hyps = [{"score": 0.0, "yseq": [self.sos] + hyp}]
             if recog_args.beam_size > 1:
                 raise NotImplementedError("Pure CTC beam search is not implemented.")
             # TODO(hirofumi0810): Implement beam search

@@ -47,7 +47,6 @@ class EncoderLayer(nn.Module):
         feed_forward_macaron,
         conv_module,
         dropout_rate,
-        ff_scale=1.0,
         normalize_before=True,
         concat_after=False,
     ):
@@ -57,12 +56,13 @@ class EncoderLayer(nn.Module):
         self.feed_forward = feed_forward
         self.feed_forward_macaron = feed_forward_macaron
         self.conv_module = conv_module
-        self.ff_scale = ff_scale
         self.norm_ff = LayerNorm(size)  # for the FNN module
         self.norm_mha = LayerNorm(size)  # for the MHA module
         if feed_forward_macaron is not None:
             self.norm_ff_macaron = LayerNorm(size)
             self.ff_scale = 0.5
+        else:
+            self.ff_scale = 1.0
         if self.conv_module is not None:
             self.norm_conv = LayerNorm(size)  # for the CNN module
             self.norm_final = LayerNorm(size)  # for the final output of the block

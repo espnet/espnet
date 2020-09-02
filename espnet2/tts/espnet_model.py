@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+from distutils.version import LooseVersion
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -10,6 +12,14 @@ from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    from torch.cuda.amp import autocast
+else:
+    # Nothing to do if torch<1.6.0
+    @contextmanager
+    def autocast(enabled=True):
+        yield
 
 
 class ESPnetTTSModel(AbsESPnetModel):
@@ -48,37 +58,38 @@ class ESPnetTTSModel(AbsESPnetModel):
         spembs: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        # Extract features
-        if self.feats_extract is not None:
-            feats, feats_lengths = self.feats_extract(speech, speech_lengths)
-        else:
-            feats, feats_lengths = speech, speech_lengths
+        with autocast(False):
+            # Extract features
+            if self.feats_extract is not None:
+                feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+            else:
+                feats, feats_lengths = speech, speech_lengths
 
-        # Extract auxiliary features
-        if self.pitch_extract is not None and pitch is None:
-            pitch, pitch_lengths = self.pitch_extract(
-                speech,
-                speech_lengths,
-                feats_lengths=feats_lengths,
-                durations=durations,
-                durations_lengths=durations_lengths,
-            )
-        if self.energy_extract is not None and energy is None:
-            energy, energy_lengths = self.energy_extract(
-                speech,
-                speech_lengths,
-                feats_lengths=feats_lengths,
-                durations=durations,
-                durations_lengths=durations_lengths,
-            )
+            # Extract auxiliary features
+            if self.pitch_extract is not None and pitch is None:
+                pitch, pitch_lengths = self.pitch_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
+            if self.energy_extract is not None and energy is None:
+                energy, energy_lengths = self.energy_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
 
-        # Normalize
-        if self.normalize is not None:
-            feats, feats_lengths = self.normalize(feats, feats_lengths)
-        if self.pitch_normalize is not None:
-            pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
-        if self.energy_normalize is not None:
-            energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
+            # Normalize
+            if self.normalize is not None:
+                feats, feats_lengths = self.normalize(feats, feats_lengths)
+            if self.pitch_normalize is not None:
+                pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
+            if self.energy_normalize is not None:
+                energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
 
         # Update kwargs for additional auxiliary inputs
         if spembs is not None:

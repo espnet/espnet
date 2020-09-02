@@ -25,7 +25,11 @@ class SoundScpReader(collections.abc.Mapping):
     """
 
     def __init__(
-        self, fname, dtype=np.int16, always_2d: bool = False, normalize: bool = False,
+        self,
+        fname,
+        dtype=np.int16,
+        always_2d: bool = False,
+        normalize: bool = False,
     ):
         assert check_argument_types()
         self.fname = fname

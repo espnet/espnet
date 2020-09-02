@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-$CXX -v
+${CXX:-g++} -v
 
 (
     set -euo pipefail
@@ -19,16 +19,12 @@ $CXX -v
     fi
     make TH_VERSION="${TH_VERSION}"
 
-    make moses.done
+    make nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
 python3 --version
 
-pip3 install -U wheel
-# Fix pip version to avoid this error https://github.com/ethereum/eth-abi/issues/131#issuecomment-620981271
-pip3 install pip==20.0.2
-pip3 install chainer=="${CHAINER_VERSION}"
 pip3 install https://github.com/kpu/kenlm/archive/master.zip
 
 # install espnet

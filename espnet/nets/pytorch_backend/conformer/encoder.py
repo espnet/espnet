@@ -11,7 +11,7 @@ import torch
 
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.conformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
@@ -29,6 +29,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
 
 class Encoder(torch.nn.Module):
@@ -52,6 +53,7 @@ class Encoder(torch.nn.Module):
     :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
     :param str encoder_pos_enc_layer_type: encoder positional encoding layer type
     :param str encoder_attn_layer_type: encoder attention layer type
+    :param str activation_type: encoder activation function type
     :param bool macaron_style: whether to use macaron style for positionwise layer
     :param bool use_cnn_module: whether to use convolution module
     :param int cnn_module_kernel: kernerl size of convolution module
@@ -76,6 +78,7 @@ class Encoder(torch.nn.Module):
         macaron_style=False,
         pos_enc_layer_type="abs_pos",
         selfattention_layer_type="selfattn",
+        activation_type="swish",
         use_cnn_module=False,
         cnn_module_kernel=31,
         padding_idx=-1,
@@ -83,6 +86,7 @@ class Encoder(torch.nn.Module):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
 
+        activation = get_activation(activation_type)
         if pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding
         elif pos_enc_layer_type == "scaled_abs_pos":
@@ -104,6 +108,7 @@ class Encoder(torch.nn.Module):
             self.embed = Conv2dSubsampling(
                 idim,
                 attention_dim,
+                dropout_rate,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer == "vgg2l":
@@ -115,7 +120,8 @@ class Encoder(torch.nn.Module):
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer, pos_enc_class(attention_dim, positional_dropout_rate),
+                input_layer,
+                pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer is None:
             self.embed = torch.nn.Sequential(
@@ -126,7 +132,12 @@ class Encoder(torch.nn.Module):
         self.normalize_before = normalize_before
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
-            positionwise_layer_args = (attention_dim, linear_units, dropout_rate)
+            positionwise_layer_args = (
+                attention_dim,
+                linear_units,
+                dropout_rate,
+                activation,
+            )
         elif positionwise_layer_type == "conv1d":
             positionwise_layer = MultiLayeredConv1d
             positionwise_layer_args = (
@@ -166,7 +177,7 @@ class Encoder(torch.nn.Module):
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
 
         convolution_layer = ConvolutionModule
-        convolution_layer_args = (attention_dim, cnn_module_kernel)
+        convolution_layer_args = (attention_dim, cnn_module_kernel, activation)
 
         self.encoders = repeat(
             num_blocks,

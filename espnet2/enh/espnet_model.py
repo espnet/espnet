@@ -17,7 +17,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
     """Speech enhancement or separation Frontend model"""
 
     def __init__(
-        self, enh_model: Optional[AbsEnhancement],
+        self,
+        enh_model: Optional[AbsEnhancement],
     ):
         assert check_argument_types()
 
@@ -279,7 +280,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
             loss = tf_loss
 
-            stats = dict(si_snr=si_snr, loss=loss.detach(),)
+            stats = dict(
+                si_snr=si_snr,
+                loss=loss.detach(),
+            )
         else:
             if speech_ref.dim() == 4:
                 # For si_snr loss of multi-channel input,
