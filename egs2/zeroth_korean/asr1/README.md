@@ -24,19 +24,35 @@ https://github.com/goodatlas/zeroth
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave/test_clean|457|9253|98.3|1.0|0.7|0.3|2.0|13.1|
-|inference_asr_model_valid.acc.best/test_clean|457|9253|97.8|1.4|0.9|0.2|2.4|17.3|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave/test_clean|457|28084|98.9|0.4|0.7|0.3|1.4|13.1|
-|inference_asr_model_valid.acc.best/test_clean|457|28084|98.6|0.5|0.9|0.2|1.6|17.3|
 
 ### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave/test_clean|457|14176|98.6|0.7|0.7|0.3|1.7|13.1|
-|inference_asr_model_valid.acc.best/test_clean|457|14176|98.2|0.9|0.9|0.2|2.0|17.3|
+
+## asr_train_asr_transformer_fbank_pitch_bpe
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave/test_clean|457|9253|98.1|1.1|0.7|0.2|2.0|14.2|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave/test_clean|457|28084|98.8|0.4|0.8|0.2|1.3|14.2|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave/test_clean|457|14176|98.5|0.8|0.7|0.1|1.6|14.2|
 
