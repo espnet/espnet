@@ -1,0 +1,39 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 200
+batch_type: folded
+batch_size: 12
+iterator_type: chunk
+chunk_length: 16000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+patience: 4
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.9
+    patience: 2
+enh: dprnn
+enh_conf:
+  fs: 8000
+  enc_dim : 64
+  feature_dim : 64
+  hidden_dim : 128
+  layer : 6
+  segment_size : 250
+  nspk : 2
+  win_len : 2

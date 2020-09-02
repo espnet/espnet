@@ -55,7 +55,7 @@ class BeamformerNet(AbsEnhancement):
 
         self.mask_type = mask_type
         self.loss_type = loss_type
-        if loss_type not in ("mask_mse", "spectrum"):
+        if loss_type not in ("mask_mse", "spectrum", "magnitude"):
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.num_spk = num_spk
@@ -129,7 +129,7 @@ class BeamformerNet(AbsEnhancement):
 
         Returns:
             enhanced speech  (single-channel):
-                torch.Tensor or List[torch.Tensor]
+                List[ComplexTensor]
             output lengths
             predcited masks: OrderedDict[
                 'dereverb': torch.Tensor(Batch, Frames, Channel, Freq),
@@ -206,14 +206,9 @@ class BeamformerNet(AbsEnhancement):
                     if len(masks_b) > self.num_spk:
                         masks["noise1"] = masks_b[self.num_spk]
 
-        # Convert ComplexTensor to torch.Tensor
-        # (B, T, F) -> (B, T, F, 2)
-        if isinstance(enhanced, list):
-            # multi-speaker output
-            enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
-        else:
+        if not isinstance(enhanced, list):
             # single-speaker output
-            enhanced = [torch.stack([enhanced.real, enhanced.imag], dim=-1)]
+            enhanced = [enhanced]
         return enhanced, flens, masks
 
     def forward_rawwav(self, input: torch.Tensor, ilens: torch.Tensor):

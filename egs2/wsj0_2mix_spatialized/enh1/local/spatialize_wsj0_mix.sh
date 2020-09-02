@@ -107,7 +107,7 @@ echo $matlab_cmd >> $cmdfile
 chmod +x $cmdfile
 
 # Run Matlab (This takes more than 8 hours)
-# Expected data directory to be generated:
+# Expected data directories to be generated:
 #   - ${wsj0_2mix_spatialized_wav}/RIRs_16k/rir_*.mat
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_anechoic/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_reverb/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav

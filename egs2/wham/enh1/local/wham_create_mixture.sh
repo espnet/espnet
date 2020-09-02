@@ -67,6 +67,8 @@ echo "Log is in ${dir}/wham_scripts/mix.log"
 
 # Run simulation (single-process)
 if [ -d "$wsj0_2mix" ]; then
+  # (This may take ~6 hours to generate min version, 8k data
+  #  on Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz)
   echo "Using existing wsj0-2mix data in $wsj0_2mix"
   ${train_cmd} ${dir}/wham_scripts/mix.log python create_wham_from_wsjmix.py \
     --wsjmix-dir-16k ${wsj0_2mix}/wav16k \

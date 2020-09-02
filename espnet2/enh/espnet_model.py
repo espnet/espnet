@@ -183,12 +183,21 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if self.loss_type == "magnitude":
                 # compute loss on magnitude spectrum
                 magnitude_pre = [abs(ps) for ps in spectrum_pre]
-                magnitude_ref = [abs(sr) for sr in spectrum_ref]
+                if spectrum_ref[0].dim() > magnitude_pre[0].dim():
+                    # only select one channel as the reference
+                    magnitude_ref = [abs(sr[..., self.ref_channel, :]) for sr in spectrum_ref]
+                else:
+                    magnitude_ref = [abs(sr) for sr in spectrum_ref]
+
                 tf_loss, perm = self._permutation_loss(
                     magnitude_ref, magnitude_pre, self.tf_mse_loss
                 )
             elif self.loss_type == "spectrum":
                 # compute loss on complex spectrum
+                if spectrum_ref[0].dim() > spectrum_pre[0].dim():
+                    # only select one channel as the reference
+                    spectrum_ref = [sr[..., self.ref_channel, :] for sr in spectrum_ref]
+
                 tf_loss, perm = self._permutation_loss(
                     spectrum_ref, spectrum_pre, self.tf_mse_loss
                 )
@@ -313,8 +322,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
     def tf_mse_loss(ref, inf):
         """time-frequency MSE loss.
 
-        :param ref: (Batch, T, F)
-        :param inf: (Batch, T, F)
+        :param ref: (Batch, T, F) or (Batch, T, C, F)
+        :param inf: (Batch, T, F) or (Batch, T, C, F)
         :return: (Batch)
         """
         assert ref.dim() == inf.dim(), (ref.shape, inf.shape)

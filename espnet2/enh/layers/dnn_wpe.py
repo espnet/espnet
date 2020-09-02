@@ -82,6 +82,7 @@ class DNN_WPE(torch.nn.Module):
 
             # Averaging along the channel axis: (..., C, T) -> (..., T)
             power = power.mean(dim=-2)
+            power = torch.clamp(power, min=1e-6)
 
             # enhanced: (..., C, T) -> (..., C, T)
             # NOTE(kamo): Calculate in double precision

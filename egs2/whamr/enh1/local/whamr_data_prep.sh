@@ -66,9 +66,11 @@ for x in tr cv tt; do
         sort > ${data}/${ddir}/utt2spk
       utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
 
-      noise_wav_dir=${rootdir}/noise
-      sed -e "s#${mixwav_dir}#${noise_wav_dir}#g" ${data}/${ddir}/wav.scp \
-        > ${data}/${ddir}/noise1.scp
+      if [[ "$mixtype" != "clean" ]]; then
+        noise_wav_dir=${rootdir}/noise
+        sed -e "s#${mixwav_dir}#${noise_wav_dir}#g" ${data}/${ddir}/wav.scp \
+          > ${data}/${ddir}/noise1.scp
+      fi
 
       spk1_wav_dir=${rootdir}/s1_${cond}
       sed -e "s#${mixwav_dir}#${spk1_wav_dir}#g" ${data}/${ddir}/wav.scp \
