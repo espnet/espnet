@@ -136,7 +136,7 @@ class Trainer:
         val_scheduler_criterion: Sequence[str],
         trainer_options,
         distributed_option: DistributedOption,
-        feats_extract_config: Dict = None,
+        feats_extract_config: Optional[Dict] = None,
     ) -> None:
         """Perform training. This method performs the main process of training."""
         assert check_argument_types()
