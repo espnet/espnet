@@ -9,6 +9,7 @@ import argparse
 import importlib
 import logging
 import sys
+import traceback
 
 from distutils.version import LooseVersion
 
@@ -95,7 +96,7 @@ def main(args):
             logging.info("--> %s is installed." % name)
             is_correct_installed_list.append(True)
         except ImportError:
-            logging.warning("--> %s is not installed." % name)
+            logging.warning("--> %s is not installed.\n###### Raw Error ######\n%s#######################" % (name, traceback.format_exc()))
             is_correct_installed_list.append(False)
     logging.info("library availableness check done.")
     logging.info(

@@ -67,6 +67,7 @@ class TrainerOptions:
     grad_noise: bool
     accum_grad: int
     grad_clip: float
+    grad_clip_type: float
     log_interval: Optional[int]
     no_forward_run: bool
 
@@ -164,7 +165,8 @@ class Trainer:
             )
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
-                model, device_ids=list(range(distributed_option.ngpu)),
+                model,
+                device_ids=list(range(distributed_option.ngpu)),
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
@@ -342,6 +344,7 @@ class Trainer:
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
         grad_clip = options.grad_clip
+        grad_clip_type = options.grad_clip_type
         log_interval = options.log_interval
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
@@ -425,7 +428,9 @@ class Trainer:
 
                 # compute the gradient norm to check if it is normal or not
                 grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), grad_clip
+                    model.parameters(),
+                    max_norm=grad_clip,
+                    norm_type=grad_clip_type,
                 )
                 # PyTorch<=1.4, clip_grad_norm_ returns float value
                 if not isinstance(grad_norm, torch.Tensor):
@@ -435,6 +440,17 @@ class Trainer:
                     logging.warning(
                         f"The grad norm is {grad_norm}. Skipping updating the model."
                     )
+
+                    # Must invoke scaler.update() if unscale_() is used in the iteration
+                    # to avoid the following error:
+                    #   RuntimeError: unscale_() has already been called
+                    #   on this optimizer since the last update().
+                    # Note that if the gradient has inf/nan values,
+                    # scaler.step skips optimizer.step().
+                    if scaler is not None:
+                        scaler.step(optimizer)
+                        scaler.update()
+
                 else:
                     all_steps_are_invalid = False
                     with reporter.measure_time("optim_step_time"):

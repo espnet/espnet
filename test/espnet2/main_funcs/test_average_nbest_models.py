@@ -43,12 +43,24 @@ def output_dir(tmp_path):
     return _output_dir
 
 
-@pytest.mark.parametrize("nbest", [0, 1, 2, 3])
+@pytest.mark.parametrize("nbest", [0, 1, 2, 3, 4, [1, 2, 3, 5], []])
 def test_average_nbest_models(reporter, output_dir, nbest):
     # Repeat twice to check the case of existing files.
     for _ in range(2):
         average_nbest_models(
             reporter=reporter,
+            output_dir=output_dir,
+            best_model_criterion=[("valid", "acc", "max")],
+            nbest=nbest,
+        )
+
+
+@pytest.mark.parametrize("nbest", [0, 1, 2, 3, 4, [1, 2, 3, 5], []])
+def test_average_nbest_models_0epoch_reporter(output_dir, nbest):
+    # Repeat twice to check the case of existing files.
+    for _ in range(2):
+        average_nbest_models(
+            reporter=Reporter(),
             output_dir=output_dir,
             best_model_criterion=[("valid", "acc", "max")],
             nbest=nbest,

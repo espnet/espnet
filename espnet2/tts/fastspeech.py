@@ -459,12 +459,21 @@ class FastSpeech(AbsTTS):
             # use groundtruth of duration, pitch, and energy
             ds = d.unsqueeze(0)
             _, outs, *_ = self._forward(
-                xs, ilens, ys, ds=ds, spembs=spembs,
+                xs,
+                ilens,
+                ys,
+                ds=ds,
+                spembs=spembs,
             )  # (1, L, odim)
         else:
             # inference
             _, outs, _ = self._forward(
-                xs, ilens, ys, spembs=spembs, is_inference=True, alpha=alpha,
+                xs,
+                ilens,
+                ys,
+                spembs=spembs,
+                is_inference=True,
+                alpha=alpha,
             )  # (1, L, odim)
 
         return outs[0], None, None

@@ -16,7 +16,8 @@ def test_find_path_and_change_it_recursive():
 
 
 @pytest.mark.parametrize(
-    "type", ["tgz", "tar", "tbz2", "txz", "zip"],
+    "type",
+    ["tgz", "tar", "tbz2", "txz", "zip"],
 )
 def test_pack_unpack(tmp_path: Path, type):
     files = {"abc": str(tmp_path / "foo.pth")}
@@ -61,3 +62,24 @@ def test_unpack_no_meta_yaml(tmp_path: Path):
         pass
     with pytest.raises(RuntimeError):
         unpack(str(tmp_path / "a.tgz"), "out")
+
+
+@pytest.mark.parametrize(
+    "type",
+    ["tgz", "tar", "tbz2", "txz", "zip"],
+)
+def test_pack_unpack_recursive(tmp_path: Path, type):
+    p = tmp_path / "a" / "b"
+    p.mkdir(parents=True)
+    with (p / "foo.pth").open("w"):
+        pass
+
+    pack(
+        files={},
+        yaml_files={},
+        option=[p],
+        outpath=str(tmp_path / f"out.{type}"),
+    )
+
+    unpack(str(tmp_path / f"out.{type}"), str(tmp_path))
+    assert (tmp_path / p / "foo.pth").exists()

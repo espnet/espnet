@@ -24,11 +24,9 @@ class Encoder(torch.nn.Module):
     """Encoder module of Spectrogram prediction network.
 
     This is a module of encoder of Spectrogram prediction network in Tacotron2,
-    which described in `Natural TTS
-    Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_.
-    This is the encoder which converts either a
-    sequence of characters or acoustic features
-    into the sequence of hidden states.
+    which described in `Natural TTS Synthesis by Conditioning WaveNet on Mel
+    Spectrogram Predictions`_. This is the encoder which converts either a sequence
+    of characters or acoustic features into the sequence of hidden states.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884
@@ -54,7 +52,7 @@ class Encoder(torch.nn.Module):
 
         Args:
             idim (int) Dimension of the inputs.
-            :param str input_layer: input layer type
+            input_layer (str): Input layer type.
             embed_dim (int, optional) Dimension of character embedding.
             elayers (int, optional) The number of encoder blstm layers.
             eunits (int, optional) The number of encoder blstm units.
@@ -133,10 +131,9 @@ class Encoder(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            xs (Tensor): Batch of the padded sequence.
-                Either character ids (B, Tmax)
-                    or acoustic feature (B, Tmax, idim * encoder_reduction_factor).
-                Padded value should be 0.
+            xs (Tensor): Batch of the padded sequence. Either character ids (B, Tmax)
+                or acoustic feature (B, Tmax, idim * encoder_reduction_factor). Padded
+                value should be 0.
             ilens (LongTensor): Batch of lengths of each input batch (B,).
 
         Returns:

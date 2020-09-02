@@ -88,13 +88,13 @@ inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                # Note that it will overwrite args in inference config.
-inference_lm=valid.loss.best.pth       # Language modle path for decoding.
-inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
-                                    # e.g.
-                                    # inference_asr_model=train.loss.best.pth
-                                    # inference_asr_model=3epoch.pth
-                                    # inference_asr_model=valid.acc.best.pth
-                                    # inference_asr_model=valid.loss.ave.pth
+inference_lm=valid.loss.ave.pth       # Language modle path for decoding.
+inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
+                                      # e.g.
+                                      # inference_asr_model=train.loss.best.pth
+                                      # inference_asr_model=3epoch.pth
+                                      # inference_asr_model=valid.acc.best.pth
+                                      # inference_asr_model=valid.loss.ave.pth
 download_model= # Download a model from Model Zoo and use it for decoding
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -284,6 +284,9 @@ if [ -z "${asr_tag}" ]; then
     if [ -n "${asr_args}" ]; then
         asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
+    if [ -n "${speed_perturb_factors}" ]; then
+        asr_tag="${asr_tag}_sp"
+    fi
 fi
 if [ -z "${lm_tag}" ]; then
     if [ -n "${lm_config}" ]; then
@@ -296,21 +299,6 @@ if [ -z "${lm_tag}" ]; then
         lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
-if [ -z "${inference_tag}" ]; then
-    if [ -n "${inference_config}" ]; then
-        inference_tag="$(basename "${inference_config}" .yaml)"
-    else
-        inference_tag=inference
-    fi
-    # Add overwritten arg's info
-    if [ -n "${inference_args}" ]; then
-        inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
-    fi
-    if "${use_lm}"; then
-        inference_tag+="_lm_${lm_tag}_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-    fi
-    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-fi
 
 # The directory used for collect-stats mode
 asr_stats_dir="${expdir}/asr_stats_${feats_type}"
@@ -322,11 +310,25 @@ lm_stats_dir="${expdir}/lm_stats"
 if [ -z "${asr_exp}" ]; then
     asr_exp="${expdir}/asr_${asr_tag}"
 fi
-if [ -n "${speed_perturb_factors}" ]; then
-    asr_exp="${asr_exp}_sp"
-fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
+fi
+
+
+if [ -z "${inference_tag}" ]; then
+    if [ -n "${inference_config}" ]; then
+        inference_tag="$(basename "${inference_config}" .yaml)"
+    else
+        inference_tag=inference
+    fi
+    # Add overwritten arg's info
+    if [ -n "${inference_args}" ]; then
+        inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    fi
+    if "${use_lm}"; then
+        inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -1216,6 +1218,8 @@ if ! "${skip_upload}"; then
         if "${use_lm}"; then
             _opts+="--lm_train_config ${lm_exp}/config.yaml "
             _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            _opts+="--option ${lm_exp}/perplexity_test/ppl "
+            _opts+="--option ${lm_exp}/images "
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
             _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
@@ -1229,6 +1233,7 @@ if ! "${skip_upload}"; then
             --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
             ${_opts} \
             --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/images \
             --outpath "${packed_model}"
     fi
 
@@ -1276,7 +1281,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 EOF
 
         # NOTE(kamo): The model file is uploaded here, but not published yet.
-        #   Please confirm your record at Zenodo and publish it by youself.
+        #   Please confirm your record at Zenodo and publish it by yourself.
 
         # shellcheck disable=SC2086
         espnet_model_zoo_upload \

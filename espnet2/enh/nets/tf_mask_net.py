@@ -36,7 +36,11 @@ class TFMaskingNet(AbsEnhancement):
         if loss_type not in ("mask_mse", "magnitude", "spectrum"):
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
-        self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
+        self.stft = Stft(
+            n_fft=n_fft,
+            win_length=win_length,
+            hop_length=hop_length,
+        )
 
         if utt_mvn:
             self.utt_mvn = UtteranceMVN(norm_means=True, norm_vars=True)

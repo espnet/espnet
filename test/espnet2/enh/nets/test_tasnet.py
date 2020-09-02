@@ -18,7 +18,17 @@ from espnet2.enh.nets.tasnet import TasNet
 @pytest.mark.parametrize("causal", [True, False])
 @pytest.mark.parametrize("mask_nonlinear", ["softmax", "relu"])
 def test_tasnet_forward_backward(
-    N, L, B, H, P, X, R, num_spk, norm_type, causal, mask_nonlinear,
+    N,
+    L,
+    B,
+    H,
+    P,
+    X,
+    R,
+    num_spk,
+    norm_type,
+    causal,
+    mask_nonlinear,
 ):
     model = TasNet(
         N=N,
@@ -53,7 +63,17 @@ def test_tasnet_forward_backward(
 @pytest.mark.parametrize("causal", [True, False])
 @pytest.mark.parametrize("mask_nonlinear", ["softmax", "relu"])
 def test_tasnet_cosistency(
-    N, L, B, H, P, X, R, num_spk, norm_type, causal, mask_nonlinear,
+    N,
+    L,
+    B,
+    H,
+    P,
+    X,
+    R,
+    num_spk,
+    norm_type,
+    causal,
+    mask_nonlinear,
 ):
     model = TasNet(
         N=N,
@@ -98,7 +118,17 @@ def test_tasnet_cosistency(
 @pytest.mark.parametrize("causal", [True, False])
 @pytest.mark.parametrize("mask_nonlinear", ["softmax", "relu"])
 def test_tasnet_output(
-    N, L, B, H, P, X, R, num_spk, norm_type, causal, mask_nonlinear,
+    N,
+    L,
+    B,
+    H,
+    P,
+    X,
+    R,
+    num_spk,
+    norm_type,
+    causal,
+    mask_nonlinear,
 ):
     inputs = torch.randn(2, 160)
     ilens = torch.LongTensor([160, 120])

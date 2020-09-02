@@ -56,12 +56,13 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     YESNO=
     HOW2_TEXT=
     HOW2_FEATS=
+    ZEROTH_KOREAN=downloads
 
 else
     AISHELL=downloads
     AN4=downloads
-    WSJ0=/splpub/db/SPLrfs/splDB/table_05/LDC93S6B_CSR_I_WSJ0_Sennheiser/LDC93S6B
-    WSJ1=/splpub/db/SPLrfs/splDB/table_05/LDC94S13B_CSR_II_WSJ1_Sennheiser/LDC94S13B
+    WSJ0=
+    WSJ1=
     WSJCAM0=
     REVERB=
     CHIME3=
@@ -115,4 +116,5 @@ else
     YESNO=downloads
     HOW2_TEXT=downloads/how2-300h-v1
     HOW2_FEATS=downloads/fbank_pitch_181516
+    ZEROTH_KOREAN=downloads
 fi
