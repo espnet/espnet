@@ -567,7 +567,6 @@ class Trainer:
     ) -> None:
         assert check_argument_types()
         ngpu = options.ngpu
-        no_forward_run = options.no_forward_run
 
         model.eval()
         _, batch = next(iter(iterator))
