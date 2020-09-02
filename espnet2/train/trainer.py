@@ -177,7 +177,10 @@ class Trainer:
 
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
-            feats_extract_config["n_shift"] = feats_extract_config.pop("hop_length")
+            if feats_extract_config is not None:
+                feats_extract_config["n_shift"] = feats_extract_config.pop("hop_length")
+            else:
+                feats_extract_config = {"fs": 22050}
             spc2wav = Spectrogram2Waveform(griffin_lim_iters=4, **feats_extract_config)
         else:
             summary_writer = None
