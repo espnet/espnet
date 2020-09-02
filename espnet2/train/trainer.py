@@ -136,7 +136,7 @@ class Trainer:
         val_scheduler_criterion: Sequence[str],
         trainer_options,
         distributed_option: DistributedOption,
-        feats_extract_config: Dict = None
+        feats_extract_config: Dict = None,
     ) -> None:
         """Perform training. This method performs the main process of training."""
         assert check_argument_types()
@@ -177,7 +177,7 @@ class Trainer:
 
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
-            feats_extract_config['n_shift'] = feats_extract_config.pop('hop_length')
+            feats_extract_config["n_shift"] = feats_extract_config.pop("hop_length")
             spc2wav = Spectrogram2Waveform(griffin_lim_iters=4, **feats_extract_config)
         else:
             summary_writer = None
@@ -243,7 +243,7 @@ class Trainer:
                             spc2wav=spc2wav,
                             summary_writer=summary_writer,
                             reporter=sub_reporter,
-                            sample_rate=feats_extract_config['fs']
+                            sample_rate=feats_extract_config["fs"],
                         )
 
             # 2. LR Scheduler step
@@ -563,8 +563,8 @@ class Trainer:
         spc2wav: Spectrogram2Waveform,
         summary_writer: SummaryWriter,
         reporter: SubReporter,
-        sample_rate: int
-    ) -> None: 
+        sample_rate: int,
+    ) -> None:
         assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
@@ -573,9 +573,16 @@ class Trainer:
         _, batch = next(iter(iterator))
 
         assert isinstance(batch, dict), type(batch)
-        spc = model.inference(to_device(batch['text'][0], "cuda" if ngpu > 0 else "cpu"))[1]
+        spc = model.inference(
+            to_device(batch["text"][0], "cuda" if ngpu > 0 else "cpu")
+        )[1]
         wav = spc2wav(spc.cpu().numpy())
-        summary_writer.add_audio("validation_audio", wav / max(np.abs(wav)), reporter.get_epoch(), sample_rate=sample_rate)
+        summary_writer.add_audio(
+            "validation_audio",
+            wav / max(np.abs(wav)),
+            reporter.get_epoch(),
+            sample_rate=sample_rate,
+        )
 
     @classmethod
     @torch.no_grad()

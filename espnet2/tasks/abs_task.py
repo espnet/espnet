@@ -1221,7 +1221,7 @@ class AbsTask(ABC):
                 val_scheduler_criterion=args.val_scheduler_criterion,
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
-                feats_extract_config=args.feats_extract_conf
+                feats_extract_config=args.feats_extract_conf,
             )
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
