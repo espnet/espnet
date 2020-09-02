@@ -19,4 +19,4 @@ export PYTHONIOENCODING=UTF-8
 export NCCL_SOCKET_IFNAME="^lo,docker,virbr,vmnet,vboxnet"
 
 # NOTE(kamo): Source at the last to overwrite the setting
-#. local/path.sh
+. local/path.sh
