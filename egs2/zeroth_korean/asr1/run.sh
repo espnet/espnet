@@ -10,13 +10,12 @@ valid_set="train_dev"
 test_sets="test_clean"
 
 ./asr.sh \
-    --feats_type fbank_pitch \
     --token_type bpe \
     --nbpe 5000 \
     --use_lm false \
     --lang kr \
     --lm_config conf/train_lm.yaml \
-    --asr_config conf/train_asr_transformer.yaml \
+    --asr_config conf/tuning/train_asr_transformer5.yaml \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

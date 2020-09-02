@@ -14,3 +14,11 @@ export OMP_NUM_THREADS=1
 
 # NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C
 export PYTHONIOENCODING=UTF-8
+
+# check extra module installation
+if ! python3 -c "import ctc_segmentation" > /dev/null; then
+    echo "Error: ctc_segmentation is not installed." >&2
+    echo "Error: please install ctc_segmentation as follows:" >&2
+    echo "Error: . ${MAIN_ROOT}/tools/activate_python.sh && pip3 install ctc-segmentation" >&2
+    return 1
+fi

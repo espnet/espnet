@@ -54,7 +54,7 @@ while IFS= read -r expdir; do
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 EOF
-                grep -e Avg "${expdir}"/*/*/score_${type}/result.txt \
+                grep -H -e Avg "${expdir}"/*/*/score_${type}/result.txt \
                     | sed -e "s#${expdir}/\([^/]*/[^/]*\)/score_${type}/result.txt:#|\1#g" \
                     | sed -e 's#Sum/Avg##g' | tr '|' ' ' | tr -s ' ' '|'
                 echo

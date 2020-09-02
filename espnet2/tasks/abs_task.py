@@ -494,6 +494,12 @@ class AbsTask(ABC):
             help="Gradient norm threshold to clip",
         )
         group.add_argument(
+            "--grad_clip_type",
+            type=float,
+            default=2.0,
+            help="The type of the used p-norm for gradient clip. Can be inf",
+        )
+        group.add_argument(
             "--grad_noise",
             type=str2bool,
             default=False,
