@@ -148,7 +148,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """Forward one step.
 
         Args:
-            hyp (dict): hypothese
+            hyp (dataclass): hypothesis
             cache (dict): states cache
 
         Returns:
@@ -158,18 +158,17 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             lm_tokens (torch.Tensor): token id for LM (1)
 
         """
-        tgt = to_device(self, torch.tensor(hyp["yseq"]).unsqueeze(0))
+        tgt = to_device(self, torch.tensor(hyp.yseq).unsqueeze(0))
         lm_tokens = tgt[:, -1]
 
-        str_yseq = "".join([str(x) for x in hyp["yseq"]])
+        str_yseq = "".join([str(x) for x in hyp.yseq])
 
         if str_yseq in cache:
             y, new_state = cache[str_yseq]
         else:
-            tgt_mask = to_device(self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0))
+            tgt_mask = to_device(self, subsequent_mask(len(hyp.yseq)).unsqueeze(0))
 
-            state = hyp["dec_state"]
-            state = check_state(state, (tgt.size(1) - 1), self.blank)
+            state = check_state(hyp.dec_state, (tgt.size(1) - 1), self.blank)
 
             tgt = self.embed(tgt)
 
@@ -191,7 +190,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """Forward batch one step.
 
         Args:
-            hyps (list): batch of hypothesis
+            hyps (list): batch of hypotheses
             batch_states (list): decoder states
                 [L x (B, max_len, dec_dim)]
             cache (dict): states cache
@@ -210,13 +209,13 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         done = [None for _ in range(final_batch)]
 
         for i, hyp in enumerate(hyps):
-            str_yseq = "".join([str(x) for x in hyp["yseq"]])
+            str_yseq = "".join([str(x) for x in hyp.yseq])
 
             if str_yseq in cache:
-                done[i] = (*cache[str_yseq], hyp["yseq"])
+                done[i] = (*cache[str_yseq], hyp.yseq)
             else:
-                tokens.append(hyp["yseq"])
-                process.append((str_yseq, hyp["dec_state"], hyp["yseq"]))
+                tokens.append(hyp.yseq)
+                process.append((str_yseq, hyp.dec_state, hyp.yseq))
 
         if process:
             batch = len(tokens)
@@ -265,7 +264,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         batch_y = torch.stack([d[0] for d in done])
 
         lm_tokens = to_device(
-            self, torch.LongTensor([h["yseq"][-1] for h in hyps]).view(final_batch)
+            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch)
         )
 
         return batch_y, batch_states, lm_tokens

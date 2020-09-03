@@ -2,6 +2,14 @@
 
 import numpy as np
 
+from dataclasses import asdict
+from dataclasses import dataclass
+
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Union
+
 import torch
 import torch.nn.functional as F
 
@@ -11,6 +19,18 @@ from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
 from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import substract
+
+
+@dataclass
+class Hypothesis:
+    """Hypothesis class for beam search algorithms."""
+
+    score: float
+    yseq: List[int]
+    dec_state: Union[List[List[torch.Tensor]], List[torch.Tensor]]
+    y: List[torch.tensor] = None
+    lm_state: Union[Dict[str, Any], List[Any]] = None
+    lm_scores: torch.Tensor = None
 
 
 def greedy_search(decoder, h, recog_args):
@@ -28,11 +48,7 @@ def greedy_search(decoder, h, recog_args):
     init_tensor = h.unsqueeze(0)
     dec_state = decoder.init_state(init_tensor)
 
-    hyp = {
-        "score": 0.0,
-        "yseq": [decoder.blank],
-        "dec_state": dec_state,
-    }
+    hyp = Hypothesis(score=0.0, yseq=[decoder.blank], dec_state=dec_state)
 
     cache = {}
 
@@ -43,14 +59,14 @@ def greedy_search(decoder, h, recog_args):
         logp, pred = torch.max(ytu, dim=-1)
 
         if pred != decoder.blank:
-            hyp["yseq"].append(int(pred))
-            hyp["score"] += float(logp)
+            hyp.yseq.append(int(pred))
+            hyp.score += float(logp)
 
-            hyp["dec_state"] = state
+            hyp.dec_state = state
 
             y, state, _ = decoder.score(hyp, cache, init_tensor)
 
-    return [hyp]
+    return [asdict(hyp)]
 
 
 def default_beam_search(decoder, h, recog_args, rnnlm=None):
@@ -75,14 +91,7 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
     init_tensor = h.unsqueeze(0)
     dec_state = decoder.init_state(init_tensor)
 
-    kept_hyps = [
-        {
-            "score": 0.0,
-            "yseq": [decoder.blank],
-            "dec_state": dec_state,
-            "lm_state": None,
-        }
-    ]
+    kept_hyps = [Hypothesis(score=0.0, yseq=[decoder.blank], dec_state=dec_state)]
 
     cache = {}
 
@@ -91,7 +100,7 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
         kept_hyps = []
 
         while True:
-            max_hyp = max(hyps, key=lambda x: x["score"])
+            max_hyp = max(hyps, key=lambda x: x.score)
             hyps.remove(max_hyp)
 
             y, state, lm_tokens = decoder.score(max_hyp, cache, init_tensor)
@@ -106,48 +115,42 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
             )
 
             if rnnlm:
-                rnnlm_state, rnnlm_scores = rnnlm.predict(
-                    max_hyp["lm_state"], lm_tokens
-                )
+                rnnlm_state, rnnlm_scores = rnnlm.predict(max_hyp.lm_state, lm_tokens)
 
             for logp, k in zip(*ytu):
-                new_hyp = {
-                    "score": max_hyp["score"] + float(logp),
-                    "yseq": max_hyp["yseq"][:],
-                    "dec_state": max_hyp["dec_state"],
-                    "lm_state": max_hyp["lm_state"],
-                }
+                new_hyp = Hypothesis(
+                    score=(max_hyp.score + float(logp)),
+                    yseq=max_hyp.yseq[:],
+                    dec_state=max_hyp.dec_state,
+                    lm_state=max_hyp.lm_state,
+                )
 
                 if k == decoder.blank:
                     kept_hyps.append(new_hyp)
                 else:
-                    new_hyp["dec_state"] = state
+                    new_hyp.dec_state = state
 
-                    new_hyp["yseq"].append(int(k + 1))
+                    new_hyp.yseq.append(int(k + 1))
 
                     if rnnlm:
-                        new_hyp["lm_state"] = rnnlm_state
-                        new_hyp["score"] += (
-                            recog_args.lm_weight * rnnlm_scores[0][(k + 1)]
-                        )
+                        new_hyp.lm_state = rnnlm_state
+                        new_hyp.score += recog_args.lm_weight * rnnlm_scores[0][(k + 1)]
 
                     hyps.append(new_hyp)
 
-            hyps_max = float(max(hyps, key=lambda x: x["score"])["score"])
-            kept_most_prob = len(
-                sorted(kept_hyps, key=lambda x: float(x["score"]) > hyps_max)
-            )
+            hyps_max = float(max(hyps, key=lambda x: x.score).score)
+            kept_most_prob = len(sorted(kept_hyps, key=lambda x: x.score > hyps_max))
             if kept_most_prob >= beam:
                 break
 
     if normscore:
         nbest_hyps = sorted(
-            kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
+            kept_hyps, key=lambda x: x.score / len(x.yseq), reverse=True
         )[:nbest]
     else:
-        nbest_hyps = sorted(kept_hyps, key=lambda x: x["score"], reverse=True)[:nbest]
+        nbest_hyps = sorted(kept_hyps, key=lambda x: x.score, reverse=True)[:nbest]
 
-    return nbest_hyps
+    return [asdict(n) for n in nbest_hyps]
 
 
 def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
@@ -173,15 +176,13 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
     init_tensor = h.unsqueeze(0)
 
     beam_state = decoder.init_state(torch.zeros((beam, decoder.dunits)))
-    dec_state = decoder.select_state(beam_state, 0)
 
     B = [
-        {
-            "yseq": [decoder.blank],
-            "score": 0.0,
-            "dec_state": dec_state,
-            "lm_state": None,
-        }
+        Hypothesis(
+            yseq=[decoder.blank],
+            score=0.0,
+            dec_state=decoder.select_state(beam_state, 0),
+        )
     ]
 
     if rnnlm:
@@ -192,7 +193,7 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
             lm_model = rnnlm.predictor
             lm_type = "lm"
 
-            B[0]["lm_state"] = init_lm_state(lm_model)
+            B[0].lm_state = init_lm_state(lm_model)
 
         lm_layers = len(lm_model.rnn)
 
@@ -214,29 +215,29 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
             beam_logp = F.log_softmax(decoder.joint(h_enc, beam_y), dim=-1)
             beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
-            seq_A = [h["yseq"] for h in A]
+            seq_A = [h.yseq for h in A]
 
             for i, hyp in enumerate(C):
-                if hyp["yseq"] not in seq_A:
-                    new_hyp = {
-                        "score": hyp["score"] + float(beam_logp[i, 0]),
-                        "yseq": hyp["yseq"][:],
-                        "dec_state": hyp["dec_state"],
-                        "lm_state": hyp["lm_state"],
-                    }
-
-                    A.append(new_hyp)
+                if hyp.yseq not in seq_A:
+                    A.append(
+                        Hypothesis(
+                            score=(hyp.score + float(beam_logp[i, 0])),
+                            yseq=hyp.yseq[:],
+                            dec_state=hyp.dec_state,
+                            lm_state=hyp.lm_state,
+                        )
+                    )
                 else:
-                    dict_pos = seq_A.index(hyp["yseq"])
+                    dict_pos = seq_A.index(hyp.yseq)
 
-                    A[dict_pos]["score"] = np.logaddexp(
-                        A[dict_pos]["score"], (hyp["score"] + float(beam_logp[i, 0]))
+                    A[dict_pos].score = np.logaddexp(
+                        A[dict_pos].score, (hyp.score + float(beam_logp[i, 0]))
                     )
 
             if v < max_sym_exp:
                 if rnnlm:
                     beam_lm_states = create_lm_batch_state(
-                        [c["lm_state"] for c in C], lm_type, lm_layers
+                        [c.lm_state for c in C], lm_type, lm_layers
                     )
 
                     beam_lm_states, beam_lm_scores = rnnlm.buff_predict(
@@ -245,37 +246,31 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
 
                 for i, hyp in enumerate(C):
                     for logp, k in zip(beam_topk[0][i], beam_topk[1][i]):
-                        curr_score = float(logp)
-
-                        new_hyp = {
-                            "score": hyp["score"] + curr_score,
-                            "yseq": hyp["yseq"][:],
-                            "dec_state": hyp["dec_state"],
-                            "lm_state": hyp["lm_state"],
-                        }
-
-                        new_hyp["yseq"].append(int(k + 1))
-
-                        new_hyp["dec_state"] = decoder.select_state(beam_state, i)
+                        new_hyp = Hypothesis(
+                            score=(hyp.score + float(logp)),
+                            yseq=(hyp.yseq + [int(k + 1)]),
+                            dec_state=decoder.select_state(beam_state, i),
+                            lm_state=hyp.lm_state,
+                        )
 
                         if rnnlm:
-                            new_hyp["score"] += (
+                            new_hyp.score += (
                                 recog_args.lm_weight * beam_lm_scores[i, (k + 1)]
                             )
 
-                            new_hyp["lm_state"] = select_lm_state(
+                            new_hyp.lm_state = select_lm_state(
                                 beam_lm_states, i, lm_type, lm_layers
                             )
 
                         D.append(new_hyp)
 
-            C = sorted(D, key=lambda x: x["score"], reverse=True)[:beam]
+            C = sorted(D, key=lambda x: x.score, reverse=True)[:beam]
 
-        B = sorted(A, key=lambda x: x["score"], reverse=True)[:beam]
+        B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
 
-    nbest_hyps = sorted(B, key=lambda x: x["score"], reverse=True)[:nbest]
+    nbest_hyps = sorted(B, key=lambda x: x.score, reverse=True)[:nbest]
 
-    return nbest_hyps
+    return [asdict(n) for n in nbest_hyps]
 
 
 def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
@@ -303,15 +298,13 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
     init_tensor = h.unsqueeze(0)
 
     beam_state = decoder.init_state(torch.zeros((beam, decoder.dunits)))
-    dec_state = decoder.select_state(beam_state, 0)
 
     B = [
-        {
-            "yseq": [decoder.blank],
-            "score": 0.0,
-            "dec_state": dec_state,
-            "lm_state": None,
-        }
+        Hypothesis(
+            yseq=[decoder.blank],
+            score=0.0,
+            dec_state=decoder.select_state(beam_state, 0),
+        )
     ]
     final = []
 
@@ -323,7 +316,7 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
             lm_model = rnnlm.predictor
             lm_type = "lm"
 
-            B[0]["lm_state"] = init_lm_state(lm_model)
+            B[0].lm_state = init_lm_state(lm_model)
 
         lm_layers = len(lm_model.rnn)
 
@@ -335,7 +328,7 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
         B_ = []
         h_states = []
         for hyp in B:
-            u = len(hyp["yseq"]) - 1
+            u = len(hyp.yseq) - 1
             t = i - u + 1
 
             if t > (h_length - 1):
@@ -356,7 +349,7 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
 
             if rnnlm:
                 beam_lm_states = create_lm_batch_state(
-                    [b["lm_state"] for b in B_], lm_type, lm_layers
+                    [b.lm_state for b in B_], lm_type, lm_layers
                 )
 
                 beam_lm_states, beam_lm_scores = rnnlm.buff_predict(
@@ -364,12 +357,12 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
                 )
 
             for i, hyp in enumerate(B_):
-                new_hyp = {
-                    "score": hyp["score"] + float(beam_logp[i, 0]),
-                    "yseq": hyp["yseq"][:],
-                    "dec_state": hyp["dec_state"],
-                    "lm_state": hyp["lm_state"],
-                }
+                new_hyp = Hypothesis(
+                    score=(hyp.score + float(beam_logp[i, 0])),
+                    yseq=hyp.yseq[:],
+                    dec_state=hyp.dec_state,
+                    lm_state=hyp.lm_state,
+                )
 
                 A.append(new_hyp)
 
@@ -377,37 +370,33 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
                     final.append(new_hyp)
 
                 for logp, k in zip(beam_topk[0][i], beam_topk[1][i]):
-                    new_hyp = {
-                        "score": hyp["score"] + float(logp),
-                        "yseq": hyp["yseq"][:],
-                        "dec_state": hyp["dec_state"],
-                        "lm_state": hyp["lm_state"],
-                    }
-
-                    new_hyp["dec_state"] = decoder.select_state(beam_state, i)
-
-                    new_hyp["yseq"].append(int(k + 1))
+                    new_hyp = Hypothesis(
+                        score=(hyp.score + float(logp)),
+                        yseq=(hyp.yseq[:] + [int(k + 1)]),
+                        dec_state=decoder.select_state(beam_state, i),
+                        lm_state=hyp.lm_state,
+                    )
 
                     if rnnlm:
-                        new_hyp["score"] += (
+                        new_hyp.score += (
                             recog_args.lm_weight * beam_lm_scores[i, (k + 1)]
                         )
 
-                        new_hyp["lm_state"] = select_lm_state(
+                        new_hyp.lm_state = select_lm_state(
                             beam_lm_states, i, lm_type, lm_layers
                         )
 
                     A.append(new_hyp)
 
-        B = sorted(A, key=lambda x: x["score"], reverse=True)[:beam]
+        B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
         B = recombine_hyps(B)
 
     if final:
-        nbest_hyps = sorted(final, key=lambda x: x["score"], reverse=True)[:nbest]
+        nbest_hyps = sorted(final, key=lambda x: x.score, reverse=True)[:nbest]
     else:
         nbest_hyps = B[:nbest]
 
-    return nbest_hyps
+    return [asdict(n) for n in nbest_hyps]
 
 
 def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
@@ -438,9 +427,14 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
     init_tensor = h.unsqueeze(0)
 
     beam_state = decoder.init_state(torch.zeros((beam, decoder.dunits)))
-    state = decoder.select_state(beam_state, 0)
 
-    init_tokens = [{"yseq": [decoder.blank], "dec_state": state}]
+    init_tokens = [
+        Hypothesis(
+            yseq=[decoder.blank],
+            score=0.0,
+            dec_state=decoder.select_state(beam_state, 0),
+        )
+    ]
 
     beam_y, beam_state, beam_lm_tokens = decoder.batch_score(
         init_tokens, beam_state, cache, init_tensor
@@ -467,52 +461,50 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
         lm_scores = None
 
     kept_hyps = [
-        {
-            "yseq": [decoder.blank],
-            "score": 0.0,
-            "y": [beam_y[0]],
-            "dec_state": state,
-            "lm_state": lm_state,
-            "lm_scores": lm_scores,
-        }
+        Hypothesis(
+            yseq=[decoder.blank],
+            score=0.0,
+            dec_state=state,
+            y=[beam_y[0]],
+            lm_state=lm_state,
+            lm_scores=lm_scores,
+        )
     ]
 
     for hi in h:
-        hyps = sorted(kept_hyps, key=lambda x: len(x["yseq"]), reverse=True)
+        hyps = sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True)
         kept_hyps = []
 
         for j in range(len(hyps) - 1):
             for i in range((j + 1), len(hyps)):
                 if (
-                    is_prefix(hyps[j]["yseq"], hyps[i]["yseq"])
-                    and (len(hyps[j]["yseq"]) - len(hyps[i]["yseq"])) <= prefix_alpha
+                    is_prefix(hyps[j].yseq, hyps[i].yseq)
+                    and (len(hyps[j].yseq) - len(hyps[i].yseq)) <= prefix_alpha
                 ):
-                    next_id = len(hyps[i]["yseq"])
+                    next_id = len(hyps[i].yseq)
 
-                    ytu = F.log_softmax(decoder.joint(hi, hyps[i]["y"][-1]), dim=0)
+                    ytu = F.log_softmax(decoder.joint(hi, hyps[i].y[-1]), dim=0)
 
-                    curr_score = float(hyps[i]["score"]) + float(
-                        ytu[hyps[j]["yseq"][next_id]]
-                    )
+                    curr_score = hyps[i].score + float(ytu[hyps[j].yseq[next_id]])
 
-                    for k in range(next_id, (len(hyps[j]["yseq"]) - 1)):
-                        ytu = F.log_softmax(decoder.joint(hi, hyps[j]["y"][k]), dim=0)
+                    for k in range(next_id, (len(hyps[j].yseq) - 1)):
+                        ytu = F.log_softmax(decoder.joint(hi, hyps[j].y[k]), dim=0)
 
-                        curr_score += float(ytu[hyps[j]["yseq"][k + 1]])
+                        curr_score += float(ytu[hyps[j].yseq[k + 1]])
 
-                    hyps[j]["score"] = np.logaddexp(float(hyps[j]["score"]), curr_score)
+                    hyps[j].score = np.logaddexp(hyps[j].score, curr_score)
 
         S = []
         V = []
         for n in range(nstep):
             h_enc = hi.unsqueeze(0)
-            beam_y = torch.stack([hyp["y"][-1] for hyp in hyps])
+            beam_y = torch.stack([hyp.y[-1] for hyp in hyps])
 
             beam_logp = F.log_softmax(decoder.joint(h_enc, beam_y), dim=-1)
             beam_topk = beam_logp[:, 1:].topk(beam_k, dim=-1)
 
             if rnnlm:
-                beam_lm_scores = torch.stack([hyp["lm_scores"] for hyp in hyps])
+                beam_lm_scores = torch.stack([hyp.lm_scores for hyp in hyps])
 
             for i, hyp in enumerate(hyps):
                 i_topk = (
@@ -521,34 +513,32 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
                 )
 
                 for logp, k in zip(*i_topk):
-                    curr_score = float(logp)
-
-                    new_hyp = {
-                        "yseq": hyp["yseq"][:],
-                        "score": hyp["score"] + curr_score,
-                        "y": hyp["y"][:],
-                        "dec_state": hyp["dec_state"],
-                        "lm_state": hyp["lm_state"],
-                        "lm_scores": hyp["lm_scores"],
-                    }
+                    new_hyp = Hypothesis(
+                        yseq=hyp.yseq[:],
+                        score=(hyp.score + float(logp)),
+                        y=hyp.y[:],
+                        dec_state=hyp.dec_state,
+                        lm_state=hyp.lm_state,
+                        lm_scores=hyp.lm_scores,
+                    )
 
                     if k == decoder.blank:
                         S.append(new_hyp)
                     else:
-                        new_hyp["yseq"].append(int(k + 1))
+                        new_hyp.yseq.append(int(k + 1))
 
                         if rnnlm:
-                            new_hyp["score"] += (
-                                recog_args.lm_weight * beam_lm_scores[i, (k + 1)]
+                            new_hyp.score += recog_args.lm_weight * float(
+                                beam_lm_scores[i, (k + 1)]
                             )
 
                         V.append(new_hyp)
 
-            V = sorted(V, key=lambda x: x["score"], reverse=True)
+            V = sorted(V, key=lambda x: x.score, reverse=True)
             V = substract(V, hyps)[:beam]
 
-            l_state = [v["dec_state"] for v in V]
-            l_tokens = [v["yseq"] for v in V]
+            l_state = [v.dec_state for v in V]
+            l_tokens = [v.yseq for v in V]
 
             beam_state = decoder.create_batch_states(beam_state, l_state, l_tokens)
             beam_y, beam_state, beam_lm_tokens = decoder.batch_score(
@@ -557,7 +547,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
             if rnnlm:
                 beam_lm_states = create_lm_batch_state(
-                    [v["lm_state"] for v in V], lm_type, lm_layers
+                    [v.lm_state for v in V], lm_type, lm_layers
                 )
                 beam_lm_states, beam_lm_scores = rnnlm.buff_predict(
                     beam_lm_states, beam_lm_tokens, beam
@@ -565,15 +555,15 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
             if n < (nstep - 1):
                 for i, v in enumerate(V):
-                    v["y"].append(beam_y[i])
+                    v.y.append(beam_y[i])
 
-                    v["dec_state"] = decoder.select_state(beam_state, i)
+                    v.dec_state = decoder.select_state(beam_state, i)
 
                     if rnnlm:
-                        v["lm_state"] = select_lm_state(
+                        v.lm_state = select_lm_state(
                             beam_lm_states, i, lm_type, lm_layers
                         )
-                        v["lm_scores"] = beam_lm_scores[i]
+                        v.lm_scores = beam_lm_scores[i]
 
                 hyps = V[:]
             else:
@@ -581,25 +571,25 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
 
                 for i, v in enumerate(V):
                     if nstep != 1:
-                        v["score"] += float(beam_logp[i, 0])
+                        v.score += float(beam_logp[i, 0])
 
-                    v["y"].append(beam_y[i])
+                    v.y.append(beam_y[i])
 
-                    v["dec_state"] = decoder.select_state(beam_state, i)
+                    v.dec_state = decoder.select_state(beam_state, i)
 
                     if rnnlm:
-                        v["lm_state"] = select_lm_state(
+                        v.lm_state = select_lm_state(
                             beam_lm_states, i, lm_type, lm_layers
                         )
-                        v["lm_scores"] = beam_lm_scores[i]
+                        v.lm_scores = beam_lm_scores[i]
 
-        kept_hyps = sorted((S + V), key=lambda x: x["score"], reverse=True)[:beam]
+        kept_hyps = sorted((S + V), key=lambda x: x.score, reverse=True)[:beam]
 
-    nbest_hyps = sorted(
-        kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
-    )[:nbest]
+    nbest_hyps = sorted(kept_hyps, key=lambda x: (x.score / len(x.yseq)), reverse=True)[
+        :nbest
+    ]
 
-    return nbest_hyps
+    return [asdict(n) for n in nbest_hyps]
 
 
 def search_interface(decoder, h, recog_args, rnnlm):

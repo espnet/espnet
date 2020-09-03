@@ -1,5 +1,7 @@
 """Transducer decoder interface module."""
 
+from espnet.nets.beam_search_transducer import Hypothesis
+
 from typing import Any
 from typing import Dict
 from typing import List
@@ -28,7 +30,7 @@ class TransducerDecoderInterface:
 
     def score(
         self,
-        hyp: Dict[str, Union[float, List, torch.Tensor, None]],
+        hyp: Hypothesis,
         cache: Dict[str, Any],
         init_tensor: torch.Tensor = None,
     ) -> Union[Tuple[Any], List[torch.Tensor], torch.Tensor]:
@@ -49,7 +51,7 @@ class TransducerDecoderInterface:
 
     def batch_score(
         self,
-        hyps: List[Dict[str, Union[float, List, torch.Tensor, None]]],
+        hyps: Hypothesis,
         batch_states: Union[Tuple[Any], List[torch.Tensor]],
         cache: Dict[str, Any],
     ) -> Union[Tuple[Any], List[torch.Tensor], torch.Tensor]:

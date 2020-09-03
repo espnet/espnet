@@ -188,7 +188,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """Forward one step.
 
         Args:
-            hyp (dict): hypothese
+            hyp (dataclass): hypothesis
             cache (dict): states cache
 
         Returns:
@@ -198,16 +198,16 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             (torch.Tensor): token id for LM (1)
 
         """
-        vy = to_device(self, torch.full((1, 1), hyp["yseq"][-1], dtype=torch.long))
+        vy = to_device(self, torch.full((1, 1), hyp.yseq[-1], dtype=torch.long))
 
-        str_yseq = "".join([str(x) for x in hyp["yseq"]])
+        str_yseq = "".join([str(x) for x in hyp.yseq])
 
         if str_yseq in cache:
             y, state = cache[str_yseq]
         else:
             ey = self.embed(vy)
 
-            y, state = self.rnn_forward(ey[0], hyp["dec_state"])
+            y, state = self.rnn_forward(ey[0], hyp.dec_state)
             cache[str_yseq] = (y, state)
 
         return y, state, vy[0]
@@ -216,7 +216,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """Forward batch one step.
 
         Args:
-            hyps (list): batch of hypothesis
+            hyps (list): batch of hypotheses
             batch_states (tuple): batch of decoder states
                 ([L x (B, dec_dim)], [L x (B, dec_dim)])
             cache (dict): states cache
@@ -235,13 +235,13 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         done = [None for _ in range(final_batch)]
 
         for i, hyp in enumerate(hyps):
-            str_yseq = "".join([str(x) for x in hyp["yseq"]])
+            str_yseq = "".join([str(x) for x in hyp.yseq])
 
             if str_yseq in cache:
                 done[i] = cache[str_yseq]
             else:
-                tokens.append(hyp["yseq"][-1])
-                process.append((str_yseq, hyp["dec_state"]))
+                tokens.append(hyp.yseq[-1])
+                process.append((str_yseq, hyp.dec_state))
 
         if process:
             batch = len(process)
@@ -269,7 +269,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         batch_y = torch.stack([d[0] for d in done])
 
         lm_tokens = to_device(
-            self, torch.LongTensor([h["yseq"][-1] for h in hyps]).view(final_batch)
+            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch)
         )
 
         return batch_y, batch_states, lm_tokens

@@ -76,17 +76,17 @@ def substract(x, subset):
     """Remove elements of subset if corresponding token id sequence exist in x.
 
     Args:
-        x (list): set of hypothesis
-        subset (list): subset of hypothesis
+        x (list): set of hypotheses
+        subset (list): subset of hypotheses
 
     Returns:
-       final (list of dict): new set
+       final (list): new set
 
     """
     final = []
 
     for x_ in x:
-        if any(x_["yseq"] == sub["yseq"] for sub in subset):
+        if any(x_.yseq == sub.yseq for sub in subset):
             continue
         final.append(x_)
 
@@ -179,26 +179,24 @@ def init_lm_state(lm_model):
 
 
 def recombine_hyps(hyps):
-    """Recombine hypothesis with equivalent output sequence.
+    """Recombine hypotheses with equivalent output sequence.
 
     Args:
-        hyps (list): list of hypothesis
+        hyps (list): list of hypotheses
 
     Returns:
-       final (list): list of recombined hypothesis
+       final (list): list of recombined hypotheses
 
     """
     final = []
 
     for hyp in hyps:
-        seq_final = [f["yseq"] for f in final if f["yseq"]]
+        seq_final = [f.yseq for f in final if f.yseq]
 
-        if hyp["yseq"] in seq_final:
-            dict_pos = seq_final.index(hyp["yseq"])
+        if hyp.yseq in seq_final:
+            seq_pos = seq_final.index(hyp.yseq)
 
-            final[dict_pos]["score"] = np.logaddexp(
-                final[dict_pos]["score"], hyp["score"]
-            )
+            final[seq_pos].score = np.logaddexp(final[seq_pos].score, hyp.score)
         else:
             final.append(hyp)
 
