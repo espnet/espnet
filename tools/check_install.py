@@ -82,7 +82,7 @@ def main(args):
 
     # warpctc can be installed only for pytorch < 1.2
     if LooseVersion(torch.__version__) < LooseVersion("1.2.0"):
-        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.3")))
+        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.2", "0.1.3")))
 
     library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 
