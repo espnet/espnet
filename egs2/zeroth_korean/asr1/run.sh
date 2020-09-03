@@ -9,8 +9,16 @@ train_set="train_nodev"
 valid_set="train_dev"
 test_sets="test_clean"
 
+feats_type=raw
+local_data_opts=""
+
+if [ "${feats_type}" = fbank_pitch ]; then
+    local_data_opts="---pipe_wav true"
+fi
+
 ./asr.sh \
     --token_type bpe \
+    --local_data_opts "${local_data_opts}" \
     --nbpe 5000 \
     --use_lm false \
     --lang kr \
