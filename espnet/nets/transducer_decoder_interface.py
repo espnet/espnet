@@ -51,7 +51,7 @@ class TransducerDecoderInterface:
 
     def batch_score(
         self,
-        hyps: Hypothesis,
+        hyps: List[Hypothesis],
         batch_states: Union[Tuple[Any], List[torch.Tensor]],
         cache: Dict[str, Any],
     ) -> Union[Tuple[Any], List[torch.Tensor], torch.Tensor]:
