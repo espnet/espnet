@@ -7,7 +7,7 @@ import warnings
 def check(pytorch_version: str, cuda_version: str):
     # NOTE(kamo):  Supported cuda version is defined
     # as existing prebuilt binaries in
-    # https://pytorch.org/get-started/previous-versions/
+    # https://anaconda.org/pytorch/pytorch/files
     # You probably could perform pytorch with the cuda-version
     # if you built pytorch at local.
     maybe_supported = []
@@ -23,13 +23,10 @@ def check(pytorch_version: str, cuda_version: str):
         maybe_supported = ["10.0"]
     # 1.4.0
     elif LooseVersion(pytorch_version) >= LooseVersion("1.4"):
-        supported = ["10.1", "9.2"]
-        # FIXME(kamo): 10.0 is not existing, but it seems to work in my environment
-        maybe_supported = ["10.0"]
+        supported = ["10.1", "10.0", "9.2"]
     # 1.3.0 or 1.3.1
     elif LooseVersion(pytorch_version) >= LooseVersion("1.3"):
-        # FIXME(kamo):  1.3 is not documented, The following is my expectation
-        supported = ["10.0", "9.2"]
+        supported = ["10.1", "10.0", "9.2"]
     # 1.2.0
     elif LooseVersion(pytorch_version) >= LooseVersion("1.2"):
         supported = ["10.0", "9.2"]
@@ -38,7 +35,7 @@ def check(pytorch_version: str, cuda_version: str):
         supported = ["10.0", "9.0"]
     # 1.0.1
     elif LooseVersion(pytorch_version) >= LooseVersion("1.0.1"):
-        supported = ["10.0", "9.0"]
+        supported = ["10.0", "9.0", "8.0"]
     # 1.0.0
     elif LooseVersion(pytorch_version) >= LooseVersion("1.0.0"):
         supported = ["10.0", "9.0", "8.0"]
