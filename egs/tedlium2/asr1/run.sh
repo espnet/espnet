@@ -26,7 +26,7 @@ lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
 # rnnlm related
-skip_lm_training=true   # for only using end-to-end ASR model without LM
+skip_lm_training=false   # for only using end-to-end ASR model without LM
 lm_resume=              # specify a snapshot file to resume LM training
 lmtag=                  # tag for managing LMs
 

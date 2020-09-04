@@ -26,14 +26,14 @@ opt: noam
 accum-grad: 8
 grad-clip: 5
 patience: 0
-epochs: 150
+epochs: 100
 dropout-rate: 0.1
 
 # transformer specific setting
 backend: pytorch
 model-module: "espnet.nets.pytorch_backend.e2e_asr_maskctc:E2E"
 transformer-input-layer: conv2d     # encoder architecture type
-transformer-lr: 10.0
+transformer-lr: 5.0
 transformer-warmup-steps: 25000
 transformer-attn-dropout-rate: 0.0
 transformer-length-normalized-loss: false
@@ -41,4 +41,7 @@ transformer-init: pytorch
 
 report-cer: true
 
-n-iter-processes: 2
+### important configurations to specify in run.sh
+# preprocess_config=conf/specaug.yaml
+# use_valbest_average=true
+# n_average=30
