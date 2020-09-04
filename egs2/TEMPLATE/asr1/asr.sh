@@ -655,7 +655,7 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args}
+                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
             # 4. Aggregate shape files
             _opts=
@@ -731,7 +731,7 @@ if ! "${skip_train}"; then
                 --log "${lm_exp}"/train.log \
                 --ngpu "${ngpu}" \
                 --num_nodes "${num_nodes}" \
-                --init_file_prefix "${asr_exp}"/.dist_init_ \
+                --init_file_prefix "${lm_exp}"/.dist_init_ \
                 --multiprocessing_distributed true -- \
                 ${python} -m espnet2.bin.lm_train \
                     --ngpu "${ngpu}" \
@@ -851,7 +851,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${asr_args}
+                ${_opts} ${asr_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
         # 4. Aggregate shape files
         _opts=

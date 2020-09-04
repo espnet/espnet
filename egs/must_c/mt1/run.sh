@@ -43,6 +43,10 @@ tgt_case=tc
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 
+# postprocessing related
+remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
+# NOTE: IWSLT community accepts this setting and therefore we use this by default
+
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
 must_c=/n/rd11/corpora_8/MUSTC_v1.0
@@ -348,6 +352,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
     ) &
     pids+=($!) # store background pids

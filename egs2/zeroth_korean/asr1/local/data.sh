@@ -20,6 +20,7 @@ stop_stage=100000
 skip_segmentation=false
 
 ndev_utt=220
+pipe_wav=false
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -47,7 +48,7 @@ if [ $stage -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # format the data as Kaldi data directories
   for part in train_data_01 test_data_01; do
   	# use underscore-separated names in data directories.
-  	local/data_prep.sh "${ZEROTH_KOREAN}" "${part}"
+  	local/data_prep.sh --pipe_wav "${pipe_wav}" "${ZEROTH_KOREAN}" "${part}"
   done
 fi
 

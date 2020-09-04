@@ -29,8 +29,12 @@ ifeq ($(strip $(CPU_ONLY)),)
 # Derive CUDA version from nvcc
 CUDA_VERSION = $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
 CUDA_VERSION_WITHOUT_DOT = $(strip $(subst .,,$(CUDA_VERSION)))
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
 PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cu$(CUDA_VERSION_WITHOUT_DOT)/torch_stable.html
+ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),80)
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cuda$(CUDA_VERSION_WITHOUT_DOT)
+else
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
+endif
 
 else
 CONDA_PYTORCH := pytorch=$(TH_VERSION) cpuonly

@@ -11,6 +11,10 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 # Modified by Lucas Jo 2017 (Altas Guide)
+pipe_wav=false
+
+log "$0 $*"
+. utils/parse_options.sh
 
 if [ "$#" -ne 2 ]; then
   log "Usage: $0 <db-dir> <part>"
@@ -61,8 +65,13 @@ for scriptid_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
 
 	log "  "$scriptid $reader $reader_gender
 
-    find -L $reader_dir/ -iname "*.flac" | sort | xargs -I% basename % .flac | \
-		awk -v "dir=$reader_dir" '{printf "%s flac -c -d -s %s/%s.flac |\n", $0, dir, $0}' >>$wav_scp|| exit 1
+    if "${pipe_wav}"; then
+        find -L $reader_dir/ -iname "*.flac" | sort | xargs -I% basename % .flac | \
+            awk -v "dir=$reader_dir" '{printf "%s flac -c -d -s %s/%s.flac |\n", $0, dir, $0}' >>$wav_scp|| exit 1
+    else
+        find -L $reader_dir/ -iname "*.flac" | sort | xargs -I% basename % .flac | \
+            awk -v "dir=$reader_dir" '{printf "%s %s/%s.flac\n", $0, dir, $0}' >>$wav_scp|| exit 1
+    fi
 
 	reader_trans=$reader_dir/${reader}_${scriptid}.trans.txt
     [ ! -f  $reader_trans ] && log "$0: expected file $reader_trans to exist" && exit 1
