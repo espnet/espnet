@@ -34,7 +34,7 @@ lmtag=                  # tag for managing LMs
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # model average realted (only for transformer)
-n_average=50                 # the number of ASR models to be averaged
+n_average=10                 # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
                              # if false, the last `n_average` ASR models will be averaged.
 
