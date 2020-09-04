@@ -731,7 +731,7 @@ if ! "${skip_train}"; then
                 --log "${lm_exp}"/train.log \
                 --ngpu "${ngpu}" \
                 --num_nodes "${num_nodes}" \
-                --init_file_prefix "${asr_exp}"/.dist_init_ \
+                --init_file_prefix "${lm_exp}"/.dist_init_ \
                 --multiprocessing_distributed true -- \
                 ${python} -m espnet2.bin.lm_train \
                     --ngpu "${ngpu}" \
