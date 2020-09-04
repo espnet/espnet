@@ -150,6 +150,19 @@ echo "==== TTS (backend=pytorch) ==="
 rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1
 
+echo "=== run integration tests at test_utils ==="
+
+PATH=$(pwd)/bats-core/bin:$PATH
+if ! [ -x "$(command -v bats)" ]; then
+    echo "=== install bats ==="
+    git clone https://github.com/bats-core/bats-core.git
+fi
+bats test_utils/integration_test_*.bats
+
+
+#### Make sure chainer-independent ####
+python3 -m pip uninstall -y chainer
+
 # [ESPnet2] test asr recipe
 cd ./egs2/mini_an4/asr1 || exit 1
 ln -sf ${cwd}/.coverage .
@@ -241,17 +254,6 @@ for d in egs2/TEMPLATE/*; do
         egs2/TEMPLATE/"$d"/setup.sh egs2/test/"${d}"
     fi
 done
-
-
-echo "=== run integration tests at test_utils ==="
-
-PATH=$(pwd)/bats-core/bin:$PATH
-if ! [ -x "$(command -v bats)" ]; then
-    echo "=== install bats ==="
-    git clone https://github.com/bats-core/bats-core.git
-fi
-bats test_utils/integration_test_*.bats
-
 echo "=== report ==="
 
 coverage report
