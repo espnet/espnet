@@ -32,6 +32,21 @@ def _pre_hook(
         state_dict.pop(k)
 
 
+
+# note:
+# 1. why do embeding?
+# it's to form a dense vector.it soved the problem of one-hot encoding,embeding size is too large,result to data sparsity. 
+# in the asr case, in the transformer encoder part, each frame is represented  by a dense vector.
+# in the transformer decoder part,each tokens(e.g. a wordpiece)is represented by a dense vector.
+# but in the transformer case, we can embed a sentence(in encoder part ,it is frames sequences per sentence,in decoder part,it
+# is tokens sequence per sentence) into a matrix. shape of matrix  is utterance lengths (in encode part,how many frames) * dim.
+# this dim is per dense vector length.
+# here ,the embeding  only solved the problem of encoding one frame or one token ,but the relationship between frames or tokens
+# is not reflected.
+# so it need to encoding position for embeding matrix,下面的例子解释为什么要使用相对位置编码，
+# 其中需要考虑的一个重要因素就是需要它编码的是相对位置的关系。比如两个句子：” 北京到上海的机票” 和” 你好，我们要一张北京到上海的机票”。
+# 显然加入位置编码之后，两个北京的向量是不同的了，两个上海的向量也是不同的了，
+# 但是我们期望 Query(北京 1)*Key(上海 1) 却是等于 Query(北京 2)*Key(上海 2) 的。
 class PositionalEncoding(torch.nn.Module):
     """Positional encoding.
 
