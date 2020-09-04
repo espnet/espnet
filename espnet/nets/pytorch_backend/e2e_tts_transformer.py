@@ -73,7 +73,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
 
 try:
     from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
-except ImportError:
+except (ImportError, TypeError):
     TTSPlot = None
 else:
 
