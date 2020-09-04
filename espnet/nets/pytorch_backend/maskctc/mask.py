@@ -7,8 +7,6 @@
 
 """Attention masking module for Masked LM."""
 
-import torch
-
 
 def square_mask(ys_in_pad, ignore_id):
     """Create attention mask to avoid attending on padding tokens.
