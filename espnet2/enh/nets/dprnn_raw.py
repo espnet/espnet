@@ -2,6 +2,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # import models.utils_szq as utils_szq
 from torch.autograd import Variable
 from espnet2.enh.abs_enh import AbsEnhancement
@@ -13,6 +14,7 @@ import math
 import torch
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def overlap_and_add(signal, frame_step):
     """Reconstructs a signal from a framed representation.
@@ -48,7 +50,9 @@ def overlap_and_add(signal, frame_step):
     # subframe_signal = signal.view(*outer_dimensions, -1, subframe_length)
     subframe_signal = signal.reshape(*outer_dimensions, -1, subframe_length)
 
-    frame = torch.arange(0, output_subframes).unfold(0, subframes_per_frame, subframe_step)
+    frame = torch.arange(0, output_subframes).unfold(
+        0, subframes_per_frame, subframe_step
+    )
     frame = signal.new_tensor(frame).long()  # signal may in GPU or CPU
     frame = frame.contiguous().view(-1)
 
@@ -56,6 +60,7 @@ def overlap_and_add(signal, frame_step):
     result.index_add_(-2, frame, subframe_signal)
     result = result.view(*outer_dimensions, -1)
     return result
+
 
 def remove_pad(inputs, inputs_lengths):
     """
@@ -70,8 +75,8 @@ def remove_pad(inputs, inputs_lengths):
     if dim == 3:
         C = inputs.size(1)
     for input, length in zip(inputs, inputs_lengths):
-        if dim == 3: # [B, C, T]
-            results.append(input[:,:length].view(C, -1).cpu().numpy())
+        if dim == 3:  # [B, C, T]
+            results.append(input[:, :length].view(C, -1).cpu().numpy())
         elif dim == 2:  # [B, T]
             results.append(input[:length].view(-1).cpu().numpy())
     return results
@@ -93,6 +98,7 @@ def chose_norm(norm_type, channel_size):
         return nn.BatchNorm1d(channel_size)
     else:
         raise ValueError("Unsupported normalization type")
+
 
 # TODO: Use nn.LayerNorm to impl cLN to speed up
 class ChannelwiseLayerNorm(nn.Module):
@@ -153,6 +159,7 @@ class GlobalLayerNorm(nn.Module):
 class Encoder(nn.Module):
     """Estimation of the nonnegative mixture weight by a 1-D conv layer.
     """
+
     def __init__(self, W=2, N=64):
         super(Encoder, self).__init__()
         # Hyper-parameter
@@ -173,6 +180,7 @@ class Encoder(nn.Module):
         mixture_w = F.relu(self.conv1d_U(mixture))  # [B, N, L]
         return mixture_w
 
+
 class Decoder(nn.Module):
     def __init__(self, E, W):
         super(Decoder, self).__init__()
@@ -190,13 +198,13 @@ class Decoder(nn.Module):
             est_source: [B, C, T]
         """
         # D = W * M
-        #print(mixture_w.shape)
-        #print(est_mask.shape)
+        # print(mixture_w.shape)
+        # print(est_mask.shape)
         source_w = torch.unsqueeze(mixture_w, 1) * est_mask  # [B, C, E, L]
-        source_w = torch.transpose(source_w, 2, 3) # [B, C, L, E]
+        source_w = torch.transpose(source_w, 2, 3)  # [B, C, L, E]
         # S = DV
         est_source = self.basis_signals(source_w)  # [B, C, L, W]
-        est_source = overlap_and_add(est_source, self.W//2) # B x C x T
+        est_source = overlap_and_add(est_source, self.W // 2)  # B x C x T
         return est_source
 
 
@@ -213,7 +221,9 @@ class SingleRNN(nn.Module):
         bidirectional: bool, whether the RNN layers are bidirectional. Default is False.
     """
 
-    def __init__(self, rnn_type, input_size, hidden_size, dropout=0, bidirectional=False):
+    def __init__(
+        self, rnn_type, input_size, hidden_size, dropout=0, bidirectional=False
+    ):
         super(SingleRNN, self).__init__()
 
         self.rnn_type = rnn_type
@@ -221,18 +231,26 @@ class SingleRNN(nn.Module):
         self.hidden_size = hidden_size
         self.num_direction = int(bidirectional) + 1
 
-        self.rnn = getattr(nn, rnn_type)(input_size, hidden_size, 1, dropout=dropout, batch_first=True,
-                                         bidirectional=bidirectional)
+        self.rnn = getattr(nn, rnn_type)(
+            input_size,
+            hidden_size,
+            1,
+            dropout=dropout,
+            batch_first=True,
+            bidirectional=bidirectional,
+        )
 
         # linear projection layer
         self.proj = nn.Linear(hidden_size * self.num_direction, input_size)
 
     def forward(self, input):
         # input shape: batch, seq, dim
-        #input = input.to(device)
+        # input = input.to(device)
         output = input
         rnn_output, _ = self.rnn(output)
-        rnn_output = self.proj(rnn_output.contiguous().view(-1, rnn_output.shape[2])).view(output.shape)
+        rnn_output = self.proj(
+            rnn_output.contiguous().view(-1, rnn_output.shape[2])
+        ).view(output.shape)
         return rnn_output
 
 
@@ -252,8 +270,16 @@ class DPRNN(nn.Module):
         bidirectional: bool, whether the RNN layers are bidirectional. Default is False.
     """
 
-    def __init__(self, rnn_type, input_size, hidden_size, output_size,
-                 dropout=0, num_layers=1, bidirectional=True):
+    def __init__(
+        self,
+        rnn_type,
+        input_size,
+        hidden_size,
+        output_size,
+        dropout=0,
+        num_layers=1,
+        bidirectional=True,
+    ):
         super(DPRNN, self).__init__()
 
         self.input_size = input_size
@@ -266,49 +292,81 @@ class DPRNN(nn.Module):
         self.row_norm = nn.ModuleList([])
         self.col_norm = nn.ModuleList([])
         for i in range(num_layers):
-            self.row_rnn.append(SingleRNN(rnn_type, input_size, hidden_size, dropout,
-                                          bidirectional=True))  # intra-segment RNN is always noncausal
-            self.col_rnn.append(SingleRNN(rnn_type, input_size, hidden_size, dropout, bidirectional=bidirectional))
+            self.row_rnn.append(
+                SingleRNN(
+                    rnn_type, input_size, hidden_size, dropout, bidirectional=True
+                )
+            )  # intra-segment RNN is always noncausal
+            self.col_rnn.append(
+                SingleRNN(
+                    rnn_type,
+                    input_size,
+                    hidden_size,
+                    dropout,
+                    bidirectional=bidirectional,
+                )
+            )
             self.row_norm.append(nn.GroupNorm(1, input_size, eps=1e-8))
             # default is to use noncausal LayerNorm for inter-chunk RNN. For causal setting change it to causal normalization techniques accordingly.
             self.col_norm.append(nn.GroupNorm(1, input_size, eps=1e-8))
 
         # output layer
-        self.output = nn.Sequential(nn.PReLU(),
-                                    nn.Conv2d(input_size, output_size, 1)
-                                    )
+        self.output = nn.Sequential(nn.PReLU(), nn.Conv2d(input_size, output_size, 1))
 
     def forward(self, input):
         # input shape: batch, N, dim1, dim2
         # apply RNN on dim1 first and then dim2
         # output shape: B, output_size, dim1, dim2
-        #input = input.to(device)
+        # input = input.to(device)
         batch_size, _, dim1, dim2 = input.shape
         output = input
         for i in range(len(self.row_rnn)):
-            row_input = output.permute(0, 3, 2, 1).contiguous().view(batch_size * dim2, dim1, -1)  # B*dim2, dim1, N
+            row_input = (
+                output.permute(0, 3, 2, 1)
+                .contiguous()
+                .view(batch_size * dim2, dim1, -1)
+            )  # B*dim2, dim1, N
             row_output = self.row_rnn[i](row_input)  # B*dim2, dim1, H
-            row_output = row_output.view(batch_size, dim2, dim1, -1).permute(0, 3, 2,
-                                                                             1).contiguous()  # B, N, dim1, dim2
+            row_output = (
+                row_output.view(batch_size, dim2, dim1, -1)
+                .permute(0, 3, 2, 1)
+                .contiguous()
+            )  # B, N, dim1, dim2
             row_output = self.row_norm[i](row_output)
             output = output + row_output
 
-            col_input = output.permute(0, 2, 3, 1).contiguous().view(batch_size * dim1, dim2, -1)  # B*dim1, dim2, N
+            col_input = (
+                output.permute(0, 2, 3, 1)
+                .contiguous()
+                .view(batch_size * dim1, dim2, -1)
+            )  # B*dim1, dim2, N
             col_output = self.col_rnn[i](col_input)  # B*dim1, dim2, H
-            col_output = col_output.view(batch_size, dim1, dim2, -1).permute(0, 3, 1,
-                                                                             2).contiguous()  # B, N, dim1, dim2
+            col_output = (
+                col_output.view(batch_size, dim1, dim2, -1)
+                .permute(0, 3, 1, 2)
+                .contiguous()
+            )  # B, N, dim1, dim2
             col_output = self.col_norm[i](col_output)
             output = output + col_output
 
-        output = self.output(output) # B, output_size, dim1, dim2
+        output = self.output(output)  # B, output_size, dim1, dim2
 
         return output
 
 
 # base module for deep DPRNN
 class DPRNN_base(nn.Module):
-    def __init__(self, input_dim, feature_dim, hidden_dim, num_spk=1,
-                 layer=4, segment_size=100, bidirectional=True, rnn_type='LSTM'):
+    def __init__(
+        self,
+        input_dim,
+        feature_dim,
+        hidden_dim,
+        num_spk=1,
+        layer=4,
+        segment_size=100,
+        bidirectional=True,
+        rnn_type="LSTM",
+    ):
         super(DPRNN_base, self).__init__()
 
         self.input_dim = input_dim
@@ -322,12 +380,19 @@ class DPRNN_base(nn.Module):
         self.eps = 1e-8
 
         # bottleneck
-        self.BN = nn.Conv1d(self.input_dim, self.feature_dim, 1, bias=False) # raw DPRNN: 64-->64, Asteroid DPRNN: 64-->128
+        self.BN = nn.Conv1d(
+            self.input_dim, self.feature_dim, 1, bias=False
+        )  # raw DPRNN: 64-->64, Asteroid DPRNN: 64-->128
 
         # DPRNN model
-        self.DPRNN = DPRNN(rnn_type, self.feature_dim, self.hidden_dim,
-                                   self.feature_dim * self.num_spk,
-                                   num_layers=layer, bidirectional=bidirectional)
+        self.DPRNN = DPRNN(
+            rnn_type,
+            self.feature_dim,
+            self.hidden_dim,
+            self.feature_dim * self.num_spk,
+            num_layers=layer,
+            bidirectional=bidirectional,
+        )
 
     def pad_segment(self, input, segment_size):
         # input is the features: (B, N, T)
@@ -339,7 +404,9 @@ class DPRNN_base(nn.Module):
             pad = Variable(torch.zeros(batch_size, dim, rest)).type(input.type())
             input = torch.cat([input, pad], 2)
 
-        pad_aux = Variable(torch.zeros(batch_size, dim, segment_stride)).type(input.type())
+        pad_aux = Variable(torch.zeros(batch_size, dim, segment_stride)).type(
+            input.type()
+        )
         input = torch.cat([pad_aux, input, pad_aux], 2)
 
         return input, rest
@@ -352,9 +419,21 @@ class DPRNN_base(nn.Module):
         batch_size, dim, seq_len = input.shape
         segment_stride = segment_size // 2
 
-        segments1 = input[:, :, :-segment_stride].contiguous().view(batch_size, dim, -1, segment_size)
-        segments2 = input[:, :, segment_stride:].contiguous().view(batch_size, dim, -1, segment_size)
-        segments = torch.cat([segments1, segments2], 3).view(batch_size, dim, -1, segment_size).transpose(2, 3)
+        segments1 = (
+            input[:, :, :-segment_stride]
+            .contiguous()
+            .view(batch_size, dim, -1, segment_size)
+        )
+        segments2 = (
+            input[:, :, segment_stride:]
+            .contiguous()
+            .view(batch_size, dim, -1, segment_size)
+        )
+        segments = (
+            torch.cat([segments1, segments2], 3)
+            .view(batch_size, dim, -1, segment_size)
+            .transpose(2, 3)
+        )
 
         return segments.contiguous(), rest
 
@@ -364,10 +443,22 @@ class DPRNN_base(nn.Module):
 
         batch_size, dim, segment_size, _ = input.shape
         segment_stride = segment_size // 2
-        input = input.transpose(2, 3).contiguous().view(batch_size, dim, -1, segment_size * 2)  # B, N, K, L
+        input = (
+            input.transpose(2, 3)
+            .contiguous()
+            .view(batch_size, dim, -1, segment_size * 2)
+        )  # B, N, K, L
 
-        input1 = input[:, :, :, :segment_size].contiguous().view(batch_size, dim, -1)[:, :, segment_stride:]
-        input2 = input[:, :, :, segment_size:].contiguous().view(batch_size, dim, -1)[:, :, :-segment_stride]
+        input1 = (
+            input[:, :, :, :segment_size]
+            .contiguous()
+            .view(batch_size, dim, -1)[:, :, segment_stride:]
+        )
+        input2 = (
+            input[:, :, :, segment_size:]
+            .contiguous()
+            .view(batch_size, dim, -1)[:, :, :-segment_stride]
+        )
 
         output = input1 + input2
         if rest > 0:
@@ -378,43 +469,51 @@ class DPRNN_base(nn.Module):
     def forward(self, input):
         pass
 
+
 # pure dprnn for single separation
 class SEP_module(DPRNN_base):
     def __init__(self, *args, **kwargs):
         super(SEP_module, self).__init__(*args, **kwargs)
 
         # gated output layer
-        self.output = nn.Sequential(nn.Conv1d(self.feature_dim, self.feature_dim, 1),
-                                    nn.Tanh())
-        self.output_gate = nn.Sequential(nn.Conv1d(self.feature_dim, self.feature_dim, 1),
-                                         nn.Sigmoid())
+        self.output = nn.Sequential(
+            nn.Conv1d(self.feature_dim, self.feature_dim, 1), nn.Tanh()
+        )
+        self.output_gate = nn.Sequential(
+            nn.Conv1d(self.feature_dim, self.feature_dim, 1), nn.Sigmoid()
+        )
 
     def forward(self, input, voiceP=None):
-        #input = input.to(device)
+        # input = input.to(device)
         # input: (B, E, T)
         batch_size, E, seq_length = input.shape
 
-        enc_feature = self.BN(input) # (B, E, L)-->(B, N, L)
+        enc_feature = self.BN(input)  # (B, E, L)-->(B, N, L)
         N = enc_feature.shape[1]
         # split the encoder output into overlapped, longer segments
-        enc_segments, enc_rest = self.split_feature(enc_feature, self.segment_size)  # B, N, L, K: L is the segment_size
-        #print('enc_segments.shape {}'.format(enc_segments.shape))
+        enc_segments, enc_rest = self.split_feature(
+            enc_feature, self.segment_size
+        )  # B, N, L, K: L is the segment_size
+        # print('enc_segments.shape {}'.format(enc_segments.shape))
         # print('output shape',enc_segments.shape)
         # pass to DPRNN
-        output = self.DPRNN(enc_segments) # B, topk*N, L, K
+        output = self.DPRNN(enc_segments)  # B, topk*N, L, K
         # print('output shape',output.shape)
-        output = output.view(batch_size*self.num_spk , self.feature_dim, self.segment_size, -1)  # B*topk, N, L, K
+        output = output.view(
+            batch_size * self.num_spk, self.feature_dim, self.segment_size, -1
+        )  # B*topk, N, L, K
 
         # print('output shape',output.shape)
         # overlap-and-add of the outputs
         output = self.merge_feature(output, enc_rest)  # B*topk, N, L
         # output = output.view(batch_size, self.num_spk,self.feature_dim,seq_length) # B,topk,N,L
 
-        #END cat mode
+        # END cat mode
         # gated output layer for filter generation
         bf_filter = self.output(output) * self.output_gate(output)  # B*nspk, K, L
         # self.feature_dim)  # B, nspk, L, N
         return bf_filter
+
 
 # DPRNN for beamforming filter estimation
 class BF_module(DPRNN_base):
@@ -428,50 +527,58 @@ class BF_module(DPRNN_base):
         # self.output_gate = nn.Sequential(nn.Conv1d(self.feature_dim, self.feature_dim, 1),
         #                                  nn.Sigmoid()
         #                                  )
-        self.output = nn.Sequential(nn.Conv1d(self.feature_dim+512, self.feature_dim, 1),
-                                    nn.Tanh()
-                                    )
-        self.output_gate = nn.Sequential(nn.Conv1d(self.feature_dim+512, self.feature_dim, 1),
-                                         nn.Sigmoid()
-                                         )
+        self.output = nn.Sequential(
+            nn.Conv1d(self.feature_dim + 512, self.feature_dim, 1), nn.Tanh()
+        )
+        self.output_gate = nn.Sequential(
+            nn.Conv1d(self.feature_dim + 512, self.feature_dim, 1), nn.Sigmoid()
+        )
 
     def forward(self, input, voiceP):
-        #input = input.to(device)
+        # input = input.to(device)
         # input: (B, E, T)
         # voiceP: (BS,topk,D)
         batch_size, E, seq_length = input.shape
         _, topk, D = voiceP.size()
-        assert batch_size==_
-        self.num_spk=topk
+        assert batch_size == _
+        self.num_spk = topk
 
-        enc_feature = self.BN(input) # (B, E, L)-->(B, N, L)
+        enc_feature = self.BN(input)  # (B, E, L)-->(B, N, L)
         N = enc_feature.shape[1]
         # split the encoder output into overlapped, longer segments
-        enc_segments, enc_rest = self.split_feature(enc_feature, self.segment_size)  # B, N, L, K: L is the segment_size
-        #print('enc_segments.shape {}'.format(enc_segments.shape))
+        enc_segments, enc_rest = self.split_feature(
+            enc_feature, self.segment_size
+        )  # B, N, L, K: L is the segment_size
+        # print('enc_segments.shape {}'.format(enc_segments.shape))
         # print('output shape',enc_segments.shape)
         # pass to DPRNN
         output = self.DPRNN(enc_segments)
         # print('output shape',output.shape)
-        output = output.view(batch_size , self.feature_dim, self.segment_size, -1)  # B, N, L, K
+        output = output.view(
+            batch_size, self.feature_dim, self.segment_size, -1
+        )  # B, N, L, K
 
         # print('output shape',output.shape)
         # overlap-and-add of the outputs
         output = self.merge_feature(output, enc_rest)  # B, N, L
         # print('output shape',output.shape)
-        output = output.unsqueeze(1).expand(-1,topk,-1,-1) # B,topk,N,L
+        output = output.unsqueeze(1).expand(-1, topk, -1, -1)  # B,topk,N,L
         # print('output shape',output.shape)
-        voiceP= voiceP.unsqueeze(-1).expand(batch_size, topk, D, seq_length)  #B,topk,D,L
+        voiceP = voiceP.unsqueeze(-1).expand(
+            batch_size, topk, D, seq_length
+        )  # B,topk,D,L
         # print('output shape',output.shape)
         # print('voiceP shape',voiceP.shape)
 
-        #END cat mode
-        output= torch.cat((output,voiceP), dim=2).view(-1, N + D, seq_length)  # [B*topk,(N+D),L]
+        # END cat mode
+        output = torch.cat((output, voiceP), dim=2).view(
+            -1, N + D, seq_length
+        )  # [B*topk,(N+D),L]
         del voiceP
 
         # gated output layer for filter generation
         bf_filter = self.output(output) * self.output_gate(output)  # B*nspk, K, L
-                                                                # self.feature_dim)  # B, nspk, L, N
+        # self.feature_dim)  # B, nspk, L, N
         # bf_filter = output
 
         return bf_filter
@@ -479,7 +586,17 @@ class BF_module(DPRNN_base):
 
 # base module for FaSNet
 class FaSNet_base(AbsEnhancement):
-    def __init__(self, fs = 8000, enc_dim = 64, feature_dim = 64, hidden_dim = 128, layer = 6, segment_size = 250, nspk = 2, win_len = 2):
+    def __init__(
+        self,
+        fs=8000,
+        enc_dim=64,
+        feature_dim=64,
+        hidden_dim=128,
+        layer=6,
+        segment_size=250,
+        nspk=2,
+        win_len=2,
+    ):
         super(FaSNet_base, self).__init__()
 
         # parameters
@@ -487,25 +604,30 @@ class FaSNet_base(AbsEnhancement):
         self.window = win_len
         self.stride = self.window // 2
 
-        self.enc_dim = enc_dim # TODO(Jing): should be 64 in original
-        self.feature_dim = feature_dim # 64
-        self.hidden_dim = hidden_dim # 128
-        self.segment_size = segment_size # 250
+        self.enc_dim = enc_dim  # TODO(Jing): should be 64 in original
+        self.feature_dim = feature_dim  # 64
+        self.hidden_dim = hidden_dim  # 128
+        self.segment_size = segment_size  # 250
 
-        self.layer = layer # 6
-        self.num_spk = nspk # 2
+        self.layer = layer  # 6
+        self.num_spk = nspk  # 2
         self.eps = 1e-8
 
         # waveform encoder
-        #self.encoder = nn.Conv1d(1, self.enc_dim, self.feature_dim, bias=False)
-        self.encoder = Encoder(win_len, enc_dim) # [B T]-->[B N L]
+        # self.encoder = nn.Conv1d(1, self.enc_dim, self.feature_dim, bias=False)
+        self.encoder = Encoder(win_len, enc_dim)  # [B T]-->[B N L]
         # the norm is groupNorm in raw, but gLN in Asteriod.
         # self.enc_LN = nn.GroupNorm(1, self.enc_dim, eps=1e-8) # [B N L]-->[B N L]
         # self.enc_LN= chose_norm('GroupNorm', self.enc_dim)
-        self.enc_LN= chose_norm('gLN', self.enc_dim)
-        self.separator = SEP_module(input_dim=self.enc_dim, feature_dim=self.feature_dim,
-                                   hidden_dim=self.hidden_dim, num_spk=self.num_spk, layer=self.layer,
-                                   segment_size=self.segment_size)
+        self.enc_LN = chose_norm("gLN", self.enc_dim)
+        self.separator = SEP_module(
+            input_dim=self.enc_dim,
+            feature_dim=self.feature_dim,
+            hidden_dim=self.hidden_dim,
+            num_spk=self.num_spk,
+            layer=self.layer,
+            segment_size=self.segment_size,
+        )
         # [B, N, L] -> [B, E, L]
         self.mask_conv1x1 = nn.Conv1d(self.feature_dim, self.enc_dim, 1, bias=False)
         # self.mask_conv1x1 = nn.Conv1d(self.feature_dim + 512, self.enc_dim, 1, bias=False)
@@ -513,6 +635,7 @@ class FaSNet_base(AbsEnhancement):
         self.decoder = Decoder(enc_dim, win_len)
         self.forward_rawwav = self.forward
         self.stft = None
+        self.loss_type = "si_snr"
 
     def pad_input(self, input, window):
         """
@@ -537,30 +660,34 @@ class FaSNet_base(AbsEnhancement):
         voiceP: batch,topk,spk_emb
         """
         # pass to a DPRNN
-        #input = input.to(device)
+        # input = input.to(device)
         B, _ = input.size()
         # mixture, rest = self.pad_input(input, self.window)
-        #print('mixture.shape {}'.format(mixture.shape))
+        # print('mixture.shape {}'.format(mixture.shape))
         mixture_w = self.encoder(input)  # B, E, L
 
-        score_ = self.enc_LN(mixture_w) # B, E, L
-        #print('mixture_w.shape {}'.format(mixture_w.shape))
+        score_ = self.enc_LN(mixture_w)  # B, E, L
+        # print('mixture_w.shape {}'.format(mixture_w.shape))
         score_ = self.separator(score_, voiceP)  # B*nspk, N, L
         # print('score_.shape {}'.format(score_.shape))
         # score_ = score_.view(B*self.num_spk, -1, self.feature_dim).transpose(1, 2).contiguous()  # B*nspk, N, T
-        #print('score_.shape {}'.format(score_.shape))
-        
+        # print('score_.shape {}'.format(score_.shape))
+
         # score_ = voiceP.transpose(1,2) * score_ # bs*steps*d * bs*spk*d*steps
 
         score = self.mask_conv1x1(score_)  # [B*nspk, N, L] -> [B*nspk, E, L]
         # print('score.shape {}'.format(score.shape))
-        score = score.view(B, self.num_spk, self.enc_dim, -1)  # [B*nspk, E, L] -> [B, nspk, E, L]
+        score = score.view(
+            B, self.num_spk, self.enc_dim, -1
+        )  # [B*nspk, E, L] -> [B, nspk, E, L]
         # print('score.shape {}'.format(score.shape))
         est_mask = F.relu(score)
 
         # est_mask = voiceP.unsqueeze(1).transpose(2,3) * est_mask # bs*steps*d * bs*spk*d*steps
 
-        est_source = self.decoder(mixture_w, est_mask) # [B, E, L] + [B, nspk, E, L]--> [B, nspk, T]
+        est_source = self.decoder(
+            mixture_w, est_mask
+        )  # [B, E, L] + [B, nspk, E, L]--> [B, nspk, T]
         # print('final.shape {}'.format(est_source.shape))
 
         # if rest > 0:
@@ -570,15 +697,15 @@ class FaSNet_base(AbsEnhancement):
             zip(["spk{}".format(i + 1) for i in range(self.num_spk)], est_source)
         )
 
-        return est_source,voiceP, masks
+        return est_source, voiceP, masks
 
     def forward_rawwav(self, mixture, ilens=None):
         return self.forward(mixture, ilens)
 
-if __name__ == "__main__":
-    mixture = torch.randn(3, 3000) # bs, samples
-    voiewiP = torch.randn(3,2,256) # bs, topk , emb
-    net = FaSNet_base(feature_dim=128, nspk=2)
-    output = net(mixture,voiceP)
-    print('output shape',output.shape)
 
+if __name__ == "__main__":
+    mixture = torch.randn(3, 3000)  # bs, samples
+    voiewiP = torch.randn(3, 2, 256)  # bs, topk , emb
+    net = FaSNet_base(feature_dim=128, nspk=2)
+    output = net(mixture, voiceP)
+    print("output shape", output.shape)

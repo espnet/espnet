@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright 2020  Shanghai Jiao Tong University (Authors: Chenda Li, Wangyou Zhang)
-# Apache 2.0
+# Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 set -e
 set -u
 set -o pipefail

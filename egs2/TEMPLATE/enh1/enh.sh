@@ -50,6 +50,7 @@ audio_format=flac # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_t
 fs=16k            # Sampling rate.
 min_wav_duration=0.1   # Minimum duration in second
 max_wav_duration=20    # Maximum duration in second
+input_type=sound  # Input data type: sound / hdf5
 
 # Enhancement model related
 enh_tag=    # Suffix to the result dir for enhancement model training.

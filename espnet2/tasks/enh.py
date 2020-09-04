@@ -29,8 +29,12 @@ from espnet2.utils.types import str_or_none
 
 enh_choices = ClassChoices(
     name="enh",
-    classes=dict(tf_masking=TFMaskingNet, tasnet=TasNet, wpe_beamformer=BeamformerNet,
-                 dprnn=DPRNN),
+    classes=dict(
+        tf_masking=TFMaskingNet,
+        tasnet=TasNet,
+        wpe_beamformer=BeamformerNet,
+        dprnn=DPRNN,
+    ),
     type_check=AbsEnhancement,
     default="tf_masking",
 )

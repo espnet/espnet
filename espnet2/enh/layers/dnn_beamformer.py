@@ -205,12 +205,15 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_noise = None
 
             psd_speeches = [
-                get_power_spectral_density_matrix(data, mask) for mask in mask_speech
+                get_power_spectral_density_matrix(data_d, mask.double())
+                for mask in mask_speech
             ]
             if self.beamformer_type == "mvdr":
                 # psd of noise
                 if mask_noise is not None:
-                    psd_n = get_power_spectral_density_matrix(data, mask_noise)
+                    psd_n = get_power_spectral_density_matrix(
+                        data_d, mask_noise.double()
+                    )
             elif self.beamformer_type == "mpdr":
                 # psd of observed speech
                 psd_n = FC.einsum("...ct,...et->...ce", [data, data.conj()])

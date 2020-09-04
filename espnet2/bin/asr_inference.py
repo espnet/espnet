@@ -34,6 +34,12 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
+def humanfriendly_or_none(value: str):
+    if value in ("none", "None", "NONE"):
+        return None
+    return humanfriendly.parse_size(value)
+
+
 class Speech2Text:
     """Speech2Text class
 
@@ -160,8 +166,11 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+        self,
+        speech_mix: Union[torch.Tensor, np.ndarray],
+        speech_ref1: Union[torch.Tensor, np.ndarray],
+        speech_ref2: Union[torch.Tensor, np.ndarray],
+    ) -> List[List[Tuple[float, Optional[str], List[str], List[int], Hypothesis]]]:
         """Inference
 
         Args:
@@ -185,9 +194,32 @@ class Speech2Text:
         # a. To device
         batch = to_device(batch, device=self.device)
 
+        print("speech", batch["speech"].shape, batch["speech_lengths"].shape)
+
+        speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
+            batch["speech"], batch["speech_lengths"]
+        )
+        print("speech_pre", len(speech_pre), speech_pre[0].shape)
+        ref = np.array(
+            torch.stack([speech_ref1, speech_ref2], dim=0).squeeze()
+        )  # nspk,T
+        inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
+        print("ref,inf:", ref.shape, inf.shape)
+        sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
+
         # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
-        assert len(enc) == 1, len(enc)
+        results_list = []
+        # For each predicted spk
+        for idx, p in enumerate(perm):
+            speech_spk = speech_pre[int(p)]
+            enc, _ = self.joint_model.encode(speech_spk, batch["speech_lengths"])
+            assert len(enc) == 1, len(enc)
+
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+            nbest_hyps = nbest_hyps[: self.nbest]
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
@@ -309,7 +341,19 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(**batch)
+            results_list = speech2text(**batch)
+            print("results_list:", len(results_list), len(results_list[0]))
+            print("results_list:", results_list)
+            print("keys:", keys)
+
+            for spk_idx, results in enumerate(results_list):
+                # Only supporting batch_size==1
+                key = keys[0]
+                for n, (sdr, text, token, token_int, hyp) in zip(
+                    range(1, nbest + 1), results
+                ):
+                    # Create a directory: outdir/{n}best_recog
+                    ibest_writer = writer[f"{n}best_recog_spk{spk_idx+1}"]
 
             # Only supporting batch_size==1
             key = keys[0]
