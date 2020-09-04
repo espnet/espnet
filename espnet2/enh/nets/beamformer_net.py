@@ -11,9 +11,7 @@ from espnet2.layers.stft import Stft
 
 
 class BeamformerNet(AbsEnhancement):
-    """TF Masking based beamformer
-
-    """
+    """TF Masking based beamformer"""
 
     def __init__(
         self,

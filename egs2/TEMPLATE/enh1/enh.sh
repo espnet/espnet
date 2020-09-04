@@ -65,7 +65,7 @@ use_noise_ref=false
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
-inference_model=valid.si_snr.best.pth
+inference_model=valid.si_snr.ave.pth
 
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR"
@@ -425,7 +425,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${enh_args}
+                ${_opts} ${enh_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -644,7 +644,7 @@ if ! "${skip_eval}"; then
             for protocol in ${scoring_protocol}; do
                 # shellcheck disable=SC2046
                 paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
-                awk 'BEIGN{sum=0}
+                awk 'BEGIN{sum=0}
                     {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
                     END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
             done
@@ -667,6 +667,7 @@ if ! "${skip_upload}"; then
             --model_file "${enh_exp}"/"${inference_model}" \
             --option "${enh_exp}"/RESULTS.TXT \
             --option "${enh_stats_dir}"/train/feats_stats.npz  \
+            --option "${enh_exp}"/images \
             --outpath "${packed_model}"
     fi
 
@@ -713,7 +714,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 EOF
 
         # NOTE(kamo): The model file is uploaded here, but not published yet.
-        #   Please confirm your record at Zenodo and publish it by youself.
+        #   Please confirm your record at Zenodo and publish it by yourself.
 
         # shellcheck disable=SC2086
         espnet_model_zoo_upload \

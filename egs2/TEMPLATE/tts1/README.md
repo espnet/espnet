@@ -2,6 +2,36 @@
 
 This is a template of TTS recipe for ESPnet2.
 
+## Table of Contents
+
+* [ESPnet2 TTS Recipe TEMPLATE](#espnet2-tts-recipe-template)
+  * [Table of Contents](#table-of-contents)
+  * [Recipe flow](#recipe-flow)
+    * [1\. Data preparation](#1-data-preparation)
+    * [2\. Wav dump or Feature extraction](#2-wav-dump-or-feature-extraction)
+    * [3\. Removal of long / short data](#3-removal-of-long--short-data)
+    * [4\. Token list generation](#4-token-list-generation)
+    * [5\. TTS statistics collection](#5-tts-statistics-collection)
+    * [6\. TTS training](#6-tts-training)
+    * [7\. TTS decoding](#7-tts-decoding)
+    * [8\-9\. (Optional) Pack results for upload](#8-9-optional-pack-results-for-upload)
+  * [How to run](#how-to-run)
+    * [FastSpeech training](#fastspeech-training)
+    * [FastSpeech2 training](#fastspeech2-training)
+  * [Supported text frontend](#supported-text-frontend)
+  * [Supported text cleaner](#supported-text-cleaner)
+  * [Supported Models](#supported-models)
+    * [Single speaker model](#single-speaker-model)
+    * [Multi speaker model](#multi-speaker-model)
+  * [FAQ](#faq)
+    * [How to change minibatch size in training?](#how-to-change-minibatch-size-in-training)
+    * [How to make a new recipe for my own dataset?](#how-to-make-a-new-recipe-for-my-own-dataset)
+    * [How to add a new g2p module?](#how-to-add-a-new-g2p-module)
+    * [How to add a new cleaner module?](#how-to-add-a-new-cleaner-module)
+    * [How to use trained model in python?](#how-to-use-trained-model-in-python)
+    * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
+    * [How to add a new model?](#how-to-add-a-new-model)
+
 ## Recipe flow
 
 TTS recipe consists of 9 stages.
@@ -186,11 +216,11 @@ Then, you can train FastSpeech without knowledge distillation.
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech.yaml \
     --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best
-````
+```
 
 ### FastSpeech2 training
 
-The procedure is almost the same as FastSpeech2 but we **MUST** use teacher forcing in decoding.
+The procedure is almost the same as FastSpeech but we **MUST** use teacher forcing in decoding.
 ```sh
 $ ./run.sh --stage 7 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
@@ -253,7 +283,7 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
-#### Multi speaker model
+### Multi speaker model
 
 - [GST-Tacotron2](https://arxiv.org/abs/1803.09017)
 - GST-Transformer-TTS
@@ -264,6 +294,13 @@ You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning
 
 
 ## FAQ
+
+### How to change minibatch size in training?
+
+See [change mini-batch type](https://espnet.github.io/espnet/espnet2_training_option.html#change-mini-batch-type).
+As a default, we use `batch_type=numel` and `batch_bins` instead of `batch_size` to enable us to use dynamic batch size.
+See the following config as an example.
+https://github.com/espnet/espnet/blob/96b2fd08d4fd9276aabd7ad41ec5e02a88b30958/egs2/ljspeech/tts1/conf/tuning/train_tacotron2.yaml#L61-L62
 
 ### How to make a new recipe for my own dataset?
 

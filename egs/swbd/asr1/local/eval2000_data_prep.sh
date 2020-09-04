@@ -44,8 +44,8 @@ find $sdir/english -iname '*.sph' | sort > $dir/sph.flist
 sed -e 's?.*/??' -e 's?.sph??' $dir/sph.flist | paste - $dir/sph.flist \
   > $dir/sph.scp
 
-sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
-[ ! -x $sph2pipe ] \
+sph2pipe=sph2pipe
+! command -v "${sph2pipe}" &> /dev/null \
   && echo "Could not execute the sph2pipe program at $sph2pipe" && exit 1;
 
 awk -v sph2pipe=$sph2pipe '{
