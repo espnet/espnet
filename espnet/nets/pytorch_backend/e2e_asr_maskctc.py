@@ -18,7 +18,8 @@ import torch
 
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
-from espnet.nets.pytorch_backend.maskctc.add_mask import mask_uniform
+from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
+from espnet.nets.pytorch_backend.maskctc.mask import square_mask
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
@@ -87,7 +88,7 @@ class E2E(E2ETransformer):
         ys_in_pad, ys_out_pad = mask_uniform(
             ys_pad, self.mask_token, self.eos, self.ignore_id
         )
-        ys_mask = (ys_in_pad != self.eos).unsqueeze(-2)
+        ys_mask = square_mask(ys_in_pad, self.eos)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 

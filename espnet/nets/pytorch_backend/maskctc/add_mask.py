@@ -5,7 +5,7 @@
 #                Waseda University (Yosuke Higuchi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Masking funcitons for Mask CTC."""
+"""Token masking module for Masked LM."""
 
 import numpy
 
