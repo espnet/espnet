@@ -16,6 +16,7 @@ from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.nets.beamformer_net import BeamformerNet
 from espnet2.enh.nets.tasnet import TasNet
 from espnet2.enh.nets.tf_mask_net import TFMaskingNet
+from espnet2.enh.nets.tf_mask_net_transformer import TFMaskingTransformer # md add
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -28,7 +29,7 @@ from espnet2.utils.types import str_or_none
 
 enh_choices = ClassChoices(
     name="enh",
-    classes=dict(tf_masking=TFMaskingNet, tasnet=TasNet, wpe_beamformer=BeamformerNet),
+    classes=dict(tf_masking=TFMaskingNet, tf_masking_transformer=TFMaskingTransformer,tasnet=TasNet, wpe_beamformer=BeamformerNet),
     type_check=AbsEnhancement,
     default="tf_masking",
 )
@@ -93,7 +94,7 @@ class EnhancementTask(AbsTask):
 
     @classmethod
     def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
+        cls, args: argparse.Namespace
     ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
@@ -112,9 +113,7 @@ class EnhancementTask(AbsTask):
         return retval
 
     @classmethod
-    def required_data_names(
-        cls, train: bool = True, inference: bool = False
-    ) -> Tuple[str, ...]:
+    def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         if not inference:
             retval = ("speech_mix", "speech_ref1")
         else:
@@ -123,9 +122,7 @@ class EnhancementTask(AbsTask):
         return retval
 
     @classmethod
-    def optional_data_names(
-        cls, train: bool = True, inference: bool = False
-    ) -> Tuple[str, ...]:
+    def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
         retval = ["dereverb_ref"]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
