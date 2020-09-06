@@ -1,9 +1,18 @@
 grad_clip: 5.0
 batch_type: folded
-batch_size: 120
-optim: adam
+batch_size: 1000
+optim: sgd
+max_epoch: 200
 optim_conf:
     lr: 0.1
+val_scheduler_criterion:
+    - valid
+    - loss
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 3
 lm: seq_rnn
 lm_conf:
     unit: 650

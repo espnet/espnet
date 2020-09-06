@@ -194,6 +194,7 @@ class Speech2Text:
         # a. To device
         batch = to_device(batch, device=self.device)
 
+<<<<<<< HEAD:espnet2/bin/asr_inference.py
         print("speech", batch["speech"].shape, batch["speech_lengths"].shape)
 
         speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
@@ -205,6 +206,11 @@ class Speech2Text:
         )  # nspk,T
         inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
         print("ref,inf:", ref.shape, inf.shape)
+=======
+        speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(batch['speech'],batch['speech_lengths'])
+        ref = np.array(torch.stack([speech_ref1,speech_ref2],dim=0).squeeze()) # nspk,T
+        inf = np.array(torch.stack(speech_pre,dim=1).squeeze())
+>>>>>>> Refactor of the joint-training part. TODO:return of rawwav.:espnet2/bin/enh_asr_inference.py
         sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
         # b. Forward Encoder
@@ -341,10 +347,14 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # N-best list of (text, token, token_int, hyp_object)
+            logging.info(f"keys: {keys}")
             results_list = speech2text(**batch)
+<<<<<<< HEAD:espnet2/bin/asr_inference.py
             print("results_list:", len(results_list), len(results_list[0]))
             print("results_list:", results_list)
             print("keys:", keys)
+=======
+>>>>>>> Refactor of the joint-training part. TODO:return of rawwav.:espnet2/bin/enh_asr_inference.py
 
             for spk_idx, results in enumerate(results_list):
                 # Only supporting batch_size==1
@@ -451,10 +461,7 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument(
-        "--ctc_weight",
-        type=float,
-        default=0.5,
-        help="CTC weight in joint decoding",
+        "--ctc_weight", type=float, default=0.2, help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
 

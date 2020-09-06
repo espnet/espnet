@@ -1,6 +1,5 @@
-batch_type: folded
-batch_size: 64
-accum_grad: 2
+batch_size: 24
+#accum_grad: 8
 max_epoch: 200
 patience: none
 # The initialization method for model parameters
@@ -10,6 +9,44 @@ best_model_criterion:
     - acc
     - max
 keep_nbest_models: 10
+
+optim: adam
+batch_type: folded
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+val_scheduler_criterion:
+    - valid
+    - loss
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.9
+    patience: 2
+
+# Enhancement Related
+enh: tf_masking
+enh_conf:
+    mask_type: PSM
+    n_fft: 256
+    hop_length: 128
+    rnn_type: blstm
+    layer: 3
+    unit: 896
+    dropout: 0.5
+    num_spk: 2
+    utt_mvn: False
+    nonlinear: relu
+
+# ASR Related
+frontend: default
+frontend_conf:
+    fs: 8000
+    n_fft: 256
+    win_length: 256
+    hop_length: 64
 
 encoder: transformer
 encoder_conf:
@@ -36,6 +73,7 @@ decoder_conf:
 model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
+    enh_weight: 0.99
     length_normalized_loss: false
 
 optim: adam

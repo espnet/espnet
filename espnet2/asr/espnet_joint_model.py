@@ -45,7 +45,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
-        enh_weight: float = 0.5,
+        enh_weight: float = 0.99,
         length_normalized_loss: bool = False,
         report_cer: bool = True,
         report_wer: bool = True,
