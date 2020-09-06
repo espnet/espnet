@@ -1,1 +1,1 @@
-../../TEMPLATE/asr_mix/enh_asr.sh
+../../TEMPLATE/enh_asr1/enh_asr.sh
