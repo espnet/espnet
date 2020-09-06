@@ -31,6 +31,7 @@ This is a template of TTS recipe for ESPnet2.
     * [How to use trained model in python?](#how-to-use-trained-model-in-python)
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
+    * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
 
 ## Recipe flow
 
@@ -329,3 +330,7 @@ See the usage in [abs_task.py](https://github.com/espnet/espnet/blob/3cc59a16c36
 ### How to add a new model?
 
 Under construction.
+
+### How to test my model with an arbitrary given text?
+
+See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
