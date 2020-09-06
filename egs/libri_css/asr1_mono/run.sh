@@ -17,11 +17,28 @@ dumpdir=dump   # directory to dump full features
 do_delta=false
 
 # decoding parameter
+# here we use models trained with the LibriSpeech Transformer recipe
+# https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--transformer-lm-4-gpus
+# they are downloaded by the local/download_asr.sh script
 recog_model=model.val5.avg.best  # set a model to be used for decoding
 lang_model=rnnlm.model.best # set a language model to be used for decoding
 
 # directories for pre-trained models' downloads
+#
+# you can change them to directories with your own models,
+# don't forget to disable the download in such case
+#
+# xvector directory needs to contain following files:
+# - final.raw (x-vector extractor model)
+# - extract.config (x-vector extractor configuration)
 xvector_dir=download/xvector_voxceleb
+# asr directory needs to contain following files:
+# - $recog_model (ASR model, e.g. model.val5.avg.best) and model.json with its configuration
+# - $lang_model (Language Model, e.g. rnnlm.model.best) and model.json with its configuration
+# - cmvn.ark (CMVN statistics file)
+# - *_units.txt (dictionary file, e.g. train_960_unigram5000_units.txt)
+# - *.model (SentencePiece model, e.g. train_960_unigram5000.model)
+# - decode.yaml (decoding script configuration)
 asr_dir=download/asr_librispeech
 
 diarizer_type=spectral # choose between spectral, bhmm or agglomerative

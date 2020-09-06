@@ -34,6 +34,8 @@ data_in=$2
 out_dir=$3
 data_out=$4
 
+set -e -o pipefail
+
 name=`basename ${data_in}`
 ref_rttm=data/${name}/ref_rttm
 
@@ -104,7 +106,7 @@ if [ $stage -le 3 ]; then
     if [ ${diarizer_type} == "bhmm" ]; then
       echo "$0: performing VB-HMM on top of first-pass AHC"
       diarization/vb_hmm_xvector.sh --nj ${diar_nj} --rttm-channel 1 \
-        ${out_dir} ${out_di}r/xvectors ${model_dir}/plda
+        ${out_dir} ${out_dir}/xvectors ${model_dir}/plda
     fi
   fi
 

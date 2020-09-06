@@ -13,3 +13,6 @@ export OMP_NUM_THREADS=1
 
 # NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C
 export PYTHONIOENCODING=UTF-8
+
+# this is needed for kaldi_io version used in bhmm
+export KALDI_ROOT

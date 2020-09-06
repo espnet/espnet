@@ -46,6 +46,8 @@ dir=$1
 xvec_dir=$2
 plda=$3
 
+set -e -o pipefail
+
 mkdir -p $dir/tmp
 
 for f in $dir/labels ; do
@@ -81,7 +83,7 @@ for n in `seq $nj`; do
   cat <<-EOF > $dir/tmp/vb_hmm.$n.sh
   python3 diarization/vb_hmm_xvector.py \
       --loop-prob $loop_prob --fa $fa --fb $fb \
-      $xvec_dir/xvector_norm.ark $plda $dir/labels.$n $dir/labels.$n
+      $xvec_dir/xvector_norm.ark $plda $dir/labels.$n $dir/vb_labels.$n
 EOF
 done
 
@@ -91,12 +93,12 @@ $cmd JOB=1:$nj $dir/log/vb_hmm.JOB.log \
 
 if [ $stage -le 1 ]; then
   echo "$0: combining labels"
-  for j in $(seq $nj); do cat $dir/labels.$j; done > $dir/labels || exit 1;
+  for j in $(seq $nj); do cat $dir/vb_labels.$j; done > $dir/vb_labels || exit 1;
 fi
 
 if [ $stage -le 2 ]; then
   echo "$0: computing RTTM"
-  diarization/make_rttm.py --rttm-channel $rttm_channel $xvec_dir/plda_scores/segments $dir/labels $dir/rttm || exit 1;
+  diarization/make_rttm.py --rttm-channel $rttm_channel $xvec_dir/plda_scores/segments $dir/vb_labels $dir/rttm || exit 1;
 fi
 
 if $cleanup ; then
