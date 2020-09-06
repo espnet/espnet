@@ -2,19 +2,14 @@
 
 ESPnet2 provides some kinds of data-parallel distributed training.
 
-1. Single node with multi GPUs
-    1. Using multi-processing: `torch.nn.DistributedDataParallel`
-        - `--ngpu N-GPU --multiprocessing_distributed true`
-    1. Using multi-threading: `torch.nn.DataParallel`
-        - `--ngpu N-GPU --multiprocessing_distributed false`
-1. Multi nodes with multi GPUs: `torch.nn.DistributedDataParallel`
-    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes) with multi-processing
-        - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed true`
-    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes) with multi-threading
-        - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed false`
-    1. Launch `N-NODE` jobs with `1-GPU` for each node
-        - `--dist_world_size N-NODE --ngpu 1`
-        
+||DP/DDP|Single/Multi host|Option|
+|---|---|---|---|
+|Multi-processing with single host|DistributedDataParallel|Single|--ngpu `N-GPU` --multiprocessing_distributed true|
+|Multi-threading with single host|DataParallel|Single|--ngpu `N-GPU` --multiprocessing_distributed false|
+|Multi-processing with `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)|DistributedDataParallel|Multi|--dist_world_size `N-HOST` --ngpu `N-GPU` --multiprocessing_distributed true|
+|Multi-threading with `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)|DistributedDataParallel|Multi|--dist_world_size `N-HOST` --ngpu `N-GPU` --multiprocessing_distributed false|
+|`N-NODE` jobs with `1-GPU` for each node|DistributedDataParallel|Single/Multi|--dist_world_size `N-NODE` --ngpu 1|
+
 
 
 ## Examples
@@ -55,7 +50,7 @@ Note that multiprocessing distributed mode assumes the same number of GPUs for e
 #### RANK and WORLD_SIZE
 `--dist_rank` and `--dist_world_size` indicate `RANK` and `WORLD_SIZE` in terms of MPI;
 i.e., they indicate the id of each processe and the number of processes respectively.
-It can be also specified by the environment variables `${RANK}` and `${WORLD_SIZE}`.
+They can be also specified by the environment variables `${RANK}` and `${WORLD_SIZE}`.
 
 
 #### About init method
