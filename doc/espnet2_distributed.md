@@ -27,7 +27,7 @@ You can disable distributed mode and switch to threading based data parallel as 
 
 If you meet some errors with distributed mode, please try single gpu mode or multi-GPUs with `--multiprocessing_distributed false` before reporting the issue.
 
-### 2Nodes and 2GPUs for each node with multiprocessing distributed mode
+### 2Host and 2GPUs for each host with multiprocessing distributed mode
 Note that multiprocessing distributed mode assumes the same number of GPUs for each node.
 
 ```bash
@@ -78,7 +78,7 @@ There are two ways to initialize and **these methods can be interchanged** in al
    ```
 
 
-### 2Nodes which have 2GPUs and 1GPU respectively
+### 2Hosts which have 2GPUs and 1GPU respectively
 ```bash
 (host1) % python -m espnet2.bin.asr_train \
     --ngpu 1 \
@@ -103,7 +103,7 @@ There are two ways to initialize and **these methods can be interchanged** in al
     --dist_master_port <any-free-port>
 ```
 
-### 2Nodes and 2GPUs for each node using `Slurm` with multiprocessing distributed
+### 2Hosts and 2GPUs for each node using `Slurm` with multiprocessing distributed
 
 ```bash
  % srun -c2 -N2 --gres gpu:2 \
@@ -124,7 +124,7 @@ I recommend shared-file initialization in this case because the host will be det
     --dist_init_method "file://$(pwd)/.dist_init_$(openssl rand -base64 12)"
 ```
 
-### 2Nodes and 2GPUs for each nodes using `MPI` with multiprocessing distributed
+### 2Hosts and 2GPUs for each node using `MPI` with multiprocessing distributed
 
 ```bash
  % mpirun -np 2 -host host1,host2 \
