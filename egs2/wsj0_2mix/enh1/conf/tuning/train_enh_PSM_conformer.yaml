@@ -1,0 +1,61 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 500
+batch_type: folded
+batch_size:  64
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.7
+    patience: 1
+enh: tf_masking
+enh_conf:
+    mask_type: PSM
+    n_fft: 256
+    hop_length: 128
+    num_spk: 2
+    utt_mvn: False
+    nonlinear: relu
+    rnn_type: conformer                         # blstm, transofrmer or conformer
+    layer: 3                                    # rnn related
+    unit: 896
+    dropout: 0.5
+    adim:  256                                  # transformer related
+    aheads: 4
+    elayers: 3
+    eunits: 1536
+    transformer_input_layer: linear             # encoder architecture type, should maintain length
+    positionwise_layer_type: conv1d
+    positionwise_conv_kernel_size: 1
+    encoder_normalize_before: False
+    encoder_concat_after: False
+    use_scaled_pos_enc: True
+    conformer_pos_enc_layer_type: rel_pos        # conformer positional encoding type
+    conformer_self_attn_layer_type: rel_selfattn # conformer self-attention type
+    conformer_activation_type: swish             # conformer activation type
+    use_macaron_style_in_conformer: true         # whether to use macaron style in conformer
+    use_cnn_in_conformer: true                   # whether to use CNN in conformer
+    conformer_enc_kernel_size: 15                # kernel size in CNN module of conformer-based encoder
+    transformer_enc_dropout_rate: 0.1            # dropout rate for transformer encoder layer
+    transformer_enc_positional_dropout_rate: 0.1 # dropout rate for transformer encoder positional encoding
+    transformer_enc_attn_dropout_rate: 0.1       # dropout rate for transformer encoder attention layer
+
+
+
