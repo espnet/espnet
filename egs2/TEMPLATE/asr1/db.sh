@@ -54,13 +54,14 @@ BABEL_401=
 BABEL_402=
 BABEL_403=
 BABEL_404=
+VCTK=downloads
 VIVOS=downloads
 YESNO=downloads
 HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
 
-
+# For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
     AN4=
@@ -80,12 +81,12 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
                 ## Case USB : Neccesary directory is MORPH/SDB and WAV
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
-    CSMSC=
+    CSMSC=downloads
     HKUST1=
     HKUST2=
     LIBRISPEECH=
-    LJSPEECH=
-    JSUT=
+    LJSPEECH=downloads
+    JSUT=downloads
     TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
@@ -115,6 +116,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     BABEL_402=/export/babel/data/402-javanese/IARPA-babel402b-v1.0b-build/BABEL_OP3_402
     BABEL_403=/export/babel/data/403-dholuo/IARPA-babel403b-v1.0b-build/BABEL_OP3_403
     BABEL_404=/export/corpora/LDC/LDC2016S12/IARPA_BABEL_OP3_404
+    VCTK=downloads
     VIVOS=
     YESNO=
     HOW2_TEXT=
