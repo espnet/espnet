@@ -69,6 +69,7 @@ class TFMaskingNet(AbsEnhancement):
         self.num_bin = n_fft // 2 + 1
         self.mask_type = mask_type
         self.loss_type = loss_type
+        self.return_spec_in_training = False
         if loss_type not in ("mask_mse", "magnitude", "spectrum"):
             raise ValueError("Unsupported loss type: %s" % loss_type)
         self.rnn_type = rnn_type
@@ -197,12 +198,16 @@ class TFMaskingNet(AbsEnhancement):
             y = self.nonlinear(y)
             masks.append(y)
 
-        if self.training and self.loss_type.startswith("mask"):
-            predicted_spectrums = None
-        else:
-            # apply mask
+        if self.return_spec_in_training:
             predict_magnitude = [input_magnitude * m for m in masks]
             predicted_spectrums = [input_phase * pm for pm in predict_magnitude]
+        else:
+            if self.training and self.loss_type.startswith("mask"):
+                predicted_spectrums = None
+            else:
+                # apply mask
+                predict_magnitude = [input_magnitude * m for m in masks]
+                predicted_spectrums = [input_phase * pm for pm in predict_magnitude]
 
         masks = OrderedDict(
             zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)

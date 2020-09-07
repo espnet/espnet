@@ -266,7 +266,9 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
+    def optional_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
         if not inference:
             retval = ["dereverb_ref"]
             retval += [

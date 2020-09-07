@@ -55,7 +55,7 @@ encoder_conf:
     linear_units: 2048
     num_blocks: 12
     dropout_rate: 0.1
-    positional_dropout_rate: 0.1
+    positional_dropout_rate: 0.2
     attention_dropout_rate: 0.0
     input_layer: conv2d
     normalize_before: true
