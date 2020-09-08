@@ -7,12 +7,12 @@ ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we
 1. Create directory in egs/
     ```bash
     % task=asr1  # enh1, tts1, mt1, st1
-    % egs/TEMPLATE/${task}/setup.sh egs/foo/${task}
+    % egs2/TEMPLATE/${task}/setup.sh egs2/foo/${task}
     ```
    
 1. Create `run.sh` and `local/data.sh` somehow
     ```bash
-    % cd egs/foo/${task}
+    % cd egs2/foo/${task}
     % cp ../../mini_an4/${task}/run.sh .
     % vi run.sh
     ```
@@ -44,7 +44,7 @@ ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we
     ...
     ```
 
-1. If the recipe depends on some special tools, then write the requirements to `path.sh`
+1. If the recipe depends on some special tools, then write the requirements to `local/path.sh`
 
     path.sh:
     ```bash
