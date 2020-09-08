@@ -2,10 +2,10 @@
 
 Our recipes support some Job scheduling systems, SGE, PBS/Torque, 
 and Slurm, according to [Parallelization in Kaldi](https://kaldi-asr.org/doc/queue.html). 
-By default, the feature extraction and decoding run at the local machine with multiprocessing, 
-but if there are any Job scheduling systems in your environment, 
+By default, the job runs at local machine. If there are any Job scheduling systems in your environment, 
 you can submit more number of Jobs with multiple machines. 
-Please ask the administrator to install it.
+
+Please ask the administrator to install it if you have multiple machines.
 
 ## Select Job scheduler
 
@@ -45,7 +45,7 @@ echo 4 &> 4.log &
 wait
 ```
 
-## Queue/Partition setting
+## Configuration
 You also need to modify the configuration file for a specific job scheduler to change command-line options to submit jobs e.g. queue setting, resource request, etc.
 
 The following text is an example of `conf/queue.conf`.
@@ -63,6 +63,12 @@ option gpu=0
 option gpu=* -l gpu=$0 -q g.q
 ```
 
+Note that the queue/partition name, `-q g.q`, is an example, so you must change it to the existing queue/partition in your cluster.
+
+You can't use the specific options depending on each system in our scripts,
+e.g. you can't use `-q` option for `queue.pl` directly.
+Instead, you can use `--mem`, `--num_threads`, `--max_jobs_run`, and `--gpu` in this case.
+
 Take a look at the following:
 
 ```
@@ -70,7 +76,7 @@ option gpu=* -l gpu=$0 -q g.q
 ```
 
 This line means that the optional argument specified by the second column, `gpu=*`, 
-will be changed the options after it, `gpu=$0 -q g.q`:
+will be converted to the options after it: `-l gpu=$0 -q g.q`:
 
 ```bash
 queue.pl --gpu 2
@@ -82,4 +88,10 @@ will be converted to
 qsub -v PATH -cwd -S /bin/bash -j y -l arch=*64* -l gpu=2 -q g.q
 ```
 
-Thanks to this system, our shell script can switch any job scheduling system with unified options.
+
+You can also add a new option for your system using this syntax.
+
+
+```
+option foo=* --bar $0
+```
