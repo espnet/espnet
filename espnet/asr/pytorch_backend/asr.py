@@ -408,6 +408,8 @@ def train(args):
         int(valid_json[utts[0]]["input"][i]["shape"][-1]) for i in range(args.num_encs)
     ]
     odim = int(valid_json[utts[0]]["output"][0]["shape"][-1])
+    if hasattr(args, "decoder_mode") and args.decoder_mode == "maskctc":
+        odim += 1  # for the <mask> token
     for i in range(args.num_encs):
         logging.info("stream{}: input dims : {}".format(i + 1, idim_list[i]))
     logging.info("#output dims: " + str(odim))
@@ -417,7 +419,7 @@ def train(args):
         assert args.mtlalpha == 1.0
         mtl_mode = "transducer"
         logging.info("Pure transducer mode")
-    if args.mtlalpha == 1.0:
+    elif args.mtlalpha == 1.0:
         mtl_mode = "ctc"
         logging.info("Pure CTC mode")
     elif args.mtlalpha == 0.0:
@@ -658,10 +660,13 @@ def train(args):
             CustomEvaluator(model, {"main": valid_iter}, reporter, device, args.ngpu)
         )
 
-    # Save attention weight each epoch
-    if args.num_save_attention > 0 and (
-        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt"
-    ):
+    # Save attention weight at each epoch
+    is_attn_plot = (
+        mtl_mode in ["att", "mtl"]
+        or "transformer" in args.model_module
+        or "conformer" in args.model_module
+    )
+    if args.num_save_attention > 0 and is_attn_plot:
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
@@ -684,6 +689,34 @@ def train(args):
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
         att_reporter = None
+
+    # Save CTC prob at each epoch
+    if mtl_mode in ["ctc", "mtl"] and args.num_save_ctc > 0:
+        # NOTE: sort it by output lengths
+        data = sorted(
+            list(valid_json.items())[: args.num_save_ctc],
+            key=lambda x: int(x[1]["output"][0]["shape"][0]),
+            reverse=True,
+        )
+        if hasattr(model, "module"):
+            ctc_vis_fn = model.module.calculate_all_ctc_probs
+            plot_class = model.module.ctc_plot_class
+        else:
+            ctc_vis_fn = model.calculate_all_ctc_probs
+            plot_class = model.ctc_plot_class
+        ctc_reporter = plot_class(
+            ctc_vis_fn,
+            data,
+            args.outdir + "/ctc_prob",
+            converter=converter,
+            transform=load_cv,
+            device=device,
+            ikey="output",
+            iaxis=1,
+        )
+        trainer.extend(ctc_reporter, trigger=(1, "epoch"))
+    else:
+        ctc_reporter = None
 
     # Make a plot for training and validation values
     if args.num_encs > 1:
@@ -778,6 +811,18 @@ def train(args):
                     lambda best_value, current_value: best_value < current_value,
                 ),
             )
+        # NOTE: In some cases, it may take more than one epoch for the model's loss
+        # to escape from a local minimum.
+        # Thus, restore_snapshot extension is not used here.
+        # see details in https://github.com/espnet/espnet/pull/2171
+        elif args.criterion == "loss_eps_decay_only":
+            trainer.extend(
+                adadelta_eps_decay(args.eps_decay),
+                trigger=CompareValueTrigger(
+                    "validation/main/loss",
+                    lambda best_value, current_value: best_value < current_value,
+                ),
+            )
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(
@@ -823,7 +868,11 @@ def train(args):
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         trainer.extend(
-            TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+            TensorboardLogger(
+                SummaryWriter(args.tensorboard_dir),
+                att_reporter=att_reporter,
+                ctc_reporter=ctc_reporter,
+            ),
             trigger=(args.report_interval_iters, "iteration"),
         )
     # Run the training
@@ -976,6 +1025,10 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
+                elif hasattr(model, "decoder_mode") and model.decoder_mode == "maskctc":
+                    nbest_hyps = model.recognize_maskctc(
+                        feat, args, train_args.char_list
+                    )
                 else:
                     nbest_hyps = model.recognize(
                         feat, args, train_args.char_list, rnnlm
@@ -1273,3 +1326,88 @@ def enhance(args):
             if num_images >= args.num_images and enh_writer is None:
                 logging.info("Breaking the process.")
                 break
+
+
+def ctc_align(args):
+    """CTC forced alignments with the given args.
+
+    Args:
+        args (namespace): The program arguments.
+    """
+
+    def add_alignment_to_json(js, alignment, char_list):
+        """Add N-best results to json.
+
+        Args:
+            js (dict[str, Any]): Groundtruth utterance dict.
+            alignment (list[int]): List of alignment.
+            char_list (list[str]): List of characters.
+
+        Returns:
+            dict[str, Any]: N-best results added utterance dict.
+
+        """
+        # copy old json info
+        new_js = dict()
+        new_js["ctc_alignment"] = []
+
+        alignment_tokens = []
+        for idx, a in enumerate(alignment):
+            alignment_tokens.append(char_list[a])
+        alignment_tokens = " ".join(alignment_tokens)
+
+        new_js["ctc_alignment"] = alignment_tokens
+
+        return new_js
+
+    set_deterministic_pytorch(args)
+    model, train_args = load_trained_model(args.model)
+    assert isinstance(model, ASRInterface)
+    model.eval()
+
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode="asr",
+        load_output=True,
+        sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None
+        else args.preprocess_conf,
+        preprocess_args={"train": False},
+    )
+
+    if args.ngpu > 1:
+        raise NotImplementedError("only single GPU decoding is supported")
+    if args.ngpu == 1:
+        device = "cuda"
+    else:
+        device = "cpu"
+    dtype = getattr(torch, args.dtype)
+    logging.info(f"Decoding device={device}, dtype={dtype}")
+    model.to(device=device, dtype=dtype).eval()
+
+    # read json data
+    with open(args.align_json, "rb") as f:
+        js = json.load(f)["utts"]
+    new_js = {}
+    if args.batchsize == 0:
+        with torch.no_grad():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
+                batch = [(name, js[name])]
+                feat, label = load_inputs_and_targets(batch)
+                feat = feat[0]
+                label = label[0]
+                enc = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
+                alignment = model.ctc.forced_align(enc, label)
+                new_js[name] = add_alignment_to_json(
+                    js[name], alignment, train_args.char_list
+                )
+    else:
+        raise NotImplementedError("Align_batch is not implemented.")
+
+    with open(args.result_label, "wb") as f:
+        f.write(
+            json.dumps(
+                {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
+            ).encode("utf_8")
+        )

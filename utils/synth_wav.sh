@@ -349,7 +349,7 @@ if [ "${stage}" -le 4 ] && [ "${stop_stage}" -ge 4 ]; then
         fi
         checkpoint=$(find "${download_dir}/${vocoder_models}" -name "*.pth" | head -n 1)
         feats2npy.py "${outdir}/feats.scp" "${outdir}_npy"
-        python ${MDN_WAVENET_VOC_DIR}/evaluate.py "${outdir}_npy" "${checkpoint}" "${dst_dir}" \
+        python3 ${MDN_WAVENET_VOC_DIR}/evaluate.py "${outdir}_npy" "${checkpoint}" "${dst_dir}" \
             --hparams "batch_size=1" \
             --verbose "${verbose}"
         rm -rf "${outdir}_npy"

@@ -14,15 +14,15 @@ sampling-probability: 0.0
 # encoder related
 etype: blstmp     # encoder architecture type
 elayers: 2
-eunits: 32
-eprojs: 32
+eunits: 16
+eprojs: 16
 subsample: "1_2_2_1_1" # skip every n frame from input to nth layers
 # decoder related
 dlayers: 1
-dunits: 30
+dunits: 16
 # attention related
 atype: location
-adim: 32
+adim: 16
 aconv-chans: 4
 aconv-filts: 3
 

@@ -9,6 +9,7 @@ import argparse
 import importlib
 import logging
 import sys
+import traceback
 
 from distutils.version import LooseVersion
 
@@ -36,6 +37,7 @@ COMPATIBLE_TORCH_VERSIONS = (
     "1.4.0",
     "1.5.0",
     "1.5.1",
+    "1.6.0",
 )
 
 
@@ -48,14 +50,22 @@ def main(args):
         default=False,
         help="Disable cuda-related tests",
     )
+    parser.add_argument(
+        "--no-cupy",
+        action="store_true",
+        default=False,
+        help="Disable cupy test",
+    )
     args = parser.parse_args(args)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logging.info(f"python version = {sys.version}")
 
     library_list = []
+    if args.no_cuda:
+        args.no_cupy = True
 
-    if not args.no_cuda:
+    if not args.no_cupy:
         library_list.append(("cupy", ("6.0.0")))
 
     # check torch installation at first
@@ -72,7 +82,7 @@ def main(args):
 
     # warpctc can be installed only for pytorch < 1.2
     if LooseVersion(torch.__version__) < LooseVersion("1.2.0"):
-        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.3")))
+        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.2", "0.1.3")))
 
     library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 
@@ -86,7 +96,7 @@ def main(args):
             logging.info("--> %s is installed." % name)
             is_correct_installed_list.append(True)
         except ImportError:
-            logging.warning("--> %s is not installed." % name)
+            logging.warning("--> %s is not installed.\n###### Raw Error ######\n%s#######################" % (name, traceback.format_exc()))
             is_correct_installed_list.append(False)
     logging.info("library availableness check done.")
     logging.info(

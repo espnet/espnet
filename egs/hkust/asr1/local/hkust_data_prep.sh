@@ -66,7 +66,7 @@ find $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
 
 #transcripts normalization and segmentation
 #(this needs external tools),
-python -c "import mmseg" 2>/dev/null || \
+python3 -c "import mmseg" 2>/dev/null || \
   (echo "mmseg is not found. Checkout tools/extra/install_mmseg.sh" && exit 1;)
 
 cat $train_dir/transcripts.txt |\
@@ -75,7 +75,7 @@ cat $train_dir/transcripts.txt |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  python local/hkust_segment.py |\
+  python3 local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $train_dir/text || exit 1;
 
 cat $dev_dir/transcripts.txt |\
@@ -84,7 +84,7 @@ cat $dev_dir/transcripts.txt |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  python local/hkust_segment.py |\
+  python3 local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $dev_dir/text || exit 1;
 
 # some data is corrupted. Delete them
@@ -104,8 +104,8 @@ awk '{ segment=$1; split(segment,S,"-"); side=S[2]; audioname=S[1];startf=S[3];e
    print segment " " audioname "-" side " " startf/100 " " endf/100}' <$dev_dir/text > $dev_dir/segments
 awk '{name = $0; gsub(".sph$","",name); gsub(".*/","",name); print(name " " $0)}' $dev_dir/sph.flist > $dev_dir/sph.scp
 
-sph2pipe=`which sph2pipe` || sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
-[ ! -x $sph2pipe ] && echo "Could not find the sph2pipe program at $sph2pipe" && exit 1;
+sph2pipe=sph2pipe
+! command -v "${sph2pipe}" &> /dev/null && echo "Could not find the sph2pipe program at $sph2pipe" && exit 1;
 
 cat $train_dir/sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2);
     printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \

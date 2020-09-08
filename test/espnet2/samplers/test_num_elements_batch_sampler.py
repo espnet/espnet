@@ -31,7 +31,11 @@ def shape_files(tmp_path):
 @pytest.mark.parametrize("drop_last", [True, False])
 @pytest.mark.parametrize("padding", [True, False])
 def test_NumElementsBatchSampler(
-    shape_files, sort_in_batch, sort_batch, drop_last, padding,
+    shape_files,
+    sort_in_batch,
+    sort_batch,
+    drop_last,
+    padding,
 ):
     sampler = NumElementsBatchSampler(
         60000,
