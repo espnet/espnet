@@ -1,4 +1,3 @@
-#!/bin/bash
 
 # Copyright 2020 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -65,10 +64,10 @@ recog_set="${train_set} ${train_dev} ${test_set}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     local/download_and_untar.sh ${download_dir} http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Data.tgz Yoloxochitl-Mixtec-Data.tgz
+    local/download_and_untar.sh local http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Manifest.tgz Yoloxochitl-Mixtec-Manifest.tgz
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    ### Task dependent. You have to make data the following preparation part by yourself.
     ### Task dependent. You have to make data the following preparation part by yourself.
     python3 local/data_prep.py -w $wavdir -a $annodir -t data/${annotation_id} \
                               -m ${annotation_type} -i local/speaker_wav_mapping_mixtec_remove_reserve.csv \
