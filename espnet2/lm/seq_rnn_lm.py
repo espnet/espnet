@@ -93,25 +93,6 @@ class SequentialRNNLM(AbsLM):
             hidden,
         )
 
-    def init_state(self, x):
-        """Get an initial state for decoding.
-
-        Args:
-            x (torch.Tensor): The encoded feature tensor
-
-        Returns: initial state
-
-        """
-        bsz = 1
-        weight = next(self.parameters())
-        if self.rnn_type == "LSTM":
-            return (
-                weight.new_zeros(self.nlayers, bsz, self.nhid),
-                weight.new_zeros(self.nlayers, bsz, self.nhid),
-            )
-        else:
-            return weight.new_zeros(self.nlayers, bsz, self.nhid)
-
     def score(
         self,
         y: torch.Tensor,
@@ -134,3 +115,49 @@ class SequentialRNNLM(AbsLM):
         y, new_state = self(y[-1].view(1, 1), state)
         logp = y.log_softmax(dim=-1).view(-1)
         return logp, new_state
+
+    def batch_score(
+        self, ys: torch.Tensor, states: torch.Tensor, xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Score new token batch.
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+        if states[0] is None:
+            states = None
+        elif isinstance(self.rnn, torch.nn.LSTM):
+            # states: Batch x 2 x (Nlayers, Dim) -> 2 x (Nlayers, Batch, Dim)
+            h = torch.stack([h for h, c in states], dim=1)
+            c = torch.stack([c for h, c in states], dim=1)
+            states = h, c
+        else:
+            # states: Batch x (Nlayers, Dim) -> (Nlayers, Batch, Dim)
+            states = torch.stack(states, dim=1)
+
+        ys, states = self(ys[:, -1:], states)
+        # ys: (Batch, 1, Nvocab) -> (Batch, NVocab)
+        assert ys.size(1) == 1, ys.shape
+        ys = ys.squeeze(1)
+        logp = ys.log_softmax(dim=-1)
+
+        # state: Change to batch first
+        if isinstance(self.rnn, torch.nn.LSTM):
+            # h, c: (Nlayers, Batch, Dim)
+            h, c = states
+            # states: Batch x 2 x (Nlayers, Dim)
+            states = [(h[:, i], c[:, i]) for i in range(h.size(1))]
+        else:
+            # states: (Nlayers, Batch, Dim) -> Batch x (Nlayers, Dim)
+            states = [states[:, i] for i in range(states.size(1))]
+
+        return logp, states

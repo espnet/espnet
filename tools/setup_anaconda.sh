@@ -6,8 +6,8 @@ if [ -z "${PS1:-}" ]; then
 fi
 CONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 
-if [ $# -eq 0 ] || [ $# -gt 4 ]; then
-    echo "Usage: $0 <output> [conda-env-name] [python-version>]"
+if [ $# -gt 4 ]; then
+    echo "Usage: $0 [output] [conda-env-name] [python-version>]"
     exit 1;
 elif [ $# -eq 3 ]; then
     output_dir="$1"
@@ -21,8 +21,15 @@ elif [ $# -eq 1 ]; then
     output_dir="$1"
     name=""
     PYTHON_VERSION=""
+elif [ $# -eq 0 ]; then
+    output_dir=venv
+    name=""
+    PYTHON_VERSION=""
 fi
 
+if [ -e activate_python.sh ]; then
+    echo "Warning: activate_python.sh already exists. It will be overwritten"
+fi
 
 if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     if [ ! -e miniconda.sh ]; then

@@ -14,7 +14,8 @@ from typeguard import check_return_type
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
-from espnet2.lm.seq_rnn import SequentialRNNLM
+from espnet2.lm.seq_rnn_lm import SequentialRNNLM
+from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -28,7 +29,13 @@ from espnet2.utils.types import str_or_none
 
 
 lm_choices = ClassChoices(
-    "lm", classes=dict(seq_rnn=SequentialRNNLM), type_check=AbsLM, default="seq_rnn"
+    "lm",
+    classes=dict(
+        seq_rnn=SequentialRNNLM,
+        transformer=TransformerLM,
+    ),
+    type_check=AbsLM,
+    default="seq_rnn",
 )
 
 

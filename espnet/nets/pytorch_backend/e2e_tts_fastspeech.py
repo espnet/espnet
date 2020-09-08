@@ -13,7 +13,6 @@ import torch.nn.functional as F
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (
     DurationCalculator,  # noqa: H301
 )
@@ -877,6 +876,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     @property
     def attention_plot_class(self):
         """Return plot class for attention weight plot."""
+        # Lazy import to avoid chainer dependency
+        from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot
+
         return TTSPlot
 
     @property

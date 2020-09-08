@@ -63,6 +63,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Transformer-TTS
 - FastSpeech
 - FastSpeech2 (in ESPnet2)
+- Conformer-based FastSpeech & FastSpeech2 (in ESPnet2)
 - Multi-speaker model with pretrained speaker embedding
 - Multi-speaker model with GST (in ESPnet2)
 - Phoneme-based training (En, Jp, and Zn)
@@ -102,7 +103,7 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 - Multi GPUs training on single/multi nodes (Distributed training)
 - A template recipe which can be applied for all corpora
 - Possible to train any size of corpus without cpu memory error
-- (Under development) More smart system for [providing pretrained models and Python API for inference](https://github.com/espnet/espnet_model_zoo)
+- (Under development) [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 
 ## Installation
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
@@ -303,7 +304,7 @@ Here we list some notable ones:
 - [Single Mandarin speaker FastSpeech](https://drive.google.com/open?id=1Ol_048Tuy6BgvYm1RpjhOX4HfhUeBqdK)
 - [Multi Japanese speaker Transformer](https://drive.google.com/open?id=1fFMQDF6NV5Ysz48QLFYE8fEvbAxCsMBw)
 - [Single English speaker models with Parallel WaveGAN](https://drive.google.com/open?id=1HvB0_LDf1PVinJdehiuCt5gWmXGguqtx)
-- [Single English speaker knowledge distillation-based FastSpeech (New!)](https://drive.google.com/open?id=1wG-Y0itVYalxuLAHdkAHO7w1CWFfRPF4)
+- [Single English speaker knowledge distillation-based FastSpeech](https://drive.google.com/open?id=1wG-Y0itVYalxuLAHdkAHO7w1CWFfRPF4)
 
 You can download all of the pretrained models and generated samples:
 - [All of the pretrained E2E-TTS models](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF)

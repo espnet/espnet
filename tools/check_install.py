@@ -9,6 +9,7 @@ import argparse
 import importlib
 import logging
 import sys
+import traceback
 
 from distutils.version import LooseVersion
 
@@ -81,7 +82,7 @@ def main(args):
 
     # warpctc can be installed only for pytorch < 1.2
     if LooseVersion(torch.__version__) < LooseVersion("1.2.0"):
-        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.3")))
+        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.2", "0.1.3")))
 
     library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 
@@ -95,7 +96,7 @@ def main(args):
             logging.info("--> %s is installed." % name)
             is_correct_installed_list.append(True)
         except ImportError:
-            logging.warning("--> %s is not installed." % name)
+            logging.warning("--> %s is not installed.\n###### Raw Error ######\n%s#######################" % (name, traceback.format_exc()))
             is_correct_installed_list.append(False)
     logging.info("library availableness check done.")
     logging.info(

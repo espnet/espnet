@@ -18,7 +18,7 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
-        "ctc-segmentation",
+        "ctc-segmentation>=1.0.6",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
@@ -118,7 +118,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.9.1",
+    version="0.9.2",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",
