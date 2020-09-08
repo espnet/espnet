@@ -403,6 +403,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
     """N-step constrained beam search implementation.
 
     Based and modified from https://arxiv.org/pdf/2002.03577.pdf
+    Please reference ESPnet (b-flo, PR #2082) for any usage outside ESPnet.
 
     Args:
         decoder (class): decoder class
