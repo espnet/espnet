@@ -76,14 +76,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     data/${annotation_id}/remix_script.sh
 
-    # Kaldi Version Split
-    # ./utils/subset_data_dir_tr_cv.sh data/${annotation_id} data/${train_set} data/recog
-    # ./utils/subset_data_dir_tr_cv.sh --cv-spk-percent 50 data/recog data/${train_dev} data/${test_set}
-
-    # ESPNet Version (same as voxforge)
-    # consider duplicated sentences (does not consider speaker split)
-    # filter out the same sentences (also same text) of test&dev set from validated set
-    local/split_tr_dt_et.sh data/${annotation_id} data/${train_set} data/${train_dev} data/${test_set}
+    # split by speakers ( official split of data)
+    local/split_tr_dt_et.sh ${annotation_id} ${train_set} ${train_dev} ${test_set} local/spk-train-test-split.txt
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
