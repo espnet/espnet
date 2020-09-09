@@ -551,7 +551,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
                     [v.lm_state for v in V], lm_type, lm_layers
                 )
                 beam_lm_states, beam_lm_scores = rnnlm.buff_predict(
-                    beam_lm_states, beam_lm_tokens, beam
+                    beam_lm_states, beam_lm_tokens, len(V)
                 )
 
             if n < (nstep - 1):
