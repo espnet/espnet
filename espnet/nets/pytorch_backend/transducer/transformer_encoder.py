@@ -89,39 +89,3 @@ class Encoder(torch.nn.Module):
             xs = self.after_norm(xs)
 
         return xs, masks
-
-    def forward_one_step(self, xs, masks, cache=None):
-        """Encode input frame.
-
-        Args:
-            xs (torch.Tensor): input tensor
-            masks (torch.Tensor): input mask
-            cache (List[torch.Tensor]): cache tensors
-
-        Returns:
-            xs (torch.Tensor): position embedded input tensor
-            masks (torch.Tensor): position embedded input mask
-            new_cache (List[torch.Tensor]): position embedded cache
-
-        """
-        if isinstance(self.embed, Conv2dSubsampling):
-            xs, masks = self.embed(xs, masks)
-        else:
-            xs = self.embed(xs)
-
-        if cache is None:
-            cache = [None for _ in range(len(self.encoders))]
-
-        new_cache = []
-        for c, e in zip(cache, self.encoders):
-            xs, masks = e(xs, masks, cache=c)
-
-            if isinstance(xs, tuple):
-                xs = xs[0]
-
-            new_cache.append(xs)
-
-        if self.normalize_before:
-            xs = self.after_norm(xs)
-
-        return xs, masks, new_cache
