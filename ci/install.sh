@@ -19,7 +19,7 @@ ${CXX:-g++} -v
     fi
     make TH_VERSION="${TH_VERSION}"
 
-    make nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done
+    make nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
