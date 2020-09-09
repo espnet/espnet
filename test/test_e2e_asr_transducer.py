@@ -67,6 +67,7 @@ def get_default_recog_args(**kwargs):
         u_max=1,
         score_norm_transducer=True,
         rnnlm=None,
+        lm_weight=0.1
     )
     recog_defaults.update(kwargs)
 
@@ -260,12 +261,12 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
             },
             {},
         ),
-        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_lm()}),
-        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_lm(), "lm_weight": 0.3}),
+        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_wordlm(), "lm_weight": 1.0}),
         ({}, {"beam_size": 2, "search_type": "nsc", "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "nsc", "rnnlm": get_wordlm()}),
-        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_lm()}),
-        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_lm(), "lm_weight": 0.2}),
+        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_wordlm(), "lm_weight": 0.6}),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
     ],
@@ -274,7 +275,9 @@ def test_pytorch_transducer_trainable_and_decodable(
     train_dic, recog_dic, backend="pytorch"
 ):
     idim, odim, ilens, olens = get_default_scope_inputs()
+
     train_args = get_default_train_args(**train_dic)
+    recog_args = get_default_recog_args(**recog_dic)
 
     module = importlib.import_module(
         "espnet.nets.{}_backend.e2e_asr_transducer".format(backend)
@@ -288,8 +291,8 @@ def test_pytorch_transducer_trainable_and_decodable(
 
     with torch.no_grad():
         in_data = np.random.randn(20, idim)
-        recog_args = get_default_recog_args(**recog_dic)
-        model.recognize(in_data, recog_args, train_args.char_list)
+
+        model.recognize(in_data, recog_args, train_args.char_list, recog_args.rnnlm)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
