@@ -67,7 +67,7 @@ def get_default_recog_args(**kwargs):
         u_max=1,
         score_norm_transducer=True,
         rnnlm=None,
-        lm_weight=0.1
+        lm_weight=0.1,
     )
     recog_defaults.update(kwargs)
 
@@ -261,12 +261,44 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
             },
             {},
         ),
-        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_lm(), "lm_weight": 0.3}),
-        ({}, {"beam_size": 2, "search_type": "default", "rnnlm": get_wordlm(), "lm_weight": 1.0}),
+        (
+            {},
+            {
+                "beam_size": 2,
+                "search_type": "default",
+                "rnnlm": get_lm(),
+                "lm_weight": 0.3,
+            },
+        ),
+        (
+            {},
+            {
+                "beam_size": 2,
+                "search_type": "default",
+                "rnnlm": get_wordlm(),
+                "lm_weight": 1.0,
+            },
+        ),
         ({}, {"beam_size": 2, "search_type": "nsc", "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "nsc", "rnnlm": get_wordlm()}),
-        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_lm(), "lm_weight": 0.2}),
-        ({}, {"beam_size": 2, "search_type": "alsd", "rnnlm": get_wordlm(), "lm_weight": 0.6}),
+        (
+            {},
+            {
+                "beam_size": 2,
+                "search_type": "alsd",
+                "rnnlm": get_lm(),
+                "lm_weight": 0.2,
+            },
+        ),
+        (
+            {},
+            {
+                "beam_size": 2,
+                "search_type": "alsd",
+                "rnnlm": get_wordlm(),
+                "lm_weight": 0.6,
+            },
+        ),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
     ],
