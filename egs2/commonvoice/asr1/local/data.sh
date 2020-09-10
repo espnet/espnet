@@ -22,7 +22,7 @@ log() {
 }
 
 mkdir ${COMMONVOICE}
-if [ ! -e "${COMMONVOICE}" ]; then
+if [ -z "${COMMONVOICE}" ]; then
     log "Fill the value of 'COMMONVOICE' of db.sh"
     exit 1
 fi
