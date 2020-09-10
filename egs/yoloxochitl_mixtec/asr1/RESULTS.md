@@ -20,7 +20,7 @@
 
 
 ## train_mixtec_surface_reserve_pytorch_mixtec_surface_reserve
-### CER
+### CER (BPE)
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
