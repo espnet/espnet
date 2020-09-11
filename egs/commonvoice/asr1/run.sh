@@ -97,15 +97,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                                   data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
-    # Remove features with too long frames in training data
-    max_len=3000
-    mv data/${train_set}/utt2num_frames data/${train_set}/utt2num_frames.bak
-    awk -v max_len=${max_len} '$2 < max_len {print $1, $2}' data/${train_set}/utt2num_frames.bak > data/${train_set}/utt2num_frames
-    utils/filter_scp.pl data/${train_set}/utt2num_frames data/${train_set}/utt2spk > data/${train_set}/utt2spk.new
-    mv data/${train_set}/utt2spk.new data/${train_set}/utt2spk
-    utils/fix_data_dir.sh data/${train_set}
 
-    # compute global CMVN
+    for x in ${train_set} ${recog_set}; do
+      # Remove features with too long frames in training data
+      max_len=3000
+      remove_longshortdata.sh  --maxframes $max_len data/${x} data/${x}_temp
+      mv data/${x}_temp data/${x}
+    done
+
+    # cmpute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
@@ -208,7 +208,8 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=4
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
 	recog_model=model.last${n_average}.avg.best
 	average_checkpoints.py --backend ${backend} \
 			       --snapshots ${expdir}/results/snapshot.ep.* \
