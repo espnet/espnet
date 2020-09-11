@@ -30,6 +30,29 @@ exp/train_nodup_sp_pytorch_train/decode_eval3_decode_lm/result.txt
 ```
 
 # RNN results
+## Deep VGGBLSTM with pytorch backend + dropout + Speed perturbation + CTC joint decoding + LM rescoreing
+  - Model files (archived to transformer.v1.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1ALvD4nHan9VDJlYJwNurVr7H7OV0j2X9
+    - training config file: `conf/tuning/train_rnn.yaml`
+    - decoding config file: `conf/tuning/decode_rnn.yaml`
+    - cmvn file: `data/train_nodup_sp/cmvn.ark`
+    - e2e file: `exp/train_nodup_sp_pytorch_train_rnn/results/model.acc.best`
+    - e2e JSON file: `exp/train_nodup_sp_pytorch_train_rnn/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_lm/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_nodup_sp_pytorch_train_rnn/decode_eval1_decode_rnn_lm/result.txt
+   | SPKR     | # Snt   # Wrd | Corr     Sub    Del     Ins    Err   S.Err |
+   | Sum/Avg  | 1272    43897 | 94.4     3.7    1.9     0.9    6.5    55.9 |
+exp/train_nodup_sp_pytorch_train_rnn/decode_eval2_decode_rnn_lm/result.txt
+   | SPKR     | # Snt   # Wrd | Corr     Sub    Del     Ins    Err   S.Err |
+   | Sum/Avg  | 1292    43623 | 96.0     2.8    1.2     0.6    4.6    54.5 |
+exp/train_nodup_sp_pytorch_train_rnn/decode_eval3_decode_rnn_lm/result.txt
+   | SPKR     | # Snt   # Wrd | Corr     Sub    Del     Ins    Err   S.Err |
+   | Sum/Avg  | 1385    28225 | 95.8     2.9    1.3     0.9    5.1    37.9 |
+```
+
 ## Deep VGGBLSTM with pytorch backend + Dropout + Speed perturbation + CTC joint decoding + LM rescoring
 |dataset| Snt | Wrd| Corr | Sub | Del | Ins | Err | S.Err|
 |---|---|---|---|---|---|---|---|---|
