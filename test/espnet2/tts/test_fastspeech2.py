@@ -11,6 +11,8 @@ from espnet2.tts.fastspeech2 import FastSpeech2
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize("use_gst", [True, False])
+@pytest.mark.parametrize("encoder_type", ["transformer", "conformer"])
+@pytest.mark.parametrize("decoder_type", ["transformer", "conformer"])
 @pytest.mark.parametrize(
     "use_masking, use_weighted_masking", [[True, False], [False, True]]
 )
@@ -19,6 +21,8 @@ def test_fastspeech2(
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
+    encoder_type,
+    decoder_type,
     use_gst,
     use_masking,
     use_weighted_masking,
@@ -36,6 +40,8 @@ def test_fastspeech2(
         postnet_chans=4,
         postnet_filts=5,
         reduction_factor=reduction_factor,
+        encoder_type=encoder_type,
+        decoder_type=decoder_type,
         duration_predictor_layers=2,
         duration_predictor_chans=4,
         duration_predictor_kernel_size=3,
