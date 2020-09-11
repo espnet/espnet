@@ -105,7 +105,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       mv data/${x}_temp data/${x}
     done
 
-    # cmpute global CMVN
+    # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
@@ -210,11 +210,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=4
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
        [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
-	recog_model=model.last${n_average}.avg.best
-	average_checkpoints.py --backend ${backend} \
-			       --snapshots ${expdir}/results/snapshot.ep.* \
-			       --out ${expdir}/results/${recog_model} \
-			       --num ${n_average}
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+                    --snapshots ${expdir}/results/snapshot.ep.* \
+                    --out ${expdir}/results/${recog_model} \
+                    --num ${n_average}
     fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
