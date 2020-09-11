@@ -32,7 +32,7 @@ fi
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
-    --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" \
+    --valid_set "${train_dev}" \
+    --test_sets "${test_set}" \
     --srctexts "data/${train_set}/text" "$@"
 
