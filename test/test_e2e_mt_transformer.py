@@ -10,25 +10,11 @@ import numpy
 import pytest
 import torch
 
-from test.test_e2e_asr_transformer import run_transformer_copy
-from test.test_e2e_asr_transformer import subsequent_mask
-
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
 )
-
-
-@pytest.mark.parametrize("module", ["pytorch"])
-def test_mask(module):
-    T = importlib.import_module(
-        "espnet.nets.{}_backend.e2e_mt_transformer".format(module)
-    )
-    m = T.subsequent_mask(3)
-    print(m)
-    print(subsequent_mask(3))
-    assert (m.unsqueeze(0) == subsequent_mask(3)).all()
 
 
 def make_arg(**kwargs):
@@ -186,7 +172,3 @@ def test_transformer_trainable_and_decodable(module, model_dict):
             print(nbest[0]["yseq"][1:-1])
     else:
         raise NotImplementedError
-
-
-if __name__ == "__main__":
-    run_transformer_copy()

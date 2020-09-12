@@ -1,6 +1,5 @@
 import argparse
 import chainer
-import logging
 import numpy
 import pytest
 import torch
@@ -12,12 +11,6 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer import plot
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
-)
 
 
 def test_sequential():
