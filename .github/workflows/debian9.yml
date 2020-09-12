@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: check OS
-        run: cat /etc/os-release 
+        run: cat /etc/os-release
       - name: install dependencies
         run: |
           apt-get update -qq
@@ -38,6 +38,8 @@ jobs:
         run: ./ci/test_shell.sh
       - name: test python
         run: ./ci/test_python.sh
+      - name: install kaldi
+        run: ./ci/install_kaldi.sh
       - name: test integration
         run: ./ci/test_integration.sh
       - name: codecov
