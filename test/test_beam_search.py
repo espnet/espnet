@@ -10,8 +10,8 @@ from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
 
 rnn_args = Namespace(
-    elayers=2,
-    subsample="1_2_2_1_1",
+    elayers=1,
+    subsample=None,
     etype="lstm",
     eunits=2,
     eprojs=2,
@@ -60,7 +60,7 @@ transformer_args = Namespace(
     aheads=2,
     dropout_rate=0.0,
     transformer_attn_dropout_rate=None,
-    elayers=2,
+    elayers=1,
     eunits=2,
     dlayers=1,
     dunits=2,
