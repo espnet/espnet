@@ -66,8 +66,6 @@ transformer_args = Namespace(
     dunits=2,
     sym_space="<space>",
     sym_blank="<blank>",
-    transformer_decoder_selfattn_layer_type="selfattn",
-    transformer_encoder_selfattn_layer_type="selfattn",
     transformer_init="pytorch",
     transformer_input_layer="conv2d",
     transformer_length_normalized_loss=True,
@@ -75,6 +73,34 @@ transformer_args = Namespace(
     report_wer=False,
     ctc_type="warpctc",
     lsm_weight=0.001,
+    transformer_decoder_selfattn_layer_type="selfattn",
+    transformer_encoder_selfattn_layer_type="selfattn",
+)
+
+ldconv_args = Namespace(
+    adim=4,
+    aheads=2,
+    dropout_rate=0.0,
+    transformer_attn_dropout_rate=None,
+    elayers=1,
+    eunits=2,
+    dlayers=1,
+    dunits=2,
+    sym_space="<space>",
+    sym_blank="<blank>",
+    transformer_init="pytorch",
+    transformer_input_layer="conv2d",
+    transformer_length_normalized_loss=True,
+    report_cer=False,
+    report_wer=False,
+    ctc_type="warpctc",
+    lsm_weight=0.001,
+    transformer_decoder_selfattn_layer_type="lightconv",
+    transformer_encoder_selfattn_layer_type="lightconv",
+    wshare=2,
+    ldconv_encoder_kernel_length="31_31",
+    ldconv_decoder_kernel_length="11_11",
+    ldconv_usebias=False,
 )
 
 
@@ -85,13 +111,14 @@ def prepare(E2E, args, mtlalpha=0.0):
     idim = 8
     odim = len(args.char_list)
     model = dynamic_import_asr(E2E, "pytorch")(idim, odim, args)
+
     batchsize = 4
-    x = torch.randn(batchsize, 8, idim)
-    ilens = [8, 8, 8, 7]
+    x = torch.randn(batchsize, 20, idim)
+    ilens = [20, 20, 20, 15]
     n_token = odim - 1
     # avoid 0 for eps in ctc
-    y = (torch.rand(batchsize, 4) * n_token % (n_token - 1)).long() + 1
-    olens = [3, 4, 2, 3]
+    y = (torch.rand(batchsize, 10) * n_token % (n_token - 1)).long() + 1
+    olens = [3, 9, 10, 2]
     for i in range(batchsize):
         x[i, ilens[i] :] = -1
         y[i, olens[i] :] = -1
@@ -115,7 +142,9 @@ def prepare(E2E, args, mtlalpha=0.0):
     [
         (nn, args, ctc_train, ctc_recog, lm, bonus, device, dtype)
         for device in ("cpu", "cuda")
-        for nn, args in (("transformer", transformer_args), ("rnn", rnn_args))
+        for nn, args in (("transformer", transformer_args),
+                         ("transformer", ldconv_args),
+                         ("rnn", rnn_args))
         for ctc_train in (0.0, 0.5, 1.0)
         for ctc_recog in (0.0, 0.5, 1.0)
         for lm in (0.5,)
