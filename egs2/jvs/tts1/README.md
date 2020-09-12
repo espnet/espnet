@@ -1,6 +1,6 @@
 # ESPnet2 JVS TTS recipe
 
-This recipe assumes that the use of pretrained model.
+This recipe assumes the use of pretrained model.
 Please follow the usage to perform finetuning with pretrained model.
 
 ## How to run
@@ -58,16 +58,17 @@ $ ln -s downloads/2dc62478870c846065fe39e609ba6657/exp/tts_stats_raw_phn_jaconv_
 4. Run fine-tuning
 
 Now ready to fine-tune. Run the recipe from stage 6.
+
 You need to specify `--pretrain_path` and `--pretrain_key` for `--train_args` to load pretrained parameters (Or you can write them in `*.yaml` config).
 If you want to load the entire network, please specify `--pretrain_key null`.
 
 ```sh
 # NOTE: The path may be changed. Please change it to match with your case.
 
-# I recommend using --tag to name the experiment directory
+# Recommend using --tag to name the experiment directory
 $ ./run.sh --stage 6 --train_config conf/tuning/finetune_tacotron2.yaml \
     --train_args "--pretrain_path downloads/2dc62478870c846065fe39e609ba6657/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk/199epoch.pth --pretrain_key null" \
     --tag finetune_jsut_pretrained_tacotron2
 ```
 
-If you want to load part of the pretrained model, please see [How to load pretrained model?](../../TEMPLATE/README.md) (For example, if you want to finetune English model with Japanese data, you may want to load the network except for the token embedding layer).
+If you want to load part of the pretrained model, please see [How to load pretrained model?](../../TEMPLATE/tts1/README.md) (For example, if you want to finetune English model with Japanese data, you may want to load the network except for the token embedding layer).
