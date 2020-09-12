@@ -43,6 +43,4 @@ jobs:
       - name: test integration
         run: ./ci/test_integration.sh
       - name: codecov
-        run: |
-          . ./tools/venv/bin/activate
-          bash <(curl -s https://codecov.io/bash)
+        run: bash -c "source ./tools/venv/bin/activate; bash <(curl -s https://codecov.io/bash)"
