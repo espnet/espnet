@@ -142,9 +142,11 @@ def prepare(E2E, args, mtlalpha=0.0):
     [
         (nn, args, ctc_train, ctc_recog, lm, bonus, device, dtype)
         for device in ("cpu", "cuda")
-        for nn, args in (("transformer", transformer_args),
-                         ("transformer", ldconv_args),
-                         ("rnn", rnn_args))
+        for nn, args in (
+            ("transformer", transformer_args),
+            ("transformer", ldconv_args),
+            ("rnn", rnn_args),
+        )
         for ctc_train in (0.0, 0.5, 1.0)
         for ctc_recog in (0.0, 0.5, 1.0)
         for lm in (0.5,)
