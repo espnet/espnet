@@ -40,3 +40,7 @@ jobs:
         run: ./ci/test_python.sh
       - name: test integration
         run: ./ci/test_integration.sh
+      - name: codecov
+        run: |
+          source ./tools/venv/bin/activate
+          bash <(curl -s https://codecov.io/bash)
