@@ -51,7 +51,7 @@ def test_mask():
 
 
 def make_arg(**kwargs):
-    return argparse.Namespace(
+    defaults = dict(
         adim=2,
         aheads=1,
         dropout_rate=0.0,
@@ -74,6 +74,8 @@ def make_arg(**kwargs):
         char_list=["<blank>", "a", "e", "i", "o", "u"],
         ctc_type="warpctc",
     )
+    defaults.update(kwargs)
+    return argparse.Namespace(**defaults)
 
 
 def prepare(backend, args):
