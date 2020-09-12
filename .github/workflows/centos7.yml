@@ -24,8 +24,8 @@ jobs:
     needs: check_skip
     steps:
       - uses: actions/checkout@master
-      - name: What OS is running
-        run: uname -a
+      - name: check OS
+        run: cat /etc/os-release 
       - name: install dependencies
         run: |
           # NOTE(kamo): cmake sndfile will be download using anacond:
