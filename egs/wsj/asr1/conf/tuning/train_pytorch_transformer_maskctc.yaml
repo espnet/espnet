@@ -43,6 +43,9 @@ transformer-init: pytorch
 report-cer: true
 report-wer: true
 
+# if training is too slow (over 4 days)
+# n-iter-processes: 2
+
 ### important configurations to specify in run.sh
 # preprocess_config=conf/specaug.yaml
 # use_valbest_average=true
