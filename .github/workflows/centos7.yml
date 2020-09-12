@@ -42,6 +42,6 @@ jobs:
           PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
           ./ci/test_shell.sh
       - name: test python
-         run: |
+        run: |
           PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
           ./ci/test_python.sh
