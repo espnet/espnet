@@ -112,13 +112,13 @@ def prepare(E2E, args, mtlalpha=0.0):
     odim = len(args.char_list)
     model = dynamic_import_asr(E2E, "pytorch")(idim, odim, args)
 
-    batchsize = 4
+    batchsize = 2
     x = torch.randn(batchsize, 20, idim)
-    ilens = [20, 20, 20, 15]
+    ilens = [20, 15]
     n_token = odim - 1
     # avoid 0 for eps in ctc
     y = (torch.rand(batchsize, 10) * n_token % (n_token - 1)).long() + 1
-    olens = [3, 9, 10, 2]
+    olens = [10, 2]
     for i in range(batchsize):
         x[i, ilens[i] :] = -1
         y[i, olens[i] :] = -1
