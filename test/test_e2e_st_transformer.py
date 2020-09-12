@@ -10,8 +10,6 @@ import numpy
 import pytest
 import torch
 
-from test.test_e2e_asr_transformer import subsequent_mask
-
 
 logging.basicConfig(
     level=logging.INFO,
