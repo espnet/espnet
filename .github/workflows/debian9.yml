@@ -38,3 +38,5 @@ jobs:
         run: ./ci/test_shell.sh
       - name: test python
         run: ./ci/test_python.sh
+      - name: test integration
+        run: ./ci/test_integration.sh
