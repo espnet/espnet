@@ -93,15 +93,15 @@ def _savefn(*args, **kwargs):
 
 
 @pytest.mark.parametrize(
-    "module, model_dict",
+    "model_dict",
     [
-        ("pytorch", {}),
-        ("pytorch", conformer_mcnn_args),
-        ("pytorch", conformer_mcnn_mmacaron_args),
-        ("pytorch", conformer_mcnn_mmacaron_mrelattn_args),
+        {},
+        conformer_mcnn_args,
+        conformer_mcnn_mmacaron_args,
+        conformer_mcnn_mmacaron_mrelattn_args,
     ],
 )
-def test_transformer_trainable_and_decodable(module, model_dict):
+def test_transformer_trainable_and_decodable(model_dict):
     args = make_arg(**model_dict)
     model, x, ilens, y, data = prepare(args)
 
