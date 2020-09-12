@@ -1,4 +1,3 @@
-# 18.28s in master, 27162  25010     8%
 import argparse
 import chainer
 import logging
