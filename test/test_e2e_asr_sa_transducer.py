@@ -22,15 +22,15 @@ def make_train_args(**kwargs):
         transformer_enc_positional_encoding_type="abs_pos",
         transformer_enc_pw_activation_type="relu",
         transformer_enc_conv_mod_activation_type="relu",
-        enc_block_arch=[{"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2}],
+        enc_block_arch=[{"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1}],
         enc_block_repeat=1,
         dtype="transformer",
         transformer_dec_input_layer="embed",
-        dec_block_arch=[{"type": "transformer", "d_hidden": 4, "d_ff": 4, "heads": 2}],
+        dec_block_arch=[{"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1}],
         dec_block_repeat=1,
         transformer_dec_pw_activation_type="relu",
         dropout_rate_embed_decoder=0.0,
-        joint_dim=8,
+        joint_dim=2,
         joint_activation_type="tanh",
         mtlalpha=1.0,
         trans_type="warp-transducer",
@@ -41,10 +41,10 @@ def make_train_args(**kwargs):
         report_cer=False,
         report_wer=False,
         search_type="default",
-        score_norm_transducer=True,
+        score_norm_transducer=False,
         beam_size=1,
         nbest=1,
-        verbose=2,
+        verbose=0,
         outdir=None,
         rnnlm=None,
     )
@@ -58,11 +58,11 @@ def make_recog_args(**kwargs):
         batchsize=0,
         beam_size=1,
         nbest=1,
-        verbose=2,
+        verbose=0,
         search_type="default",
         nstep=1,
         max_sym_exp=2,
-        u_max=30,
+        u_max=5,
         prefix_alpha=2,
         score_norm_transducer=True,
         rnnlm=None,
@@ -73,12 +73,12 @@ def make_recog_args(**kwargs):
 
 
 def get_default_scope_inputs():
-    bs = 5
-    idim = 40
+    bs = 4
+    idim = 15
     odim = 5
 
-    ilens = [40, 30, 20, 15, 10]
-    olens = [3, 9, 10, 2, 3]
+    ilens = [15, 12, 8, 4]
+    olens = [3, 6, 2, 3]
 
     return bs, idim, odim, ilens, olens
 
@@ -128,7 +128,7 @@ def prepare(backend, args):
     )
     model = T.E2E(idim, odim, args)
 
-    x = torch.randn(bs, 40, idim)
+    x = torch.randn(bs, 15, idim)
     y = (torch.rand(bs, 10) * n_token % n_token).long()
 
     for i in range(bs):
@@ -177,87 +177,57 @@ def test_sa_transducer_mask(module):
     "train_dic, recog_dic",
     [
         ({}, {}),
+        ({"enc_block_repeat": 2}, {}),
+        ({"dec_block_repeat": 2}, {}),
         (
             {
                 "enc_block_arch": [
                     {
                         "type": "tdnn",
-                        "idim": 8,
-                        "odim": 8,
+                        "idim": 2,
+                        "odim": 2,
                         "ctx_size": 1,
                         "dilation": 1,
                         "stride": 1,
                     },
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
                 ]
             },
             {},
         ),
         (
             {
-                "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
-                ]
-            },
-            {},
-        ),
-        (
-            {
-                "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
-                ]
-            },
-            {"beam_size": 2, "search_type": "nsc"},
-        ),
-        (
-            {
-                "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
-                ]
-            },
-            {"beam_size": 2, "search_type": "tsd"},
-        ),
-        (
-            {
-                "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
-                ]
-            },
-            {"beam_size": 2, "search_type": "alsd"},
-        ),
-        ({"enc_repeat_block": 2}, {}),
-        ({"dec_repeat_block": 2}, {}),
-        ({"dec_repeat_block": 2}, {"beam_size": 2, "search_type": "nsc"}),
-        ({"enc_repeat_block": 2}, {"beam_size": 2, "search_type": "nsc", "nstep": 3}),
-        (
-            {"enc_repeat_block": 2},
-            {"beam_size": 2, "search_type": "nsc", "nstep": 3, "prefix_alpha": 1},
-        ),
-        ({"dec_repeat_block": 2}, {"beam_size": 2, "search_type": "tsd"}),
-        (
-            {"enc_repeat_block": 2},
-            {"beam_size": 2, "search_type": "tsd", "max_sym_exp": 3},
-        ),
-        ({"dec_repeat_block": 2}, {"beam_size": 2, "search_type": "alsd"}),
-        ({"enc_repeat_block": 2}, {"beam_size": 2, "search_type": "alsd", "u_max": 30}),
-        (
-            {
                 "enc_block_arch": [
                     {
                         "type": "tdnn",
-                        "idim": 8,
-                        "odim": 8,
+                        "idim": 2,
+                        "odim": 2,
                         "ctx_size": 1,
                         "dilation": 1,
                         "stride": 1,
                     },
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
                 ],
-                "enc_repeat_block": 2,
+                "enc_block_repeat": 2,
+            },
+            {},
+        ),
+        (
+            {
+                "dec_block_arch": [
+                    {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
+                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
+                ]
+            },
+            {},
+        ),
+        (
+            {
+                "dec_block_arch": [
+                    {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 1},
+                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
+                ],
+                "dec_block_repeat": 2,
             },
             {},
         ),
@@ -266,14 +236,14 @@ def test_sa_transducer_mask(module):
                 "enc_block_arch": [
                     {
                         "type": "conformer",
-                        "d_hidden": 8,
-                        "d_ff": 8,
-                        "heads": 2,
+                        "d_hidden": 2,
+                        "d_ff": 2,
+                        "heads": 1,
                         "macaron_style": False,
                         "use_conv_mod": False,
                     }
                 ],
-                "enc_repeat_block": 2,
+                "enc_block_repeat": 2,
             },
             {},
         ),
@@ -282,15 +252,14 @@ def test_sa_transducer_mask(module):
                 "enc_block_arch": [
                     {
                         "type": "conformer",
-                        "d_hidden": 8,
-                        "d_ff": 8,
-                        "heads": 2,
+                        "d_hidden": 2,
+                        "d_ff": 2,
+                        "heads": 1,
                         "macaron_style": True,
                         "use_conv_mod": True,
-                        "conv_mod_kernel": 3,
+                        "conv_mod_kernel": 1,
                     }
                 ],
-                "enc_repeat_block": 2,
             },
             {},
         ),
@@ -299,17 +268,16 @@ def test_sa_transducer_mask(module):
                 "enc_block_arch": [
                     {
                         "type": "conformer",
-                        "d_hidden": 4,
-                        "d_ff": 4,
-                        "heads": 4,
+                        "d_hidden": 2,
+                        "d_ff": 2,
+                        "heads": 2,
                         "macaron_style": False,
                         "use_conv_mod": True,
-                        "conv_mod_kernel": 7,
+                        "conv_mod_kernel": 1,
                         "transformer_enc_pw_activation_type": "swish",
                         "transformer_enc_conv_mod_activation_type": "relu",
                     }
                 ],
-                "enc_repeat_block": 2,
             },
             {"transformer_dec_pw_activation_type": "swish"},
         ),
@@ -318,8 +286,8 @@ def test_sa_transducer_mask(module):
                 "enc_block_arch": [
                     {
                         "type": "tdnn",
-                        "idim": 8,
-                        "odim": 8,
+                        "idim": 2,
+                        "odim": 2,
                         "ctx_size": 1,
                         "dilation": 1,
                         "stride": 1,
@@ -327,15 +295,14 @@ def test_sa_transducer_mask(module):
                     },
                     {
                         "type": "transformer",
-                        "d_hidden": 8,
-                        "d_ff": 8,
-                        "heads": 2,
+                        "d_hidden": 2,
+                        "d_ff": 2,
+                        "heads": 1,
                         "dropout-rate": 0.3,
                         "att-dropout-rate": 0.2,
                         "pos-dropout-rate": 0.1,
                     },
                 ],
-                "enc_repeat_block": 2,
             },
             {},
         ),
@@ -344,26 +311,15 @@ def test_sa_transducer_mask(module):
                 "dec_block_arch": [
                     {
                         "type": "transformer",
-                        "d_hidden": 8,
-                        "d_ff": 8,
-                        "heads": 2,
+                        "d_hidden": 2,
+                        "d_ff": 2,
+                        "heads": 1,
                         "dropout_rate": 0.3,
                         "att-dropout-rate": 0.2,
                         "pos-dropout-rate": 0.1,
                     },
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
+                    {"type": "transformer", "d_hidden": 2, "d_ff": 4, "heads": 1},
                 ],
-                "dec_repeat_block": 2,
-            },
-            {},
-        ),
-        (
-            {
-                "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 8, "kernel_size": 2},
-                    {"type": "transformer", "d_hidden": 8, "d_ff": 8, "heads": 2},
-                ],
-                "dec_repeat_block": 2,
             },
             {},
         ),
@@ -371,19 +327,20 @@ def test_sa_transducer_mask(module):
         ({"transformer_enc_pw_activation_type": "hardtanh"}, {}),
         ({"transformer_dec_pw_activation_type": "swish"}, {}),
         ({"transformer_dec_pw_activation_type": "hardtanh"}, {}),
-        ({}, {"beam_size": 4}),
-        ({}, {"beam_size": 4, "nbest": 2}),
-        ({}, {"beam_size": 5, "score_norm_transducer": False}),
         ({"joint_activation_type": "relu"}, {}),
         ({"joint_activation_type": "swish"}, {}),
-        ({"num_save_attention": 1}, {}),
         ({"transformer_enc_input_layer": "vgg2l"}, {}),
         ({"report_cer": True}, {}),
         ({"report_wer": True}, {}),
         ({"report_cer": True, "beam_size": 2}, {}),
-        ({"report_wer": True, "beam_size": 2}, {}),
-        ({"report_cer": True, "report_wer": True, "beam_size": 2}, {}),
-        ({"report_wer": True, "report_wer": True, "score_norm_transducer": False}, {}),
+        ({"report_wer": True, "beam_size": 2, "score_norm_transducer": False}, {}),
+        ({}, {"beam_size": 2}),
+        ({}, {"beam_size": 2, "nbest": 2, "score_norm_transducer": False}),
+        ({}, {"beam_size": 2, "search_type": "nsc"}),
+        ({}, {"beam_size": 2, "search_type": "nsc", "nstep": 3, "prefix_alpha": 1}),
+        ({}, {"beam_size": 2, "search_type": "tsd", "max_sym_exp": 4}),
+        ({}, {"beam_size": 2, "search_type": "alsd"}),
+        ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
     ],
 )
 def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
