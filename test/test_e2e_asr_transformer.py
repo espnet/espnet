@@ -75,17 +75,18 @@ def prepare(backend, args):
     idim = 10
     odim = 3
     batchsize = 2
-    ilens = [10, 9]
-    olens = [3, 4]
+    ilens = [30, 20]
+    olens = [5, 4]
     n_token = odim - 1
     if backend == "pytorch":
         model = th.E2E(idim, odim, args)
-        x = torch.randn(batchsize, 10, idim)
-        y = (torch.rand(batchsize, 4) * n_token % n_token).long()
+        x = torch.randn(batchsize, max(ilens), idim)
+        y = (torch.rand(batchsize, max(olens)) * n_token % n_token).long()
     else:
         model = ch.E2E(idim, odim, args)
-        x = numpy.random.randn(batchsize, 10, idim).astype(numpy.float32)
-        y = (numpy.random.rand(batchsize, 4) * n_token % n_token).astype(numpy.int32)
+        x = numpy.random.randn(batchsize, max(ilens), idim).astype(numpy.float32)
+        y = numpy.random.rand(batchsize, max(olens)) * n_token % n_token
+        y = y.astype(numpy.int32)
     for i in range(batchsize):
         x[i, ilens[i] :] = -1
         y[i, olens[i] :] = model.ignore_id
