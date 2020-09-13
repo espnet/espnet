@@ -1,16 +1,11 @@
 # coding: utf-8
 
 import argparse
-import importlib
 import logging
-import numpy
 import pytest
 import torch
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
-)
+from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 
 
 def make_train_args(**kwargs):
@@ -73,63 +68,24 @@ def make_recog_args(**kwargs):
 
 
 def get_default_scope_inputs():
-    bs = 4
-    idim = 15
+    bs = 2
+    idim = 12
     odim = 5
 
-    ilens = [15, 12, 8, 4]
-    olens = [3, 6, 2, 3]
+    ilens = [12, 4]
+    olens = [5, 4]
 
     return bs, idim, odim, ilens, olens
-
-
-def test_sequential():
-    from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
-
-    class Masked(torch.nn.Module):
-        def forward(self, x, m):
-            return x, m
-
-    f = MultiSequential(Masked(), Masked())
-    x = torch.randn(2, 3)
-    m = torch.randn(2, 3) > 0
-    assert len(f(x, m)) == 2
-
-    if torch.cuda.is_available():
-        f = torch.nn.DataParallel(f)
-        f.cuda()
-        assert len(f(x.cuda(), m.cuda())) == 2
-
-
-def subsequent_mask(size):
-    # http://nlp.seas.harvard.edu/2018/04/03/attention.html
-    "Mask out subsequent positions."
-    attn_shape = (1, size, size)
-    subsequent_mask = numpy.triu(numpy.ones(attn_shape), k=1).astype("uint8")
-
-    return torch.from_numpy(subsequent_mask) == 0
-
-
-@pytest.mark.parametrize("module", ["pytorch"])
-def test_mask(module):
-    T = importlib.import_module(
-        "espnet.nets.{}_backend.transformer.mask".format(module)
-    )
-    m = T.subsequent_mask(3)
-    assert (m.unsqueeze(0) == subsequent_mask(3)).all()
 
 
 def prepare(backend, args):
     bs, idim, odim, ilens, olens = get_default_scope_inputs()
     n_token = odim - 1
 
-    T = importlib.import_module(
-        "espnet.nets.{}_backend.e2e_asr_transducer".format(backend)
-    )
-    model = T.E2E(idim, odim, args)
+    model = E2E(idim, odim, args)
 
-    x = torch.randn(bs, 15, idim)
-    y = (torch.rand(bs, 10) * n_token % n_token).long()
+    x = torch.randn(bs, max(ilens), idim)
+    y = (torch.rand(bs, max(olens)) * n_token % n_token).long()
 
     for i in range(bs):
         x[i, ilens[i] :] = -1
@@ -150,103 +106,12 @@ def prepare(backend, args):
     return model, x, torch.tensor(ilens), y, data
 
 
-@pytest.mark.parametrize("module", ["pytorch"])
-def test_sa_transducer_mask(module):
-    from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-    from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
-    from espnet.nets.pytorch_backend.transformer.mask import target_mask
-
-    train_args = make_train_args()
-    model, x, ilens, y, data = prepare(module, train_args)
-
-    # dummy mask
-    x_mask = (~make_pad_mask(ilens.tolist())).to(x.device).unsqueeze(-2)
-
-    _, target, _, _ = prepare_loss_inputs(y, x_mask)
-    y_mask = target_mask(target, model.blank_id)
-
-    y = model.decoder.embed(target.type(torch.long))
-    y[0, 3:] = float("nan")
-
-    a = model.decoder.decoders[0].self_attn
-    a(y, y, y, y_mask)
-    assert not numpy.isnan(a.attn[0, :, :3, :3].detach().numpy()).any()
-
-
 @pytest.mark.parametrize(
     "train_dic, recog_dic",
     [
         ({}, {}),
         ({"enc_block_repeat": 2}, {}),
         ({"dec_block_repeat": 2}, {}),
-        (
-            {
-                "enc_block_arch": [
-                    {
-                        "type": "tdnn",
-                        "idim": 2,
-                        "odim": 2,
-                        "ctx_size": 1,
-                        "dilation": 1,
-                        "stride": 1,
-                    },
-                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
-                ]
-            },
-            {},
-        ),
-        (
-            {
-                "enc_block_arch": [
-                    {
-                        "type": "tdnn",
-                        "idim": 2,
-                        "odim": 2,
-                        "ctx_size": 1,
-                        "dilation": 1,
-                        "stride": 1,
-                    },
-                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
-                ],
-                "enc_block_repeat": 2,
-            },
-            {},
-        ),
-        (
-            {
-                "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
-                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
-                ]
-            },
-            {},
-        ),
-        (
-            {
-                "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 1},
-                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
-                ],
-                "dec_block_repeat": 2,
-            },
-            {},
-        ),
-        (
-            {
-                "enc_block_arch": [
-                    {
-                        "type": "conformer",
-                        "d_hidden": 2,
-                        "d_ff": 2,
-                        "heads": 1,
-                        "macaron_style": False,
-                        "use_conv_mod": False,
-                    }
-                ],
-                "enc_block_repeat": 2,
-            },
-            {},
-        ),
         (
             {
                 "enc_block_arch": [
@@ -309,17 +174,9 @@ def test_sa_transducer_mask(module):
         (
             {
                 "dec_block_arch": [
-                    {
-                        "type": "transformer",
-                        "d_hidden": 2,
-                        "d_ff": 2,
-                        "heads": 1,
-                        "dropout_rate": 0.3,
-                        "att-dropout-rate": 0.2,
-                        "pos-dropout-rate": 0.1,
-                    },
-                    {"type": "transformer", "d_hidden": 2, "d_ff": 4, "heads": 1},
-                ],
+                    {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
+                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
+                ]
             },
             {},
         ),
@@ -330,22 +187,18 @@ def test_sa_transducer_mask(module):
         ({"joint_activation_type": "relu"}, {}),
         ({"joint_activation_type": "swish"}, {}),
         ({"transformer_enc_input_layer": "vgg2l"}, {}),
-        ({"report_cer": True}, {}),
-        ({"report_wer": True}, {}),
+        ({"transformer_enc_input_layer": "linear"}, {}),
+        ({"report_cer": True, "report_wer": True}, {}),
         ({"report_cer": True, "beam_size": 2}, {}),
-        ({"report_wer": True, "beam_size": 2, "score_norm_transducer": False}, {}),
         ({}, {"beam_size": 2}),
         ({}, {"beam_size": 2, "nbest": 2, "score_norm_transducer": False}),
-        ({}, {"beam_size": 2, "search_type": "nsc"}),
         ({}, {"beam_size": 2, "search_type": "nsc", "nstep": 3, "prefix_alpha": 1}),
-        ({}, {"beam_size": 2, "search_type": "tsd", "max_sym_exp": 4}),
+        ({}, {"beam_size": 2, "search_type": "tsd", "max_sym_exp": 3}),
         ({}, {"beam_size": 2, "search_type": "alsd"}),
         ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
     ],
 )
 def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
-    from espnet.nets.pytorch_backend.transformer import plot
-
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)
 
@@ -357,9 +210,6 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
     optim.zero_grad()
     loss.backward()
     optim.step()
-
-    attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-    plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
 
     with torch.no_grad():
         nbest = model.recognize(x[0, : ilens[0]].numpy(), recog_args)
@@ -381,11 +231,21 @@ def test_sa_transducer_parallel():
 
     optim = torch.optim.Adam(model.parameters(), 0.02)
 
-    for i in range(10):
-        loss = model(x, torch.as_tensor(ilens), y)
+    loss = model(x, torch.as_tensor(ilens), y)
 
-        optim.zero_grad()
-        loss.mean().backward()
-        optim.step()
+    optim.zero_grad()
+    loss.mean().backward()
+    optim.step()
 
-        print(loss)
+    print(loss)
+
+
+def test_calculate_plot_attention():
+    from espnet.nets.pytorch_backend.transformer import plot
+
+    train_args = make_train_args(report_cer=True)
+
+    model, x, ilens, y, data = prepare("pytorch", train_args)
+
+    attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
+    plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
