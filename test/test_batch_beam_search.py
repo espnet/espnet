@@ -80,9 +80,9 @@ transformer_lm = Namespace(
             ("default", gru_lm),
             ("transformer", transformer_lm),
         )
-        for lm in (0.0, 0.5)
-        for ngram in (0.0, 0.5)
-        for bonus in (0.0, 0.1)
+        for lm in (0.5,)
+        for ngram in (0.5,)
+        for bonus in (0.1,)
         for dtype in ("float32", "float64")  # TODO(karita): float16
     ],
 )
