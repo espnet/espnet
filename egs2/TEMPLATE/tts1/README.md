@@ -29,6 +29,7 @@ This is a template of TTS recipe for ESPnet2.
     * [How to add a new g2p module?](#how-to-add-a-new-g2p-module)
     * [How to add a new cleaner module?](#how-to-add-a-new-cleaner-module)
     * [How to use trained model in python?](#how-to-use-trained-model-in-python)
+    * [How to get pretrained models?](#how-to-get-pretrained-models)
     * [How to load the pretrained model?](#how-to-load-the-pretrained-model)
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
@@ -322,6 +323,11 @@ Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` an
 ### How to use trained model in python?
 
 See [use a pretrained model for inference](https://github.com/espnet/espnet_model_zoo#use-a-pretrained-model-for-inference).
+
+### How to get pretrained models?
+
+Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
+You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
 
 ### How to load the pretrained model?
 
