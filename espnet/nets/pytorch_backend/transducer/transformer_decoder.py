@@ -31,7 +31,6 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         positionwise_layer_type (str): linear
         positionwise_activation_type (str): positionwise activation type
         dropout_rate_embed (float): dropout rate for embedding layer (if specified)
-        normalize_before (bool): whether to use layer_norm before the first block
         blank (int): blank symbol ID
 
     """
@@ -49,7 +48,6 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         positionwise_layer_type="linear",
         positionwise_activation_type="relu",
         dropout_rate_embed=0.0,
-        normalize_before=True,
         blank=0,
     ):
         """Construct a Decoder object for transformer-transducer models."""
@@ -68,10 +66,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             padding_idx=blank,
         )
 
-        self.normalize_before = normalize_before
-
-        if self.normalize_before:
-            self.after_norm = LayerNorm(ddim)
+        self.after_norm = LayerNorm(ddim)
 
         self.lin_enc = torch.nn.Linear(edim, jdim)
         self.lin_dec = torch.nn.Linear(ddim, jdim, bias=False)
@@ -177,10 +172,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
                 tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
                 new_state.append(tgt)
 
-            if self.normalize_before:
-                y = self.after_norm(tgt[:, -1])
-            else:
-                y = tgt[:, -1]
+            y = self.after_norm(tgt[:, -1])
 
             cache[str_yseq] = (y, new_state)
 
@@ -243,10 +235,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
                 tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
                 next_state.append(tgt)
 
-            if self.normalize_before:
-                tgt = self.after_norm(tgt[:, -1])
-            else:
-                tgt = tgt[:, -1]
+            tgt = self.after_norm(tgt[:, -1])
 
         j = 0
         for i in range(final_batch):

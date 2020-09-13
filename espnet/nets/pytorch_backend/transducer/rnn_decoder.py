@@ -111,11 +111,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 (L x (B, dec_dim), L x (B, dec_dim))
 
         """
-        if state is None:
-            z_prev, c_prev = self.init_state(ey)
-        else:
-            z_prev, c_prev = state
-
+        z_prev, c_prev = state
         z_list, c_list = self.init_state(ey)
 
         if self.dtype == "lstm":

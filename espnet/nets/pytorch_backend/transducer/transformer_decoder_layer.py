@@ -15,19 +15,10 @@ class DecoderLayer(nn.Module):
         feed_forward (PositionwiseFeedForward): feed forward layer module
         dropout_rate (float): dropout rate
         normalize_before (bool): whether to use layer_norm before the first block
-        concat_after (bool): whether to concat attention layer's input and output
 
     """
 
-    def __init__(
-        self,
-        size,
-        self_attn,
-        feed_forward,
-        dropout_rate,
-        normalize_before=True,
-        concat_after=False,
-    ):
+    def __init__(self, size, self_attn, feed_forward, dropout_rate):
         """Construct an DecoderLayer object."""
         super(DecoderLayer, self).__init__()
         self.self_attn = self_attn
@@ -39,11 +30,6 @@ class DecoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
 
         self.size = size
-
-        self.normalize_before = normalize_before
-        self.concat_after = concat_after
-        if self.concat_after:
-            self.concat = nn.Linear((size + size), size)
 
     def forward(self, tgt, tgt_mask, cache=None):
         """Compute decoded features.
@@ -58,8 +44,7 @@ class DecoderLayer(nn.Module):
             tgt_mask (torch.Tensor): mask for tgt (B, Lmax)
         """
         residual = tgt
-        if self.normalize_before:
-            tgt = self.norm1(tgt)
+        tgt = self.norm1(tgt)
 
         if cache is None:
             tgt_q = tgt
@@ -76,25 +61,12 @@ class DecoderLayer(nn.Module):
             if tgt_mask is not None:
                 tgt_mask = tgt_mask[:, -1:, :]
 
-        if self.concat_after:
-            tgt_concat = torch.cat(
-                (tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_mask)), dim=-1
-            )
-            tgt = residual + self.concat(tgt_concat)
-        else:
-            tgt = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_mask))
-
-        if not self.normalize_before:
-            tgt = self.norm1(tgt)
+        tgt = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_mask))
 
         residual = tgt
-        if self.normalize_before:
-            tgt = self.norm2(tgt)
+        tgt = self.norm2(tgt)
 
         tgt = residual + self.dropout(self.feed_forward(tgt))
-
-        if not self.normalize_before:
-            tgt = self.norm2(tgt)
 
         if cache is not None:
             tgt = torch.cat([cache, tgt], dim=1)
