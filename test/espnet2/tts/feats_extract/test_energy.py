@@ -14,7 +14,8 @@ def test_forward(use_token_averaged_energy):
     )
     xs = torch.randn(2, 256)
     if not use_token_averaged_energy:
-        layer(xs, torch.LongTensor([256, 128]))
+        es, elens = layer(xs, torch.LongTensor([256, 128]))
+        assert es.shape[1] == max(elens)
     else:
         ds = torch.LongTensor([[3, 0, 2], [3, 0, 0]])
         dlens = torch.LongTensor([3, 1])
