@@ -153,7 +153,7 @@ def prepare(backend, args):
                         "type": "tdnn",
                         "idim": 2,
                         "odim": 2,
-                        "ctx_size": 1,
+                        "ctx_size": 3,
                         "dilation": 1,
                         "stride": 1,
                         "dropout-rate": 0.3,
@@ -216,28 +216,6 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
 
         print(y[0])
         print(nbest[0]["yseq"][1:-1])
-
-
-def test_sa_transducer_parallel():
-    if not torch.cuda.is_available():
-        return
-
-    train_args = make_train_args()
-
-    model, x, ilens, y, data = prepare("pytorch", train_args)
-    model = torch.nn.DataParallel(model).cuda()
-
-    logging.debug(ilens)
-
-    optim = torch.optim.Adam(model.parameters(), 0.02)
-
-    loss = model(x, torch.as_tensor(ilens), y)
-
-    optim.zero_grad()
-    loss.mean().backward()
-    optim.step()
-
-    print(loss)
 
 
 def test_calculate_plot_attention():
