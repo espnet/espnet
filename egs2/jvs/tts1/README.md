@@ -1,11 +1,11 @@
 # ESPnet2 JVS TTS recipe
 
 This recipe assumes the use of pretrained model.
-Please follow the usage to perform finetuning with pretrained model.
+Please follow the usage to perform fine-tuning with pretrained model.
 
 ## How to run
 
-Here, we show the procedure of the finetuing using Tacotron2 pretrained with JSUT corpus.
+Here, we show the procedure of the fine-tuning using Tacotron2 pretrained with [JSUT](../../jsut/tts1) corpus.
 
 ### 1. Run the recipe until stage 5
 
@@ -30,8 +30,8 @@ You can find the other pretrained models in [ESPnet model zoo](https://github.co
 
 ### 3. Replace token list and statistics with pretrained model's one
 
-Since we use the same language model, we need to use the token list of the pretrained model.
-The downloaded pretrained model has no `tokens.txt` file, so first we create it from the config.
+Since we use the same language data for fine-tuning, we need to use the token list of the pretrained model instead of that of data for fine-tuning.
+The downloaded pretrained model has `tokens_list` in the config, so first we create `tokens.txt` (`token_list`) from the config.
 
 ```sh
 # NOTE: The path may be changed. Please change it to match with your case.
@@ -55,7 +55,7 @@ $ ln -s downloads/2dc62478870c846065fe39e609ba6657/exp/tts_train_tacotron2_raw_p
 $ ln -s downloads/2dc62478870c846065fe39e609ba6657/exp/tts_stats_raw_phn_jaconv_pyopenjtalk/train/feats_stats.npz exp/tts_stats_raw_phn_jaconv_pyopenjtalk/train
 ```
 
-Now ready to fine-tune!
+Now ready to perform fine-tuning!
 
 ### 4. Run fine-tuning
 
@@ -73,4 +73,4 @@ $ ./run.sh --stage 6 --train_config conf/tuning/finetune_tacotron2.yaml \
     --tag finetune_jsut_pretrained_tacotron2
 ```
 
-If you want to load part of the pretrained model, please see [How to load pretrained model?](../../TEMPLATE/tts1/README.md#how-to-load-the-pretrained-model) For example, if you want to finetune English model with Japanese data, you may want to load the network except for the token embedding layer.
+If you want to load part of the pretrained model, please see [`How to load pretrained model?`](../../TEMPLATE/tts1/README.md#how-to-load-the-pretrained-model) For example, if you want to perform fine-tuning of English model with Japanese data, you may want to load the network except for the token embedding layer.
