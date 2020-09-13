@@ -388,8 +388,8 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
 
                     A.append(new_hyp)
 
-        B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
-        B = recombine_hyps(B)
+            B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
+            B = recombine_hyps(B)
 
     if final:
         nbest_hyps = sorted(final, key=lambda x: x.score, reverse=True)[:nbest]
