@@ -42,5 +42,4 @@ jobs:
         run: ./ci/install_kaldi.sh
       - name: test integration
         run: ./ci/test_integration.sh
-      - name: codecov
-        run: bash -c "source ./tools/venv/bin/activate; bash <(curl -s https://codecov.io/bash)"
+      - uses: codecov/codecov-action@v1

@@ -70,3 +70,4 @@ jobs:
       - name: test integration
         run: |
           ./ci/test_integration.sh
+      - uses: codecov/codecov-action@v1
