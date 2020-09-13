@@ -441,6 +441,11 @@ def build_tdnn_block(block_arch):
     dilation = block_arch["dilation"]
     stride = block_arch["stride"]
 
+    use_batch_norm = (
+        block_arch["use-batch-norm"] if "use-batch-norm" in block_arch else True
+    )
+    use_relu = block_arch["use-relu"] if "use-relu" in block_arch else True
+
     dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
 
     return lambda: TDNN(
@@ -450,6 +455,8 @@ def build_tdnn_block(block_arch):
         dilation=dilation,
         stride=stride,
         dropout_rate=dropout_rate,
+        batch_norm=use_batch_norm,
+        relu=use_relu,
     )
 
 
