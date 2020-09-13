@@ -7,7 +7,7 @@ Please follow the usage to perform finetuning with pretrained model.
 
 Here, we show the procedure of the finetuing using Tacotron2 pretrained with JSUT corpus.
 
-1. Run the recipe until stage 5
+### 1. Run the recipe until stage 5
 
 ```sh
 # From data preparation to statistics calculation
@@ -16,7 +16,7 @@ $ ./run.sh --stop-stage 5
 
 The detail of stage 1-5 can be found in [`Recipe flow`](../../TEMPLATE/tts1/README.md#recipe-flow).
 
-2. Download pretrained model
+### 2. Download pretrained model
 
 Download pretrained model from ESPnet model zoo here.
 If you have your own pretrained model, you can skip this step.
@@ -28,7 +28,7 @@ $ espnet_model_zoo_download --unpack true --cache_dir downloads kan-bayashi/jsut
 
 You can find the other pretrained models in [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
 
-3. Replace token list and statistics with pretrained model's one
+### 3. Replace token list and statistics with pretrained model's one
 
 Since we use the same language model, we need to use the token list of the pretrained model.
 The downloaded pretrained model has no `tokens.txt` file, so first we create it from the config.
@@ -57,7 +57,7 @@ $ ln -s downloads/2dc62478870c846065fe39e609ba6657/exp/tts_stats_raw_phn_jaconv_
 
 Now ready to fine-tune!
 
-4. Run fine-tuning
+### 4. Run fine-tuning
 
 Run the recipe from stage 6.
 
