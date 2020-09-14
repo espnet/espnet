@@ -41,7 +41,10 @@ enh_conf:
     aheads: 4
     elayers: 3
     eunits: 1536
-    transformer_input_layer: linear             # encoder architecture type, should maintain length
+    transformer_enc_dropout_rate: 0.1            # dropout rate for transformer encoder layer
+    transformer_enc_positional_dropout_rate: 0.1 # dropout rate for transformer encoder positional encoding
+    transformer_enc_attn_dropout_rate: 0.1       # dropout rate for transformer encoder attention layer
+    transformer_input_layer: linear              # encoder architecture type, should maintain length
     positionwise_layer_type: conv1d
     positionwise_conv_kernel_size: 1
     encoder_normalize_before: False
@@ -53,9 +56,6 @@ enh_conf:
     use_macaron_style_in_conformer: true         # whether to use macaron style in conformer
     use_cnn_in_conformer: true                   # whether to use CNN in conformer
     conformer_enc_kernel_size: 15                # kernel size in CNN module of conformer-based encoder
-    transformer_enc_dropout_rate: 0.1            # dropout rate for transformer encoder layer
-    transformer_enc_positional_dropout_rate: 0.1 # dropout rate for transformer encoder positional encoding
-    transformer_enc_attn_dropout_rate: 0.1       # dropout rate for transformer encoder attention layer
 
 
 

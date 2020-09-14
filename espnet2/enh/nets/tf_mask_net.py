@@ -107,6 +107,9 @@ class TFMaskingNet(AbsEnhancement):
                 positionwise_layer_type=positionwise_layer_type,
                 positionwise_conv_kernel_size=positionwise_conv_kernel_size,
             )
+            self.linear = torch.nn.ModuleList(
+                [torch.nn.Linear(adim, self.num_bin) for _ in range(self.num_spk)]
+            )
         elif rnn_type == "conformer":
             self.rnn = ConformerEncoder(
                 idim=self.num_bin,
