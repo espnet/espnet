@@ -73,7 +73,7 @@ class VariancePredictor(torch.nn.Module):
                 Batch of masks indicating padded part (B, Tmax).
 
         Returns:
-            Tensor: Batch of predicted durations in log domain (B, Tmax).
+            Tensor: Batch of predicted sequences (B, Tmax, 1).
 
         """
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
