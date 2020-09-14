@@ -315,8 +315,8 @@ class E2E(ASRInterface, torch.nn.Module):
             "--trans-type",
             default="warp-transducer",
             type=str,
-            choices=["warp-transducer"],
-            help="Type of transducer implementation to calculate loss",
+            choices=["warp-transducer", "warp-rnnt"],
+            help="Type of transducer implementation to calculate loss.",
         )
         group.add_argument(
             "--rnnt-mode",

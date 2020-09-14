@@ -98,6 +98,16 @@ def main(args):
         except ImportError:
             logging.warning("--> %s is not installed.\n###### Raw Error ######\n%s#######################" % (name, traceback.format_exc()))
             is_correct_installed_list.append(False)
+
+    # warp-rnnt was only tested and successfull with TH_VERSION = 1.1.0 and CUDA_VERSION = 10.0
+    # however the library installation is optional ("warp-transducer" is used by default)
+    try:
+        importlib.import_module("warp_rnnt")
+        library_list.append(("warp_rnnt", ("0.4")))
+    except ImportError:
+        logging.info("--> warp_rnnt is not installed (optional). Setup again with "
+                     "TH_VERSION=1.1.0 and CUDA_VERSION=10.0 if you want to use it.")
+
     logging.info("library availableness check done.")
     logging.info(
         "%d / %d libraries are correctly installed."
