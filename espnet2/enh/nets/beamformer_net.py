@@ -17,6 +17,7 @@ class BeamformerNet(AbsEnhancement):
         self,
         num_spk: int = 1,
         normalize_input: bool = False,
+        train_mask_only: bool = True,
         mask_type: str = "IPM^2",
         loss_type: str = "mask_mse",
         # STFT options
@@ -53,6 +54,8 @@ class BeamformerNet(AbsEnhancement):
     ):
         super(BeamformerNet, self).__init__()
 
+        self.normalize_input = normalize_input
+        self.train_mask_only = train_mask_only
         self.mask_type = mask_type
         self.loss_type = loss_type
         if loss_type not in ("mask_mse", "spectrum", "magnitude"):
@@ -71,7 +74,6 @@ class BeamformerNet(AbsEnhancement):
             onesided=onesided,
         )
 
-        self.normalize_input = normalize_input
         self.use_beamformer = use_beamformer
         self.use_wpe = use_wpe
 
@@ -145,14 +147,14 @@ class BeamformerNet(AbsEnhancement):
         # (Batch, Frames, Freq) or (Batch, Frames, Channels, Freq)
         input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
         if self.normalize_input:
-            input_spectrum = input_spectrum / abs(input_spectrum).max()
+            input_spectrum = input_spectrum / abs(input_spectrum.detach()).max()
 
         # Shape of input spectrum must be (B, T, F) or (B, T, C, F)
         assert input_spectrum.dim() in (3, 4), input_spectrum.dim()
         enhanced = input_spectrum
         masks = OrderedDict()
 
-        if self.training and self.loss_type.startswith("mask"):
+        if self.training and self.loss_type.startswith("mask") and self.train_mask_only:
             # Only estimating masks for training
             if self.use_wpe:
                 if input_spectrum.dim() == 3:

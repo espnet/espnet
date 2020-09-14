@@ -92,7 +92,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 mask = (abs(r) / (abs(mix_spec) + eps)) * cos_theta
                 mask = (
                     mask.clamp(min=0, max=1)
-                    if mask_label == "NPSM"
+                    if mask_type == "NPSM"
                     else mask.clamp(min=-1, max=1)
                 )
             elif mask_type == "PSM^2":

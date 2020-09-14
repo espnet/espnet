@@ -122,7 +122,7 @@ for x in $list_set; do
   mkdir -p $odir/$x
   cp ${x}_wav.scp $odir/$x/wav.scp || exit 1;
   cp ${x}_spk1_wav.scp $odir/$x/spk1.scp || exit 1;
-  # cp ${x}_noise_wav.scp $odir/$x/noise1.scp || exit 1;
+  cp ${x}_noise_wav.scp $odir/$x/noise1.scp || exit 1;
   cp ${x}.txt     $odir/$x/text    || exit 1;
   cp ${x}.spk2utt $odir/$x/spk2utt || exit 1;
   cp ${x}.utt2spk $odir/$x/utt2spk || exit 1;

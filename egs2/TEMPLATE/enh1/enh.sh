@@ -57,12 +57,19 @@ enh_tag=    # Suffix to the result dir for enhancement model training.
 enh_config= # Config for ehancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
-spk_num=2
+spk_num=2   # Number of speakers
 noise_type_num=1
 
 # Training data related
 use_dereverb_ref=false
 use_noise_ref=false
+
+# Pretrained model related
+# The number of --pretrain_path and --pretrain_key must be same.
+pretrain_path=
+# if pretrain_key is None -> model
+# elif pretrain_key is str e.g. "encoder" -> model.encoder
+pretrain_key=
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
@@ -127,9 +134,13 @@ Options:
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
 
+    # Pretrained model related
+    --pretrain_path    # pretrained model path (default="${pretrain_path}")
+    --pretrain_key     # name of module to be initialized from the pretrained model (default="${pretrain_key}")
+
     # Enhancement related
-    --inference_args      # Arguments for enhancement in the inference stage (default="${inference_args}")
-    --inference_model # Enhancement model path for inference (default="${inference_model}").
+    --inference_args   # Arguments for enhancement in the inference stage (default="${inference_args}")
+    --inference_model  # Enhancement model path for inference (default="${inference_model}").
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")

@@ -83,9 +83,9 @@ else
 fi
 
 # In the default configuration, the script will write about 243 GB of data:
-#  - min_8k: ? GB
-#  - min_16k: ? GB
-#  - max_8k: ? GB
-#  - max_16k: ? GB
+#  - min_8k: 28 GB
+#  - min_16k: 56 GB
+#  - max_8k: 53 GB
+#  - max_16k: 106 GB
 
 cd ${rootdir}

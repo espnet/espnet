@@ -1,6 +1,13 @@
+<<<<<<< HEAD:egs2/an4/asr1/conf/train_asr_transformer.yaml
 batch_size: 24
 #accum_grad: 8
 max_epoch: 200
+=======
+batch_type: folded
+batch_size: 12
+# accum_grad: 8
+max_epoch: 100
+>>>>>>> add multi-speaker ASR in egs2/TEMPLATE/asr1/asr_mix.sh and espnet2/asr/espnet_model_mix.py:egs2/wsj0_2mix_spatialized/asr1/conf/tuning/train_asr_transformer.yaml
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
@@ -12,14 +19,14 @@ keep_nbest_models: 10
 
 optim: adam
 batch_type: folded
-num_workers: 4
+num_workers: 2
 optim_conf:
     lr: 1.0e-03
     eps: 1.0e-08
     weight_decay: 1.0e-7
 val_scheduler_criterion:
     - valid
-    - loss
+    - loss_enh
 scheduler: reducelronplateau
 scheduler_conf:
     mode: min
@@ -29,8 +36,16 @@ scheduler_conf:
 # Enhancement Related
 enh: tf_masking
 enh_conf:
+<<<<<<< HEAD:egs2/an4/asr1/conf/train_asr_transformer.yaml
     mask_type: PSM
     n_fft: 256
+=======
+    train_mask_only: False
+    mask_type: PSM^2
+    loss_type: mask_mse
+    n_fft: 512
+    win_length: null
+>>>>>>> add multi-speaker ASR in egs2/TEMPLATE/asr1/asr_mix.sh and espnet2/asr/espnet_model_mix.py:egs2/wsj0_2mix_spatialized/asr1/conf/tuning/train_asr_transformer.yaml
     hop_length: 128
     rnn_type: blstm
     layer: 3
@@ -43,11 +58,11 @@ enh_conf:
 # ASR Related
 frontend: default
 frontend_conf:
-    fs: 8000
-    n_fft: 256
-    win_length: 256
-    hop_length: 64
-    apply_stft: true
+    fs: 16000
+    n_fft: 512
+    win_length: 512
+    hop_length: 128
+    frontend_conf: null
 
 encoder: transformer
 encoder_conf:
@@ -71,15 +86,8 @@ decoder_conf:
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
 
-model_conf:
+asr_model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
-    enh_weight: 0.99
+    enh_weight: 1000
     length_normalized_loss: false
-
-optim: adam
-optim_conf:
-    lr: 0.005
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 20000

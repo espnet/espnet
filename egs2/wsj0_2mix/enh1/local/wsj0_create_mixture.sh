@@ -65,6 +65,7 @@ chmod +x $mixfile
 # Run Matlab
 # (This may take ~6 hours to generate both min and max versions
 #  on Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz)
+# Simulated data size is ~36 GB for 16k and ~18GB for 8k in total.
 cd ${dir}
 echo "Log is in ${dir}/mix.log"
 $train_cmd ${dir}/mix.log $mixfile

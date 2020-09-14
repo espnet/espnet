@@ -195,7 +195,7 @@ def get_WPD_filter(
     inv_Rf = inv(Rf + epsilon * eye)
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    numerator = FC.einsum("...ec,...cd->...ed", [inv_Rf, Phi])
+    numerator = FC.matmul(inv_Rf, Phi)
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
@@ -253,7 +253,7 @@ def get_WPD_filter_v2(
     # (B, F, (btaps+1) * C, (btaps+1) * C) --> (B, F, (btaps+1) * C, C)
     inv_Rf_pruned = inv_Rf[..., :C]
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    numerator = FC.einsum("...ec,...cd->...ed", [inv_Rf_pruned, Phi])
+    numerator = FC.matmul(inv_Rf_pruned, Phi)
     # ws: (..., (btaps+1) * C, C) / (...,) -> (..., (btaps+1) * C, C)
     ws = numerator / (FC.trace(numerator[..., :C, :])[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
