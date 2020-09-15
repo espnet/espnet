@@ -508,9 +508,7 @@ def test_torch_save_and_load(num_encs):
         os.remove(tmppath)
 
 
-@pytest.mark.skipif(
-    not torch.cuda.is_available(), reason="gpu required"
-)
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
 @pytest.mark.parametrize(
     "module, num_encs",
     [
