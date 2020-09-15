@@ -10,7 +10,6 @@ import importlib
 import os
 import tempfile
 
-import chainer
 import numpy as np
 import pytest
 import torch
@@ -317,7 +316,7 @@ def test_model_trainable_and_decodable(module, num_encs, model_dict):
     loss.backward()  # trainable
 
     # test decodable
-    with torch.no_grad(), chainer.no_backprop_mode():
+    with torch.no_grad():
         in_data = [np.random.randn(2, 2) for _ in range(num_encs)]
         model.recognize(in_data, args, args.char_list)  # decodable
         if "pytorch" in module:
@@ -367,7 +366,7 @@ def test_sortagrad_trainable(module, num_encs):
         loss = model(*convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs))
         loss.backward()  # trainable
     assert num_utts == 6
-    with torch.no_grad(), chainer.no_backprop_mode():
+    with torch.no_grad():
         in_data = [np.random.randn(50, 2) for _ in range(num_encs)]
         model.recognize(in_data, args, args.char_list)
 
@@ -396,7 +395,7 @@ def test_sortagrad_trainable_with_batch_bins(module, num_encs):
     for batch in batchset:
         loss = model(*convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs))
         loss.backward()  # trainable
-    with torch.no_grad(), chainer.no_backprop_mode():
+    with torch.no_grad():
         in_data = [np.random.randn(100, 2) for _ in range(num_encs)]
         model.recognize(in_data, args, args.char_list)
 
@@ -432,7 +431,7 @@ def test_sortagrad_trainable_with_batch_frames(module, num_encs):
     for batch in batchset:
         loss = model(*convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs))
         loss.backward()  # trainable
-    with torch.no_grad(), chainer.no_backprop_mode():
+    with torch.no_grad():
         in_data = [np.random.randn(100, 2) for _ in range(num_encs)]
         model.recognize(in_data, args, args.char_list)
 
@@ -479,11 +478,10 @@ def test_calculate_all_attentions(module, num_encs, atype):
     )
     batch = prepare_inputs("pytorch", num_encs)
     model = m.E2E([2 for _ in range(num_encs)], 2, args)
-    with chainer.no_backprop_mode():
-        att_ws = model.calculate_all_attentions(*batch)
-        for i in range(num_encs):
-            print(att_ws[i][0].shape)  # att
-        print(att_ws[num_encs][0].shape)  # han
+    att_ws = model.calculate_all_attentions(*batch)
+    for i in range(num_encs):
+        print(att_ws[i][0].shape)  # att
+    print(att_ws[num_encs][0].shape)  # han
 
 
 @pytest.mark.parametrize("num_encs", [2, 3])
@@ -511,7 +509,7 @@ def test_torch_save_and_load(num_encs):
 
 
 @pytest.mark.skipif(
-    not torch.cuda.is_available() and not chainer.cuda.available, reason="gpu required"
+    not torch.cuda.is_available(), reason="gpu required"
 )
 @pytest.mark.parametrize(
     "module, num_encs",
