@@ -514,11 +514,17 @@ if ! "${skip_data_prep}"; then
             fi
 
             # Remove empty text
-            <"${data_feats}/org/${dset}/text" \
-                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
+            for spk in $(seq "${spk_num}"); do
+                <"data/${dset}/text_spk${spk}" \
+                    awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text_spk${spk}"
+            done
 
+            utt_extra_files=""
+            for spk in $(seq "${spk_num}"); do
+                utt_extra_files+="text_spk${spk} "
+            done
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
         done
 
         # shellcheck disable=SC2002
@@ -835,8 +841,8 @@ if ! "${skip_train}"; then
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
 
-        _train_data_param="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type}"
-        _valid_data_param="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${_scp},speech,${_type}"
+        _train_data_param="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${_scp},speech,${_type} "
         for spk in $(seq "${spk_num}"); do
             _train_data_param+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_spk${spk},text_ref${spk},text "
             _valid_data_param+="--valid_data_path_and_name_and_type ${_asr_train_dir}/text_spk${spk},text_ref${spk},text "
@@ -973,7 +979,7 @@ if ! "${skip_train}"; then
             jobname="${asr_exp}/train.log"
         fi
 
-        _valid_data_param="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${_scp},speech,${_type}"
+        _valid_data_param="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${_scp},speech,${_type} "
         _valid_shape_param="--valid_shape_file ${asr_stats_dir}/valid/speech_shape "
         for spk in $(seq "${spk_num}"); do
             _valid_data_param+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_spk${spk},text_ref${spk},text "

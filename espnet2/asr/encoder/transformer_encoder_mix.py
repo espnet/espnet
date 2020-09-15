@@ -73,7 +73,7 @@ class TransformerEncoderMix(TransformerEncoder, torch.nn.Module):
         assert check_argument_types()
         """Construct an Encoder object."""
         super(TransformerEncoderMix, self).__init__(
-            idim=input_size,
+            input_size=input_size,
             output_size=output_size,
             attention_heads=attention_heads,
             linear_units=linear_units,
@@ -91,6 +91,32 @@ class TransformerEncoderMix(TransformerEncoder, torch.nn.Module):
         )
         self._output_size = output_size
         self.num_spkrs = num_spkrs
+
+        if positionwise_layer_type == "linear":
+            positionwise_layer = PositionwiseFeedForward
+            positionwise_layer_args = (
+                output_size,
+                linear_units,
+                dropout_rate,
+            )
+        elif positionwise_layer_type == "conv1d":
+            positionwise_layer = MultiLayeredConv1d
+            positionwise_layer_args = (
+                output_size,
+                linear_units,
+                positionwise_conv_kernel_size,
+                dropout_rate,
+            )
+        elif positionwise_layer_type == "conv1d-linear":
+            positionwise_layer = Conv1dLinear
+            positionwise_layer_args = (
+                output_size,
+                linear_units,
+                positionwise_conv_kernel_size,
+                dropout_rate,
+            )
+        else:
+            raise NotImplementedError("Support only linear or conv1d.")
 
         self.encoders_sd = torch.nn.ModuleList(
             [
