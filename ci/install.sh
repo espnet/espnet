@@ -29,7 +29,7 @@ pip3 install https://github.com/kpu/kenlm/archive/master.zip
 
 # NOTE(kan-bayashi): Temporary fix the following error
 #   AttributeError: type object 'Callable' has no attribute '_abc_registry'
-pip3 uninstall typing
+pip3 uninstall -y typing
 
 # install espnet
 pip3 install -e ".[test]"
