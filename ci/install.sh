@@ -16,6 +16,10 @@ ${CXX:-g++} -v
         ./setup_anaconda.sh venv espnet ${ESPNET_PYTHON_VERSION}
     else
         ./setup_python.sh $(which python3) venv
+        # NOTE(kan-bayashi): Temporary fix the following error
+        #   AttributeError: type object 'Callable' has no attribute '_abc_registry'
+        . ./activate_python && pip install pip==20.2.2
+
     fi
     make TH_VERSION="${TH_VERSION}"
 
