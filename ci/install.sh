@@ -27,6 +27,10 @@ python3 --version
 
 pip3 install https://github.com/kpu/kenlm/archive/master.zip
 
+# NOTE(kan-bayashi): Fix the error in black installation.
+#   See: https://github.com/psf/black/issues/1707
+pip3 uninstall -y typing
+
 # install espnet
 pip3 install -e ".[test]"
 pip3 install -e ".[doc]"
