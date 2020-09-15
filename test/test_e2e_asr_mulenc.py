@@ -223,7 +223,10 @@ def convert_batch(
         (
             "espnet.nets.pytorch_backend.e2e_asr_mulenc",
             2,
-            {"atype": ["coverage_location", "coverage_location"], "han_type": "coverage_location"},
+            {
+                "atype": ["coverage_location", "coverage_location"],
+                "han_type": "coverage_location",
+            },
         ),
         (
             "espnet.nets.pytorch_backend.e2e_asr_mulenc",
@@ -233,27 +236,42 @@ def convert_batch(
         (
             "espnet.nets.pytorch_backend.e2e_asr_mulenc",
             2,
-            {"atype": ["location_recurrent", "location_recurrent"], "han_type": "location_recurrent"},
+            {
+                "atype": ["location_recurrent", "location_recurrent"],
+                "han_type": "location_recurrent",
+            },
         ),
         (
             "espnet.nets.pytorch_backend.e2e_asr_mulenc",
             2,
-            {"atype": ["multi_head_dot", "multi_head_dot"], "han_type": "multi_head_dot"},
+            {
+                "atype": ["multi_head_dot", "multi_head_dot"],
+                "han_type": "multi_head_dot",
+            },
         ),
         (
             "espnet.nets.pytorch_backend.e2e_asr_mulenc",
             2,
-            {"atype": ["multi_head_add", "multi_head_add"], "han_type": "multi_head_add"},
+            {
+                "atype": ["multi_head_add", "multi_head_add"],
+                "han_type": "multi_head_add",
+            },
         ),
         (
             "espnet.nets.pytorch_backend.e2e_asr_mulenc",
             2,
-            {"atype": ["multi_head_loc", "multi_head_loc"], "han_type": "multi_head_loc"},
+            {
+                "atype": ["multi_head_loc", "multi_head_loc"],
+                "han_type": "multi_head_loc",
+            },
         ),
         (
             "espnet.nets.pytorch_backend.e2e_asr_mulenc",
             2,
-            {"atype": ["multi_head_multi_res_loc", "multi_head_multi_res_loc"], "han_type": "multi_head_multi_res_loc"},
+            {
+                "atype": ["multi_head_multi_res_loc", "multi_head_multi_res_loc"],
+                "han_type": "multi_head_multi_res_loc",
+            },
         ),
         ("espnet.nets.pytorch_backend.e2e_asr_mulenc", 2, {"mtlalpha": 0.0}),
         ("espnet.nets.pytorch_backend.e2e_asr_mulenc", 2, {"mtlalpha": 1.0}),
@@ -304,8 +322,7 @@ def test_model_trainable_and_decodable(module, num_encs, model_dict):
         model.recognize(in_data, args, args.char_list)  # decodable
         if "pytorch" in module:
             batch_in_data = [
-                [np.random.randn(5, 2), np.random.randn(2, 2)]
-                for _ in range(num_encs)
+                [np.random.randn(5, 2), np.random.randn(2, 2)] for _ in range(num_encs)
             ]
             model.recognize_batch(
                 batch_in_data, args, args.char_list
@@ -325,9 +342,7 @@ def test_gradient_noise_injection(module, num_encs):
     model = m.E2E([2 for _ in range(num_encs)], 2, args)
     model_org = m.E2E([2 for _ in range(num_encs)], 2, args_org)
     for batch in batchset:
-        loss = model(
-            *convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs)
-        )
+        loss = model(*convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs))
         loss_org = model_org(
             *convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs)
         )
@@ -341,9 +356,7 @@ def test_gradient_noise_injection(module, num_encs):
 @pytest.mark.parametrize("module, num_encs", [("pytorch", 2), ("pytorch", 3)])
 def test_sortagrad_trainable(module, num_encs):
     args = make_arg(num_encs=num_encs, sortagrad=1)
-    dummy_json = make_dummy_json(
-        6, [2, 3], [2, 3], idim=2, odim=2, num_inputs=num_encs
-    )
+    dummy_json = make_dummy_json(6, [2, 3], [2, 3], idim=2, odim=2, num_inputs=num_encs)
     import espnet.nets.pytorch_backend.e2e_asr_mulenc as m
 
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
@@ -351,9 +364,7 @@ def test_sortagrad_trainable(module, num_encs):
     num_utts = 0
     for batch in batchset:
         num_utts += len(batch)
-        loss = model(
-            *convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs)
-        )
+        loss = model(*convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs))
         loss.backward()  # trainable
     assert num_utts == 6
     with torch.no_grad(), chainer.no_backprop_mode():
@@ -383,9 +394,7 @@ def test_sortagrad_trainable_with_batch_bins(module, num_encs):
 
     model = m.E2E([2 for _ in range(num_encs)], 2, args)
     for batch in batchset:
-        loss = model(
-            *convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs)
-        )
+        loss = model(*convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs))
         loss.backward()  # trainable
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = [np.random.randn(100, 2) for _ in range(num_encs)]
@@ -421,9 +430,7 @@ def test_sortagrad_trainable_with_batch_frames(module, num_encs):
 
     model = m.E2E([2 for _ in range(num_encs)], 2, args)
     for batch in batchset:
-        loss = model(
-            *convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs)
-        )
+        loss = model(*convert_batch(batch, module, idim=2, odim=2, num_inputs=num_encs))
         loss.backward()  # trainable
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = [np.random.randn(100, 2) for _ in range(num_encs)]
