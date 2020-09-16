@@ -66,7 +66,10 @@ class LengthRegulator(torch.nn.Module):
                 "predicted durations includes all 0 sequences. "
                 "fill the first element with 1."
             )
-            ds[ds.sum(dim=1).eq(0)][0] = 1
+            # NOTE(kan-bayashi): This case must not be happend in teacher forcing.
+            #   It will be happened in inference with a bad duration predictor.
+            #   So we do not need to care the padded sequence case here.
+            ds[ds.sum(dim=1).eq(0)] = 1
 
         return pad_list([self.repeat_fn(x, d) for x, d in zip(xs, ds)], self.pad_value)
 
