@@ -13,8 +13,8 @@ import torch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend import e2e_asr
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 
