@@ -11,7 +11,7 @@ from espnet2.enh.nets.beamformer_net import BeamformerNet
     [(8, None, 2)],
 )
 @pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("normalize_input", [True, False])
+@pytest.mark.parametrize("normalize_input", [True])
 @pytest.mark.parametrize("mask_type", ["IPM^2"])
 @pytest.mark.parametrize("loss_type", ["mask_mse", "spectrum"])
 @pytest.mark.parametrize("use_wpe", [False])
@@ -105,7 +105,7 @@ def test_beamformer_net_forward_backward(
     [(8, None, 2)],
 )
 @pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("normalize_input", [True, False])
+@pytest.mark.parametrize("normalize_input", [True])
 @pytest.mark.parametrize("mask_type", ["IPM^2"])
 @pytest.mark.parametrize("loss_type", ["mask_mse", "spectrum"])
 @pytest.mark.parametrize("use_wpe", [False])
