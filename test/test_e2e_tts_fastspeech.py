@@ -573,12 +573,12 @@ def test_length_regulator():
 
     # test with non-zero durations
     length_regulator = LengthRegulator()
-    xs_expand = length_regulator(xs, ds, ilens)
+    xs_expand = length_regulator(xs, ds)
     assert int(xs_expand.shape[1]) == int(ds.sum(dim=-1).max())
 
     # test with duration including zero
     ds[:, 2] = 0
-    xs_expand = length_regulator(xs, ds, ilens)
+    xs_expand = length_regulator(xs, ds)
     assert int(xs_expand.shape[1]) == int(ds.sum(dim=-1).max())
 
 
