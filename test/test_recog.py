@@ -240,9 +240,7 @@ def test_batch_beam_search(ctc_weight):
     args = make_small_arg(ctc_weight=ctc_weight)
     model = e2e_asr.E2E(idim, 5, args)
     torch.manual_seed(1)
-    rnnlm = lm_pytorch.ClassifierWithState(
-        lm_pytorch.RNNLM(len(args.char_list), 2, 2)
-    )
+    rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(args.char_list), 2, 2))
     init_torch_weight_random(model, (-0.1, 0.1))
     init_torch_weight_random(rnnlm, (-0.1, 0.1))
     model.eval()
@@ -282,9 +280,7 @@ def test_batch_beam_search(ctc_weight):
         lm_pytorch.RNNLM(len(args.word_list), 2, 2)
     )
     rnnlm = lm_pytorch.ClassifierWithState(
-        extlm_pytorch.LookAheadWordLM(
-            word_rnnlm.predictor, word_dict, char_dict
-        )
+        extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor, word_dict, char_dict)
     )
     init_torch_weight_random(model, rand_range)
     init_torch_weight_random(rnnlm, rand_range)
