@@ -208,6 +208,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref,
         dereverb_speech_ref=None,
         noise_ref=None,
+        cal_loss=True,  # weather to calculate enh loss
     ):
         """Compute loss according to self.loss_type.
 
@@ -247,6 +248,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             spectrum_pre, tf_length, mask_pre = self.enh_model(
                 speech_mix, speech_lengths
             )
+
+            if not cal_loss:
+                loss, perm = None, None
+                return loss, spectrum_pre, mask_pre, tf_length, perm
 
             # compute TF masking loss
             if self.loss_type == "magnitude":
@@ -354,6 +359,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             speech_pre, speech_lengths, *__ = self.enh_model.forward_rawwav(
                 speech_mix, speech_lengths
             )
+            if not cal_loss:
+                loss, perm = None, None
+                return loss, speech_pre, None, speech_lengths, perm
+
             # speech_pre: list[(batch, sample)]
             assert speech_pre[0].dim() == 2, speech_pre[0].dim()
             speech_ref = torch.unbind(speech_ref, dim=1)
@@ -470,7 +479,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         """The basic permutation loss function.
 
         Args:
-            ref (List[torch.Tensor]): [(batch, ...), ...]
+            ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
             inf (List[torch.Tensor]): [(batch, ...), ...]
             criterion (function): Loss function
             perm (torch.Tensor): specified permutation (batch, num_spk)

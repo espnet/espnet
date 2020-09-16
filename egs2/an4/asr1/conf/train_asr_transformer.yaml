@@ -47,6 +47,7 @@ frontend_conf:
     n_fft: 256
     win_length: 256
     hop_length: 64
+    apply_stft: true
 
 encoder: transformer
 encoder_conf:

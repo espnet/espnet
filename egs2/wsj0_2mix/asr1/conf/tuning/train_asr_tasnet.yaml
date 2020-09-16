@@ -51,6 +51,7 @@ frontend_conf:
     n_fft: 256
     win_length: 256
     hop_length: 64
+    apply_stft: true
 
 encoder: transformer
 encoder_conf:
@@ -74,8 +75,13 @@ decoder_conf:
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
 
+ctc_conf:
+    reduce: true
+
 asr_model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     enh_weight: 0.5
-    length_normalized_loss: false
+    end2end_train: true
+    enh_return_type: waveform # waveform or spectrum or none
+    cal_enh_loss: true # weather to calculate enh_loss, need the reduce in ctc_conf
