@@ -250,7 +250,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 logging.info(" scheduled sampling ")
                 z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach().cpu(), axis=1)
-                z_out = self.dropout_emb(self.embed(to_device(hs_pad, z_out)))
+                z_out = self.dropout_emb(self.embed(to_device(hs_pad[0], z_out)))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
@@ -302,7 +302,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
         if self.labeldist is not None:
             if self.vlabeldist is None:
-                self.vlabeldist = to_device(hs_pad, torch.from_numpy(self.labeldist))
+                self.vlabeldist = to_device(hs_pad[0], torch.from_numpy(self.labeldist))
             loss_reg = -torch.sum(
                 (F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0
             ) / len(ys_in)
