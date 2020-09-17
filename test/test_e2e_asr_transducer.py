@@ -58,7 +58,7 @@ def get_default_train_args(**kwargs):
 def get_default_recog_args(**kwargs):
     recog_defaults = dict(
         batchsize=0,
-        beam_size=2,
+        beam_size=1,
         nbest=1,
         verbose=0,
         search_type="default",
@@ -183,11 +183,10 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
         ({"rnnt_mode": "rnnt-att", "atype": "multi_head_multi_res_loc"}, {}),
         ({}, {"score_norm_transducer": False}),
         ({"rnnt_mode": "rnnt-att"}, {"score_norm_transducer": False}),
-        ({"beam_size": 1, "report_cer": True, "report_wer": True}, {}),
+        ({"report_cer": True, "report_wer": True}, {}),
         (
             {
                 "rnnt_mode": "rnnt-att",
-                "beam_size": 1,
                 "report_cer": True,
                 "report_wer": True,
             },
