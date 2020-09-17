@@ -20,7 +20,7 @@ from espnet2.enh.nets.beamformer_net import BeamformerNet
 @pytest.mark.parametrize("wunits", [2])
 @pytest.mark.parametrize("wprojs", [2])
 @pytest.mark.parametrize("dropout_rate", [0.0, 0.2])
-@pytest.mark.parametrize("taps", [5])
+@pytest.mark.parametrize("taps", [2])
 @pytest.mark.parametrize("delay", [3])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [False])
 @pytest.mark.parametrize("use_beamformer", [True])
@@ -113,8 +113,8 @@ def test_beamformer_net_forward_backward(
 @pytest.mark.parametrize("wlayers", [2])
 @pytest.mark.parametrize("wunits", [2])
 @pytest.mark.parametrize("wprojs", [2])
-@pytest.mark.parametrize("dropout_rate", [0.0, 0.2])
-@pytest.mark.parametrize("taps", [5])
+@pytest.mark.parametrize("dropout_rate", [0.0])
+@pytest.mark.parametrize("taps", [2])
 @pytest.mark.parametrize("delay", [3])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [False])
 @pytest.mark.parametrize("use_beamformer", [True])
@@ -202,7 +202,7 @@ def test_beamformer_net_consistency(
         assert est.dtype == torch.float
 
 
-@pytest.mark.parametrize("ch", [1, 3])
+@pytest.mark.parametrize("ch", [1, 2])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [True, False])
 def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
@@ -233,7 +233,7 @@ def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
 
 @pytest.mark.parametrize("num_spk", [1, 2])
 def test_beamformer_net_bf_output(num_spk):
-    ch = 3
+    ch = 2
     inputs = torch.randn(2, 16, ch)
     inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
