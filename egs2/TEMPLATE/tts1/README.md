@@ -29,6 +29,8 @@ This is a template of TTS recipe for ESPnet2.
     * [How to add a new g2p module?](#how-to-add-a-new-g2p-module)
     * [How to add a new cleaner module?](#how-to-add-a-new-cleaner-module)
     * [How to use trained model in python?](#how-to-use-trained-model-in-python)
+    * [How to get pretrained models?](#how-to-get-pretrained-models)
+    * [How to load the pretrained model?](#how-to-load-the-pretrained-model)
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
     * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
@@ -322,10 +324,19 @@ Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` an
 
 See [use a pretrained model for inference](https://github.com/espnet/espnet_model_zoo#use-a-pretrained-model-for-inference).
 
-### How to finetune the pretrained model?
+### How to get pretrained models?
+
+Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
+You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
+
+### How to load the pretrained model?
 
 Please use `--pretrain_path` and `--pretrain_key` options in training config (`*.yaml`).
 See the usage in [abs_task.py](https://github.com/espnet/espnet/blob/3cc59a16c3655f3b39dc2ae19ffafa7bfac879bf/espnet2/tasks/abs_task.py#L1040-L1054).
+
+### How to finetune the pretrained model?
+
+See [jvs recipe example](../../jvs/tts1/README.md).
 
 ### How to add a new model?
 
