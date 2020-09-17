@@ -178,7 +178,6 @@ To switch to transducer mode, the following should be set in the training config
 
 ```
 criterion: loss
-mtlalpha: 1.0
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 ```
 

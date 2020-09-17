@@ -416,7 +416,6 @@ def train(args):
 
     # specify attention, CTC, hybrid mode
     if "transducer" in args.model_module:
-        assert args.mtlalpha == 1.0
         if (
             getattr(args, "etype", False) == "transformer"
             or getattr(args, "dtype", False) == "transformer"
