@@ -799,7 +799,7 @@ class EncoderMix(torch.nn.Module):
                 xs_pad_sd[ns], ilens_sd[ns], _ = module(xs_pad_sd[ns], ilens_sd[ns])
 
         # make mask to remove bias value in padded part
-        mask = to_device(self, make_pad_mask(ilens_sd[0]).unsqueeze(-1))
+        mask = to_device(xs_pad, make_pad_mask(ilens_sd[0]).unsqueeze(-1))
 
         return [x.masked_fill(mask, 0.0) for x in xs_pad_sd], ilens_sd, None
 
