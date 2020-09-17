@@ -4,34 +4,32 @@ import torch
 from espnet2.tts.tacotron2 import Tacotron2
 
 
-@pytest.mark.parametrize("econv_layers", [0, 1])
 @pytest.mark.parametrize("prenet_layers", [0, 1])
 @pytest.mark.parametrize("postnet_layers", [0, 1])
-@pytest.mark.parametrize("reduction_factor", [1, 2, 3])
+@pytest.mark.parametrize("reduction_factor", [1, 3])
 @pytest.mark.parametrize(
     "spk_embed_dim, spk_embed_integration_type",
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize("use_gst", [True, False])
-@pytest.mark.parametrize("loss_type", ["L1+L2", "L1"])
 @pytest.mark.parametrize("use_guided_attn_loss", [True, False])
 def test_tacotron2(
-    econv_layers,
     prenet_layers,
     postnet_layers,
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
     use_gst,
-    loss_type,
     use_guided_attn_loss,
 ):
     model = Tacotron2(
         idim=10,
         odim=5,
+        adim=4,
         embed_dim=4,
-        econv_layers=econv_layers,
+        econv_layers=1,
         econv_filts=5,
+        econv_chans=4,
         elayers=1,
         eunits=4,
         dlayers=1,
@@ -53,7 +51,7 @@ def test_tacotron2(
         gst_conv_stride=2,
         gst_gru_layers=1,
         gst_gru_units=4,
-        loss_type=loss_type,
+        loss_type="L1+L2",
         use_guided_attn_loss=use_guided_attn_loss,
     )
 
