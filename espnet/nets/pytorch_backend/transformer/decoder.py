@@ -305,6 +305,10 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         if self.selfattention_layer_type != "selfattn":
+            # TODO(karita): implement cache
+            logging.warning(
+                f"{self.selfattention_layer_type} does not support cached decoding."
+            )
             state = None
         logp, state = self.forward_one_step(
             ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state

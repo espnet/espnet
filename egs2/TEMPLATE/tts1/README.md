@@ -29,8 +29,11 @@ This is a template of TTS recipe for ESPnet2.
     * [How to add a new g2p module?](#how-to-add-a-new-g2p-module)
     * [How to add a new cleaner module?](#how-to-add-a-new-cleaner-module)
     * [How to use trained model in python?](#how-to-use-trained-model-in-python)
+    * [How to get pretrained models?](#how-to-get-pretrained-models)
+    * [How to load the pretrained model?](#how-to-load-the-pretrained-model)
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
+    * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
 
 ## Recipe flow
 
@@ -280,18 +283,19 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [Transformer-TTS](https://arxiv.org/abs/1809.08895)
 - [FastSpeech](https://arxiv.org/abs/1905.09263)
 - [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
+- [Conformer](https://arxiv.org/abs/2005.08100)-based FastSpeech / FastSpeech2
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
 ### Multi speaker model
 
-- [GST-Tacotron2](https://arxiv.org/abs/1803.09017)
-- GST-Transformer-TTS
-- GST-FastSpeech
-- GST-FastSpeech2
+- [GST + Tacotron2](https://arxiv.org/abs/1803.09017)
+- GST + Transformer-TTS
+- GST + FastSpeech
+- GST + FastSpeech2
+- GST + Conformer-based FastSpeech / FastSpeech2
 
 You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
-
 
 ## FAQ
 
@@ -320,11 +324,24 @@ Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` an
 
 See [use a pretrained model for inference](https://github.com/espnet/espnet_model_zoo#use-a-pretrained-model-for-inference).
 
-### How to finetune the pretrained model?
+### How to get pretrained models?
+
+Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
+You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
+
+### How to load the pretrained model?
 
 Please use `--pretrain_path` and `--pretrain_key` options in training config (`*.yaml`).
 See the usage in [abs_task.py](https://github.com/espnet/espnet/blob/3cc59a16c3655f3b39dc2ae19ffafa7bfac879bf/espnet2/tasks/abs_task.py#L1040-L1054).
 
+### How to finetune the pretrained model?
+
+See [jvs recipe example](../../jvs/tts1/README.md).
+
 ### How to add a new model?
 
 Under construction.
+
+### How to test my model with an arbitrary given text?
+
+See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
