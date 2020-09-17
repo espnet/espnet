@@ -1,4 +1,4 @@
-MAIN_ROOT=$PWD/../../..
+MAIN_ROOT=$PWD/../../
 KALDI_ROOT=$MAIN_ROOT/tools/kaldi
 
 export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$PATH
