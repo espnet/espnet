@@ -61,7 +61,7 @@ def test_tasnet_forward_backward(
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
 @pytest.mark.parametrize("causal", [True, False])
-@pytest.mark.parametrize("mask_nonlinear", ["softmax", "relu"])
+@pytest.mark.parametrize("mask_nonlinear", ["softmax"])
 def test_tasnet_cosistency(
     N,
     L,
