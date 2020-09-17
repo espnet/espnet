@@ -6,13 +6,13 @@ import torch
 from espnet2.enh.nets.tasnet import TasNet
 
 
-@pytest.mark.parametrize("N", [5])
-@pytest.mark.parametrize("L", [20])
-@pytest.mark.parametrize("B", [5])
-@pytest.mark.parametrize("H", [10])
+@pytest.mark.parametrize("N", [3])
+@pytest.mark.parametrize("L", [40])
+@pytest.mark.parametrize("B", [3])
+@pytest.mark.parametrize("H", [3])
 @pytest.mark.parametrize("P", [3])
-@pytest.mark.parametrize("X", [8])
-@pytest.mark.parametrize("R", [4])
+@pytest.mark.parametrize("X", [2])
+@pytest.mark.parametrize("R", [2])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
 @pytest.mark.parametrize("causal", [True, False])
@@ -52,11 +52,11 @@ def test_tasnet_forward_backward(
 
 
 @pytest.mark.parametrize("N", [5, 10])
-@pytest.mark.parametrize("L", [20])
-@pytest.mark.parametrize("B", [5])
-@pytest.mark.parametrize("H", [10])
+@pytest.mark.parametrize("L", [40])
+@pytest.mark.parametrize("B", [2])
+@pytest.mark.parametrize("H", [2])
 @pytest.mark.parametrize("P", [3])
-@pytest.mark.parametrize("X", [8])
+@pytest.mark.parametrize("X", [3])
 @pytest.mark.parametrize("R", [2, 4])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
@@ -106,13 +106,13 @@ def test_tasnet_cosistency(
     )
 
 
-@pytest.mark.parametrize("N", [5])
-@pytest.mark.parametrize("L", [20])
-@pytest.mark.parametrize("B", [5])
-@pytest.mark.parametrize("H", [10])
+@pytest.mark.parametrize("N", [3])
+@pytest.mark.parametrize("L", [40])
+@pytest.mark.parametrize("B", [2])
+@pytest.mark.parametrize("H", [2])
 @pytest.mark.parametrize("P", [3])
-@pytest.mark.parametrize("X", [8])
-@pytest.mark.parametrize("R", [4])
+@pytest.mark.parametrize("X", [3])
+@pytest.mark.parametrize("R", [2])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
 @pytest.mark.parametrize("causal", [True, False])
@@ -157,9 +157,9 @@ def test_tasnet_output(
 
 def test_tasnet_invalid_norm_type():
     with pytest.raises(ValueError):
-        TasNet(5, 20, 5, 10, 3, 8, 4, 2, norm_type="fff")
+        TasNet(2, 40, 2, 2, 3, 3, 2, 2, norm_type="fff")
 
 
 def test_tasnet_invalid_mask_nonlinear():
     with pytest.raises(ValueError):
-        TasNet(5, 20, 5, 10, 3, 8, 4, 2, mask_nonlinear="fff")
+        TasNet(2, 40, 2, 2, 3, 3, 2, 2, mask_nonlinear="fff")
