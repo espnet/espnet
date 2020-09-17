@@ -29,13 +29,13 @@ def make_arg(**kwargs):
     defaults = dict(
         elayers=1,
         subsample="1_2_2_1_1",
-        etype="vgglstm",
+        etype="vggblstm",
         eunits=2,
         eprojs=2,
         dtype="lstm",
         dlayers=1,
         dunits=2,
-        atype="dot",
+        atype="location",
         aheads=1,
         awin=3,
         aconv_chans=1,
@@ -76,7 +76,7 @@ def make_arg(**kwargs):
     return argparse.Namespace(**defaults)
 
 
-def prepare_inputs(mode, ilens=[15, 14], olens=[4, 3], is_cuda=False):
+def prepare_inputs(mode, ilens=[14, 13], olens=[4, 3], is_cuda=False):
     np.random.seed(1)
     assert len(ilens) == len(olens)
     xs = [np.random.randn(ilen, 10).astype(np.float32) for ilen in ilens]
@@ -301,13 +301,13 @@ def test_segment_streaming_e2e():
     model = th_asr.E2E(10, 5, args)
     asr = SegmentStreamingE2E(model, args)
 
-    in_data = np.random.randn(20, 10)
+    in_data = np.random.randn(50, 10)
     r = np.prod(model.subsample)
-    for i in range(0, 20, r):
+    for i in range(0, 50, r):
         asr.accept_input(in_data[i : i + r])
 
     args.batchsize = 1
-    for i in range(0, 20, r):
+    for i in range(0, 50, r):
         asr.accept_input(in_data[i : i + r])
 
 
