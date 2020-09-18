@@ -290,7 +290,7 @@ All algorithms share common parameters to control batch size (`batch`) and beam 
 
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
 
-note (b-flo): [Missing: code optimization -> benchmark]
+IMPORTANT (temporary) note: Currently ALSD, TSD and NSC have their execution time degraded because of the batching implementation at python level. It can be removed in current implementation by the user to speed up inference but we decided to keep it as if for internal discussion purpose. It will soon be replaced by an efficient implementation at C++ level.
 
 The algorithm references can be found in [methods documentation](https://github.com/espnet/espnet/tree/master/espnet/nets/beam_search_transducer.py). For more information about decoding usage, refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer).
 
