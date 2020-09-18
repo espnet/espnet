@@ -139,14 +139,12 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
                     hyps.append(new_hyp)
 
             hyps_max = float(max(hyps, key=lambda x: x.score).score)
-            kept_most_prob = len(
-                sorted(
-                    [hyp for hyp in kept_hyps if hyp.score > hyps_max],
-                    key=lambda x: x.score,
-                )
+            kept_most_prob = sorted(
+                [hyp for hyp in kept_hyps if hyp.score > hyps_max],
+                key=lambda x: x.score,
             )
-            kept_most_prob = len(sorted(kept_hyps, key=lambda x: x.score > hyps_max))
-            if kept_most_prob >= beam:
+            if len(kept_most_prob) >= beam:
+                kept_hyps = kept_most_prob
                 break
 
     if normscore:
@@ -409,7 +407,8 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
     """N-step constrained beam search implementation.
 
     Based and modified from https://arxiv.org/pdf/2002.03577.pdf
-    Please reference ESPnet (b-flo, PR #2082) for any usage outside ESPnet.
+    Please reference ESPnet (b-flo, PR #2444) for any usage outside ESPnet
+    until the corresponding paper is published.
 
     Args:
         decoder (class): decoder class
