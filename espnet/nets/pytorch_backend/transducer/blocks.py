@@ -442,9 +442,9 @@ def build_tdnn_block(block_arch):
     stride = block_arch["stride"]
 
     use_batch_norm = (
-        block_arch["use-batch-norm"] if "use-batch-norm" in block_arch else True
+        block_arch["use-batch-norm"] if "use-batch-norm" in block_arch else False
     )
-    use_relu = block_arch["use-relu"] if "use-relu" in block_arch else True
+    use_relu = block_arch["use-relu"] if "use-relu" in block_arch else False
 
     dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
 
