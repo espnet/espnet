@@ -2,6 +2,7 @@
 
 """Transducer loss module."""
 
+import torch
 from torch import nn
 
 from warprnnt_pytorch import RNNTLoss
@@ -41,6 +42,9 @@ class TransLoss(nn.Module):
             loss (torch.Tensor): transducer loss
 
         """
+        if pred_pad.dtype == torch.float16:
+            # warprnnt_pytorch only supports float32
+            pred_pad = pred_pad.to(dtype=torch.float32)
         loss = self.trans_loss(pred_pad, target, pred_len, target_len)
 
         return loss
