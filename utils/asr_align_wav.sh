@@ -18,7 +18,6 @@ stage=-1       # start from -1 if you need to start from model download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
-dumpdir=dump   # directory to dump full features
 verbose=2      # verbose option
 
 # feature configuration
@@ -92,7 +91,6 @@ EOF
 
 # make shellcheck happy
 train_cmd=
-decode_cmd=
 
 . ./cmd.sh
 
@@ -203,7 +201,7 @@ if [ ! -f "${wav}" ]; then
     echo "No such WAV file: ${wav}"
     exit 1
 fi
-if [ ! -n "${text}" ]; then
+if [ -z "${text}" ]; then
     echo "Text is empty: ${text}"
     exit 1
 fi
@@ -237,7 +235,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Json Data Preparation"
 
     nlsyms_opts=""
-    if [ ! -z ${nlsyms} ]; then
+    if [[ -n ${nlsyms} ]]; then
         nlsyms_opts="--nlsyms ${nlsyms}"
     fi
 
@@ -249,7 +247,6 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Aligning"
-    align_opts=""
     feat_align_dir=${align_dir}/dump
 
     ${python} -m espnet.bin.asr_align \
