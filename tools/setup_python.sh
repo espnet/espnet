@@ -37,6 +37,7 @@ fi
 # Change the user site packages dir from "~/.local"
 echo "Warning: Setting PYTHONUSERBASE"
 cat << EOF > activate_python.sh
+#!/bin/bash
 export PYTHONUSERBASE="${PYTHONUSERBASE}"
 export PATH="${PYTHONUSERBASE}/bin":\${PATH}
 export PATH=${PYTHON_DIR}:\${PATH}
