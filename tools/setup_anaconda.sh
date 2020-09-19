@@ -39,6 +39,7 @@ if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     bash miniconda.sh -b -p "${output_dir}"
 fi
 
+# shellcheck disable=SC1090
 source "${output_dir}/etc/profile.d/conda.sh"
 conda deactivate
 

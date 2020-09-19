@@ -14,7 +14,7 @@ elif [ $# -eq 1 ]; then
     VENV="venv"
 fi
 
-if ! "${PYTHON}" -m venv --help 2>&1 > /dev/null; then
+if ! "${PYTHON}" -m venv --help > /dev/null 2>&1; then
     echo "Error: ${PYTHON} is not Python3?"
     exit 1
 fi
