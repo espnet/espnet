@@ -406,9 +406,12 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
 def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
     """N-step constrained beam search implementation.
 
-    Based and modified from https://arxiv.org/pdf/2002.03577.pdf
+    Based and modified from https://arxiv.org/pdf/2002.03577.pdf.
     Please reference ESPnet (b-flo, PR #2444) for any usage outside ESPnet
-    until the corresponding paper is published.
+    until further modifications.
+
+    Note: the algorithm is not in his "complete" form but works almost as
+          intended.
 
     Args:
         decoder (class): decoder class
