@@ -9,7 +9,7 @@ train_set=train_nodup
 valid_set=train_dev
 test_sets="eval1 eval2 eval3"
 
-asr_config=conf/train_asr_rnn.yaml
+asr_config=conf/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
@@ -18,6 +18,7 @@ lm_config=conf/train_lm.yaml
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh \
+    --ngpu 4 \
     --lang jp \
     --token_type char \
     --feats_type raw \
