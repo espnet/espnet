@@ -21,7 +21,6 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import adam_lr_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -31,7 +30,6 @@ from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.st_interface import STInterface
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset
@@ -143,14 +141,6 @@ def train(args):
         model_class = dynamic_import(args.model_module)
         model = model_class(idim, odim, args)
     assert isinstance(model, STInterface)
-
-    if args.rnnlm is not None:
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(args.char_list), rnnlm_args.layer, rnnlm_args.unit)
-        )
-        torch_load(args.rnnlm, rnnlm)
-        model.rnnlm = rnnlm
 
     # write model config
     if not os.path.exists(args.outdir):
