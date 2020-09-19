@@ -613,33 +613,13 @@ def trans(args):
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
     assert isinstance(model, STInterface)
-    # args.ctc_weight = 0.0
     model.trans_args = args
-
-    # read rnnlm
-    if args.rnnlm:
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        if getattr(rnnlm_args, "model_module", "default") != "default":
-            raise ValueError(
-                "use '--api v2' option to decode with non-default language model"
-            )
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(
-                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit
-            )
-        )
-        torch_load(args.rnnlm, rnnlm)
-        rnnlm.eval()
-    else:
-        rnnlm = None
 
     # gpu
     if args.ngpu == 1:
         gpu_id = list(range(args.ngpu))
         logging.info("gpu id: " + str(gpu_id))
         model.cuda()
-        if rnnlm:
-            rnnlm.cuda()
 
     # read json data
     with open(args.trans_json, "rb") as f:
@@ -662,7 +642,11 @@ def trans(args):
                 logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
+                nbest_hyps = model.translate(
+                    feat,
+                    args,
+                    train_args.char_list,
+                )
                 new_js[name] = add_results_to_json(
                     js[name], nbest_hyps, train_args.char_list
                 )
@@ -686,7 +670,9 @@ def trans(args):
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0]
                 nbest_hyps = model.translate_batch(
-                    feats, args, train_args.char_list, rnnlm=rnnlm
+                    feats,
+                    args,
+                    train_args.char_list,
                 )
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
