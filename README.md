@@ -374,6 +374,8 @@ English, Japanese, and Mandarin models are available in the demo.
 
 <details><summary>ESPnet1</summary><div>
 
+> NOTE: We are moving on ESPnet2-based development for TTS. Please check the latest demo in the above ESPnet2 demo.
+
 You can try the real-time demo in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis.
 
