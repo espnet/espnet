@@ -287,7 +287,7 @@ Available pretrained models in the demo script are listed as below.
 
 ### TTS results
 
-<details><summary>espnet2</summary><div>
+<details><summary>ESPnet2</summary><div>
 
 You can listen to the generated samples in the following url.
 - [ESPnet2 TTS generated samples](https://drive.google.com/drive/folders/1H3fnlBbWMEkQUfrHqosKN_ZX_WjO29ma?usp=sharing)
@@ -304,7 +304,9 @@ You can download pretrained vocoders via `kan-bayashi/ParallelWaveGAN`.
 
 </div></details>
 
-<details><summary>espnet1</summary><div>
+<details><summary>ESPnet1</summary><div>
+
+> NOTE: We are moving on ESPnet2-based development for TTS. Please check the latest results in the above ESPnet2 results.
 
 You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).
 Here we list some notable ones:
@@ -359,7 +361,7 @@ If you want to use the above pretrained vocoders, please exactly match the featu
 
 ### TTS demo
 
-<details><summary>espnet2</summary><div>
+<details><summary>ESPnet2</summary><div>
 
 You can try the real-time demo in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
@@ -370,7 +372,7 @@ English, Japanese, and Mandarin models are available in the demo.
 
 </div></details>
 
-<details><summary>espnet1</summary><div>
+<details><summary>ESPnet1</summary><div>
 
 You can try the real-time demo in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis.
