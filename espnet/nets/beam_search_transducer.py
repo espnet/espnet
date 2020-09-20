@@ -89,6 +89,8 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
     normscore = recog_args.score_norm_transducer
 
     init_tensor = h.unsqueeze(0)
+    blank_tensor = init_tensor.new_zeros(1, dtype=torch.long)
+
     dec_state = decoder.init_state(init_tensor)
 
     kept_hyps = [Hypothesis(score=0.0, yseq=[decoder.blank], dec_state=dec_state)]
@@ -111,7 +113,7 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
 
             ytu = (
                 torch.cat((top_k[0], ytu[0:1])),
-                torch.cat((top_k[1], torch.LongTensor([0]))),
+                torch.cat((top_k[1], blank_tensor)),
             )
 
             if rnnlm:
@@ -434,6 +436,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
     cache = {}
 
     init_tensor = h.unsqueeze(0)
+    blank_tensor = init_tensor.new_zeros(1, dtype=torch.long)
 
     beam_state = decoder.init_state(torch.zeros((beam, decoder.dunits)))
 
@@ -518,7 +521,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
             for i, hyp in enumerate(hyps):
                 i_topk = (
                     torch.cat((beam_topk[0][i], beam_logp[i, 0:1])),
-                    torch.cat((beam_topk[1][i], torch.LongTensor([0]))),
+                    torch.cat((beam_topk[1][i], blank_tensor)),
                 )
 
                 for logp, k in zip(*i_topk):
