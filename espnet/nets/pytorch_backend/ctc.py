@@ -109,8 +109,8 @@ class CTC(torch.nn.Module):
             ys_hat = ys_hat.to(dtype=torch.float32)
         if self.ctc_type == "builtin":
             # use GPU when using the cuDNN implementation
-            ys_true = to_device(self, ys_true)
-        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
+            ys_true = to_device(hs_pad, ys_true)
+        self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
             dtype=dtype
         )
         if self.reduce:
