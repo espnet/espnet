@@ -301,7 +301,7 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-asr_stats_dir="${expdir}/asr_stats_${feats_type}"
+asr_stats_dir="${expdir}/asr_stats_$(basename "${asr_config}" .yaml)_${feats_type}"
 if [ -n "${speed_perturb_factors}" ]; then
     asr_stats_dir="${asr_stats_dir}_sp"
 fi
