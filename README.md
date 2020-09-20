@@ -287,7 +287,26 @@ Available pretrained models in the demo script are listed as below.
 
 ### TTS results
 
-<details><summary>expand</summary><div>
+<details><summary>ESPnet2</summary><div>
+
+You can listen to the generated samples in the following url.
+- [ESPnet2 TTS generated samples](https://drive.google.com/drive/folders/1H3fnlBbWMEkQUfrHqosKN_ZX_WjO29ma?usp=sharing)
+
+> Note that in the generation we use Griffin-Lim (`wav/`) and [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN) (`wav_pwg/`).
+
+You can download pretrained models via `espnet_model_zoo`.
+- [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo)
+- [Pretrained model list](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv)
+
+You can download pretrained vocoders via `kan-bayashi/ParallelWaveGAN`.
+- [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
+- [Pretrained vocoder list](https://github.com/kan-bayashi/ParallelWaveGAN#results)
+
+</div></details>
+
+<details><summary>ESPnet1</summary><div>
+
+> NOTE: We are moving on ESPnet2-based development for TTS. Please check the latest results in the above ESPnet2 results.
 
 You can listen to our samples in demo HP [espnet-tts-sample](https://espnet.github.io/espnet-tts-sample/).
 Here we list some notable ones:
@@ -321,20 +340,20 @@ If you want to build your own neural vocoder, please check the above repositorie
 
 Here we list all of the pretrained neural vocoders. Please download and enjoy the generation of high quality speech!
 
-| Model link                                                                                              | Lang  | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Model type                                                              |
-| :------                                                                                                 | :---: | :----:  | :--------:     | :---------------:      | :------                                                                 |
-| [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L)    | EN    | 22.05k  | None           | 1024 / 256 / None      | [Softmax WaveNet](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
-| [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)           | EN    | 22.05k  | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1tv9GKyRT4CDsvUWKwH3s_OfXkiTi0gw7)      | EN    | 22.05k  | None           | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1es2HuKUeKVtEdq6YDtAsLNpqCy4fhIXr)           | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1Grn7X9wD35UcDJ5F7chwdTqTa4U7DeVB)      | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-| [ljspeech.melgan.v1 (EXPERIMENTAL)](https://drive.google.com/open?id=1ipPWYl8FBNRlBFaKj1-i23eQpW_W_YcR) | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MelGAN](https://github.com/kan-bayashi/ParallelWaveGAN)                |
-| [ljspeech.melgan.v3 (EXPERIMENTAL)](https://drive.google.com/open?id=1_a8faVA5OGCzIcJNw4blQYjfG4oA9VEt) | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MelGAN](https://github.com/kan-bayashi/ParallelWaveGAN)                |
-| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)           | EN    | 24k     | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK)               | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)          | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)              | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)         | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| Model link                                                                                           | Lang  | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Model type                                                              |
+| :------                                                                                              | :---: | :----:  | :--------:     | :---------------:      | :------                                                                 |
+| [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | EN    | 22.05k  | None           | 1024 / 256 / None      | [Softmax WaveNet](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
+| [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)        | EN    | 22.05k  | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
+| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1tv9GKyRT4CDsvUWKwH3s_OfXkiTi0gw7)   | EN    | 22.05k  | None           | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [ljspeech.wavenet.mol.v2](https://drive.google.com/open?id=1es2HuKUeKVtEdq6YDtAsLNpqCy4fhIXr)        | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
+| [ljspeech.parallel_wavegan.v2](https://drive.google.com/open?id=1Grn7X9wD35UcDJ5F7chwdTqTa4U7DeVB)   | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [ljspeech.melgan.v1](https://drive.google.com/open?id=1ipPWYl8FBNRlBFaKj1-i23eQpW_W_YcR)             | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MelGAN](https://github.com/kan-bayashi/ParallelWaveGAN)                |
+| [ljspeech.melgan.v3](https://drive.google.com/open?id=1_a8faVA5OGCzIcJNw4blQYjfG4oA9VEt)             | EN    | 22.05k  | 80-7600        | 1024 / 256 / None      | [MelGAN](https://github.com/kan-bayashi/ParallelWaveGAN)                |
+| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)        | EN    | 24k     | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
+| [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK)            | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
+| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
+| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 
 If you want to use the above pretrained vocoders, please exactly match the feature setting with them.
 
@@ -342,17 +361,27 @@ If you want to use the above pretrained vocoders, please exactly match the featu
 
 ### TTS demo
 
-<details><summary>expand</summary><div>
+<details><summary>ESPnet2</summary><div>
 
-We made a new real-time E2E-TTS demonstration in Google Colab.
+You can try the real-time demo in Google Colab.
 Please access the notebook from the following button and enjoy the real-time synthesis!
 
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+
+English, Japanese, and Mandarin models are available in the demo.
+
+</div></details>
+
+<details><summary>ESPnet1</summary><div>
+
+> NOTE: We are moving on ESPnet2-based development for TTS. Please check the latest demo in the above ESPnet2 demo.
+
+You can try the real-time demo in Google Colab.
+Please access the notebook from the following button and enjoy the real-time synthesis.
+
 - Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
 
----
-
-You can synthesize speech in a TXT file using pretrained models.
+We also provide shell script to perform synthesize.
 Go to a recipe directory and run `utils/synth_wav.sh` as follows:
 
 ```sh
@@ -384,52 +413,17 @@ synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v1 example.txt
 
 WaveNet vocoder provides very high quality speech but it takes time to generate.
 
-> **Important Note**:
->
-> This code does not include text frontend part.
-> Please clean the input text manually.
-> Also, you need to modify feature configuration according to the model.
-> Default setting is for ljspeech models, so if you want to use other pretrained models, please modify the parameters by yourself.
-> For our provided models, you can find them in the below table.
->
-> If you are beginner, instead of this script, I strongly recommend trying the [colab notebook](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb) at first, which includes all of the procedure from text frontend, feature generation, and waveform generation.
+See more details or available models via `--help`.
 
-Available pretrained models in the demo script are listed as follows:
-
-| Model link                                                                                    | Lang  | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Input  | R   | Model type                                  |
-| :------                                                                                       | :---: | :----:  | :--------:     | :---------------:      | :---:  | :-: | :------                                     |
-| [ljspeech.tacotron2.v1](https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs)   | EN    | 22.05k  | None           | 1024 / 256 / None      | char   | 2   | Tacotron 2                                  |
-| [ljspeech.tacotron2.v2](https://drive.google.com/open?id=11T9qw8rJlYzUdXvFjkjQjYrp3iGfQ15h)   | EN    | 22.05k  | None           | 1024 / 256 / None      | char   | 1   | Tacotron 2 + forward attention              |
-| [ljspeech.tacotron2.v3](https://drive.google.com/open?id=1hiZn14ITUDM1nkn-GkaN_M3oaTOUcn1n)   | EN    | 22.05k  | None           | 1024 / 256 / None      | char   | 1   | Tacotron 2 + guided attention loss          |
-| [ljspeech.transformer.v1](https://drive.google.com/open?id=13DR-RB5wrbMqBGx_MC655VZlsEq52DyS) | EN    | 22.05k  | None           | 1024 / 256 / None      | char   | 1   | Deep Transformer                            |
-| [ljspeech.transformer.v2](https://drive.google.com/open?id=1xxAwPuUph23RnlC5gym7qDM02ZCW9Unp) | EN    | 22.05k  | None           | 1024 / 256 / None      | char   | 3   | Shallow Transformer                         |
-| [ljspeech.transformer.v3](https://drive.google.com/open?id=1M_w7nxI6AfbtSHpMO-exILnAc_aUYvXP) | EN    | 22.05k  | None           | 1024 / 256 / None      | phn    | 1   | Deep Transformer                            |
-| [ljspeech.fastspeech.v1](https://drive.google.com/open?id=17RUNFLP4SSTbGA01xWRJo7RkR876xM0i)  | EN    | 22.05k  | None           | 1024 / 256 / None      | char   | 1   | FF-Transformer                              |
-| [ljspeech.fastspeech.v2](https://drive.google.com/open?id=1zD-2GMrWM3thaDpS3h3rkTU4jIC0wc5B)  | EN    | 22.05k  | None           | 1024 / 256 / None      | char   | 1   | FF-Transformer + CNN in FFT block           |
-| [ljspeech.fastspeech.v3](https://drive.google.com/open?id=1W86YEQ6KbuUTIvVURLqKtSNqe_eI2GDN)  | EN    | 22.05k  | None           | 1024 / 256 / None      | phn    | 1   | FF-Transformer + CNN in FFT block + postnet |
-| [libritts.tacotron2.v1](https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3)   | EN    | 24k     | 80-7600        | 1024 / 256 / None      | char   | 2   | Multi-speaker Tacotron 2                    |
-| [libritts.transformer.v1](https://drive.google.com/open?id=1Xj73mDPuuPH8GsyNO8GnOC3mn0_OK4g3) | EN    | 24k     | 80-7600        | 1024 / 256 / None      | char   | 2   | Multi-speaker Transformer                   |
-| [jsut.tacotron2](https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t)          | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | phn    | 2   | Tacotron 2                                  |
-| [jsut.transformer](https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD)        | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | phn    | 3   | Shallow Transformer                         |
-| [csmsc.transformer.v1](https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ)    | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin | 1   | Deep Transformer                            |
-| [csmsc.fastspeech.v3](https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R)     | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin | 1   | FF-Transformer + CNN in FFT block + postnet |
-
-Available pretrained vocoder models in the demo script are listed as follows:
-
-| Model link                                                                                           | Lang  | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Model type                                                              |
-| :------                                                                                              | :---: | :----:  | :--------:     | :---------------:      | :------                                                                 |
-| [ljspeech.wavenet.softmax.ns.v1](https://drive.google.com/open?id=1eA1VcRS9jzFa-DovyTgJLQ_jmwOLIi8L) | EN    | 22.05k  | None           | 1024 / 256 / None      | [Softmax WaveNet](https://github.com/kan-bayashi/PytorchWaveNetVocoder) |
-| [ljspeech.wavenet.mol.v1](https://drive.google.com/open?id=1sY7gEUg39QaO1szuN62-Llst9TrFno2t)        | EN    | 22.05k  | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [ljspeech.parallel_wavegan.v1](https://drive.google.com/open?id=1tv9GKyRT4CDsvUWKwH3s_OfXkiTi0gw7)   | EN    | 22.05k  | None           | 1024 / 256 / None      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-| [libritts.wavenet.mol.v1](https://drive.google.com/open?id=1jHUUmQFjWiQGyDd7ZeiCThSjjpbF_B4h)        | EN    | 24k     | None           | 1024 / 256 / None      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [jsut.wavenet.mol.v1](https://drive.google.com/open?id=187xvyNbmJVZ0EZ1XHCdyjZHTXK9EcfkK)            | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [jsut.parallel_wavegan.v1](https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM)       | JP    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
-| [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
-| [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      | ZH    | 24k     | 80-7600        | 2048 / 300 / 1200      | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
+```sh
+synth_wav.sh --help
+```
 
 </div></details>
 
 ### VC results
+
+<details><summary>expand</summary><div>
 
 - Transformer and Tacotron2 based VC
 
@@ -441,6 +435,7 @@ The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) ad
 In VCC2020, the objective is intra/cross lingual nonparallel VC.
 You can download converted samples of the cascade ASR+TTS baseline system [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
+</div></details>
 
 ### CTC Segmentation demo
 
