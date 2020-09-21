@@ -12,6 +12,7 @@ from typing import Tuple
 
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.nets_utils import get_activation
@@ -87,7 +88,7 @@ class ConformerEncoder(AbsEncoder):
         padding_idx: int = -1,
     ):
         """Construct an Encoder object."""
-        super(Encoder, self).__init__()
+        super().__init__()
         self._output_size = output_size
 
         activation = get_activation(activation_type)
@@ -103,23 +104,23 @@ class ConformerEncoder(AbsEncoder):
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
-                torch.nn.Linear(idim, output_size),
+                torch.nn.Linear(input_size, output_size),
                 torch.nn.LayerNorm(output_size),
                 torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(
-                idim,
+                input_size,
                 output_size,
                 dropout_rate,
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer == "vgg2l":
-            self.embed = VGG2L(idim, output_size)
+            self.embed = VGG2L(input_size, output_size)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(idim, output_size, padding_idx=padding_idx),
+                torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif isinstance(input_layer, torch.nn.Module):
