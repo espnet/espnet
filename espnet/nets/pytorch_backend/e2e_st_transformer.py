@@ -534,7 +534,6 @@ class E2E(STInterface, torch.nn.Module):
         x,
         trans_args,
         char_list=None,
-        use_jit=False,
     ):
         """Translate input speech.
 
@@ -577,10 +576,7 @@ class E2E(STInterface, torch.nn.Module):
         hyps = [hyp]
         ended_hyps = []
 
-        import six
-
-        traced_decoder = None
-        for i in six.moves.range(maxlen):
+        for i in range(maxlen):
             logging.debug("position " + str(i))
 
             # batchfy
@@ -589,29 +585,17 @@ class E2E(STInterface, torch.nn.Module):
                 ys[j, :] = torch.tensor(hyp["yseq"])
             ys_mask = subsequent_mask(i + 1).unsqueeze(0).to(h.device)
 
-            # FIXME: jit does not match non-jit result
-            if use_jit:
-                if traced_decoder is None:
-                    traced_decoder = torch.jit.trace(
-                        self.decoder.forward_one_step,
-                        (ys, ys_mask, h.repeat([len(hyps), 1, 1])),
-                    )
-                local_scores = traced_decoder(ys, ys_mask, h.repeat([len(hyps), 1, 1]))[
-                    0
-                ]
-            else:
-                local_scores = self.decoder.forward_one_step(
-                    ys, ys_mask, h.repeat([len(hyps), 1, 1])
-                )[0]
+            local_scores = self.decoder.forward_one_step(
+                ys, ys_mask, h.repeat([len(hyps), 1, 1])
+            )[0]
 
             hyps_best_kept = []
             for j, hyp in enumerate(hyps):
-
                 local_best_scores, local_best_ids = torch.topk(
                     local_scores[j : j + 1], beam, dim=1
                 )
 
-                for j in six.moves.range(beam):
+                for j in range(beam):
                     new_hyp = {}
                     new_hyp["score"] = hyp["score"] + float(local_best_scores[0, j])
                     new_hyp["yseq"] = [0] * (1 + len(hyp["yseq"]))
