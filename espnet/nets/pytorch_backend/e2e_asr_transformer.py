@@ -25,7 +25,7 @@ from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import mask_uniform
 from espnet.nets.pytorch_backend.transformer.argument import (
-    add_arguments_transformer_common,
+    add_arguments_transformer_common,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
