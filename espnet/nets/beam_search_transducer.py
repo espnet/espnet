@@ -113,7 +113,7 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
 
             ytu = (
                 torch.cat((top_k[0], ytu[0:1])),
-                torch.cat((top_k[1], blank_tensor)),
+                torch.cat((top_k[1] + 1, blank_tensor)),
             )
 
             if rnnlm:
@@ -132,11 +132,11 @@ def default_beam_search(decoder, h, recog_args, rnnlm=None):
                 else:
                     new_hyp.dec_state = state
 
-                    new_hyp.yseq.append(int(k + 1))
+                    new_hyp.yseq.append(int(k))
 
                     if rnnlm:
                         new_hyp.lm_state = rnnlm_state
-                        new_hyp.score += recog_args.lm_weight * rnnlm_scores[0][(k + 1)]
+                        new_hyp.score += recog_args.lm_weight * rnnlm_scores[0][k]
 
                     hyps.append(new_hyp)
 
@@ -209,14 +209,14 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
         A = []
         C = B
 
+        h_enc = hi.unsqueeze(0)
+
         for v in range(max_sym_exp):
             D = []
 
             beam_y, beam_state, beam_lm_tokens = decoder.batch_score(
                 C, beam_state, cache, init_tensor
             )
-
-            h_enc = hi.unsqueeze(0).expand(beam, -1)
 
             beam_logp = F.log_softmax(decoder.joint(h_enc, beam_y), dim=-1)
             beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
@@ -251,18 +251,16 @@ def time_sync_decoding(decoder, h, recog_args, rnnlm=None):
                     )
 
                 for i, hyp in enumerate(C):
-                    for logp, k in zip(beam_topk[0][i], beam_topk[1][i]):
+                    for logp, k in zip(beam_topk[0][i], beam_topk[1][i] + 1):
                         new_hyp = Hypothesis(
                             score=(hyp.score + float(logp)),
-                            yseq=(hyp.yseq + [int(k + 1)]),
+                            yseq=(hyp.yseq + [int(k)]),
                             dec_state=decoder.select_state(beam_state, i),
                             lm_state=hyp.lm_state,
                         )
 
                         if rnnlm:
-                            new_hyp.score += (
-                                recog_args.lm_weight * beam_lm_scores[i, (k + 1)]
-                            )
+                            new_hyp.score += recog_args.lm_weight * beam_lm_scores[i, k]
 
                             new_hyp.lm_state = select_lm_state(
                                 beam_lm_states, i, lm_type, lm_layers
@@ -375,18 +373,16 @@ def align_length_sync_decoding(decoder, h, recog_args, rnnlm=None):
                 if h_states[i][0] == (h_length - 1):
                     final.append(new_hyp)
 
-                for logp, k in zip(beam_topk[0][i], beam_topk[1][i]):
+                for logp, k in zip(beam_topk[0][i], beam_topk[1][i] + 1):
                     new_hyp = Hypothesis(
                         score=(hyp.score + float(logp)),
-                        yseq=(hyp.yseq[:] + [int(k + 1)]),
+                        yseq=(hyp.yseq[:] + [int(k)]),
                         dec_state=decoder.select_state(beam_state, i),
                         lm_state=hyp.lm_state,
                     )
 
                     if rnnlm:
-                        new_hyp.score += (
-                            recog_args.lm_weight * beam_lm_scores[i, (k + 1)]
-                        )
+                        new_hyp.score += recog_args.lm_weight * beam_lm_scores[i, k]
 
                         new_hyp.lm_state = select_lm_state(
                             beam_lm_states, i, lm_type, lm_layers
@@ -487,6 +483,8 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
         hyps = sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True)
         kept_hyps = []
 
+        h_enc = hi.unsqueeze(0)
+
         for j in range(len(hyps) - 1):
             for i in range((j + 1), len(hyps)):
                 if (
@@ -509,7 +507,6 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
         S = []
         V = []
         for n in range(nstep):
-            h_enc = hi.unsqueeze(0)
             beam_y = torch.stack([hyp.y[-1] for hyp in hyps])
 
             beam_logp = F.log_softmax(decoder.joint(h_enc, beam_y), dim=-1)
@@ -521,7 +518,7 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
             for i, hyp in enumerate(hyps):
                 i_topk = (
                     torch.cat((beam_topk[0][i], beam_logp[i, 0:1])),
-                    torch.cat((beam_topk[1][i], blank_tensor)),
+                    torch.cat((beam_topk[1][i] + 1, blank_tensor)),
                 )
 
                 for logp, k in zip(*i_topk):
@@ -537,11 +534,11 @@ def nsc_beam_search(decoder, h, recog_args, rnnlm=None):
                     if k == decoder.blank:
                         S.append(new_hyp)
                     else:
-                        new_hyp.yseq.append(int(k + 1))
+                        new_hyp.yseq.append(int(k))
 
                         if rnnlm:
                             new_hyp.score += recog_args.lm_weight * float(
-                                beam_lm_scores[i, (k + 1)]
+                                beam_lm_scores[i, k]
                             )
 
                         V.append(new_hyp)
