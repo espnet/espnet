@@ -4,7 +4,6 @@
 """Transformer speech recognition model (pytorch)."""
 
 from argparse import Namespace
-from distutils.util import strtobool
 from itertools import groupby
 import logging
 import math

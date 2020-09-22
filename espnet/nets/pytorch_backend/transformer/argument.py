@@ -1,4 +1,4 @@
-# Copyright 202 Hirofumi Inaguma
+# Copyright 2020 Hirofumi Inaguma
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Transformer common arguments."""
@@ -8,7 +8,7 @@ from distutils.util import strtobool
 
 
 def add_arguments_transformer_common(group):
-
+    """Add Transformer common arguments."""
     group.add_argument(
         "--transformer-init",
         type=str,
