@@ -109,24 +109,6 @@ def get_parser():
         default=0.0,
         help="Input length ratio to obtain min output length",
     )
-    # rnnlm related
-    parser.add_argument(
-        "--rnnlm", type=str, default=None, help="RNNLM model file to read"
-    )
-    parser.add_argument(
-        "--rnnlm-conf", type=str, default=None, help="RNNLM model config file to read"
-    )
-    parser.add_argument(
-        "--word-rnnlm", type=str, default=None, help="Word RNNLM model file to read"
-    )
-    parser.add_argument(
-        "--word-rnnlm-conf",
-        type=str,
-        default=None,
-        help="Word RNNLM model config file to read",
-    )
-    parser.add_argument("--word-dict", type=str, default=None, help="Word list to read")
-    parser.add_argument("--lm-weight", type=float, default=0.1, help="RNNLM weight")
     # multilingual related
     parser.add_argument(
         "--tgt-lang",
@@ -181,14 +163,6 @@ def main(args):
     random.seed(args.seed)
     np.random.seed(args.seed)
     logging.info("set random seed = %d" % args.seed)
-
-    # validate rnn options
-    if args.rnnlm is not None and args.word_rnnlm is not None:
-        logging.error(
-            "It seems that both --rnnlm and --word-rnnlm are specified. "
-            "Please use either option."
-        )
-        sys.exit(1)
 
     # trans
     logging.info("backend = " + args.backend)

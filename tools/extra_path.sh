@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 TOOL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 if [ -z "${TOOL_DIR}" ]; then
     echo "ERROR: Cannot derive the directory path of espnet/tools. This might be a bug."
@@ -12,4 +13,3 @@ export PATH="${TOOL_DIR}"/nkf/nkf-2.1.4:"${PATH:-}"
 export PATH="${TOOL_DIR}"/PESQ/P862_annex_A_2005_CD/source:"${PATH:-}"
 export PATH="${TOOL_DIR}"/kenlm/build/bin:"${PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/lib:"${TOOL_DIR}"/lib64:"${LD_LIBRARY_PATH:-}"
-

@@ -1077,6 +1077,7 @@ class AbsTask(ABC):
 
         # 6. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
+            logging.info(f"Loading pretrained params from {p} (key: {k})")
             load_pretrained_model(
                 model=model,
                 # Directly specify the model path e.g. exp/train/loss.best.pt

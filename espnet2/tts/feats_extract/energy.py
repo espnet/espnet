@@ -94,7 +94,8 @@ class Energy(AbsFeatsExtract):
 
         # input_stft: (..., F, 2) -> (..., F)
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
-        energy = torch.sqrt(torch.clamp(input_power.sum(dim=1), min=1.0e-10))
+        # sum over frequency (B, N, F) -> (B, N)
+        energy = torch.sqrt(torch.clamp(input_power.sum(dim=2), min=1.0e-10))
 
         # (Optional): Adjust length to match with the mel-spectrogram
         if feats_lengths is not None:
