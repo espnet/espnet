@@ -20,4 +20,4 @@ test_sets="tt_spatialized_anechoic_multich_${min_or_max}_${sample_rate}"
     --fs ${sample_rate} \
     --ngpu 2 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --srctexts "data/${train_set}/text_spk1 data/${train_set}/text_spk2" "$@"
+    --srctexts "data/train_si284/text data/local/other_text/text" "$@"

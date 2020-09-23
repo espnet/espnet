@@ -193,7 +193,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 )
                 si_snr = -si_snr_loss.detach()
 
-            stats = dict(si_snr=si_snr, loss=loss.detach(),)
+            stats = dict(
+                si_snr=si_snr,
+                loss=loss.detach(),
+            )
         else:
             stats = dict(si_snr=-loss.detach(), loss=loss.detach())
 
@@ -824,7 +827,7 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
             return loss, stats, weight
 
     def uttids_split(self, uttids, speech_mix, speech_ref):
-        """ Split all the mixtures from WSJ0_2mix with uttids
+        """Split all the mixtures from WSJ0_2mix with uttids
 
         Args:
             speech_mix: (Batch, samples) or (Batch, samples, channels)

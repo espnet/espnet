@@ -92,6 +92,32 @@ class EnhancementTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
 
+<<<<<<< HEAD:espnet2/tasks/enh.py
+=======
+        group = parser.add_argument_group(description="MIXit related")
+        group.add_argument(
+            "--N_per_mixture",
+            type=int,
+            default=4,
+            help="Number of sources for each mixture",
+        )
+        group.add_argument(
+            "--M_per_MoM",
+            type=int,
+            default=8,
+            help="M for each mixture of mixtures",
+        )
+        group.add_argument(
+            "--ratio_supervised",
+            type=float,
+            default=0.2,
+        )
+        group.add_argument(
+            "--SNR_max",
+            type=int,
+            default=30,
+        )
+>>>>>>> update multi-speaker ASR task:espnet2/tasks/enh_mixIT.py
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -119,7 +145,7 @@ class EnhancementTask(AbsTask):
 
     @classmethod
     def required_data_names(
-            cls, train: bool = True, inference: bool = False
+        cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
             retval = ("speech_mix", "speech_ref1")
@@ -130,7 +156,7 @@ class EnhancementTask(AbsTask):
 
     @classmethod
     def optional_data_names(
-            cls, train: bool = True, inference: bool = False
+        cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         retval = ["dereverb_ref"]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]

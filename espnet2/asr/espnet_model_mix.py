@@ -208,10 +208,7 @@ class ESPnetASRMixModel(AbsESPnetModel):
         return loss, stats, weight
 
     def collect_feats(
-        self,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        **kwargs
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor, **kwargs
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}

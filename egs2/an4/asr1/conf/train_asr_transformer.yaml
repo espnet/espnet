@@ -4,7 +4,7 @@ batch_size: 24
 max_epoch: 200
 =======
 batch_type: folded
-batch_size: 12
+batch_size: 16
 # accum_grad: 8
 max_epoch: 100
 >>>>>>> add multi-speaker ASR in egs2/TEMPLATE/asr1/asr_mix.sh and espnet2/asr/espnet_model_mix.py:egs2/wsj0_2mix_spatialized/asr1/conf/tuning/train_asr_transformer.yaml
@@ -60,8 +60,8 @@ frontend: default
 frontend_conf:
     fs: 16000
     n_fft: 512
-    win_length: 512
-    hop_length: 128
+    win_length: 400
+    hop_length: 160
     frontend_conf: null
 
 encoder: transformer
@@ -86,8 +86,11 @@ decoder_conf:
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
 
-asr_model_conf:
+joint_model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
-    enh_weight: 1000
+    enh_weight: 0.5
+    end2end_train: true
+    enh_return_type: waveform # waveform or spectrum or none
+    cal_enh_loss: true # whether to calculate enh_loss, need the reduce in ctc_conf
     length_normalized_loss: false

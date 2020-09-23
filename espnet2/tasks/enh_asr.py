@@ -300,6 +300,10 @@ class ASRTask(AbsTask):
 
         # 0. Build pre enhancement model
         enh_model = enh_choices.get_class(args.enh)(**args.enh_conf)
+<<<<<<< HEAD
+=======
+        enh_model = ESPnetEnhancementModel(enh_model)
+>>>>>>> update multi-speaker ASR task
 
         # 1. frontend
         if args.input_size is None:

@@ -84,7 +84,7 @@ def remove_pad(inputs, inputs_lengths):
 
 def chose_norm(norm_type, channel_size):
     """The input of normalization will be (M, C, K), where M is batch size,
-       C is channel size and K is sequence length.
+    C is channel size and K is sequence length.
     """
     if norm_type == "gLN":
         return GlobalLayerNorm(channel_size)
@@ -157,8 +157,7 @@ class GlobalLayerNorm(nn.Module):
 
 
 class Encoder(nn.Module):
-    """Estimation of the nonnegative mixture weight by a 1-D conv layer.
-    """
+    """Estimation of the nonnegative mixture weight by a 1-D conv layer."""
 
     def __init__(self, W=2, N=64):
         super(Encoder, self).__init__()

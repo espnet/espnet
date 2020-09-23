@@ -112,7 +112,9 @@ class DefaultFrontend(AbsFrontend):
 
         return input_feats, feats_lens
 
-    def _compute_stft(self, input: torch.Tensor, input_lengths: torch.Tensor) -> torch.Tensor:
+    def _compute_stft(
+        self, input: torch.Tensor, input_lengths: torch.Tensor
+    ) -> torch.Tensor:
         input_stft, feats_lens = self.stft(input, input_lengths)
 
         assert input_stft.dim() >= 4, input_stft.shape

@@ -13,7 +13,7 @@ train_set="tr_${min_or_max}_${sample_rate}"
 valid_set="cv_${min_or_max}_${sample_rate}"
 test_sets="tt_${min_or_max}_${sample_rate}"
 
-./enh_asr.sh \
+./asr_mix.sh \
     --lang "en" \
     --nbpe 5000 \
     --max_wav_duration 15 \

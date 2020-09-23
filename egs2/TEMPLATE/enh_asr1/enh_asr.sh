@@ -982,6 +982,7 @@ if ! "${skip_eval}"; then
                     --joint_train_config "${joint_exp}"/config.yaml \
                     --joint_model_file "${joint_exp}"/"${decode_joint_model}" \
                     --output_dir "${_logdir}"/output.JOB \
+                    --ref_channel ${ref_channel} \
                     ${_opts} ${decode_args}
 
             # 3. Concatenates the output files from each jobs

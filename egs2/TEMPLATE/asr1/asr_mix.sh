@@ -383,6 +383,7 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+                cp data/"${dset}"/text_spk* "${data_feats}${_suf}/${dset}"
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -606,9 +607,28 @@ fi
 
 
 if ! "${skip_train}"; then
+    # ========================== LM Begins ==========================
     if "${use_lm}"; then
         if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             log "Stage 6: LM collect stats: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+
+            # the srctexts should gets another one to aovid the duplicated keys
+            if [ ${spk_num} -ge 2 ]; then
+                _spk_list=" "
+                for i in $(seq ${spk_num}); do
+                    _spk_list+="spk${i} "
+                done
+                for spk in ${_spk_list}; do
+                    awk '{print "'$spk'_"$0}' "${data_feats}/${train_set}/text_${spk}" > "${data_feats}/srctexts_${spk}"
+                    awk '{print "'$spk'_"$0}' "${data_feats}/${valid_set}/text_${spk}" > "${data_feats}/valid_srctexts_${spk}"
+                    awk '{print "'$spk'_"$0}' "${data_feats}/org/${test_sets}/text_${spk}" > "${data_feats}/test_srctexts_${spk}"
+                done
+                cat ${data_feats}/srctexts_spk* | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/srctexts_with_spk"
+                cat ${data_feats}/valid_srctexts_spk* | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/valid_srctexts_with_spk"
+                cat ${data_feats}/test_srctexts_spk* | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/test_srctexts_with_spk"
+                lm_dev_text="${data_feats}/valid_srctexts_with_spk"      # Text file path of language model development set.
+                lm_test_text="${data_feats}/test_srctexts_with_spk"    # Text file path of language model evaluation set.
+            fi
 
             _opts=
             if [ -n "${lm_config}" ]; then
@@ -639,17 +659,14 @@ if ! "${skip_train}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Generate run.sh
-            log "Generate '${lm_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
-            mkdir -p "${lm_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${lm_stats_dir}/run.sh"; chmod +x "${lm_stats_dir}/run.sh"
-
-            # 3. Submit jobs
+            # 2. Submit jobs
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
+
             # shellcheck disable=SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-                ${python} -m espnet2.bin.lm_train \
+                python3 -m espnet2.bin.lm_train \
                     --collect_stats true \
                     --use_preprocessor true \
                     --bpemodel "${bpemodel}" \
@@ -663,15 +680,15 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${lm_args}
 
-            # 4. Aggregate shape files
+            # 3. Aggregate shape files
             _opts=
             for i in $(seq "${_nj}"); do
                 _opts+="--input_dir ${_logdir}/stats.${i} "
             done
             # shellcheck disable=SC2086
-            ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
+            python3 -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
 
             # Append the num-tokens at the last dimensions. This is used for batch-bins count
             <"${lm_stats_dir}/train/text_shape" \
@@ -686,6 +703,10 @@ if ! "${skip_train}"; then
 
         if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             log "Stage 7: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+            if [ ${spk_num} -ge 2 ]; then
+                lm_dev_text="${data_feats}/valid_srctexts_with_spk"      # Text file path of language model development set.
+                lm_test_text="${data_feats}/test_srctexts_with_spk"    # Text file path of language model evaluation set.
+            fi
 
             _opts=
             if [ -n "${lm_config}" ]; then
@@ -702,10 +723,10 @@ if ! "${skip_train}"; then
                 _split_dir="${lm_stats_dir}/splits${num_splits_lm}"
                 if [ ! -f "${_split_dir}/.done" ]; then
                     rm -f "${_split_dir}/.done"
-                    ${python} -m espnet2.bin.split_scps \
-                      --scps "${data_feats}/srctexts" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
-                      --num_splits "${num_splits_lm}" \
-                      --output_dir "${_split_dir}"
+                    python3 -m espnet2.bin.split_scps \
+                    --scps "${data_feats}/srctexts" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+                    --num_splits "${num_splits_lm}" \
+                    --output_dir "${_split_dir}"
                     touch "${_split_dir}/.done"
                 else
                     log "${_split_dir}/.done exists. Spliting is skipped"
@@ -722,26 +743,16 @@ if ! "${skip_train}"; then
 
             # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
-            log "Generate '${lm_exp}/run.sh'. You can resume the process from stage 7 using this script"
-            mkdir -p "${lm_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${lm_exp}/run.sh"; chmod +x "${lm_exp}/run.sh"
-
             log "LM training started... log: '${lm_exp}/train.log'"
-            if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
-                # SGE can't include "/" in a job name
-                jobname="$(basename ${lm_exp})"
-            else
-                jobname="${lm_exp}/train.log"
-            fi
-
             # shellcheck disable=SC2086
-            ${python} -m espnet2.bin.launch \
-                --cmd "${cuda_cmd} --name ${jobname}" \
+            python3 -m espnet2.bin.launch \
+                --cmd "${cuda_cmd} --name ${lm_exp}/train.log" \
                 --log "${lm_exp}"/train.log \
                 --ngpu "${ngpu}" \
                 --num_nodes "${num_nodes}" \
                 --init_file_prefix "${lm_exp}"/.dist_init_ \
                 --multiprocessing_distributed true -- \
-                ${python} -m espnet2.bin.lm_train \
+                python3 -m espnet2.bin.lm_train \
                     --ngpu "${ngpu}" \
                     --use_preprocessor true \
                     --bpemodel "${bpemodel}" \
@@ -762,12 +773,16 @@ if ! "${skip_train}"; then
 
         if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             log "Stage 8: Calc perplexity: ${lm_test_text}"
+            if [ ${spk_num} -ge 2 ]; then
+                lm_dev_text="${data_feats}/valid_srctexts_with_spk"      # Text file path of language model development set.
+                lm_test_text="${data_feats}/test_srctexts_with_spk"    # Text file path of language model evaluation set.
+            fi
             _opts=
             # TODO(kamo): Parallelize?
             log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
             # shellcheck disable=SC2086
             ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
-                ${python} -m espnet2.bin.lm_calc_perplexity \
+                python3 -m espnet2.bin.lm_calc_perplexity \
                     --ngpu "${ngpu}" \
                     --data_path_and_name_and_type "${lm_test_text},text,text" \
                     --train_config "${lm_exp}"/config.yaml \
@@ -781,6 +796,7 @@ if ! "${skip_train}"; then
     else
         log "Stage 6-8: Skip lm-related stages: use_lm=${use_lm}"
     fi
+    # ========================== LM Done here.==========================
 
 
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
@@ -845,7 +861,7 @@ if ! "${skip_train}"; then
         _valid_data_param="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${_scp},speech,${_type} "
         for spk in $(seq "${spk_num}"); do
             _train_data_param+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_spk${spk},text_ref${spk},text "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_asr_train_dir}/text_spk${spk},text_ref${spk},text "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_spk${spk},text_ref${spk},text "
         done
 
         # shellcheck disable=SC2086
@@ -981,9 +997,11 @@ if ! "${skip_train}"; then
 
         _valid_data_param="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${_scp},speech,${_type} "
         _valid_shape_param="--valid_shape_file ${asr_stats_dir}/valid/speech_shape "
+        _fold_length_param=""
         for spk in $(seq "${spk_num}"); do
             _valid_data_param+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_spk${spk},text_ref${spk},text "
             _valid_shape_param+="--valid_shape_file ${asr_stats_dir}/valid/text_ref${spk}_shape.${token_type} "
+            _fold_length_param+="--fold_length ${asr_text_fold_length} "
         done
 
         # shellcheck disable=SC2086
@@ -1006,7 +1024,7 @@ if ! "${skip_train}"; then
                 ${_valid_shape_param} \
                 --resume true \
                 --fold_length "${_fold_length}" \
-                --fold_length "${asr_text_fold_length}" \
+                ${_fold_length_param} \
                 --output_dir "${asr_exp}" \
                 ${_opts} ${asr_args}
 
@@ -1117,16 +1135,16 @@ if ! "${skip_eval}"; then
                     ${_opts} ${inference_args}
 
             # 3. Concatenates the output files from each jobs
-            for f in token token_int score text; do
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/1best_recog/${f}"
-                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+            for spk in $(seq "${spk_num}"); do
+                for f in token token_int score text; do
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/1best_recog_spk${spk}/${f}"
+                    done | LC_ALL=C sort -k1 >"${_dir}/${f}_spk${spk}"
+                done
             done
         done
     fi
 
-    # TODO (Wangyou)
-    exit 0;
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         log "Stage 12: Scoring"
         if [ "${token_type}" = pnh ]; then
@@ -1146,96 +1164,107 @@ if ! "${skip_eval}"; then
 
                 if [ "${_type}" = wer ]; then
                     # Tokenize text to word level
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
+                    for spk in $(seq "${spk_num}"); do
+                        paste \
+                            <(<"${_data}/text_spk${spk}" \
+                                  python3 -m espnet2.bin.tokenize_text  \
+                                      -f 2- --input - --output - \
+                                      --token_type word \
+                                      --non_linguistic_symbols "${nlsyms_txt}" \
+                                      --remove_non_linguistic_symbols true \
+                                      --cleaner "${cleaner}" \
+                                      ) \
+                            <(<"${_data}/text_spk${spk}" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/ref${spk}.trn"
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_dir}/text_spk${spk}"  \
+                                  python3 -m espnet2.bin.tokenize_text  \
+                                      -f 2- --input - --output - \
+                                      --token_type word \
+                                      --non_linguistic_symbols "${nlsyms_txt}" \
+                                      --remove_non_linguistic_symbols true \
+                                      ) \
+                            <(<"${_data}/text_spk${spk}" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/hyp${spk}.trn"
+                    done
 
 
                 elif [ "${_type}" = cer ]; then
                     # Tokenize text to char level
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
+                    for spk in $(seq "${spk_num}"); do
+                        paste \
+                            <(<"${_data}/text_spk${spk}" \
+                                  python3 -m espnet2.bin.tokenize_text  \
+                                      -f 2- --input - --output - \
+                                      --token_type char \
+                                      --non_linguistic_symbols "${nlsyms_txt}" \
+                                      --remove_non_linguistic_symbols true \
+                                      --cleaner "${cleaner}" \
+                                      ) \
+                            <(<"${_data}/text_spk${spk}" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/ref${spk}.trn"
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_dir}/text_spk${spk}"  \
+                                  python3 -m espnet2.bin.tokenize_text  \
+                                      -f 2- --input - --output - \
+                                      --token_type char \
+                                      --non_linguistic_symbols "${nlsyms_txt}" \
+                                      --remove_non_linguistic_symbols true \
+                                      ) \
+                            <(<"${_data}/text_spk${spk}" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/hyp${spk}.trn"
+                    done
 
                 elif [ "${_type}" = ter ]; then
                     # Tokenize text using BPE
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
-                                ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
+                    for spk in $(seq "${spk_num}"); do
+                        paste \
+                            <(<"${_data}/text_spk${spk}" \
+                                  python3 -m espnet2.bin.tokenize_text  \
+                                      -f 2- --input - --output - \
+                                      --token_type bpe \
+                                      --bpemodel "${bpemodel}" \
+                                      --cleaner "${cleaner}" \
+                                    ) \
+                            <(<"${_data}/text_spk${spk}" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/ref${spk}.trn"
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_dir}/text_spk${spk}" \
+                                  python3 -m espnet2.bin.tokenize_text  \
+                                      -f 2- --input - --output - \
+                                      --token_type bpe \
+                                      --bpemodel "${bpemodel}" \
+                                      --cleaner "${cleaner}" \
+                                      ) \
+                            <(<"${_data}/text_spk${spk}" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/hyp${spk}.trn"
+                    done
                 fi
 
-                sclite \
-                    -r "${_scoredir}/ref.trn" trn \
-                    -h "${_scoredir}/hyp.trn" trn \
-                    -i rm -o all stdout > "${_scoredir}/result.txt"
+                results_str=""
+                for (( i=0; i<$((spk_num * spk_num)); i++ )); do
+                    ind_r=$((i / spk_num + 1))
+                    ind_h=$((i % spk_num + 1))
+                    results_str+="${_scoredir}/result_r${ind_r}h${ind_h}.txt "
+                    sclite -r ${_scoredir}/ref${ind_r}.trn trn -h ${_scoredir}/hyp${ind_h}.trn trn -i rm -o all stdout > ${_scoredir}/result_r${ind_r}h${ind_h}.txt
+                done
 
-                log "Write ${_type} result in ${_scoredir}/result.txt"
-                grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+                log "Write ${_type} result in ${_scoredir}/min_perm_result.json"
+                ${python} -m utils.eval_perm_free_error --num-spkrs ${spk_num} \
+                    ${results_str} > ${_scoredir}/min_perm_result.json
+                sed -n '2,4p' ${_scoredir}/min_perm_result.json
             done
-
         done
 
         # Show results in Markdown syntax
-        scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
+        # TODO (Wangyou)
+        scripts/utils/show_asr_mix_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
         cat "${asr_exp}"/RESULTS.md
 
     fi
