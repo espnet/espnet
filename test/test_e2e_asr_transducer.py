@@ -293,7 +293,14 @@ def test_pytorch_transducer_gpu_trainable(backend, trans_type):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(trans_type=trans_type)
 
+    if trans_type == "warp-rnnt" and torch.version.cuda != "10.0":
+        with pytest.raises(ImportError):
+            model = E2E(idim, odim, train_args)
+
+        return
+
     model = E2E(idim, odim, train_args)
+
     model.cuda()
 
     batch = prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=True)

@@ -2,8 +2,6 @@
 
 """Transducer loss module."""
 
-import logging
-import sys
 import torch
 
 
@@ -32,11 +30,10 @@ class TransLoss(torch.nn.Module):
 
                     self.trans_loss = rnnt_loss
                 except ImportError:
-                    logging.error(
+                    raise ImportError(
                         "warp-rnnt is not installed. Please re-setup"
                         " espnet or use 'warp-transducer'"
                     )
-                    sys.exit(1)
             else:
                 raise ValueError("warp-rnnt is not supported in CPU mode")
         else:
