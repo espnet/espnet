@@ -24,7 +24,7 @@ RUN if [ -z "$( which nvcc )" ]; then \
     else \
         echo "Build with CUDA" && \
         # Docker containers cannot load cuda libs during build.
-        # So, they checks on cuda package are disable.
+        # So, their checks on cuda packages are disabled.
         sed -i '200s|install.py|install.py --no-cuda --no-cupy |' Makefile && \
         export CFLAGS="-I${CUDA_HOME}/include ${CFLAGS}" && \
         MY_OPTS="CUDA_VERSION=${CUDA_VER}" && \
