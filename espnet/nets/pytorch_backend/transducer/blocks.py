@@ -84,13 +84,13 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         if "type" in blocks_arch[i]:
             block_type = blocks_arch[i]["type"]
         else:
-            raise ValueError("type is not defined in the " + str(i) + "th block.")
+            raise ValueError("type is not defined in the " + str(i + 1) + "th block.")
 
         if block_type == "transformer":
             if not {"d_hidden", "d_ff", "heads"}.issubset(blocks_arch[i]):
                 raise ValueError(
                     "Block "
-                    + str(i)
+                    + str(i + 1)
                     + "in "
                     + net_part
                     + ": Transformer block format is: {'type: transformer', "
@@ -102,7 +102,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         elif block_type == "conformer":
             if net_part != "encoder":
                 raise ValueError(
-                    "Block " + str(i) + ": conformer type is only for encoder part."
+                    "Block " + str(i + 1) + ": conformer type is only for encoder part."
                 )
 
             if not {
@@ -114,7 +114,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
             }.issubset(blocks_arch[i]):
                 raise ValueError(
                     "Block "
-                    + str(i)
+                    + str(i + 1)
                     + " in "
                     + net_part
                     + ": Conformer block format is {'type: conformer', "
@@ -128,7 +128,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
             ):
                 raise ValueError(
                     "Block "
-                    + str(i)
+                    + str(i + 1)
                     + ": 'use_conv_mod' is True but 'use_conv_kernel' is not specified"
                 )
 
@@ -141,7 +141,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
             if not {"idim", "odim", "kernel_size"}.issubset(blocks_arch[i]):
                 raise ValueError(
                     "Block "
-                    + str(i)
+                    + str(i + 1)
                     + " in "
                     + net_part
                     + ": causal conv1d block format is: {'type: causal-conv1d', "
@@ -158,7 +158,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
             ):
                 raise ValueError(
                     "Block "
-                    + str(i)
+                    + str(i + 1)
                     + " in "
                     + net_part
                     + ": TDNN block format is: {'type: tdnn', "
@@ -173,7 +173,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         else:
             raise NotImplementedError(
                 "Wrong type for block "
-                + str(i)
+                + str(i + 1)
                 + " in "
                 + net_part
                 + ". Currently supported: "
@@ -190,9 +190,9 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         if cmp_io[(i - 1)][1] != cmp_io[i][0]:
             raise ValueError(
                 "Output/Input mismatch between blocks "
-                + str(i - 1)
-                + " and "
                 + str(i)
+                + " and "
+                + str(i + 1)
                 + " in "
                 + net_part
             )
