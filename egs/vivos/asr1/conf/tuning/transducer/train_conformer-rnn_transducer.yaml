@@ -13,21 +13,20 @@ patience: 0
 accum-grad: 4
 grad-clip: 5.0
 
-# transformer related
-transformer-lr: 10.0
-transformer-warmup-steps: 8000
-
 # network architecture
 ## encoder related
 etype: transformer
-transformer-enc-input-layer: vgg2l
+transformer-enc-input-layer: conv2d
 enc-block-arch:
-        - type: transformer
+        - type: conformer
           d_hidden: 320
           d_ff: 320
           heads: 4
+          macaron_style: True
+          use_conv_mod: True
+          conv_mod_kernel: 15
           att-dropout-rate: 0.4
-enc-block-repeat: 6
+enc-block-repeat: 8
 ## decoder related
 dtype: lstm
 dlayers: 1
@@ -37,6 +36,14 @@ dropout-rate-decoder: 0.2
 dropout-rate-embed-decoder: 0.1
 ## joint network related
 joint-dim: 300
+
+# transformer related
+transformer-lr: 10.0
+transformer-warmup-steps: 8000
+
+# conformer related
+transformer-enc-positional-encoding-type: rel_pos
+transformer-enc-self-attn-type: rel_self_attn
 
 # transducer related
 rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention
