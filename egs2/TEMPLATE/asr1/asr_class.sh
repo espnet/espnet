@@ -301,7 +301,7 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-asr_stats_dir="${expdir}/asr_stats_$(basename "${asr_config}" .yaml)_${feats_type}"
+asr_stats_dir="${expdir}/asr_stats_${feats_type}"
 if [ -n "${speed_perturb_factors}" ]; then
     asr_stats_dir="${asr_stats_dir}_sp"
 fi
@@ -1081,7 +1081,7 @@ if ! "${skip_eval}"; then
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
             # shellcheck disable=SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
+            ${_cmd} JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
                 ${python} -m espnet2.bin.asr_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
