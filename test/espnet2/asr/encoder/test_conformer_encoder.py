@@ -31,10 +31,10 @@ def test_encoder_forward_backward(
         positionwise_layer_type=positionwise_layer_type,
     )
     if input_layer == "embed":
-        x = torch.randint(0, 10, [2, 16])
+        x = torch.randint(0, 10, [2, 32])
     else:
-        x = torch.randn(2, 16, 20, requires_grad=True)
-    x_lens = torch.LongTensor([16, 8])
+        x = torch.randn(2, 32, 20, requires_grad=True)
+    x_lens = torch.LongTensor([32, 28])
     y, _, _ = encoder(x, x_lens)
     y.sum().backward()
 
