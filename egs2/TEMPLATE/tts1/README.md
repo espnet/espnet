@@ -363,7 +363,7 @@ We recommend modifying the following part in `utils/validate_data_dir.sh` to be 
 
 https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
 
-> utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces
+> utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces  
 > utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)
 
 The use of zenkaku whitespace in `text` is not allowed.
