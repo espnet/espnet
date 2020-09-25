@@ -14,7 +14,7 @@ class VGG2L(torch.nn.Module):
 
     def __init__(self, idim, odim):
         """Construct a VGG2L object."""
-        super(VGG2L, self).__init__()
+        super().__init__()
 
         self.vgg2l = torch.nn.Sequential(
             torch.nn.Conv2d(1, 64, 3, stride=1, padding=1),

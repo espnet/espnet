@@ -77,7 +77,7 @@ def get_default_scope_inputs():
     return bs, idim, odim, ilens, olens
 
 
-def prepare(backend, args):
+def prepare(args):
     bs, idim, odim, ilens, olens = get_default_scope_inputs()
     n_token = odim - 1
 
@@ -201,7 +201,7 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)
 
-    model, x, ilens, y, data = prepare("pytorch", train_args)
+    model, x, ilens, y, data = prepare(train_args)
 
     optim = torch.optim.Adam(model.parameters(), 0.01)
     loss = model(x, ilens, y)
@@ -222,7 +222,7 @@ def test_calculate_plot_attention():
 
     train_args = make_train_args(report_cer=True)
 
-    model, x, ilens, y, data = prepare("pytorch", train_args)
+    model, x, ilens, y, data = prepare(train_args)
 
     attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
     plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
