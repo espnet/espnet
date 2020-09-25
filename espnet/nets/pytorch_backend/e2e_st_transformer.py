@@ -20,7 +20,7 @@ from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_st import Reporter
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
@@ -165,7 +165,10 @@ class E2E(STInterface, torch.nn.Module):
         )
         # Encoder
         group.add_argument(
-            "--elayers", default=4, type=int, help="Number of encoder layers",
+            "--elayers",
+            default=4,
+            type=int,
+            help="Number of encoder layers",
         )
         group.add_argument(
             "--eunits",
@@ -349,7 +352,7 @@ class E2E(STInterface, torch.nn.Module):
 
         # 1. forward encoder
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
-        src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
+        src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
 
         # 2. forward decoder
@@ -499,7 +502,9 @@ class E2E(STInterface, torch.nn.Module):
         xs = [x[x != self.ignore_id] for x in xs_pad]  # parse padded xs
         xs_zero_pad = pad_list(xs, self.pad)  # re-pad with zero
         xs_zero_pad = xs_zero_pad[:, : max(ilens)]  # for data parallel
-        src_mask = (~make_pad_mask(ilens.tolist())).to(xs_zero_pad.device).unsqueeze(-2)
+        src_mask = (
+            make_non_pad_mask(ilens.tolist()).to(xs_zero_pad.device).unsqueeze(-2)
+        )
         hs_pad, hs_mask = self.encoder_mt(xs_zero_pad, src_mask)
         pred_pad, _ = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         loss = self.criterion(pred_pad, ys_out_pad)
@@ -525,14 +530,16 @@ class E2E(STInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def translate(
-        self, x, trans_args, char_list=None, rnnlm=None, use_jit=False,
+        self,
+        x,
+        trans_args,
+        char_list=None,
     ):
         """Translate input speech.
 
         :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
         :param Namespace trans_args: argment Namespace contraining options
         :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
         :return: N-best decoding results
         :rtype: list
         """
@@ -544,79 +551,56 @@ class E2E(STInterface, torch.nn.Module):
             y = self.sos
         logging.info("<sos> index: " + str(y))
         logging.info("<sos> mark: " + char_list[y])
+        logging.info("input lengths: " + str(x.shape[0]))
 
         enc_output = self.encode(x).unsqueeze(0)
-        h = enc_output.squeeze(0)
 
-        logging.info("input lengths: " + str(h.size(0)))
+        h = enc_output
+
+        logging.info("encoder output lengths: " + str(h.size(1)))
         # search parms
         beam = trans_args.beam_size
         penalty = trans_args.penalty
 
-        vy = h.new_zeros(1).long()
-
         if trans_args.maxlenratio == 0:
-            maxlen = h.shape[0]
+            maxlen = h.size(1)
         else:
             # maxlen >= 1
-            maxlen = max(1, int(trans_args.maxlenratio * h.size(0)))
-        minlen = int(trans_args.minlenratio * h.size(0))
+            maxlen = max(1, int(trans_args.maxlenratio * h.size(1)))
+        minlen = int(trans_args.minlenratio * h.size(1))
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
         # initialize hypothesis
-        if rnnlm:
-            hyp = {"score": 0.0, "yseq": [y], "rnnlm_prev": None}
-        else:
-            hyp = {"score": 0.0, "yseq": [y]}
+        hyp = {"score": 0.0, "yseq": [y]}
         hyps = [hyp]
         ended_hyps = []
 
-        import six
-
-        traced_decoder = None
-        for i in six.moves.range(maxlen):
+        for i in range(maxlen):
             logging.debug("position " + str(i))
 
+            # batchfy
+            ys = h.new_zeros((len(hyps), i + 1), dtype=torch.int64)
+            for j, hyp in enumerate(hyps):
+                ys[j, :] = torch.tensor(hyp["yseq"])
+            ys_mask = subsequent_mask(i + 1).unsqueeze(0).to(h.device)
+
+            local_scores = self.decoder.forward_one_step(
+                ys, ys_mask, h.repeat([len(hyps), 1, 1])
+            )[0]
+
             hyps_best_kept = []
-            for hyp in hyps:
-                vy[0] = hyp["yseq"][i]
-
-                # get nbest local scores and their ids
-                ys_mask = subsequent_mask(i + 1).unsqueeze(0)
-                ys = torch.tensor(hyp["yseq"]).unsqueeze(0)
-                # FIXME: jit does not match non-jit result
-                if use_jit:
-                    if traced_decoder is None:
-                        traced_decoder = torch.jit.trace(
-                            self.decoder.forward_one_step, (ys, ys_mask, enc_output)
-                        )
-                    local_att_scores = traced_decoder(ys, ys_mask, enc_output)[0]
-                else:
-                    local_att_scores = self.decoder.forward_one_step(
-                        ys, ys_mask, enc_output
-                    )[0]
-
-                if rnnlm:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp["rnnlm_prev"], vy)
-                    local_scores = (
-                        local_att_scores + trans_args.lm_weight * local_lm_scores
-                    )
-                else:
-                    local_scores = local_att_scores
-
+            for j, hyp in enumerate(hyps):
                 local_best_scores, local_best_ids = torch.topk(
-                    local_scores, beam, dim=1
+                    local_scores[j : j + 1], beam, dim=1
                 )
 
-                for j in six.moves.range(beam):
+                for j in range(beam):
                     new_hyp = {}
                     new_hyp["score"] = hyp["score"] + float(local_best_scores[0, j])
                     new_hyp["yseq"] = [0] * (1 + len(hyp["yseq"]))
                     new_hyp["yseq"][: len(hyp["yseq"])] = hyp["yseq"]
                     new_hyp["yseq"][len(hyp["yseq"])] = int(local_best_ids[0, j])
-                    if rnnlm:
-                        new_hyp["rnnlm_prev"] = rnnlm_state
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 
@@ -648,10 +632,6 @@ class E2E(STInterface, torch.nn.Module):
                     # also add penalty
                     if len(hyp["yseq"]) > minlen:
                         hyp["score"] += (i + 1) * penalty
-                        if rnnlm:  # Word LM needs to add final <eos> score
-                            hyp["score"] += trans_args.lm_weight * rnnlm.final(
-                                hyp["rnnlm_prev"]
-                            )
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
@@ -689,7 +669,7 @@ class E2E(STInterface, torch.nn.Module):
             # should copy becasuse Namespace will be overwritten globally
             trans_args = Namespace(**vars(trans_args))
             trans_args.minlenratio = max(0.0, trans_args.minlenratio - 0.1)
-            return self.translate(x, trans_args, char_list, rnnlm)
+            return self.translate(x, trans_args, char_list)
 
         logging.info("total log probability: " + str(nbest_hyps[0]["score"]))
         logging.info(

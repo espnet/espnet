@@ -7,6 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
+python=python3
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
@@ -23,6 +24,12 @@ decode_config=conf/decode.yaml # multi-encoders conf/decode_mulenc2.yaml
 
 # decoding parameter
 trans_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+
+# model average realted (only for transformer)
+n_average=2                  # the number of MT models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best MT models will be averaged.
+                             # if false, the last `n_average` MT models will be averaged.
+metric=bleu                  # loss/acc/bleu
 
 # preprocessing related
 src_case=lc.rm
@@ -72,7 +79,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         exit 1
     fi
 
-    python local/data_prep.py ${an4_root} ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+    python3 local/data_prep.py ${an4_root} sph2pipe
 
     for x in test train; do
         for f in text wav.scp utt2spk; do
@@ -149,7 +156,7 @@ mkdir -p ${expdir}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        mt_train.py \
+        ${python} -m espnet.bin.mt_train \
         --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -167,6 +174,23 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        # Average MT models
+        if ${use_valbest_average}; then
+            trans_model=model.val${n_average}.avg.best
+            opt="--log ${expdir}/results/log --metric ${metric}"
+        else
+            trans_model=model.last${n_average}.avg.best
+            opt="--log"
+        fi
+        average_checkpoints.py \
+            ${opt} \
+            --backend ${backend} \
+            --snapshots ${expdir}/results/snapshot.ep.* \
+            --out ${expdir}/results/${trans_model} \
+            --num ${n_average}
+    fi
+
     nj=2
 
     pids=() # initialize pids
@@ -179,7 +203,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            mt_trans.py \
+            ${python} -m espnet.bin.mt_trans \
             --config ${decode_config} \
             --ngpu ${decode_ngpu} \
             --backend ${backend} \

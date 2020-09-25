@@ -28,8 +28,8 @@ cat << EOF
 - date: \`$(LC_ALL=C date)\`
 EOF
 
-python << EOF
-import sys, espnet, chainer, torch
+python3 << EOF
+import sys, espnet, torch
 pyversion = sys.version.replace('\n', ' ')
 
 print(f"""- python version: \`{pyversion}\`

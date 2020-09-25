@@ -38,6 +38,7 @@ class Archiver:
         if self.type == "tar":
             self.fopen = tarfile.open(file, mode=mode)
         elif self.type == "zip":
+
             self.fopen = zipfile.ZipFile(file, mode=mode)
         else:
             raise ValueError(f"Not supported: type={type}")
@@ -59,7 +60,25 @@ class Archiver:
         else:
             raise ValueError(f"Not supported: type={self.type}")
 
-    def add(self, filename, arcname=None):
+    def add(self, filename, arcname=None, recursive: bool = True):
+        if arcname is not None:
+            print(f"adding: {arcname}")
+        else:
+            print(f"adding: {filename}")
+
+        if recursive and Path(filename).is_dir():
+            for f in Path(filename).glob("**/*"):
+                if f.is_dir():
+                    continue
+
+                if arcname is not None:
+                    _arcname = Path(arcname) / f
+                else:
+                    _arcname = None
+
+                self.add(f, _arcname)
+            return
+
         if self.type == "tar":
             return self.fopen.add(filename, arcname)
         elif self.type == "zip":
@@ -68,6 +87,8 @@ class Archiver:
             raise ValueError(f"Not supported: type={self.type}")
 
     def addfile(self, info, fileobj):
+        print(f"adding: {self.get_name_from_info(info)}")
+
         if self.type == "tar":
             return self.fopen.addfile(info, fileobj)
         elif self.type == "zip":
@@ -162,7 +183,9 @@ def get_dict_from_cache(meta: Union[Path, str]) -> Optional[Dict[str, str]]:
 
 
 def unpack(
-    input_archive: Union[Path, str], outpath: Union[Path, str], use_cache: bool = True,
+    input_archive: Union[Path, str],
+    outpath: Union[Path, str],
+    use_cache: bool = True,
 ) -> Dict[str, str]:
     """Scan all files in the archive file and return as a dict of files.
 
@@ -275,3 +298,5 @@ def pack(
 
         for f in list(yaml_files.values()) + list(files.values()) + list(option):
             archive.add(f)
+
+    print(f"Generate: {outpath}")

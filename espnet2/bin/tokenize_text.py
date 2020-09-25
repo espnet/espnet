@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 from collections import Counter
 import logging
@@ -179,7 +180,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--log_level",
         type=lambda x: x.upper(),
         default="INFO",
-        choices=("INFO", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+        choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
     )
 

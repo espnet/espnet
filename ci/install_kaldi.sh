@@ -8,7 +8,6 @@ set -euo pipefail
     cd ./tools/kaldi/tools || exit 1
     echo "" > extras/check_dependencies.sh
     chmod +x extras/check_dependencies.sh
-    make sph2pipe sclite
 )
 
 # download pre-built kaldi binary

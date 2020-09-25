@@ -22,17 +22,25 @@ class TFMaskingNet(AbsEnhancement):
         unit: int = 512,
         dropout: float = 0.0,
         num_spk: int = 2,
-        none_linear: str = "sigmoid",
+        nonlinear: str = "sigmoid",
         utt_mvn: bool = False,
         mask_type: str = "IRM",
+        loss_type: str = "mask_mse",
     ):
         super(TFMaskingNet, self).__init__()
 
         self.num_spk = num_spk
         self.num_bin = n_fft // 2 + 1
         self.mask_type = mask_type
+        self.loss_type = loss_type
+        if loss_type not in ("mask_mse", "magnitude", "spectrum"):
+            raise ValueError("Unsupported loss type: %s" % loss_type)
 
-        self.stft = Stft(n_fft=n_fft, win_length=win_length, hop_length=hop_length,)
+        self.stft = Stft(
+            n_fft=n_fft,
+            win_length=win_length,
+            hop_length=hop_length,
+        )
 
         if utt_mvn:
             self.utt_mvn = UtteranceMVN(norm_means=True, norm_vars=True)
@@ -53,14 +61,14 @@ class TFMaskingNet(AbsEnhancement):
             [torch.nn.Linear(unit, self.num_bin) for _ in range(self.num_spk)]
         )
 
-        if none_linear not in ("sigmoid", "relu", "tanh"):
-            raise ValueError("Not supporting none_linear={}".format(none_linear))
+        if nonlinear not in ("sigmoid", "relu", "tanh"):
+            raise ValueError("Not supporting nonlinear={}".format(nonlinear))
 
-        self.none_linear = {
+        self.nonlinear = {
             "sigmoid": torch.nn.Sigmoid(),
             "relu": torch.nn.ReLU(),
             "tanh": torch.nn.Tanh(),
-        }[none_linear]
+        }[nonlinear]
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """Forward.
@@ -97,13 +105,15 @@ class TFMaskingNet(AbsEnhancement):
         masks = []
         for linear in self.linear:
             y = linear(x)
-            y = self.none_linear(y)
+            y = self.nonlinear(y)
             masks.append(y)
 
-        # apply mask
-        predict_magnitude = [m * input_magnitude for m in masks]
-
-        predicted_spectrums = [input_phase * pm for pm in predict_magnitude]
+        if self.training and self.loss_type.startswith("mask"):
+            predicted_spectrums = None
+        else:
+            # apply mask
+            predict_magnitude = [input_magnitude * m for m in masks]
+            predicted_spectrums = [input_phase * pm for pm in predict_magnitude]
 
         masks = OrderedDict(
             zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
@@ -133,7 +143,15 @@ class TFMaskingNet(AbsEnhancement):
         # predict spectrum for each speaker
         predicted_spectrums, flens, masks = self.forward(input, ilens)
 
-        # complex spectrum -> raw wave
-        predicted_wavs = [self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums]
+        if predicted_spectrums is None:
+            predicted_wavs = None
+        elif isinstance(predicted_spectrums, list):
+            # multi-speaker input
+            predicted_wavs = [
+                self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums
+            ]
+        else:
+            # single-speaker input
+            predicted_wavs = self.stft.inverse(predicted_spectrums, ilens)[0]
 
         return predicted_wavs, ilens, masks

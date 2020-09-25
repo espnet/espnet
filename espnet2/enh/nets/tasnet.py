@@ -99,6 +99,7 @@ class TasNet(AbsEnhancement):
         norm_type: str = "gLN",
         causal: bool = False,
         mask_nonlinear: str = "relu",
+        loss_type: str = "si_snr",
     ):
         """Main tasnet class.
 
@@ -131,6 +132,10 @@ class TasNet(AbsEnhancement):
             R,
             num_spk,
         )
+        self.loss_type = loss_type
+        if loss_type != "si_snr":
+            raise ValueError("Unsupported loss type: %s" % loss_type)
+
         self.norm_type = norm_type
         self.causal = causal
         self.mask_nonlinear = mask_nonlinear
@@ -472,8 +477,8 @@ def check_nonlinear(nolinear_type):
 def chose_norm(norm_type, channel_size):
     """The input of normalization will be (M, C, K), where M is batch size.
 
-     C is channel size and K is sequence length.
-     """
+    C is channel size and K is sequence length.
+    """
     if norm_type == "gLN":
         return GlobalLayerNorm(channel_size)
     elif norm_type == "cLN":

@@ -11,7 +11,7 @@ fi
 if [ ! -e hts_engine_API.done ]; then
     rm -rf hts_engine_API
     git clone https://github.com/r9y9/hts_engine_API.git
-    ( 
+    (
         set -euo pipefail
         cd hts_engine_API/src && ./waf configure --prefix=../../ && ./waf build install
     )
@@ -40,7 +40,7 @@ if [ ! -e pyopenjtalk.done ]; then
     git clone https://github.com/r9y9/pyopenjtalk.git
     (
         set -euo pipefail
-        cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(pwd)/../ pip install -e .
+        cd pyopenjtalk && OPEN_JTALK_INSTALL_PREFIX=$(pwd)/../ python3 -m pip install -e .
     )
     touch pyopenjtalk.done
 else

@@ -7,7 +7,6 @@
 
 """ConvolutionModule definition."""
 
-import torch
 from torch import nn
 
 
@@ -19,14 +18,19 @@ class ConvolutionModule(nn.Module):
 
     """
 
-    def __init__(self, channels, kernel_size, bias=True):
+    def __init__(self, channels, kernel_size, activation=nn.ReLU(), bias=True):
         """Construct an ConvolutionModule object."""
         super(ConvolutionModule, self).__init__()
         # kernerl_size should be a odd number for 'SAME' padding
         assert (kernel_size - 1) % 2 == 0
 
         self.pointwise_conv1 = nn.Conv1d(
-            channels, 2 * channels, kernel_size=1, stride=1, padding=0, bias=bias,
+            channels,
+            2 * channels,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias=bias,
         )
         self.depthwise_conv = nn.Conv1d(
             channels,
@@ -39,9 +43,14 @@ class ConvolutionModule(nn.Module):
         )
         self.norm = nn.BatchNorm1d(channels)
         self.pointwise_conv2 = nn.Conv1d(
-            channels, channels, kernel_size=1, stride=1, padding=0, bias=bias,
+            channels,
+            channels,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias=bias,
         )
-        self.activation = Swish()
+        self.activation = activation
 
     def forward(self, x):
         """Compute convolution module.
@@ -63,11 +72,3 @@ class ConvolutionModule(nn.Module):
         x = self.pointwise_conv2(x)
 
         return x.transpose(1, 2)
-
-
-class Swish(nn.Module):
-    """Construct an Swish function object."""
-
-    def forward(self, x):
-        """Return an Swich activation function."""
-        return x * torch.sigmoid(x)

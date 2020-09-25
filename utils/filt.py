@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 # Apache 2.0
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import codecs
