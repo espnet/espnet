@@ -4,7 +4,9 @@ import torch
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 
 
-@pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed"])
+@pytest.mark.parametrize(
+    "input_layer", ["linear", "conv2d", "conv2d6", "conv2d8", "embed"]
+)
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
 @pytest.mark.parametrize(
     "pos_enc_layer_type, selfattention_layer_type",
@@ -29,10 +31,10 @@ def test_encoder_forward_backward(
         positionwise_layer_type=positionwise_layer_type,
     )
     if input_layer == "embed":
-        x = torch.randint(0, 10, [2, 10])
+        x = torch.randint(0, 10, [2, 16])
     else:
-        x = torch.randn(2, 10, 20, requires_grad=True)
-    x_lens = torch.LongTensor([10, 8])
+        x = torch.randn(2, 16, 20, requires_grad=True)
+    x_lens = torch.LongTensor([16, 8])
     y, _, _ = encoder(x, x_lens)
     y.sum().backward()
 
