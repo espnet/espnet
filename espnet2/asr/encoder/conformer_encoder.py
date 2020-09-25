@@ -211,7 +211,7 @@ class ConformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """Calculate forward propagation.
 
         Args:
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
