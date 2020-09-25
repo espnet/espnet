@@ -35,7 +35,7 @@ This is a template of TTS recipe for ESPnet2.
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
     * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
-    * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dir.sh)
+    * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
     * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
     * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
 
@@ -359,7 +359,8 @@ See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.
 > utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line
 
 This is caused by the recent change in kaldi.
-We recommend modifying the `utils/validate_data_dir.sh` to be `non_print=true`.
+We recommend modifying the following part in `utils/validate_data_dir.sh` to be `non_print=true`.
+
 https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
 
 > utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces
