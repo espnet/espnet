@@ -20,7 +20,8 @@ class DecoderLayer(nn.Module):
 
     def __init__(self, size, self_attn, feed_forward, dropout_rate):
         """Construct an DecoderLayer object."""
-        super(DecoderLayer, self).__init__()
+        super().__init__()
+
         self.self_attn = self_attn
         self.feed_forward = feed_forward
 

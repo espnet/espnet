@@ -15,7 +15,7 @@ class TransLoss(torch.nn.Module):
 
     def __init__(self, trans_type, blank_id):
         """Construct an TransLoss object."""
-        super(TransLoss, self).__init__()
+        super().__init__()
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

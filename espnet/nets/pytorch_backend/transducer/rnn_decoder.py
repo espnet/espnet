@@ -41,7 +41,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         dropout_embed=0.0,
     ):
         """Transducer initializer."""
-        super(DecoderRNNT, self).__init__()
+        super().__init__()
 
         self.embed = torch.nn.Embedding(odim, embed_dim, padding_idx=blank)
         self.dropout_embed = torch.nn.Dropout(p=dropout_embed)
@@ -87,11 +87,11 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         """
         z_list = [
-            to_device(self, torch.zeros(init_tensor.size(0), self.dunits))
+            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
             for _ in range(self.dlayers)
         ]
         c_list = [
-            to_device(self, torch.zeros(init_tensor.size(0), self.dunits))
+            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
             for _ in range(self.dlayers)
         ]
 

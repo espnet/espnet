@@ -33,7 +33,7 @@ class TDNN(torch.nn.Module):
         dropout_rate=0.0,
     ):
         """Construct a TDNN object."""
-        super(TDNN, self).__init__()
+        super().__init__()
 
         self.idim = idim
         self.odim = odim

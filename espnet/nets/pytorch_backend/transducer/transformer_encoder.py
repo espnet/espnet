@@ -42,7 +42,7 @@ class Encoder(torch.nn.Module):
         padding_idx=-1,
     ):
         """Construct an Transformer encoder object."""
-        super(Encoder, self).__init__()
+        super().__init__()
 
         self.embed, self.encoders, self.enc_out = build_blocks(
             "encoder",
