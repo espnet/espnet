@@ -30,8 +30,8 @@ tts_conf:             # keyword arguments for the selected model
     postnet_filts: 5                  # filter size of conv layers in postnet
     postnet_chans: 256                # number of channels of conv layers in postnet
     use_masking: True                 # whether to apply masking for padded part in loss calculation
-    encoder_normalize_before: False   # whether to perform layer normalization before the input
-    decoder_normalize_before: False   # whether to perform layer normalization before the input
+    encoder_normalize_before: True    # whether to perform layer normalization before the input
+    decoder_normalize_before: True    # whether to perform layer normalization before the input
     reduction_factor: 1               # reduction factor
     encoder_type: conformer           # encoder type
     decoder_type: conformer           # decoder type
