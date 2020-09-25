@@ -17,7 +17,7 @@ def test_encoder_forward_backward(
 ):
     encoder = ConformerEncoder(
         20,
-        output_size=40,
+        output_size=2,
         attention_heads=2,
         linear_units=4,
         num_blocks=2,
