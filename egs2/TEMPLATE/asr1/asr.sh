@@ -799,10 +799,10 @@ if ! "${skip_train}"; then
         _feats_type="$(<${_asr_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
             else
+                # "sound" supports "wav", "flac", etc.
                 _type=sound
             fi
             _opts+="--frontend_conf fs=${fs} "

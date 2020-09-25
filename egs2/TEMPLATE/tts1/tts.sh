@@ -46,7 +46,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=flac    # Audio format (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 # Only used for feats_type != raw
@@ -128,7 +128,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
-    --audio_format     # Audio format (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --fs               # Sampling rate (default="${fs}").
@@ -462,8 +462,12 @@ if ! "${skip_train}"; then
         _feats_type="$(<${_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
             _opts+="--feats_extract fbank "
             _opts+="--feats_extract_conf fs=${fs} "
             _opts+="--feats_extract_conf n_fft=${n_fft} "
@@ -824,7 +828,12 @@ if ! "${skip_eval}"; then
 
         # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
         _scp=wav.scp
-        _type=sound
+        if [[ "${audio_format}" == *ark* ]]; then
+            _type=kaldi_ark
+        else
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+        fi
         if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
             _opts+="--vocoder_conf n_fft=${n_fft} "
             _opts+="--vocoder_conf n_shift=${n_shift} "
