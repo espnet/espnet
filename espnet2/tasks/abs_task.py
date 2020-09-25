@@ -699,7 +699,8 @@ class AbsTask(ABC):
             "--max_cache_fd",
             type=int,
             default=32,
-            help="The maximum number of file descriptors to be kept as opened for ark files. "
+            help="The maximum number of file descriptors to be kept "
+            "as opened for ark files. "
             "This feature is only valid when data type is 'kaldi_ark'.",
         )
         group.add_argument(
