@@ -127,64 +127,181 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 ```
 
 # Below are preliminaries results for transducer and transducer-attention.
-# Note that current recipes can demonstrate slightly different results compared to the ones reported here.
 
-# Default transducer ('rnnt')
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1082   79133 | 89.9    5.1    5.0    2.8   12.8   97.1 |
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1055   77966 | 90.0    5.0    4.9    2.5   12.4   97.3 |
-```
+- Environments
+  - date: `Mon Jul 13 11:18:28 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `c1a32dab8d3b5d1e213e1e74c0a1f355b2adf6f5`
+  - Commit date: `Sun Jul 12 13:46:35 2020 +0200`
 
-# Transducer with encoder pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1082   79133  | 91.2    4.6    4.3    2.3    11.2   97.8 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1055   77966  | 91.3    4.5    4.2    2.2    11.0   97.2 |
-```
 
-# Transducer with enc + dec (LM) pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1082    79133 | 91.0    4.7     4.3    2.4   11.5    97.5 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1055    77966 | 90.8    4.8     4.4    2.4   11.5    97.6 |
-```
+# RNN-Transducer ('rnnt')
 
-# Default transducer-attention ('rnnt-att')
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1082   79133 | 89.9    5.0    5.1    2.7   12.8   97.3 |
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1055   77966 | 89.9    5.1    5.0    2.5   12.6   96.3 |
-```
+## CER
 
-# Transducer-attention with encoder pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1082   79133  | 90.8    4.7    4.5    2.3    11.6   96.9 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1055   77966  | 90.8    4.8    4.4    2.3    11.5   97.4 |
-```
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.3|4.8|4.9|2.6|12.3|97.0|
+|decode_dt_it_decode_default|1082|79133|89.5|4.8|5.6|2.5|13.0|97.4|
+|decode_dt_it_decode_nsc|1082|79133|90.3|4.7|5.0|2.5|12.2|97.2|
+|decode_dt_it_decode_tsd|1082|79133|90.2|4.6|5.2|2.5|12.3|97.0|
+|decode_et_it_decode_alsd|1055|77966|90.1|5.0|4.8|2.7|12.5|97.7|
+|decode_et_it_decode_default|1055|77966|89.6|5.0|5.4|2.3|12.8|98.2|
+|decode_et_it_decode_nsc|1055|77966|90.2|4.9|4.8|2.4|12.2|97.2|
+|decode_et_it_decode_tsd|1055|77966|90.1|4.9|5.0|2.4|12.3|97.2|
 
-# Transducer-attention with enc + dec (att AM) pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1082    79133 | 90.8    4.6     4.5    2.3   11.4    96.9 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1055    77966 | 91.0    4.6     4.4    2.2   11.2    98.2 |
-```
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|62.7|31.3|5.9|4.9|42.1|97.0|
+|decode_dt_it_decode_default|1082|13235|61.0|32.3|6.7|4.5|43.5|97.4|
+|decode_dt_it_decode_nsc|1082|13235|62.9|31.0|6.1|4.7|41.9|97.2|
+|decode_dt_it_decode_tsd|1082|13235|62.7|30.9|6.4|4.5|41.8|97.0|
+|decode_et_it_decode_alsd|1055|12990|61.9|31.7|6.5|5.9|44.0|97.7|
+|decode_et_it_decode_default|1055|12990|60.7|32.3|7.0|5.3|44.6|98.2|
+|decode_et_it_decode_nsc|1055|12990|62.4|31.2|6.4|5.2|42.8|97.2|
+|decode_et_it_decode_tsd|1055|12990|62.1|31.3|6.5|5.0|42.9|97.2|
+
+# RNN-Transducer + encoder pre-initialization (CTC)
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.9|4.8|4.3|2.6|11.7|97.0|
+|decode_dt_it_decode_default|1082|79133|90.7|4.7|4.6|2.5|11.8|97.5|
+|decode_dt_it_decode_nsc|1082|79133|90.9|4.7|4.4|2.5|11.6|97.1|
+|decode_dt_it_decode_tsd|1082|79133|90.8|4.7|4.5|2.4|11.6|97.2|
+|decode_et_it_decode_alsd|1055|77966|91.0|4.8|4.2|2.4|11.4|97.8|
+|decode_et_it_decode_default|1055|77966|90.8|4.8|4.4|2.2|11.4|97.7|
+|decode_et_it_decode_nsc|1055|77966|91.0|4.7|4.2|2.3|11.3|97.3|
+|decode_et_it_decode_tsd|1055|77966|91.0|4.7|4.3|2.2|11.3|97.3|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|61.9|32.4|5.7|4.9|42.9|97.0|
+|decode_dt_it_decode_default|1082|13235|61.5|32.5|6.0|4.5|43.1|97.5|
+|decode_dt_it_decode_nsc|1082|13235|61.9|32.2|5.9|4.6|42.7|97.1|
+|decode_dt_it_decode_tsd|1082|13235|61.9|32.2|5.9|4.5|42.6|97.2|
+|decode_et_it_decode_alsd|1055|12990|61.5|33.1|5.5|4.7|43.3|97.8|
+|decode_et_it_decode_default|1055|12990|61.0|33.0|6.1|4.3|43.3|97.7|
+|decode_et_it_decode_nsc|1055|12990|61.6|32.8|5.6|4.5|43.0|97.3|
+|decode_et_it_decode_tsd|1055|12990|61.5|32.7|5.8|4.4|42.9|97.3|
+
+# RNN-Transducer + encoder pre-initialization (CTC) + decoder pre-initialization (LM)
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.9|4.7|4.4|2.5|11.6|97.3|
+|decode_dt_it_decode_default|1082|79133|90.6|4.7|4.7|2.2|11.6|97.1|
+|decode_dt_it_decode_nsc|1082|79133|90.8|4.7|4.5|2.3|11.5|96.9|
+|decode_dt_it_decode_tsd|1082|79133|90.7|4.7|4.6|2.2|11.5|96.9|
+|decode_et_it_decode_alsd|1055|77966|90.9|4.8|4.3|2.3|11.4|97.5|
+|decode_et_it_decode_default|1055|77966|90.7|4.7|4.6|2.2|11.5|97.5|
+|decode_et_it_decode_nsc|1055|77966|90.9|4.7|4.4|2.2|11.3|97.5|
+|decode_et_it_decode_tsd|1055|77966|90.8|4.7|4.5|2.2|11.4|97.6|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|62.0|32.2|5.8|4.5|42.5|97.3|
+|decode_dt_it_decode_default|1082|13235|61.2|32.2|6.6|3.9|42.7|97.1|
+|decode_dt_it_decode_nsc|1082|13235|61.9|32.0|6.2|4.1|42.2|96.9|
+|decode_dt_it_decode_tsd|1082|13235|61.8|31.9|6.3|4.0|42.2|96.9|
+|decode_et_it_decode_alsd|1055|12990|61.5|32.5|6.0|4.7|43.2|97.5|
+|decode_et_it_decode_default|1055|12990|61.2|32.4|6.4|4.2|43.0|97.5|
+|decode_et_it_decode_nsc|1055|12990|61.7|32.2|6.1|4.4|42.7|97.5|
+|decode_et_it_decode_tsd|1055|12990|61.6|32.2|6.2|4.3|42.7|97.6|
+
+# RNN-Transducer w/ att. ('rnnt-att')
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.1|5.1|4.8|2.7|12.5|97.5|
+|decode_dt_it_decode_default|1082|79133|89.8|5.0|5.2|2.6|12.8|97.2|
+|decode_dt_it_decode_nsc|1082|79133|90.1|4.9|4.9|2.6|12.4|97.4|
+|decode_dt_it_decode_tsd|1082|79133|90.0|5.0|5.0|2.5|12.5|97.3|
+|decode_et_it_decode_alsd|1055|77966|89.9|5.2|4.9|2.7|12.8|97.7|
+|decode_et_it_decode_default|1055|77966|89.5|5.1|5.4|2.5|12.9|97.9|
+|decode_et_it_decode_nsc|1055|77966|89.9|5.1|5.0|2.5|12.6|97.9|
+|decode_et_it_decode_tsd|1055|77966|89.8|5.1|5.1|2.4|12.5|97.8|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|62.3|31.9|5.8|4.9|42.6|97.5|
+|decode_dt_it_decode_default|1082|13235|61.2|32.3|6.5|4.7|43.4|97.2|
+|decode_dt_it_decode_nsc|1082|13235|62.3|31.6|6.2|4.6|42.4|97.4|
+|decode_dt_it_decode_tsd|1082|13235|62.0|31.7|6.3|4.5|42.5|97.3|
+|decode_et_it_decode_alsd|1055|12990|60.3|33.0|6.8|5.5|45.2|97.7|
+|decode_et_it_decode_default|1055|12990|59.9|32.7|7.3|4.9|44.9|97.9|
+|decode_et_it_decode_nsc|1055|12990|61.0|32.2|6.8|5.1|44.1|97.9|
+|decode_et_it_decode_tsd|1055|12990|60.9|32.2|6.9|4.8|43.9|97.8|
+
+# RNN-Transducer w/ att. + encoder pre-initialization (CTC)
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.9|4.8|4.4|2.6|11.7|97.3|
+|decode_dt_it_decode_default|1082|79133|90.6|4.8|4.6|2.4|11.7|97.3|
+|decode_dt_it_decode_nsc|1082|79133|90.8|4.8|4.5|2.4|11.6|97.4|
+|decode_dt_it_decode_tsd|1082|79133|90.7|4.7|4.5|2.4|11.6|97.3|
+|decode_et_it_decode_alsd|1055|77966|91.0|4.7|4.3|2.4|11.4|97.3|
+|decode_et_it_decode_default|1055|77966|90.7|4.7|4.6|2.2|11.5|97.8|
+|decode_et_it_decode_nsc|1055|77966|90.9|4.7|4.4|2.3|11.3|97.2|
+|decode_et_it_decode_tsd|1055|77966|90.9|4.7|4.5|2.2|11.3|97.2|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|61.7|32.6|5.7|4.9|43.2|97.3|
+|decode_dt_it_decode_default|1082|13235|61.4|32.4|6.2|4.3|42.9|97.3|
+|decode_dt_it_decode_nsc|1082|13235|61.8|32.2|6.0|4.6|42.8|97.4|
+|decode_dt_it_decode_tsd|1082|13235|61.8|32.2|6.0|4.5|42.7|97.3|
+|decode_et_it_decode_alsd|1055|12990|61.6|32.7|5.7|4.7|43.1|97.3|
+|decode_et_it_decode_default|1055|12990|61.1|32.7|6.2|4.2|43.2|97.8|
+|decode_et_it_decode_nsc|1055|12990|61.6|32.4|5.9|4.5|42.9|97.2|
+|decode_et_it_decode_tsd|1055|12990|61.6|32.3|6.1|4.3|42.8|97.2|
+
+# RNN-Transducer w/ att. + encoder pre-initialization (CTC) + decoder pre-initialization (Att.)
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|91.1|4.6|4.3|2.3|11.2|97.0|
+|decode_dt_it_decode_default|1082|79133|90.9|4.6|4.6|2.2|11.3|97.0|
+|decode_dt_it_decode_nsc|1082|79133|91.1|4.6|4.4|2.2|11.1|97.0|
+|decode_dt_it_decode_tsd|1082|79133|91.0|4.6|4.4|2.2|11.2|97.0|
+|decode_et_it_decode_alsd|1055|77966|91.2|4.6|4.2|2.3|11.1|97.6|
+|decode_et_it_decode_default|1055|77966|90.9|4.6|4.5|2.1|11.1|97.4|
+|decode_et_it_decode_nsc|1055|77966|91.1|4.6|4.3|2.1|11.0|97.3|
+|decode_et_it_decode_tsd|1055|77966|91.0|4.6|4.4|2.1|11.0|97.4|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|63.0|31.3|5.7|4.1|41.2|97.0|
+|decode_dt_it_decode_default|1082|13235|62.4|31.5|6.1|3.9|41.5|97.0|
+|decode_dt_it_decode_nsc|1082|13235|63.1|31.0|5.8|4.0|40.9|97.0|
+|decode_dt_it_decode_tsd|1082|13235|63.0|31.1|5.9|3.9|40.9|97.0|
+|decode_et_it_decode_alsd|1055|12990|62.8|31.5|5.7|4.9|42.1|97.6|
+|decode_et_it_decode_default|1055|12990|62.3|31.5|6.2|4.5|42.1|97.4|
+|decode_et_it_decode_nsc|1055|12990|63.0|31.1|5.9|4.6|41.6|97.3|
+|decode_et_it_decode_tsd|1055|12990|62.7|31.2|6.1|4.5|41.8|97.4|

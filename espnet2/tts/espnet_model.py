@@ -174,6 +174,7 @@ class ESPnetTTSModel(AbsESPnetModel):
                 feats = self.normalize(feats[None])[0][0]
             kwargs["speech"] = feats
 
+        if decode_config["use_teacher_forcing"]:
             if durations is not None:
                 kwargs["durations"] = durations
 

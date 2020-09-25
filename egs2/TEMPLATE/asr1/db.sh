@@ -25,6 +25,7 @@ HKUST2=
 LIBRISPEECH=
 LJSPEECH=downloads
 JSUT=downloads
+JVS=downloads
 TIMIT=
 VOXFORGE=downloads
 AMI=
@@ -87,6 +88,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LIBRISPEECH=
     LJSPEECH=downloads
     JSUT=downloads
+    JVS=downloads
     TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus

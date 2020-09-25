@@ -11,7 +11,7 @@ if ! [ -x "$(command -v bats)" ]; then
 fi
 if ! [ -x "$(command -v shellcheck)" ]; then
     echo "=== install shellcheck ==="
-    wget https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz 
+    wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
     tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh
@@ -19,8 +19,9 @@ fi
 set -euo pipefail
 
 echo "=== run shellcheck ==="
+rm -fv tools/miniconda.sh  # exclude from schellcheck
 find ci utils doc egs2/TEMPLATE/*/scripts egs2/TEMPLATE/*/setup.sh tools/*.sh -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
-find egs2/*/*/local/data.sh -printf "=> %p\n" -execdir sh -c 'cd .. ; shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 local/$1 ; ' -- {} \; | tee check_shellcheck
+find egs2/*/*/local/data.sh -printf "=> %p\n" -execdir sh -c 'cd .. ; shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 local/$1 ; ' -- {} \; | tee -a check_shellcheck
 find egs egs2 \( -name "run.sh" -o -name asr.sh -o -name tts.sh -o -name enh.sh \) -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee -a check_shellcheck
 
 if grep -q "SC[0-9]\{4\}" check_shellcheck; then

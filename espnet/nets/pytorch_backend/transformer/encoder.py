@@ -10,7 +10,7 @@ import logging
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
-from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
