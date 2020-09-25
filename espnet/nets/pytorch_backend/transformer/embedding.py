@@ -4,7 +4,7 @@
 # Copyright 2019 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Positonal Encoding Module."""
+"""Positional Encoding Module."""
 
 import math
 
@@ -35,10 +35,11 @@ def _pre_hook(
 class PositionalEncoding(torch.nn.Module):
     """Positional encoding.
 
-    :param int d_model: embedding dim
-    :param float dropout_rate: dropout rate
-    :param int max_len: maximum input length
-    :param reverse: whether to reverse the input position
+    Args:
+        d_model (int): Embedding dimension.
+        dropout_rate (float): Dropout rate.
+        max_len (int): Maximum input length.
+        reverse (bool): Whether to reverse the input position.
 
     """
 
@@ -80,10 +81,10 @@ class PositionalEncoding(torch.nn.Module):
         """Add positional encoding.
 
         Args:
-            x (torch.Tensor): Input. Its shape is (batch, time, ...)
+            x (torch.Tensor): Input tensor (batch, time, `*`).
 
         Returns:
-            torch.Tensor: Encoded tensor. Its shape is (batch, time, ...)
+            torch.Tensor: Encoded tensor (batch, time, `*`).
 
         """
         self.extend_pe(x)
@@ -94,18 +95,17 @@ class PositionalEncoding(torch.nn.Module):
 class ScaledPositionalEncoding(PositionalEncoding):
     """Scaled positional encoding module.
 
-    See also: Sec. 3.2  https://arxiv.org/pdf/1809.08895.pdf
+    See Sec. 3.2  https://arxiv.org/abs/1809.08895
+
+    Args:
+        d_model (int): Embedding dimension.
+        dropout_rate (float): Dropout rate.
+        max_len (int): Maximum input length.
 
     """
 
     def __init__(self, d_model, dropout_rate, max_len=5000):
-        """Initialize class.
-
-        :param int d_model: embedding dim
-        :param float dropout_rate: dropout rate
-        :param int max_len: maximum input length
-
-        """
+        """Initialize class."""
         super().__init__(d_model=d_model, dropout_rate=dropout_rate, max_len=max_len)
         self.alpha = torch.nn.Parameter(torch.tensor(1.0))
 
@@ -117,10 +117,10 @@ class ScaledPositionalEncoding(PositionalEncoding):
         """Add positional encoding.
 
         Args:
-            x (torch.Tensor): Input. Its shape is (batch, time, ...)
+            x (torch.Tensor): Input tensor (batch, time, `*`).
 
         Returns:
-            torch.Tensor: Encoded tensor. Its shape is (batch, time, ...)
+            torch.Tensor: Encoded tensor (batch, time, `*`).
 
         """
         self.extend_pe(x)
@@ -129,35 +129,30 @@ class ScaledPositionalEncoding(PositionalEncoding):
 
 
 class RelPositionalEncoding(PositionalEncoding):
-    """Relitive positional encoding module.
+    """Relative positional encoding module.
 
     See : Appendix B in https://arxiv.org/abs/1901.02860
 
-    :param int d_model: embedding dim
-    :param float dropout_rate: dropout rate
-    :param int max_len: maximum input length
+    Args:
+        d_model (int): Embedding dimension.
+        dropout_rate (float): Dropout rate.
+        max_len (int): Maximum input length.
 
     """
 
     def __init__(self, d_model, dropout_rate, max_len=5000):
-        """Initialize class.
-
-        :param int d_model: embedding dim
-        :param float dropout_rate: dropout rate
-        :param int max_len: maximum input length
-
-        """
+        """Initialize class."""
         super().__init__(d_model, dropout_rate, max_len, reverse=True)
 
     def forward(self, x):
         """Compute positional encoding.
 
         Args:
-            x (torch.Tensor): Input. Its shape is (batch, time, ...)
+            x (torch.Tensor): Input tensor (batch, time, `*`).
 
         Returns:
-            torch.Tensor: x. Its shape is (batch, time, ...)
-            torch.Tensor: pos_emb. Its shape is (1, time, ...)
+            torch.Tensor: Encoded tensor (batch, time, `*`).
+            torch.Tensor: Positional embedding tensor (1, time, `*`).
 
         """
         self.extend_pe(x)
