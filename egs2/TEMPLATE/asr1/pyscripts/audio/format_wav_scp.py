@@ -121,8 +121,13 @@ def main():
 
                     # NOTE(kamo): Using extended ark format style here.
                     # This format is incompatible with Kaldi
-                    kaldiio.save_ark(fark, {uttid: (wave, rate)}, scp=fscp, append=True,
-                                     write_function=f"soundfile_{suf}")
+                    kaldiio.save_ark(
+                        fark,
+                        {uttid: (wave, rate)},
+                        scp=fscp,
+                        append=True,
+                        write_function=f"soundfile_{suf}",
+                    )
 
                 else:
                     writer[uttid] = rate, wave
@@ -166,8 +171,13 @@ def main():
 
                             # NOTE(kamo): Using extended ark format style here.
                             # This format is incompatible with Kaldi
-                            kaldiio.save_ark(fark, {uttid: (wave, rate)}, scp=fout, append=True,
-                                             write_function=f"soundfile_{suf}")
+                            kaldiio.save_ark(
+                                fark,
+                                {uttid: (wave, rate)},
+                                scp=fout,
+                                append=True,
+                                write_function=f"soundfile_{suf}",
+                            )
                         else:
                             owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
                             soundfile.write(owavpath, wave, rate)
@@ -215,8 +225,13 @@ def main():
 
                             # NOTE(kamo): Using extended ark format style here.
                             # This format is not supported in Kaldi.
-                            kaldiio.save_ark(fark, {uttid: (wave, rate)}, scp=fout, append=True,
-                                             write_function=f"soundfile_{suf}")
+                            kaldiio.save_ark(
+                                fark,
+                                {uttid: (wave, rate)},
+                                scp=fout,
+                                append=True,
+                                write_function=f"soundfile_{suf}",
+                            )
                         else:
                             owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
                             soundfile.write(owavpath, wave, rate)
