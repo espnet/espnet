@@ -79,12 +79,12 @@ class EncoderLayer(nn.Module):
             x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
                 - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
                 - w/o pos emb: Tensor (#batch, time, size).
-            mask (Tensor): Mask tensor for the input (#batch, time).
-            cache (Tensor): Cache tensor of the input (#batch, time - 1, size).
+            mask (torch.Tensor): Mask tensor for the input (#batch, time).
+            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
 
         Returns:
-            Tensor: Output tensor (#batch, time, size).
-            Tensor: Mask tensor (#batch, time).
+            torch.Tensor: Output tensor (#batch, time, size).
+            torch.Tensor: Mask tensor (#batch, time).
 
         """
         if isinstance(x_input, tuple):

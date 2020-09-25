@@ -201,12 +201,12 @@ class Encoder(torch.nn.Module):
         """Encode input sequence.
 
         Args:
-            xs (Tensor): Input tensor (#batch, time, idim).
-            masks (Tensor): Mask tensor (#batch, time).
+            xs (torch.Tensor): Input tensor (#batch, time, idim).
+            masks (torch.Tensor): Mask tensor (#batch, time).
 
         Returns:
-            Tensor: Output tensor (#batch, time, attention_dim).
-            Tensor: Mask tensor (#batch, time).
+            torch.Tensor: Output tensor (#batch, time, attention_dim).
+            torch.Tensor: Mask tensor (#batch, time).
 
         """
         if isinstance(self.embed, (Conv2dSubsampling, VGG2L)):

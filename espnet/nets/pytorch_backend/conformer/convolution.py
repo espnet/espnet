@@ -57,10 +57,10 @@ class ConvolutionModule(nn.Module):
         """Compute convolution module.
 
         Args:
-            x (Tensor): Input tensor (#batch, time, channels).
+            x (torch.Tensor): Input tensor (#batch, time, channels).
 
         Returns:
-            Tensor: Output tensor (#batch, time, channels).
+            torch.Tensor: Output tensor (#batch, time, channels).
 
         """
         # exchange the temporal dimension and the feature dimension

@@ -60,12 +60,12 @@ class EncoderLayer(nn.Module):
 
         Args:
             x_input (torch.Tensor): Input tensor (#batch, time, size).
-            mask (Tensor): Mask tensor for the input (#batch, time).
-            cache (Tensor): Cache tensor of the input (#batch, time - 1, size).
+            mask (torch.Tensor): Mask tensor for the input (#batch, time).
+            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
 
         Returns:
-            Tensor: Output tensor (#batch, time, size).
-            Tensor: Mask tensor (#batch, time).
+            torch.Tensor: Output tensor (#batch, time, size).
+            torch.Tensor: Mask tensor (#batch, time).
 
         """
         residual = x

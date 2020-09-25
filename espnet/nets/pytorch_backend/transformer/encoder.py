@@ -283,12 +283,12 @@ class Encoder(torch.nn.Module):
         """Encode input sequence.
 
         Args:
-            xs (Tensor): Input tensor (#batch, time, idim).
-            masks (Tensor): Mask tensor (#batch, time).
+            xs (torch.Tensor): Input tensor (#batch, time, idim).
+            masks (torch.Tensor): Mask tensor (#batch, time).
 
         Returns:
-            Tensor: Output tensor (#batch, time, attention_dim).
-            Tensor: Mask tensor (#batch, time).
+            torch.Tensor: Output tensor (#batch, time, attention_dim).
+            torch.Tensor: Mask tensor (#batch, time).
 
         """
         if isinstance(
@@ -307,13 +307,13 @@ class Encoder(torch.nn.Module):
         """Encode input frame.
 
         Args:
-            xs (Tensor): Input tensor.
-            masks (Tensor): Mask tensor.
+            xs (torch.Tensor): Input tensor.
+            masks (torch.Tensor): Mask tensor.
             cache (List[torch.Tensor]): List of cache tensors.
 
         Returns:
-            Tensor: Output tensor.
-            Tensor: Mask tensor.
+            torch.Tensor: Output tensor.
+            torch.Tensor: Mask tensor.
             List[torch.Tensor]: List of new cache tensors.
 
         """
