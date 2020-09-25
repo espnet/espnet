@@ -119,8 +119,8 @@ def sound_loader(path, float_dtype=None):
     return AdapterForSoundScpReader(loader, float_dtype)
 
 
-def kaldi_loader(path, float_dtype=None):
-    loader = kaldiio.load_scp(path)
+def kaldi_loader(path, float_dtype=None, max_cache_fd: int = 0):
+    loader = kaldiio.load_scp(path, max_cache_fd=max_cache_fd)
     return AdapterForSoundScpReader(loader, float_dtype)
 
 
@@ -145,7 +145,7 @@ DATA_TYPES = {
     ),
     "kaldi_ark": dict(
         func=kaldi_loader,
-        kwargs=[],
+        kwargs=["max_cache_fd"],
         help="Kaldi-ark file type."
         "\n\n"
         "   utterance_id_A /some/where/a.ark:123\n"
@@ -278,6 +278,7 @@ class ESPnetDataset(AbsDataset):
         float_dtype: str = "float32",
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
+        max_cache_fd: int = 0,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -290,6 +291,7 @@ class ESPnetDataset(AbsDataset):
 
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
+        self.max_cache_fd = max_cache_fd
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -334,6 +336,8 @@ class ESPnetDataset(AbsDataset):
                         kwargs["float_dtype"] = self.float_dtype
                     elif key2 == "int_dtype":
                         kwargs["int_dtype"] = self.int_dtype
+                    elif key2 == "max_cache_fd":
+                        kwargs["max_cache_fd"] = self.max_cache_fd
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 
