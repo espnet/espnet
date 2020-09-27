@@ -34,6 +34,8 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 class ConformerEncoder(AbsEncoder):
@@ -116,6 +118,11 @@ class ConformerEncoder(AbsEncoder):
                 dropout_rate,
                 pos_enc_class(output_size, positional_dropout_rate),
             )
+        elif input_layer == "conv2d6":
+            self.embed = Conv2dSubsampling6(input_size, output_size, dropout_rate)
+        elif input_layer == "conv2d8":
+            self.embed = Conv2dSubsampling8(input_size, output_size, dropout_rate)
+ 
         elif input_layer == "vgg2l":
             self.embed = VGG2L(input_size, output_size)
         elif input_layer == "embed":
@@ -213,11 +220,14 @@ class ConformerEncoder(AbsEncoder):
         """Embed positions in tensor.
 
         Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
+            xs_pad(torch.tensor): input tensor (#batch, L, input_size)
+            ilens(torch.tensor): input length (#batch)
+            prev_states(torch.tensor): Not to be used now.
         Returns:
             position embedded tensor and mask
+            torch.Tensor: output tensor (#batch, L, output_size)
+            torch.Tensor: output lenght (#batch)
+            torch.Tensor: Not to be used now.
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
