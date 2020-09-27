@@ -1,4 +1,8 @@
+# Copyright 2020 The ESPnet Authors.
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 """Evaluator module."""
+
 from chainer.training.extensions import Evaluator
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger

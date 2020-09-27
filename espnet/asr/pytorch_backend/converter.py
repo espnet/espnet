@@ -78,7 +78,7 @@ class CustomConverter:
         return xs_pad, ilens, ys_pad
 
 
-class CustomConverterMulEnc(object):
+class CustomConverterMulEnc:
     """Custom batch converter for Pytorch in multi-encoder case.
 
     Args:
