@@ -156,8 +156,14 @@ warp-ctc.done: pytorch.done conda_packages.done
 	touch warp-ctc.done
 
 warp-transducer.done: pytorch.done conda_packages.done
+ifeq ($(strip $(CPU_ONLY)),)
+	. ./activate_python.sh && ./installers/install_warp-transducer.sh
+	. ./activate_python.sh &&  ./installers/install_warp-rnnt.sh $(CUDA_VERSION)
+	touch warp-transducer.done
+else
 	. ./activate_python.sh && ./installers/install_warp-transducer.sh
 	touch warp-transducer.done
+endif
 
 chainer_ctc.done: chainer.done
 	. ./activate_python.sh && ./installers/install_chainer_ctc.sh
@@ -212,12 +218,12 @@ endif
 
 
 clean: clean_extra
-	rm -rf warp-ctc warp-transducer chainer_ctc
+	rm -rf warp-ctc warp-transducer warp-rnnt chainer_ctc
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf warp-ctc warp-transducer chainer_ctc
+	rm -rf warp-ctc warp-transducer warp-rnnt chainer_ctc
 	rm -f warp-ctc.done chainer_ctc.done espnet.done chainer.done pytorch.done warp-transducer.done
 	find . -iname "*.pyc" -delete
 

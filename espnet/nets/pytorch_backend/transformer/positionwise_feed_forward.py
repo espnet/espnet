@@ -12,9 +12,10 @@ import torch
 class PositionwiseFeedForward(torch.nn.Module):
     """Positionwise feed forward layer.
 
-    :param int idim: input dimenstion
-    :param int hidden_units: number of hidden units
-    :param float dropout_rate: dropout rate
+    Args:
+        idim (int): Input dimenstion.
+        hidden_units (int): The number of hidden units.
+        dropout_rate (float): Dropout rate.
 
     """
 

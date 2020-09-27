@@ -1,22 +1,19 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-# Copyright 2019 Shigeki Karita
+# Copyright 2020 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Encoder definition."""
+"""Conformer encoder definition."""
 
-import logging
 from typing import Optional
 from typing import Tuple
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from typeguard import check_argument_types
+
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.nets_utils import get_activation
-from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
@@ -41,29 +38,31 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 class ConformerEncoder(AbsEncoder):
     """Conformer encoder module.
 
-    :param int input_size: input dim
-    :param int output_size: dimention of attention
-    :param int attention_heads: the number of heads of multi head attention
-    :param int linear_units: the number of units of position-wise feed forward
-    :param int num_blocks: the number of decoder blocks
-    :param float dropout_rate: dropout rate
-    :param float attention_dropout_rate: dropout rate in attention
-    :param float positional_dropout_rate: dropout rate after adding positional encoding
-    :param str or torch.nn.Module input_layer: input layer type
-    :param bool normalize_before: whether to use layer_norm before the first block
-    :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied.
-        i.e. x -> x + linear(concat(x, att(x)))
-        if False, no additional linear will be applied. i.e. x -> x + att(x)
-    :param str positionwise_layer_type: linear of conv1d
-    :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-    :param str encoder_pos_enc_layer_type: encoder positional encoding layer type
-    :param str encoder_attn_layer_type: encoder attention layer type
-    :param str activation_type: encoder activation function type
-    :param bool macaron_style: whether to use macaron style for positionwise layer
-    :param bool use_cnn_module: whether to use convolution module
-    :param int cnn_module_kernel: kernerl size of convolution module
-    :param int padding_idx: padding_idx for input_layer=embed
+    Args:
+        input_size (int): Input dimension.
+        output_size (int): Dimention of attention.
+        attention_heads (int): The number of heads of multi head attention.
+        linear_units (int): The number of units of position-wise feed forward.
+        num_blocks (int): The number of decoder blocks.
+        dropout_rate (float): Dropout rate.
+        attention_dropout_rate (float): Dropout rate in attention.
+        positional_dropout_rate (float): Dropout rate after adding positional encoding.
+        input_layer (Union[str, torch.nn.Module]): Input layer type.
+        normalize_before (bool): Whether to use layer_norm before the first block.
+        concat_after (bool): Whether to concat attention layer's input and output.
+            If True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            If False, no additional linear will be applied. i.e. x -> x + att(x)
+        positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
+        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
+        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
+        encoder_attn_layer_type (str): Encoder attention layer type.
+        activation_type (str): Encoder activation function type.
+        macaron_style (bool): Whether to use macaron style for positionwise layer.
+        use_cnn_module (bool): Whether to use convolution module.
+        cnn_module_kernel (int): Kernerl size of convolution module.
+        padding_idx (int): Padding idx for input_layer=embed.
+
     """
 
     def __init__(
@@ -76,11 +75,6 @@ class ConformerEncoder(AbsEncoder):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
-        input_layer: Optional[str] = "conv2d",
-        normalize_before: bool = True,
-        concat_after: bool = False,
-        positionwise_layer_type: str = "linear",
-        positionwise_conv_kernel_size: int = 1,
         macaron_style: bool = False,
         pos_enc_layer_type: str = "abs_pos",
         selfattention_layer_type: str = "selfattn",
@@ -90,6 +84,20 @@ class ConformerEncoder(AbsEncoder):
         padding_idx: int = -1,
     ):
         """Construct an Encoder object."""
+        input_layer: str = "conv2d",
+        normalize_before: bool = True,
+        concat_after: bool = False,
+        positionwise_layer_type: str = "linear",
+        positionwise_conv_kernel_size: int = 3,
+        macaron_style: bool = False,
+        pos_enc_layer_type: str = "rel_pos",
+        selfattention_layer_type: str = "rel_selfattn",
+        activation_type: str = "swish",
+        use_cnn_module: bool = True,
+        cnn_module_kernel: int = 31,
+        padding_idx: int = -1,
+    ):
+        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -119,12 +127,19 @@ class ConformerEncoder(AbsEncoder):
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer == "conv2d6":
-            self.embed = Conv2dSubsampling6(input_size, output_size, dropout_rate)
+            self.embed = Conv2dSubsampling6(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate),
+            )
         elif input_layer == "conv2d8":
-            self.embed = Conv2dSubsampling8(input_size, output_size, dropout_rate)
- 
-        elif input_layer == "vgg2l":
-            self.embed = VGG2L(input_size, output_size)
+            self.embed = Conv2dSubsampling8(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate),
+            )
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
@@ -170,7 +185,6 @@ class ConformerEncoder(AbsEncoder):
             raise NotImplementedError("Support only linear or conv1d.")
 
         if selfattention_layer_type == "selfattn":
-            logging.info("encoder self-attention layer type = self-attention")
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
@@ -207,7 +221,6 @@ class ConformerEncoder(AbsEncoder):
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
-
     def output_size(self) -> int:
         return self._output_size
 
@@ -217,29 +230,32 @@ class ConformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """Calculate forward propagation.
 
         Args:
-            xs_pad(torch.tensor): input tensor (#batch, L, input_size)
-            ilens(torch.tensor): input length (#batch)
-            prev_states(torch.tensor): Not to be used now.
+            xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
+            ilens (torch.Tensor): Input length (#batch).
+            prev_states (torch.Tensor): Not to be used now.
+
         Returns:
-            position embedded tensor and mask
-            torch.Tensor: output tensor (#batch, L, output_size)
-            torch.Tensor: output lenght (#batch)
+            torch.Tensor: Output tensor (#batch, L, output_size).
+            torch.Tensor: Output length (#batch).
             torch.Tensor: Not to be used now.
+
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
-        if  isinstance(self.embed, (Conv2dSubsampling, VGG2L)):
+        if (
+            isinstance(self.embed, Conv2dSubsampling)
+            or isinstance(self.embed, Conv2dSubsampling6)
+            or isinstance(self.embed, Conv2dSubsampling8)
+        ):
             xs_pad, masks = self.embed(xs_pad, masks)
         else:
             xs_pad = self.embed(xs_pad)
-
         xs_pad, masks = self.encoders(xs_pad, masks)
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
-
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 

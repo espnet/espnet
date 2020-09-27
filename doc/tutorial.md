@@ -173,26 +173,135 @@ $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
 
 ### Transducer
 
-ESPnet also support transducer-based models through CTC mode.
-To be used, the following should be set in the training config:
+ESPnet also supports transducer-based models.
+To switch to transducer mode, the following should be set in the training config:
 
 ```
 criterion: loss
-mtlalpha: 1.0
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 ```
 
-Several transducer architectures are currently available by using different options:
+Several transducer architectures are currently available:
 - RNN-Transducer (default)
-- RNN-Transducer with attention decoder (`rnnt-mode: 'rnnt-att'`)
+- RNN-Transducer with attention decoder (+ `rnnt-mode: 'rnnt-att'`)
 - Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
-- Transformer/RNN-Transducer (`etype: transformer` and `dtype: lstm`)
+- Mixed Transformer/RNN-Transducer (e.g: `etype: transformer` with `dtype: lstm`)
+
+The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `transformer` is specified for either, a transformer-based architecture will be used for the corresponding part, otherwise a RNN architecture will be selected.
+
+While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a transformer-based architecture definition for transducer is customizable:
+1) Each blocks (or layers) for both network part should be specified individually through `enc-block-arch` or/and `dec-block-arch`:
+
+
+        # e.g: TDNN-Transformer encoder
+        etype: transformer
+        enc-block-arch:
+                - type: tdnn
+                  idim: 512
+                  odim: 320
+                  ctx_size: 3
+                  dilation: 1
+                  stride: 1
+                - type: transformer
+                  d_hidden: 320
+                  d_ff: 320
+                  heads: 4
+
+2) Each part has different allowed block type: `tdnn`, `conformer` or `transformer` for encoder and `causal-conv1d` or `transformer` for decoder. For each block type, a set of parameters are needed:
+
+        # TDNN
+        - type: tdnn
+          idim: input dimension
+          odim: output dimension
+          ctx_size: size of the context window
+          dilation: parameter to control the stride of elements within the neighborhood
+          stride: stride of the sliding blocks
+          [optional: dropout-rate]
+
+        # Transformer
+        - type: transformer
+          d_hidden: input/output dimension
+          d_ff: feed-forward hidden dimension
+          heads: number of heads in multi-head attention
+          [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+
+        # Conformer
+        - type: conformer
+          d_hidden: input/output dimension
+          d_ff: feed-forward hidden dimension
+          heads: number of heads in multi-head attention
+          macaron_style: wheter to use macaron style
+          use_conv_mod: whether to use convolutional module
+          conv_mod_kernel: number of kernel in convolutional module (optional if `use_conv_mod=True`)
+          [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+
+        # Causal Conv1d
+        - type: causal-conv1d
+          idim: input dimension
+          odim: output dimension
+          kernel_size: size of convolving kernel
+          stride: stride of the convolution
+          dilation: spacing between the kernel points
+
+3) Each specified block(s) for each network part can be repeated by specifying the number of duplications through `enc-block-repeat` or `dec-block-repeat` parameters:
+
+        # e.g.: 2x (Causal-Conv1d + Transformer) decoder
+        dtype: transformer
+        dec-block-arch:
+                - type: causal-conv1d
+                  idim: 256
+                  odim: 256
+                  kernel_size: 5
+                - type: transformer
+                  d_hidden: 256
+                  d_ff: 256
+                  heads: 4
+                  dropout-rate: 0.1
+                  att-dropout-rate: 0.4
+        dec-block-repeat: 2
+
+For more information about the customizable architecture, please refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer) which cover all cases.
+
+Various decoding algorithms are also available for transducer by setting `search-type` parameter in decode config:
+- Default beam search (`default`)
+- Time-synchronous decoding (`tsd`)
+- Alignment-length decoding (`alsd`)
+- N-step Constrained beam search (`nsc`)
+
+All algorithms share a common parameter to control beam size (`beam-size`) but each ones have its own parameters:
+
+        # Default beam search
+        search-type: default
+        score-norm-transducer: normalize final scores by length
+
+        # Time-synchronous decoding
+        search-type: tsd
+        max-sym-exp: number of maximum symbol expansions at each time step
+
+        # Alignement-length decoding
+        search-type: alsd
+        u-max: maximum output sequence length
+
+        # N-step Constrained beam search
+        search-type: nsc
+        nstep: number of maximum expansion steps at each time step
+               (N exp. step = N symbol expansion + 1)
+        prefix-alpha: maximum prefix length in prefix search
+
+Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
+
+IMPORTANT (temporary) note: ALSD, TSD and NSC have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference part for transducer will be replaced by our own torch lib.
+
+The algorithm references can be found in [methods documentation](https://github.com/espnet/espnet/tree/master/espnet/nets/beam_search_transducer.py). For more information about decoding usage, refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer).
 
 Additional notes:
 - Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
 - There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
 - Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
-- RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`). Pre-initialization for transformer-decoder is not supported yet.
+- RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
+- Transformer-decoder pre-initialization using a transformer LM is not supported yet.
+- Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.
+- Customizable architecture is a in-progress work and will be eventually extended to RNN. Please report any encountered error or usage issue.
 
 ### Changing the training configuration
 
