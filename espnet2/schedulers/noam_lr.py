@@ -49,7 +49,7 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         super().__init__(optimizer, last_epoch)
 
     def lr_for_WarmupLR(self, lr: float) -> float:
-        return lr / self.model_size ** 0.5 / self.warmup_steps ** 0.5
+        return lr * (self.model_size ** -0.5) / (self.warmup_steps ** 0.5)
 
     def __repr__(self):
         return (
