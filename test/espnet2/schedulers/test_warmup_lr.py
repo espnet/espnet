@@ -29,7 +29,7 @@ def test_WarumupLR():
     reason="Require pytorch>=1.1.0",
 )
 def test_WarumupLR_is_compatible_with_NoamLR():
-    lr = 1
+    lr = 10
     model_size = 32
     warmup_steps = 250
 
