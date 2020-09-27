@@ -1,0 +1,5 @@
+beam_size: 10
+lm_weight: 0.
+rnnt_search_args:
+    search_type: default
+    score_norm: True
