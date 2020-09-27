@@ -42,9 +42,9 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-from espnet.asr.pytorch_backend.asr import CustomConverter as ASRCustomConverter
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
+from espnet.asr.pytorch_backend.converter import CustomConverter as ASRCustomConverter
 
 import matplotlib
 

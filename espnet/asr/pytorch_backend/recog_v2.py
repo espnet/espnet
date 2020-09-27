@@ -1,3 +1,5 @@
+# Copyright 2020 The ESPnet Authors.
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """V2 backend for `asr_recog.py` using py:class:`espnet.nets.beam_search.BeamSearch`."""
 
 import json
@@ -8,7 +10,7 @@ import torch
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.asr.pytorch_backend.asr import load_trained_model
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch

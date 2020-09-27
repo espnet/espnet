@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Copyright 2020 The ESPnet Authors.
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""End-to-end speech recognition model decoding script."""
+
 import configargparse
 from distutils.util import strtobool
 import logging
@@ -8,11 +13,12 @@ import sys
 
 import numpy as np
 
-from espnet.asr.pytorch_backend.asr import enhance
+from espnet.asr.pytorch_backend.asr.enhance import enhance
 
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get default arguments."""
     parser = configargparse.ArgumentParser(
         description="Enhance noisy speech for speech recognition",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -136,6 +142,7 @@ def get_parser():
 
 
 def main(args):
+    """Run the main function."""
     parser = get_parser()
     args = parser.parse_args(args)
 
