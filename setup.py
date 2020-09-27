@@ -59,6 +59,7 @@ requirements = {
     "setup": ["numpy", "pytest-runner"],
     "test": [
         "pytest>=3.3.0",
+        "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",
         "hacking>=2.0.0",
