@@ -15,6 +15,7 @@ from typeguard import check_return_type
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.rnnt_decoder import RNNTDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,  # noqa: H301
 )
@@ -161,6 +162,12 @@ class ASRTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
+        )
+        group.add_argument(
+            "--rnnt_conf",
+            action=NestedDictAction,
+            default=get_default_kwargs(RNNTDecoder),
+            help="The keyword arguments for RNNT class.",
         )
         group.add_argument(
             "--model_conf",
@@ -325,8 +332,12 @@ class ASRTask(AbsTask):
             odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
         )
 
-        # 7. RNN-T Decoder (Not implemented)
-        rnnt_decoder = None
+        # 7. RNN-T Decoder
+        rnnt_decoder = RNNTDecoder(
+            vocab_size=vocab_size,
+            encoder_output_size=encoder.output_size(),
+            **args.rnnt_conf,
+        )
 
         # 8. Build model
         model = ESPnetASRModel(

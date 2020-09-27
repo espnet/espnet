@@ -14,6 +14,9 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
 
+from espnet.nets.beam_search_transducer_espnet2 import BeamSearchTransducerESPnet2
+from espnet.nets.beam_search_transducer_espnet2 import Hypothesis as RNNTHypothesis
+
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
@@ -50,6 +53,7 @@ class Speech2Text:
         self,
         asr_train_config: Union[Path, str],
         asr_model_file: Union[Path, str] = None,
+        rnnt_search_args: dict = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         token_type: str = None,
@@ -75,6 +79,7 @@ class Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = asr_model.decoder
+
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
         token_list = asr_model.token_list
         scorers.update(
@@ -107,6 +112,18 @@ class Speech2Text:
             token_list=token_list,
             pre_beam_score_key=None if ctc_weight == 1.0 else "full",
         )
+
+        if asr_model.rnnt_decoder:
+            beam_search_rnnt = BeamSearchTransducerESPnet2(
+                decoder=asr_model.rnnt_decoder,
+                beam_size=beam_size,
+                lm=scorers["lm"] if "lm" in scorers else None,
+                lm_weight=lm_weight,
+                **rnnt_search_args,
+            )
+        else:
+            beam_search_rnnt = None
+
         # TODO(karita): make all scorers batchfied
         if batch_size == 1:
             non_batch = [
@@ -152,6 +169,7 @@ class Speech2Text:
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
+        self.beam_search_rnnt = beam_search_rnnt
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.device = device
@@ -161,7 +179,9 @@ class Speech2Text:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+    ) -> List[
+        Tuple[Optional[str], List[str], List[int], Union[Hypothesis, RNNTHypothesis]]
+    ]:
         """Inference
 
         Args:
@@ -190,17 +210,24 @@ class Speech2Text:
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
+        if self.beam_search_rnnt:
+            nbest_hyps = self.beam_search_rnnt(enc[0])
+        else:
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
         for hyp in nbest_hyps:
-            assert isinstance(hyp, Hypothesis), type(hyp)
+            assert isinstance(hyp, (Hypothesis, RNNTHypothesis)), type(hyp)
 
             # remove sos/eos and get results
-            token_int = hyp.yseq[1:-1].tolist()
+            if isinstance(hyp.yseq, list):
+                token_int = hyp.yseq[1:-1]
+            else:
+                token_int = hyp.yseq[1:-1].tolist()
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))
@@ -244,6 +271,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    rnnt_search_args: Optional[dict],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -270,6 +298,7 @@ def inference(
     speech2text = Speech2Text(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
+        rnnt_search_args=rnnt_search_args,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         token_type=token_type,
@@ -413,6 +442,12 @@ def get_parser():
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
+
+    group.add_argument(
+        "--rnnt_search_args",
+        default=None,
+        help="The keyword arguments for RNNT beam search.",
+    )
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(

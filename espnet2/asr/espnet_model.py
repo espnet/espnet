@@ -1,3 +1,4 @@
+from argparse import Namespace
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict
@@ -10,7 +11,10 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
+from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.transducer.loss import TransLoss
+from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
@@ -46,7 +50,7 @@ class ESPnetASRModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
-        rnnt_decoder: None,
+        rnnt_decoder: AbsDecoder,
         ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
@@ -58,10 +62,10 @@ class ESPnetASRModel(AbsESPnetModel):
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
-        assert rnnt_decoder is None, "Not implemented"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
+        self.blank = 0
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
         self.vocab_size = vocab_size
@@ -78,7 +82,10 @@ class ESPnetASRModel(AbsESPnetModel):
             self.ctc = None
         else:
             self.ctc = ctc
+
         self.rnnt_decoder = rnnt_decoder
+        self.criterion_rnnt = TransLoss("warp-transducer", self.blank)
+
         self.criterion_att = LabelSmoothingLoss(
             size=vocab_size,
             padding_idx=ignore_id,
@@ -87,9 +94,21 @@ class ESPnetASRModel(AbsESPnetModel):
         )
 
         if report_cer or report_wer:
-            self.error_calculator = ErrorCalculator(
-                token_list, sym_space, sym_blank, report_cer, report_wer
-            )
+            if rnnt_decoder is not None:
+                report_args = Namespace(
+                    beam_size=5,
+                    sym_space=sym_space,
+                    sym_blank=sym_blank,
+                    char_list=self.token_list,
+                )
+
+                self.error_calculator = ErrorCalculatorTrans(
+                    rnnt_decoder, report_args, report_cer, report_wer
+                )
+            else:
+                self.error_calculator = ErrorCalculator(
+                    token_list, sym_space, sym_blank, report_cer, report_wer
+                )
         else:
             self.error_calculator = None
 
@@ -124,27 +143,31 @@ class ESPnetASRModel(AbsESPnetModel):
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
-        # 2a. Attention-decoder branch
-        if self.ctc_weight == 1.0:
-            loss_att, acc_att, cer_att, wer_att = None, None, None, None
-        else:
-            loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
+        loss_att, acc_att, cer_att, wer_att = None, None, None, None
+        loss_ctc, cer_ctc = None, None
+        loss_rnnt, cer_rnnt, wer_rnnt = None, None, None
 
-        # 2b. CTC branch
-        if self.ctc_weight == 0.0:
-            loss_ctc, cer_ctc = None, None
-        else:
-            loss_ctc, cer_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
-
-        # 2c. RNN-T branch
+        # 2a. RNN-T decoder branch
         if self.rnnt_decoder is not None:
-            _ = self._calc_rnnt_loss(encoder_out, encoder_out_lens, text, text_lengths)
+            loss_rnnt, cer_rnnt, wer_rnnt = self._calc_rnnt_loss(
+                encoder_out, encoder_out_lens, text, text_lengths
+            )
+        else:
+            # 2b. CTC-decoder branch
+            if self.ctc_weight > 0.0:
+                loss_ctc, cer_ctc = self._calc_ctc_loss(
+                    encoder_out, encoder_out_lens, text, text_lengths
+                )
+            # 2c. Attention-decoder branch
+            if self.ctc_weigt < 1.0:
+                loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
+                    encoder_out, encoder_out_lens, text, text_lengths
+                )
 
-        if self.ctc_weight == 0.0:
+        # 3. Main loss definition
+        if self.rnnt_decoder is not None:
+            loss = loss_rnnt
+        elif self.ctc_weight == 0.0:
             loss = loss_att
         elif self.ctc_weight == 1.0:
             loss = loss_ctc
@@ -155,10 +178,13 @@ class ESPnetASRModel(AbsESPnetModel):
             loss=loss.detach(),
             loss_att=loss_att.detach() if loss_att is not None else None,
             loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
+            loss_rnnt=loss_rnnt.detach() if loss_rnnt is not None else None,
             acc=acc_att,
             cer=cer_att,
             wer=wer_att,
             cer_ctc=cer_ctc,
+            cer_rnnt=cer_rnnt,
+            wer_rnnt=wer_rnnt,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -287,4 +313,20 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        raise NotImplementedError
+        ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(
+            ys_pad, encoder_out_lens
+        )
+
+        pred_pad = self.rnnt_decoder(encoder_out, ys_in_pad)
+
+        loss_rnnt = self.criterion_rnnt(pred_pad, target, pred_len, target_len)
+
+        # Compute cer/wer using attention-decoder
+        if self.training or self.error_calculator is None:
+            cer_rnnt, wer_rnnt = None, None
+        else:
+            cer_rnnt, wer_rnnt = None, None
+            # todo: refactor espnet1 decoder, variable names mismatch
+            # cer_rnnt, wer_rnnt = self.error_calculator(encoder_out, ys_pad)
+
+        return loss_rnnt, cer_rnnt, wer_rnnt

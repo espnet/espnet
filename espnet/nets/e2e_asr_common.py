@@ -260,16 +260,16 @@ class ErrorCalculatorTrans(object):
 
     def __init__(self, decoder, args, report_cer=False, report_wer=False):
         """Construct an ErrorCalculator object for transducer model."""
-        super(ErrorCalculatorTrans, self).__init__()
+        super().__init__()
 
         self.dec = decoder
 
         recog_args = {
             "beam_size": args.beam_size,
-            "nbest": args.nbest,
             "space": args.sym_space,
+            "nbest": 1,
             "search_type": "default",
-            "score_norm_transducer": args.score_norm_transducer,
+            "score_norm_transducer": True,
         }
 
         self.recog_args = argparse.Namespace(**recog_args)
@@ -278,8 +278,8 @@ class ErrorCalculatorTrans(object):
         self.space = args.sym_space
         self.blank = args.sym_blank
 
-        self.report_cer = args.report_cer
-        self.report_wer = args.report_wer
+        self.report_cer = report_cer
+        self.report_wer = report_wer
 
     def __call__(self, hs_pad, ys_pad):
         """Calculate sentence-level WER/CER score for transducer models.
