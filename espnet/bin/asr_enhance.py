@@ -13,7 +13,7 @@ import sys
 
 import numpy as np
 
-from espnet.asr.pytorch_backend.asr.enhance import enhance
+from espnet.asr.pytorch_backend.enhance import enhance
 
 
 # NOTE: you need this func to generate our sphinx doc
