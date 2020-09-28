@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Shigeki Karita
+# Copyright 2020 Johns Hopkins University (Shinji Watanabe)
+#                Northwestern Polytechnical University (Pengcheng Guo)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
