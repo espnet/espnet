@@ -52,4 +52,3 @@ transformer-encoder-selfattn-layer-type: rel_selfattn
 macaron-style: true
 use-cnn-module: true
 cnn-module-kernel: 31
-s
