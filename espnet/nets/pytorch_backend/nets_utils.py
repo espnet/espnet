@@ -489,6 +489,7 @@ def get_activation(act):
 
     activation_funcs = {
         "hardtanh": torch.nn.Hardtanh,
+        "tanh": torch.nn.Tanh,
         "relu": torch.nn.ReLU,
         "selu": torch.nn.SELU,
         "swish": Swish,
