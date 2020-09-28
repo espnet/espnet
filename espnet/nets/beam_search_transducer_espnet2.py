@@ -10,8 +10,8 @@ from typing import Dict
 from typing import List
 from typing import Union
 
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.lm_interface import LMInterface
+from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
 from espnet.nets.pytorch_backend.transducer.utils import create_lm_batch_state
 from espnet.nets.pytorch_backend.transducer.utils import init_lm_state
