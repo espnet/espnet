@@ -41,8 +41,8 @@ class Encoder(torch.nn.Module):
     :param int linear_units: the number of units of position-wise feed forward
     :param int num_blocks: the number of decoder blocks
     :param float dropout_rate: dropout rate
-    :param float attention_dropout_rate: dropout rate in attention
     :param float positional_dropout_rate: dropout rate after adding positional encoding
+    :param float attention_dropout_rate: dropout rate in attention
     :param str or torch.nn.Module input_layer: input layer type
     :param bool normalize_before: whether to use layer_norm before the first block
     :param bool concat_after: whether to concat attention layer's input and output
@@ -51,10 +51,10 @@ class Encoder(torch.nn.Module):
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     :param str positionwise_layer_type: linear of conv1d
     :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-    :param str encoder_pos_enc_layer_type: encoder positional encoding layer type
-    :param str encoder_attn_layer_type: encoder attention layer type
-    :param str activation_type: encoder activation function type
     :param bool macaron_style: whether to use macaron style for positionwise layer
+    :param str pos_enc_layer_type: encoder positional encoding layer type
+    :param str selfattention_layer_type: encoder attention layer type
+    :param str activation_type: encoder activation function type
     :param bool use_cnn_module: whether to use convolution module
     :param int cnn_module_kernel: kernerl size of convolution module
     :param int padding_idx: padding_idx for input_layer=embed
@@ -130,6 +130,28 @@ class Encoder(torch.nn.Module):
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
+
+        # self-attention module definition
+        if selfattention_layer_type == "selfattn":
+            logging.info("encoder self-attention layer type = self-attention")
+            encoder_selfattn_layer = MultiHeadedAttention
+            encoder_selfattn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
+        elif selfattention_layer_type == "rel_selfattn":
+            assert pos_enc_layer_type == "rel_pos"
+            encoder_selfattn_layer = RelPositionMultiHeadedAttention
+            encoder_selfattn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
+        else:
+            raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
+
+        # feed-forward module definition
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
             positionwise_layer_args = (
@@ -157,25 +179,7 @@ class Encoder(torch.nn.Module):
         else:
             raise NotImplementedError("Support only linear or conv1d.")
 
-        if selfattention_layer_type == "selfattn":
-            logging.info("encoder self-attention layer type = self-attention")
-            encoder_selfattn_layer = MultiHeadedAttention
-            encoder_selfattn_layer_args = (
-                attention_heads,
-                attention_dim,
-                attention_dropout_rate,
-            )
-        elif selfattention_layer_type == "rel_selfattn":
-            assert pos_enc_layer_type == "rel_pos"
-            encoder_selfattn_layer = RelPositionMultiHeadedAttention
-            encoder_selfattn_layer_args = (
-                attention_heads,
-                attention_dim,
-                attention_dropout_rate,
-            )
-        else:
-            raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
-
+        # convolution module definition
         convolution_layer = ConvolutionModule
         convolution_layer_args = (attention_dim, cnn_module_kernel, activation)
 
