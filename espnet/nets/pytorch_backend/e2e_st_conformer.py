@@ -70,7 +70,3 @@ class E2E(E2ETransformer):
             cnn_module_kernel=args.cnn_module_kernel,
         )
         self.reset_parameters(args)
-        if args.init_like_bert_enc:
-            self.init_like_bert_enc()
-        if args.init_like_bert_dec:
-            self.init_like_bert_dec()
