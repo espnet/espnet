@@ -123,7 +123,7 @@ eog exp/asr_train_<some-name>/att_ws/<sample-id>/<param-name>.img
 
 ### Use tensorboard
 
-```bash
+```sh
 tensorboard --logdir exp/asr_train_<some-name>/tensorboard/
 ```
 
@@ -134,7 +134,7 @@ All shell script in espnet/espnet2 depends on [utils/parse_options.sh](https://g
 
 e.g. If the script has `ngpu` option
 
-```bash
+```sh
 #!/bin/bash
 # run.sh
 ngpu=1
@@ -144,33 +144,82 @@ echo ${ngpu}
 
 Then you can change the value as follows:
 
-```bash
+```sh
 $ ./run.sh --ngpu 2
 echo 2
 ```
 
 You can also show the help message:
 
-```bash
+```sh
 ./run.sh --help
 ```
-
 
 ## Start from a specified stage and stop at a specified stage
 The procedures in `run.sh` can be divided into some stages, e.g. data preparation, training, and evaluation. You can specify the starting stage and the stopping stage.
 
-```bash
+```sh
 ./run.sh --stage 2 --stop-stage 6
 ```
 
+There are also some altenative otpions to skip stages:
+
+```sh
+run.sh --skip_data_prep true  # Skip data preparation stages.
+run.sh --skip_train true      # Skip training stages.
+run.sh --skip_eval true       # Skip decoding and evaluation stages.
+run.sh --skip_upload false    # Skip packing and uploading stages.
+```
+
+Note that `skip_upload` is true by default. Please change it to false when uploading your model.
+
 ## Change the configuration for training
+
 See  [Change the configuration for training](./espnet2_training_option.md) about the usage of training tools.
 
 (The following is the case of ASR training and you need to replace it accordingly)
 
-```bash
+```sh
 # Give a configuration file
 ./run.sh --asr_train_config conf/train_asr.yaml
-# Give arguments to training tool directly
+# Give arguments to "espnet2/bin/*_train.py" directly
 ./run.sh --asr_args "--foo arg --bar arg2"
 ```
+
+## Change the number of parallel jobs
+
+```sh
+./run.sh --nj 10             # Chnage the number of parallels for data preparation stages.
+./run.sh --inference_nj 10   # Chnage the number of parallels for inference jobs.
+```
+
+## Multi GPUs training and distributed training
+
+```sh
+./run.sh --ngpu 4 # 4GPUs in a single node
+./run.sh --ngpu 2 --num_nodes 2 # 2GPUs x 2nodes
+```
+
+Note that you need to setup your environment correctly to use distributed training. See the following two:
+
+- [Distributed training](./espnet2_distributed.md)
+- [Using Job scheduling system](./parallelization.md)
+
+
+## Use specified expereiment directory for evaluation
+
+If you already have trained a model, you may wonder how to give it to run.sh when you'll evaluate it later.
+
+```sh
+./run.sh --skip_data_prep true --skip_train true --asr_exp <your_asr_exp_directory> --lm_exp <your_lm_exp_directory>
+./run.sh --skip_data_prep true --skip_train true --tts_exp <your_tts_exp_directory>
+```
+
+## Evaluation without training using pretrained model
+
+
+```sh
+./run.sh --download_model <model_name> --skip_train true
+```
+
+You need to fill `model_name` by yourself. See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo
