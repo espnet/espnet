@@ -1141,7 +1141,7 @@ if ! "${skip_eval}"; then
                                   --remove_non_linguistic_symbols true \
                                   --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1153,7 +1153,7 @@ if ! "${skip_eval}"; then
                                   --non_linguistic_symbols "${nlsyms_txt}" \
                                   --remove_non_linguistic_symbols true \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
 
 
@@ -1168,7 +1168,7 @@ if ! "${skip_eval}"; then
                                   --remove_non_linguistic_symbols true \
                                   --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1180,7 +1180,7 @@ if ! "${skip_eval}"; then
                                   --non_linguistic_symbols "${nlsyms_txt}" \
                                   --remove_non_linguistic_symbols true \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
 
                 elif [ "${_type}" = ter ]; then
@@ -1193,7 +1193,7 @@ if ! "${skip_eval}"; then
                                   --bpemodel "${bpemodel}" \
                                   --cleaner "${cleaner}" \
                                 ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1205,7 +1205,7 @@ if ! "${skip_eval}"; then
                                   --bpemodel "${bpemodel}" \
                                   --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
                 fi
 
