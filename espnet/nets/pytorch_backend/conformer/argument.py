@@ -8,14 +8,7 @@ from distutils.util import strtobool
 
 
 def add_arguments_conformer_common(group):
-    """Define common arguments for Conformer.
-
-    Args:
-        group ():
-    Returns:
-        group ():
-
-    """
+    """Add Transformer common arguments."""
     group.add_argument(
         "--transformer-encoder-pos-enc-layer-type",
         type=str,
