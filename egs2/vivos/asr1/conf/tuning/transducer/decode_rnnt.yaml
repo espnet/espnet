@@ -2,4 +2,8 @@ beam_size: 10
 lm_weight: 0.
 rnnt_search_args:
     search_type: default
+    max_sym_exp: 4
+    u_max: 100
+    nstep: 3
+    prefix_alpha: 2
     score_norm: True
