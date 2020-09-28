@@ -1419,6 +1419,10 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
+        if Path(Path(iter_options.data_path_and_name_and_type[0][0]).parent, 'utt2category').exists():
+            utt2category_file = str(Path(Path(iter_options.data_path_and_name_and_type[0][0]).parent, 'utt2category'))
+        else:
+            utt2category_file = None
         batch_sampler = build_batch_sampler(
             type=iter_options.batch_type,
             shape_files=iter_options.shape_files,
@@ -1431,6 +1435,7 @@ class AbsTask(ABC):
             min_batch_size=torch.distributed.get_world_size()
             if iter_options.distributed
             else 1,
+            utt2category_file=utt2category_file,
         )
 
         batches = list(batch_sampler)
@@ -1690,7 +1695,10 @@ class AbsTask(ABC):
                 preprocess=preprocess_fn,
                 key_file=key_file,
             )
-            kwargs.update(batch_size=batch_size)
+            if dataset.apply_utt2category:
+                kwargs.update(batch_size=1)
+            else:
+                kwargs.update(batch_size=batch_size)
         else:
             dataset = ESPnetDataset(
                 data_path_and_name_and_type,

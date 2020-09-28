@@ -1,6 +1,7 @@
 import copy
 from distutils.version import LooseVersion
 from io import StringIO
+from pathlib import Path
 from typing import Callable
 from typing import Collection
 from typing import Dict
@@ -121,6 +122,12 @@ class IterableESPnetDataset(IterableDataset):
         else:
             self.non_iterable_dataset = None
 
+        if Path(Path(path_name_type_list[0][0]).parent, 'utt2category').exists():
+            self.apply_utt2category = True
+            #utt2category_file = str(Path(Path(data_path_and_name_and_type[0][0]).parent, 'utt2category'))
+        else:
+            self.apply_utt2category = False
+
     def has_name(self, name) -> bool:
         return name in self.debug_info
 
@@ -181,10 +188,10 @@ class IterableESPnetDataset(IterableDataset):
                     keys.append(key)
                     values.append(value)
 
-                for k in keys:
+                for k_idx, k in enumerate(keys):
                     if k != keys[0]:
                         raise RuntimeError(
-                            f"Keys are mismatched. Text files is not sorted or "
+                            f"Keys are mismatched. Text files (idx={k_idx}) is not sorted or "
                             f"not having same keys at L{linenum}"
                         )
 

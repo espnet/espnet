@@ -131,7 +131,7 @@ class BeamformerNet(AbsEnhancement):
 
         Returns:
             enhanced speech  (single-channel):
-                List[ComplexTensor]
+                torch.Tensor or List[torch.Tensor]
             output lengths
             predcited masks: OrderedDict[
                 'dereverb': torch.Tensor(Batch, Frames, Channel, Freq),
@@ -208,9 +208,14 @@ class BeamformerNet(AbsEnhancement):
                     if len(masks_b) > self.num_spk:
                         masks["noise1"] = masks_b[self.num_spk]
 
-        if not isinstance(enhanced, list):
+        # Convert ComplexTensor to torch.Tensor
+        # (B, T, F) -> (B, T, F, 2)
+        if isinstance(enhanced, list):
+            # multi-speaker output
+            enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
+        else:
             # single-speaker output
-            enhanced = [enhanced]
+            enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1).float()
         return enhanced, flens, masks
 
     def forward_rawwav(self, input: torch.Tensor, ilens: torch.Tensor):

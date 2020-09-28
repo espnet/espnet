@@ -1,4 +1,5 @@
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -10,6 +11,7 @@ from typeguard import check_argument_types
 
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -57,7 +59,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         self.enh_weight = enh_weight
         self.enh_return_type = enh_return_type  # 'waveform' or 'spectrum' or None
         self.cal_enh_loss = cal_enh_loss
-        self.enh_subclass.return_spec_in_training = True
 
         # TODO(Jing): find out the -1 or 0 here
         # self.idx_blank = token_list.index(sym_blank) # 0
@@ -72,6 +73,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 self.asr_subclass.frontend.apply_stft
             ), "need apply stft in asr fronend part"
         elif enh_return_type == "spectrum":
+            # TODO(Xuankai,Jing): verify this additional uttMVN
+            self.asr_subclass.additional_utt_mvn = UtteranceMVN(norm_means=True, norm_vars=False)
             assert (
                 not self.asr_subclass.frontend.apply_stft
             ), "avoid usage of stft in asr fronend part"
@@ -143,6 +146,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         for arr in self.asr_attr:
             exec("self.{} = self.asr_subclass.{}".format(arr, arr))
 >>>>>>> update multi-speaker ASR task
+
+        self.enh_model.return_spec_in_training = True
 
     def forward(
         self,

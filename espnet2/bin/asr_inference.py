@@ -168,9 +168,11 @@ class Speech2Text:
     def __call__(
         self,
         speech_mix: Union[torch.Tensor, np.ndarray],
-        speech_ref1: Union[torch.Tensor, np.ndarray],
-        speech_ref2: Union[torch.Tensor, np.ndarray],
-    ) -> List[List[Tuple[float, Optional[str], List[str], List[int], Hypothesis]]]:
+        speech_ref1: Union[torch.Tensor, np.ndarray] = None,
+        speech_ref2: Union[torch.Tensor, np.ndarray] = None,
+    ) -> List[
+        List[Tuple[Optional[float], Optional[str], List[str], List[int], Hypothesis]]
+    ]:
         """Inference
 
         Args:
@@ -194,7 +196,6 @@ class Speech2Text:
         # a. To device
         batch = to_device(batch, device=self.device)
 
-<<<<<<< HEAD:espnet2/bin/asr_inference.py
         print("speech", batch["speech"].shape, batch["speech_lengths"].shape)
 
         speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
@@ -206,11 +207,6 @@ class Speech2Text:
         )  # nspk,T
         inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
         print("ref,inf:", ref.shape, inf.shape)
-=======
-        speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(batch['speech'],batch['speech_lengths'])
-        ref = np.array(torch.stack([speech_ref1,speech_ref2],dim=0).squeeze()) # nspk,T
-        inf = np.array(torch.stack(speech_pre,dim=1).squeeze())
->>>>>>> Refactor of the joint-training part. TODO:return of rawwav.:espnet2/bin/enh_asr_inference.py
         sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
         # b. Forward Encoder
@@ -218,7 +214,8 @@ class Speech2Text:
         # For each predicted spk
         for idx, p in enumerate(perm):
             speech_spk = speech_pre[int(p)]
-            enc, _ = self.joint_model.encode(speech_spk, batch["speech_lengths"])
+            # enc, _ = self.joint_model.encode(speech_spk, batch['speech_lengths'])
+            enc, _ = self.joint_model.encode(speech_spk, speech_pre_lengths)
             assert len(enc) == 1, len(enc)
 
             # c. Passed the encoder result and the beam search
@@ -376,8 +373,13 @@ def inference(
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
+<<<<<<< HEAD:espnet2/bin/asr_inference.py
                 if text is not None:
                     ibest_writer["text"][key] = text
+=======
+                    if sdr is not None:
+                        writer[f"SDR_spk{spk_idx + 1}"][key] = str(sdr)
+>>>>>>> Incorporate with the MIMO's features.:espnet2/bin/enh_asr_inference.py
 
 
 def get_parser():
