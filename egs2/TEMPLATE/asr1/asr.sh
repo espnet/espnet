@@ -1203,7 +1203,6 @@ if ! "${skip_eval}"; then
                                   -f 2- --input - --output - \
                                   --token_type bpe \
                                   --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
                                   ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
