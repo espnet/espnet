@@ -206,14 +206,15 @@ See [Change the configuration for training](./espnet2_training_option.md) for mo
 ./run.sh --inference_nj 10   # Chnage the number of parallels for inference jobs.
 ```
 
+We also support submitting jobs to multiple hosts to accelerate your experiment: See [Using Job scheduling system](./parallelization.md)
+
+
 ## Multi GPUs training and distributed training
 
 ```sh
 ./run.sh --ngpu 4 # 4GPUs in a single node
 ./run.sh --ngpu 2 --num_nodes 2 # 2GPUs x 2nodes
 ```
-
-We also support submitting jobs to multiple hosts to accelerate your experiment: See [Using Job scheduling system](./parallelization.md)
 
 
 Note that you need to setup your environment correctly to use distributed training. See the following two:
