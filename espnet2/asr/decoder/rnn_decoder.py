@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
+from typing import Optional
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -89,12 +90,14 @@ class RNNDecoder(AbsDecoder):
         rnn_type: str = "lstm",
         num_layers: int = 1,
         hidden_size: int = 320,
+        embed_pad: Optional[int] = None,
         sampling_probability: float = 0.0,
         dropout: float = 0.0,
         context_residual: bool = False,
         replace_sos: bool = False,
         num_encs: int = 1,
         att_conf: dict = get_default_kwargs(build_attention_list),
+        is_rnnt: Optional[bool] = False,
     ):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
         assert check_argument_types()
@@ -117,15 +120,25 @@ class RNNDecoder(AbsDecoder):
         # for multilingual translation
         self.replace_sos = replace_sos
 
-        self.embed = torch.nn.Embedding(vocab_size, hidden_size)
+        self.embed = torch.nn.Embedding(vocab_size, hidden_size, padding_idx=embed_pad)
         self.dropout_emb = torch.nn.Dropout(p=dropout)
 
         self.decoder = torch.nn.ModuleList()
         self.dropout_dec = torch.nn.ModuleList()
+
+        if is_rnnt:
+            input_size = hidden_size
+        else:
+            input_size = hidden_size + eprojs
+
+            self.att_list = build_attention_list(
+                eprojs=eprojs, dunits=hidden_size, **att_conf
+            )
+
         self.decoder += [
-            torch.nn.LSTMCell(hidden_size + eprojs, hidden_size)
+            torch.nn.LSTMCell(input_size, hidden_size)
             if self.dtype == "lstm"
-            else torch.nn.GRUCell(hidden_size + eprojs, hidden_size)
+            else torch.nn.GRUCell(input_size, hidden_size)
         ]
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in range(1, self.dlayers):
@@ -142,10 +155,6 @@ class RNNDecoder(AbsDecoder):
             self.output = torch.nn.Linear(hidden_size + eprojs, vocab_size)
         else:
             self.output = torch.nn.Linear(hidden_size, vocab_size)
-
-        self.att_list = build_attention_list(
-            eprojs=eprojs, dunits=hidden_size, **att_conf
-        )
 
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)

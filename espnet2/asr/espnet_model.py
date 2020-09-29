@@ -10,7 +10,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.e2e_asr_common import ErrorCalculatorTransESPnet2
+from espnet.nets.e2e_asr_common import ErrorCalculatorTransducer
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
@@ -49,7 +49,7 @@ class ESPnetASRModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
-        rnnt_decoder: Optional[AbsDecoder],
+        transducer_decoder: Optional[AbsDecoder],
         ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
@@ -82,8 +82,8 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             self.ctc = ctc
 
-        self.rnnt_decoder = rnnt_decoder
-        self.criterion_rnnt = TransLoss("warp-transducer", self.blank)
+        self.transducer_decoder = transducer_decoder
+        self.criterion_transducer = TransLoss("warp-transducer", self.blank)
 
         self.criterion_att = LabelSmoothingLoss(
             size=vocab_size,
@@ -93,9 +93,9 @@ class ESPnetASRModel(AbsESPnetModel):
         )
 
         if report_cer or report_wer:
-            if rnnt_decoder is not None:
-                self.error_calculator = ErrorCalculatorTransESPnet2(
-                    rnnt_decoder,
+            if transducer_decoder is not None:
+                self.error_calculator = ErrorCalculatorTransducer(
+                    transducer_decoder,
                     token_list,
                     sym_space,
                     sym_blank,
@@ -142,11 +142,15 @@ class ESPnetASRModel(AbsESPnetModel):
 
         loss_att, acc_att, cer_att, wer_att = None, None, None, None
         loss_ctc, cer_ctc = None, None
-        loss_rnnt, cer_rnnt, wer_rnnt = None, None, None
+        loss_transducer, cer_transducer, wer_transducer = None, None, None
 
-        # 2a. RNN-T decoder branch
-        if self.rnnt_decoder is not None:
-            loss_rnnt, cer_rnnt, wer_rnnt = self._calc_rnnt_loss(
+        # 2a. Transducer decoder branch
+        if self.transducer_decoder is not None:
+            (
+                loss_transducer,
+                cer_transducer,
+                wer_transducer,
+            ) = self._calc_transducer_loss(
                 encoder_out, encoder_out_lens, text, text_lengths
             )
         else:
@@ -162,8 +166,8 @@ class ESPnetASRModel(AbsESPnetModel):
                 )
 
         # 3. Main loss definition
-        if self.rnnt_decoder is not None:
-            loss = loss_rnnt
+        if self.transducer_decoder is not None:
+            loss = loss_transducer
         elif self.ctc_weight == 0.0:
             loss = loss_att
         elif self.ctc_weight == 1.0:
@@ -175,13 +179,15 @@ class ESPnetASRModel(AbsESPnetModel):
             loss=loss.detach(),
             loss_att=loss_att.detach() if loss_att is not None else None,
             loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
-            loss_rnnt=loss_rnnt.detach() if loss_rnnt is not None else None,
+            loss_transducer=loss_transducer.detach()
+            if loss_transducer is not None
+            else None,
             acc=acc_att,
             cer=cer_att,
             wer=wer_att,
             cer_ctc=cer_ctc,
-            cer_rnnt=cer_rnnt,
-            wer_rnnt=wer_rnnt,
+            cer_transducer=cer_transducer,
+            wer_transducer=wer_transducer,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -303,7 +309,7 @@ class ESPnetASRModel(AbsESPnetModel):
             cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
 
-    def _calc_rnnt_loss(
+    def _calc_transducer_loss(
         self,
         encoder_out: torch.Tensor,
         encoder_out_lens: torch.Tensor,
@@ -314,14 +320,16 @@ class ESPnetASRModel(AbsESPnetModel):
             ys_pad, encoder_out_lens
         )
 
-        pred_pad = self.rnnt_decoder(encoder_out, ys_in_pad)
+        pred_pad = self.transducer_decoder(encoder_out, ys_in_pad, pred_len)
 
-        loss_rnnt = self.criterion_rnnt(pred_pad, target, pred_len, target_len)
+        loss_transducer = self.criterion_transducer(
+            pred_pad, target, pred_len, target_len
+        )
 
         # Compute cer/wer using attention-decoder
         if self.training or self.error_calculator is None:
-            cer_rnnt, wer_rnnt = None, None
+            cer_transducer, wer_transducer = None, None
         else:
-            cer_rnnt, wer_rnnt = self.error_calculator(encoder_out, ys_pad)
+            cer_transducer, wer_transducer = self.error_calculator(encoder_out, ys_pad)
 
-        return loss_rnnt, cer_rnnt, wer_rnnt
+        return loss_transducer, cer_transducer, wer_transducer

@@ -15,7 +15,7 @@ from typeguard import check_return_type
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.rnnt_decoder import RNNTDecoder
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,  # noqa: H301
 )
@@ -166,10 +166,10 @@ class ASRTask(AbsTask):
             help="The keyword arguments for CTC class.",
         )
         group.add_argument(
-            "--rnnt_conf",
+            "--transducer_conf",
             action=NestedDictAction,
             default=None,
-            help="The keyword arguments for RNNT class.",
+            help="The keyword arguments for Transducer class.",
         )
         group.add_argument(
             "--model_conf",
@@ -335,14 +335,14 @@ class ASRTask(AbsTask):
         )
 
         # 7. RNN-T Decoder
-        if args.rnnt_conf:
-            rnnt_decoder = RNNTDecoder(
+        if args.transducer_conf:
+            transducer_decoder = TransducerDecoder(
                 vocab_size=vocab_size,
                 encoder_output_size=encoder.output_size(),
-                **args.rnnt_conf,
+                **args.transducer_conf,
             )
         else:
-            rnnt_decoder = None
+            transducer_decoder = None
 
         # 8. Build model
         model = ESPnetASRModel(
@@ -353,7 +353,7 @@ class ASRTask(AbsTask):
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
-            rnnt_decoder=rnnt_decoder,
+            transducer_decoder=transducer_decoder,
             token_list=token_list,
             **args.model_conf,
         )
