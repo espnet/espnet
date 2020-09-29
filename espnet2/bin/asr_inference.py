@@ -53,7 +53,7 @@ class Speech2Text:
         self,
         asr_train_config: Union[Path, str],
         asr_model_file: Union[Path, str] = None,
-        rnnt_search_args: dict = None,
+        rnnt_search_conf: dict = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         token_type: str = None,
@@ -119,7 +119,7 @@ class Speech2Text:
                 beam_size=beam_size,
                 lm=scorers["lm"] if "lm" in scorers else None,
                 lm_weight=lm_weight,
-                **rnnt_search_args,
+                **rnnt_search_conf,
             )
         else:
             beam_search_rnnt = None
@@ -271,7 +271,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    rnnt_search_args: Optional[dict],
+    rnnt_search_conf: Optional[dict],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -298,7 +298,7 @@ def inference(
     speech2text = Speech2Text(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
-        rnnt_search_args=rnnt_search_args,
+        rnnt_search_conf=rnnt_search_conf,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         token_type=token_type,
@@ -444,7 +444,7 @@ def get_parser():
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
 
     group.add_argument(
-        "--rnnt_search_args",
+        "--rnnt_search_conf",
         default=None,
         help="The keyword arguments for RNNT beam search.",
     )
