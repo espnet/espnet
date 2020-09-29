@@ -23,4 +23,4 @@ echo "removed tags, space, and <sp>"
 
 # Create text file for alignment
 mv $dir/text $dir/utt_text
-python3 local/gather_transcript.py $dir/utt_text $dir/text
+local/gather_transcript.py $dir/utt_text $dir/text
