@@ -23,8 +23,7 @@ do_delta=false
 cmvn=
 
 # data
-#CSJDATATOP=/export/corpora5/CSJ/USB
-CSJDATATOP=/hdd/usb
+CSJDATATOP=/export/corpora5/CSJ/USB
 CSJVER=usb                          # see kaldi/egs/csj/s5/run.sh about the version
 
 # exp tag
