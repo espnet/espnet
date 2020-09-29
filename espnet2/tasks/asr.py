@@ -168,7 +168,7 @@ class ASRTask(AbsTask):
         group.add_argument(
             "--rnnt_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(RNNTDecoder),
+            default=None,
             help="The keyword arguments for RNNT class.",
         )
         group.add_argument(
@@ -335,11 +335,14 @@ class ASRTask(AbsTask):
         )
 
         # 7. RNN-T Decoder
-        rnnt_decoder = RNNTDecoder(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder.output_size(),
-            **args.rnnt_conf,
-        )
+        if args.rnnt_conf:
+            rnnt_decoder = RNNTDecoder(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder.output_size(),
+                **args.rnnt_conf,
+            )
+        else:
+            rnnt_decoder = None
 
         # 8. Build model
         model = ESPnetASRModel(

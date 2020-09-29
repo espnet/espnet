@@ -1,4 +1,3 @@
-from argparse import Namespace
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict
@@ -11,7 +10,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
+from espnet.nets.e2e_asr_common import ErrorCalculatorTransESPnet2
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
@@ -50,7 +49,7 @@ class ESPnetASRModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
-        rnnt_decoder: AbsDecoder,
+        rnnt_decoder: Optional[AbsDecoder],
         ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
@@ -95,15 +94,13 @@ class ESPnetASRModel(AbsESPnetModel):
 
         if report_cer or report_wer:
             if rnnt_decoder is not None:
-                report_args = Namespace(
-                    beam_size=5,
-                    sym_space=sym_space,
-                    sym_blank=sym_blank,
-                    char_list=self.token_list,
-                )
-
-                self.error_calculator = ErrorCalculatorTrans(
-                    rnnt_decoder, report_args, report_cer, report_wer
+                self.error_calculator = ErrorCalculatorTransESPnet2(
+                    rnnt_decoder,
+                    token_list,
+                    sym_space,
+                    sym_blank,
+                    report_cer,
+                    report_wer,
                 )
             else:
                 self.error_calculator = ErrorCalculator(
@@ -325,8 +322,6 @@ class ESPnetASRModel(AbsESPnetModel):
         if self.training or self.error_calculator is None:
             cer_rnnt, wer_rnnt = None, None
         else:
-            cer_rnnt, wer_rnnt = None, None
-            # todo: refactor espnet1 decoder, variable names mismatch
-            # cer_rnnt, wer_rnnt = self.error_calculator(encoder_out, ys_pad)
+            cer_rnnt, wer_rnnt = self.error_calculator(encoder_out, ys_pad)
 
         return loss_rnnt, cer_rnnt, wer_rnnt
