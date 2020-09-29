@@ -123,6 +123,14 @@ if [ -z $models ]; then
     fi
 fi
 
+# Check for transformer models because of their memory consumption
+if [[ $models == *"rnn"* ]]; then
+    echo "Using RNN model: "${models}
+else
+    echo "Using Transformer model: "${models}
+    echo "WARNING. For large audio files, use an RNN model."
+fi
+
 dir=${download_dir}/${models}
 mkdir -p ${dir}
 
