@@ -156,7 +156,7 @@ class ESPnetASRModel(AbsESPnetModel):
                     encoder_out, encoder_out_lens, text, text_lengths
                 )
             # 2c. Attention-decoder branch
-            if self.ctc_weigt < 1.0:
+            if self.ctc_weight < 1.0:
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                     encoder_out, encoder_out_lens, text, text_lengths
                 )
