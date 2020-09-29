@@ -515,17 +515,15 @@ class Reporter:
         if epoch is None:
             epoch = self.get_epoch()
 
-        keys2 = set.union(*[set(self.get_keys2(k)) for k in self.get_keys()])
-        for key2 in keys2:
-            summary_writer.add_scalars(
-                key2 + "_epoch",
-                {
-                    k: self.stats[epoch][k][key2]
-                    for k in self.get_keys(epoch)
-                    if key2 in self.stats[epoch][k]
-                },
-                epoch,
-            )
+        for key1 in self.get_keys(epoch):
+            for key2 in self.stats[epoch][key1]:
+                if key2 in ("time", "total_count"):
+                    continue
+                summary_writer.add_scalar(
+                    f"{key1}_{key2}_epoch",
+                    self.stats[epoch][key1][key2],
+                    epoch,
+                )
 
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}
