@@ -17,7 +17,24 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+
+ALL_LOSS_TYPES = (
+    # mse_loss(predicted_mask, target_label)
+    "mask_mse",
+    # mse_loss(enhanced_magnitude_spectrum, target_magnitude_spectrum)
+    "magnitude",
+    # mse_loss(enhanced_complex_spectrum, target_complex_spectrum)
+    "spectrum",
+    # si_snr(enhanced_waveform, target_waveform)
+    "si_snr",
+    # no looss
+    None,
+)
+
+>>>>>>> initial trial
 
 class ESPnetEnhancementModel(AbsESPnetModel):
     """Speech enhancement or separation Frontend model"""
