@@ -20,8 +20,14 @@ def to_device(m, x):
         Tensor: Torch tensor located in the same place as torch module.
 
     """
-    assert isinstance(m, torch.nn.Module)
-    device = next(m.parameters()).device
+    if isinstance(m, torch.nn.Module):
+        device = next(m.parameters()).device
+    elif isinstance(m, torch.Tensor):
+        device = m.device
+    else:
+        raise TypeError(
+            "Expected torch.nn.Module or torch.tensor, " f"bot got: {type(m)}"
+        )
     return x.to(device)
 
 
@@ -483,6 +489,7 @@ def get_activation(act):
 
     activation_funcs = {
         "hardtanh": torch.nn.Hardtanh,
+        "tanh": torch.nn.Tanh,
         "relu": torch.nn.ReLU,
         "selu": torch.nn.SELU,
         "swish": Swish,

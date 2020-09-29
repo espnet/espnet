@@ -69,8 +69,8 @@ class FastSpeech2(AbsTTS):
         positionwise_conv_kernel_size: int = 1,
         use_scaled_pos_enc: bool = True,
         use_batch_norm: bool = True,
-        encoder_normalize_before: bool = False,
-        decoder_normalize_before: bool = False,
+        encoder_normalize_before: bool = True,
+        decoder_normalize_before: bool = True,
         encoder_concat_after: bool = False,
         decoder_concat_after: bool = False,
         reduction_factor: int = 1,
@@ -500,14 +500,14 @@ class FastSpeech2(AbsTTS):
             p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
             e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
             hs = hs + e_embs + p_embs
-            hs = self.length_regulator(hs, d_outs, ilens, alpha)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, d_outs, alpha)  # (B, Lmax, adim)
         else:
             d_outs = self.duration_predictor(hs, d_masks)
             # use groundtruth in training
             p_embs = self.pitch_embed(ps.transpose(1, 2)).transpose(1, 2)
             e_embs = self.energy_embed(es.transpose(1, 2)).transpose(1, 2)
             hs = hs + e_embs + p_embs
-            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, ds)  # (B, Lmax, adim)
 
         # forward decoder
         if olens is not None and not is_inference:

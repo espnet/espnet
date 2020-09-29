@@ -124,8 +124,8 @@ class FastSpeech(AbsTTS):
         positionwise_conv_kernel_size: int = 1,
         use_scaled_pos_enc: bool = True,
         use_batch_norm: bool = True,
-        encoder_normalize_before: bool = False,
-        decoder_normalize_before: bool = False,
+        encoder_normalize_before: bool = True,
+        decoder_normalize_before: bool = True,
         encoder_concat_after: bool = False,
         decoder_concat_after: bool = False,
         duration_predictor_layers: int = 2,
@@ -378,10 +378,10 @@ class FastSpeech(AbsTTS):
         d_masks = make_pad_mask(ilens).to(xs.device)
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, d_outs, ilens, alpha)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, d_outs, alpha)  # (B, Lmax, adim)
         else:
             d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, ds)  # (B, Lmax, adim)
 
         # forward decoder
         if olens is not None and not is_inference:

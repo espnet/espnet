@@ -1,20 +1,20 @@
-"""VGG2L definition for transformer-transducer."""
+"""VGG2L module definition for transformer encoder."""
 
 import torch
 
 
 class VGG2L(torch.nn.Module):
-    """VGG2L module for transformer-transducer encoder."""
+    """VGG2L module for transformer encoder.
+
+    Args:
+        idim (int): dimension of inputs
+        odim (int): dimension of outputs
+
+    """
 
     def __init__(self, idim, odim):
-        """Construct a VGG2L object.
-
-        Args:
-            idim (int): dimension of inputs
-            odim (int): dimension of outputs
-
-        """
-        super(VGG2L, self).__init__()
+        """Construct a VGG2L object."""
+        super().__init__()
 
         self.vgg2l = torch.nn.Sequential(
             torch.nn.Conv2d(1, 64, 3, stride=1, padding=1),
@@ -50,12 +50,10 @@ class VGG2L(torch.nn.Module):
 
         x = self.output(x.transpose(1, 2).contiguous().view(b, t, c * f))
 
-        if x_mask is None:
-            return x, None
-        else:
+        if x_mask is not None:
             x_mask = self.create_new_mask(x_mask, x)
 
-            return x, x_mask
+        return x, x_mask
 
     def create_new_mask(self, x_mask, x):
         """Create a subsampled version of x_mask.
