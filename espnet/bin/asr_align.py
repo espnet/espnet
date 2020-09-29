@@ -210,7 +210,7 @@ def ctc_align(args, device):
     # read audio and text json data
     with open(args.data_json, "rb") as f:
         js = json.load(f)["utts"]
-    with open(args.utt_text, "r") as f:
+    with open(args.utt_text, "r", encoding="utf-8") as f:
         lines = f.readlines()
         i = 0
         text = {}
