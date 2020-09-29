@@ -493,7 +493,7 @@ awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${align_dir}/aligne
 
 The demo script `utils/ctc_align_wav.sh` uses an already pretrained ASR model (see list above for more models).
 It is recommended to use models with RNN-based encoders (such as BLSTMP) for aligning large audio files;
-models that use self-attention in the encoder require (audio length/subsampling)^2 memory.
+rather than using Transformer models that have a high memory consumption on longer audio data.
 The sample rate of the audio must be consistent with that of the data used in training; adjust with `sox` if needed.
 A full example recipe is in `egs/tedlium2/align1/`.
 
