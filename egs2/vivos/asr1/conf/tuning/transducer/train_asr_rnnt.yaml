@@ -35,11 +35,9 @@ encoder_conf:
     hidden_size: 320
     output_size: 320
 decoder: rnn
-rnnt_conf:
-    embedding_size: 300
+transducer_conf:
     rnn_type: lstm
     num_layers: 1
     hidden_size: 300
     joint_space_size: 300
-    dropout: 0.1
-    dropout_embedding: 0.1
+    dropout: 0.2

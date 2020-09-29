@@ -1,6 +1,6 @@
 beam_size: 10
 lm_weight: 0.
-rnnt_search_conf:
+transducer_conf:
     search_type: default
     max_sym_exp: 4
     u_max: 100
