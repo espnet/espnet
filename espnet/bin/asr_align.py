@@ -249,9 +249,9 @@ def ctc_align(args, device):
     char_list = train_args.char_list
     if args.use_dict_blank:
         config.blank = char_list[0]
-        logging.info( f"Blank char was set to >{config.blank}<" )
+        logging.info(f"Blank char was set to >{config.blank}<")
     else:
-        logging.info( f"Blank char >{config.blank}< (align) >{char_list[0]}< (model)" )
+        logging.info(f"Blank char >{config.blank}< (align) >{char_list[0]}< (model)")
         if config.blank != char_list[0]:
             logging.error("Blank char mismatch; this can result in an IndexError.")
             logging.error("Pass the parameter --use-dict-blank to asr_align.py")
