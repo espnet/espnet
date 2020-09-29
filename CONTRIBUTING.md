@@ -46,18 +46,16 @@ If you are not familiar with creating a Pull Request, here are some guides:
 
 ## Version policy and development branches
 
-We basically maintain the `master` and `v.0.X.0` branches for our major developments.
+We basically develop in the `master` branch.
 
 1. We will keep the first version digit `0` until we have some super major changes in the project organization level.
 
 2. The second version digit will be updated when we have major updates including new functions and refactoring, and 
    their related bug fix and recipe changes.
    This version update will be done roughly at every half year so far (but it depends on the development plan).
-   This is developed at the `v.0.X.0` branch to avoid confusions in the `master` branch.
 
 3. The third version digit will be updated when we fix serious bugs or accumulate some minor changes including
    recipe related changes periodically (every two months or so).
-   This is developed at the `master` branch, and these changes are also reflected to the `v.0.X.0` branch frequently.
 
 ## Unit testing
 
@@ -67,19 +65,17 @@ $ cd <espnet_root>
 $ pip install -e ".[test]"
 ```
 
-### python
+### Python
 
-Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
+Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8), [black](https://github.com/psf/black) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 ``` console
 ./ci/test_python.sh
 ```
 
 To create new test file. write functions named like `def test_yyy(...)` in files like `test_xxx.py` under `test/`.
-[Pytest](https://docs.pytest.org/en/latest/) will automatically test them.
+[Pytest](https://docs.pytest.org/en/latest/) will automatically test them. Note that, [pytest-timeouts](https://pypi.org/project/pytest-timeouts/) raises **an error when any tests exceed 2.0 sec**. To keep unittests fast, please avoid large parameters, dynamic imports, and file access. If your unittest really needs more time, you can annotate your test function with `@pytest.mark.timeout(sec)`. You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
-You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
-
-### bash scripts
+### Bash scripts
 
 You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core) and [shellcheck](https://github.com/koalaman/shellcheck).
 
@@ -89,11 +85,26 @@ To test:
 ./ci/test_bash.sh
 ```
 
+## Integration testing
+
+Write new integration tests in [ci/test_integration.sh](ci/test_integration.sh) when you add new features in [espnet/bin](espnet/bin). They use our smallest dataset [egs/mini_an4](egs/mini_an4) to test `run.sh`. To make the coverage take them into account, don't forget `--python ${python}` support in your `run.sh`
+
+```bash
+# ci/integration_test.sh
+
+python="coverage run --append"
+
+cd egs/mini_an4/your_task
+./run.sh --python "${python}"
+
+```
+
 ### Configuration files
 
-- [setup.cfg](setup.cfg) configures pytest and flake8.
-- [.travis.yml](.travis.yml) configures Travis-CI.
-- [.circleci/config.yml](.circleci/config.yml) configures Circle-CI.
+- [setup.cfg](setup.cfg) configures pytest, black and flake8.
+- [.travis.yml](.travis.yml) configures Travis-CI (unittests, doc deploy).
+- [.circleci/config.yml](.circleci/config.yml) configures Circle-CI (unittests, integration tests).
+- [.github/workflows](.github/workflows/) configures Github Actions (unittests, integration tests).
 
 ## Writing new tools
 
@@ -101,7 +112,7 @@ You can place your new tools under
 - `espnet/bin`: heavy and large (e.g., neural network related) core tools.
 - `utils`: lightweight self-contained python/bash scripts.
 
-For `utils` scripts, do not forget to add test scripts under `test_utils`.
+For `utils` scripts, do not forget to add help messages, and test scripts under `test_utils`.
 
 ### Python tools guideline
 
@@ -147,7 +158,7 @@ The model name is arbitrary for now.
 
 ## On CI failure
 
-### Travis CI
+### Travis CI and Github Actions
 
 1. read log from PR checks > details
 

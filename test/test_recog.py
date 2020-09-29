@@ -82,6 +82,7 @@ def init_chainer_weight_const(m, val):
         p.data[:] = val
 
 
+@pytest.mark.execution_timeout(5)
 @pytest.mark.skipif(is_torch_1_2_plus, reason="pytestskip")
 @pytest.mark.parametrize(
     ("etype", "dtype", "m_str", "text_idx1"),
@@ -143,6 +144,7 @@ def test_recognition_results(etype, dtype, m_str, text_idx1):
         assert seq_hat_text == seq_true_text
 
 
+@pytest.mark.execution_timeout(5)
 @pytest.mark.skipif(is_torch_1_2_plus, reason="pytestskip")
 @pytest.mark.parametrize(
     ("etype", "dtype", "m_str", "text_idx1"),
