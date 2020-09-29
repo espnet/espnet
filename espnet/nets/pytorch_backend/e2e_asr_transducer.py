@@ -10,7 +10,6 @@ from chainer import reporter
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.beam_search_transducer import search_interface
 
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -481,12 +480,21 @@ class E2E(ASRInterface, torch.nn.Module):
         self.default_parameters(args)
 
         if args.report_cer or args.report_wer:
-            from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
+            from espnet.nets.e2e_asr_common import ErrorCalculatorTransducer
 
             if self.dtype == "transformer":
-                self.error_calculator = ErrorCalculatorTrans(self.decoder, args)
+                decoder = self.decoder
             else:
-                self.error_calculator = ErrorCalculatorTrans(self.dec, args)
+                decoder = self.dec
+
+            self.error_calculator = ErrorCalculatorTransducer(
+                decoder,
+                args.char_list,
+                args.sym_space,
+                args.sym_blank,
+                args.report_cer,
+                args.report_wer,
+            )
         else:
             self.error_calculator = None
 
@@ -599,34 +607,58 @@ class E2E(ASRInterface, torch.nn.Module):
 
         return hs.squeeze(0)
 
-    def recognize(self, x, recog_args, char_list=None, rnnlm=None):
+    def recognize(self, x, beam_search):
         """Recognize input features.
 
         Args:
             x (ndarray): input acoustic feature (T, D)
-            recog_args (namespace): argument Namespace containing options
-            char_list (list): list of characters
-            rnnlm (torch.nn.Module): language model module
+            beam_search (class): beam search class
 
         Returns:
             nbest_hyps (list): n-best decoding results
-
         """
+        from dataclasses import asdict
+
         if "transformer" in self.etype:
             h = self.encode_transformer(x)
         else:
             h = self.encode_rnn(x)
 
-        if "transformer" in self.dtype:
-            decoder = self.decoder
+        nbest_hyps = beam_search(h)
+
+        if isinstance(nbest_hyps, list):
+            return [asdict(n) for n in nbest_hyps]
         else:
-            decoder = self.dec
+            return asdict(nbest_hyps)
 
-        params = [decoder, h, recog_args, rnnlm]
+    # def recognize(self, x, recog_args, char_list=None, rnnlm=None):
+    #     """Recognize input features.
 
-        nbest_hyps = search_interface(*params)
+    #     Args:
+    #         x (ndarray): input acoustic feature (T, D)
+    #         recog_args (namespace): argument Namespace containing options
+    #         char_list (list): list of characters
+    #         rnnlm (torch.nn.Module): language model module
 
-        return nbest_hyps
+    #     Returns:
+    #         nbest_hyps (list): n-best decoding results
+
+    #     """
+    #     if "transformer" in self.etype:
+    #         h = self.encode_transformer(x)
+    #     else:
+    #         h = self.encode_rnn(x)
+
+    #     if "transformer" in self.dtype:
+    #         decoder = self.decoder
+    #     else:
+    #         decoder = self.dec
+
+    #     params = [decoder, h, recog_args, rnnlm]
+
+    #     nbest_hyps = search_interface(*params)
+
+    #     return nbest_hyps
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.
