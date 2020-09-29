@@ -47,15 +47,15 @@ def make_arg(**kwargs):
 
 def prepare(args):
     idim = 10
-    odim = 3
+    odim = 5
     model = E2E(idim, odim, args)
     batchsize = 2
-    x = torch.randn(batchsize, 10, idim)
     ilens = [10, 9]
-    n_token = odim - 1
-    y_src = (torch.rand(batchsize, 4) * n_token % n_token).long()
-    y_tgt = (torch.rand(batchsize, 4) * n_token % n_token).long()
     olens = [3, 4]
+    n_token = odim - 1
+    x = torch.randn(batchsize, max(ilens), idim)
+    y_src = (torch.rand(batchsize, max(olens)) * n_token % n_token).long()
+    y_tgt = (torch.rand(batchsize, max(olens)) * n_token % n_token).long()
     for i in range(batchsize):
         x[i, ilens[i] :] = -1
         y_tgt[i, olens[i] :] = model.ignore_id
