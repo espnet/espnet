@@ -216,8 +216,7 @@ def ctc_align(args, device):
     logging.info(f"Encoder module: {encoder_module}")
     logging.info(f"CTC module:     {model.ctc.__class__.__module__}")
     if not "rnn" in encoder_module:
-        logging.error("No BLSTM model detected; memory consumption may be high.")
-        logging.error("You may want to use a BLSTMP encoder for CTC segmentation.")
+        logging.warning("No BLSTM model detected; memory consumption may be high.")
     model.to(device=device).eval()
     # read audio and text json data
     with open(args.data_json, "rb") as f:
