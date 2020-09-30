@@ -129,22 +129,6 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         return y, (z_list, c_list)
 
-    # def joint(self, h_enc, h_dec):
-    #     """Joint computation of z.
-
-    #     Args:
-    #         h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, enc_dim)
-    #         h_dec (torch.Tensor): batch of expanded hidden state (B, 1, U, dec_dim)
-
-    #     Returns:
-    #         z (torch.Tensor): output (B, T, U, odim)
-
-    #     """
-    #     z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
-    #     z = self.lin_out(z)
-
-    #     return z
-
     def forward(self, hs_pad, ys_in_pad, hlens=None):
         """Forward function for transducer.
 
