@@ -83,14 +83,22 @@ def main():
     else:
         utt2ref_channels = None
 
+    Path(args.outdir).mkdir(parents=True, exist_ok=True)
+    out_wavscp = Path(args.outdir) / f"{args.name}.scp"
     if args.segments is not None:
         # Note: kaldiio supports only wav-pcm-int16le file.
         loader = kaldiio.load_scp_sequential(args.scp, segments=args.segments)
-        with SoundScpWriter(
-            args.outdir,
-            Path(args.outdir) / f"{args.name}.scp",
-            format=args.audio_format,
-        ) as writer, out_num_samples.open("w") as fnum_samples:
+        if args.audio_format.endswith("ark"):
+            fark = open(Path(args.outdir) / f"data_{args.name}.ark", "wb")
+            fscp = out_wavscp.open("w")
+        else:
+            writer = SoundScpWriter(
+                args.outdir,
+                out_wavscp,
+                format=args.audio_format,
+            )
+
+        with out_num_samples.open("w") as fnum_samples:
             for uttid, (rate, wave) in tqdm(loader):
                 # wave: (Time,) or (Time, Nmic)
                 if wave.ndim == 2 and utt2ref_channels is not None:
@@ -103,12 +111,33 @@ def main():
                     )
                     wave = wave.astype(np.int16)
                     rate = args.fs
-                writer[uttid] = rate, wave
+                if args.audio_format.endswith("ark"):
+                    if "flac" in args.audio_format:
+                        suf = "flac"
+                    elif "wav" in args.audio_format:
+                        suf = "wav"
+                    else:
+                        raise RuntimeError("wav.ark or flac")
+
+                    # NOTE(kamo): Using extended ark format style here.
+                    # This format is incompatible with Kaldi
+                    kaldiio.save_ark(
+                        fark,
+                        {uttid: (wave, rate)},
+                        scp=fscp,
+                        append=True,
+                        write_function=f"soundfile_{suf}",
+                    )
+
+                else:
+                    writer[uttid] = rate, wave
                 fnum_samples.write(f"{uttid} {len(wave)}\n")
     else:
-        wavdir = Path(args.outdir) / f"data_{args.name}"
-        wavdir.mkdir(parents=True, exist_ok=True)
-        out_wavscp = Path(args.outdir) / f"{args.name}.scp"
+        if args.audio_format.endswith("ark"):
+            fark = open(Path(args.outdir) / f"data_{args.name}.ark", "wb")
+        else:
+            wavdir = Path(args.outdir) / f"data_{args.name}"
+            wavdir.mkdir(parents=True, exist_ok=True)
 
         with Path(args.scp).open("r") as fscp, out_wavscp.open(
             "w"
@@ -132,13 +161,34 @@ def main():
                             wave = wave.astype(np.int16)
                             rate = args.fs
 
-                        owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
-                        soundfile.write(owavpath, wave, rate)
-                        fout.write(f"{uttid} {owavpath}\n")
+                        if args.audio_format.endswith("ark"):
+                            if "flac" in args.audio_format:
+                                suf = "flac"
+                            elif "wav" in args.audio_format:
+                                suf = "wav"
+                            else:
+                                raise RuntimeError("wav.ark or flac")
+
+                            # NOTE(kamo): Using extended ark format style here.
+                            # This format is incompatible with Kaldi
+                            kaldiio.save_ark(
+                                fark,
+                                {uttid: (wave, rate)},
+                                scp=fout,
+                                append=True,
+                                write_function=f"soundfile_{suf}",
+                            )
+                        else:
+                            owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
+                            soundfile.write(owavpath, wave, rate)
+                            fout.write(f"{uttid} {owavpath}\n")
                 else:
                     wave, rate = soundfile.read(wavpath, dtype=np.int16)
                     if wave.ndim == 2 and utt2ref_channels is not None:
                         wave = wave[:, utt2ref_channels(uttid)]
+                        save_asis = False
+
+                    elif args.audio_format.endswith("ark"):
                         save_asis = False
 
                     elif Path(wavpath).suffix == "." + args.audio_format and (
@@ -165,9 +215,27 @@ def main():
                             wave = wave.astype(np.int16)
                             rate = args.fs
 
-                        owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
-                        soundfile.write(owavpath, wave, rate)
-                        fout.write(f"{uttid} {owavpath}\n")
+                        if args.audio_format.endswith("ark"):
+                            if "flac" in args.audio_format:
+                                suf = "flac"
+                            elif "wav" in args.audio_format:
+                                suf = "wav"
+                            else:
+                                raise RuntimeError("wav.ark or flac")
+
+                            # NOTE(kamo): Using extended ark format style here.
+                            # This format is not supported in Kaldi.
+                            kaldiio.save_ark(
+                                fark,
+                                {uttid: (wave, rate)},
+                                scp=fout,
+                                append=True,
+                                write_function=f"soundfile_{suf}",
+                            )
+                        else:
+                            owavpath = str(wavdir / f"{uttid}.{args.audio_format}")
+                            soundfile.write(owavpath, wave, rate)
+                            fout.write(f"{uttid} {owavpath}\n")
                 fnum_samples.write(f"{uttid} {len(wave)}\n")
 
 

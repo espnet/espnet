@@ -38,7 +38,7 @@ requirements = {
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py==2.10.0",
-        "kaldiio>=2.15.0",
+        "kaldiio>=2.17.0",
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
@@ -59,6 +59,7 @@ requirements = {
     "setup": ["numpy", "pytest-runner"],
     "test": [
         "pytest>=3.3.0",
+        "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",
         "hacking>=2.0.0",
