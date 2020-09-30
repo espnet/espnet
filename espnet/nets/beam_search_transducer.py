@@ -595,10 +595,10 @@ class BeamSearchTransducer:
                         else:
                             new_hyp.yseq.append(int(k))
 
-                        if self.lm:
-                            new_hyp.score += self.lm_weight * float(
-                                beam_lm_scores[i, k]
-                            )
+                            if self.lm:
+                                new_hyp.score += self.lm_weight * float(
+                                    beam_lm_scores[i, k]
+                                )
 
                         V.append(new_hyp)
 
