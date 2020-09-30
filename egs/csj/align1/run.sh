@@ -103,7 +103,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     local/csj_make_trans/csj_autorun.sh ${CSJDATATOP} data/csj-data ${CSJVER}
-    #local/csj_data_prep.sh data/csj-data
     for eval_num in eval1 eval2 eval3 ; do
         local/csj_eval_data_prep.sh data/csj-data/eval ${eval_num}
     done
