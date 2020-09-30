@@ -1,9 +1,11 @@
 # coding: utf-8
 
 import argparse
+
 import pytest
 import torch
 
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 
 
@@ -210,11 +212,27 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
     loss.backward()
     optim.step()
 
+    beam_search = BeamSearchTransducer(
+        decoder=model.decoder,
+        beam_size=recog_args.beam_size,
+        lm=None,
+        lm_weight=0.0,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+    )
+
     with torch.no_grad():
-        nbest = model.recognize(x[0, : ilens[0]].numpy(), recog_args)
+        nbest = model.recognize(x[0, : ilens[0]].numpy(), beam_search)
 
         print(y[0])
-        print(nbest[0]["yseq"][1:-1])
+        if recog_args.beam_size == 1:
+            print(nbest["yseq"][1:-1])
+        else:
+            print(nbest[0]["yseq"][1:-1])
 
 
 def test_calculate_plot_attention():
