@@ -356,8 +356,12 @@ class TransducerDecoder(RNNDecoder):
         """
         if self.use_attention:
             for layer in range(self.dlayers):
-                batch_states[0][0][layer] = torch.stack([s[0][0][layer] for s in l_states])
-                batch_states[0][1][layer] = torch.stack([s[0][1][layer] for s in l_states])
+                batch_states[0][0][layer] = torch.stack(
+                    [s[0][0][layer] for s in l_states]
+                )
+                batch_states[0][1][layer] = torch.stack(
+                    [s[0][1][layer] for s in l_states]
+                )
 
             att_states = (
                 torch.stack([s[1] for s in l_states])
