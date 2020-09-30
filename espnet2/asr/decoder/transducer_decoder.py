@@ -321,15 +321,18 @@ class TransducerDecoder(RNNDecoder):
                 ([L x (1, D_dec)], [L x (1, D_dec)])
 
         """
-        z_list = [batch_states[0][layer][idx] for layer in range(self.dlayers)]
-        c_list = [batch_states[1][layer][idx] for layer in range(self.dlayers)]
-
         if self.use_attention:
+            z_list = [batch_states[0][0][layer][idx] for layer in range(self.dlayers)]
+            c_list = [batch_states[0][1][layer][idx] for layer in range(self.dlayers)]
+
             att_state = (
                 batch_states[1][idx] if batch_states[1] is not None else batch_states[1]
             )
             return ((z_list, c_list), att_state)
         else:
+            z_list = [batch_states[0][layer][idx] for layer in range(self.dlayers)]
+            c_list = [batch_states[1][layer][idx] for layer in range(self.dlayers)]
+
             return (z_list, c_list)
 
     def create_batch_states(
@@ -351,11 +354,11 @@ class TransducerDecoder(RNNDecoder):
                 ([L x (B, D_dec)], [L x (B, D_dec)])
 
         """
-        for layer in range(self.dlayers):
-            batch_states[0][layer] = torch.stack([s[0][layer] for s in l_states])
-            batch_states[1][layer] = torch.stack([s[1][layer] for s in l_states])
-
         if self.use_attention:
+            for layer in range(self.dlayers):
+                batch_states[0][0][layer] = torch.stack([s[0][0][layer] for s in l_states])
+                batch_states[0][1][layer] = torch.stack([s[0][1][layer] for s in l_states])
+
             att_states = (
                 torch.stack([s[1] for s in l_states])
                 if l_states[0][1] is not None
@@ -364,4 +367,8 @@ class TransducerDecoder(RNNDecoder):
 
             return (batch_states[0], att_states)
         else:
+            for layer in range(self.dlayers):
+                batch_states[0][layer] = torch.stack([s[0][layer] for s in l_states])
+                batch_states[1][layer] = torch.stack([s[1][layer] for s in l_states])
+
             return batch_states
