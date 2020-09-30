@@ -443,7 +443,7 @@ You can download converted samples of the cascade ASR+TTS baseline system [here]
 <details><summary>expand</summary><div>
 
 [CTC segmentation](https://arxiv.org/abs/2007.09127) determines utterance segments within audio files.
-Aligned utterance segments constitute the "labels" of speech datasets.
+Aligned utterance segments constitute the labels of speech datasets.
 
 As demo, we align start and end of utterances within the audio file `ctc_align_test.wav`, using the example script `utils/ctc_align_wav.sh`.
 For preparation, set up a data directory:
@@ -492,6 +492,8 @@ awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' ${align_dir}/aligne
 ```
 
 The demo script `utils/ctc_align_wav.sh` uses an already pretrained ASR model (see list above for more models).
+It is recommended to use models with RNN-based encoders (such as BLSTMP) for aligning large audio files;
+rather than using Transformer models that have a high memory consumption on longer audio data.
 The sample rate of the audio must be consistent with that of the data used in training; adjust with `sox` if needed.
 A full example recipe is in `egs/tedlium2/align1/`.
 

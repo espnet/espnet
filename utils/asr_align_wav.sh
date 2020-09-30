@@ -18,7 +18,7 @@ stage=-1       # start from -1 if you need to start from model download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
-verbose=2      # verbose option
+verbose=1      # verbose option
 
 # feature configuration
 do_delta=false
@@ -32,7 +32,7 @@ api=v1
 
 # Parameters for CTC alignment
 # The subsampling factor depends on whether the encoder uses subsampling
-subsampling_factor=1
+subsampling_factor=4
 # minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
 min_confidence_score=-5.0
 # minimum length of one utterance
@@ -40,7 +40,7 @@ min_window_size=8000
 
 
 # download related
-models=tedlium2.transformer.v1
+models=tedlium2.rnn.v2
 dict=
 nlsyms=
 
@@ -122,6 +122,14 @@ if [ -z $models ]; then
         echo 'Error: models or set of cmvn, align_model and align_config are required.' >&2
         exit 1
     fi
+fi
+
+# Check for transformer models because of their memory consumption
+if [[ $models == *"rnn"* ]]; then
+    echo "Using RNN model: "${models}
+else
+    echo "Using Transformer model: "${models}
+    echo "WARNING. For large audio files, use an RNN model."
 fi
 
 dir=${download_dir}/${models}
