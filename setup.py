@@ -37,7 +37,7 @@ requirements = {
         # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
-        "h5py==2.10.0",
+        "h5py>=2.10.0",
         "kaldiio>=2.17.0",
         # TTS related
         "inflect>=1.0.0",
