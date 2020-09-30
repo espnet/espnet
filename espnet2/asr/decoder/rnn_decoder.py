@@ -1,10 +1,10 @@
 import random
+from typing import Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
-from typing import Optional
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import to_device

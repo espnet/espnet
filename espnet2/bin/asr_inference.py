@@ -14,12 +14,11 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
 
-from espnet.nets.beam_search_transducer import BeamSearchTransducer
-from espnet.nets.beam_search_transducer import Hypothesis as TransHypothesis
-
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
+from espnet.nets.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus

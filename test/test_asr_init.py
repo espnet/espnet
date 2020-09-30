@@ -2,10 +2,11 @@
 
 import argparse
 import json
-import numpy as np
 import os
-import pytest
 import tempfile
+
+import numpy as np
+import pytest
 import torch
 
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch

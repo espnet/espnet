@@ -1,17 +1,16 @@
 """Transducer decoder implementation."""
 
-import torch
-
-from typeguard import check_argument_types
 from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import Union
 
+import torch
+from typeguard import check_argument_types
+
 from espnet.nets.beam_search_transducer import Hypothesis
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
-
 from espnet2.asr.decoder.rnn_decoder import build_attention_list
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs

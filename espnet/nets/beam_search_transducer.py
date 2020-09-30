@@ -1,16 +1,14 @@
 """Search algorithms for transducer models."""
 
-import numpy as np
-import torch
-
 from dataclasses import dataclass
-from typeguard import check_argument_types
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Union
 
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
+import numpy as np
+import torch
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.transducer.utils import create_lm_batch_state
 from espnet.nets.pytorch_backend.transducer.utils import init_lm_state
@@ -18,6 +16,7 @@ from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
 from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import substract
+from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
 
 @dataclass

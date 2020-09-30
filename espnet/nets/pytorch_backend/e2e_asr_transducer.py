@@ -6,23 +6,13 @@ import logging
 import math
 
 import chainer
-from chainer import reporter
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
-
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
-
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
-
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.rnn_att_decoder import DecoderRNNTAtt
@@ -30,6 +20,11 @@ from espnet.nets.pytorch_backend.transducer.rnn_decoder import DecoderRNNT
 from espnet.nets.pytorch_backend.transducer.transformer_decoder import DecoderTT
 from espnet.nets.pytorch_backend.transducer.transformer_encoder import Encoder
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.transformer.mask import target_mask
 
 
 class Reporter(chainer.Chain):
@@ -37,9 +32,9 @@ class Reporter(chainer.Chain):
 
     def report(self, loss, cer, wer):
         """Instantiate reporter attributes."""
-        reporter.report({"cer": cer}, self)
-        reporter.report({"wer": wer}, self)
-        reporter.report({"loss": loss}, self)
+        chainer.reporter.report({"cer": cer}, self)
+        chainer.reporter.report({"wer": wer}, self)
+        chainer.reporter.report({"loss": loss}, self)
 
         logging.info("loss:" + str(loss))
 
@@ -630,35 +625,6 @@ class E2E(ASRInterface, torch.nn.Module):
             return [asdict(n) for n in nbest_hyps]
         else:
             return asdict(nbest_hyps)
-
-    # def recognize(self, x, recog_args, char_list=None, rnnlm=None):
-    #     """Recognize input features.
-
-    #     Args:
-    #         x (ndarray): input acoustic feature (T, D)
-    #         recog_args (namespace): argument Namespace containing options
-    #         char_list (list): list of characters
-    #         rnnlm (torch.nn.Module): language model module
-
-    #     Returns:
-    #         nbest_hyps (list): n-best decoding results
-
-    #     """
-    #     if "transformer" in self.etype:
-    #         h = self.encode_transformer(x)
-    #     else:
-    #         h = self.encode_rnn(x)
-
-    #     if "transformer" in self.dtype:
-    #         decoder = self.decoder
-    #     else:
-    #         decoder = self.dec
-
-    #     params = [decoder, h, recog_args, rnnlm]
-
-    #     nbest_hyps = search_interface(*params)
-
-    #     return nbest_hyps
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.

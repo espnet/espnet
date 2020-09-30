@@ -1,15 +1,15 @@
 # coding: utf-8
 
 import argparse
+
 import numpy as np
 import pytest
 import torch
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 

@@ -1,12 +1,12 @@
 """Transducer decoder interface module."""
 
-import torch
-
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import Union
+
+import torch
 
 from espnet.nets.beam_search_transducer import Hypothesis
 

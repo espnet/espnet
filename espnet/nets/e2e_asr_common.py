@@ -6,14 +6,14 @@
 
 """Common functions for ASR."""
 
-import editdistance
 import json
 import logging
-import numpy as np
-import six
 import sys
 
+import editdistance
 from itertools import groupby
+import numpy as np
+import six
 
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 
