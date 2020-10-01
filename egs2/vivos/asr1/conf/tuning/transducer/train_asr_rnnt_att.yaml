@@ -41,7 +41,6 @@ transducer_conf:
     hidden_size: 300
     joint_space_size: 300
     dropout: 0.1
-    dropout_embedding: 0.1
     use_attention: True
     att_conf:
         atype: location
