@@ -83,6 +83,7 @@ Available models:
     - librispeech.transformer.v1.transformerlm.v1
     - commonvoice.transformer.v1
     - csj.transformer.v1
+    - csj.rnn.v1
     - wsj.transformer.v1
     - wsj.transformer_small.v1
 EOF
@@ -149,6 +150,7 @@ function download_models () {
         "librispeech.transformer.v1.transformerlm.v1") share_url="https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p" ;;
         "commonvoice.transformer.v1") share_url="https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh" ;;
         "csj.transformer.v1") share_url="https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF" ;;
+        "csj.rnn.v1") share_url="https://drive.google.com/open?id=1ALvD4nHan9VDJlYJwNurVr7H7OV0j2X9" ;;
         "wsj.transformer.v1") share_url="https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp" ;;
         "wsj.transformer_small.v1") share_url="https://drive.google.com/open?id=1jdEKbgWhLTxN_qP4xwE7mTOPmp7Ga--T" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
