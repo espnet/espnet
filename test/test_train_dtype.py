@@ -10,6 +10,28 @@ from espnet.nets.asr_interface import dynamic_import_asr
         (dtype, device, nn, conf)
         for nn, conf in [
             (
+                "transducer",
+                dict(
+                    adim=4,
+                    eunits=3,
+                    dunits=3,
+                    elayers=2,
+                    dlayers=2,
+                    trans_type="warp-transducer",
+                ),
+            ),
+            (
+                "transducer",
+                dict(
+                    adim=4,
+                    eunits=3,
+                    dunits=3,
+                    elayers=2,
+                    dlayers=2,
+                    trans_type="warp-rnnt",
+                ),
+            ),
+            (
                 "transformer",
                 dict(adim=4, eunits=3, dunits=3, elayers=2, dlayers=2, mtlalpha=0.0),
             ),

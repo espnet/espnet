@@ -73,6 +73,5 @@ class TransLoss(torch.nn.Module):
             )
         else:
             loss = self.trans_loss(pred_pad, target, pred_len, target_len)
->>>>>>> 64ca9fa27e63e5b28792d1156a0d19159b738733
 
         return loss
