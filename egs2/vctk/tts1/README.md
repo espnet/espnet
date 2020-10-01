@@ -27,11 +27,11 @@ See the following pages before asking the question:
 ### vctk_tts_train_gst_tacotron2_raw_phn_tacotron_g2p_en_no_space_train.loss.best
 - https://zenodo.org/record/3986237
 
-### vctk_tts_train_gst_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
-- https://zenodo.org/record/4037456
-
 ### vctk_tts_train_gst_fastspeech_raw_phn_tacotron_g2p_en_no_space_train.loss.best
 - https://zenodo.org/record/3986241
+
+### vctk_tts_train_gst_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+- https://zenodo.org/record/4037456
 
 ### vctk_tts_train_gst_fastspeech2_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4036266
