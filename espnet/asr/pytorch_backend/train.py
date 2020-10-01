@@ -21,8 +21,6 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.pytorch_backend.asr import CustomEvaluator
-from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr_init import freeze_modules
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 from espnet.asr.pytorch_backend.converter import CustomConverter
@@ -35,10 +33,12 @@ from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.evaluator import CustomEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
+from espnet.utils.training.updater import CustomUpdater
 
 
 def train(args):

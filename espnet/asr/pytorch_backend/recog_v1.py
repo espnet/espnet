@@ -111,7 +111,6 @@ def recog(args):
         preprocess_args={"train": False},
     )
 
-
     # load transducer beam search
     if hasattr(model, "rnnt_mode"):
         if hasattr(model, "dec"):

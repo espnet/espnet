@@ -39,9 +39,9 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
-from espnet.asr.pytorch_backend.asr import CustomEvaluator
-from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
+from espnet.utils.training.evaluator import CustomEvaluator
+from espnet.utils.training.updater import CustomUpdater
 
 import matplotlib
 

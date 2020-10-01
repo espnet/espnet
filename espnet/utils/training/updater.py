@@ -3,91 +3,18 @@
 
 """Chainer trainer implementation for the speech recognition task."""
 
-import copy
 import logging
 import math
 
-from chainer import reporter
 from chainer.training.updater import StandardUpdater
 import torch
 from torch.nn.parallel import data_parallel
 
-from espnet.utils.training.evaluator import BaseEvaluator
+from espnet.utils.training.evaluator import recursive_to
 
 import matplotlib
 
 matplotlib.use("Agg")
-
-
-def _recursive_to(xs, device):
-    if torch.is_tensor(xs):
-        return xs.to(device)
-    if isinstance(xs, tuple):
-        return tuple(_recursive_to(x, device) for x in xs)
-    return xs
-
-
-class CustomEvaluator(BaseEvaluator):
-    """Custom Evaluator for Pytorch.
-
-    Args:
-        model (torch.nn.Module): The model to evaluate.
-        iterator (chainer.dataset.Iterator) : The train iterator.
-        target (link | dict[str, link]) :Link object or a dictionary of
-            links to evaluate. If this is just a link object, the link is
-            registered by the name ``'main'``.
-        device (torch.device): The device used.
-        ngpu (int): The number of GPUs.
-
-    """
-
-    def __init__(self, model, iterator, target, device, ngpu=None):
-        """Initialize evaluator."""
-        super().__init__(iterator, target)
-        self.model = model
-        self.device = device
-        if ngpu is not None:
-            self.ngpu = ngpu
-        elif device.type == "cpu":
-            self.ngpu = 0
-        else:
-            self.ngpu = 1
-
-    # The core part of the update routine can be customized by overriding
-    def evaluate(self):
-        """Evaluate self.model."""
-        iterator = self._iterators["main"]
-
-        if self.eval_hook:
-            self.eval_hook(self)
-
-        if hasattr(iterator, "reset"):
-            iterator.reset()
-            it = iterator
-        else:
-            it = copy.copy(iterator)
-
-        summary = reporter.DictSummary()
-
-        self.model.eval()
-        with torch.no_grad():
-            for batch in it:
-                x = _recursive_to(batch, self.device)
-                observation = {}
-                with reporter.report_scope(observation):
-                    # read scp files
-                    # x: original json with loaded features
-                    #    will be converted to chainer variable later
-                    if self.ngpu == 0:
-                        self.model(*x)
-                    else:
-                        # apex does not support torch.nn.DataParallel
-                        data_parallel(self.model, x, range(self.ngpu))
-
-                summary.add(observation)
-        self.model.train()
-
-        return summary.compute_mean()
 
 
 class CustomUpdater(StandardUpdater):
@@ -142,7 +69,7 @@ class CustomUpdater(StandardUpdater):
         batch = train_iter.next()
         # self.iteration += 1 # Increase may result in early report,
         # which is done in other place automatically.
-        x = _recursive_to(batch, self.device)
+        x = recursive_to(batch, self.device)
         is_new_epoch = train_iter.epoch != epoch
         # When the last minibatch in the current epoch is given,
         # gradient accumulation is turned off in order to evaluate the model
