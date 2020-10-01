@@ -28,6 +28,7 @@ def test_repr(phoneme_tokenizer: PhonemeTokenizer):
     print(phoneme_tokenizer)
 
 
+@pytest.mark.execution_timeout(5)
 def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     if phoneme_tokenizer.g2p_type == "g2p_en":
         input = "Hello World"

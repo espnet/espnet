@@ -2,6 +2,7 @@ import multiprocessing
 import sys
 
 import numpy as np
+import pytest
 import torch.multiprocessing
 
 from espnet2.utils.sized_dict import get_size
@@ -38,6 +39,7 @@ def _set(d):
     d["a"][0] = 10
 
 
+@pytest.mark.execution_timeout(5)
 def test_SizedDict_shared():
     d = SizedDict(shared=True)
     x = torch.randn(10)

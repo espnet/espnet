@@ -2,17 +2,14 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.nets_utils import to_device
-
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.utils import check_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_batch_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
-
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
@@ -68,11 +65,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         self.after_norm = LayerNorm(ddim)
 
-        self.lin_enc = torch.nn.Linear(edim, jdim)
-        self.lin_dec = torch.nn.Linear(ddim, jdim, bias=False)
-        self.lin_out = torch.nn.Linear(jdim, odim)
-
-        self.joint_activation = get_activation(joint_activation_type)
+        self.joint_network = JointNetwork(odim, edim, ddim, jdim, joint_activation_type)
 
         self.dunits = ddim
         self.odim = odim
@@ -119,25 +112,9 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         h_enc = memory.unsqueeze(2)
         h_dec = tgt.unsqueeze(1)
 
-        z = self.joint(h_enc, h_dec)
+        z = self.joint_network(h_enc, h_dec)
 
         return z, tgt_mask
-
-    def joint(self, h_enc, h_dec):
-        """Joint computation of z.
-
-        Args:
-            h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, enc_dim)
-            h_dec (torch.Tensor): batch of expanded hidden state (B, 1, U, dec_dim)
-
-        Returns:
-            z (torch.Tensor): output (B, T, U, odim)
-
-        """
-        z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
-        z = self.lin_out(z)
-
-        return z
 
     def score(self, hyp, cache, init_tensor=None):
         """Forward one step.

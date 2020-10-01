@@ -181,7 +181,7 @@ def get_parser():
         help="Length prefix difference allowed in ALSD beam search.",
     )
     parser.add_argument(
-        "--score-norm-transducer",
+        "--score-norm",
         type=strtobool,
         nargs="?",
         default=True,
