@@ -26,9 +26,6 @@ cmvn=
 CSJDATATOP=/export/corpora5/CSJ/USB
 CSJVER=usb                          # see kaldi/egs/csj/s5/run.sh about the version
 
-# exp tag
-tag="" # tag for managing experiments.
-
 # Parameters for CTC alignment
 # The subsampling factor depends on whether the encoder uses subsampling
 subsampling_factor=4
