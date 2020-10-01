@@ -23,8 +23,8 @@ set -euo pipefail
 # ./doc/argparse2rst.py ./espnet2/bin/*.py > ./doc/_gen/espnet2_bin.rst
 
 
-find $(pwd)/utils/{*.sh,spm_*} -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_sh.rst
-find $(pwd)/espnet2/bin/*.py -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/espnet2_bin.rst
+find ./utils/{*.sh,spm_*} -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_sh.rst
+find ./espnet2/bin/*.py -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/espnet2_bin.rst
 
 # generate package doc
 ./doc/module2rst.py --root espnet espnet2 --dst ./doc --exclude espnet.bin
