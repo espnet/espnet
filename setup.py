@@ -10,7 +10,7 @@ requirements = {
         "setuptools>=38.5.1",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
-        "dataclasses",  # For Python<3.7
+        "dataclasses; python_version < '3.7'",
         "humanfriendly",
         "scipy>=1.4.1",
         "matplotlib==3.1.0",
