@@ -1007,7 +1007,7 @@ def recog(args):
             u_max=args.u_max,
             nstep=args.nstep,
             prefix_alpha=args.prefix_alpha,
-            score_norm=args.score_norm_transducer,
+            score_norm=args.score_norm,
         )
 
     if args.batchsize == 0:

@@ -1,6 +1,7 @@
 """Transducer speech recognition model (pytorch)."""
 
 from collections import Counter
+from dataclasses import asdict
 from distutils.util import strtobool
 import logging
 import math
@@ -333,7 +334,7 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Joint network activation type",
         )
         group.add_argument(
-            "--score-norm-transducer",
+            "--score-norm",
             type=strtobool,
             nargs="?",
             default=True,
@@ -612,8 +613,6 @@ class E2E(ASRInterface, torch.nn.Module):
         Returns:
             nbest_hyps (list): n-best decoding results
         """
-        from dataclasses import asdict
-
         if "transformer" in self.etype:
             h = self.encode_transformer(x)
         else:
