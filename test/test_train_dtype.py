@@ -97,8 +97,8 @@ def test_train_pytorch_dtype(dtype, device, model, conf):
         pytest.skip("no cuda device is available")
     if device == "cpu" and dtype == "float16":
         pytest.skip("cpu float16 implementation is not available in pytorch yet")
-    if device == "cpu" and model == "transducer":
-        pytest.skip("not all transducer losses are supported in cpu mode")
+    if device == "cpu" and conf["trans_type"] == "warp-rnnt":
+        pytest.skip("warp-rnnt is not supported in CPU mode")
 
     idim = 10
     odim = 10

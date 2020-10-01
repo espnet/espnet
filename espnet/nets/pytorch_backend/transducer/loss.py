@@ -56,8 +56,9 @@ class TransLoss(torch.nn.Module):
             loss (torch.Tensor): transducer loss
 
         """
-        if self.trans_type == "warp-transducer" and pred_pad.dtype != torch.float32:
-            # warprnnt_pytorch only supports float32
+        dtype = pred_pad.dtype
+        if dtype != torch.float32:
+            # warp-transducer and warp-rnnt only support float32
             pred_pad = pred_pad.to(dtype=torch.float32)
         if self.trans_type == "warp-rnnt":
             log_probs = torch.log_softmax(pred_pad, dim=-1)
@@ -73,5 +74,6 @@ class TransLoss(torch.nn.Module):
             )
         else:
             loss = self.trans_loss(pred_pad, target, pred_len, target_len)
+        loss = loss.to(dtype=dtype)
 
         return loss
