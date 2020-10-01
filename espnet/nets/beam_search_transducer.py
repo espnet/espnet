@@ -102,7 +102,6 @@ class BeamSearchTransducer:
             nbest_hyps: N-best decoding results
 
         """
-        # if any(hasattr(self.decoder, attr) for attr in ["att", "att_list"]):
         if hasattr(self.decoder, "att_list"):
             self.decoder.att_list[0].reset()
 
@@ -112,6 +111,21 @@ class BeamSearchTransducer:
         nbest_hyps = self.search_algorithm(h)
 
         return nbest_hyps
+
+    def sort_nbest(self, hyps: List[Hypothesis]) -> List[Hypothesis]:
+        """Sort hypotheses by score or score given sequence length.
+
+        Args:
+            hyps: list of hypotheses
+
+        Return:
+            hyps: sorted list of hypotheses
+
+        """
+        if self.score_norm:
+            return sorted(hyps, key=lambda x: x.score / len(x.yseq), reverse=True)
+        else:
+            return sorted(hyps, key=lambda x: x.score, reverse=True)
 
     def greedy_search(self, h: torch.Tensor) -> List[Hypothesis]:
         """Greedy search implementation for transformer-transducer.
@@ -220,14 +234,7 @@ class BeamSearchTransducer:
                     kept_hyps = kept_most_prob
                     break
 
-        if self.score_norm:
-            nbest_hyps = sorted(
-                kept_hyps, key=lambda x: x.score / len(x.yseq), reverse=True
-            )
-        else:
-            nbest_hyps = sorted(kept_hyps, key=lambda x: x.score, reverse=True)
-
-        return nbest_hyps
+        return self.sort_nbest(kept_hyps)
 
     def time_sync_decoding(self, h: torch.Tensor) -> List[Hypothesis]:
         """Time synchronous beam search implementation.
@@ -337,9 +344,7 @@ class BeamSearchTransducer:
 
             B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
 
-        nbest_hyps = sorted(B, key=lambda x: x.score, reverse=True)
-
-        return nbest_hyps
+        return self.sort_nbest(B)
 
     def align_length_sync_decoding(self, h: torch.Tensor) -> List[Hypothesis]:
         """Alignment-length synchronous beam search implementation.
@@ -454,11 +459,9 @@ class BeamSearchTransducer:
                 B = recombine_hyps(B)
 
         if final:
-            nbest_hyps = sorted(final, key=lambda x: x.score, reverse=True)
+            return self.sort_nbest(final)
         else:
-            nbest_hyps = B
-
-        return nbest_hyps
+            return B
 
     def nsc_beam_search(self, h: torch.Tensor) -> List[Hypothesis]:
         """N-step constrained beam search implementation.
@@ -657,8 +660,4 @@ class BeamSearchTransducer:
 
             kept_hyps = sorted((S + V), key=lambda x: x.score, reverse=True)[:beam]
 
-        nbest_hyps = sorted(
-            kept_hyps, key=lambda x: (x.score / len(x.yseq)), reverse=True
-        )
-
-        return nbest_hyps
+        return self.sort_nbest(kept_hyps)
