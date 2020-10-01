@@ -10,7 +10,7 @@ import logging
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
-from espnet.nets.pytorch_backend.transducer.vgg import VGG2L
+from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
@@ -48,24 +48,27 @@ def _pre_hook(
 class Encoder(torch.nn.Module):
     """Transformer encoder module.
 
-    :param int idim: input dim
-    :param int attention_dim: dimention of attention
-    :param int attention_heads: the number of heads of multi head attention
-    :param int linear_units: the number of units of position-wise feed forward
-    :param int num_blocks: the number of decoder blocks
-    :param float dropout_rate: dropout rate
-    :param float attention_dropout_rate: dropout rate in attention
-    :param float positional_dropout_rate: dropout rate after adding positional encoding
-    :param str or torch.nn.Module input_layer: input layer type
-    :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
-    :param bool normalize_before: whether to use layer_norm before the first block
-    :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied.
-        i.e. x -> x + linear(concat(x, att(x)))
-        if False, no additional linear will be applied. i.e. x -> x + att(x)
-    :param str positionwise_layer_type: linear of conv1d
-    :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-    :param int padding_idx: padding_idx for input_layer=embed
+    Args:
+        idim (int): Input dimension.
+        attention_dim (int): Dimention of attention.
+        attention_heads (int): The number of heads of multi head attention.
+        linear_units (int): The number of units of position-wise feed forward.
+        num_blocks (int): The number of decoder blocks.
+        dropout_rate (float): Dropout rate.
+        attention_dropout_rate (float): Dropout rate in attention.
+        positional_dropout_rate (float): Dropout rate after adding positional encoding.
+        input_layer (Union[str, torch.nn.Module]): Input layer type.
+        pos_enc_class (torch.nn.Module): Positional encoding module class.
+            `PositionalEncoding `or `ScaledPositionalEncoding`
+        normalize_before (bool): Whether to use layer_norm before the first block.
+        concat_after (bool): Whether to concat attention layer's input and output.
+            if True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            if False, no additional linear will be applied. i.e. x -> x + att(x)
+        positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
+        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
+        padding_idx (int): Padding idx for input_layer=embed.
+
     """
 
     def __init__(
@@ -279,10 +282,14 @@ class Encoder(torch.nn.Module):
     def forward(self, xs, masks):
         """Encode input sequence.
 
-        :param torch.Tensor xs: input tensor
-        :param torch.Tensor masks: input mask
-        :return: position embedded tensor and mask
-        :rtype Tuple[torch.Tensor, torch.Tensor]:
+        Args:
+            xs (torch.Tensor): Input tensor (#batch, time, idim).
+            masks (torch.Tensor): Mask tensor (#batch, time).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time, attention_dim).
+            torch.Tensor: Mask tensor (#batch, time).
+
         """
         if isinstance(
             self.embed,
@@ -299,11 +306,16 @@ class Encoder(torch.nn.Module):
     def forward_one_step(self, xs, masks, cache=None):
         """Encode input frame.
 
-        :param torch.Tensor xs: input tensor
-        :param torch.Tensor masks: input mask
-        :param List[torch.Tensor] cache: cache tensors
-        :return: position embedded tensor, mask and new cache
-        :rtype Tuple[torch.Tensor, torch.Tensor, List[torch.Tensor]]:
+        Args:
+            xs (torch.Tensor): Input tensor.
+            masks (torch.Tensor): Mask tensor.
+            cache (List[torch.Tensor]): List of cache tensors.
+
+        Returns:
+            torch.Tensor: Output tensor.
+            torch.Tensor: Mask tensor.
+            List[torch.Tensor]: List of new cache tensors.
+
         """
         if isinstance(self.embed, Conv2dSubsampling):
             xs, masks = self.embed(xs, masks)

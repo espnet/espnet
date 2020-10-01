@@ -107,6 +107,38 @@ Available vocoder models:
     - jsut.parallel_wavegan.v1
     - csmsc.wavenet.mol.v1
     - csmsc.parallel_wavegan.v1
+
+Model details:
+    | Model name              | Lang | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Input type |
+    | ----------------------- | ---- | ------- | -------------- | ---------------------- | ---------- |
+    | ljspeech.tacotron2.v1   | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.tacotron2.v2   | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.tacotron2.v3   | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.transformer.v1 | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.transformer.v2 | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.transformer.v3 | EN   | 22.05k  | None           | 1024 / 256 / None      | phn        |
+    | ljspeech.fastspeech.v1  | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.fastspeech.v2  | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.fastspeech.v3  | EN   | 22.05k  | None           | 1024 / 256 / None      | phn        |
+    | libritts.tacotron2.v1   | EN   | 24k     | 80-7600        | 1024 / 256 / None      | char       |
+    | libritts.transformer.v1 | EN   | 24k     | 80-7600        | 1024 / 256 / None      | char       |
+    | jsut.tacotron2          | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | phn        |
+    | jsut.transformer        | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | phn        |
+    | csmsc.transformer.v1    | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin     |
+    | csmsc.fastspeech.v3     | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin     |
+
+Vocoder model details:
+    | Model name                     | Lang | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Model type       |
+    | ------------------------------ | ---- | ------- | -------------- | ---------------------- | ---------------- |
+    | ljspeech.wavenet.softmax.ns.v1 | EN   | 22.05k  | None           | 1024 / 256 / None      | Softmax WaveNet  |
+    | ljspeech.wavenet.mol.v1        | EN   | 22.05k  | None           | 1024 / 256 / None      | MoL WaveNet      |
+    | ljspeech.parallel_wavegan.v1   | EN   | 22.05k  | None           | 1024 / 256 / None      | Parallel WaveGAN |
+    | libritts.wavenet.mol.v1        | EN   | 24k     | None           | 1024 / 256 / None      | MoL WaveNet      |
+    | jsut.wavenet.mol.v1            | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | MoL WaveNet      |
+    | jsut.parallel_wavegan.v1       | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | Parallel WaveGAN |
+    | csmsc.wavenet.mol.v1           | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | MoL WaveNet      |
+    | csmsc.parallel_wavegan.v1      | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | Parallel WaveGAN |
+
 EOF
 )
 

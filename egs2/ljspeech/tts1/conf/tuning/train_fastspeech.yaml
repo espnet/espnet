@@ -29,8 +29,8 @@ tts_conf:             # keyword arguments for the selected model
     postnet_chans: 256                # number of channels of conv layers in postnet
     use_masking: True                 # whether to apply masking for padded part in loss calculation
     use_scaled_pos_enc: True          # whether to use scaled positional encoding
-    encoder_normalize_before: False   # whether to perform layer normalization before the input
-    decoder_normalize_before: False   # whether to perform layer normalization before the input
+    encoder_normalize_before: True    # whether to perform layer normalization before the input
+    decoder_normalize_before: True    # whether to perform layer normalization before the input
     reduction_factor: 1               # reduction factor
     init_type: xavier_uniform         # initialization type
     init_enc_alpha: 1.0               # initial value of alpha of encoder scaled position encoding

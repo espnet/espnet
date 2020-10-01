@@ -2,7 +2,6 @@ import h5py
 import kaldiio
 import numpy as np
 import pytest
-import soundfile
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.sound_scp import SoundScpWriter
@@ -40,38 +39,6 @@ def test_ESPnetDataset_sound_scp(sound_scp):
     )
     print(dataset)
     print(dataset.names())
-
-    _, data = dataset["a"]
-    assert data["data1"].shape == (160000,)
-
-    _, data = dataset["b"]
-    assert data["data1"].shape == (80000,)
-
-
-@pytest.fixture
-def pipe_wav(tmp_path):
-    p = tmp_path / "wav.scp"
-    soundfile.write(
-        tmp_path / "a.wav",
-        np.random.randint(-100, 100, (160000,), dtype=np.int16),
-        16000,
-    )
-    soundfile.write(
-        tmp_path / "b.wav",
-        np.random.randint(-100, 100, (80000,), dtype=np.int16),
-        16000,
-    )
-    with p.open("w") as f:
-        f.write(f"a {tmp_path / 'a.wav'}\n")
-        f.write(f"b {tmp_path / 'b.wav'}\n")
-    return str(p)
-
-
-def test_ESPnetDataset_pipe_wav(pipe_wav):
-    dataset = ESPnetDataset(
-        path_name_type_list=[(pipe_wav, "data1", "pipe_wav")],
-        preprocess=preprocess,
-    )
 
     _, data = dataset["a"]
     assert data["data1"].shape == (160000,)

@@ -145,7 +145,43 @@ def get_parser():
     )
     # transducer related
     parser.add_argument(
-        "--score-norm-transducer",
+        "--search-type",
+        type=str,
+        default="default",
+        choices=["default", "nsc", "tsd", "alsd"],
+        help="""Type of beam search implementation to use during inference.
+        Can be either: default beam search, n-step constrained beam search ("nsc"),
+        time-synchronous decoding ("tsd") or alignment-length synchronous decoding
+        ("alsd").
+        Additional associated parameters: "nstep" + "prefix-alpha" (for nsc),
+        "max-sym-exp" (for tsd) and "u-max" (for alsd)""",
+    )
+    parser.add_argument(
+        "--nstep",
+        type=int,
+        default=1,
+        help="Number of expansion steps allowed in NSC beam search.",
+    )
+    parser.add_argument(
+        "--prefix-alpha",
+        type=int,
+        default=2,
+        help="Length prefix difference allowed in NSC beam search.",
+    )
+    parser.add_argument(
+        "--max-sym-exp",
+        type=int,
+        default=2,
+        help="Number of symbol expansions allowed in TSD decoding.",
+    )
+    parser.add_argument(
+        "--u-max",
+        type=int,
+        default=400,
+        help="Length prefix difference allowed in ALSD beam search.",
+    )
+    parser.add_argument(
+        "--score-norm",
         type=strtobool,
         nargs="?",
         default=True,
