@@ -55,6 +55,8 @@ requirements = {
         # VC related
         "fastdtw",
         "pyworld",
+        # Loss related
+        "warp_rnnt",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [
