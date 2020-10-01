@@ -206,11 +206,22 @@ def ctc_align(args, device):
         preprocess_args={"train": False},
     )
     logging.info(f"Decoding device={device}")
+    # Warn for nets with high memory consumption on long audio files
+    if hasattr(model, "enc"):
+        encoder_module = model.enc.__class__.__module__
+    elif hasattr(model, "encoder"):
+        encoder_module = model.encoder.__class__.__module__
+    else:
+        encoder_module = "Unknown"
+    logging.info(f"Encoder module: {encoder_module}")
+    logging.info(f"CTC module:     {model.ctc.__class__.__module__}")
+    if "rnn" not in encoder_module:
+        logging.warning("No BLSTM model detected; memory consumption may be high.")
     model.to(device=device).eval()
     # read audio and text json data
     with open(args.data_json, "rb") as f:
         js = json.load(f)["utts"]
-    with open(args.utt_text, "r") as f:
+    with open(args.utt_text, "r", encoding="utf-8") as f:
         lines = f.readlines()
         i = 0
         text = {}
@@ -237,7 +248,13 @@ def ctc_align(args, device):
     char_list = train_args.char_list
     if args.use_dict_blank:
         config.blank = char_list[0]
-    logging.debug(
+        logging.info(f"Blank char was set to >{config.blank}<")
+    else:
+        logging.info(f"Blank char >{config.blank}< (align) >{char_list[0]}< (model)")
+        if config.blank != char_list[0]:
+            logging.error("Blank char mismatch; this can result in an IndexError.")
+            logging.error("Pass the parameter --use-dict-blank to asr_align.py")
+    logging.info(
         f"Frame timings: {config.frame_duration_ms}ms * {config.subsampling_factor}"
     )
     # Iterate over audio files to decode and align
