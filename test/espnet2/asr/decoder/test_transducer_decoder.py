@@ -4,26 +4,41 @@ from numpy import count_nonzero
 import pytest
 import torch
 
-from espnet.nets.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
+from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 
 
 @pytest.mark.parametrize("rnn_type", ["lstm", "gru"])
 @pytest.mark.parametrize("use_attention", [False, True])
-def test_TransducerDecoder_backward(rnn_type, use_attention):
-    decoder = TransducerDecoder(10, 12, rnn_type=rnn_type, use_attention=use_attention)
+def test_transducer_decoder_backward(rnn_type, use_attention):
+    decoder = RNNDecoder(
+        10,
+        12,
+        hidden_size=15,
+        rnn_type=rnn_type,
+        use_attention=use_attention,
+        use_output=False,
+    )
+    joint_net = JointNetwork(10, 12, decoder.dunits, joint_space_size=20)
+
     x = torch.randn(2, 9, 12)
     x_lens = torch.tensor([9, 7], dtype=torch.long)
     t = torch.randint(0, 10, [2, 4], dtype=torch.long)
+    t_lens = torch.tensor([4, 3], dtype=torch.long)
 
-    z_all = decoder(x, t, x_lens)
+    decoder_out, _ = decoder(x, x_lens, t, t_lens)
+    z_all = joint_net(x.unsqueeze(2), decoder_out.unsqueeze(1))
+
     z_all.sum().backward()
 
 
 @pytest.mark.parametrize("rnn_type", ["lstm", "gru"])
 @pytest.mark.parametrize("use_attention", [False, True])
-def test_TransducerDecoder_init_state(rnn_type, use_attention):
-    decoder = TransducerDecoder(10, 12, rnn_type=rnn_type, use_attention=use_attention)
+def test_transducer_decoder_init_state(rnn_type, use_attention):
+    decoder = RNNDecoder(
+        10, 12, rnn_type=rnn_type, use_attention=use_attention, use_output=False
+    )
     x = torch.randn(9, 12)
     state = decoder.init_state(x)
 
@@ -39,15 +54,25 @@ def test_TransducerDecoder_init_state(rnn_type, use_attention):
 @pytest.mark.parametrize("search_type", ["default", "alsd", "nsc", "tsd"])
 @pytest.mark.parametrize("use_attention", [False, True])
 @pytest.mark.parametrize("nstep", [1, 2])
-def test_TransducerDecoder_beam_search(rnn_type, search_type, use_attention, nstep):
+def test_transducer_decoder_beam_search(rnn_type, search_type, use_attention, nstep):
     encoder_output_size = 4
 
-    decoder = TransducerDecoder(
-        10, encoder_output_size, rnn_type=rnn_type, use_attention=use_attention
+    decoder = RNNDecoder(
+        10,
+        encoder_output_size,
+        hidden_size=12,
+        embed_pad=0,
+        rnn_type=rnn_type,
+        use_attention=use_attention,
+        use_output=False,
+    )
+    joint_net = JointNetwork(
+        10, encoder_output_size, decoder.dunits, joint_space_size=20
     )
 
     beam_search = BeamSearchTransducer(
         decoder=decoder,
+        joint_network=joint_net,
         beam_size=2,
         lm=None,
         lm_weight=0.0,
