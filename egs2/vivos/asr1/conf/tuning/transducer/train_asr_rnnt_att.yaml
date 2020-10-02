@@ -39,7 +39,6 @@ transducer_conf:
     rnn_type: lstm
     num_layers: 1
     hidden_size: 300
-    joint_space_size: 300
     dropout: 0.1
     use_attention: True
     att_conf:
@@ -47,3 +46,5 @@ transducer_conf:
         adim: 320
         aconv_chans: 10
         aconv_filts: 100
+joint_net_conf:
+    joint_space_size: 300

@@ -39,5 +39,7 @@ transducer_conf:
     rnn_type: lstm
     num_layers: 1
     hidden_size: 300
-    joint_space_size: 300
     dropout: 0.2
+    use_attention: False
+joint_net_conf:
+    joint_space_size: 300
