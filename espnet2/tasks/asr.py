@@ -12,10 +12,10 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,  # noqa: H301
 )
@@ -169,7 +169,13 @@ class ASRTask(AbsTask):
             "--transducer_conf",
             action=NestedDictAction,
             default=None,
-            help="The keyword arguments for Transducer class.",
+            help="The keyword arguments for transducer decoder class.",
+        )
+        group.add_argument(
+            "--joint_net_conf",
+            action=NestedDictAction,
+            default=None,
+            help="The keyword arguments for joint network class.",
         )
         group.add_argument(
             "--model_conf",
@@ -336,11 +342,20 @@ class ASRTask(AbsTask):
 
         # 7. RNN-T Decoder
         if args.transducer_conf:
-            transducer_decoder = TransducerDecoder(
+            trans_dec = RNNDecoder(
                 vocab_size=vocab_size,
                 encoder_output_size=encoder.output_size(),
+                embed_pad=0,
+                use_output=False,
                 **args.transducer_conf,
             )
+            joint_net = JointNetwork(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder.output_size(),
+                decoder_output_size=trans_dec.dunits,
+                **args.joint_net_conf,
+            )
+            transducer_decoder = (trans_dec, joint_net)
         else:
             transducer_decoder = None
 

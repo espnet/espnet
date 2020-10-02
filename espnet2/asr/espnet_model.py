@@ -10,7 +10,6 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.e2e_asr_common import ErrorCalculatorTransducer
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
@@ -23,6 +22,7 @@ from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -49,8 +49,9 @@ class ESPnetASRModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
-        transducer_decoder: Optional[AbsDecoder],
+        transducer_decoder: Optional[Tuple[AbsDecoder, torch.nn.Module]],
         ctc_weight: float = 0.5,
+        transducer_weight: float = 0.0,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -70,6 +71,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
+        self.transducer_weight = transducer_weight
         self.token_list = token_list.copy()
 
         self.frontend = frontend
@@ -82,7 +84,12 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             self.ctc = ctc
 
-        self.transducer_decoder = transducer_decoder
+        if transducer_decoder:
+            self.transducer_decoder = transducer_decoder[0]
+            self.joint_network = transducer_decoder[1]
+        else:
+            self.transducer_decoder = transducer_decoder
+
         self.criterion_transducer = TransLoss("warp-transducer", self.blank)
 
         self.criterion_att = LabelSmoothingLoss(
@@ -92,10 +99,13 @@ class ESPnetASRModel(AbsESPnetModel):
             normalize_length=length_normalized_loss,
         )
 
+        self.error_calculator = None
+        self.error_calculator_trans = None
         if report_cer or report_wer:
-            if transducer_decoder is not None:
-                self.error_calculator = ErrorCalculatorTransducer(
-                    transducer_decoder,
+            if transducer_decoder:
+                self.error_calculator_trans = ErrorCalculatorTransducer(
+                    self.transducer_decoder,
+                    self.joint_network,
                     token_list,
                     sym_space,
                     sym_blank,
@@ -106,8 +116,6 @@ class ESPnetASRModel(AbsESPnetModel):
                 self.error_calculator = ErrorCalculator(
                     token_list, sym_space, sym_blank, report_cer, report_wer
                 )
-        else:
-            self.error_calculator = None
 
     def forward(
         self,
@@ -140,12 +148,24 @@ class ESPnetASRModel(AbsESPnetModel):
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
-        loss_att, acc_att, cer_att, wer_att = None, None, None, None
-        loss_ctc, cer_ctc = None, None
-        loss_transducer, cer_transducer, wer_transducer = None, None, None
+        # 2a. Attention decoder branch
+        if self.ctc_weight == 1.0:
+            loss_att, acc_att, cer_att, wer_att = None, None, None, None
+        else:
+            loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
+                encoder_out, encoder_out_lens, text, text_lengths
+            )
 
-        # 2a. Transducer decoder branch
-        if self.transducer_decoder is not None:
+        # 2b. CTC branch
+        if self.ctc_weight == 0.0:
+            loss_ctc, cer_ctc = None, None
+        else:
+            loss_ctc, cer_ctc = self._calc_ctc_loss(
+                encoder_out, encoder_out_lens, text, text_lengths
+            )
+
+        # 2c. Transducer decoder branch
+        if self.transducer_decoder:
             (
                 loss_transducer,
                 cer_transducer,
@@ -154,31 +174,33 @@ class ESPnetASRModel(AbsESPnetModel):
                 encoder_out, encoder_out_lens, text, text_lengths
             )
         else:
-            # 2b. CTC-decoder branch
-            if self.ctc_weight > 0.0:
-                loss_ctc, cer_ctc = self._calc_ctc_loss(
-                    encoder_out, encoder_out_lens, text, text_lengths
-                )
-            # 2c. Attention-decoder branch
-            if self.ctc_weight < 1.0:
-                loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-                    encoder_out, encoder_out_lens, text, text_lengths
-                )
+            loss_transducer, cer_transducer, wer_transducer = None, None, None
 
-        # 3. Main loss definition
-        if self.transducer_decoder is not None:
-            loss = loss_transducer
-        elif self.ctc_weight == 0.0:
-            loss = loss_att
+        # 3a. CTC-attention loss definition
+        if self.ctc_weight == 0.0:
+            loss_ctc_att = loss_att
         elif self.ctc_weight == 1.0:
-            loss = loss_ctc
+            loss_ctc_att = loss_ctc
         else:
-            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
+            loss_ctc_att = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
+
+        # 3b. Transducer and main loss definition
+        if self.transducer_decoder:
+            if self.transducer_weight != 0.0:
+                loss = (
+                    self.transducer_weight * loss_transducer
+                    + (1 - self.transducer_weight) * loss_ctc_att
+                )
+            else:
+                loss = loss_transducer
+        else:
+            loss = loss_ctc_att
 
         stats = dict(
             loss=loss.detach(),
             loss_att=loss_att.detach() if loss_att is not None else None,
             loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
+            loss_ctc_att=loss_ctc_att.detach() if loss_ctc_att is not None else None,
             loss_transducer=loss_transducer.detach()
             if loss_transducer is not None
             else None,
@@ -316,20 +338,28 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(
+        ys_in_pad, target, ys_in_lens, target_len = prepare_loss_inputs(
             ys_pad, encoder_out_lens
         )
 
-        pred_pad = self.transducer_decoder(encoder_out, ys_in_pad, pred_len)
+        decoder_out, _ = self.transducer_decoder(
+            encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+        )
+
+        joint_out = self.joint_network(
+            encoder_out.unsqueeze(2), decoder_out.unsqueeze(1)
+        )
 
         loss_transducer = self.criterion_transducer(
-            pred_pad, target, pred_len, target_len
+            joint_out, target, ys_in_lens, target_len
         )
 
         # Compute cer/wer using attention-decoder
-        if self.training or self.error_calculator is None:
+        if self.training or self.error_calculator_trans is None:
             cer_transducer, wer_transducer = None, None
         else:
-            cer_transducer, wer_transducer = self.error_calculator(encoder_out, ys_pad)
+            cer_transducer, wer_transducer = self.error_calculator_trans(
+                encoder_out, ys_pad
+            )
 
         return loss_transducer, cer_transducer, wer_transducer
