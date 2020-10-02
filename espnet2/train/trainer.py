@@ -503,6 +503,7 @@ class Trainer:
                 for _ in range(torch.distributed.get_world_size())
             ]
             torch.distributed.all_gather(weight_list, weight)
+            weight_list = [w.cpu() for w in weight_list]
         else:
             stats_list = [stats]
             weight_list = [weight]
