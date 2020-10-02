@@ -497,15 +497,12 @@ class Trainer:
         stats: Dict[str, torch.Tensor], weight: torch.Tensor, distributed: bool
     ):
         if distributed:
-            # Gather stats and weight, note that results are on CPU
             stats_list = all_gather_list(stats)
-            weight_list = torch.distributed.all_gather(
-                [
-                    torch.empty_like(weight)
-                    for _ in range(torch.distributed.get_world_size())
-                ],
-                weight,
-            )
+            weight_list = [
+                torch.empty_like(weight)
+                for _ in range(torch.distributed.get_world_size())
+            ]
+            torch.distributed.all_gather(weight_list, weight)
         else:
             stats_list = [stats]
             weight_list = [weight]
