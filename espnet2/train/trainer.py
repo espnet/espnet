@@ -31,7 +31,9 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.train.distributed_utils import all_gather_list
 from espnet2.train.distributed_utils import DistributedOption
+from espnet2.train.distributed_utils import generate_buffer_for_all_gather_list
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
@@ -146,7 +148,6 @@ class Trainer:
             logging.warning(
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
-
         if distributed_option.distributed:
             dp_model = torch.nn.parallel.DistributedDataParallel(
                 model,
@@ -163,15 +164,19 @@ class Trainer:
                     else None
                 ),
             )
+
+            dist_buffer_list, dist_buffer = generate_buffer_for_all_gather_list()
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
                 model,
                 device_ids=list(range(distributed_option.ngpu)),
             )
+            dist_buffer_list, dist_buffer = None,  None
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
             # but for debuggability it's better to keep this block.
             dp_model = model
+            dist_buffer_list, dist_buffer = None,  None
 
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
@@ -208,6 +213,8 @@ class Trainer:
                     scaler=scaler,
                     summary_writer=summary_writer,
                     options=trainer_options,
+                    dist_buffer_list=dist_buffer_list,
+                    dist_buffer=dist_buffer,
                 )
 
             with reporter.observe("valid") as sub_reporter:
@@ -216,6 +223,8 @@ class Trainer:
                     iterator=valid_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     options=trainer_options,
+                    dist_buffer_list=dist_buffer_list,
+                    dist_buffer=dist_buffer,
                 )
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
@@ -332,6 +341,8 @@ class Trainer:
         reporter: SubReporter,
         summary_writer: Optional[SummaryWriter],
         options: TrainerOptions,
+        dist_buffer_list: Optional[List[torch.Tensor]],
+        dist_buffer: Optional[torch.Tensor],
     ) -> bool:
         assert check_argument_types()
 
@@ -381,15 +392,16 @@ class Trainer:
             with autocast(scaler is not None):
                 with reporter.measure_time("forward_time"):
                     loss, stats, weight = model(**batch)
-                stats = {k: v for k, v in stats.items() if v is not None}
                 if ngpu > 1 or distributed:
                     # Apply weighted averaging for loss and stats
                     loss = (loss * weight.type(loss.dtype)).sum()
 
-                    # if distributed, this method can also apply all_reduce()
-                    stats, weight = recursive_average(stats, weight, distributed)
+                    # Gather stats and weight, note that results are on CPU
+                    results = all_gather_list(dist_buffer_list, dist_buffer, (stats, weight))
+                    stats = cls.calc_weighted_average(results)
 
                     # Now weight is summation over all workers
+                    weight = sum(w.sum() for _, w in results)
                     loss /= weight
                 if distributed:
                     # NOTE(kamo): Multiply world_size because DistributedDataParallel
@@ -398,6 +410,7 @@ class Trainer:
 
                 loss /= accum_grad
 
+            stats = {k: v for k, v in stats.items() if v is not None}
             reporter.register(stats, weight)
 
             with reporter.measure_time("backward_time"):
@@ -494,14 +507,41 @@ class Trainer:
 
         return all_steps_are_invalid
 
+    @staticmethod
+    def calc_weighted_average(results):
+        # Get the union of keys
+        keys = set.union(*[set(s) for s, w in results])
+        ret_stats = {k: None for k in keys}
+        weight_dict = {k: None for k in keys}
+
+        for stats, weight in results:
+            for k in keys:
+                if k not in stats[k] or stats[k] is None:
+                    pass
+                else:
+                    assert isinstance(stats[k], torch.Tensor), type(stats[k])
+                    assert stats[k].dim() == 1, stats[k].size()
+                    if ret_stats[k] is None:
+                        ret_stats[k] = 0.
+                        weight_dict[k] = 0.
+                    ret_stats[k] += (weight * stats[k]).sum()
+                    weight_dict[k] += weight.sum()
+
+        for k in keys:
+            if ret_stats[k] is not None:
+                ret_stats[k] /= weight_dict[k]
+        return ret_stats
+
     @classmethod
     @torch.no_grad()
     def validate_one_epoch(
-        cls,
-        model: torch.nn.Module,
-        iterator: Iterable[Dict[str, torch.Tensor]],
-        reporter: SubReporter,
-        options: TrainerOptions,
+            cls,
+            model: torch.nn.Module,
+            iterator: Iterable[Dict[str, torch.Tensor]],
+            reporter: SubReporter,
+            options: TrainerOptions,
+        dist_buffer_list: Optional[List[torch.Tensor]],
+        dist_buffer: Optional[torch.Tensor],
     ) -> None:
         assert check_argument_types()
         ngpu = options.ngpu
