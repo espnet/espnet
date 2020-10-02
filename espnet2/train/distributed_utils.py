@@ -374,7 +374,7 @@ def get_num_nodes(prior=None, launcher: str = None) -> Optional[int]:
 
 def all_gather_list(data, group=None, max_size=16384):
     """Gathers arbitrary data from all nodes into a list.
-    
+
     Similar to :func:`~torch.distributed.all_gather` but for arbitrary Python
     data. Note that *data* must be picklable.
 
@@ -386,8 +386,8 @@ def all_gather_list(data, group=None, max_size=16384):
         group (optional): group of the collective
         max_size (int, optional): maximum size of the data to be gathered
             across workers
-    """
 
+    """
     if group is None:
         group = torch.distributed.group.WORLD
     rank = torch.distributed.get_rank()
