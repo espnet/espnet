@@ -83,12 +83,17 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 ([L x (B, dec_dim)], [L x (B, dec_dim)])
 
         """
+        dtype = init_tensor.dtype
         z_list = [
-            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
+            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits)).to(
+                dtype
+            )
             for _ in range(self.dlayers)
         ]
         c_list = [
-            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
+            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits)).to(
+                dtype
+            )
             for _ in range(self.dlayers)
         ]
 
