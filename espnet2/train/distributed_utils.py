@@ -7,7 +7,6 @@ from typing import Optional
 
 import torch
 import torch.distributed
-from typing import List
 
 from espnet2.torch_utils.device_funcs import to_device
 
@@ -401,7 +400,7 @@ def all_gather_list(data, group=None, max_size=16384):
     buffer.zero_()
     cpu_buffer = all_gather_list._cpu_buffer
 
-    data = utils.move_to_cpu(data)
+    data = to_device(data, "cpu")
     enc = pickle.dumps(data)
     enc_size = len(enc)
     header_size = 4  # size of header that contains the length of the encoded data
