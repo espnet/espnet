@@ -7,6 +7,7 @@ from typing import Optional
 
 import torch
 import torch.distributed
+from typing import List
 
 from espnet2.torch_utils.device_funcs import to_device
 
