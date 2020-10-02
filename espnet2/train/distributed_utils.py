@@ -386,8 +386,8 @@ def all_gather_list(data, group=None, max_size=16384):
         max_size (int, optional): maximum size of the data to be gathered
             across workers
     """
-    rank = get_rank()
-    world_size = get_world_size()
+    rank = torch.distributed.get_rank()
+    world_size = torch.distributed.get_world_size()
 
     buffer_size = max_size * world_size
     if (
