@@ -415,7 +415,7 @@ def all_gather_list(data, group=None, max_size=16384):
     start = rank * max_size
     buffer[start : start + size].copy_(cpu_buffer[:size])
 
-    all_reduce(buffer, group=group)
+    torch.distributed.all_reduce(buffer, group=group)
 
     buffer = buffer.cpu()
     try:
