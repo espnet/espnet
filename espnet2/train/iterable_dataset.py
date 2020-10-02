@@ -21,11 +21,33 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.2"):
 else:
     from torch.utils.data.dataset import Dataset as IterableDataset
 
+
+def load_kaldi(input):
+    retval = kaldiio.load_mat(input)
+    if isinstance(retval, tuple):
+        assert len(retval) == 2, len(retval)
+        if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
+            # sound scp case
+            rate, array = retval
+        elif isinstance(retval[1], int) and isinstance(retval[0], np.ndarray):
+            # Extended ark format case
+            array, rate = retval
+        else:
+            raise RuntimeError(f"Unexpected type: {type(retval[0])}, {type(retval[1])}")
+
+        # Multichannel wave fie
+        # array: (NSample, Channel) or (Nsample)
+
+    else:
+        # Normal ark case
+        assert isinstance(retval, np.ndarray), type(retval)
+        array = retval
+    return array
+
+
 DATA_TYPES = {
     "sound": lambda x: soundfile.read(x)[0],
-    # NOTE(kamo): load_ark can load wav file.
-    "pipe_wav": lambda x: kaldiio.load_mat(x)[1].astype(np.float32),
-    "kaldi_ark": lambda x: kaldiio.load_mat(x),
+    "kaldi_ark": load_kaldi,
     "npy": np.load,
     "text_int": lambda x: np.loadtxt(
         StringIO(x), ndmin=1, dtype=np.long, delimiter=" "

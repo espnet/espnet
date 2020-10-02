@@ -32,6 +32,5 @@ aconv-filts: 3
 joint-dim: 4
 
 # transducer related
-mtlalpha: 1.0
 rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

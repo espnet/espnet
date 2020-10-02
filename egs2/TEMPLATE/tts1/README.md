@@ -24,13 +24,20 @@ This is a template of TTS recipe for ESPnet2.
     * [Single speaker model](#single-speaker-model)
     * [Multi speaker model](#multi-speaker-model)
   * [FAQ](#faq)
+    * [ESPnet1 model is compatible with ESPnet2?](#espnet1-model-is-compatible-with-espnet2)
     * [How to change minibatch size in training?](#how-to-change-minibatch-size-in-training)
     * [How to make a new recipe for my own dataset?](#how-to-make-a-new-recipe-for-my-own-dataset)
     * [How to add a new g2p module?](#how-to-add-a-new-g2p-module)
     * [How to add a new cleaner module?](#how-to-add-a-new-cleaner-module)
     * [How to use trained model in python?](#how-to-use-trained-model-in-python)
+    * [How to get pretrained models?](#how-to-get-pretrained-models)
+    * [How to load the pretrained model?](#how-to-load-the-pretrained-model)
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
+    * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
+    * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
+    * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
+    * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
 
 ## Recipe flow
 
@@ -280,20 +287,25 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [Transformer-TTS](https://arxiv.org/abs/1809.08895)
 - [FastSpeech](https://arxiv.org/abs/1905.09263)
 - [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
+- [Conformer](https://arxiv.org/abs/2005.08100)-based FastSpeech / FastSpeech2
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
 ### Multi speaker model
 
-- [GST-Tacotron2](https://arxiv.org/abs/1803.09017)
-- GST-Transformer-TTS
-- GST-FastSpeech
-- GST-FastSpeech2
+- [GST + Tacotron2](https://arxiv.org/abs/1803.09017)
+- GST + Transformer-TTS
+- GST + FastSpeech
+- GST + FastSpeech2
+- GST + Conformer-based FastSpeech / FastSpeech2
 
 You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 
-
 ## FAQ
+
+### ESPnet1 model is compatible with ESPnet2?
+
+No. We cannot use the ESPnet1 model in ESPnet2.
 
 ### How to change minibatch size in training?
 
@@ -320,11 +332,62 @@ Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` an
 
 See [use a pretrained model for inference](https://github.com/espnet/espnet_model_zoo#use-a-pretrained-model-for-inference).
 
-### How to finetune the pretrained model?
+### How to get pretrained models?
+
+Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
+You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
+
+### How to load the pretrained model?
 
 Please use `--pretrain_path` and `--pretrain_key` options in training config (`*.yaml`).
 See the usage in [abs_task.py](https://github.com/espnet/espnet/blob/3cc59a16c3655f3b39dc2ae19ffafa7bfac879bf/espnet2/tasks/abs_task.py#L1040-L1054).
 
+### How to finetune the pretrained model?
+
+See [jvs recipe example](../../jvs/tts1/README.md).
+
 ### How to add a new model?
 
 Under construction.
+
+### How to test my model with an arbitrary given text?
+
+See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+
+### How to handle the errors in `validate_data_dir.sh`?
+
+> utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line
+
+This is caused by the recent change in kaldi.
+We recommend modifying the following part in `utils/validate_data_dir.sh` to be `non_print=true`.
+
+https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
+
+> utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces  
+> utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)
+
+The use of zenkaku whitespace in `text` is not allowed.
+Please changes it to hankaku whitespace or the other symbol.
+
+### Why the model generate meaningless speech at the end?
+
+This is because the model failed to predict the stop token.
+There are several solutions to solve this issue:
+
+- Use attention constraint in the inference (`use_attention_constraint=True` in inference config, only for Tacotron 2).
+- Train the model with a large `bce_pos_weight` (e.g., `bce_pos_weight=10.0`).
+- Use non-autoregressive models (FastSpeech or FastSpeech2)
+
+### Why the model cannot be trained well with my own dataset?
+
+The most of the problems are caused by the bad cleaning of the dataset.
+Please check the following items carefully:
+
+- Remove the silence at the beginning and end of the speech.
+- Separate speech if it contains a long silence at the middle of speech.
+- Use phonemes instead of characters if G2P is available.
+- Clean the text as possible as you can (abbreviation, number, etc...)
+- Add the pose symbol in text if the speech contains the silence.
+- If the dataset is small, please consider the use of adaptation with pretrained model.
+- If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
+- Check the attention plot during the training. Loss value is not so meaningfull in TTS.

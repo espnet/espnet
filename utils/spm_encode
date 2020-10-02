@@ -5,7 +5,6 @@
 # This source code is licensed under the license found in
 # https://github.com/pytorch/fairseq/blob/master/LICENSE
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
 import contextlib

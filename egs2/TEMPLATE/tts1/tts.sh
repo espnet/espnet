@@ -28,27 +28,27 @@ SECONDS=0
 # General configuration
 stage=1              # Processes starts from the specified stage.
 stop_stage=10000     # Processes is stopped at the specified stage.
-skip_data_prep=false # Skip data preparation stages
-skip_train=false     # Skip training stages
-skip_eval=false      # Skip decoding and evaluation stages
-skip_upload=true     # Skip packing and uploading stages
+skip_data_prep=false # Skip data preparation stages.
+skip_train=false     # Skip training stages.
+skip_eval=false      # Skip decoding and evaluation stages.
+skip_upload=true     # Skip packing and uploading stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1          # The number of nodes
+num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
 inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
-python=python3       # Specify python to execute espnet commands
+python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=flac    # Audio format (only in feats_type=raw).
-min_wav_duration=0.1 # Minimum duration in second
-max_wav_duration=20  # Maximum duration in second
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+min_wav_duration=0.1 # Minimum duration in second.
+max_wav_duration=20  # Maximum duration in second.
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
@@ -62,8 +62,8 @@ f0min=80          # Maximum f0 for pitch extraction.
 f0max=400         # Minimum f0 for pitch extraction.
 
 oov="<unk>"         # Out of vocabrary symbol.
-blank="<blank>"     # CTC blank symbol
-sos_eos="<sos/eos>" # sos and eos symbole
+blank="<blank>"     # CTC blank symbol.
+sos_eos="<sos/eos>" # sos and eos symbols.
 
 # Training related
 train_config=""    # Config for training.
@@ -71,8 +71,8 @@ train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
 tts_exp=""         # Specify the direcotry path for experiment. If this option is specified, tag is ignored.
-tts_stats_dir=""   # Specify the direcotry path for statistics. If empty, automatically decided
-num_splits=1       # Number of splitting for tts corpus
+tts_stats_dir=""   # Specify the direcotry path for statistics. If empty, automatically decided.
+num_splits=1       # Number of splitting for tts corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
 
@@ -81,26 +81,27 @@ inference_config="" # Config for decoding.
 inference_args=""   # Arguments for decoding, e.g., "--threshold 0.75".
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
-inference_model=train.loss.ave.pth # Model path for decoding e.g.,
+inference_model=train.loss.ave.pth # Model path for decoding.
+                                   # e.g.
                                    # inference_model=train.loss.best.pth
                                    # inference_model=3epoch.pth
                                    # inference_model=valid.acc.best.pth
                                    # inference_model=valid.loss.ave.pth
 griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
-download_model=""   # Download a model from Model Zoo and use it for decoding
+download_model=""   # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
-valid_set=""     # Name of validation set used for monitoring/tuning network training
+valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=""      # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
 token_type=phn   # Transcription type.
 cleaner=tacotron # Text cleaner.
 g2p=g2p_en       # g2p method (needed if token_type=phn).
-lang=noinfo      # The language type of corpus
-text_fold_length=150   # fold_length for text data
-speech_fold_length=800 # fold_length for speech data
+lang=noinfo      # The language type of corpus.
+text_fold_length=150   # fold_length for text data.
+speech_fold_length=800 # fold_length for speech data.
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
@@ -114,7 +115,7 @@ Options:
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes      # The number of nodes
+    --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
     --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
     --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
@@ -126,36 +127,40 @@ Options:
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type     # Feature type (fbank or stft or raw, default="${feats_type}").
-    --audio_format   # Audio format (only in feats_type=raw, default="${audio_format}").
+    --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
-    --fs             # Sampling rate (default="${fs}").
-    --fmax           # Maximum frequency of Mel basis (default="${fmax}").
-    --fmin           # Minimum frequency of Mel basis (default="${fmin}").
-    --n_mels         # The number of mel basis (default="${n_mels}").
-    --n_fft          # The number of fft points (default="${n_fft}").
-    --n_shift        # The number of shift points (default="${n_shift}").
-    --win_length     # Window length (default="${win_length}").
-    --f0min          # Maximum f0 for pitch extraction (default="${f0min}").
-    --f0max          # Minimum f0 for pitch extraction (default="${f0max}").
-    --oov            # Out of vocabrary symbol (default="${oov}").
-    --blank          # CTC blank symbol (default="${blank}").
-    --sos_eos        # sos and eos symbole (default="${sos_eos}").
+    --fs               # Sampling rate (default="${fs}").
+    --fmax             # Maximum frequency of Mel basis (default="${fmax}").
+    --fmin             # Minimum frequency of Mel basis (default="${fmin}").
+    --n_mels           # The number of mel basis (default="${n_mels}").
+    --n_fft            # The number of fft points (default="${n_fft}").
+    --n_shift          # The number of shift points (default="${n_shift}").
+    --win_length       # Window length (default="${win_length}").
+    --f0min            # Maximum f0 for pitch extraction (default="${f0min}").
+    --f0max            # Minimum f0 for pitch extraction (default="${f0max}").
+    --oov              # Out of vocabrary symbol (default="${oov}").
+    --blank            # CTC blank symbol (default="${blank}").
+    --sos_eos          # sos and eos symbole (default="${sos_eos}").
 
     # Training related
     --train_config  # Config for training (default="${train_config}").
-    --train_args    # Arguments for training, e.g., "--max_epoch 1" (default="${train_args}").
+    --train_args    # Arguments for training (default="${train_args}").
+                    # e.g., --train_args "--max_epoch 1"
                     # Note that it will overwrite args in train config.
     --tag           # Suffix for training directory (default="${tag}").
-    --tts_exp       # Specify the direcotry path for experiment. If this option is specified, tag is ignored (default="${tts_exp}").
-    --tts_stats_dir # Specify the direcotry path for statistics. If empty, automatically decided (default="${tts_stats_dir}").
+    --tts_exp       # Specify the direcotry path for experiment.
+                    # If this option is specified, tag is ignored (default="${tts_exp}").
+    --tts_stats_dir # Specify the direcotry path for statistics.
+                    # If empty, automatically decided (default="${tts_stats_dir}").
     --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
     --write_collected_feats # Whether to dump features in statistics collection (default="${write_collected_feats}").
 
     # Decoding related
     --inference_config  # Config for decoding (default="${inference_config}").
-    --inference_args    # Arguments for decoding, e.g., "--threshold 0.75" (default="${inference_args}").
+    --inference_args    # Arguments for decoding, (default="${inference_args}").
+                        # e.g., --inference_args "--threshold 0.75"
                         # Note that it will overwrite args in inference config.
     --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
     --inference_model   # Model path for decoding (default=${inference_model}).
@@ -457,8 +462,12 @@ if ! "${skip_train}"; then
         _feats_type="$(<${_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
             _opts+="--feats_extract fbank "
             _opts+="--feats_extract_conf fs=${fs} "
             _opts+="--feats_extract_conf n_fft=${n_fft} "
@@ -819,7 +828,12 @@ if ! "${skip_eval}"; then
 
         # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
         _scp=wav.scp
-        _type=sound
+        if [[ "${audio_format}" == *ark* ]]; then
+            _type=kaldi_ark
+        else
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+        fi
         if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
             _opts+="--vocoder_conf n_fft=${n_fft} "
             _opts+="--vocoder_conf n_shift=${n_shift} "

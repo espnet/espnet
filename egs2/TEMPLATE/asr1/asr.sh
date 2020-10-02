@@ -25,18 +25,18 @@ SECONDS=0
 # General configuration
 stage=1              # Processes starts from the specified stage.
 stop_stage=10000     # Processes is stopped at the specified stage.
-skip_data_prep=false # Skip data preparation stages
-skip_train=false     # Skip training stages
-skip_eval=false      # Skip decoding and evaluation stages
-skip_upload=true     # Skip packing and uploading stages
+skip_data_prep=false # Skip data preparation stages.
+skip_train=false     # Skip training stages.
+skip_eval=false      # Skip decoding and evaluation stages.
+skip_upload=true     # Skip packing and uploading stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1          # The number of nodes
+num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
 inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
-python=python3       # Specify python to execute espnet commands
+python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -45,11 +45,11 @@ local_data_opts= # The options given to local/data.sh.
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
 
 # Feature extraction related
-feats_type=raw         # Feature type (raw or fbank_pitch).
-audio_format=flac      # Audio format (only in feats_type=raw).
-fs=16k                 # Sampling rate.
-min_wav_duration=0.1   # Minimum duration in second
-max_wav_duration=20    # Maximum duration in second
+feats_type=raw       # Feature type (raw or fbank_pitch).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+fs=16k               # Sampling rate.
+min_wav_duration=0.1 # Minimum duration in second.
+max_wav_duration=20  # Maximum duration in second.
 
 # Tokenization related
 token_type=bpe      # Tokenization type (char or bpe).
@@ -65,29 +65,31 @@ bpe_char_cover=1.0  # character coverage when modeling BPE
 # Language model related
 use_lm=true       # Use language model for ASR decoding.
 lm_tag=           # Suffix to the result dir for language model training.
-lm_exp=           # Specify the direcotry path for LM experiment. If this option is specified, lm_tag is ignored.
+lm_exp=           # Specify the direcotry path for LM experiment.
+                  # If this option is specified, lm_tag is ignored.
 lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
                   # Note that it will overwrite args in lm config.
 use_word_lm=false # Whether to use word language model.
-num_splits_lm=1   # Number of splitting for lm corpus
+num_splits_lm=1   # Number of splitting for lm corpus.
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
 asr_tag=    # Suffix to the result dir for asr model training.
-asr_exp=    # Specify the direcotry path for ASR experiment. If this option is specified, asr_tag is ignored.
+asr_exp=    # Specify the direcotry path for ASR experiment.
+            # If this option is specified, asr_tag is ignored.
 asr_config= # Config for asr model training.
 asr_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in asr config.
-feats_normalize=global_mvn  # Normalizaton layer type
-num_splits_asr=1   # Number of splitting for lm corpus
+feats_normalize=global_mvn # Normalizaton layer type.
+num_splits_asr=1           # Number of splitting for lm corpus.
 
 # Decoding related
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
-               # Note that it will overwrite args in inference config.
+                  # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language modle path for decoding.
 inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
                                       # e.g.
@@ -95,11 +97,11 @@ inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
                                       # inference_asr_model=3epoch.pth
                                       # inference_asr_model=valid.acc.best.pth
                                       # inference_asr_model=valid.loss.ave.pth
-download_model= # Download a model from Model Zoo and use it for decoding
+download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
-valid_set=       # Name of validation set used for monitoring/tuning network training
+valid_set=       # Name of validation set used for monitoring/tuning network training.
 test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=        # Used for the training of BPE and LM and the creation of a vocabulary list.
 lm_dev_text=     # Text file path of language model development set.
@@ -107,13 +109,13 @@ lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
-lang=noinfo      # The language type of corpus
-asr_speech_fold_length=800 # fold_length for speech data during ASR training
-asr_text_fold_length=150   # fold_length for text data during ASR training
-lm_fold_length=150         # fold_length for LM training
+lang=noinfo      # The language type of corpus.
+asr_speech_fold_length=800 # fold_length for speech data during ASR training.
+asr_text_fold_length=150   # fold_length for text data during ASR training.
+lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
-Usage: $0 --train-set <train_set_name> --valid-set <valid_set_name> --test_sets <test_set_names> --srctexts <srctexts >
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
 
 Options:
     # General configuration
@@ -124,7 +126,7 @@ Options:
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes      # The number of nodes
+    --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
     --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
     --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
@@ -136,12 +138,12 @@ Options:
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
 
     # Speed perturbation related
-    --speed_perturb_factors   # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
+    --speed_perturb_factors # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
 
     # Feature extraction related
-    --feats_type      # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format    # Audio format (only in feats_type=raw, default="${audio_format}").
-    --fs              # Sampling rate (default="${fs}").
+    --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
@@ -151,52 +153,59 @@ Options:
     --bpemode                 # Mode of BPE (unigram or bpe, default="${bpemode}").
     --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
-    --sos_eos=                # sos and eos symbole (default="${sos_eos}").
+    --sos_eos                 # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
     --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
+
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
-    --lm_exp          # Specify the direcotry path for LM experiment. If this option is specified, lm_tag is ignored (default="${lm_exp}").
+    --lm_exp          # Specify the direcotry path for LM experiment.
+                      # If this option is specified, lm_tag is ignored (default="${lm_exp}").
     --lm_config       # Config for language model training (default="${lm_config}").
-    --lm_args         # Arguments for language model training, e.g., "--max_epoch 10" (default="${lm_args}").
+    --lm_args         # Arguments for language model training (default="${lm_args}").
+                      # e.g., --lm_args "--max_epoch 10"
                       # Note that it will overwrite args in lm config.
     --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
-    --num_splits_lm=1   # Number of splitting for lm corpus (default="${num_splits_lm}").
+    --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
     # ASR model related
-    --asr_tag    # Suffix to the result dir for asr model training (default="${asr_tag}").
-    --asr_exp    # Specify the direcotry path for ASR experiment. If this option is specified, asr_tag is ignored (default="${asr_exp}").
-    --asr_config # Config for asr model training (default="${asr_config}").
-    --asr_args   # Arguments for asr model training, e.g., "--max_epoch 10" (default="${asr_args}").
-                 # Note that it will overwrite args in asr config.
-    --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
-    --num_splits_asr=1   # Number of splitting for lm corpus  (default="${num_splits_asr}").
+    --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
+    --asr_exp          # Specify the direcotry path for ASR experiment.
+                       # If this option is specified, asr_tag is ignored (default="${asr_exp}").
+    --asr_config       # Config for asr model training (default="${asr_config}").
+    --asr_args         # Arguments for asr model training (default="${asr_args}").
+                       # e.g., --asr_args "--max_epoch 10"
+                       # Note that it will overwrite args in asr config.
+    --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
+    --num_splits_asr   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
     --inference_config    # Config for decoding (default="${inference_config}").
-    --inference_args      # Arguments for decoding, e.g., "--lm_weight 0.1" (default="${inference_args}").
-                       # Note that it will overwrite args in inference config.
+    --inference_args      # Arguments for decoding (default="${inference_args}").
+                          # e.g., --inference_args "--lm_weight 0.1"
+                          # Note that it will overwrite args in inference config.
     --inference_lm        # Language modle path for decoding (default="${inference_lm}").
     --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
-    --download_model   # Download a model from Model Zoo and use it for decoding  (default="${download_model}").
+    --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
-    --valid_set=    # Name of validation set used for monitoring/tuning network training (required).
-    --test_sets=    # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified (required).
+    --valid_set     # Name of validation set used for monitoring/tuning network training (required).
+    --test_sets     # Names of test sets.
+                    # Multiple items (e.g., both dev and eval sets) can be specified (required).
     --srctexts      # Used for the training of BPE and LM and the creation of a vocabulary list (required).
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
-    --lang              # The language type of corpus (default=${lang}).
-    --asr_speech_fold_length # fold_length for speech data during ASR training  (default="${asr_speech_fold_length}").
-    --asr_text_fold_length   # fold_length for text data during ASR training  (default="${asr_text_fold_length}").
-    --lm_fold_length         # fold_length for LM training  (default="${lm_fold_length}").
+    --lang          # The language type of corpus (default=${lang}).
+    --asr_speech_fold_length # fold_length for speech data during ASR training (default="${asr_speech_fold_length}").
+    --asr_text_fold_length   # fold_length for text data during ASR training (default="${asr_text_fold_length}").
+    --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
 EOF
 )
 
@@ -790,8 +799,12 @@ if ! "${skip_train}"; then
         _feats_type="$(<${_asr_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
             _opts+="--frontend_conf fs=${fs} "
         else
             _scp=feats.scp
@@ -888,7 +901,11 @@ if ! "${skip_train}"; then
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             # "sound" supports "wav", "flac", etc.
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                _type=sound
+            fi
             _fold_length="$((asr_speech_fold_length * 100))"
             _opts+="--frontend_conf fs=${fs} "
         else
@@ -1053,7 +1070,11 @@ if ! "${skip_eval}"; then
             _feats_type="$(<${_data}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
                 _scp=wav.scp
-                _type=sound
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _type=kaldi_ark
+                else
+                    _type=sound
+                fi
             else
                 _scp=feats.scp
                 _type=kaldi_ark
@@ -1120,7 +1141,7 @@ if ! "${skip_eval}"; then
                                   --remove_non_linguistic_symbols true \
                                   --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1132,7 +1153,7 @@ if ! "${skip_eval}"; then
                                   --non_linguistic_symbols "${nlsyms_txt}" \
                                   --remove_non_linguistic_symbols true \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
 
 
@@ -1147,7 +1168,7 @@ if ! "${skip_eval}"; then
                                   --remove_non_linguistic_symbols true \
                                   --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1159,7 +1180,7 @@ if ! "${skip_eval}"; then
                                   --non_linguistic_symbols "${nlsyms_txt}" \
                                   --remove_non_linguistic_symbols true \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
 
                 elif [ "${_type}" = ter ]; then
@@ -1172,7 +1193,7 @@ if ! "${skip_eval}"; then
                                   --bpemodel "${bpemodel}" \
                                   --cleaner "${cleaner}" \
                                 ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1182,9 +1203,8 @@ if ! "${skip_eval}"; then
                                   -f 2- --input - --output - \
                                   --token_type bpe \
                                   --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
                 fi
 
