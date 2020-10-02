@@ -2,8 +2,8 @@ import argparse
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import mask_uniform
+from espnet.nets.pytorch_backend.e2e_asr_maskctc import E2E
+from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
 from espnet.nets.pytorch_backend.transformer import plot
 
 
@@ -40,13 +40,6 @@ def prepare(args):
     idim = 10
     odim = len(args.char_list)
     model = E2E(idim, odim, args)
-    batchsize = 2
-
-    T = importlib.import_module(
-        "espnet.nets.{}_backend.e2e_asr_maskctc".format("pytorch")
-    )
-
-    model = T.E2E(idim, odim, args)
     batchsize = 2
 
     x = torch.randn(batchsize, 15, idim)
