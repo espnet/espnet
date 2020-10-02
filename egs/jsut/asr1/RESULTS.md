@@ -1,4 +1,4 @@
-# conformer result
+# Conformer result with specaug, speed perturbation, and RNNLM
 ## Environments
 - date: `Fri Oct  2 13:38:36 EDT 2020`
 - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
@@ -20,7 +20,7 @@
   - lm JSON file: `exp/train_rnnlm_pytorch_lm/model.json`
 
 ## tr_no_dev_sp_pytorch_train_pytorch_conformer.lr10.ep50_specaug
-### CER
+### CER (48k)
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
