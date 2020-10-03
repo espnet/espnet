@@ -378,7 +378,7 @@ class RNNDecoder(AbsDecoder):
             ),
         )
 
-    def score_transducer(
+    def step_transducer(
         self, hyp: Hypothesis, cache: Dict, init_tensor: torch.Tensor = None
     ) -> Union[torch.Tensor, Tuple[List, List]]:
         """Forward one step.
@@ -433,7 +433,7 @@ class RNNDecoder(AbsDecoder):
 
         return y, state, vy[0]
 
-    def batch_score_transducer(
+    def batch_step_transducer(
         self,
         hyps: List,
         batch_states: Tuple[List, List],

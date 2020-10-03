@@ -107,9 +107,6 @@ class BeamSearchTransducer:
         if hasattr(self.decoder, "att_list"):
             self.decoder.att_list[0].reset()
 
-        if hasattr(self.decoder, "att"):
-            self.decoder.att[0].reset()
-
         nbest_hyps = self.search_algorithm(h)
 
         return nbest_hyps
@@ -146,7 +143,7 @@ class BeamSearchTransducer:
 
         cache = {}
 
-        y, state, _ = self.decoder.score_transducer(hyp, cache, init_tensor)
+        y, state, _ = self.decoder.step_transducer(hyp, cache, init_tensor)
 
         for i, hi in enumerate(h):
             ytu = torch.log_softmax(self.joint_network(hi, y[0]), dim=-1)
@@ -158,7 +155,7 @@ class BeamSearchTransducer:
 
                 hyp.dec_state = state
 
-                y, state, _ = self.decoder.score_transducer(hyp, cache, init_tensor)
+                y, state, _ = self.decoder.step_transducer(hyp, cache, init_tensor)
 
         return [hyp]
 
@@ -192,7 +189,7 @@ class BeamSearchTransducer:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
-                y, state, lm_tokens = self.decoder.score_transducer(
+                y, state, lm_tokens = self.decoder.step_transducer(
                     max_hyp, cache, init_tensor
                 )
 
@@ -294,7 +291,7 @@ class BeamSearchTransducer:
                     beam_y,
                     beam_state,
                     beam_lm_tokens,
-                ) = self.decoder.batch_score_transducer(
+                ) = self.decoder.batch_step_transducer(
                     C, beam_state, cache, init_tensor
                 )
 
@@ -419,7 +416,7 @@ class BeamSearchTransducer:
                     beam_y,
                     beam_state,
                     beam_lm_tokens,
-                ) = self.decoder.batch_score_transducer(
+                ) = self.decoder.batch_step_transducer(
                     B_, beam_state, cache, init_tensor
                 )
 
@@ -512,7 +509,7 @@ class BeamSearchTransducer:
 
         cache = {}
 
-        beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score_transducer(
+        beam_y, beam_state, beam_lm_tokens = self.decoder.batch_step_transducer(
             init_tokens, beam_state, cache, init_tensor
         )
 
@@ -630,7 +627,7 @@ class BeamSearchTransducer:
                     beam_y,
                     beam_state,
                     beam_lm_tokens,
-                ) = self.decoder.batch_score_transducer(
+                ) = self.decoder.batch_step_transducer(
                     V, beam_state, cache, init_tensor
                 )
 
