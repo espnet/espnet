@@ -1,7 +1,7 @@
 # network architecture
 # encoder related
 elayers: 12
-eunits: 1024
+eunits: 2048
 # decoder related
 dlayers: 6
 dunits: 2048
