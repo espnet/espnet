@@ -1,17 +1,16 @@
-# Copyright 2020 Johns Hopkins University (Shinji Watanabe)
-#                Northwestern Polytechnical University (Pengcheng Guo)
+# Copyright 2020 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """
-Conformer speech recognition model (pytorch).
+Conformer speech translation model (pytorch).
 
-It is a fusion of `e2e_asr_transformer.py`
+It is a fusion of `e2e_st_transformer.py`
 Refer to: https://arxiv.org/abs/2005.08100
 
 """
 
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
-from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
+from espnet.nets.pytorch_backend.e2e_st_transformer import E2E as E2ETransformer
 from espnet.nets.pytorch_backend.conformer.argument import (
     add_arguments_conformer_common,  # noqa: H301
 )

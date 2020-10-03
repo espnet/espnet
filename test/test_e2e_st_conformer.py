@@ -6,7 +6,7 @@ import argparse
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_st_transformer import E2E
+from espnet.nets.pytorch_backend.e2e_st_conformer import E2E
 from espnet.nets.pytorch_backend.transformer import plot
 
 
@@ -22,6 +22,12 @@ def make_arg(**kwargs):
         dunits=2,
         sym_space="<space>",
         sym_blank="<blank>",
+        transformer_decoder_selfattn_layer_type="selfattn",
+        transformer_encoder_pos_enc_layer_type="rel_pos",
+        transformer_encoder_selfattn_layer_type="rel_selfattn",
+        macaron_style=True,
+        use_cnn_module=True,
+        cnn_module_kernel=3,
         transformer_init="pytorch",
         transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
@@ -69,40 +75,25 @@ def prepare(args):
     return model, x, torch.tensor(ilens), y_tgt, y_src, data
 
 
-ldconv_lconv_args = dict(
-    transformer_decoder_selfattn_layer_type="lightconv",
-    transformer_encoder_selfattn_layer_type="lightconv",
-    wshare=2,
-    ldconv_encoder_kernel_length="5_7_11",
-    ldconv_decoder_kernel_length="3_7",
-    ldconv_usebias=False,
+conformer_mcnn_args = dict(
+    transformer_encoder_pos_enc_layer_type="rel_pos",
+    transformer_encoder_selfattn_layer_type="rel_selfattn",
+    macaron_style=True,
+    use_cnn_module=False,
 )
 
-ldconv_dconv_args = dict(
-    transformer_decoder_selfattn_layer_type="dynamicconv",
-    transformer_encoder_selfattn_layer_type="dynamicconv",
-    wshare=2,
-    ldconv_encoder_kernel_length="5_7_11",
-    ldconv_decoder_kernel_length="3_7",
-    ldconv_usebias=False,
+conformer_mcnn_mmacaron_args = dict(
+    transformer_encoder_pos_enc_layer_type="rel_pos",
+    transformer_encoder_selfattn_layer_type="rel_selfattn",
+    macaron_style=False,
+    use_cnn_module=False,
 )
 
-ldconv_lconv2d_args = dict(
-    transformer_decoder_selfattn_layer_type="lightconv2d",
-    transformer_encoder_selfattn_layer_type="lightconv2d",
-    wshare=2,
-    ldconv_encoder_kernel_length="5_7_11",
-    ldconv_decoder_kernel_length="3_7",
-    ldconv_usebias=False,
-)
-
-ldconv_dconv2d_args = dict(
-    transformer_decoder_selfattn_layer_type="dynamicconv2d",
-    transformer_encoder_selfattn_layer_type="dynamicconv2d",
-    wshare=2,
-    ldconv_encoder_kernel_length="5_7_11",
-    ldconv_decoder_kernel_length="3_7",
-    ldconv_usebias=False,
+conformer_mcnn_mmacaron_mrelattn_args = dict(
+    transformer_encoder_pos_enc_layer_type="abs_pos",
+    transformer_encoder_selfattn_layer_type="selfattn",
+    macaron_style=False,
+    use_cnn_module=False,
 )
 
 
@@ -113,27 +104,10 @@ def _savefn(*args, **kwargs):
 @pytest.mark.parametrize(
     "model_dict",
     [
-        {"asr_weight": 0.0, "mt_weight": 0.0},  # pure E2E-ST
-        ldconv_lconv_args,
-        ldconv_dconv_args,
-        ldconv_lconv2d_args,
-        ldconv_dconv2d_args,
-        # MTL w/ attention ASR
-        {"asr_weight": 0.1, "mtlalpha": 0.0, "mt_weight": 0.0},
-        # MTL w/ attention ASR + MT
-        {"asr_weight": 0.1, "mtlalpha": 0.0, "mt_weight": 0.1},
-        # MTL w/ CTC ASR
-        {"asr_weight": 0.1, "mtlalpha": 1.0, "mt_weight": 0.0},
-        {"asr_weight": 0.1, "mtlalpha": 1.0, "ctc_type": "builtin"},
-        {"asr_weight": 0.1, "mtlalpha": 1.0, "report_cer": True},
-        {"asr_weight": 0.1, "mtlalpha": 1.0, "report_wer": True},
-        {"asr_weight": 0.1, "mtlalpha": 1.0, "report_cer": True, "report_wer": True},
-        # MTL w/ CTC ASR + MT
-        {"asr_weight": 0.1, "mtlalpha": 1.0, "mt_weight": 0.1},
-        # MTL w/ attention ASR + CTC ASR
-        {"asr_weight": 0.1, "mtlalpha": 0.5, "mt_weight": 0.0},
-        # MTL w/ attention ASR + CTC ASR + MT
-        {"asr_weight": 0.1, "mtlalpha": 0.5, "mt_weight": 0.1},
+        {},
+        conformer_mcnn_args,
+        conformer_mcnn_mmacaron_args,
+        conformer_mcnn_mmacaron_mrelattn_args,
     ],
 )
 def test_transformer_trainable_and_decodable(model_dict):
