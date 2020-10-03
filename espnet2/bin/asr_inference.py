@@ -144,8 +144,8 @@ class Speech2Text:
             for scorer in scorers.values():
                 if isinstance(scorer, torch.nn.Module):
                     scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-                    logging.info(f"Beam_search: {beam_search}")
-                    logging.info(f"Decoding device={device}, dtype={dtype}")
+            logging.info(f"Beam_search: {beam_search}")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
