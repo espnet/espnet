@@ -304,7 +304,7 @@ class E2E(MTInterface, torch.nn.Module):
             hyps_best_kept = []
             for j, hyp in enumerate(hyps):
                 local_best_scores, local_best_ids = torch.topk(
-                    local_scores[j: j + 1], beam, dim=1
+                    local_scores[j : j + 1], beam, dim=1
                 )
 
                 for j in range(beam):
