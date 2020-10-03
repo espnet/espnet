@@ -342,22 +342,22 @@ class ASRTask(AbsTask):
 
         # 7. RNN-T Decoder
         if args.transducer_conf:
-            trans_dec = RNNDecoder(
+            transducer_decoder = RNNDecoder(
                 vocab_size=vocab_size,
                 encoder_output_size=encoder.output_size(),
                 embed_pad=0,
                 use_output=False,
                 **args.transducer_conf,
             )
-            joint_net = JointNetwork(
+            joint_network = JointNetwork(
                 vocab_size=vocab_size,
                 encoder_output_size=encoder.output_size(),
-                decoder_output_size=trans_dec.dunits,
+                decoder_output_size=transducer_decoder.dunits,
                 **args.joint_net_conf,
             )
-            transducer_decoder = (trans_dec, joint_net)
         else:
             transducer_decoder = None
+            joint_network = None
 
         # 8. Build model
         model = ESPnetASRModel(
@@ -369,6 +369,7 @@ class ASRTask(AbsTask):
             decoder=decoder,
             ctc=ctc,
             transducer_decoder=transducer_decoder,
+            joint_network=joint_network,
             token_list=token_list,
             **args.model_conf,
         )

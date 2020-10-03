@@ -49,7 +49,8 @@ class ESPnetASRModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
-        transducer_decoder: Optional[Tuple[AbsDecoder, torch.nn.Module]],
+        transducer_decoder: Optional[AbsDecoder],
+        joint_network: Optional[torch.nn.Module],
         ctc_weight: float = 0.5,
         transducer_weight: float = 0.0,
         ignore_id: int = -1,
@@ -84,11 +85,8 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             self.ctc = ctc
 
-        if transducer_decoder:
-            self.transducer_decoder = transducer_decoder[0]
-            self.joint_network = transducer_decoder[1]
-        else:
-            self.transducer_decoder = transducer_decoder
+        self.transducer_decoder = transducer_decoder
+        self.joint_network = joint_network
 
         self.criterion_transducer = TransLoss("warp-transducer", self.blank)
 
