@@ -237,14 +237,14 @@ class RNNDecoder(AbsDecoder):
                             self.dropout_dec[0](z_list[0]),
                             att_w_list[idx],
                         )
-                        hs_pad_han = torch.stack(att_c_list, dim=1)
-                        hlens_han = [self.num_encs] * len(ys_in_pad)
-                        att_c, att_w_list[self.num_encs] = self.att_list[self.num_encs](
-                            hs_pad_han,
-                            hlens_han,
-                            self.dropout_dec[0](z_list[0]),
-                            att_w_list[self.num_encs],
-                        )
+                    hs_pad_han = torch.stack(att_c_list, dim=1)
+                    hlens_han = [self.num_encs] * len(ys_in_pad)
+                    att_c, att_w_list[self.num_encs] = self.att_list[self.num_encs](
+                        hs_pad_han,
+                        hlens_han,
+                        self.dropout_dec[0](z_list[0]),
+                        att_w_list[self.num_encs],
+                    )
                 if i > 0 and random.random() < self.sampling_probability:
                     z_out = self.output(z_all[-1])
                     z_out = np.argmax(z_out.detach().cpu(), axis=1)
