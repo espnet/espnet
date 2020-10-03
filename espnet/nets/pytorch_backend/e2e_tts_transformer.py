@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -723,7 +720,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
-            ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
+            ys_in = ys[:, self.reduction_factor - 1:: self.reduction_factor]
             olens_in = olens.new([olen // self.reduction_factor for olen in olens])
         else:
             ys_in, olens_in = ys, olens
@@ -980,7 +977,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             # thin out frames for reduction factor
             # (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
-                ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
+                ys_in = ys[:, self.reduction_factor - 1:: self.reduction_factor]
                 olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             else:
                 ys_in, olens_in = ys, olens
