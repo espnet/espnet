@@ -1061,7 +1061,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                     self.dropout_dec[0](z_list[0]),
                     att_w_list[self.num_encs],
                 )
-                att_ws.append(att_w_list)
+                att_ws.append(att_w_list.copy())
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
 
