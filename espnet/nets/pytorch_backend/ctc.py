@@ -26,10 +26,10 @@ class CTC(torch.nn.Module):
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.probs = None  # for visualization
 
-        # In case of Pytorch >= 1.4.0, CTC will be always builtin
+        # In case of Pytorch >= 1.7.0, CTC will be always builtin
         self.ctc_type = (
             ctc_type
-            if LooseVersion(torch.__version__) < LooseVersion("1.4.0")
+            if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
             else "builtin"
         )
         if ctc_type != self.ctc_type:
