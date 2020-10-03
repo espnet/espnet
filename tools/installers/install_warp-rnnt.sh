@@ -10,8 +10,8 @@ fi
 
 cuda_ver=$1
 
-if [ $cuda_ver != "10.0" ]; then
-    echo "warp-rnnt was only tested with CUDA_VERSION=10.0. Skipping install."
+if ! [[ "$cuda_ver" =~ ^(10.0|10.1|10.2)$ ]]; then
+    echo "warp-rnnt was not tested with CUDA_VERSION=$cuda_ver. Skipping install."
     exit 0
 fi
 
