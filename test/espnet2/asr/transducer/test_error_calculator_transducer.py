@@ -19,7 +19,7 @@ def test_error_calculator_transducer():
     encoder_out, _, _ = encoder(x, x_lens)
 
     decoder = RNNDecoder(
-        10,
+        6,
         12,
         hidden_size=12,
         embed_pad=0,
@@ -27,7 +27,7 @@ def test_error_calculator_transducer():
         use_attention=False,
         use_output=False,
     )
-    joint_net = JointNetwork(10, 12, decoder.dunits, joint_space_size=20)
+    joint_net = JointNetwork(6, 12, decoder.dunits, joint_space_size=20)
 
     error_calculator = ErrorCalculatorTransducer(
         decoder,

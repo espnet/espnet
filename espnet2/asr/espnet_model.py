@@ -174,31 +174,27 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             loss_transducer, cer_transducer, wer_transducer = None, None, None
 
-        # 3a. CTC-attention loss definition
+        # 3. Main loss definition
         if self.ctc_weight == 0.0:
-            loss_ctc_att = loss_att
+            loss = loss_att
         elif self.ctc_weight == 1.0:
-            loss_ctc_att = loss_ctc
+            loss = loss_ctc
         else:
-            loss_ctc_att = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
+            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
-        # 3b. Transducer and main loss definition
         if self.transducer_decoder:
             if self.transducer_weight != 0.0:
                 loss = (
                     self.transducer_weight * loss_transducer
-                    + (1 - self.transducer_weight) * loss_ctc_att
+                    + (1 - self.transducer_weight) * loss
                 )
             else:
                 loss = loss_transducer
-        else:
-            loss = loss_ctc_att
 
         stats = dict(
             loss=loss.detach(),
             loss_att=loss_att.detach() if loss_att is not None else None,
             loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
-            loss_ctc_att=loss_ctc_att.detach() if loss_ctc_att is not None else None,
             loss_transducer=loss_transducer.detach()
             if loss_transducer is not None
             else None,

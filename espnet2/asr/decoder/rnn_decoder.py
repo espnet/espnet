@@ -95,13 +95,13 @@ class RNNDecoder(AbsDecoder):
         rnn_type: str = "lstm",
         num_layers: int = 1,
         hidden_size: int = 320,
-        embed_pad: Optional[int] = None,
         sampling_probability: float = 0.0,
         dropout: float = 0.0,
         context_residual: bool = False,
         replace_sos: bool = False,
         num_encs: int = 1,
         att_conf: dict = get_default_kwargs(build_attention_list),
+        embed_pad: Optional[int] = None,
         use_attention: bool = True,
         use_output: bool = True,
     ):
@@ -128,7 +128,6 @@ class RNNDecoder(AbsDecoder):
 
         # for multilingual translation
         self.replace_sos = replace_sos
-
         self.embed = torch.nn.Embedding(vocab_size, hidden_size, padding_idx=embed_pad)
         self.dropout_emb = torch.nn.Dropout(p=dropout)
 
@@ -139,10 +138,6 @@ class RNNDecoder(AbsDecoder):
             input_size = hidden_size + eprojs
         else:
             input_size = hidden_size
-
-        self.att_list = build_attention_list(
-            eprojs=eprojs, dunits=hidden_size, **att_conf
-        )
 
         self.decoder += [
             torch.nn.LSTMCell(input_size, hidden_size)
@@ -164,6 +159,10 @@ class RNNDecoder(AbsDecoder):
             self.output = torch.nn.Linear(hidden_size + eprojs, vocab_size)
         else:
             self.output = torch.nn.Linear(hidden_size, vocab_size)
+
+        self.att_list = build_attention_list(
+            eprojs=eprojs, dunits=hidden_size, **att_conf
+        )
 
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
@@ -307,9 +306,9 @@ class RNNDecoder(AbsDecoder):
             )
         else:
             if self.use_attention:
-                return ((z_list[:], c_list[:]), None)
+                return ((z_list, c_list), None)
             else:
-                return (z_list[:], c_list[:])
+                return (z_list, c_list)
 
     def init_batch_states(self, x: torch.Tensor) -> torch.Tensor:
         z_list = [self.zero_state(x)]
@@ -320,9 +319,9 @@ class RNNDecoder(AbsDecoder):
             c_list.append(self.zero_state(x))
 
         if self.use_attention:
-            return ((z_list[:], c_list[:]), None)
+            return ((z_list, c_list), None)
         else:
-            return (z_list[:], c_list[:])
+            return (z_list, c_list)
 
     def score(self, yseq, state, x):
         # to support mutiple encoder asr mode, in single encoder mode,
