@@ -342,11 +342,21 @@ class ASRTask(AbsTask):
 
         # 7. RNN-T Decoder
         if args.transducer_conf:
-            transducer_decoder = RNNDecoder(
+            if (
+                not isinstance(decoder_class, RNNDecoder)
+                and "use_attention" in args.transducer_conf
+                and args.transducer_conf["use_attention"] is True
+            ):
+                raise NotImplementedError(
+                    "Transformer class with use_attention=True"
+                    " is not supported for transducer yet."
+                )
+
+            transducer_decoder = decoder_class(
                 vocab_size=vocab_size,
                 encoder_output_size=encoder.output_size(),
                 embed_pad=0,
-                use_output=False,
+                use_output_layer=False,
                 **args.transducer_conf,
             )
             joint_network = JointNetwork(
