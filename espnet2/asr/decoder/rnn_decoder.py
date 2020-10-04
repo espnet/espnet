@@ -1,5 +1,4 @@
 import random
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -103,7 +102,7 @@ class RNNDecoder(AbsDecoder):
         att_conf: dict = get_default_kwargs(build_attention_list),
         embed_pad: Optional[int] = None,
         use_attention: bool = True,
-        use_output: bool = True,
+        use_output_layer: bool = True,
     ):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
         assert check_argument_types()
@@ -124,7 +123,7 @@ class RNNDecoder(AbsDecoder):
         self.dropout = dropout
         self.num_encs = num_encs
         self.use_attention = use_attention
-        self.use_output = use_output
+        self.use_output_layer = use_output_layer
 
         # for multilingual translation
         self.replace_sos = replace_sos
@@ -266,7 +265,7 @@ class RNNDecoder(AbsDecoder):
                 z_all.append(self.dropout_dec[-1](z_list[-1]))
 
         z_all = torch.stack(z_all, dim=1)
-        if self.use_output:
+        if self.use_output_layer:
             z_all = self.output(z_all)
         z_all.masked_fill_(
             make_pad_mask(ys_in_lens, z_all, 1),
@@ -297,7 +296,7 @@ class RNNDecoder(AbsDecoder):
                 # reset pre-computation of h in atts and han
                 self.att_list[idx].reset()
 
-        if self.use_output:
+        if self.use_output_layer:
             return dict(
                 c_prev=c_list[:],
                 z_prev=z_list[:],
@@ -378,7 +377,7 @@ class RNNDecoder(AbsDecoder):
         )
 
     def step_transducer(
-        self, hyp: Hypothesis, cache: Dict, init_tensor: torch.Tensor = None
+        self, hyp: Hypothesis, cache: dict, init_tensor: torch.Tensor = None
     ) -> Union[torch.Tensor, Tuple[List, List]]:
         """Forward one step.
 
@@ -436,7 +435,7 @@ class RNNDecoder(AbsDecoder):
         self,
         hyps: List,
         batch_states: Tuple[List, List],
-        cache: Dict,
+        cache: dict,
         init_tensor: torch.Tensor = None,
     ) -> Union[torch.Tensor, Tuple[List, List]]:
         """Forward batch one step.

@@ -38,7 +38,7 @@ def test_transducer_decoder_backward(rnn_type, use_attention):
         hidden_size=15,
         rnn_type=rnn_type,
         use_attention=use_attention,
-        use_output=False,
+        use_output_layer=False,
     )
     joint_net = JointNetwork(10, 12, decoder.dunits, joint_space_size=20)
 
@@ -57,7 +57,7 @@ def test_transducer_decoder_backward(rnn_type, use_attention):
 @pytest.mark.parametrize("use_attention", [False, True])
 def test_transducer_decoder_init_state(rnn_type, use_attention):
     decoder = RNNDecoder(
-        10, 12, rnn_type=rnn_type, use_attention=use_attention, use_output=False
+        10, 12, rnn_type=rnn_type, use_attention=use_attention, use_output_layer=False
     )
     x = torch.randn(9, 12)
     state = decoder.init_state(x)
