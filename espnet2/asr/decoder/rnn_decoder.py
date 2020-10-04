@@ -522,7 +522,7 @@ class RNNDecoder(AbsDecoder):
         batch_y = torch.stack([d[0] for d in done])
 
         lm_tokens = to_device(
-            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch)
+            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch, 1)
         )
 
         return batch_y, batch_states, lm_tokens

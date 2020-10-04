@@ -4,17 +4,15 @@ from dataclasses import dataclass
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Tuple
 from typing import Union
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.transducer.utils import create_lm_batch_state
-from espnet.nets.pytorch_backend.transducer.utils import init_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
-from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import substract
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
@@ -87,7 +85,6 @@ class BeamSearchTransducer:
 
         self.lm = lm
         self.lm_weight = lm_weight
-
         self.max_sym_exp = max_sym_exp
         self.u_max = u_max
         self.nstep = nstep
@@ -203,7 +200,9 @@ class BeamSearchTransducer:
                 )
 
                 if self.lm:
-                    lm_state, lm_scores = self.lm.predict(max_hyp.lm_state, lm_tokens)
+                    lm_scores, lm_state = self.lm.score(
+                        lm_tokens, max_hyp.lm_state, None
+                    )
 
                 for logp, k in zip(*ytu):
                     new_hyp = Hypothesis(
@@ -222,7 +221,7 @@ class BeamSearchTransducer:
 
                         if self.lm:
                             new_hyp.lm_state = lm_state
-                            new_hyp.score += self.lm_weight * lm_scores[0][k]
+                            new_hyp.score += self.lm_weight * lm_scores[k]
 
                         hyps.append(new_hyp)
 
@@ -261,20 +260,9 @@ class BeamSearchTransducer:
                 yseq=[self.blank],
                 score=0.0,
                 dec_state=self.decoder._select_state(beam_state, 0),
+                lm_state=self.lm.zero_state(),
             )
         ]
-
-        if self.lm:
-            if hasattr(self.lm.predictor, "wordlm"):
-                lm_model = self.lm.predictor.wordlm
-                lm_type = "wordlm"
-            else:
-                lm_model = self.lm.predictor
-                lm_type = "lm"
-
-                B[0].lm_state = init_lm_state(lm_model)
-
-            lm_layers = len(lm_model.rnn)
 
         cache = {}
 
@@ -319,12 +307,8 @@ class BeamSearchTransducer:
 
                 if v < self.max_sym_exp:
                     if self.lm:
-                        beam_lm_states = create_lm_batch_state(
-                            [c.lm_state for c in C], lm_type, lm_layers
-                        )
-
-                        beam_lm_states, beam_lm_scores = self.lm.buff_predict(
-                            beam_lm_states, beam_lm_tokens, len(C)
+                        beam_lm_scores, beam_lm_states = self.lm.batch_score(
+                            beam_lm_tokens, [c.lm_state for c in C], None
                         )
 
                     for i, hyp in enumerate(C):
@@ -338,10 +322,7 @@ class BeamSearchTransducer:
 
                             if self.lm:
                                 new_hyp.score += self.lm_weight * beam_lm_scores[i, k]
-
-                                new_hyp.lm_state = select_lm_state(
-                                    beam_lm_states, i, lm_type, lm_layers
-                                )
+                                new_hyp.lm_state = beam_lm_states[i]
 
                             D.append(new_hyp)
 
@@ -378,21 +359,10 @@ class BeamSearchTransducer:
                 yseq=[self.blank],
                 score=0.0,
                 dec_state=self.decoder._select_state(beam_state, 0),
+                lm_state=self.lm.zero_state(),
             )
         ]
         final = []
-
-        if self.lm:
-            if hasattr(self.lm.predictor, "wordlm"):
-                lm_model = self.lm.predictor.wordlm
-                lm_type = "wordlm"
-            else:
-                lm_model = self.lm.predictor
-                lm_type = "lm"
-
-                B[0].lm_state = init_lm_state(lm_model)
-
-            lm_layers = len(lm_model.rnn)
 
         cache = {}
 
@@ -426,12 +396,8 @@ class BeamSearchTransducer:
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
                 if self.lm:
-                    beam_lm_states = create_lm_batch_state(
-                        [b.lm_state for b in B_], lm_type, lm_layers
-                    )
-
-                    beam_lm_states, beam_lm_scores = self.lm.buff_predict(
-                        beam_lm_states, beam_lm_tokens, len(B_)
+                    beam_lm_scores, beam_lm_states = self.lm.batch_score(
+                        beam_lm_tokens, [b.lm_state for b in B_], None
                     )
 
                 for i, hyp in enumerate(B_):
@@ -457,10 +423,7 @@ class BeamSearchTransducer:
 
                         if self.lm:
                             new_hyp.score += self.lm_weight * beam_lm_scores[i, k]
-
-                            new_hyp.lm_state = select_lm_state(
-                                beam_lm_states, i, lm_type, lm_layers
-                            )
+                            new_hyp.lm_state = beam_lm_states[i]
 
                         A.append(new_hyp)
 
@@ -504,6 +467,7 @@ class BeamSearchTransducer:
                 yseq=[self.blank],
                 score=0.0,
                 dec_state=self.decoder._select_state(beam_state, 0),
+                lm_state=self.lm.zero_state(),
             )
         ]
 
@@ -516,20 +480,11 @@ class BeamSearchTransducer:
         state = self.decoder._select_state(beam_state, 0)
 
         if self.lm:
-            beam_lm_states, beam_lm_scores = self.lm.buff_predict(
-                None, beam_lm_tokens, 1
+            beam_lm_scores, beam_lm_states = self.lm.batch_score(
+                beam_lm_tokens, [i.lm_state for i in init_tokens], None
             )
 
-            if hasattr(self.lm.predictor, "wordlm"):
-                lm_model = self.lm.predictor.wordlm
-                lm_type = "wordlm"
-            else:
-                lm_model = self.lm.predictor
-                lm_type = "lm"
-
-            lm_layers = len(lm_model.rnn)
-
-            lm_state = select_lm_state(beam_lm_states, 0, lm_type, lm_layers)
+            lm_state = beam_lm_states[0]
             lm_scores = beam_lm_scores[0]
         else:
             lm_state = None
@@ -632,11 +587,8 @@ class BeamSearchTransducer:
                 )
 
                 if self.lm:
-                    beam_lm_states = create_lm_batch_state(
-                        [v.lm_state for v in V], lm_type, lm_layers
-                    )
-                    beam_lm_states, beam_lm_scores = self.lm.buff_predict(
-                        beam_lm_states, beam_lm_tokens, len(V)
+                    beam_lm_scores, beam_lm_states = self.lm.batch_score(
+                        beam_lm_tokens, [v.lm_state for v in V], None
                     )
 
                 if n < (self.nstep - 1):
@@ -646,9 +598,7 @@ class BeamSearchTransducer:
                         v.dec_state = self.decoder._select_state(beam_state, i)
 
                         if self.lm:
-                            v.lm_state = select_lm_state(
-                                beam_lm_states, i, lm_type, lm_layers
-                            )
+                            v.lm_state = beam_lm_states[i]
                             v.lm_scores = beam_lm_scores[i]
 
                     hyps = V[:]
@@ -666,9 +616,7 @@ class BeamSearchTransducer:
                         v.dec_state = self.decoder._select_state(beam_state, i)
 
                         if self.lm:
-                            v.lm_state = select_lm_state(
-                                beam_lm_states, i, lm_type, lm_layers
-                            )
+                            v.lm_state = beam_lm_states[i]
                             v.lm_scores = beam_lm_scores[i]
 
             kept_hyps = sorted((S + V), key=lambda x: x.score, reverse=True)[:beam]
