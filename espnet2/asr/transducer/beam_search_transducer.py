@@ -259,7 +259,7 @@ class BeamSearchTransducer:
                 yseq=[self.blank],
                 score=0.0,
                 dec_state=self.decoder._select_state(beam_state, 0),
-                lm_state=self.lm.zero_state(),
+                lm_state=self.lm.zero_state() if self.lm else None,
             )
         ]
 
@@ -358,7 +358,7 @@ class BeamSearchTransducer:
                 yseq=[self.blank],
                 score=0.0,
                 dec_state=self.decoder._select_state(beam_state, 0),
-                lm_state=self.lm.zero_state(),
+                lm_state=self.lm.zero_state() if self.lm else None,
             )
         ]
         final = []
@@ -466,7 +466,7 @@ class BeamSearchTransducer:
                 yseq=[self.blank],
                 score=0.0,
                 dec_state=self.decoder._select_state(beam_state, 0),
-                lm_state=self.lm.zero_state(),
+                lm_state=self.lm.zero_state() if self.lm else None,
             )
         ]
 
