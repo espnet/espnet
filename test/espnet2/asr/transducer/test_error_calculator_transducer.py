@@ -25,7 +25,7 @@ def test_error_calculator_transducer():
         embed_pad=0,
         rnn_type="lstm",
         use_attention=False,
-        use_output=False,
+        use_output_layer=False,
     )
     joint_net = JointNetwork(6, 12, decoder.dunits, joint_space_size=20)
 
