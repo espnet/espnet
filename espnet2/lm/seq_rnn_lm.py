@@ -86,7 +86,7 @@ class SequentialRNNLM(AbsLM):
             c = torch.zeros((self.nlayers, self.nhid), dtype=torch.float)
             state = h, c
         else:
-            state = torch.zeros((nlayers, nhid), dtype=torch.float)
+            state = torch.zeros((self.nlayers, self.nhid), dtype=torch.float)
 
         return state
 
