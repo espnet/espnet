@@ -71,13 +71,13 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         if enh_return_type == "waveform" or enh_return_type == None:
             assert (
                 self.asr_subclass.frontend.apply_stft
-            ), "need apply stft in asr fronend part"
+            ), "need apply stft in asr frontend part"
         elif enh_return_type == "spectrum":
             # TODO(Xuankai,Jing): verify this additional uttMVN
             self.asr_subclass.additional_utt_mvn = UtteranceMVN(norm_means=True, norm_vars=False)
             assert (
                 not self.asr_subclass.frontend.apply_stft
-            ), "avoid usage of stft in asr fronend part"
+            ), "avoid usage of stft in asr frontend part"
 
     def _create_mask_label(self, mix_spec, ref_spec, mask_type="IAM"):
         """Create mask label.
@@ -338,7 +338,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         else:
             loss_asr = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
-        if self.enh_weight == 0.0 or self.cal_enh_loss == False:
+        if self.enh_weight == 0.0 or self.cal_enh_loss == False or loss_enh is None:
             loss_enh = None
             loss = loss_asr
         else:

@@ -580,7 +580,7 @@ if ! "${skip_data_prep}"; then
         done
 
         # TODO(xkc09): modify this
-        if [ ${train_aux_sets} != ${train_set} ]; then
+        if [ "${train_aux_sets}" != "${train_set}" ]; then
             rm -r "${data_feats}/${train_set}" 2>/dev/null
             mkdir -p "${data_feats}/${train_set}"
             for dset in ${train_aux_sets}; do
@@ -1151,7 +1151,7 @@ if ! "${skip_eval}"; then
                         cat "${_logdir}/output.${i}/1best_recog_spk${spk}/${f}"
                     done | LC_ALL=C sort -k1 >"${_dir}/${f}_spk${spk}"
                 done
-                if [ -d ${_logdir}/output.1/SDR_spk1 ]; then
+                if [ -f ${_logdir}/output.1/SDR_spk1 ]; then
                     for i in $(seq "${_nj}"); do
                         cat "${_logdir}/output.${i}/SDR_spk${spk}"
                     done | LC_ALL=C sort -k1 >"${_dir}/SDR_spk${spk}"
@@ -1160,7 +1160,7 @@ if ! "${skip_eval}"; then
 
             for protocol in "SDR"; do
                 # shellcheck disable=SC2046
-                if [ -d "${_dir}"/"${protocol}"_spk1 ]; then
+                if [ -f "${_dir}"/"${protocol}"_spk1 ]; then
                     paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
                     awk 'BEIGN{sum=0}
                         {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
