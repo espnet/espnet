@@ -226,12 +226,20 @@ def main():
     args = get_parser().parse_args()
 
     # find files
-    converted_files = sorted(find_files(args.wavdir))
+    gen_files = sorted(find_files(args.wavdir))
     gt_files = sorted(find_files(args.gt_wavdir))
 
     # Get and divide list
-    print("The number of utterances = %d" % len(converted_files))
-    file_lists = np.array_split(converted_files, args.n_jobs)
+    if len(gen_files) == 0:
+        raise FileNotFoundError("Not found any generated audio files.")
+    if len(gen_files) > len(gt_files):
+        raise ValueError(
+            "#groundtruth files are less than #generated files "
+            f"(#gen={len(gen_files)} vs. #gt={len(gt_files)}). "
+            "Please check the groundtruth directory."
+        )
+    print("The number of utterances = %d" % len(gen_files))
+    file_lists = np.array_split(gen_files, args.n_jobs)
     file_lists = [f_list.tolist() for f_list in file_lists]
 
     # multi processing
