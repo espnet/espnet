@@ -62,7 +62,6 @@ normalize: utterance_mvn
 normalize_conf:
     norm_means: True
     norm_vars: True
-    # stats_file: data/wsj_fbank_cmvn.npy
 
 encoder: transformer
 encoder_conf:
@@ -93,27 +92,3 @@ model_conf:
     ctc_weight: 0.2
     lsm_weight: 0.1
     length_normalized_loss: false
-    apply_utt_mvn: false
-
-joint_model_conf:
-    enh_weight: 0
-    end2end_train: true
-    enh_return_type: spectrum # waveform or spectrum or none
-    cal_enh_loss: false # weather to calculate enh_loss, need the reduce in ctc_conf
-
-specaug: specaug
-specaug_conf:
-    apply_time_warp: true
-    time_warp_window: 5
-    time_warp_mode: bicubic
-    apply_freq_mask: true
-    freq_mask_width_range:
-    - 0
-    - 30
-    num_freq_mask: 2
-    apply_time_mask: true
-    time_mask_width_range:
-    - 0
-    - 40
-    num_time_mask: 2
-

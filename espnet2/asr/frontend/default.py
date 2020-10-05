@@ -59,6 +59,7 @@ class DefaultFrontend(AbsFrontend):
             )
         else:
             self.stft = None
+        self.apply_stft = apply_stft
 
         if frontend_conf is not None:
             self.frontend = Frontend(idim=n_fft // 2 + 1, **frontend_conf)
@@ -82,7 +83,7 @@ class DefaultFrontend(AbsFrontend):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        if self.apply_stft is not None:
+        if self.stft is not None:
             input_stft, feats_lens = self._compute_stft(input, input_lengths)
         else:
             input_stft = ComplexTensor(input[..., 0], input[..., 1])

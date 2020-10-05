@@ -246,24 +246,29 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 text_ref_lengths = torch.stack(
                     [text_ref1_lengths, text_ref2_lengths], dim=1
                 ).view(-1)
+                n_speaker_asr = 1
             elif self.enh_return_type == "spectrum":
-                # The return value speech_pre is actually the
-                # spectrum List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
-                if speech_pre[0].dtype == torch.tensor:
-                    assert speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
-                elif isinstance(speech_pre[0], ComplexTensor):
-                    speech_pre = [
-                        torch.stack([pre.real, pre.imag], dim=-1) for pre in speech_pre
-                    ]
-                    assert speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
-                speech_pre_all = torch.cat(speech_pre, dim=0)  # (N_spk*B, T, D)
-                speech_pre_lengths = torch.cat([speech_pre_lengths, speech_pre_lengths])
-                text_ref_all = torch.cat([text_ref1, text_ref2], dim=0)
-                text_ref_lengths = torch.cat([text_ref1_lengths, text_ref2_lengths])
+                if isinstance(speech_pre, list):   # multi-speaker case
+                    # The return value speech_pre is actually the
+                    # spectrum List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
+                    if speech_pre[0].dtype == torch.tensor:
+                        assert speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
+                    elif isinstance(speech_pre[0], ComplexTensor):
+                        speech_pre = [
+                            torch.stack([pre.real, pre.imag], dim=-1) for pre in speech_pre
+                        ]
+                        assert speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
+                    speech_pre_all = torch.cat(speech_pre, dim=0)  # (N_spk*B, T, D)
+                    speech_pre_lengths = torch.cat([speech_pre_lengths, speech_pre_lengths])
+                    text_ref_all = torch.cat([text_ref1, text_ref2], dim=0)
+                    text_ref_lengths = torch.cat([text_ref1_lengths, text_ref2_lengths])
+                    n_speaker_asr = self.num_spk
+                else:   # single-speaker case
+                    speech_pre_all, speech_pre_lengths = speech_pre, speech_pre_lengths
+                    text_ref_all, text_ref_lengths = text_ref1, text_ref1_lengths
+                    n_speaker_asr = 1  # single-channel asr after enh
             else:
                 raise NotImplementedError("No such enh_return_type")
-
-            n_speaker_asr = 1  # single-channel asr after enh
         else:
             # Dont do enhancement
             speech_pre_all = speech_mix  # bs,T
@@ -288,15 +293,15 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             loss_ctc, cer_ctc = None, None
         else:
             if (
-                self.cal_enh_loss and perm != None
-            ):  # Permutation was done in enhancement
+                n_speaker_asr == 1 or (self.cal_enh_loss and perm != None)
+            ):   # No permutation is required
                 assert n_speaker_asr == 1
                 loss_ctc, cer_ctc, _, _, = self._calc_ctc_loss_with_spk(
                     encoder_out,
                     encoder_out_lens,
                     text_ref_all,
                     text_ref_lengths,
-                    n_speakers=1,
+                    n_speakers=n_speaker_asr,
                 )
             else:  # Permutation is determined by CTC
                 (
@@ -604,6 +609,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         # Calc CTC loss
         if n_speakers == 1:
             loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+            loss_ctc = loss_ctc.masked_fill(torch.isinf(loss_ctc), 0)
+            loss_ctc = loss_ctc.mean()
         else:
             encoder_out, encoder_out_lens, ys_pad, ys_pad_lens = (
                 torch.chunk(encoder_out, n_speakers, dim=0),

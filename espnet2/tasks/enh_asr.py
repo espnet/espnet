@@ -259,7 +259,7 @@ class ASRTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech_mix", "speech_ref1", "text_ref1")
+            retval = ("speech_mix", "text_ref1", "text_ref2")
         else:
             # Recognition mode
             retval = ("speech_mix",)

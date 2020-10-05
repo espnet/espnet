@@ -253,14 +253,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             perm: () best permutation
         """
         if self.loss_type != "si_snr":
-            # prepare reference speech and reference spectrum
-            speech_ref = torch.unbind(speech_ref, dim=1)
-            spectrum_ref = [self.enh_model.stft(sr)[0] for sr in speech_ref]
-
-            # List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]
-            spectrum_ref = [
-                ComplexTensor(sr[..., 0], sr[..., 1]) for sr in spectrum_ref
-            ]
             spectrum_mix = self.enh_model.stft(speech_mix)[0]
             spectrum_mix = ComplexTensor(spectrum_mix[..., 0], spectrum_mix[..., 1])
 
@@ -273,6 +265,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 loss, perm = None, None
                 return loss, spectrum_pre, mask_pre, tf_length, perm
 
+            # prepare reference speech and reference spectrum
+            speech_ref = torch.unbind(speech_ref, dim=1)
+            spectrum_ref = [self.enh_model.stft(sr)[0] for sr in speech_ref]
+
+            # List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]
+            spectrum_ref = [
+                ComplexTensor(sr[..., 0], sr[..., 1]) for sr in spectrum_ref
+            ]
             # compute TF masking loss
             if self.loss_type == "magnitude":
                 # compute loss on magnitude spectrum

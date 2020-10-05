@@ -7,19 +7,20 @@ set -o pipefail
 
 min_or_max=max # Must be "max" for asr. This is to determine how the mixtures are generated in local/data.sh.
 sample_rate=16k
+n_channels=2
 
 
-train_set="tr_singlespkr_anechoic_spatialized_2ch"  # "tr_anechoic_spatialized_2ch" #"tr_${min_or_max}_${sample_rate}"
-train_aux_sets="train_si284_1 tr_anechoic_spatialized_2ch"
-valid_set="cv_anechoic_spatialized_2ch" #"cv_${min_or_max}_${sample_rate}"
-test_sets="tt_anechoic_spatialized_2ch_32utts" #"tt_${min_or_max}_${sample_rate}"
+train_set="tr_anechoic_spatialized_${n_chnnels}ch_w_singlespkr"
+train_aux_sets="train_si284 tr_anechoic_spatialized_${n_channels}ch"
+valid_set="cv_anechoic_spatialized_${n_channels}ch"
+test_sets="tt_anechoic_spatialized_${n_channels}ch"
 
 ./enh_asr.sh \
     --lang "en" \
     --nlsyms_txt data/nlsyms.txt \
     --token_type char \
     --lm_config conf/tuning/train_lm.yaml \
-    --joint_config conf/tuning/train_asr_transformer_singlespkr_5.yaml \
+    --joint_config conf/train_asr_transformer.yaml \
     --train_set "${train_set}" \
     --train_aux_sets "${train_aux_sets}" \
     --valid_set "${valid_set}" \

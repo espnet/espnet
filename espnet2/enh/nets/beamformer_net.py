@@ -154,7 +154,7 @@ class BeamformerNet(AbsEnhancement):
         enhanced = input_spectrum
         masks = OrderedDict()
 
-        if self.training and self.loss_type.startswith("mask") and self.train_mask_only:
+        if self.training and self.loss_type and self.loss_type.startswith("mask") and self.train_mask_only:
             # Only estimating masks for training
             if self.use_wpe:
                 if input_spectrum.dim() == 3:
