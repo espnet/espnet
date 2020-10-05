@@ -2,6 +2,7 @@
 - KsponSpeech: Korean Spontaneous Speech Corpus for Automatic Speech Recognition
     - Database: https://aihub.or.kr/aidata/105
     - Paper: https://www.mdpi.com/2076-3417/10/19/6936
+    - This corpus contains 969 h of general open-domain dialog utterances, spoken by 2000 native Korean speakers.
 
 ## Environments
 - date: `Mon Oct  5 11:11:27 KST 2020`
