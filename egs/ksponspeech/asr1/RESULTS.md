@@ -1,7 +1,7 @@
 # Transformer (large model + specaug) (4 GPUs)
 
-Database: https://aihub.or.kr/aidata/105
-Paper: https://www.mdpi.com/2076-3417/10/19/6936
+- Database: https://aihub.or.kr/aidata/105
+- Paper: https://www.mdpi.com/2076-3417/10/19/6936
 
 ## Environments
 - date: `Mon Oct  5 11:11:27 KST 2020`
@@ -17,7 +17,7 @@ Paper: https://www.mdpi.com/2076-3417/10/19/6936
     - cmvn file: `data/train/cmvn.ark`
     - e2e file: `exp/train_pytorch_train_specaug/results/model.val5.avg.best`
     - e2e JSON file: `exp/train_pytorch_train_specaug/results/model.json`
-    - dict file: `data/lang_char
+    - dict file: `data/lang_char`
 
 ## CER
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
@@ -39,8 +39,9 @@ exp/train_pytorch_train_specaug/decode_eval_other_model.val5.avg.best_decode_lm/
 |  SPKR                | # Snt   # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
 |  Sum/Avg             | 3000    26621  |  79.7    17.1      3.1      5.0    25.3     71.3  |
 ```
-## sWER (space-normalized WER; https://www.mdpi.com/2076-3417/10/19/6936)
+## sWER
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+- This metric was measured from space-normalized texts, which was performed only on the hypothesis text, based on spaces in the reference text. In Korean, space rules are flexible; inconsistent spacing is frequently seen in spontaneous speech transcriptions, like in KsponSpeech. However, this causes a problem in the evaluation of speech recognition because correct results are classified as errors due to this spacing variation. Thus, we used sWER, which gives a more valid word error rate by excluding the effects of inconsistent spaces. A more detailed description is given in our paper (https://www.mdpi.com/2076-3417/10/19/6936).
 ```
 exp/train_pytorch_train_specaug/decode_eval_clean_model.val5.avg.best_decode_lm/result.wrd.sp_norm.txt
 |  SPKR                 |  # Snt   # Wrd   |  Corr      Sub       Del      Ins       Err    S.Err   |
