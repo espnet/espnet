@@ -12,7 +12,7 @@
 - pytorch version: `pytorch 1.4.0`
 
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: ([pretrained model](https://drive.google.com/file/d/1aoAxAjZzqCoP4MheZzUE2CHTHNQJdcD_/view?usp=sharing))
     - training config file: `conf/tuning/train_pytorch_transformer_large_ngpu4.yaml`
     - decoding config file: `conf/tuning/decode_pytorch_transformer_large.yaml`
     - cmvn file: `data/train/cmvn.ark`
