@@ -4,13 +4,13 @@
 # Copyright 2020 Electronics and Telecommunications Research Institute (Jeong-Uk, Bang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import os
-import sys
-import re
 import codecs
-import shutil
-import logging
 import configargparse
+import logging
+import os
+import re
+import shutil
+import sys
 
 
 def get_parser():
