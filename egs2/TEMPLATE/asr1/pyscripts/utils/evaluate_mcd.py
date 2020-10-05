@@ -11,6 +11,7 @@ import logging
 import multiprocessing as mp
 import os
 
+from typing import Dict
 from typing import List
 from typing import Tuple
 
@@ -125,7 +126,7 @@ def calculate(
     file_list: List[str],
     gt_file_list: List[str],
     args: argparse.Namespace,
-    mcd_list: List,
+    mcd_dict: Dict,
 ):
     """Calculate MCD."""
     for i, gen_path in enumerate(file_list):
@@ -172,7 +173,7 @@ def calculate(
         diff2sum = np.sum((gen_mcep_dtw - gt_mcep_dtw) ** 2, 1)
         mcd = np.mean(10.0 / np.log(10.0) * np.sqrt(2 * diff2sum), 0)
         logging.info(f"{gt_basename} {mcd:.4f}")
-        mcd_list += [(gt_basename, mcd)]
+        mcd_dict[gt_basename] = mcd
 
 
 def get_parser() -> argparse.Namespace:
@@ -275,10 +276,10 @@ def main():
 
     # multi processing
     with mp.Manager() as manager:
-        mcd_list = manager.list()
+        mcd_dict = manager.dict()
         processes = []
         for f in file_lists:
-            p = mp.Process(target=calculate, args=(f, gt_files, args, mcd_list))
+            p = mp.Process(target=calculate, args=(f, gt_files, args, mcd_dict))
             p.start()
             processes.append(p)
 
@@ -287,18 +288,19 @@ def main():
             p.join()
 
         # convert to standard list
-        mcd_list = list(mcd_list)
+        mcd_dict = dict(mcd_dict)
 
         # calculate statistics
-        mean_mcd = np.mean(np.array([f[1] for f in mcd_list]))
-        std_mcd = np.std(np.array([f[1] for f in mcd_list]))
+        mean_mcd = np.mean(np.array([v for v in mcd_dict.values()]))
+        std_mcd = np.std(np.array([v for v in mcd_dict.values()]))
         logging.info(f"Average: {mean_mcd:.4f} ± {std_mcd:.4f}")
 
     # write results
     if args.outdir is not None:
         os.makedirs(args.outdir, exist_ok=True)
         with open(f"{args.outdir}/utt2mcd", "w") as f:
-            for utt_id, mcd in sorted(mcd_list, key=lambda x: x[0]):
+            for utt_id in sorted(mcd_dict.keys()):
+                mcd = mcd_dict[utt_id]
                 f.write(f"{utt_id} {mcd:.4f}\n")
         with open(f"{args.outdir}/resuls.txt", "w") as f:
             f.write(f"#utterances: {len(gen_files)}\n")
