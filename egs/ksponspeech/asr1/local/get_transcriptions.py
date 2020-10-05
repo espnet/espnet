@@ -35,15 +35,18 @@ def get_parser():
         default="dt",
         choices=["df", "dt", "fl"],
         help="""Type of output transcription ('df', 'dt', or 'fl').
-                If type is df, output to disfluent transcription with repeated and filler words
-                Else if type is dt, output to disfluent transcription with '/' and '+' tags for repeated and filler words   
-                Else if type is fl, output to fluent transcription without repeated and filler words""",
+                If type is df, output to disfluent transcription
+                               with repeated and filler words
+                Else if type is dt, output to disfluent transcription
+                               with '/' and '+' tags for repeated and filler words
+                Else if type is fl, output to fluent transcription
+                               without repeated and filler words""",
     )
     parser.add_argument(
         "--notation-type",
         type=str,
         default="char",
-        help="""Notation of transcription ('char' or 'pron'). 
+        help="""Notation of transcription ('char' or 'pron').
                 If notation-type is char, extract from string ($1)/($2) -> $1
                 Else if notation-type is pron, extract from string ($1)/($2) -> $2""",
     )
@@ -114,7 +117,7 @@ def main(args):
 
     # run refining processes
     logging.debug(
-        "stage 1: Remove meta-symbols for unwanted pause, word fragment, and elongated segment"
+        "stage 1: Remove meta-symbols for unwanted pause and elongated segment"
     )
     in_fn = args.raw_trans
     out_fn = "1_remove_meta_symbols.txt"
