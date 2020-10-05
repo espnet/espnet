@@ -1,8 +1,13 @@
 """Common functions for ASR."""
 
+from typing import List
+from typing import Tuple
+
 import editdistance
 import numpy as np
+import torch
 
+from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 
 
@@ -10,24 +15,24 @@ class ErrorCalculatorTransducer(object):
     """Calculate CER and WER for transducer models.
 
     Args:
-        decoder (AbsDecoder): decoder module
-        token_list (list): list of tokens
-        sym_space (str): space symbol
-        sym_blank (str): blank symbol
-        report_cer (boolean): compute CER option
-        report_wer (boolean): compute WER option
+        decoder: Decoder module
+        token_list: List of tokens
+        sym_space: Space symbol
+        sym_blank: Blank symbol
+        report_cer: Whether to compute CER
+        report_wer: Whether to compute WER
 
     """
 
     def __init__(
         self,
-        decoder,
-        joint_network,
-        token_list,
-        sym_space,
-        sym_blank,
-        report_cer=False,
-        report_wer=False,
+        decoder: AbsDecoder,
+        joint_network: torch.nn.Module,
+        token_list: List[int],
+        sym_space: str,
+        sym_blank: str,
+        report_cer: bool = False,
+        report_wer: bool = False,
     ):
         """Construct an ErrorCalculator object for transducer model."""
         super().__init__()
@@ -85,16 +90,18 @@ class ErrorCalculatorTransducer(object):
 
         return cer, wer
 
-    def convert_to_char(self, ys_hat, ys_pad):
+    def convert_to_char(
+        self, ys_hat: torch.Tensor, ys_pad: torch.Tensor
+    ) -> Tuple[List, List]:
         """Convert index to character.
 
         Args:
-            ys_hat (torch.Tensor): prediction (batch, seqlen)
-            ys_pad (torch.Tensor): reference (batch, seqlen)
+            ys_hat: Predictions (B, seq_len)
+            ys_pad: References (B, seq_len)
 
         Returns:
-            (list): token list of prediction
-            (list): token list of reference
+            seqs_hat: Token list of prediction
+            seqs_true: Token list of reference
 
         """
         seqs_hat, seqs_true = [], []
@@ -117,15 +124,15 @@ class ErrorCalculatorTransducer(object):
 
         return seqs_hat, seqs_true
 
-    def calculate_cer(self, seqs_hat, seqs_true):
+    def calculate_cer(self, seqs_hat: torch.Tensor, seqs_true: torch.Tensor) -> float:
         """Calculate sentence-level CER score for transducer model.
 
         Args:
-            seqs_hat (torch.Tensor): prediction (batch, seqlen)
-            seqs_true (torch.Tensor): reference (batch, seqlen)
+            seqs_hat: Predictions (B, seq_len)
+            seqs_true: References (B, seq_len)
 
         Returns:
-            (float): average sentence-level CER score
+            (): Average sentence-level CER score
 
         """
         char_eds, char_ref_lens = [], []
@@ -140,15 +147,15 @@ class ErrorCalculatorTransducer(object):
 
         return float(sum(char_eds)) / sum(char_ref_lens)
 
-    def calculate_wer(self, seqs_hat, seqs_true):
+    def calculate_wer(self, seqs_hat: torch.Tensor, seqs_true: torch.Tensor) -> float:
         """Calculate sentence-level WER score for transducer model.
 
         Args:
-            seqs_hat (torch.Tensor): prediction (batch, seqlen)
-            seqs_true (torch.Tensor): reference (batch, seqlen)
+            seqs_hat: Predictions (B, seq_len)
+            seqs_true: References (B, seq_len)
 
         Returns:
-            (float): average sentence-level WER score
+            (): Average sentence-level WER score
 
         """
         word_eds, word_ref_lens = [], []

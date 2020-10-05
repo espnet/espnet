@@ -378,17 +378,20 @@ class RNNDecoder(AbsDecoder):
 
     def step_transducer(
         self, hyp: Hypothesis, cache: dict, init_tensor: torch.Tensor = None
-    ) -> Union[torch.Tensor, Tuple[List, List]]:
+    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
         """Forward one step.
 
         Args:
             hyp: Hypothesis
             cache: States cache
+            init_tensor: initial tensor for att. (1, max_len)
 
         Returns:
             y: Decoder outputs (1, D_dec)
-            state: Decoder states ([L x (1, dec_dim)], [L x (1, dec_dim)])
-            (): Token id for LM (1,)
+            state: Decoder states
+                ([L x (1, D_dec)], [L x (1, D_dec)]) or
+                (([L x (1, D_dec)], [L x (1, D_dec)]), (1, max_len))
+            vy[0]: Token id for LM (1)
 
         """
         vy = to_device(self, torch.full((1, 1), hyp.yseq[-1], dtype=torch.long))
@@ -434,23 +437,25 @@ class RNNDecoder(AbsDecoder):
     def batch_step_transducer(
         self,
         hyps: List,
-        batch_states: Tuple[List, List],
+        batch_states: Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]],
         cache: dict,
         init_tensor: torch.Tensor = None,
-    ) -> Union[torch.Tensor, Tuple[List, List]]:
+    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
         """Forward batch one step.
 
         Args:
             hyps: Batch of hypotheses
             batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)])
+                ([L x (B, D_dec)], [L x (B, D_dec)]) or
+                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
             cache: States cache
 
         Returns:
-            batch_y: Decoder output (B, D_dec)
+            batch_y: Decoder outputs (B, D_dec)
             batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)])
-            lm_tokens: Batch of token ids for LM (B)
+                ([L x (B, D_dec)], [L x (B, D_dec)]) or
+                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
+            lm_tokens: Batch of token ids for LM (B, 1)
 
         """
         final_batch = len(hyps)
@@ -527,19 +532,22 @@ class RNNDecoder(AbsDecoder):
         return batch_y, batch_states, lm_tokens
 
     def _select_state(
-        self, batch_states: Tuple[List, List], idx: int
-    ) -> Tuple[List, List]:
+        self,
+        batch_states: Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]],
+        idx: int,
+    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
         """Get decoder state from batch of states, for given id.
 
         Args:
             batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)])
+                ([L x (B, D_dec)], [L x (B, D_dec)]) or
+                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
             idx: Index to extract state from batch of states
 
         Returns:
             (): Decoder states for given id
-                ([L x (1, D_dec)], [L x (1, D_dec)])
-
+                ([L x (1, D_dec)], [L x (1, D_dec)]) or
+                (([L x (1, D_dec)], [L x (1, D_dec)]), (1, max_len))
         """
         if self.use_attention:
             z_list = [batch_states[0][0][layer][idx] for layer in range(self.dlayers)]
@@ -557,21 +565,24 @@ class RNNDecoder(AbsDecoder):
 
     def _create_batch_states(
         self,
-        batch_states: Tuple[List, List],
-        l_states: List,
-        l_tokens: torch.Tensor = None,
-    ) -> Tuple[List, List]:
+        batch_states: Union[Tuple[List, List], Tuple[List, List, torch.Tensor]],
+        l_states: Union[List[Tuple[List, List]], List[Tuple[List, List, torch.Tensor]]],
+        l_tokens: List[int] = None,
+    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
         """Create batch of decoder states.
 
         Args:
             batch_states: Batch of decoder states
-               ([L x (B, D_dec)], [L x (B, D_dec)])
+               ([L x (B, D_dec)], [L x (B, D_dec)]) or
+               (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
             l_states: List of decoder states
-                [B x ([L x (1, D_dec)], [L x (1, D_dec)])]
+                [B x ([L x (1, D_dec)], [L x (1, D_dec)])] or
+                [B x (([L x (1, D_dec)], [L x (1, D_dec)]), (1, max_len))]
 
         Returns:
             batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)])
+                ([L x (B, D_dec)], [L x (B, D_dec)]) or
+                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
 
         """
         if self.use_attention:

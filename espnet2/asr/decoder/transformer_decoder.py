@@ -58,6 +58,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             i.e. x -> x + linear(concat(x, att(x)))
             if False, no additional linear will be applied.
             i.e. x -> x + att(x)
+        use_attention: whether to use second self-attn module (transducer)
+        embed_pad: embedding idx for transducer model (eq. to blank)
+
     """
 
     def __init__(
@@ -166,7 +169,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         return x, olens
 
-    def init_state(self, init_tensor: torch.Tensor = None) -> List:
+    def init_state(self, init_tensor: torch.Tensor = None) -> Optional[List]:
         """Initialize decoder states."""
         if self.blank == 0:
             state = [None] * len(self.decoders)
@@ -175,7 +178,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         return state
 
-    def init_batch_states(self, init_tensor: torch.Tensor = None) -> List:
+    def init_batch_states(self, init_tensor: torch.Tensor = None) -> Optional[List]:
         """Initialize decoder states."""
 
         return self.init_state()
@@ -276,7 +279,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         Returns:
             y: Decoder outputs (1, D_dec)
             new_state: Decoder outputs [L x (1, max_len, D_dec)]
-            lm_tokens: Token id for LM (1, 1)
+            lm_tokens: Token id for LM (1)
 
         """
         tgt = to_device(self, torch.tensor(hyp.yseq).unsqueeze(0))
@@ -310,19 +313,19 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
     def batch_step_transducer(
         self,
         hyps: List,
-        batch_states: Tuple[List, List],
+        batch_states: List[torch.Tensor],
         cache: dict,
         init_tensor: torch.Tensor = None,
-    ) -> Union[torch.Tensor, Tuple[List, List]]:
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """Forward batch one step.
 
         Args:
             hyps: Batch of hypotheses
             batch_states: Decoder states [L x (B, max_len, D_dim)]
-            cache (dict): States cache
+            cache: States cache
 
         Returns:
-            batch_y: Decoder output (B, D_dec)
+            batch_y: Decoder outputs (B, D_dec)
             batch_states: Decoder states [L x (B, max_len, dec_dim)]
             lm_tokens: Batch of token ids for LM (B, 1)
 
@@ -394,15 +397,17 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         return batch_y, batch_states, lm_tokens
 
-    def _select_state(self, batch_states, idx):
+    def _select_state(
+        self, batch_states: List[torch.Tensor], idx: int
+    ) -> List[torch.Tensor]:
         """Get decoder state from batch of states, for given id.
 
         Args:
-            batch_states: Decoder states [L x (B, max_len, dec_dim)]
+            batch_states: Decoder states [L x (B, max_len, D_dec)]
             idx: Index to extract state from batch of states
 
         Returns:
-            state_idx: Decoder states for given id [L x (1, max_len, dec_dim)]
+            state_idx: Decoder state for given id [L x (1, max_len, dec_dim)]
 
         """
         if batch_states[0] is not None:
@@ -414,19 +419,21 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         return state_idx
 
-    def _create_batch_states(self, batch_states, l_states, l_tokens):
+    def _create_batch_states(
+        self,
+        batch_states: List[torch.Tensor],
+        l_states: List[List[torch.Tensor]],
+        l_tokens: List[int],
+    ) -> List[torch.Tensor]:
         """Create batch of decoder states.
 
         Args:
-            batch_states (list): batch of decoder states
-                [L x (B, max_len, dec_dim)]
-            l_states (list): list of decoder states
-                [B x [L x (1, max_len, dec_dim)]]
-            l_tokens (list): list of token sequences for batch
+            batch_states: Decoder states [L x (B, max_len, D_dec)]
+            l_states: List of single decoder states [B x [L x (1, max_len, D_dec)]]
+            l_tokens: Token sequences
 
         Returns:
-            batch_states (list): batch of decoder and attention states
-                [L x (B, max_len, dec_dim)]
+            batch_states: Decoder states [L x (B, max_len, D_dec)]
 
         """
         if batch_states[0] is not None:

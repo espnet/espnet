@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Tuple
 from typing import Union
 
 import numpy as np
@@ -22,7 +23,7 @@ class Hypothesis:
 
     score: float
     yseq: List[int]
-    dec_state: Union[List[List[torch.Tensor]], List[torch.Tensor]]
+    dec_state: Union[Tuple, List]
     y: List[torch.tensor] = None
     lm_state: Union[Dict[str, Any], List[Any]] = None
     lm_scores: torch.Tensor = None
@@ -51,13 +52,14 @@ class BeamSearchTransducer:
             decoder: Decoder class to use
             beam_size: Number of hypotheses kept during search
             lm: LM class to use
-            lm_weight: lm weight for soft fusion
-            search_type: type of algorithm to use for search
-            max_sym_exp: number of maximum symbol expansions at each time step ("tsd")
-            u_max: maximum output sequence length ("alsd")
-            nstep: number of maximum expansion steps at each time step ("nsc")
-            prefix_alpha: maximum prefix length in prefix search ("nsc")
-            score_norm: normalize final scores by length ("default")
+            lm_weight: Lm weight for soft fusion
+            search_type: Type of algorithm to use for search
+            max_sym_exp: Number of maximum symbol expansions at each time step ("tsd")
+            u_max: Maximum output sequence length ("alsd")
+            nstep: Number of maximum expansion steps at each time step ("nsc")
+            prefix_alpha: Maximum prefix length in prefix search ("nsc")
+            score_norm: Normalize final scores by length ("default")
+
         """
         assert check_argument_types()
 
@@ -111,10 +113,10 @@ class BeamSearchTransducer:
         """Sort hypotheses by score or score given sequence length.
 
         Args:
-            hyps: list of hypotheses
+            hyps: List of hypotheses
 
         Return:
-            hyps: sorted list of hypotheses
+            hyps: Sorted list of hypotheses
 
         """
         if self.score_norm:
