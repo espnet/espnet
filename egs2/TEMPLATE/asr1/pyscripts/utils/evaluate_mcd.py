@@ -7,6 +7,7 @@
 
 import argparse
 import fnmatch
+import logging
 import multiprocessing as mp
 import os
 
@@ -124,7 +125,7 @@ def calculate(
     file_list: List[str],
     gt_file_list: List[str],
     args: argparse.Namespace,
-    mcd_list: List[float],
+    mcd_list: List,
 ):
     """Calculate MCD."""
     for i, gen_path in enumerate(file_list):
@@ -170,8 +171,8 @@ def calculate(
         # MCD
         diff2sum = np.sum((gen_mcep_dtw - gt_mcep_dtw) ** 2, 1)
         mcd = np.mean(10.0 / np.log(10.0) * np.sqrt(2 * diff2sum), 0)
-        print(f"{gt_basename} {mcd:.4f}")
-        mcd_list += [mcd]
+        logging.info(f"{gt_basename} {mcd:.4f}")
+        mcd_list += [(gt_basename, mcd)]
 
 
 def get_parser() -> argparse.Namespace:
@@ -188,6 +189,12 @@ def get_parser() -> argparse.Namespace:
         required=True,
         type=str,
         help="Path of directory for ground truth waveforms.",
+    )
+    parser.add_argument(
+        "--outdir",
+        type=str,
+        default=None,
+        help="Path of directory to write the results.",
     )
 
     # analysis related
@@ -218,12 +225,36 @@ def get_parser() -> argparse.Namespace:
     parser.add_argument(
         "--n_jobs", default=16, type=int, help="Number of parallel jobs."
     )
+    parser.add_argument(
+        "--verbose",
+        default=1,
+        type=int,
+        help="Verbosity level. Higher is more logging.",
+    )
     return parser
 
 
 def main():
     """Run MCD calculation in parallel."""
     args = get_parser().parse_args()
+
+    # logging info
+    if args.verbose > 1:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        )
+    elif args.verbose > 0:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        )
+    else:
+        logging.basicConfig(
+            level=logging.WARN,
+            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        )
+        logging.warning("Skip DEBUG/INFO messages")
 
     # find files
     gen_files = sorted(find_files(args.wavdir))
@@ -238,7 +269,7 @@ def main():
             f"(#gen={len(gen_files)} vs. #gt={len(gt_files)}). "
             "Please check the groundtruth directory."
         )
-    print("The number of utterances = %d" % len(gen_files))
+    logging.info("The number of utterances = %d" % len(gen_files))
     file_lists = np.array_split(gen_files, args.n_jobs)
     file_lists = [f_list.tolist() for f_list in file_lists]
 
@@ -255,8 +286,25 @@ def main():
         for p in processes:
             p.join()
 
-        mean_mcd = np.mean(np.array(mcd_list))
-        print(f"Average MCD: {mean_mcd:.4f}")
+        # convert to standard list
+        mcd_list = list(mcd_list)
+
+        # calculate statistics
+        mean_mcd = np.mean(np.array([f[1] for f in mcd_list]))
+        std_mcd = np.std(np.array([f[1] for f in mcd_list]))
+        logging.info(f"Average: {mean_mcd:.4f} ± {std_mcd:.4f}")
+
+    # write results
+    if args.outdir is not None:
+        os.makedirs(args.outdir, exist_ok=True)
+        with open(f"{args.outdir}/utt2mcd", "w") as f:
+            for utt_id, mcd in sorted(mcd_list, key=lambda x: x[0]):
+                f.write(f"{utt_id} {mcd:.4f}\n")
+        with open(f"{args.outdir}/resuls.txt", "w") as f:
+            f.write(f"#utterances: {len(gen_files)}\n")
+            f.write("Average: {mean_mcd:.4f} ± {std_mcd:.4f}")
+
+    logging.info("Successfully finished MCD evaluation.")
 
 
 if __name__ == "__main__":
