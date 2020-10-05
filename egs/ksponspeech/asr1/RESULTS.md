@@ -20,7 +20,6 @@
     - dict file: `data/lang_char`
 
 ## CER
-- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 ```
 exp/train_pytorch_train_specaug/decode_eval_clean_model.val5.avg.best_decode_lm/result.txt
 | SPKR                | # Snt   # Wrd  | Corr     Sub     Del      Ins     Err   S.Err  |
@@ -30,7 +29,6 @@ exp/train_pytorch_train_specaug/decode_eval_other_model.val5.avg.best_decode_lm/
 | Sum/Avg             | 3000    95616  | 93.8     3.8     2.4      2.2     8.4    71.3  |
 ```
 ## WER
-- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 ```
 exp/train_pytorch_train_specaug/decode_eval_clean_model.val5.avg.best_decode_lm/result.wrd.txt
 |  SPKR                | # Snt   # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
@@ -39,9 +37,8 @@ exp/train_pytorch_train_specaug/decode_eval_other_model.val5.avg.best_decode_lm/
 |  SPKR                | # Snt   # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
 |  Sum/Avg             | 3000    26621  |  79.7    17.1      3.1      5.0    25.3     71.3  |
 ```
-## sWER
-- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
-- This metric was measured from space-normalized texts, which was performed only on the hypothesis text, based on spaces in the reference text. In Korean, space rules are flexible; inconsistent spacing is frequently seen in spontaneous speech transcriptions, like in KsponSpeech. However, this causes a problem in the evaluation of speech recognition because correct results are classified as errors due to this spacing variation. Thus, we used sWER, which gives a more valid word error rate by excluding the effects of inconsistent spaces. A more detailed description is given in our paper (https://www.mdpi.com/2076-3417/10/19/6936).
+## sWER (space-normalized WER)
+- This metric was measured from space-normalized texts, which was performed only on the hypothesis text, based on spaces in the reference text. In Korean, space rules are flexible; inconsistent spacing is frequently seen in spontaneous speech transcriptions, like in KsponSpeech. However, this causes a problem in the evaluation of speech recognition because correct results are classified as errors due to this spacing variation. Thus, we used sWER, which gives a more valid word error rate by excluding the effects of inconsistent spaces. A more detailed description is given in our paper.
 ```
 exp/train_pytorch_train_specaug/decode_eval_clean_model.val5.avg.best_decode_lm/result.wrd.sp_norm.txt
 |  SPKR                 |  # Snt   # Wrd   |  Corr      Sub       Del      Ins       Err    S.Err   |
