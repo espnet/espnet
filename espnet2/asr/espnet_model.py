@@ -110,7 +110,10 @@ class ESPnetASRModel(AbsESPnetModel):
                     report_cer,
                     report_wer,
                 )
-            else:
+
+            if not transducer_decoder or (
+                transducer_decoder and transducer_weight != 0.0
+            ):
                 self.error_calculator = ErrorCalculator(
                     token_list, sym_space, sym_blank, report_cer, report_wer
                 )
@@ -146,23 +149,33 @@ class ESPnetASRModel(AbsESPnetModel):
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
-        # 2a. Attention decoder branch
-        if self.ctc_weight == 1.0:
-            loss_att, acc_att, cer_att, wer_att = None, None, None, None
-        else:
-            loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
+        loss_att, acc_att, cer_att, wer_att = None, None, None, None
+        loss_ctc, cer_ctc = None, None
+        loss_transducer, cer_transducer, wer_transducer = None, None, None
 
-        # 2b. CTC branch
-        if self.ctc_weight == 0.0:
-            loss_ctc, cer_ctc = None, None
-        else:
-            loss_ctc, cer_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
+        if not self.transducer_decoder or (
+            self.transducer_decoder and self.transducer_weight != 0.0
+        ):
+            # 1a. Attention decoder branch
+            if self.ctc_weight != 1.0:
+                loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
+                    encoder_out, encoder_out_lens, text, text_lengths
+                )
+            # 1b. CTC branch
+            if self.ctc_weight != 0.0:
+                loss_ctc, cer_ctc = self._calc_ctc_loss(
+                    encoder_out, encoder_out_lens, text, text_lengths
+                )
 
-        # 2c. Transducer decoder branch
+            # 1c. CTC-Att loss definition
+            if self.ctc_weight == 0.0:
+                loss = loss_att
+            elif self.ctc_weight == 1.0:
+                loss = loss_ctc
+            else:
+                loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
+
+        # 2a. Transducer decoder branch
         if self.transducer_decoder:
             (
                 loss_transducer,
@@ -171,18 +184,8 @@ class ESPnetASRModel(AbsESPnetModel):
             ) = self._calc_transducer_loss(
                 encoder_out, encoder_out_lens, text, text_lengths
             )
-        else:
-            loss_transducer, cer_transducer, wer_transducer = None, None, None
 
-        # 3. Main loss definition
-        if self.ctc_weight == 0.0:
-            loss = loss_att
-        elif self.ctc_weight == 1.0:
-            loss = loss_ctc
-        else:
-            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
-
-        if self.transducer_decoder:
+            # 2b. Transducer loss definition
             if self.transducer_weight != 0.0:
                 loss = (
                     self.transducer_weight * loss_transducer
