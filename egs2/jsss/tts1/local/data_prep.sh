@@ -37,22 +37,34 @@ for dset in ${dsets_without_segments}; do
     utt2spk=${_data_dir}/utt2spk
     spk2utt=${_data_dir}/spk2utt
     text=${_data_dir}/text
+    segments=${_data_dir}/segments
 
     # check file existence
     [ -e "${scp}" ] && rm "${scp}"
     [ -e "${utt2spk}" ] && rm "${utt2spk}"
     [ -e "${text}" ] && rm "${text}"
+    [ -e "${segments}" ] && rm "${segments}"
 
-    # make scp, utt2spk, and spk2utt
-    find "${db}/${dset}" -name "*.wav" | sort | while read -r filename; do
-        id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
+    # make scp, utt2spk, spk2utt, and segments
+    find "${db}/${dset}/wav24kHz16bit" -name "*.wav" | sort | while read -r filename; do
+        utt_id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
+
+        lab_filename="${db}/${dset}/lab/$(basename ${filename} .wav).lab"
+        if [ ! -e "${lab_filename}" ]; then
+            echo "${lab_filename} does not exist. Skipped."
+            continue
+        fi
+        start_sec=$(head -n 1 "${lab_filename}" | cut -d " " -f 2)
+        end_sec=$(tail -n 1 "${lab_filename}" | cut -d " " -f 1)
+        echo "${utt_id} ${utt_id} ${start_sec} ${end_sec}" >> "${segments}"
+
         if [ "${fs}" -eq 24000 ]; then
             # default sampling rate
-            echo "${id} ${filename}" >> "${scp}"
+            echo "${utt_id} ${filename}" >> "${scp}"
         else
-            echo "${id} sox ${filename} -t wav -r $fs - |" >> "${scp}"
+            echo "${utt_id} sox ${filename} -t wav -r $fs - |" >> "${scp}"
         fi
-        echo "${id} JSSS" >> "${utt2spk}"
+        echo "${utt_id} JSSS" >> "${utt2spk}"
     done
     utils/utt2spk_to_spk2utt.pl "${utt2spk}" > "${spk2utt}"
 
@@ -71,6 +83,7 @@ dsets_with_segments="
 long-form/katsura-masakazu
 long-form/udon
 long-form/washington-dc
+summarization
 "
 for dset in ${dsets_with_segments}; do
     # check directory existence
@@ -91,15 +104,16 @@ for dset in ${dsets_with_segments}; do
     [ -e "${segments}" ] && rm "${segments}"
 
     # make wav.scp, utt2spk, and spk2utt
-    find "${db}/${dset}" -name "*.wav" | sort | while read -r filename; do
-        id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
+    find "${db}/${dset}/wav24kHz16bit" -name "*.wav" | sort | while read -r filename; do
+        wav_id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
         if [ "${fs}" -eq 24000 ]; then
             # default sampling rate
-            echo "${id} ${filename}" >> "${scp}"
+            echo "${wav_id} ${filename}" >> "${scp}"
         else
-            echo "${id} sox ${filename} -t wav -r $fs - |" >> "${scp}"
+            echo "${wav_id} sox ${filename} -t wav -r $fs - |" >> "${scp}"
         fi
     done
+
     # make utt2spk, spk2utt, and text
     find "${db}/${dset}/transcript_utf8" -name "*.txt" | sort | while read -r filename; do
         wav_id=$(basename "${filename}" .txt)
@@ -110,6 +124,18 @@ for dset in ${dsets_with_segments}; do
             utt_id=${wav_id}
             utt_id+="_$(printf %010d "$(echo "${start_sec}" | tr -d "." | sed -e "s/^[0]*//g")")"
             utt_id+="_$(printf %010d "$(echo "${end_sec}" | tr -d "." | sed -e "s/^[0]*//g")")"
+
+            # modify segment information with force alignment results
+            lab_filename=${db}/${dset}/lab/${utt_id}.lab
+            if [ ! -e "${lab_filename}" ]; then
+                echo "${lab_filename} does not exist. Skipped."
+                continue
+            fi
+            start_sec_offset=$(head -n 1 "${lab_filename}" | cut -d " " -f 2)
+            end_sec_offset=$(tail -n 1 "${lab_filename}" | cut -d " " -f 1)
+            start_sec=$(python -c "print(${start_sec} + ${start_sec_offset})")
+            end_sec=$(python -c "print(${start_sec} + ${end_sec_offset} - ${start_sec_offset})")
+
             echo "${utt_id}" "${sentence}" >> "${text}"
             echo "${utt_id} JSSS" >> "${utt2spk}"
             echo "${utt_id} ${wav_id} ${start_sec} ${end_sec}" >> ${segments}
