@@ -20,7 +20,7 @@ set -euo pipefail
 
 data_dir_root=$(dirname "${data_dir}")
 
-# process data without segmetns
+# process data without segments
 dsets_without_segments="
 short-form/basic5000
 short-form/onomatopee300
@@ -103,7 +103,7 @@ for dset in ${dsets_with_segments}; do
     [ -e "${text}" ] && rm "${text}"
     [ -e "${segments}" ] && rm "${segments}"
 
-    # make wav.scp, utt2spk, and spk2utt
+    # make wav.scp
     find "${db}/${dset}/wav24kHz16bit" -name "*.wav" | sort | while read -r filename; do
         wav_id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
         if [ "${fs}" -eq 24000 ]; then
@@ -114,7 +114,7 @@ for dset in ${dsets_with_segments}; do
         fi
     done
 
-    # make utt2spk, spk2utt, and text
+    # make utt2spk, spk2utt, segments, and text
     find "${db}/${dset}/transcript_utf8" -name "*.txt" | sort | while read -r filename; do
         wav_id=$(basename "${filename}" .txt)
         while read -r line; do
