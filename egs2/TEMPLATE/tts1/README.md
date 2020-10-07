@@ -251,21 +251,25 @@ The use of `--write_collected_feats` is optional but it helps to accelerate the 
 
 You can change via `--g2p` option in `tts.sh`.
 
+- `none`: Just separate by space
+    - e.g.: `HH AH0 L OW1 <space> W ER1 L D` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
-    - e.g. `Hello World` -> `HH AH0 L OW1 <space> W ER1 L D`
+    - e.g. `Hello World` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en_no_space`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
     - Same G2P but do not use word separator
-    - e.g. `Hello World` -> `HH AH0 L OW1 W ER1 L D`
+    - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - e.g. `こんにちは` -> `k o N n i ch i w a`
+    - e.g. `こんにちは` -> `[k, o, N, n, i, ch, i, w, a]`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Use kana instead of phoneme
-    - e.g. `こんにちは` -> `コンニチワ`
+    - e.g. `こんにちは` -> `[コ, ン, ニ, チ, ワ]`
 - `pypinyin`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `ka3 er3 pu3 pei2 wai4 sun1 wan2 hua2 ti1 。`
+    - e.g. `卡尔普陪外孙玩滑梯。` -> `[ka3, er3, pu3, pei2, wai4, sun1, wan2, hua2, ti1, 。]`
 - `pypinyin_phone`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
     - Separate into first and last parts
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `k a3 er3 p u3 p ei2 wai4 s un1 uan2 h ua2 t i1 。`
+    - e.g. `卡尔普陪外孙玩滑梯。` -> `[k, a3, er3, p, u3, p, ei2, wai4, s, un1, uan2, h, ua2, t, i1, 。]`
+
+You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 
 ## Supported text cleaner
 
@@ -276,6 +280,8 @@ You can change via `--cleaner` option in `tts.sh`.
     - e.g.`"(Hello-World);  & jr. & dr."` ->`HELLO WORLD, AND JUNIOR AND DOCTOR`
 - `jaconv`: [kazuhikoarase/jaconv](https://github.com/kazuhikoarase/jaconv)
     - e.g. `”あらゆる”　現実を　〜　’すべて’ 自分の　ほうへ　ねじ曲げたのだ。"` -> `"あらゆる" 現実を ー \'すべて\' 自分の ほうへ ねじ曲げたのだ。`
+
+You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_cleaner.py).
 
 ## Supported Models
 
@@ -320,13 +326,13 @@ See [how to make/port new recipe](https://github.com/espnet/espnet/tree/master/e
 
 ### How to add a new `g2p` module?
 
-Update `espnet2/text/phoneme_tokenizer.py` to add new module.
-Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` and `espnet2/tasks/tts.py`.
+Update [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) to add new module.
+Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L226-L240) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L180-L194).
 
 ### How to add a new `cleaner` module?
 
-Update `espnet2/text/cleaner.py` to add new module.
-Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` and `espnet2/tasks/tts.py`.
+Update [`espnet2/text/cleaner.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/cleaner.py) to add new module.
+Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L219-L225) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L173-L179).
 
 ### How to use trained model in python?
 

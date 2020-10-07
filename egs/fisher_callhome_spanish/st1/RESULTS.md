@@ -12,7 +12,30 @@
 |Transformer (BPE1k) + ASR-MTL + MT-MTL            |47.17|48.20|46.99|17.51|17.64|
 |Transformer (BPE1k) + ASR-PT                      |46.25|47.11|46.21|17.35|16.94|
 |Transformer (BPE1k) + ASR-PT + MT-PT              |46.25|47.60|46.72|17.62|17.50|
-|Transformer (BPE1k) + ASR-PT + MT-PT + SpecAugment|**48.94**|**49.32**|**48.39**|**18.83**|**18.67**|
+|Transformer (BPE1k) + ASR-PT + MT-PT + SpecAugment|48.94|49.32|48.39|18.83|18.67|
+|Conformer (BPE1k) + ASR-PT + MT-PT + SpecAugment|**51.14**|**51.59**|**51.03**|**19.97**|**20.44**|
+
+
+# Conformer results
+### train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans
+|dataset|BLEU|1-gram|2-gram|3-gram|4-gram|BP|ratio|hyp_len|ref_len|
+|---|---|---|---|---|---|---|---|---|---|
+|exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans/decode_fisher_dev.en_decode_pytorch_transformer_bpe|**51.14**|79.4|59.7|44.4|32.5|1.000|1.010|39996|39600|
+|exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans/decode_fisher_dev2.en_decode_pytorch_transformer_bpe|**51.59**|79.8|60.2|44.8|32.9|1.000|1.010|39498|39101|
+|exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans/decode_fisher_test.en_decode_pytorch_transformer_bpe|**51.03**|80.6|60.0|44.1|31.8|1.000|1.015|39397|38825|
+|exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans/decode_callhome_devtest.en_decode_pytorch_transformer_bpe|**19.97**|49.2|25.7|14.7|8.6|1.000|1.003|37524|37416|
+|exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans/decode_callhome_evltest.en_decode_pytorch_transformer_bpe|**20.44**|49.3|26.3|15.2|9.2|0.991|0.991|18299|18457|
+
+- Model files (archived to train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans.tar.gz by `$ pack_model.sh`)
+  - training config file: `conf/tuning/train_pytorch_conformer_kernel15_bpe_short.yaml`
+  - decoding config file: `conf/tuning/decode_pytorch_transformer_bpe_pretrain.yaml`
+  - preprocess config file: `conf/specaug.yaml`
+  - cmvn file: `data/train_sp.en/cmvn.ark`
+  - e2e file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans/results/model.val5.avg.best`
+  - e2e JSON file: `exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_short_bpe1000_specaug_asrtrans_mttrans/results/model.json`
+  - NOTE: This model is initialized with the Transformer ASR model (BPE1k, use SpecAugment) on the encoder side and Transformer MT model (BPE1k) on the decoder side.
+- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+- NOTE: longer version of "short" for SpecAugment: 20ep->30ep
 
 
 # Transformer results

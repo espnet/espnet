@@ -46,7 +46,7 @@ speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank_pitch).
-audio_format=flac    # Audio format (only in feats_type=raw).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 fs=16k               # Sampling rate.
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
@@ -142,7 +142,7 @@ Options:
 
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
-    --audio_format     # Audio format (only in feats_type=raw, default="${audio_format}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -799,8 +799,12 @@ if ! "${skip_train}"; then
         _feats_type="$(<${_asr_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
             _opts+="--frontend_conf fs=${fs} "
         else
             _scp=feats.scp
@@ -897,7 +901,11 @@ if ! "${skip_train}"; then
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             # "sound" supports "wav", "flac", etc.
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                _type=sound
+            fi
             _fold_length="$((asr_speech_fold_length * 100))"
             _opts+="--frontend_conf fs=${fs} "
         else
@@ -1062,7 +1070,11 @@ if ! "${skip_eval}"; then
             _feats_type="$(<${_data}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
                 _scp=wav.scp
-                _type=sound
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _type=kaldi_ark
+                else
+                    _type=sound
+                fi
             else
                 _scp=feats.scp
                 _type=kaldi_ark
@@ -1129,7 +1141,7 @@ if ! "${skip_eval}"; then
                                   --remove_non_linguistic_symbols true \
                                   --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1141,7 +1153,7 @@ if ! "${skip_eval}"; then
                                   --non_linguistic_symbols "${nlsyms_txt}" \
                                   --remove_non_linguistic_symbols true \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
 
 
@@ -1156,7 +1168,7 @@ if ! "${skip_eval}"; then
                                   --remove_non_linguistic_symbols true \
                                   --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1168,7 +1180,7 @@ if ! "${skip_eval}"; then
                                   --non_linguistic_symbols "${nlsyms_txt}" \
                                   --remove_non_linguistic_symbols true \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
 
                 elif [ "${_type}" = ter ]; then
@@ -1181,7 +1193,7 @@ if ! "${skip_eval}"; then
                                   --bpemodel "${bpemodel}" \
                                   --cleaner "${cleaner}" \
                                 ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn"
 
                     # NOTE(kamo): Don't use cleaner for hyp
@@ -1191,9 +1203,8 @@ if ! "${skip_eval}"; then
                                   -f 2- --input - --output - \
                                   --token_type bpe \
                                   --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
                                   ) \
-                        <(<"${_data}/text" awk '{ print "(" $1 ")" }') \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
                 fi
 

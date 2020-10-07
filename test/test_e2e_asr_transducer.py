@@ -1,14 +1,15 @@
 # coding: utf-8
 
 import argparse
+
 import numpy as np
 import pytest
 import torch
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -274,10 +275,23 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
     loss = model(*batch)
     loss.backward()
 
+    beam_search = BeamSearchTransducer(
+        decoder=model.dec,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+    )
+
     with torch.no_grad():
         in_data = np.random.randn(20, idim)
 
-        model.recognize(in_data, recog_args, train_args.char_list, recog_args.rnnlm)
+        model.recognize(in_data, beam_search)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
