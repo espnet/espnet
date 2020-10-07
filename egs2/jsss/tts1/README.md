@@ -1,6 +1,6 @@
 # JSSS RECIPE
 
-This is the recipe of Japanese single female speaker TTS model with [JSSS](https://sites.google.com/site/shinnosuketakamichi/research-topics/jsss_corpus?authuser=0) corpus.
+This is the recipe of Japanese single female speaker TTS model with [JSSS](https://sites.google.com/site/shinnosuketakamichi/research-topics/jsss_corpus) corpus.
 
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)

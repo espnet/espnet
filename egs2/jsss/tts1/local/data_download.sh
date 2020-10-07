@@ -28,7 +28,7 @@ fi
 
 cwd=$(pwd)
 if [ ! -e "${download_dir}/JSSSLabel" ]; then
-    echo "Downloading full-context labels for jsut v1.1..."
+    echo "Downloading phoneme labels for jsss_ver1"
     cd "${download_dir}"
     git clone https://github.com/kan-bayashi/JSSSLabel
     for name in long-form short-form simplification summarization; do
