@@ -1,5 +1,3 @@
-verbose: 1
-batchsize: 0
 lm_weight: 0.3
 beam_size: 20
 penalty: 0.0
