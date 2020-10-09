@@ -21,6 +21,7 @@ from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
+    ChunkedMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import (
@@ -305,7 +306,7 @@ def build_input_layer(
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
 
 
-def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_type):
+def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_type, enc_win_left=0, enc_win_right=0):
     """Build function for transformer block.
 
     Args:
@@ -339,12 +340,17 @@ def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_t
 
     if net_part == "encoder":
         transformer_layer_class = EncoderLayer
+        if enc_win_left != 0 or enc_win_right != 0:
+            MHA = ChunkedMultiHeadedAttention(heads, d_hidden, att_dropout_rate, enc_win_left, enc_win_right)
+        else:
+            MHA = MultiHeadedAttention(heads, d_hidden, att_dropout_rate)
     elif net_part == "decoder":
         transformer_layer_class = DecoderLayer
+        MHA = MultiHeadedAttention(heads, d_hidden, att_dropout_rate)
 
     return lambda: transformer_layer_class(
         d_hidden,
-        MultiHeadedAttention(heads, d_hidden, att_dropout_rate),
+        MHA,
         pw_layer(*pw_layer_args),
         dropout_rate,
     )
@@ -526,11 +532,15 @@ def build_blocks(
         if block_type == "tdnn":
             module = build_tdnn_block(blocks_arch[i])
         elif block_type == "transformer":
+            enc_win_left = blocks_arch[i].get('win_left', 0)
+            enc_win_right = blocks_arch[i].get('win_right', 0)
             module = build_transformer_block(
                 net_part,
                 blocks_arch[i],
                 positionwise_layer_type,
                 positionwise_activation_type,
+                enc_win_left,
+                enc_win_right,
             )
         elif block_type == "conformer":
             module = build_conformer_block(
