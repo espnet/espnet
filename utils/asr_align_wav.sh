@@ -17,7 +17,6 @@ backend=pytorch
 stage=-1       # start from -1 if you need to start from model download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
-debugmode=0    # not used anymore, use verbose=2 instead
 verbose=1      # verbose option
 
 # feature configuration
