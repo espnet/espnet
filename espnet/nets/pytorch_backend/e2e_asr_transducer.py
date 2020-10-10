@@ -24,7 +24,6 @@ from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
-    ChunkedMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 
@@ -666,12 +665,17 @@ class E2E(ASRInterface, torch.nn.Module):
 
             ret = dict()
             for name, m in self.named_modules():
-                if (
-                    isinstance(m, MultiHeadedAttention) 
-                    or isinstance(m, RelPositionMultiHeadedAttention)
+                if isinstance(m, MultiHeadedAttention) or isinstance(
+                    m, RelPositionMultiHeadedAttention
                 ):
                     if name.split(".")[-1] == "Child_MHA":
-                        attn = m.attn.view(xs_pad.shape[0], -1, m.attn.shape[1], m.attn.shape[2], m.attn.shape[3]).mean(dim=1)
+                        attn = m.attn.view(
+                            xs_pad.shape[0],
+                            -1,
+                            m.attn.shape[1],
+                            m.attn.shape[2],
+                            m.attn.shape[3],
+                        ).mean(dim=1)
                         ret[name] = attn.cpu().numpy()
                     else:
                         ret[name] = m.attn.cpu().numpy()
