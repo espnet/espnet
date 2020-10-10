@@ -207,7 +207,20 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
 
 
 class SlidingWindow(nn.Module):
+    """Sliding window for sequence.
+
+    Paper: https://arxiv.org/abs/1909.13037
+    Fig 2
+
+    Args:
+        n_feat (int): The number of features.
+        left_context (int): Sliding windows left length
+        right_context (int): Sliding windows right length
+
+    """
+
     def __init__(self, n_feat, left_context=5, right_context=2):
+        """Construct a SlidingWindow object."""
         super(SlidingWindow, self).__init__()
         self.n_feat = n_feat
         self.left_context = left_context
@@ -218,6 +231,16 @@ class SlidingWindow(nn.Module):
         )
 
     def forward(self, inputs):
+        """Sliding windows and merge then into dim0.
+
+        Args:
+            inputs (torch.Tensor): input tensor
+
+        Returns:
+            torch.Tensor: Output tensor
+            (batch*num_winsdow, left_context+right_context, d_model).
+
+        """
         inputs = torch.nn.functional.pad(
             inputs, pad=(0, 0, self.left_context, self.right_context), value=0.0
         ).unsqueeze(1)
@@ -229,13 +252,41 @@ class SlidingWindow(nn.Module):
 
 
 class ChunkedMultiHeadedAttention(nn.Module):
+    """Chunked Multihead attention.
+
+    Paper: https://arxiv.org/abs/1909.13037
+    Fig 2
+
+    Args:
+        n_head (int): The number of heads.
+        n_feat (int): The number of features.
+        dropout_rate (float): Dropout rate.
+        left_context (int): Sliding windows left length
+        right_context (int): Sliding windows right length
+
+    """
+
     def __init__(self, n_head, n_feat, dropout_rate, left_context=5, right_context=2):
+        """Construct a ChunkedMultiHeadedAttention object."""
         super(ChunkedMultiHeadedAttention, self).__init__()
         self.Child_MHA = MultiHeadedAttention(n_head, n_feat, dropout_rate)
         self.SW_KV = SlidingWindow(n_feat, left_context, right_context)
         self.SW_mask = SlidingWindow(1, left_context, right_context)
 
     def forward(self, query, key, value, mask):
+        """Compute chunked scaled dot product attention.
+
+        Args:
+            query (torch.Tensor): Query tensor (#batch, time1, size).
+            key (torch.Tensor): Key tensor (#batch, time2, size).
+            value (torch.Tensor): Value tensor (#batch, time2, size).
+            mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
+                (#batch, time1, time2).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time1, d_model).
+
+        """
         b = query.size(0)
         key = self.SW_KV(key)
         value = self.SW_KV(value)
