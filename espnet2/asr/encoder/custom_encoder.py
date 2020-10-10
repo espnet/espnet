@@ -14,7 +14,7 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
-from espnet2.asr.create_network import create_network
+from espnet2.asr.custom.build_encoder import build_encoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
@@ -45,8 +45,8 @@ class CustomEncoder(AbsEncoder):
             architecture is not None
         ), f'{"Architecture configuration for custom model is mandatory."}'
 
-        self.embed, self.encoders, self._output_size = create_network(
-            "encoder", input_size, architecture, repeat=repeat, padding_idx=padding_idx
+        self.embed, self.encoders, self._output_size = build_encoder(
+            input_size, architecture, repeat=repeat, padding_idx=padding_idx
         )
 
         self.concat_after = transformer_concat_after
