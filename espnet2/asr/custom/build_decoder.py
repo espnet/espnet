@@ -3,20 +3,13 @@
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Union
 
 import torch
 
-from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
-from espnet.nets.pytorch_backend.conformer.encoder_layer import (
-    EncoderLayer as ConformerEncoderLayer,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
-from espnet.nets.pytorch_backend.transformer.encoder_layer import (
-    EncoderLayer as TransformerEncoderLayer,  # noqa: H301
-)
+from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 from espnet2.asr.custom.utils import get_positional_encoding_class
 from espnet2.asr.custom.utils import get_positionwise_classes
 from espnet2.asr.custom.utils import get_self_attention_class
@@ -31,7 +24,6 @@ def verify_layers_io(input_size: int, architecture: List[Dict[str, Any]]):
 
     Returns:
         (): if architecture is valid, return output size
-
     """
     check_io = []
 
@@ -43,20 +35,20 @@ def verify_layers_io(input_size: int, architecture: List[Dict[str, Any]]):
                 "layer_type is not defined in the " + str(i + 1) + "th layer."
             )
 
-        if layer_type in ["embed", "conv2d", "vgg2l"]:
+        if layer_type in ["embed", "linear"]:
             if "output_size" not in layer_conf:
                 raise ValueError(
-                    "Layer " + str(i + 1) + ": Input layer format is: "
+                    "Layer " + str(i + 1) + ": Format is: "
                     "{'layer_type: embed|conv2d|vgg2l', 'output_size': int, [...]}"
                 )
             check_io.append((input_size, layer_conf["output_size"]))
-        elif layer_type in ["transformer", "conformer"]:
+        elif layer_type == "transformer":
             if not {"output_size", "linear_units", "attention_heads"}.issubset(
                 layer_conf
             ):
                 raise ValueError(
-                    "Layer " + str(i + 1) + ": Transformer layer format is: "
-                    "{'layer_type': transformer|conformer, 'output_size': int, "
+                    "Layer " + str(i + 1) + ": Format is: "
+                    "{'layer_type': conformer, 'output_size': int, "
                     "'linear_units': int, 'attention_heads': int, [...]}"
                 )
             check_io.append((layer_conf["output_size"], layer_conf["output_size"]))
@@ -83,11 +75,13 @@ def build_transformer_layer(
     linear_units: int,
     attention_heads: int,
     self_attention_layer_type: str = "self_attn",
+    src_attention_layer_type: str = "self_attn",
     positionwise_layer_type: str = "linear",
     positionwise_activation_type: str = "relu",
     dropout_rate: float = 0.0,
+    self_attention_dropout_rate: float = 0.0,
+    src_attention_dropout_rate: float = 0.0,
     positionwise_dropout_rate: float = 0.0,
-    attention_dropout_rate: float = 0.0,
     normalize_before: bool = True,
     concat_after: bool = False,
 ) -> torch.nn.Module:
@@ -98,16 +92,16 @@ def build_transformer_layer(
         linear_units:
         attention_heads:
         self_attention_layer_type:
+        src_attention_layer_type:
         positionwise_layer_type:
         positionwise_activation_type:
         dropout_rate:
-        attention_dropout_rate:
+        self_attention_dropout_rate:
+        src_attention_dropout_rate:
         positionwise_dropout_rate:
         normalize_before:
         concat_after:
 
-    Returns:
-        lambda: Transformer layer function
     """
     pw_layer, pw_activation = get_positionwise_classes(
         positionwise_layer_type, positionwise_activation_type
@@ -126,100 +120,23 @@ def build_transformer_layer(
         )
 
     self_att_layer = get_self_attention_class(self_attention_layer_type)
+    src_att_layer = get_self_attention_class(self_attention_layer_type)
     self_att_layer_args = (
         attention_heads,
         output_size,
-        attention_dropout_rate,
+        self_attention_dropout_rate,
     )
-
-    return lambda: TransformerEncoderLayer(
-        output_size,
-        self_att_layer(*self_att_layer_args),
-        pw_layer(*pw_layer_args),
-        dropout_rate,
-        normalize_before,
-        concat_after,
-    )
-
-
-def build_conformer_layer(
-    output_size: int,
-    linear_units: int,
-    attention_heads: int,
-    self_attention_layer_type: str = "rel_self_attn",
-    positionwise_layer_type: str = "linear",
-    positionwise_activation_type: str = "swish",
-    positionwise_convolution_kernel_size: int = 3,
-    positional_encoding_type: str = "rel_pos",
-    positional_encoding_activation_type: str = "swish",
-    macaron_style: bool = False,
-    use_cnn_module: bool = True,
-    cnn_module_kernel: int = 31,
-    dropout_rate: float = 0.0,
-    positionwise_dropout_rate: float = 0.0,
-    attention_dropout_rate: float = 0.0,
-    normalize_before: bool = True,
-    concat_after: bool = False,
-) -> torch.nn.Module:
-    """Build transformer layer.
-
-    Args:
-        output_size:
-        linear_units:
-        attention_heads:
-        self_attention_layer_type:
-        positionwise_layer_type:
-        positionwise_activation_type:
-        positionwise_convolution_kernel_size:
-        positional_enconding_type:
-        positional_encoding_activation_type:
-        macaron_style:
-        use_cnn_module:
-        cnn_module_kernel:
-        dropout_rate:
-        positionwise_dropout_rate:
-        attention_dropout_rate:
-        normalize_before:
-        concat_after:
-
-    Returns:
-        lambda: Conformer layer function
-    """
-    pw_layer, pw_activation = get_positionwise_classes(
-        positionwise_layer_type, positionwise_activation_type
-    )
-
-    if positionwise_layer_type == "linear":
-        pw_layer_args = (
-            output_size,
-            linear_units,
-            positionwise_dropout_rate,
-            pw_activation,
-        )
-    else:
-        pw_layer_args = (
-            output_size,
-            linear_units,
-            positionwise_convolution_kernel_size,
-            pw_activation,
-        )
-
-    self_att_layer = get_self_attention_class(self_attention_layer_type)
-    self_att_layer_args = (
+    src_att_layer_args = (
         attention_heads,
         output_size,
-        attention_dropout_rate,
+        src_attention_dropout_rate,
     )
 
-    conv_layer = ConvolutionModule
-    conv_layer_args = (output_size, cnn_module_kernel, pw_activation)
-
-    return lambda: ConformerEncoderLayer(
+    return lambda: DecoderLayer(
         output_size,
         self_att_layer(*self_att_layer_args),
+        src_att_layer(*src_att_layer_args),
         pw_layer(*pw_layer_args),
-        pw_layer(*pw_layer_args) if macaron_style else None,
-        conv_layer(*conv_layer_args) if use_cnn_module else None,
         dropout_rate,
         normalize_before,
         concat_after,
@@ -233,7 +150,7 @@ def build_input_layer(
     positional_encoding_type: str = "abs_pos",
     dropout_rate: float = 0.0,
     positional_encoding_dropout_rate: float = 0.0,
-    padding_idx: int = -1,
+    padding_idx: Optional[int] = None,
 ) -> torch.nn.Module:
     """Build input layer.
 
@@ -241,8 +158,8 @@ def build_input_layer(
         input_size: Input dimension
         output_size: Output dimension
         layer_type: Type of layer
-        dropout_rate: Dropout rate
         position_encoding_type: Positional encoding layer type
+        dropout_rate: Dropout rate
         positional_encoding_dropout_rate: Positional encoding dropout rate
 
     Return:
@@ -259,39 +176,24 @@ def build_input_layer(
             torch.nn.ReLU(),
             pos_enc_class(output_size, positional_encoding_dropout_rate),
         )
-    elif layer_type == "conv2d":
-        embed = Conv2dSubsampling(
-            input_size,
-            output_size,
-            dropout_rate,
-            pos_enc_class(output_size, positional_encoding_dropout_rate),
-        )
-    elif layer_type == "vgg2l":
-        embed = VGG2L(input_size, output_size)
     elif layer_type == "embed":
         embed = torch.nn.Sequential(
             torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
             pos_enc_class(output_size, positional_encoding_dropout_rate),
         )
-    elif layer_type is None:
-        embed = torch.nn.Sequential(
-            pos_enc_class(output_size, positional_encoding_dropout_rate)
-        )
     else:
-        raise NotImplementedError(
-            "Supported input layer type: linear, conv2d, vgg2l and embed."
-        )
+        raise NotImplementedError("Supported input layer type: linear and embed.")
 
     return embed
 
 
-def build_encoder(
+def build_decoder(
     input_size: int,
     architecture: List[Dict[str, Any]],
     repeat: int = 0,
     padding_idx: int = -1,
 ) -> Union[torch.nn.Module, MultiSequential, int]:
-    """Build encoder based on architecture specification.
+    """Build decoder based on architecture specification.
 
     Args:
         input_size: Input dimension
@@ -313,8 +215,6 @@ def build_encoder(
 
         if layer_type == "transformer":
             module = build_transformer_layer(**layer_args)
-        elif layer_type == "conformer":
-            module = build_conformer_layer(**layer_args)
 
         architecture_modules.append(module)
 
