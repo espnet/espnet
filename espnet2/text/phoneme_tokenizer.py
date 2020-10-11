@@ -9,6 +9,10 @@ from typeguard import check_argument_types
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
+def split_by_space(text) -> List[str]:
+    return text.split(" ")
+
+
 def pyopenjtalk_g2p(text) -> List[str]:
     import pyopenjtalk
 
@@ -78,13 +82,15 @@ class G2p_en:
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
-        g2p_type: str,
+        g2p_type: Union[None, str],
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
     ):
         assert check_argument_types()
-        if g2p_type == "g2p_en":
+        if g2p_type is None:
+            self.g2p = split_by_space
+        elif g2p_type == "g2p_en":
             self.g2p = G2p_en(no_space=False)
         elif g2p_type == "g2p_en_no_space":
             self.g2p = G2p_en(no_space=True)
