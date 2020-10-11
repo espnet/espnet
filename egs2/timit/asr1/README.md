@@ -7,7 +7,8 @@
 - Git hash: `3ef600aeff1ac4c34ba5a7c9056c9f88ba206c89`                                                                                                                                        
   - Commit date: `Sun Oct 11 18:33:14 2020 +0900`                                                                                                                                             
                                                                                                                                                                                               
-## asr_train_asr_raw_phn                                                                                                                                                                      
+## asr_train_asr_raw_phn                                                                                                                   
+Tensorboard logs https://tensorboard.dev/experiment/AtWXFPJfRl6j0L1pQ3bxrg/                                                   
 ### PER
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|                                                                                                                                                  
 |---|---|---|---|---|---|---|---|---|                                                                                                                                                         
