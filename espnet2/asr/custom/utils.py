@@ -1,6 +1,13 @@
 """Set of utilities methods to build customizable encoder/decoder."""
 
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Tuple
+from typing import Union
+
 import torch
+from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
@@ -20,6 +27,72 @@ from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayere
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
+
+
+def verify_layers_io(
+    input_size: int,
+    supported_layers: Dict["str", Union[Tuple[str, str], str]],
+    architecture: List[Dict[str, Any]],
+):
+    """Verify specified layers type + input/output.
+
+    If the specified architecture is valid, return last layer output dimension
+
+    Args:
+        input_size: Input dimension
+        supported_layers: Set of layers types and expected parameters
+        architecture: Architecture configuration
+
+    Returns:
+        (): last layer output dimension
+
+    """
+    assert check_argument_types
+
+    check_io = []
+
+    for i, layer_conf in enumerate(architecture):
+        if "layer_type" in layer_conf:
+            layer_type = layer_conf["layer_type"]
+        else:
+            raise ValueError(
+                "layer_type is not defined in the " + str(i + 1) + "th layer."
+            )
+
+        if layer_type in supported_layers:
+            params = supported_layers[layer_type]
+            if isinstance(params, str):
+                check_io.append((layer_conf[params], layer_conf[params]))
+                params = {params}
+            else:
+                check_io.append((layer_conf[params[0]], layer_conf[params[1]]))
+                params = set(params)
+
+            if not params.issubset(layer_conf):
+                raise ValueError(
+                    "Layer "
+                    + str(i + 1)
+                    + ", "
+                    + layer_type
+                    + ": Mandatory parameters are: "
+                    + str(params)
+                )
+        else:
+            raise NotImplementedError(
+                "Layer "
+                + str(i + 1)
+                + ": layer_type "
+                + layer_type
+                + " is not supported."
+            )
+
+    for i in range(1, len(check_io)):
+        if check_io[(i - 1)][1] != check_io[i][0]:
+            raise ValueError(
+                "Output-Input mismatch between layers " + str(i) + " and " + str(i + 1)
+            )
+
+    return check_io[-1][1]
 
 
 def get_positionwise_class(positionwise_layer_type: str) -> torch.nn.Module:
@@ -107,13 +180,13 @@ def get_lightweight_dynamic_convolution_class(layer_type: str) -> torch.nn.Modul
         ld_class: Lightweight/Dynamic class
 
     """
-    if layer_type == "lightweight":
+    if layer_type == "lightweight_conv":
         ld_class = LightweightConvolution
-    elif layer_type == "dynamic":
+    elif layer_type == "dynamic_conv":
         ld_class = DynamicConvolution
-    elif layer_type == "lightweight2d":
+    elif layer_type == "lightweight_conv2d":
         ld_class = LightweightConvolution2D
-    elif layer_type == "dynamic2d":
+    elif layer_type == "dynamic_conv2d":
         ld_class = DynamicConvolution2D
 
     return ld_class

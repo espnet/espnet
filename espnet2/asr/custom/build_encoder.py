@@ -28,6 +28,23 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 from espnet2.asr.custom.utils import get_positional_encoding_class
 from espnet2.asr.custom.utils import get_positionwise_class
 from espnet2.asr.custom.utils import get_self_attention_class
+from espnet2.asr.custom.utils import verify_layers_io
+
+
+supported_layers = {
+    # layer type: mandatory parameters
+    # input layers
+    "conv2d": "hidden_size",
+    "conv2d6": "hidden_size",
+    "conv2d8": "hidden_size",
+    "embed": "hidden_size",
+    "linear": "hidden_size",
+    "vgg2l": "hidden_size",
+    # main layers
+    "conformer": "hidden_size",
+    "transformer": "hidden_size",
+    "tdnn": ("input_size", "output_size"),
+}
 
 
 def build_transformer_layer(
@@ -195,69 +212,6 @@ def build_input_layer(
     return embed
 
 
-def verify_layers_io(input_size: int, architecture: List[Dict[str, Any]]):
-    """Verify defined layers input-output are valid before creation.
-
-    Args:
-        input_size: Input layer size
-        architecture: Encoder architecture configuration
-
-    Returns:
-        (): if architecture is valid, return output size
-
-    """
-    check_io = []
-
-    for i, layer_conf in enumerate(architecture):
-        if "layer_type" in layer_conf:
-            layer_type = layer_conf["layer_type"]
-        else:
-            raise ValueError(
-                "layer_type is not defined in the " + str(i + 1) + "th layer."
-            )
-
-        if layer_type in ["embed", "vgg2l"] or layer_type.startswith("conv2d"):
-            if "hidden_size" not in layer_conf:
-                raise ValueError(
-                    "Layer " + str(i + 1) + ": Format is: "
-                    "{'layer_type: embed|conv2d*|vgg2l', 'hidden_size': int, [...]}"
-                )
-            check_io.append((input_size, layer_conf["hidden_size"]))
-        elif layer_type in ["transformer", "conformer"]:
-            if not {"hidden_size", "linear_units", "attention_heads"}.issubset(
-                layer_conf
-            ):
-                raise ValueError(
-                    "Layer " + str(i + 1) + ": Format is: "
-                    "{'layer_type': transformer|conformer, 'hidden_size': int, "
-                    "'linear_units': int, 'attention_heads': int, [...]}"
-                )
-            check_io.append((layer_conf["hidden_size"], layer_conf["hidden_size"]))
-        elif layer_type == "tdnn":
-            if not {"input_size", "output_size"}.issubset(layer_conf):
-                raise ValueError(
-                    "Layer " + str(i + 1) + ": Format is: "
-                    "{'layer_type': tdnn, 'input_size': int, 'output_size': int, [...]}"
-                )
-            check_io.append((layer_conf["input_size"], layer_conf["output_size"]))
-        else:
-            raise NotImplementedError(
-                "Layer "
-                + str(i + 1)
-                + ": layer_type "
-                + layer_type
-                + " is not supported."
-            )
-
-    for i in range(1, len(check_io)):
-        if check_io[(i - 1)][1] != check_io[i][0]:
-            raise ValueError(
-                "Output-Input mismatch between layers " + str(i) + " and " + str(i + 1)
-            )
-
-    return check_io[-1][1]
-
-
 def build_encoder(
     input_size: int,
     architecture: List[Dict[str, Any]],
@@ -279,7 +233,7 @@ def build_encoder(
         padding_idx: Index for embedding padding
 
     """
-    output_size = verify_layers_io(input_size, architecture)
+    output_size = verify_layers_io(input_size, supported_layers, architecture)
 
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type
@@ -297,12 +251,12 @@ def build_encoder(
         layer_type = layer_conf["layer_type"]
         layer_args = {x: layer_conf[x] for x in layer_conf if x != "layer_type"}
 
-        if layer_type == "tdnn":
+        if layer_type == "conformer":
+            module = build_conformer_layer(*arch_classes, **layer_args)
+        elif layer_type == "tdnn":
             module = build_tdnn_layer(**layer_args)
         elif layer_type == "transformer":
             module = build_transformer_layer(*arch_classes, **layer_args)
-        elif layer_type == "conformer":
-            module = build_conformer_layer(*arch_classes, **layer_args)
 
         architecture_modules.append(module)
 

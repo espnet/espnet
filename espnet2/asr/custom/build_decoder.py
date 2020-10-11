@@ -17,6 +17,22 @@ from espnet2.asr.custom.utils import get_lightweight_dynamic_convolution_class
 from espnet2.asr.custom.utils import get_positional_encoding_class
 from espnet2.asr.custom.utils import get_positionwise_class
 from espnet2.asr.custom.utils import get_self_attention_class
+from espnet2.asr.custom.utils import verify_layers_io
+
+
+supported_layers = {
+    # layer type: mandatory parameters
+    # input layers
+    "embed": "hidden_size",
+    "linear": "hidden_size",
+    # main layers
+    "causal_conv1d": ("input_size", "output_size"),
+    "dynamic_conv": "hidden_size",
+    "dynamic_conv2d": "hidden_size",
+    "lightweight_conv": "hidden_size",
+    "lightweight_conv2d": "hidden_size",
+    "transformer": "hidden_size",
+}
 
 
 def build_lightweight_dynamic_convolution_layer(
@@ -179,83 +195,13 @@ def build_input_layer(
     return embed
 
 
-def verify_layers_io(input_size: int, architecture: List[Dict[str, Any]]):
-    """Verify defined layers input-output are valid before creation.
-
-    Args:
-        input_size: Input layer size
-        architecture: Decoder architecture configuration
-
-    Returns:
-        (): if architecture is valid, return output size
-    """
-    check_io = []
-
-    for i, layer_conf in enumerate(architecture):
-        if "layer_type" in layer_conf:
-            layer_type = layer_conf["layer_type"]
-        else:
-            raise ValueError(
-                "layer_type is not defined in the " + str(i + 1) + "th layer."
-            )
-
-        if layer_type in ["embed", "linear"]:
-            if "hidden_size" not in layer_conf:
-                raise ValueError(
-                    "Layer " + str(i + 1) + ": Format is: "
-                    "{'layer_type: embed|linear', 'hidden_size': int, [...]}"
-                )
-            check_io.append((input_size, layer_conf["hidden_size"]))
-        elif layer_type in [
-            "lightweight",
-            "dynamic",
-            "lightweight2d",
-            "dynamic2d",
-            "transformer",
-        ]:
-            if not {"hidden_size", "linear_units", "attention_heads"}.issubset(
-                layer_conf
-            ):
-                raise ValueError(
-                    "Layer " + str(i + 1) + ": Format is: "
-                    "{'layer_type': transformer|lightweight*|dynamic*, "
-                    "'hidden_size': int, 'linear_units': int, "
-                    "'attention_heads': int, [...]}"
-                )
-            check_io.append((layer_conf["hidden_size"], layer_conf["hidden_size"]))
-        elif layer_type == "causal_conv1d":
-            if not {"input_size", "output_size"}.issubset(layer_conf):
-                raise ValueError(
-                    "Layer " + str(i + 1) + ": Format is: "
-                    "{'layer_type': causal_conv1d, 'input_size': int, "
-                    "'output_size': int, [...]}"
-                )
-            check_io.append((layer_conf["input_size"], layer_conf["output_size"]))
-        else:
-            raise NotImplementedError(
-                "Layer "
-                + str(i + 1)
-                + ": layer_type "
-                + layer_type
-                + " is not supported."
-            )
-
-    for i in range(1, len(check_io)):
-        if check_io[(i - 1)][1] != check_io[i][0]:
-            raise ValueError(
-                "Output-Input mismatch between layers " + str(i) + " and " + str(i + 1)
-            )
-
-    return check_io[-1][1]
-
-
 def build_decoder(
     input_size: int,
     architecture: List[Dict[str, Any]],
     positional_encoding_type: str = "abs_pos",
     positionwise_type: str = "linear",
     self_attention_type: str = "self_attn",
-    lightweight_dynamic_convolution_type: str = "lightweight",
+    lightweight_dynamic_convolution_type: str = "lightweight_conv",
     repeat: int = 0,
     padding_idx: Optional[int] = None,
 ) -> Union[torch.nn.Module, MultiSequential, int]:
@@ -268,12 +214,13 @@ def build_decoder(
         positionwise_type: 'linear', 'conv1d', 'conv1d-linear'
         self_attention_type: 'self_attn', 'rel_self_attn'
         lightweight_dynamic_convolution_type:
-            'lightweight', 'dynamic', 'lightweight2d', 'dynamic2d'
+            'lightweight_conv', 'dynamic_conv',
+            'lightweight_conv2d', 'dynamic_conv2d'
         repeat: Number of times specified architecture should be repeated
         padding_idx: Index for embedding padding
 
     """
-    output_size = verify_layers_io(input_size, architecture)
+    output_size = verify_layers_io(input_size, supported_layers, architecture)
 
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type
