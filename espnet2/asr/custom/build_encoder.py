@@ -133,7 +133,7 @@ def build_tdnn_layer(
     use_relu: bool = True,
     dropout_rate: float = 0.0,
 ):
-    """Build input layer."""
+    """Build tdnn layer."""
     assert check_argument_types()
 
     return lambda: TDNN(
