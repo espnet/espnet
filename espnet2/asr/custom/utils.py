@@ -2,16 +2,19 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
 )
+from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
+from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,  # noqa: H301
     ScaledPositionalEncoding,  # noqa: H301
     RelPositionalEncoding,  # noqa: H301
 )
+from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
+from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -19,19 +22,14 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 
 
-def get_positionwise_classes(
-    positionwise_layer_type: str,
-    positionwise_activation_type: str,
-) -> torch.nn.Module:
-    """Get positionwise layer related classes.
+def get_positionwise_class(positionwise_layer_type: str) -> torch.nn.Module:
+    """Get positionwise layer class.
 
     Args:
         positionwise_layer_type: Type of positionwise layer
-        positionwise_activation_type: Type of positiontwise layer activation
 
     Return:
         positionwise_layer: Positionwise layer class
-        positionwise_activation: Positionwise activation class
 
     """
     if positionwise_layer_type == "linear":
@@ -45,12 +43,13 @@ def get_positionwise_classes(
             "'positionwise_layer_type' argument only support 'linear' yet."
         )
 
-    positionwise_activation = get_activation(positionwise_activation_type)
-
-    return positionwise_layer, positionwise_activation
+    return positionwise_layer
 
 
-def get_positional_encoding_class(positional_encoding_type: str) -> torch.nn.Module:
+def get_positional_encoding_class(
+    positional_encoding_type: str,
+    self_attention_type: str,
+) -> torch.nn.Module:
     """Get positional encoding class.
 
     Args:
@@ -65,6 +64,8 @@ def get_positional_encoding_class(positional_encoding_type: str) -> torch.nn.Mod
     elif positional_encoding_type == "scaled_abs_pos":
         positional_encoding_class = ScaledPositionalEncoding
     elif positional_encoding_type == "rel_pos":
+        assert self_attention_type == "rel_self_attn"
+
         positional_encoding_class = RelPositionalEncoding
     else:
         raise NotImplementedError(
@@ -86,7 +87,7 @@ def get_self_attention_class(self_attention_type: str) -> torch.nn.Module:
     """
     if self_attention_type == "self_attn":
         self_attn_class = MultiHeadedAttention
-    elif self_attention_type == "rel_selfattn":
+    elif self_attention_type == "rel_self_attn":
         self_attn_class = RelPositionMultiHeadedAttention
     else:
         raise NotImplementedError(
@@ -94,3 +95,25 @@ def get_self_attention_class(self_attention_type: str) -> torch.nn.Module:
         )
 
     return self_attn_class
+
+
+def get_lightweight_dynamic_convolution_class(layer_type: str) -> torch.nn.Module:
+    """Get lightweight/dynamic convolution class.
+
+    Args:
+        layer_type: Type of lightweight/dynamic layer
+
+    Returns:
+        ld_class: Lightweight/Dynamic class
+
+    """
+    if layer_type == "lightweight":
+        ld_class = LightweightConvolution
+    elif layer_type == "dynamic":
+        ld_class = DynamicConvolution
+    elif layer_type == "lightweight2d":
+        ld_class = LightweightConvolution2D
+    elif layer_type == "dynamic2d":
+        ld_class = DynamicConvolution2D
+
+    return ld_class
