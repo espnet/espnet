@@ -222,6 +222,11 @@ class SlidingWindow(nn.Module):
     def __init__(self, n_feat, left_context=5, right_context=2):
         """Construct a SlidingWindow object."""
         super(SlidingWindow, self).__init__()
+        if left_context < 0 or right_context < 0:
+            raise ValueError(
+                f"left or right window should be a postive int value, currently left_context \
+                and right_context respectively are {left_context} {right_context}"
+            )
         self.n_feat = n_feat
         self.left_context = left_context
         self.right_context = right_context

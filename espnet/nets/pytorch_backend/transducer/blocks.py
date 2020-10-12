@@ -311,8 +311,6 @@ def build_transformer_block(
     block_arch,
     pw_layer_type,
     pw_activation_type,
-    enc_win_left=0,
-    enc_win_right=0,
 ):
     """Build function for transformer block.
 
@@ -337,6 +335,8 @@ def build_transformer_block(
     att_dropout_rate = (
         block_arch["att-dropout-rate"] if "att-dropout-rate" in block_arch else 0.0
     )
+    enc_win_left = block_arch.get("win_left", 0)
+    enc_win_right = block_arch.get("win_right", 0)
 
     if pw_layer_type == "linear":
         pw_layer = PositionwiseFeedForward
@@ -541,15 +541,11 @@ def build_blocks(
         if block_type == "tdnn":
             module = build_tdnn_block(blocks_arch[i])
         elif block_type == "transformer":
-            enc_win_left = blocks_arch[i].get("win_left", 0)
-            enc_win_right = blocks_arch[i].get("win_right", 0)
             module = build_transformer_block(
                 net_part,
                 blocks_arch[i],
                 positionwise_layer_type,
                 positionwise_activation_type,
-                enc_win_left,
-                enc_win_right,
             )
         elif block_type == "conformer":
             module = build_conformer_block(
