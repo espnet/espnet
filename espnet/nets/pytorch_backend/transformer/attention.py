@@ -224,8 +224,9 @@ class SlidingWindow(nn.Module):
         super(SlidingWindow, self).__init__()
         if left_context < 0 or right_context < 0:
             raise ValueError(
-                f"left or right window should be a postive int value, currently left_context \
-                and right_context respectively are {left_context} {right_context}"
+                f"left or right window should be a postive int value, \
+                currently left_context and right_context respectively are \
+                {left_context} {right_context}"
             )
         self.n_feat = n_feat
         self.left_context = left_context

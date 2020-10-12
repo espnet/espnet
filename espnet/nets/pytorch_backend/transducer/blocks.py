@@ -347,7 +347,7 @@ def build_transformer_block(
 
     if net_part == "encoder":
         transformer_layer_class = EncoderLayer
-        if enc_win_left != 0 or enc_win_right != 0:
+        if enc_win_left > 0 or enc_win_right > 0:
             MHA = ChunkedMultiHeadedAttention(
                 heads, d_hidden, att_dropout_rate, enc_win_left, enc_win_right
             )
