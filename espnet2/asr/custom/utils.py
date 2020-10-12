@@ -29,9 +29,9 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 
 
-def verify_layers_io(
+def config_verification(
     input_size: int,
-    supported_layers: Dict["str", Union[Tuple[str, str], str]],
+    supported_layers: Dict[str, Dict[str, Union[Tuple[str, str], str]]],
     architecture: List[Dict[str, Any]],
     repeat: int,
 ):
@@ -43,39 +43,33 @@ def verify_layers_io(
         input_size: Input dimension
         supported_layers: Set of layers types and expected parameters
         architecture: Architecture configuration
-        repeat: Number of times specified architecture should be repeated
+        repeat: Number of times specified architecture (minus input layer)
+                should be repeated
 
     Returns:
         (): last layer output dimension
 
     """
-    assert check_argument_types
 
-    if repeat > 1:
-        architecture = architecture * repeat
-
-    check_io = []
-    for i, layer_conf in enumerate(architecture):
-        if "layer_type" in layer_conf:
-            layer_type = layer_conf["layer_type"]
+    def layer_verification(conf, part, i):
+        if "layer_type" in conf:
+            layer_type = conf["layer_type"]
         else:
-            raise ValueError(
-                "layer_type is not defined in the " + str(i + 1) + "th layer."
-            )
+            raise ValueError("layer_type is not defined in the " + str(i) + "th layer.")
 
-        if layer_type in supported_layers:
-            params = supported_layers[layer_type]
+        if layer_type in supported_layers[part]:
+            params = supported_layers[part][layer_type]
             if isinstance(params, str):
-                check_io.append((layer_conf[params], layer_conf[params]))
+                _io = (conf[params], conf[params])
                 params = {params}
             else:
-                check_io.append((layer_conf[params[0]], layer_conf[params[1]]))
+                _io = (conf[params[0]], conf[params[1]])
                 params = set(params)
 
-            if not params.issubset(layer_conf):
+            if not params.issubset(conf):
                 raise ValueError(
                     "Layer "
-                    + str(i + 1)
+                    + str(i)
                     + ", "
                     + layer_type
                     + ": Mandatory parameters are: "
@@ -84,11 +78,26 @@ def verify_layers_io(
         else:
             raise NotImplementedError(
                 "Layer "
-                + str(i + 1)
+                + str(i)
                 + ": layer_type "
                 + layer_type
-                + " is not supported."
+                + " is not supported. "
+                + "Expected: "
+                + ", ".join(supported_layers[part].keys())
             )
+
+        return _io
+
+    assert check_argument_types
+
+    if repeat > 1:
+        body = architecture[1:] * repeat
+    else:
+        body = architecture[1:]
+
+    check_io = [layer_verification(architecture[0], "input", 1)]
+    for i, layer_conf in enumerate(body):
+        check_io.append(layer_verification(layer_conf, "body", (i + 2)))
 
     for i in range(1, len(check_io)):
         if check_io[(i - 1)][1] != check_io[i][0]:

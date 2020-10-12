@@ -25,25 +25,27 @@ from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
+from espnet2.asr.custom.utils import config_verification
 from espnet2.asr.custom.utils import get_positional_encoding_class
 from espnet2.asr.custom.utils import get_positionwise_class
 from espnet2.asr.custom.utils import get_self_attention_class
-from espnet2.asr.custom.utils import verify_layers_io
 
 
+# layer type: mandatory parameters
 supported_layers = {
-    # layer type: mandatory parameters
-    # input layers
-    "conv2d": "hidden_size",
-    "conv2d6": "hidden_size",
-    "conv2d8": "hidden_size",
-    "embed": "hidden_size",
-    "linear": "hidden_size",
-    "vgg2l": "hidden_size",
-    # main layers
-    "conformer": "hidden_size",
-    "tdnn": ("input_size", "output_size"),
-    "transformer": "hidden_size",
+    "input": {
+        "conv2d": "hidden_size",
+        "conv2d6": "hidden_size",
+        "conv2d8": "hidden_size",
+        "embed": "hidden_size",
+        "linear": "hidden_size",
+        "vgg2l": "hidden_size",
+    },
+    "body": {
+        "conformer": "hidden_size",
+        "tdnn": ("input_size", "output_size"),
+        "transformer": "hidden_size",
+    },
 }
 
 
@@ -233,7 +235,9 @@ def build_encoder(
         padding_idx: Index for embedding padding
 
     """
-    output_size = verify_layers_io(input_size, supported_layers, architecture, repeat)
+    output_size = config_verification(
+        input_size, supported_layers, architecture, repeat
+    )
 
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type
