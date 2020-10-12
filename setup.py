@@ -10,7 +10,7 @@ requirements = {
         "setuptools>=38.5.1",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
-        "dataclasses",  # For Python<3.7
+        "dataclasses; python_version < '3.7'",
         "humanfriendly",
         "scipy>=1.4.1",
         "matplotlib==3.1.0",
@@ -37,8 +37,8 @@ requirements = {
         # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
-        "h5py==2.9.0",
-        "kaldiio>=2.15.0",
+        "h5py>=2.10.0",
+        "kaldiio>=2.17.0",
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
@@ -59,6 +59,7 @@ requirements = {
     "setup": ["numpy", "pytest-runner"],
     "test": [
         "pytest>=3.3.0",
+        "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",
         "hacking>=2.0.0",
@@ -118,7 +119,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.9.3",
+    version="0.9.4",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

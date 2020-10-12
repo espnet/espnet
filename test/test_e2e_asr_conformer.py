@@ -46,8 +46,8 @@ def prepare(args):
     olens = [3, 4]
     n_token = odim - 1
     model = E2E(idim, odim, args)
-    x = torch.randn(batchsize, 10, idim)
-    y = (torch.rand(batchsize, 4) * n_token % n_token).long()
+    x = torch.randn(batchsize, max(ilens), idim)
+    y = (torch.rand(batchsize, max(olens)) * n_token % n_token).long()
     for i in range(batchsize):
         x[i, ilens[i] :] = -1
         y[i, olens[i] :] = model.ignore_id

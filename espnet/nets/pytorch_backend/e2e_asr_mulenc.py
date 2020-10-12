@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
-
-"""Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf."""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2017 Johns Hopkins University (Ruizhi Li)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf."""
 
 import argparse
 from itertools import groupby

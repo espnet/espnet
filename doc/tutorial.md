@@ -173,7 +173,7 @@ $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
 
 ### Transducer
 
-ESPnet also supports transducer-based models through CTC mode.
+ESPnet also supports transducer-based models.
 To switch to transducer mode, the following should be set in the training config:
 
 ```
@@ -185,7 +185,7 @@ Several transducer architectures are currently available:
 - RNN-Transducer (default)
 - RNN-Transducer with attention decoder (+ `rnnt-mode: 'rnnt-att'`)
 - Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
-- Mixed Transformer/RNN-Transducer (`etype: transformer` or `dtype: transformer`)
+- Mixed Transformer/RNN-Transducer (e.g: `etype: transformer` with `dtype: lstm`)
 
 The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `transformer` is specified for either, a transformer-based architecture will be used for the corresponding part, otherwise a RNN architecture will be selected.
 
@@ -268,7 +268,7 @@ Various decoding algorithms are also available for transducer by setting `search
 - Alignment-length decoding (`alsd`)
 - N-step Constrained beam search (`nsc`)
 
-All algorithms share common parameters to control batch size (`batch`) and beam size (`beam-size`) but each ones have its own parameters:
+All algorithms share a common parameter to control beam size (`beam-size`) but each ones have its own parameters:
 
         # Default beam search
         search-type: default
@@ -290,7 +290,7 @@ All algorithms share common parameters to control batch size (`batch`) and beam 
 
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
 
-IMPORTANT (temporary) note: Currently ALSD, TSD and NSC have their execution time degraded because of the batching implementation at python level. It can be removed in current implementation by the user to speed up inference but we decided to keep it as if for internal discussion purpose. It will soon be replaced by an efficient implementation at C++ level.
+IMPORTANT (temporary) note: ALSD, TSD and NSC have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference part for transducer will be replaced by our own torch lib.
 
 The algorithm references can be found in [methods documentation](https://github.com/espnet/espnet/tree/master/espnet/nets/beam_search_transducer.py). For more information about decoding usage, refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer).
 
@@ -298,8 +298,9 @@ Additional notes:
 - Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
 - There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
 - Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
-- RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`). Pre-initialization for transformer-decoder is not supported yet.
-- Transformer and Conformer blocks within the same architecture part (i.e: encoder) is not supported yet.
+- RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
+- Transformer-decoder pre-initialization using a transformer LM is not supported yet.
+- Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.
 - Customizable architecture is a in-progress work and will be eventually extended to RNN. Please report any encountered error or usage issue.
 
 ### Changing the training configuration

@@ -13,8 +13,9 @@ from torch import nn
 class ConvolutionModule(nn.Module):
     """ConvolutionModule in Conformer model.
 
-    :param int channels: channels of cnn
-    :param int kernel_size: kernerl size of cnn
+    Args:
+        channels (int): The number of channels of conv layers.
+        kernel_size (int): Kernerl size of conv layers.
 
     """
 
@@ -55,8 +56,12 @@ class ConvolutionModule(nn.Module):
     def forward(self, x):
         """Compute convolution module.
 
-        :param torch.Tensor x: (batch, time, size)
-        :return torch.Tensor: convoluted `value` (batch, time, d_model)
+        Args:
+            x (torch.Tensor): Input tensor (#batch, time, channels).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time, channels).
+
         """
         # exchange the temporal dimension and the feature dimension
         x = x.transpose(1, 2)

@@ -121,6 +121,8 @@ echo "==== ST (backend=pytorch mt0.3, model=transformer) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_mt0.3.yaml
 echo "==== ST (backend=pytorch asr0.2 mt0.2, model=transformer) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_asr0.2_mt0.2.yaml
+echo "==== ST (backend=pytorch asr0.2 mt0.2, model=conformer) ==="
+./run.sh --python "${python}" --stage 4 --train_config conf/train_conformer_asr0.2_mt0.2.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1

@@ -549,6 +549,7 @@ def test_multi_gpu_trainable(module, num_encs):
         loss.backward(loss.new_ones(ngpu))  # trainable
 
 
+@pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize(
     "module, num_encs, model_dict",
     [

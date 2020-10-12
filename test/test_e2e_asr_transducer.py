@@ -1,14 +1,15 @@
 # coding: utf-8
 
 import argparse
+
 import numpy as np
 import pytest
 import torch
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -118,26 +119,23 @@ def get_wordlm():
     return word_rnnlm
 
 
-def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
+def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
     np.random.seed(1)
 
     xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
     ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
 
-    if backend == "pytorch":
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
-        ilens = torch.from_numpy(ilens).long()
+    xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
+    ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
+    ilens = torch.from_numpy(ilens).long()
 
-        if is_cuda:
-            xs_pad = xs_pad.cuda()
-            ys_pad = ys_pad.cuda()
-            ilens = ilens.cuda()
+    if is_cuda:
+        xs_pad = xs_pad.cuda()
+        ys_pad = ys_pad.cuda()
+        ilens = ilens.cuda()
 
-        return xs_pad, ilens, ys_pad
-    else:
-        raise ValueError("Invalid backend")
+    return xs_pad, ilens, ys_pad
 
 
 @pytest.mark.parametrize(
@@ -264,9 +262,7 @@ def prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False):
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
     ],
 )
-def test_pytorch_transducer_trainable_and_decodable(
-    train_dic, recog_dic, backend="pytorch"
-):
+def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()
 
     train_args = get_default_train_args(**train_dic)
@@ -274,22 +270,33 @@ def test_pytorch_transducer_trainable_and_decodable(
 
     model = E2E(idim, odim, train_args)
 
-    batch = prepare_inputs(backend, idim, odim, ilens, olens)
+    batch = prepare_inputs(idim, odim, ilens, olens)
 
     loss = model(*batch)
     loss.backward()
 
+    beam_search = BeamSearchTransducer(
+        decoder=model.dec,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+    )
+
     with torch.no_grad():
         in_data = np.random.randn(20, idim)
 
-        model.recognize(in_data, recog_args, train_args.char_list, recog_args.rnnlm)
+        model.recognize(in_data, beam_search)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
-@pytest.mark.parametrize(
-    "backend, trans_type", [("pytorch", "warp-transducer"), ("pytorch", "warp-rnnt")]
-)
-def test_pytorch_transducer_gpu_trainable(backend, trans_type):
+@pytest.mark.parametrize("trans_type", ["warp-transducer", "warp-rnnt"])
+def test_pytorch_transducer_gpu_trainable(trans_type):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(trans_type=trans_type)
 
@@ -303,17 +310,23 @@ def test_pytorch_transducer_gpu_trainable(backend, trans_type):
 
     model.cuda()
 
-    batch = prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=True)
+    batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=True)
 
     loss = model(*batch)
     loss.backward()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-@pytest.mark.parametrize("backend", ["pytorch"])
-def test_pytorch_multi_gpu_trainable(backend):
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {"report_cer": True, "report_wer": True},
+        {"rnnt_mode": "rnnt-att", "report_cer": True, "report_wer": True},
+    ],
+)
+def test_pytorch_multi_gpu_trainable(train_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()
-    train_args = get_default_train_args()
+    train_args = get_default_train_args(**train_dic)
 
     ngpu = 2
     device_ids = list(range(ngpu))
@@ -322,7 +335,7 @@ def test_pytorch_multi_gpu_trainable(backend):
     model = torch.nn.DataParallel(model, device_ids)
     model.cuda()
 
-    batch = prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=True)
+    batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=True)
 
     loss = 1.0 / ngpu * model(*batch)
     loss.backward(loss.new_ones(ngpu))
@@ -340,13 +353,13 @@ def test_pytorch_multi_gpu_trainable(backend):
         "multi_head_loc",
     ],
 )
-def test_pytorch_calculate_attentions(atype, backend="pytorch"):
+def test_pytorch_calculate_attentions(atype):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(rnnt_mode="rnnt-att", atype=atype)
 
     model = E2E(idim, odim, train_args)
 
-    batch = prepare_inputs(backend, idim, odim, ilens, olens, is_cuda=False)
+    batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=False)
 
     att_ws = model.calculate_all_attentions(*batch)[0]
     print(att_ws.shape)

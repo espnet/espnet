@@ -4,7 +4,30 @@
 |RNN (char) [[Weiss et al.]](https://arxiv.org/abs/1703.08581)|25.7|25.1|23.2|44.5|45.3|
 |RNN (BPE1k)|26.0|24.9|22.8|44.6|45.7|
 |Transformer (BPE1k)|24.2|23.6|21.5|41.1|41.4|
-| + SpecAugment|**23.1**|**22.5**|**20.8**|**40.2**|**39.6**|
+| + SpecAugment|23.1|22.5|20.8|40.2|39.6|
+|Conformer (BPE1k) + SpecAugment|**21.3**|**21.1**|**19.4**|**37.1**|**37.9**|
+
+
+# Conformer results
+### train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug/decode_fisher_dev.es_decode_pytorch_transformer_bpe|3973|40966|83.0|12.3|4.6|4.3|**21.3**|63.5|
+|exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug/decode_fisher_dev2.es_decode_pytorch_transformer_bpe|3957|39895|83.7|12.4|3.9|4.9|**21.1**|63.7|
+|exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug/decode_fisher_test.es_decode_pytorch_transformer_bpe|3638|39990|85.8|10.8|3.4|5.3|**19.4**|62.4|
+|exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug/decode_callhome_devtest.es_decode_pytorch_transformer_bpe|3956|37584|70.3|23.4|6.3|7.4|**37.1**|78.7|
+|exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug/decode_callhome_evltest.es_decode_pytorch_transformer_bpe|1825|18807|69.4|23.4|7.2|7.3|**37.9**|80.5|
+
+- Model files (archived to train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug.tar.gz by `$ pack_model.sh`)
+  - training config file: `conf/tuning/train_pytorch_conformer_kernel15_bpe.yaml`
+  - decoding config file: `conf/tuning/decode_pytorch_transformer_bpe.yaml`
+  - preprocess config file: `conf/specaug.yaml`
+  - cmvn file: `data/train_sp.es/cmvn.ark`
+  - e2e file: `exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug/results/model.val5.avg.best`
+  - e2e JSON file: `exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_kernel15_bpe_bpe1000_specaug/results/model.json`
+  - lm file: `exp/train_sp.es_lc.rm_rnnlm_pytorch_lm_lc.rm_bpe1000/rnnlm.model.best`
+  - lm JSON file: `exp/train_sp.es_lc.rm_rnnlm_pytorch_lm_lc.rm_bpe1000/model.json`
+- Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 
 
 # Transformer results

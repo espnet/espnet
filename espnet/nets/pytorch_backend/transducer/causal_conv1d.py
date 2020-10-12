@@ -21,7 +21,7 @@ class CausalConv1d(torch.nn.Module):
         self, idim, odim, kernel_size, stride=1, dilation=1, groups=1, bias=True
     ):
         """Construct a CausalConv1d object."""
-        super(CausalConv1d, self).__init__()
+        super().__init__()
 
         self._pad = (kernel_size - 1) * dilation
 

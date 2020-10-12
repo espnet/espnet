@@ -29,9 +29,6 @@ PYTHON_DIR="$(cd ${PYTHON%/*} && pwd)"
 if [ ! -x "${PYTHON_DIR}"/python3 ]; then
     echo "${PYTHON_DIR}/python3 doesn't exist."
     exit 1
-elif [ ! -x "${PYTHON_DIR}"/pip3 ]; then
-    echo "${PYTHON_DIR}/pip3 doesn't exist."
-    exit 1
 fi
 
 # Change the user site packages dir from "~/.local"

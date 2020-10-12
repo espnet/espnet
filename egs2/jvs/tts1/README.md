@@ -1,7 +1,13 @@
-# ESPnet2 JVS TTS recipe
+# JVS RECIPE
+
+This is the recipe of the adaptation with Japanese single speaker in [JVS](https://sites.google.com/site/shinnosuketakamichi/research-topics/jvs_corpus) corpus.
 
 This recipe assumes the use of pretrained model.
 Please follow the usage to perform fine-tuning with pretrained model.
+
+See the following pages before asking the question:
+- [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
+- [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 ## How to run
 
