@@ -33,6 +33,7 @@ def verify_layers_io(
     input_size: int,
     supported_layers: Dict["str", Union[Tuple[str, str], str]],
     architecture: List[Dict[str, Any]],
+    repeat: int,
 ):
     """Verify specified layers type + input/output.
 
@@ -42,6 +43,7 @@ def verify_layers_io(
         input_size: Input dimension
         supported_layers: Set of layers types and expected parameters
         architecture: Architecture configuration
+        repeat: Number of times specified architecture should be repeated
 
     Returns:
         (): last layer output dimension
@@ -49,8 +51,10 @@ def verify_layers_io(
     """
     assert check_argument_types
 
-    check_io = []
+    if repeat > 1:
+        architecture = architecture * repeat
 
+    check_io = []
     for i, layer_conf in enumerate(architecture):
         if "layer_type" in layer_conf:
             layer_type = layer_conf["layer_type"]

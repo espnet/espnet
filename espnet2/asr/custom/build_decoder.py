@@ -220,7 +220,7 @@ def build_decoder(
         padding_idx: Index for embedding padding
 
     """
-    output_size = verify_layers_io(input_size, supported_layers, architecture)
+    output_size = verify_layers_io(input_size, supported_layers, architecture, repeat)
 
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type

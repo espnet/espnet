@@ -536,7 +536,7 @@ class CustomDecoder(BaseTransformerDecoder):
         architecture: List[Dict[str, Any]] = None,
         repeat: int = 0,
         normalize_before: bool = True,
-        use_output_layer: bool = False,
+        use_output_layer: bool = True,
         padding_idx: Optional[int] = None,
     ):
         assert check_argument_types()

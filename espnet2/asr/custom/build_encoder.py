@@ -42,8 +42,8 @@ supported_layers = {
     "vgg2l": "hidden_size",
     # main layers
     "conformer": "hidden_size",
-    "transformer": "hidden_size",
     "tdnn": ("input_size", "output_size"),
+    "transformer": "hidden_size",
 }
 
 
@@ -114,7 +114,7 @@ def build_conformer_layer(
         hidden_size,
         linear_units,
         positionwise_dropout_rate
-        if isinstance(positionwise, PositionwiseFeedForward)
+        if getattr(positionwise, "__name__", None) == PositionwiseFeedForward.__name__
         else positionwise_convolution_kernel_size,
         positionwise_activation,
     )
@@ -233,7 +233,7 @@ def build_encoder(
         padding_idx: Index for embedding padding
 
     """
-    output_size = verify_layers_io(input_size, supported_layers, architecture)
+    output_size = verify_layers_io(input_size, supported_layers, architecture, repeat)
 
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type
