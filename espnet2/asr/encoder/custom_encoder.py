@@ -10,12 +10,12 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet2.asr.custom.build_encoder import build_encoder
+from espnet2.asr.custom.vgg2l import VGG2L
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
@@ -94,7 +94,11 @@ class CustomEncoder(AbsEncoder):
             xs_pad, masks = self.embed(xs_pad, masks)
         else:
             xs_pad = self.embed(xs_pad)
+
         xs_pad, masks = self.encoders(xs_pad, masks)
+        if isinstance(xs_pad, tuple):
+            xs_pad = xs_pad[0]
+
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 

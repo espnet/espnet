@@ -66,6 +66,11 @@ class TDNN(torch.nn.Module):
             masks (torch.Tensor): output mask (B, 1, new_seq_len)
 
         """
+        if isinstance(xs, tuple):
+            xs, pos_emb = xs[0], xs[1]
+        else:
+            pos_emb = None
+
         xs = xs.transpose(1, 2).contiguous()
         xs = self.tdnn(xs)
 
@@ -84,5 +89,8 @@ class TDNN(torch.nn.Module):
                 masks = masks[:, :, :-sub]
 
             masks = masks[:, :, :: self.stride]
+
+        if pos_emb is not None:
+            return (xs, pos_emb), masks
 
         return xs, masks

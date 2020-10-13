@@ -554,6 +554,10 @@ class CustomDecoder(BaseTransformerDecoder):
             architecture is not None
         ), f'{"Architecture configuration for custom model is mandatory."}'
 
+        assert (
+            positional_encoding_type != "rel_pos"
+        ), f'{"Relative positional encoding is not supported in custom decoder."}'
+
         self.embed, self.decoders, output_size = build_decoder(
             vocab_size,
             architecture,
