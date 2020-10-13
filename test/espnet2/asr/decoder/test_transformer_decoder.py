@@ -13,6 +13,7 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,  # noqa: H301
 )
+from espnet2.asr.decoder.transformer_decoder import CustomDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 
 
@@ -182,3 +183,78 @@ def test_TransformerDecoder_batch_beam_search(
             maxlenratio=0.0,
             minlenratio=0.0,
         )
+
+
+@pytest.mark.parametrize(
+    "input_layer",
+    [
+        {"layer_type": "embed", "hidden_size": 12},
+        {"layer_type": "linear", "hidden_size": 12},
+    ],
+)
+@pytest.mark.parametrize(
+    "inter_layer",
+    [
+        None,
+        {
+            "layer_type": "causal_conv1d",
+            "input_size": 12,
+            "output_size": 12,
+        },
+    ],
+)
+@pytest.mark.parametrize(
+    "body_layer",
+    [
+        {
+            "layer_type": "transformer",
+            "hidden_size": 12,
+            "linear_units": 12,
+            "attention_heads": 1,
+        },
+        {
+            "layer_type": "dynamic_conv",
+            "hidden_size": 12,
+            "linear_units": 12,
+            "attention_heads": 1,
+        },
+        {
+            "layer_type": "dynamic_conv2d",
+            "hidden_size": 12,
+            "linear_units": 12,
+            "attention_heads": 1,
+        },
+        {
+            "layer_type": "lightweight_conv",
+            "hidden_size": 12,
+            "linear_units": 12,
+            "attention_heads": 1,
+        },
+        {
+            "layer_type": "lightweight_conv2d",
+            "hidden_size": 12,
+            "linear_units": 12,
+            "attention_heads": 1,
+        },
+    ],
+)
+@pytest.mark.parametrize("repeat", [0, 2])
+def test_CustomDecoder_forward_backward(input_layer, inter_layer, body_layer, repeat):
+    if inter_layer is None:
+        architecture = [input_layer, body_layer]
+    else:
+        architecture = [input_layer, inter_layer, body_layer]
+    decoder = CustomDecoder(10, 12, architecture, repeat=repeat)
+
+    x = torch.randn(2, 9, 12)
+    x_lens = torch.tensor([9, 7], dtype=torch.long)
+
+    if architecture[0]["layer_type"] == "embed":
+        t = torch.randint(0, 10, [2, 4], dtype=torch.long)
+    else:
+        t = torch.randn(2, 4, 10)
+    t_lens = torch.tensor([4, 3], dtype=torch.long)
+
+    t_lens = torch.tensor([4, 3], dtype=torch.long)
+    z_all, ys_in_lens = decoder(x, x_lens, t, t_lens)
+    z_all.sum().backward()
