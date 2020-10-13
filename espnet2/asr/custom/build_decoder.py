@@ -11,6 +11,9 @@ from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+    PositionwiseFeedForward,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
 from espnet2.asr.custom.causal_conv1d import CausalConv1d
 from espnet2.asr.custom.utils import config_verification
@@ -49,6 +52,7 @@ def build_lightweight_dynamic_convolution_layer(
     conv_kernel_length: int = 11,
     conv_usebias: int = False,
     positionwise_activation_type: str = "relu",
+    positionwise_convolution_kernel_size: int = 3,
     dropout_rate: float = 0.0,
     self_attention_dropout_rate: float = 0.0,
     src_attention_dropout_rate: float = 0.0,
@@ -60,12 +64,21 @@ def build_lightweight_dynamic_convolution_layer(
     assert check_argument_types()
 
     positionwise_activation = get_activation(positionwise_activation_type)
-    positionwise_args = (
-        hidden_size,
-        linear_units,
-        positionwise_dropout_rate,
-        positionwise_activation,
-    )
+
+    if getattr(positionwise, "__name__", None) == PositionwiseFeedForward.__name__:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_dropout_rate,
+            positionwise_activation,
+        )
+    else:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_convolution_kernel_size,
+            positionwise_dropout_rate,
+        )
 
     src_attention_args = (
         attention_heads,
@@ -100,6 +113,7 @@ def build_transformer_layer(
     linear_units: int = 320,
     attention_heads: int = 4,
     positionwise_activation_type: str = "relu",
+    positionwise_convolution_kernel_size: int = 3,
     dropout_rate: float = 0.0,
     self_attention_dropout_rate: float = 0.0,
     src_attention_dropout_rate: float = 0.0,
@@ -111,12 +125,21 @@ def build_transformer_layer(
     assert check_argument_types()
 
     positionwise_activation = get_activation(positionwise_activation_type)
-    positionwise_args = (
-        hidden_size,
-        linear_units,
-        positionwise_dropout_rate,
-        positionwise_activation,
-    )
+
+    if getattr(positionwise, "__name__", None) == PositionwiseFeedForward.__name__:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_dropout_rate,
+            positionwise_activation,
+        )
+    else:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_convolution_kernel_size,
+            positionwise_dropout_rate,
+        )
 
     self_attention_args = (
         attention_heads,

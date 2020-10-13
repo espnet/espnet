@@ -14,7 +14,6 @@ from espnet.nets.pytorch_backend.conformer.encoder_layer import (
 )
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transducer.tdnn import TDNN
-from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.encoder_layer import (
     EncoderLayer as TransformerEncoderLayer,  # noqa: H301
 )
@@ -29,6 +28,7 @@ from espnet2.asr.custom.utils import config_verification
 from espnet2.asr.custom.utils import get_positional_encoding_class
 from espnet2.asr.custom.utils import get_positionwise_class
 from espnet2.asr.custom.utils import get_self_attention_class
+from espnet2.asr.custom.vgg2l import VGG2L
 
 
 # layer type: mandatory parameters
@@ -57,6 +57,7 @@ def build_transformer_layer(
     linear_units: int = 320,
     attention_heads: int = 4,
     positionwise_activation_type: str = "relu",
+    positionwise_convolution_kernel_size: int = 3,
     dropout_rate: float = 0.0,
     positionwise_dropout_rate: float = 0.0,
     attention_dropout_rate: float = 0.0,
@@ -67,12 +68,21 @@ def build_transformer_layer(
     assert check_argument_types()
 
     positionwise_activation = get_activation(positionwise_activation_type)
-    positionwise_args = (
-        hidden_size,
-        linear_units,
-        positionwise_dropout_rate,
-        positionwise_activation,
-    )
+
+    if getattr(positionwise, "__name__", None) == PositionwiseFeedForward.__name__:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_dropout_rate,
+            positionwise_activation,
+        )
+    else:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_convolution_kernel_size,
+            positionwise_dropout_rate,
+        )
 
     self_attention_args = (
         attention_heads,
@@ -112,14 +122,21 @@ def build_conformer_layer(
     assert check_argument_types()
 
     positionwise_activation = get_activation(positionwise_activation_type)
-    positionwise_args = (
-        hidden_size,
-        linear_units,
-        positionwise_dropout_rate
-        if getattr(positionwise, "__name__", None) == PositionwiseFeedForward.__name__
-        else positionwise_convolution_kernel_size,
-        positionwise_activation,
-    )
+
+    if getattr(positionwise, "__name__", None) == PositionwiseFeedForward.__name__:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_dropout_rate,
+            positionwise_activation,
+        )
+    else:
+        positionwise_args = (
+            hidden_size,
+            linear_units,
+            positionwise_convolution_kernel_size,
+            positionwise_dropout_rate,
+        )
 
     self_attention_args = (
         attention_heads,
@@ -202,7 +219,7 @@ def build_input_layer(
     elif layer_type == "conv2d8":
         embed = Conv2dSubsampling8(input_size, hidden_size, dropout_rate, pos_enc_class)
     elif layer_type == "vgg2l":
-        embed = VGG2L(input_size, hidden_size)
+        embed = VGG2L(input_size, hidden_size, dropout_rate, pos_enc_class)
     elif layer_type == "embed":
         embed = torch.nn.Sequential(
             torch.nn.Embedding(input_size, hidden_size, padding_idx=padding_idx),
