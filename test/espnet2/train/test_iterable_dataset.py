@@ -4,7 +4,6 @@ import h5py
 import kaldiio
 import numpy as np
 import pytest
-import soundfile
 import torch
 
 from espnet2.fileio.npy_scp import NpyScpWriter
@@ -47,41 +46,6 @@ def test_ESPnetDataset_sound_scp(sound_scp):
     print(dataset)
     print(dataset.names())
     assert dataset.has_name("data1")
-
-    for key, data in dataset:
-        if key == "a":
-            assert data["data1"].shape == (160000,)
-        if key == "b":
-            assert data["data1"].shape == (80000,)
-
-
-@pytest.fixture
-def pipe_wav(tmp_path):
-    p = tmp_path / "wav.scp"
-    soundfile.write(
-        tmp_path / "a.wav",
-        np.random.randint(-100, 100, (160000,), dtype=np.int16),
-        16000,
-    )
-    soundfile.write(
-        tmp_path / "b.wav",
-        np.random.randint(-100, 100, (80000,), dtype=np.int16),
-        16000,
-    )
-    with p.open("w") as f:
-        f.write(f"a {tmp_path / 'a.wav'}\n")
-        f.write(f"b {tmp_path / 'b.wav'}\n")
-    return str(p)
-
-
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.2"), reason="require pytorch>=1.2"
-)
-def test_ESPnetDataset_pipe_wav(pipe_wav):
-    dataset = IterableESPnetDataset(
-        path_name_type_list=[(pipe_wav, "data1", "pipe_wav")],
-        preprocess=preprocess,
-    )
 
     for key, data in dataset:
         if key == "a":

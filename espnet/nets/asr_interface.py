@@ -137,6 +137,7 @@ class ASRInterface:
 predefined_asr = {
     "pytorch": {
         "rnn": "espnet.nets.pytorch_backend.e2e_asr:E2E",
+        "transducer": "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
         "transformer": "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E",
     },
     "chainer": {

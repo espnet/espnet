@@ -1,40 +1,33 @@
 """Decoder definition for transformer-transducer models."""
 
-import six
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
-
-from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
-    DecoderLayer,  # noqa: H301
-)
-
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
+from espnet.nets.pytorch_backend.transducer.utils import check_state
+from espnet.nets.pytorch_backend.transducer.utils import pad_batch_state
+from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
-class Decoder(torch.nn.Module):
+class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
     """Decoder module for transformer-transducer models.
 
     Args:
         odim (int): dimension of outputs
+        edim (int): dimension of encoder outputs
         jdim (int): dimension of joint-space
-        attention_dim (int): dimension of attention
-        attention_heads (int): number of heads in multi-head attention
-        linear_units (int): number of units in position-wise feed forward
-        num_blocks (int): number of decoder blocks
-        dropout_rate (float): dropout rate for decoder
-        positional_dropout_rate (float): dropout rate for positional encoding
-        attention_dropout_rate (float): dropout rate for attention
-        input_layer (str or torch.nn.Module): input layer type
-        padding_idx (int): padding value for embedding
-        pos_enc_class (class): PositionalEncoding or ScaledPositionalEncoding
+        dec_arch (list): list of layer definitions
+        input_layer (str): input layer type
+        repeat_block (int): repeat provided blocks N times if N > 1
+        joint_activation_type (str) joint network activation type
+        positional_encoding_type (str): positional encoding type
+        positionwise_layer_type (str): linear
+        positionwise_activation_type (str): positionwise activation type
+        dropout_rate_embed (float): dropout rate for embedding layer (if specified)
         blank (int): blank symbol ID
 
     """
@@ -42,63 +35,56 @@ class Decoder(torch.nn.Module):
     def __init__(
         self,
         odim,
+        edim,
         jdim,
-        attention_dim=512,
-        attention_heads=4,
-        linear_units=2048,
-        num_blocks=6,
-        dropout_rate=0.1,
-        positional_dropout_rate=0.0,
-        attention_dropout_rate=0.0,
+        dec_arch,
         input_layer="embed",
-        pos_enc_class=PositionalEncoding,
+        repeat_block=0,
+        joint_activation_type="tanh",
+        positional_encoding_type="abs_pos",
+        positionwise_layer_type="linear",
+        positionwise_activation_type="relu",
+        dropout_rate_embed=0.0,
         blank=0,
     ):
         """Construct a Decoder object for transformer-transducer models."""
         torch.nn.Module.__init__(self)
 
-        if input_layer == "embed":
-            self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(odim, attention_dim),
-                pos_enc_class(attention_dim, positional_dropout_rate),
-            )
-        elif input_layer == "linear":
-            self.embed = torch.nn.Sequential(
-                torch.nn.Linear(odim, attention_dim),
-                torch.nn.LayerNorm(attention_dim),
-                torch.nn.Dropout(dropout_rate),
-                torch.nn.ReLU(),
-                pos_enc_class(attention_dim, positional_dropout_rate),
-            )
-        elif isinstance(input_layer, torch.nn.Module):
-            self.embed = torch.nn.Sequential(
-                input_layer, pos_enc_class(attention_dim, positional_dropout_rate)
-            )
-        else:
-            raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
-
-        self.decoders = repeat(
-            num_blocks,
-            lambda lnum: DecoderLayer(
-                attention_dim,
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, attention_dropout_rate
-                ),
-                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                dropout_rate,
-            ),
+        self.embed, self.decoders, ddim = build_blocks(
+            "decoder",
+            odim,
+            input_layer,
+            dec_arch,
+            repeat_block=repeat_block,
+            positional_encoding_type=positional_encoding_type,
+            positionwise_layer_type=positionwise_layer_type,
+            positionwise_activation_type=positionwise_activation_type,
+            dropout_rate_embed=dropout_rate_embed,
+            padding_idx=blank,
         )
 
-        self.after_norm = LayerNorm(attention_dim)
+        self.after_norm = LayerNorm(ddim)
 
-        self.lin_enc = torch.nn.Linear(attention_dim, jdim)
-        self.lin_dec = torch.nn.Linear(attention_dim, jdim, bias=False)
-        self.lin_out = torch.nn.Linear(jdim, odim)
+        self.joint_network = JointNetwork(odim, edim, ddim, jdim, joint_activation_type)
 
-        self.attention_dim = attention_dim
+        self.dunits = ddim
         self.odim = odim
 
         self.blank = blank
+
+    def init_state(self, init_tensor=None):
+        """Initialize decoder states.
+
+        Args:
+            init_tensor (torch.Tensor): batch of input features (B, dec_dim)
+
+        Returns:
+            state (list): batch of decoder decoder states [L x None]
+
+        """
+        state = [None] * len(self.decoders)
+
+        return state
 
     def forward(self, tgt, tgt_mask, memory):
         """Forward transformer-transducer decoder.
@@ -126,172 +112,172 @@ class Decoder(torch.nn.Module):
         h_enc = memory.unsqueeze(2)
         h_dec = tgt.unsqueeze(1)
 
-        z = self.joint(h_enc, h_dec)
+        z = self.joint_network(h_enc, h_dec)
 
         return z, tgt_mask
 
-    def joint(self, h_enc, h_dec):
-        """Joint computation of z.
-
-        Args:
-            h_enc (torch.Tensor):
-                batch of expanded hidden state (batch, maxlen_in, 1, Henc)
-            h_dec (torch.Tensor):
-                batch of expanded hidden state (batch, 1, maxlen_out, Hdec)
-
-        Returns:
-            z (torch.Tensor): output (batch, maxlen_in, maxlen_out, odim)
-
-        """
-        z = torch.tanh(self.lin_enc(h_enc) + self.lin_dec(h_dec))
-        z = self.lin_out(z)
-
-        return z
-
-    def forward_one_step(self, tgt, tgt_mask, cache=None):
+    def score(self, hyp, cache, init_tensor=None):
         """Forward one step.
 
         Args:
-            tgt (torch.Tensor): input token ids, int64 (batch, maxlen_out)
-                                if input_layer == "embed"
-                                input tensor (batch, maxlen_out, #mels)
-                                in the other cases
-            tgt_mask (torch.Tensor): input token mask,  (batch, Tmax)
-                                     dtype=torch.uint8 in PyTorch 1.2-
-                                     dtype=torch.bool in PyTorch 1.2+ (include 1.2)
-
-        """
-        tgt = self.embed(tgt)
-
-        if cache is None:
-            cache = self.init_state()
-        new_cache = []
-
-        for c, decoder in zip(cache, self.decoders):
-            tgt, tgt_mask = decoder(tgt, tgt_mask, c)
-            new_cache.append(tgt)
-
-        tgt = self.after_norm(tgt[:, -1])
-
-        return tgt, new_cache
-
-    def init_state(self, x=None):
-        """Get an initial state for decoding."""
-        return [None for i in range(len(self.decoders))]
-
-    def recognize(self, h, recog_args):
-        """Greedy search implementation for transformer-transducer.
-
-        Args:
-            h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
-            recog_args (Namespace): argument Namespace containing options
+            hyp (dataclass): hypothesis
+            cache (dict): states cache
 
         Returns:
-            hyp (list of dicts): 1-best decoding results
+            y (torch.Tensor): decoder outputs (1, dec_dim)
+            (list): decoder and attention states
+                [L x (1, max_len, dec_dim)]
+            lm_tokens (torch.Tensor): token id for LM (1)
 
         """
-        hyp = {"score": 0.0, "yseq": [self.blank]}
+        tgt = to_device(self, torch.tensor(hyp.yseq).unsqueeze(0))
+        lm_tokens = tgt[:, -1]
 
-        ys = to_device(self, torch.tensor(hyp["yseq"], dtype=torch.long)).unsqueeze(0)
-        ys_mask = to_device(self, subsequent_mask(1).unsqueeze(0))
-        y, c = self.forward_one_step(ys, ys_mask, None)
+        str_yseq = "".join([str(x) for x in hyp.yseq])
 
-        for i, hi in enumerate(h):
-            ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
-            logp, pred = torch.max(ytu, dim=0)
+        if str_yseq in cache:
+            y, new_state = cache[str_yseq]
+        else:
+            tgt_mask = to_device(self, subsequent_mask(len(hyp.yseq)).unsqueeze(0))
 
-            if pred != self.blank:
-                hyp["yseq"].append(int(pred))
-                hyp["score"] += float(logp)
+            state = check_state(hyp.dec_state, (tgt.size(1) - 1), self.blank)
 
-                ys = to_device(self, torch.tensor(hyp["yseq"]).unsqueeze(0))
-                ys_mask = to_device(
-                    self, subsequent_mask(len(hyp["yseq"])).unsqueeze(0)
-                )
+            tgt = self.embed(tgt)
 
-                y, c = self.forward_one_step(ys, ys_mask, c)
+            new_state = []
+            for s, decoder in zip(state, self.decoders):
+                tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
+                new_state.append(tgt)
 
-        return [hyp]
+            y = self.after_norm(tgt[:, -1])
 
-    def recognize_beam(self, h, recog_args, rnnlm=None):
-        """Beam search implementation for transformer-transducer.
+            cache[str_yseq] = (y, new_state)
+
+        return y, new_state, lm_tokens
+
+    def batch_score(self, hyps, batch_states, cache, init_tensor=None):
+        """Forward batch one step.
 
         Args:
-            h (torch.Tensor): encoder hidden state sequences (maxlen_in, Henc)
-            recog_args (Namespace): argument Namespace containing options
-            rnnlm (torch.nn.Module): language model module
+            hyps (list): batch of hypotheses
+            batch_states (list): decoder states
+                [L x (B, max_len, dec_dim)]
+            cache (dict): states cache
 
         Returns:
-            nbest_hyps (list of dicts): n-best decoding results
+            batch_y (torch.Tensor): decoder output (B, dec_dim)
+            batch_states (list): decoder states
+                [L x (B, max_len, dec_dim)]
+            lm_tokens (torch.Tensor): batch of token ids for LM (B)
 
         """
-        beam = recog_args.beam_size
-        k_range = min(beam, self.odim)
-        nbest = recog_args.nbest
-        normscore = recog_args.score_norm_transducer
+        final_batch = len(hyps)
 
-        if rnnlm:
-            kept_hyps = [
-                {"score": 0.0, "yseq": [self.blank], "cache": None, "lm_state": None}
+        tokens = []
+        process = []
+        done = [None for _ in range(final_batch)]
+
+        for i, hyp in enumerate(hyps):
+            str_yseq = "".join([str(x) for x in hyp.yseq])
+
+            if str_yseq in cache:
+                done[i] = (*cache[str_yseq], hyp.yseq)
+            else:
+                tokens.append(hyp.yseq)
+                process.append((str_yseq, hyp.dec_state, hyp.yseq))
+
+        if process:
+            batch = len(tokens)
+
+            tokens = pad_sequence(tokens, self.blank)
+            b_tokens = to_device(self, torch.LongTensor(tokens).view(batch, -1))
+
+            tgt_mask = to_device(
+                self,
+                subsequent_mask(b_tokens.size(-1)).unsqueeze(0).expand(batch, -1, -1),
+            )
+
+            dec_state = self.init_state()
+
+            dec_state = self.create_batch_states(
+                dec_state,
+                [p[1] for p in process],
+                tokens,
+            )
+
+            tgt = self.embed(b_tokens)
+
+            next_state = []
+            for s, decoder in zip(dec_state, self.decoders):
+                tgt, tgt_mask = decoder(tgt, tgt_mask, cache=s)
+                next_state.append(tgt)
+
+            tgt = self.after_norm(tgt[:, -1])
+
+        j = 0
+        for i in range(final_batch):
+            if done[i] is None:
+                new_state = self.select_state(next_state, j)
+
+                done[i] = (tgt[j], new_state, process[j][2])
+                cache[process[j][0]] = (tgt[j], new_state)
+
+                j += 1
+
+        batch_states = self.create_batch_states(
+            batch_states, [d[1] for d in done], [d[2] for d in done]
+        )
+        batch_y = torch.stack([d[0] for d in done])
+
+        lm_tokens = to_device(
+            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch)
+        )
+
+        return batch_y, batch_states, lm_tokens
+
+    def select_state(self, batch_states, idx):
+        """Get decoder state from batch of states, for given id.
+
+        Args:
+            batch_states (list): batch of decoder states
+                [L x (B, max_len, dec_dim)]
+            idx (int): index to extract state from batch of states
+
+        Returns:
+            state_idx (list): decoder states for given id
+                [L x (1, max_len, dec_dim)]
+
+        """
+        if batch_states[0] is not None:
+            state_idx = [
+                batch_states[layer][idx] for layer in range(len(self.decoders))
             ]
         else:
-            kept_hyps = [{"score": 0.0, "yseq": [self.blank], "cache": None}]
+            state_idx = batch_states
 
-        for i, hi in enumerate(h):
-            hyps = kept_hyps
-            kept_hyps = []
+        return state_idx
 
-            while True:
-                new_hyp = max(hyps, key=lambda x: x["score"])
-                hyps.remove(new_hyp)
+    def create_batch_states(self, batch_states, l_states, l_tokens):
+        """Create batch of decoder states.
 
-                ys = to_device(self, torch.tensor(new_hyp["yseq"]).unsqueeze(0))
-                ys_mask = to_device(
-                    self, subsequent_mask(len(new_hyp["yseq"])).unsqueeze(0)
+        Args:
+            batch_states (list): batch of decoder states
+                [L x (B, max_len, dec_dim)]
+            l_states (list): list of decoder states
+                [B x [L x (1, max_len, dec_dim)]]
+            l_tokens (list): list of token sequences for batch
+
+        Returns:
+            batch_states (list): batch of decoder and attention states
+                [L x (B, max_len, dec_dim)]
+
+        """
+        if batch_states[0] is not None:
+            max_len = max([len(t) for t in l_tokens])
+
+            for layer in range(len(self.decoders)):
+                batch_states[layer] = pad_batch_state(
+                    [s[layer] for s in l_states], max_len, self.blank
                 )
-                y, c = self.forward_one_step(ys, ys_mask, new_hyp["cache"])
 
-                ytu = torch.log_softmax(self.joint(hi, y[0]), dim=0)
-
-                if rnnlm:
-                    rnnlm_state, rnnlm_scores = rnnlm.predict(
-                        new_hyp["lm_state"], ys[:, -1]
-                    )
-
-                for k in six.moves.range(self.odim):
-                    beam_hyp = {
-                        "score": new_hyp["score"] + float(ytu[k]),
-                        "yseq": new_hyp["yseq"][:],
-                        "cache": new_hyp["cache"],
-                    }
-
-                    if rnnlm:
-                        beam_hyp["lm_state"] = new_hyp["lm_state"]
-
-                    if k == self.blank:
-                        kept_hyps.append(beam_hyp)
-                    else:
-                        beam_hyp["yseq"].append(int(k))
-                        beam_hyp["cache"] = c
-
-                        if rnnlm:
-                            beam_hyp["lm_state"] = rnnlm_state
-                            beam_hyp["score"] += (
-                                recog_args.lm_weight * rnnlm_scores[0][k]
-                            )
-
-                        hyps.append(beam_hyp)
-
-                if len(kept_hyps) >= k_range:
-                    break
-
-        if normscore:
-            nbest_hyps = sorted(
-                kept_hyps, key=lambda x: x["score"] / len(x["yseq"]), reverse=True
-            )[:nbest]
-        else:
-            nbest_hyps = sorted(kept_hyps, key=lambda x: x["score"], reverse=True)[
-                :nbest
-            ]
-
-        return nbest_hyps
+        return batch_states

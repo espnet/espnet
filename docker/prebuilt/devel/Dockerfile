@@ -18,21 +18,25 @@ WORKDIR /espnet/tools
 # Disable cupy test
 # Docker build does not load libcuda.so.1
 # Replace nvidia-smi for nvcc because docker does not load nvidia-smi
-RUN if [ -z "$( nvcc -V )" ]; then \
+RUN if [ -z "$( which nvcc )" ]; then \
         echo "Build without CUDA" && \
-        MY_OPTS="CUPY_VERSION="; \
+        MY_OPTS='CUPY_VERSION=""  TH_VERSION=1.6.0'; \
     else \
         echo "Build with CUDA" && \
+        # Docker containers cannot load cuda libs during build.
+        # So, their checks on cuda packages are disabled.
+        sed -i '200s|install.py|install.py --no-cuda --no-cupy |' Makefile && \
         export CFLAGS="-I${CUDA_HOME}/include ${CFLAGS}" && \
         MY_OPTS="CUDA_VERSION=${CUDA_VER}" && \
-        sed -i 's|_install.py|_install.py --no-cuda|g' Makefile && \
-        sed -i 's|which nvidia-smi|which nvcc|g' Makefile;  \
+        . ./setup_cuda_env.sh /usr/local/cuda;  \
     fi; \ 
     if [ "${CUDA_VER}" = "10.1" ]; then \
-        # Pytorch 1.3.1 is not supported by warpctc
-        MY_OPTS="${MY_OPTS} TH_VERSION=1.3.1";  \
+        # warpctc is not supported from Pytorch 1.3.1
+        MY_OPTS="${MY_OPTS} TH_VERSION=1.6.0";  \
     fi; \
-    echo "Make with options ${MY_OPTS}"; \
+    echo "Make with options ${MY_OPTS}" && \
+    ln -s /kaldi ./ && \
+    ./setup_anaconda.sh /miniconda espnet 3.7.4 && \
     make KALDI=/kaldi ${MY_OPTS}
 
 RUN rm -rf ../espnet

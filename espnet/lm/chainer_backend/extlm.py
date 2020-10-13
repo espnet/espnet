@@ -3,8 +3,6 @@
 # Copyright 2018 Mitsubishi Electric Research Laboratories (Takaaki Hori)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from __future__ import division
-from __future__ import print_function
 
 import math
 

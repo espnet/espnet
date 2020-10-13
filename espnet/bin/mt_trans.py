@@ -112,14 +112,6 @@ def get_parser():
         default=0.0,
         help="Input length ratio to obtain min output length",
     )
-    # rnnlm related
-    parser.add_argument(
-        "--rnnlm", type=str, default=None, help="RNNLM model file to read"
-    )
-    parser.add_argument(
-        "--rnnlm-conf", type=str, default=None, help="RNNLM model config file to read"
-    )
-    parser.add_argument("--lm-weight", type=float, default=0.0, help="RNNLM weight")
     # multilingual related
     parser.add_argument(
         "--tgt-lang",

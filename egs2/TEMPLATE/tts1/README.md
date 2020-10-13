@@ -24,6 +24,7 @@ This is a template of TTS recipe for ESPnet2.
     * [Single speaker model](#single-speaker-model)
     * [Multi speaker model](#multi-speaker-model)
   * [FAQ](#faq)
+    * [ESPnet1 model is compatible with ESPnet2?](#espnet1-model-is-compatible-with-espnet2)
     * [How to change minibatch size in training?](#how-to-change-minibatch-size-in-training)
     * [How to make a new recipe for my own dataset?](#how-to-make-a-new-recipe-for-my-own-dataset)
     * [How to add a new g2p module?](#how-to-add-a-new-g2p-module)
@@ -34,6 +35,9 @@ This is a template of TTS recipe for ESPnet2.
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
     * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
+    * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
+    * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
+    * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
 
 ## Recipe flow
 
@@ -247,21 +251,25 @@ The use of `--write_collected_feats` is optional but it helps to accelerate the 
 
 You can change via `--g2p` option in `tts.sh`.
 
+- `none`: Just separate by space
+    - e.g.: `HH AH0 L OW1 <space> W ER1 L D` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
-    - e.g. `Hello World` -> `HH AH0 L OW1 <space> W ER1 L D`
+    - e.g. `Hello World` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en_no_space`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
     - Same G2P but do not use word separator
-    - e.g. `Hello World` -> `HH AH0 L OW1 W ER1 L D`
+    - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - e.g. `こんにちは` -> `k o N n i ch i w a`
+    - e.g. `こんにちは` -> `[k, o, N, n, i, ch, i, w, a]`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Use kana instead of phoneme
-    - e.g. `こんにちは` -> `コンニチワ`
+    - e.g. `こんにちは` -> `[コ, ン, ニ, チ, ワ]`
 - `pypinyin`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `ka3 er3 pu3 pei2 wai4 sun1 wan2 hua2 ti1 。`
+    - e.g. `卡尔普陪外孙玩滑梯。` -> `[ka3, er3, pu3, pei2, wai4, sun1, wan2, hua2, ti1, 。]`
 - `pypinyin_phone`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
     - Separate into first and last parts
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `k a3 er3 p u3 p ei2 wai4 s un1 uan2 h ua2 t i1 。`
+    - e.g. `卡尔普陪外孙玩滑梯。` -> `[k, a3, er3, p, u3, p, ei2, wai4, s, un1, uan2, h, ua2, t, i1, 。]`
+
+You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 
 ## Supported text cleaner
 
@@ -272,6 +280,8 @@ You can change via `--cleaner` option in `tts.sh`.
     - e.g.`"(Hello-World);  & jr. & dr."` ->`HELLO WORLD, AND JUNIOR AND DOCTOR`
 - `jaconv`: [kazuhikoarase/jaconv](https://github.com/kazuhikoarase/jaconv)
     - e.g. `”あらゆる”　現実を　〜　’すべて’ 自分の　ほうへ　ねじ曲げたのだ。"` -> `"あらゆる" 現実を ー \'すべて\' 自分の ほうへ ねじ曲げたのだ。`
+
+You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_cleaner.py).
 
 ## Supported Models
 
@@ -299,6 +309,10 @@ You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning
 
 ## FAQ
 
+### ESPnet1 model is compatible with ESPnet2?
+
+No. We cannot use the ESPnet1 model in ESPnet2.
+
 ### How to change minibatch size in training?
 
 See [change mini-batch type](https://espnet.github.io/espnet/espnet2_training_option.html#change-mini-batch-type).
@@ -312,13 +326,13 @@ See [how to make/port new recipe](https://github.com/espnet/espnet/tree/master/e
 
 ### How to add a new `g2p` module?
 
-Update `espnet2/text/phoneme_tokenizer.py` to add new module.
-Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` and `espnet2/tasks/tts.py`.
+Update [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) to add new module.
+Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L226-L240) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L180-L194).
 
 ### How to add a new `cleaner` module?
 
-Update `espnet2/text/cleaner.py` to add new module.
-Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` and `espnet2/tasks/tts.py`.
+Update [`espnet2/text/cleaner.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/cleaner.py) to add new module.
+Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L219-L225) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L173-L179).
 
 ### How to use trained model in python?
 
@@ -345,3 +359,41 @@ Under construction.
 ### How to test my model with an arbitrary given text?
 
 See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+
+### How to handle the errors in `validate_data_dir.sh`?
+
+> utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line
+
+This is caused by the recent change in kaldi.
+We recommend modifying the following part in `utils/validate_data_dir.sh` to be `non_print=true`.
+
+https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
+
+> utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces  
+> utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)
+
+The use of zenkaku whitespace in `text` is not allowed.
+Please changes it to hankaku whitespace or the other symbol.
+
+### Why the model generate meaningless speech at the end?
+
+This is because the model failed to predict the stop token.
+There are several solutions to solve this issue:
+
+- Use attention constraint in the inference (`use_attention_constraint=True` in inference config, only for Tacotron 2).
+- Train the model with a large `bce_pos_weight` (e.g., `bce_pos_weight=10.0`).
+- Use non-autoregressive models (FastSpeech or FastSpeech2)
+
+### Why the model cannot be trained well with my own dataset?
+
+The most of the problems are caused by the bad cleaning of the dataset.
+Please check the following items carefully:
+
+- Remove the silence at the beginning and end of the speech.
+- Separate speech if it contains a long silence at the middle of speech.
+- Use phonemes instead of characters if G2P is available.
+- Clean the text as possible as you can (abbreviation, number, etc...)
+- Add the pose symbol in text if the speech contains the silence.
+- If the dataset is small, please consider the use of adaptation with pretrained model.
+- If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
+- Check the attention plot during the training. Loss value is not so meaningfull in TTS.

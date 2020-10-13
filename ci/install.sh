@@ -15,7 +15,7 @@ ${CXX:-g++} -v
     if ${USE_CONDA}; then
         ./setup_anaconda.sh venv espnet ${ESPNET_PYTHON_VERSION}
     else
-        ./setup_python.sh $(which python3) venv
+        ./setup_python.sh "$(which python3)" venv
     fi
     make TH_VERSION="${TH_VERSION}"
 

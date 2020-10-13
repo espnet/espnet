@@ -26,10 +26,10 @@ class CTC(torch.nn.Module):
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.probs = None  # for visualization
 
-        # In case of Pytorch >= 1.4.0, CTC will be always builtin
+        # In case of Pytorch >= 1.7.0, CTC will be always builtin
         self.ctc_type = (
             ctc_type
-            if LooseVersion(torch.__version__) < LooseVersion("1.4.0")
+            if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
             else "builtin"
         )
         if ctc_type != self.ctc_type:
@@ -109,8 +109,8 @@ class CTC(torch.nn.Module):
             ys_hat = ys_hat.to(dtype=torch.float32)
         if self.ctc_type == "builtin":
             # use GPU when using the cuDNN implementation
-            ys_true = to_device(self, ys_true)
-        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
+            ys_true = to_device(hs_pad, ys_true)
+        self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
             dtype=dtype
         )
         if self.reduce:

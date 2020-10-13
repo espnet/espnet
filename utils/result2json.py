@@ -4,8 +4,6 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #           2018 Xuankai Chang (Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import argparse
 import codecs
