@@ -34,9 +34,12 @@ class CustomEncoder(AbsEncoder):
         self,
         input_size: int,
         architecture: List[Dict[str, Any]] = None,
+        positional_encoding_type: str = "abs_pos",
+        positionwise_type: str = "linear",
+        self_attention_type: str = "self_attn",
         repeat: int = 0,
-        transformer_concat_after=True,
-        transformer_normalize_before=True,
+        concat_after=True,
+        normalize_before=True,
         padding_idx: int = -1,
     ):
         assert check_argument_types()
@@ -47,11 +50,17 @@ class CustomEncoder(AbsEncoder):
         ), f'{"Architecture configuration for custom model is mandatory."}'
 
         self.embed, self.encoders, self._output_size = build_encoder(
-            input_size, architecture, repeat=repeat, padding_idx=padding_idx
+            input_size,
+            architecture,
+            positional_encoding_type=positional_encoding_type,
+            positionwise_type=positionwise_type,
+            self_attention_type=self_attention_type,
+            repeat=repeat,
+            padding_idx=padding_idx,
         )
 
-        self.concat_after = transformer_concat_after
-        self.normalize_before = transformer_normalize_before
+        self.concat_after = concat_after
+        self.normalize_before = normalize_before
 
         if self.normalize_before:
             self.after_norm = LayerNorm(self._output_size)

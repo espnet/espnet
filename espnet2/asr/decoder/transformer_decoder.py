@@ -534,6 +534,9 @@ class CustomDecoder(BaseTransformerDecoder):
         vocab_size: int,
         encoder_output_size: int,
         architecture: List[Dict[str, Any]] = None,
+        positional_encoding_type: str = "abs_pos",
+        positionwise_type: str = "linear",
+        self_attention_type: str = "self_attn",
         repeat: int = 0,
         normalize_before: bool = True,
         use_output_layer: bool = True,
@@ -552,7 +555,13 @@ class CustomDecoder(BaseTransformerDecoder):
         ), f'{"Architecture configuration for custom model is mandatory."}'
 
         self.embed, self.decoders, output_size = build_decoder(
-            vocab_size, architecture, repeat=repeat, padding_idx=padding_idx
+            vocab_size,
+            architecture,
+            positional_encoding_type=positional_encoding_type,
+            positionwise_type=positionwise_type,
+            self_attention_type=self_attention_type,
+            repeat=repeat,
+            padding_idx=padding_idx,
         )
 
         if self.normalize_before:

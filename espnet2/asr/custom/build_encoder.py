@@ -218,7 +218,7 @@ def build_encoder(
     input_size: int,
     architecture: List[Dict[str, Any]],
     positional_encoding_type: str = "abs_pos",
-    positionwise_layer_type: str = "linear",
+    positionwise_type: str = "linear",
     self_attention_type: str = "self_attn",
     repeat: int = 0,
     padding_idx: int = -1,
@@ -242,7 +242,7 @@ def build_encoder(
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type
     )
-    pw_class = get_positionwise_class(positionwise_layer_type)
+    pw_class = get_positionwise_class(positionwise_type)
     self_att_class = get_self_attention_class(self_attention_type)
     arch_classes = (pos_enc_class, pw_class, self_att_class)
 
