@@ -238,13 +238,30 @@ def test_TransformerDecoder_batch_beam_search(
         },
     ],
 )
+@pytest.mark.parametrize(
+    "main_classes",
+    [
+        {
+            "positional_encoding_type": "abs_pos",
+            "positionwise_type": "linear",
+            "self_attention_type": "self_attn",
+        },
+        {
+            "positional_encoding_type": "scaled_abs_pos",
+            "positionwise_type": "conv1d",
+            "self_attention_type": "self_attn",
+        },
+    ],
+)
 @pytest.mark.parametrize("repeat", [0, 2])
-def test_CustomDecoder_forward_backward(input_layer, inter_layer, body_layer, repeat):
+def test_CustomDecoder_forward_backward(
+    input_layer, inter_layer, body_layer, main_classes, repeat
+):
     if inter_layer is None:
         architecture = [input_layer, body_layer]
     else:
         architecture = [input_layer, inter_layer, body_layer]
-    decoder = CustomDecoder(10, 12, architecture, repeat=repeat)
+    decoder = CustomDecoder(10, 12, architecture, **main_classes, repeat=repeat)
 
     x = torch.randn(2, 9, 12)
     x_lens = torch.tensor([9, 7], dtype=torch.long)
