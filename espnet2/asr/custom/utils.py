@@ -30,7 +30,6 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 
 
 def config_verification(
-    input_size: int,
     supported_layers: Dict[str, Dict[str, Union[Tuple[str, str], str]]],
     architecture: List[Dict[str, Any]],
     repeat: int,
@@ -40,7 +39,6 @@ def config_verification(
     If the specified architecture is valid, return last layer output dimension
 
     Args:
-        input_size: Input dimension
         supported_layers: Set of layers types and expected parameters
         architecture: Architecture configuration
         repeat: Number of times specified architecture (minus input layer)
@@ -59,22 +57,25 @@ def config_verification(
 
         if layer_type in supported_layers[part]:
             params = supported_layers[part][layer_type]
-            if isinstance(params, str):
-                _io = (conf[params], conf[params])
-                params = {params}
-            else:
-                _io = (conf[params[0]], conf[params[1]])
-                params = set(params)
 
-            if not params.issubset(conf):
+            set_params = {params} if isinstance(params, str) else set(params)
+
+            if not set_params.issubset(conf):
                 raise ValueError(
                     "Layer "
                     + str(i)
                     + ", "
                     + layer_type
                     + ": Mandatory parameters are: "
-                    + str(params)
+                    + str(set_params)
                 )
+
+            _io = (
+                (conf[params[0]], conf[params[1]])
+                if isinstance(params, tuple)
+                else (conf[params], conf[params])
+            )
+
         else:
             raise NotImplementedError(
                 "Layer "
@@ -108,7 +109,7 @@ def config_verification(
     return check_io[-1][1]
 
 
-def get_positionwise_class(positionwise_layer_type: str) -> torch.nn.Module:
+def get_positionwise_class(positionwise_type: str) -> torch.nn.Module:
     """Get positionwise layer class.
 
     Args:
@@ -118,18 +119,19 @@ def get_positionwise_class(positionwise_layer_type: str) -> torch.nn.Module:
         positionwise_layer: Positionwise layer class
 
     """
-    if positionwise_layer_type == "linear":
-        positionwise_layer = PositionwiseFeedForward
-    elif positionwise_layer_type == "conv1d":
-        positionwise_layer = MultiLayeredConv1d
-    elif positionwise_layer_type == "conv1d-linear":
-        positionwise_layer = Conv1dLinear
+    if positionwise_type == "linear":
+        positionwise_class = PositionwiseFeedForward
+    elif positionwise_type == "conv1d":
+        positionwise_class = MultiLayeredConv1d
+    elif positionwise_type == "conv1d-linear":
+        positionwise_class = Conv1dLinear
     else:
         raise NotImplementedError(
-            "'positionwise_layer_type' argument only support 'linear' yet."
+            "positionwise_layer_type only supports 'conv1d', "
+            "'conv1d-linear' and 'linear'. Specified: " + positionwise_type
         )
 
-    return positionwise_layer
+    return positionwise_class
 
 
 def get_positional_encoding_class(
@@ -155,7 +157,8 @@ def get_positional_encoding_class(
         positional_encoding_class = RelPositionalEncoding
     else:
         raise NotImplementedError(
-            "Invalid positional_encoding_type: " + positional_encoding_type
+            "positional_encoding_type only supports': 'abs_pos', "
+            "'scaled_pos' and 'rel_pos'. Specified: " + positional_encoding_type
         )
 
     return positional_encoding_class
@@ -172,15 +175,16 @@ def get_self_attention_class(self_attention_type: str) -> torch.nn.Module:
 
     """
     if self_attention_type == "self_attn":
-        self_attn_class = MultiHeadedAttention
+        self_attention_class = MultiHeadedAttention
     elif self_attention_type == "rel_self_attn":
-        self_attn_class = RelPositionMultiHeadedAttention
+        self_attention_class = RelPositionMultiHeadedAttention
     else:
         raise NotImplementedError(
-            "self_attn_type should be either 'self_attn' or 'rel_self_attn'"
+            "self_attention_type only supports': 'abs_pos', "
+            "'scaled_pos' and 'rel_pos'. Specified: " + self_attention_type
         )
 
-    return self_attn_class
+    return self_attention_class
 
 
 def get_lightweight_dynamic_convolution_class(layer_type: str) -> torch.nn.Module:
