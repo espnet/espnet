@@ -189,7 +189,6 @@ def build_input_layer(
     positional_encoding,
     hidden_size: int = 320,
     layer_type: str = "embed",
-    use_positional_encoding: bool = True,
     dropout_rate: float = 0.0,
     positional_encoding_dropout_rate: float = 0.0,
     padding_idx: int = -1,
@@ -197,12 +196,7 @@ def build_input_layer(
     """Build input layer."""
     assert check_argument_types()
 
-    if use_positional_encoding:
-        pos_enc_class = positional_encoding(
-            hidden_size, positional_encoding_dropout_rate
-        )
-    else:
-        pos_enc_class = None
+    pos_enc = positional_encoding(hidden_size, positional_encoding_dropout_rate)
 
     if layer_type == "linear":
         embed = torch.nn.Sequential(
@@ -210,23 +204,21 @@ def build_input_layer(
             torch.nn.LayerNorm(hidden_size),
             torch.nn.Dropout(dropout_rate),
             torch.nn.ReLU(),
-            pos_enc_class,
+            pos_enc,
         )
     elif layer_type == "conv2d":
-        embed = Conv2dSubsampling(input_size, hidden_size, dropout_rate, pos_enc_class)
+        embed = Conv2dSubsampling(input_size, hidden_size, dropout_rate, pos_enc)
     elif layer_type == "conv2d6":
-        embed = Conv2dSubsampling6(input_size, hidden_size, dropout_rate, pos_enc_class)
+        embed = Conv2dSubsampling6(input_size, hidden_size, dropout_rate, pos_enc)
     elif layer_type == "conv2d8":
-        embed = Conv2dSubsampling8(input_size, hidden_size, dropout_rate, pos_enc_class)
+        embed = Conv2dSubsampling8(input_size, hidden_size, dropout_rate, pos_enc)
     elif layer_type == "vgg2l":
-        embed = VGG2L(input_size, hidden_size, dropout_rate, pos_enc_class)
+        embed = VGG2L(input_size, hidden_size, dropout_rate, pos_enc)
     elif layer_type == "embed":
         embed = torch.nn.Sequential(
             torch.nn.Embedding(input_size, hidden_size, padding_idx=padding_idx),
-            pos_enc_class,
+            pos_enc,
         )
-    elif layer_type is None:
-        embed = torch.nn.Sequential(pos_enc_class)
 
     return embed
 
@@ -252,9 +244,7 @@ def build_encoder(
         padding_idx: Index for embedding padding
 
     """
-    output_size = config_verification(
-        input_size, supported_layers, architecture, repeat
-    )
+    output_size = config_verification(supported_layers, architecture, repeat)
 
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type

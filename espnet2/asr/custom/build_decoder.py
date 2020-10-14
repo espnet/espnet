@@ -41,7 +41,7 @@ supported_layers = {
 
 
 def build_lightweight_dynamic_convolution_layer(
-    lightweight_dynamic_convolution,
+    lightweight_dynamic_convolution_type,
     positional_encoding,
     positionwise,
     self_attention,
@@ -63,6 +63,9 @@ def build_lightweight_dynamic_convolution_layer(
     """Build lightweight/dynamic convolution layer."""
     assert check_argument_types()
 
+    lightweight_dynamic_convolution = get_lightweight_dynamic_convolution_class(
+        lightweight_dynamic_convolution_type
+    )
     positionwise_activation = get_activation(positionwise_activation_type)
 
     if getattr(positionwise, "__name__", None) == PositionwiseFeedForward.__name__:
@@ -212,10 +215,6 @@ def build_input_layer(
             torch.nn.Embedding(input_size, hidden_size, padding_idx=padding_idx),
             positional_encoding(hidden_size, positional_encoding_dropout_rate),
         )
-    elif layer_type is None:
-        embed = torch.nn.Sequential(
-            positional_encoding(hidden_size, positional_encoding_dropout_rate)
-        )
 
     return embed
 
@@ -226,7 +225,6 @@ def build_decoder(
     positional_encoding_type: str = "abs_pos",
     positionwise_type: str = "linear",
     self_attention_type: str = "self_attn",
-    lightweight_dynamic_convolution_type: str = "lightweight_conv",
     repeat: int = 0,
     padding_idx: Optional[int] = None,
 ) -> Union[torch.nn.Module, MultiSequential, int]:
@@ -238,25 +236,17 @@ def build_decoder(
         positional_encoding_type: 'abs_pos', 'scaled_abs_pos', 'rel_pos'
         positionwise_type: 'linear', 'conv1d', 'conv1d-linear'
         self_attention_type: 'self_attn', 'rel_self_attn'
-        lightweight_dynamic_convolution_type:
-            'lightweight_conv', 'dynamic_conv',
-            'lightweight_conv2d', 'dynamic_conv2d'
         repeat: Number of times specified architecture should be repeated
         padding_idx: Index for embedding padding
 
     """
-    output_size = config_verification(
-        input_size, supported_layers, architecture, repeat
-    )
+    output_size = config_verification(supported_layers, architecture, repeat)
 
     pos_enc_class = get_positional_encoding_class(
         positional_encoding_type, self_attention_type
     )
     pw_class = get_positionwise_class(positionwise_type)
     self_att_class = get_self_attention_class(self_attention_type)
-    ld_conv_class = get_lightweight_dynamic_convolution_class(
-        lightweight_dynamic_convolution_type
-    )
     arch_classes = (pos_enc_class, pw_class, self_att_class)
 
     input_layer = build_input_layer(
@@ -274,7 +264,7 @@ def build_decoder(
             module = build_transformer_layer(*arch_classes, **layer_args)
         elif layer_type.startswith(("lightweight", "dynamic")):
             module = build_lightweight_dynamic_convolution_layer(
-                ld_conv_class, *arch_classes, **layer_args
+                layer_type, *arch_classes, **layer_args
             )
 
         architecture_modules.append(module)
