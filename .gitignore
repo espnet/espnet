@@ -57,6 +57,7 @@ tools/sentencepiece/
 tools/swig/
 tools/warp-ctc/
 tools/warp-transducer/
+tools/warp-rnnt/
 tools/*.done
 tools/PESQ*
 tools/hts_engine_API*
