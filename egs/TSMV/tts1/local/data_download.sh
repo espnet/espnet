@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 db=$1
+download_url=...
 
 # check arguments
 if [ $# != 1 ]; then
@@ -13,17 +14,10 @@ fi
 
 # download dataset
 cwd=$(pwd)
-if [ ! -e ${db}/CSMSC ]; then
+if [ ! -e ${db}/TSMV ]; then
     mkdir -p ${db}
-    cd ${db}
-    wget https://weixinxcxdb.oss-cn-beijing.aliyuncs.com/gwYinPinKu/BZNSYP.rar
-    mkdir CSMSC && cd CSMSC && unrar x ../BZNSYP.rar
-    # convert new line code
-    find ./PhoneLabeling -name "*.interval" | while read -r line; do
-        nkf -Lu -w --overwrite ${line}
-    done
-    rm ../BZNSYP.rar
-    cd ${cwd}
+    ./download_from_google_drive.sh ${download_url} ${db} zip
+    rm ${db}/*.zip
     echo "Successfully finished download."
 else
     echo "Already exists. Skip download."
