@@ -1,6 +1,5 @@
 # RNN-Transducer (enc: 4 x BLSTMP, dec: 1 x LSTM)
 
-
 - Environments
   - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
@@ -11,7 +10,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1KtzW_F4escMuUTvTT41J-Bzdf4tiFBDn
   - training config file: `conf/tuning/transducer/train_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -75,7 +74,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to rnn_transducer_att.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1dmH07AxYYmJq1mLhMxPfRHl1R_LqaY79
   - training config file: `conf/tuning/transducer/train_transducer_att.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -139,7 +138,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to transformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1qGGTCbZGGTbkj3A22C-ornRw5Gsf7rLy
   - training config file: `conf/tuning/transducer/train_transformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -203,7 +202,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to transformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1DbxunJLXFCczYf1BuSserirhAOTY8qmo
   - training config file: `conf/tuning/transducer/train_transformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -267,7 +266,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to tdnn_transformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1Fds3PYJtSCXmvZuNDNaWCud-FWquFomH
   - training config file: `conf/tuning/transducer/train_custom_tt.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -331,7 +330,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to conformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1AoQyTlFixQvf3KO3Da8EiSW33-KjH4if
   - training config file: `conf/tuning/transducer/train_conformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -395,7 +394,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1pIVZAd3P1eyYR-yH-mCg64hpUoRm8lxG
   - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -459,7 +458,7 @@
   - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1xFizgC6k9r4-UkcAk7TRFB7bkUt4L2Bd
   - training config file: `conf/tuning/transducer/train_custom_ct.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
