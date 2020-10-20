@@ -1,4 +1,4 @@
-# Conformer: feats=raw, n_fft=512, hop_length=128
+# Conformer + specaug + speed perturbation: feats=raw, n_fft=512, hop_length=128
 ## Environments
 - date: `Fri Oct 16 11:10:17 JST 2020`
 - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
@@ -45,7 +45,7 @@
 |decode_asr_rnn_lm_lm_train_lm_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|95.2|4.7|0.1|0.1|4.9|36.5|
 
 
-# Transformer: feats=raw with same LM with the privious setting
+# Transformer + speed perturbation: feats=raw with same LM with the privious setting
 
 I compared between `n_fft=512, hop_length=128`, `n_fft=400, hop_length=160`,  and `n_fft=512, hop_length=256`
 with searching the best `batch_bins` to get the suitable configuration for each hop_length.
@@ -113,7 +113,7 @@ asr_train_asr_transformer2_raw_char_frontend_confn_fft512_frontend_confhop_lengt
 |decode_asr_rnn_lm_lm_train_lm_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|93.3|6.5|0.2|0.1|6.8|45.8|
 
 
-# Transformer: feats=fbank_pitch, RNN-LM
+# Transformer + speed perturbation: feats=fbank_pitch, RNN-LM
 Compatible setting with espnet1 to reproduce the previou result
 
 ## Environments

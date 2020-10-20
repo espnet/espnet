@@ -52,7 +52,6 @@ optim_conf:
 scheduler: warmuplr
 scheduler_conf:
    warmup_steps: 30000
-num_workers: 4
 
 specaug: specaug
 specaug_conf:
