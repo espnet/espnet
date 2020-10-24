@@ -65,15 +65,18 @@ recog_set="${train_set} ${train_dev} ${test_set}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     # Download the Data
-    # TODO
+   local/download_and_untar.sh local  http://www.openslr.org/resources/92/Pueble-Nahuatl-Manifest.tgz Pueble-Nahuatl-Manifest.tgz
+   local/download_and_untar.sh ${download_dir} http://www.openslr.org/resources/92/Sound-Files-Pueble-Nahuatl.tgz.part0 Sound-Files-Pueble-Nahuatl.tgz.part0 9
+
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     for x in train dev test; do
-        python local/data_prep.py -w $wavdir -t data/${x}_${annotation_id} -m ${annotation_type} -i local/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
+        python local/data_prep.py -w $wavdir -t data/${x}_${annotation_id} -m ${annotation_type} -i local/Pueble-Nahuatl-Manifest/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
         utils/fix_data_dir.sh data/${x}_${annotation_id}
     done
+ 
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
