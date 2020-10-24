@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-train_dev=dev
-test_set=test
+train_set="train"
+train_dev="dev"
+test_sets="dev test"
 
 # Set this to one of ["phn", "char"] depending on your requirement
 trans_type=phn
@@ -17,9 +17,9 @@ inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --token_type ${trans_type} \
-    --train_set "train" \
-    --valid_set "dev" \
-    --test_sets "test dev" \
+    --train_set ${train_set} \
+    --valid_set ${train_dev} \
+    --test_sets ${test_sets} \
     --use_lm false \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
