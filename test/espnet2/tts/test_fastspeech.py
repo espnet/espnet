@@ -4,8 +4,7 @@ import torch
 from espnet2.tts.fastspeech import FastSpeech
 
 
-@pytest.mark.parametrize("postnet_layers", [0, 1])
-@pytest.mark.parametrize("reduction_factor", [1, 2, 3])
+@pytest.mark.parametrize("reduction_factor", [1, 3])
 @pytest.mark.parametrize(
     "spk_embed_dim, spk_embed_integration_type",
     [(None, "add"), (2, "add"), (2, "concat")],
@@ -14,7 +13,6 @@ from espnet2.tts.fastspeech import FastSpeech
 @pytest.mark.parametrize("decoder_type", ["transformer", "conformer"])
 @pytest.mark.parametrize("use_gst", [True, False])
 def test_fastspeech(
-    postnet_layers,
     reduction_factor,
     encoder_type,
     decoder_type,
@@ -31,7 +29,7 @@ def test_fastspeech(
         eunits=4,
         dlayers=1,
         dunits=4,
-        postnet_layers=postnet_layers,
+        postnet_layers=1,
         postnet_chans=4,
         postnet_filts=5,
         reduction_factor=reduction_factor,
@@ -48,6 +46,8 @@ def test_fastspeech(
         gst_conv_stride=2,
         gst_gru_layers=1,
         gst_gru_units=4,
+        use_masking=True,
+        use_weighted_masking=False,
     )
 
     inputs = dict(

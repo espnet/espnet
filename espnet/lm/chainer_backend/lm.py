@@ -6,8 +6,6 @@
 # This code is ported from the following implementation written in Torch.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
 
-from __future__ import division
-from __future__ import print_function
 
 import copy
 import json

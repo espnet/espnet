@@ -37,7 +37,7 @@ ENV CUDA_HOME /usr/local/cuda
 
 ## FROM CUDA 10.1 runtime [https://gitlab.com/nvidia/cuda/blob/ubuntu18.04/10.1/runtime/Dockerfile]
 
-ENV NCCL_VERSION 2.4.2
+ENV NCCL_VERSION 2.7.8
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         cuda-libraries-$CUDA_PKG_VERSION \
@@ -49,12 +49,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ## FROM CUDA 10.1 devel [https://gitlab.com/nvidia/cuda/blob/ubuntu18.04/10.1/devel/Dockerfile]
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        cuda-libraries-dev-$CUDA_PKG_VERSION \
         cuda-nvml-dev-$CUDA_PKG_VERSION \
-        cuda-minimal-build-$CUDA_PKG_VERSION \
         cuda-command-line-tools-$CUDA_PKG_VERSION \
-        libnccl-dev=$NCCL_VERSION-1+cuda10.1 && \
+        cuda-nvprof-$CUDA_PKG_VERSION \
+        cuda-npp-dev-$CUDA_PKG_VERSION \
+        cuda-libraries-dev-$CUDA_PKG_VERSION \
+        cuda-minimal-build-$CUDA_PKG_VERSION \
+        libcublas-dev=10.2.1.243-1 \
+        libnccl-dev=2.7.8-1+cuda10.1 && \
+    apt-mark hold libnccl-dev &&  \
     rm -rf /var/lib/apt/lists/*
+
+# apt from auto upgrading the cublas package. See https://gitlab.com/nvidia/container-images/cuda/-/issues/88
+RUN apt-mark hold libcublas-dev
+
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 

@@ -16,9 +16,10 @@ from torch import nn
 class MultiHeadedAttention(nn.Module):
     """Multi-Head Attention layer.
 
-    :param int n_head: the number of head s
-    :param int n_feat: the number of features
-    :param float dropout_rate: dropout rate
+    Args:
+        n_head (int): The number of heads.
+        n_feat (int): The number of features.
+        dropout_rate (float): Dropout rate.
 
     """
 
@@ -39,10 +40,15 @@ class MultiHeadedAttention(nn.Module):
     def forward_qkv(self, query, key, value):
         """Transform query, key and value.
 
-        :param torch.Tensor query: (batch, time1, size)
-        :param torch.Tensor key: (batch, time2, size)
-        :param torch.Tensor value: (batch, time2, size)
-        :return torch.Tensor transformed query, key and value
+        Args:
+            query (torch.Tensor): Query tensor (#batch, time1, size).
+            key (torch.Tensor): Key tensor (#batch, time2, size).
+            value (torch.Tensor): Value tensor (#batch, time2, size).
+
+        Returns:
+            torch.Tensor: Transformed query tensor (#batch, n_head, time1, d_k).
+            torch.Tensor: Transformed key tensor (#batch, n_head, time2, d_k).
+            torch.Tensor: Transformed value tensor (#batch, n_head, time2, d_k).
 
         """
         n_batch = query.size(0)
@@ -58,11 +64,14 @@ class MultiHeadedAttention(nn.Module):
     def forward_attention(self, value, scores, mask):
         """Compute attention context vector.
 
-        :param torch.Tensor value: (batch, head, time2, size)
-        :param torch.Tensor scores: (batch, head, time1, time2)
-        :param torch.Tensor mask: (batch, 1, time2) or (batch, time1, time2)
-        :return torch.Tensor transformed `value` (batch, time1, d_model)
-            weighted by the attention score (batch, time1, time2)
+        Args:
+            value (torch.Tensor): Transformed value (#batch, n_head, time2, d_k).
+            scores (torch.Tensor): Attention score (#batch, n_head, time1, time2).
+            mask (torch.Tensor): Mask (#batch, 1, time2) or (#batch, time1, time2).
+
+        Returns:
+            torch.Tensor: Transformed value (#batch, time1, d_model)
+                weighted by the attention score (#batch, time1, time2).
 
         """
         n_batch = value.size(0)
@@ -87,14 +96,18 @@ class MultiHeadedAttention(nn.Module):
         return self.linear_out(x)  # (batch, time1, d_model)
 
     def forward(self, query, key, value, mask):
-        """Compute 'Scaled Dot Product Attention'.
+        """Compute scaled dot product attention.
 
-        :param torch.Tensor query: (batch, time1, size)
-        :param torch.Tensor key: (batch, time2, size)
-        :param torch.Tensor value: (batch, time2, size)
-        :param torch.Tensor mask: (batch, 1, time2) or (batch, time1, time2)
-        :param torch.nn.Dropout dropout:
-        :return torch.Tensor: attention output (batch, time1, d_model)
+        Args:
+            query (torch.Tensor): Query tensor (#batch, time1, size).
+            key (torch.Tensor): Key tensor (#batch, time2, size).
+            value (torch.Tensor): Value tensor (#batch, time2, size).
+            mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
+                (#batch, time1, time2).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time1, d_model).
+
         """
         q, k, v = self.forward_qkv(query, key, value)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
@@ -106,9 +119,10 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
 
     Paper: https://arxiv.org/abs/1901.02860
 
-    :param int n_head: the number of head s
-    :param int n_feat: the number of features
-    :param float dropout_rate: dropout rate
+    Args:
+        n_head (int): The number of heads.
+        n_feat (int): The number of features.
+        dropout_rate (float): Dropout rate.
 
     """
 
@@ -127,8 +141,13 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
     def rel_shift(self, x, zero_triu=False):
         """Compute relative positinal encoding.
 
-        :param torch.Tensor x: (batch, time, size)
-        :param bool zero_triu: return the lower triangular part of the matrix
+        Args:
+            x (torch.Tensor): Input tensor (batch, time, size).
+            zero_triu (bool): If true, return the lower triangular part of the matrix.
+
+        Returns:
+            torch.Tensor: Output tensor.
+
         """
         zero_pad = torch.zeros((*x.size()[:3], 1), device=x.device, dtype=x.dtype)
         x_padded = torch.cat([zero_pad, x], dim=-1)
@@ -145,13 +164,17 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
     def forward(self, query, key, value, pos_emb, mask):
         """Compute 'Scaled Dot Product Attention' with rel. positional encoding.
 
-        :param torch.Tensor query: (batch, time1, size)
-        :param torch.Tensor key: (batch, time2, size)
-        :param torch.Tensor value: (batch, time2, size)
-        :param torch.Tensor pos_emb: (batch, time1, size)
-        :param torch.Tensor mask: (batch, time1, time2)
-        :param torch.nn.Dropout dropout:
-        :return torch.Tensor: attention output  (batch, time1, d_model)
+        Args:
+            query (torch.Tensor): Query tensor (#batch, time1, size).
+            key (torch.Tensor): Key tensor (#batch, time2, size).
+            value (torch.Tensor): Value tensor (#batch, time2, size).
+            pos_emb (torch.Tensor): Positional embedding tensor (#batch, time2, size).
+            mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
+                (#batch, time1, time2).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time1, d_model).
+
         """
         q, k, v = self.forward_qkv(query, key, value)
         q = q.transpose(1, 2)  # (batch, time1, head, d_k)

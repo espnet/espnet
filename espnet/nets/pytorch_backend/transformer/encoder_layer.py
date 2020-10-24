@@ -16,18 +16,20 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 class EncoderLayer(nn.Module):
     """Encoder layer module.
 
-    :param int size: input dim
-    :param espnet.nets.pytorch_backend.transformer.attention.
-        MultiHeadedAttention self_attn: self attention module
-    :param espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.
-        PositionwiseFeedForward feed_forward:
-        feed forward module
-    :param float dropout_rate: dropout rate
-    :param bool normalize_before: whether to use layer_norm before the first block
-    :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied.
-        i.e. x -> x + linear(concat(x, att(x)))
-        if False, no additional linear will be applied. i.e. x -> x + att(x)
+    Args:
+        size (int): Input dimension.
+        self_attn (torch.nn.Module): Self-attention module instance.
+            `MultiHeadedAttention` or `RelPositionMultiHeadedAttention` instance
+            can be used as the argument.
+        feed_forward (torch.nn.Module): Feed-forward module instance.
+            `PositionwiseFeedForward`, `MultiLayeredConv1d`, or `Conv1dLinear` instance
+            can be used as the argument.
+        dropout_rate (float): Dropout rate.
+        normalize_before (bool): Whether to use layer_norm before the first block.
+        concat_after (bool): Whether to concat attention layer's input and output.
+            if True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            if False, no additional linear will be applied. i.e. x -> x + att(x)
 
     """
 
@@ -56,11 +58,15 @@ class EncoderLayer(nn.Module):
     def forward(self, x, mask, cache=None):
         """Compute encoded features.
 
-        :param torch.Tensor x: encoded source features (batch, max_time_in, size)
-        :param torch.Tensor mask: mask for x
-            (batch, 1, max_time_in) or (batch, max_time_in, max_time_in)
-        :param torch.Tensor cache: cache for x (batch, max_time_in - 1, size)
-        :rtype: Tuple[torch.Tensor, torch.Tensor]
+        Args:
+            x_input (torch.Tensor): Input tensor (#batch, time, size).
+            mask (torch.Tensor): Mask tensor for the input (#batch, time).
+            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time, size).
+            torch.Tensor: Mask tensor (#batch, time).
+
         """
         residual = x
         if self.normalize_before:

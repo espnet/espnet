@@ -3,8 +3,6 @@
 
 """Parameter initialization for transducer RNN/Transformer parts."""
 
-import six
-
 from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
 from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
 
@@ -19,8 +17,8 @@ def initializer(model, args):
         args (Namespace): argument Namespace containing options
 
     """
-    if args.dtype != "transformer":
-        if args.etype == "transformer":
+    if "transformer" not in args.dtype:
+        if "transformer" in args.etype:
             initialize(model.encoder, args.transformer_init)
             lecun_normal_init_parameters(model.dec)
         else:
@@ -28,10 +26,10 @@ def initializer(model, args):
 
         model.dec.embed.weight.data.normal_(0, 1)
 
-        for i in six.moves.range(len(model.dec.decoder)):
+        for i in range(len(model.dec.decoder)):
             set_forget_bias_to_one(model.dec.decoder[i].bias_ih)
     else:
-        if args.etype == "transformer":
+        if "transformer" in args.etype:
             initialize(model, args.transformer_init)
         else:
             lecun_normal_init_parameters(model.encoder)

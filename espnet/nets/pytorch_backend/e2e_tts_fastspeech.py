@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -590,7 +587,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         d_masks = make_pad_mask(ilens).to(xs.device)
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, d_outs, ilens, alpha)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, d_outs, alpha)  # (B, Lmax, adim)
         else:
             if ds is None:
                 with torch.no_grad():
@@ -598,7 +595,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                         xs, ilens, ys, olens, spembs
                     )  # (B, Tmax)
             d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, ds)  # (B, Lmax, adim)
 
         # forward decoder
         if olens is not None:

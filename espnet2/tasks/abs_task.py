@@ -171,6 +171,7 @@ class IteratorOptions:
     batch_bins: int
     batch_type: str
     max_cache_size: float
+    max_cache_fd: int
     distributed: bool
     num_batches: Optional[int]
     num_iters_per_epoch: Optional[int]
@@ -695,6 +696,14 @@ class AbsTask(ABC):
             help="The maximum cache size for data loader. e.g. 10MB, 20GB.",
         )
         group.add_argument(
+            "--max_cache_fd",
+            type=int,
+            default=32,
+            help="The maximum number of file descriptors to be kept "
+            "as opened for ark files. "
+            "This feature is only valid when data type is 'kaldi_ark'.",
+        )
+        group.add_argument(
             "--valid_max_cache_size",
             type=humanfriendly_parse_size_or_none,
             default=None,
@@ -1077,6 +1086,7 @@ class AbsTask(ABC):
 
         # 6. Loads pre-trained model
         for p, k in zip(args.pretrain_path, args.pretrain_key):
+            logging.info(f"Loading pretrained params from {p} (key: {k})")
             load_pretrained_model(
                 model=model,
                 # Directly specify the model path e.g. exp/train/loss.best.pt
@@ -1248,6 +1258,7 @@ class AbsTask(ABC):
             batch_bins = args.batch_bins
             batch_type = args.batch_type
             max_cache_size = args.max_cache_size
+            max_cache_fd = args.max_cache_fd
             distributed = distributed_option.distributed
             num_batches = None
             num_iters_per_epoch = args.num_iters_per_epoch
@@ -1276,6 +1287,7 @@ class AbsTask(ABC):
                 max_cache_size = 0.05 * args.max_cache_size
             else:
                 max_cache_size = args.valid_max_cache_size
+            max_cache_fd = args.max_cache_fd
             distributed = distributed_option.distributed
             num_batches = None
             num_iters_per_epoch = None
@@ -1290,6 +1302,7 @@ class AbsTask(ABC):
             batch_size = 1
             batch_bins = 0
             num_batches = args.num_att_plot
+            max_cache_fd = args.max_cache_fd
             # num_att_plot should be a few sample ~ 3, so cache all data.
             max_cache_size = np.inf if args.max_cache_size != 0.0 else 0.0
             # always False because plot_attention performs on RANK0
@@ -1309,6 +1322,7 @@ class AbsTask(ABC):
             batch_bins=batch_bins,
             num_batches=num_batches,
             max_cache_size=max_cache_size,
+            max_cache_fd=max_cache_fd,
             distributed=distributed,
             num_iters_per_epoch=num_iters_per_epoch,
             train=train,
@@ -1386,6 +1400,7 @@ class AbsTask(ABC):
             float_dtype=args.train_dtype,
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -1454,6 +1469,7 @@ class AbsTask(ABC):
             float_dtype=args.train_dtype,
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
