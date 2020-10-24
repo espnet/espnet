@@ -8,13 +8,14 @@ import os
 import sys
 import re
 
-s = ''.join(chr(c) for c in range(sys.maxunicode+1))
-ws = ''.join(re.findall(r'\s', s))
+s = "".join(chr(c) for c in range(sys.maxunicode + 1))
+ws = "".join(re.findall(r"\s", s))
 outtab = " " * len(ws)
 trantab = str.maketrans(ws, outtab)
 delset = string.punctuation
 delset = delset.replace(":", "")
 delset = delset.replace("'", "")
+
 
 def TextRefine(text, text_format):
     text = re.sub("\.\.\.|\*|\[.*?\]", "", text.upper())
@@ -32,8 +33,9 @@ def ExtractAudioID(audioname, wav_spk_info=None):
             if key in audioname:
                 return key
     else:
-      print("ERROR in audioname")
+        print("ERROR in audioname")
     return "error"
+
 
 def XMLRefine(input_xml, output_xml, readable=False):
     """
@@ -46,8 +48,7 @@ def XMLRefine(input_xml, output_xml, readable=False):
         append = "\n"
     else:
         append = ""
-    sample_processing = open(input_xml, "r",
-                             encoding="iso-8859-1")
+    sample_processing = open(input_xml, "r", encoding="iso-8859-1")
     output = open(output_xml, "w", encoding="iso-8859-1")
     stack = ""
     stack_symbol = ""
@@ -103,7 +104,7 @@ def XMLProcessing(transcribe):
                 "name": speaker.getAttribute("name"),
                 "dialect": speaker.getAttribute("dialect"),
                 "scope": speaker.getAttribute("scope"),
-                "accent": speaker.getAttribute("accent")
+                "accent": speaker.getAttribute("accent"),
             }
 
     # process by episode/section/turn/sync
@@ -156,13 +157,17 @@ def XMLProcessing(transcribe):
 
                     if first.isSameNode(sync):
                         if last.isSameNode(sync):
-                            section_list.append([spk, text, start_time, turn.getAttribute("endTime")])
+                            section_list.append(
+                                [spk, text, start_time, turn.getAttribute("endTime")]
+                            )
                         else:
                             section_list.append([spk, text, start_time])
                     else:
                         section_list[-1].append(start_time)
                         if last.isSameNode(sync):
-                            section_list.append([spk, text, start_time, turn.getAttribute("endTime")])
+                            section_list.append(
+                                [spk, text, start_time, turn.getAttribute("endTime")]
+                            )
                         else:
                             section_list.append([spk, text, start_time])
             xml_text.extend(section_list)
@@ -178,7 +183,7 @@ def PackZero(number, size=6):
 
 
 def LoadWavSpeakerInfo(info_file):
-    '''return dict of wav: spk_list'''
+    """return dict of wav: spk_list"""
 
     info_file = open(info_file, "r", encoding="utf-8")
     raw_info = list(map((lambda x: x.split(",")), (info_file.read()).split("\n")))
@@ -188,7 +193,7 @@ def LoadWavSpeakerInfo(info_file):
             continue
         [wav, spk1, spk2] = mapping
         wav_spk_info[wav] = [spk1]
-        if spk2 != '':
+        if spk2 != "":
             wav_spk_info[wav] += [spk2]
     return wav_spk_info
 
@@ -201,7 +206,7 @@ def LoadSpeakerDetails(speaker_details):
         last_name = person.getElementsByTagName("last_name")[0].firstChild.data
         first_name = person.getElementsByTagName("first_name")[0].firstChild.data
         code = person.getElementsByTagName("code")[0].firstChild.data
-        spk_details["%s %s" %(first_name, last_name)] = code
+        spk_details["%s %s" % (first_name, last_name)] = code
     return spk_details
 
 
@@ -210,7 +215,9 @@ def TimeOrderProcess(time_order_dom):
     time_slots = time_order_dom.getElementsByTagName("TIME_SLOT")
     for time_slot in time_slots:
         # convert to second based
-        time_order[time_slot.getAttribute("TIME_SLOT_ID")] = float(time_slot.getAttribute("TIME_VALUE")) / 1000
+        time_order[time_slot.getAttribute("TIME_SLOT_ID")] = (
+            float(time_slot.getAttribute("TIME_VALUE")) / 1000
+        )
     return time_order
 
 
@@ -224,12 +231,15 @@ def ELANProcess(afile, spk_info, spk_details, text_format):
     tiers = elan_content.getElementsByTagName("TIER")
     channels = ([], [])
     for tier in tiers:
-        if tier.getAttribute("LINGUISTIC_TYPE_REF") not in ["UtteranceType", "Transcription"] :
+        if tier.getAttribute("LINGUISTIC_TYPE_REF") not in [
+            "UtteranceType",
+            "Transcription",
+        ]:
             # only consider pure caption
             continue
         try:
             spk_name = " ".join(tier.getAttribute("TIER_ID").strip().split())
-            if text_format == 'surface':
+            if text_format == "surface":
                 if "SURFACE" not in spk_name:
                     continue
                 code = spk_details[spk_name[:-9]]
@@ -266,7 +276,16 @@ def ELANProcess(afile, spk_info, spk_details, text_format):
     return channels
 
 
-def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_data_dir, speaker_details, text_format):
+def TraverseData(
+    sound_dir,
+    annotation_dir,
+    target_dir,
+    mode,
+    speaker_info,
+    new_data_dir,
+    speaker_details,
+    text_format,
+):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -276,7 +295,9 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
     spk2utt = open(os.path.join(target_dir, "spk2utt"), "w", encoding="utf-8")
     text = open(os.path.join(target_dir, "text"), "w", encoding="utf-8")
     name2spk = open(os.path.join(target_dir, "name2spk"), "w", encoding="utf-8")
-    remix_script = open(os.path.join(target_dir, "remix_script.sh"), "w", encoding="utf-8")
+    remix_script = open(
+        os.path.join(target_dir, "remix_script.sh"), "w", encoding="utf-8"
+    )
 
     # get relationship
     sound_files = {}
@@ -285,7 +306,7 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
     spk2utt_prep = {}
     name2spk_prep = {}
 
-    if mode == 'trs':
+    if mode == "trs":
         if not os.path.exists(os.path.join(target_dir, "temp")):
             os.mkdir(os.path.join(target_dir, "temp"))
         audio_set = set()
@@ -296,15 +317,19 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
         for root, dirs, files in os.walk(annotation_dir):
             for file in files:
                 if file[-4:] == ".trs":
-                    XMLRefine(os.path.join(root, file), os.path.join(target_dir, "temp", file))
+                    XMLRefine(
+                        os.path.join(root, file), os.path.join(target_dir, "temp", file)
+                    )
                     annotation_files[file] = os.path.join(target_dir, "temp", file)
         for afile in annotation_files.keys():
             if afile == "error":
                 continue
             try:
-                audio_name, speakers, segment_info = XMLProcessing(annotation_files[afile])
+                audio_name, speakers, segment_info = XMLProcessing(
+                    annotation_files[afile]
+                )
             except:
-                print("error process %s" %annotation_files[afile])
+                print("error process %s" % annotation_files[afile])
             audio_name = audio_name.replace(" ", "")
             audio_name = ExtractAudioID(audio_name)
             if audio_name in audio_set:
@@ -314,16 +339,24 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
                 print("no audio found for annotation: %s" % afile)
                 continue
                 # write wav.scp & segments & text files
-            print("%s sox -t wavpcm %s -c 1 -r 16000 -t wavpcm - |" % (audio_name, sound_files["%s.wav" % audio_name]),
-                  file=wavscp)
+            print(
+                "%s sox -t wavpcm %s -c 1 -r 16000 -t wavpcm - |"
+                % (audio_name, sound_files["%s.wav" % audio_name]),
+                file=wavscp,
+            )
             segment_number = 1
             temp_speaker_id = {}
             for speaker in speakers.keys():
-                name2spk_prep[speakers[speaker]["name"]] = name2spk_prep.get(speakers[speaker]["name"], spk_id)
+                name2spk_prep[speakers[speaker]["name"]] = name2spk_prep.get(
+                    speakers[speaker]["name"], spk_id
+                )
                 # spk2name_prep[speakers[speaker]["name"]] = spk2name_prep.get(speakers[speaker]["name"], [])
                 temp_speaker_id[speaker] = name2spk_prep[speakers[speaker]["name"]]
                 if name2spk_prep[speakers[speaker]["name"]] == spk_id:
-                    print("%s %s" % (speakers[speaker]["name"], PackZero(spk_id)), file=name2spk)
+                    print(
+                        "%s %s" % (speakers[speaker]["name"], PackZero(spk_id)),
+                        file=name2spk,
+                    )
                     spk_id += 1
             for segment in segment_info:
                 # segment: [spk, text, start_time, end_time]
@@ -332,7 +365,11 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
                     spk_id += 1
                 else:
                     spk = temp_speaker_id[segment[0]]
-                segment_id = "%s_%s_%s" % (PackZero(spk), audio_name, PackZero(segment_number))
+                segment_id = "%s_%s_%s" % (
+                    PackZero(spk),
+                    audio_name,
+                    PackZero(segment_number),
+                )
 
                 # skip data error
                 skip = False
@@ -343,7 +380,10 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
                 if skip:
                     continue
 
-                print("%s %s %s %s" % (segment_id, audio_name, segment[2], segment[3]), file=segments)
+                print(
+                    "%s %s %s %s" % (segment_id, audio_name, segment[2], segment[3]),
+                    file=segments,
+                )
                 print("%s %s" % (segment_id, PackZero(spk)), file=utt2spk)
                 print("%s %s" % (segment_id, segment[1]), file=text)
 
@@ -359,11 +399,15 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
         for root, dirs, files in os.walk(sound_dir):
             for file in files:
                 if file[-4:] == ".wav":
-                    sound_files[ExtractAudioID(file, wav_spk_info)] = os.path.join(root, file)
+                    sound_files[ExtractAudioID(file, wav_spk_info)] = os.path.join(
+                        root, file
+                    )
         for root, dirs, files in os.walk(annotation_dir):
             for file in files:
                 if file[-4:] == ".eaf":
-                    annotation_files[ExtractAudioID(file, wav_spk_info)] = os.path.join(root, file)
+                    annotation_files[ExtractAudioID(file, wav_spk_info)] = os.path.join(
+                        root, file
+                    )
         for afile in annotation_files.keys():
             afile_path = annotation_files[afile]
             if afile == "error":
@@ -374,33 +418,66 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
                 continue
             left_channel_segments, right_channel_segments = segment_info
 
-            print("sox -t wavpcm \"%s\" -c 1 -r 16000 -t wavpcm %s-L.wav remix 1"
-                  % (sound_files[afile], os.path.join(new_data_dir, afile)), file=remix_script)
+            print(
+                'sox -t wavpcm "%s" -c 1 -r 16000 -t wavpcm %s-L.wav remix 1'
+                % (sound_files[afile], os.path.join(new_data_dir, afile)),
+                file=remix_script,
+            )
 
-            print("%s-L %s-L.wav" %(afile, os.path.join(new_data_dir, afile)), file=wavscp)
+            print(
+                "%s-L %s-L.wav" % (afile, os.path.join(new_data_dir, afile)),
+                file=wavscp,
+            )
             segment_number = 0
             for segment in left_channel_segments:
                 # segments: start end text
-                segment_id = "%s_%s-L_%s" % (spk_info[0], afile, PackZero(segment_number))
-                print("%s %s-L %s %s" %(segment_id, afile, segment[0], segment[1]), file=segments)
-                print("%s %s" %(segment_id, spk_info[0]), file=utt2spk)
-                print("%s %s" %(segment_id, segment[2]), file=text)
-                spk2utt_prep[spk_info[0]] = spk2utt_prep.get(spk_info[0], "") + " %s" % (segment_id)
+                segment_id = "%s_%s-L_%s" % (
+                    spk_info[0],
+                    afile,
+                    PackZero(segment_number),
+                )
+                print(
+                    "%s %s-L %s %s" % (segment_id, afile, segment[0], segment[1]),
+                    file=segments,
+                )
+                print("%s %s" % (segment_id, spk_info[0]), file=utt2spk)
+                print("%s %s" % (segment_id, segment[2]), file=text)
+                spk2utt_prep[spk_info[0]] = spk2utt_prep.get(
+                    spk_info[0], ""
+                ) + " %s" % (segment_id)
                 segment_number += 1
 
             if len(right_channel_segments) > 0:
-                print("sox -t wavpcm \"%s\" -c 1 -r 16000 -t wavpcm %s-R.wav remix 2"
-                      % (sound_files[afile], os.path.join(new_data_dir, afile)), file=remix_script)
-                print("%s-R %s-R.wav" % (afile, os.path.join(new_data_dir, afile)), file=wavscp)
+                print(
+                    'sox -t wavpcm "%s" -c 1 -r 16000 -t wavpcm %s-R.wav remix 2'
+                    % (sound_files[afile], os.path.join(new_data_dir, afile)),
+                    file=remix_script,
+                )
+                print(
+                    "%s-R %s-R.wav" % (afile, os.path.join(new_data_dir, afile)),
+                    file=wavscp,
+                )
                 for segment in right_channel_segments:
                     # segments: start end text
-                    segment_id = "%s_%s-R_%s" % (spk_info[1], afile, PackZero(segment_number))
-                    print("%s %s-R %s %s" % (segment_id, afile, segment[0], segment[1]), file=segments)
+                    segment_id = "%s_%s-R_%s" % (
+                        spk_info[1],
+                        afile,
+                        PackZero(segment_number),
+                    )
+                    print(
+                        "%s %s-R %s %s" % (segment_id, afile, segment[0], segment[1]),
+                        file=segments,
+                    )
                     print("%s %s" % (segment_id, spk_info[1]), file=utt2spk)
                     print("%s %s" % (segment_id, segment[2]), file=text)
-                    spk2utt_prep[spk_info[1]] = spk2utt_prep.get(spk_info[1], "") + " %s" % (segment_id)
+                    spk2utt_prep[spk_info[1]] = spk2utt_prep.get(
+                        spk_info[1], ""
+                    ) + " %s" % (segment_id)
                     segment_number += 1
-            print("successfully processing %s -- be aware to remix the signal by remix script" % afile)
+            print(
+                "successfully processing %s -- be aware to remix the signal by remix script"
+                % afile
+            )
         for spk in spk2utt_prep.keys():
             print("%s %s" % (spk, spk2utt_prep[spk]), file=spk2utt)
     segments.close()
@@ -411,16 +488,69 @@ def TraverseData(sound_dir, annotation_dir, target_dir, mode, speaker_info, new_
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description='Process Raw data')
-    parser.add_argument('-w', dest="wav_path", type=str, help="wav path", default="/export/c04/jiatong/data/Yoloxochitl-Mixtec-for-ASR/Sound-files-Narratives-for-ASR")
-    parser.add_argument('-a', dest="ann_path", type=str, help="annotation path", default="/export/c04/jiatong/data/Puebla-Nahuatl/0309-archive/Nahuatl-ELAN-proofed_and-Transcriber-proofed-and-unproofed/ELAN/elan_p_272_up_466")
-    parser.add_argument('-t', dest="target_dir", type=str, help='target_dir', default="data/mixtec")
-    parser.add_argument('-i', dest='speaker_info', type=str, help='speaker info file dir', default='local/speaker_wav_mapping_mixtec.csv')
-    parser.add_argument('-m', dest='mode', type=str, help='transcription type', default='eaf', choices=['eaf', 'trs'])
-    parser.add_argument('-n', dest='new_data_dir', type=str, help='new data directory', default='remixed')
-    parser.add_argument('-d', dest='speaker_details', type=str, help='speaker details (i.e. names to code)',
-                        default="local/Puebla-Nahuat-and-Totonac-consultants_for-LDC-archive.xml")
-    parser.add_argument('-f', dest='text_format', type=str, help='text format', default='', choices=['surface', 'underlying_full', 'underlying_reduced', ''])
+    parser = ArgumentParser(description="Process Raw data")
+    parser.add_argument(
+        "-w",
+        dest="wav_path",
+        type=str,
+        help="wav path",
+        default="/export/c04/jiatong/data/Yoloxochitl-Mixtec-for-ASR/Sound-files-Narratives-for-ASR",
+    )
+    parser.add_argument(
+        "-a",
+        dest="ann_path",
+        type=str,
+        help="annotation path",
+        default="/export/c04/jiatong/data/Puebla-Nahuatl/0309-archive/Nahuatl-ELAN-proofed_and-Transcriber-proofed-and-unproofed/ELAN/elan_p_272_up_466",
+    )
+    parser.add_argument(
+        "-t", dest="target_dir", type=str, help="target_dir", default="data/mixtec"
+    )
+    parser.add_argument(
+        "-i",
+        dest="speaker_info",
+        type=str,
+        help="speaker info file dir",
+        default="local/speaker_wav_mapping_mixtec.csv",
+    )
+    parser.add_argument(
+        "-m",
+        dest="mode",
+        type=str,
+        help="transcription type",
+        default="eaf",
+        choices=["eaf", "trs"],
+    )
+    parser.add_argument(
+        "-n",
+        dest="new_data_dir",
+        type=str,
+        help="new data directory",
+        default="remixed",
+    )
+    parser.add_argument(
+        "-d",
+        dest="speaker_details",
+        type=str,
+        help="speaker details (i.e. names to code)",
+        default="local/Puebla-Nahuat-and-Totonac-consultants_for-LDC-archive.xml",
+    )
+    parser.add_argument(
+        "-f",
+        dest="text_format",
+        type=str,
+        help="text format",
+        default="",
+        choices=["surface", "underlying_full", "underlying_reduced", ""],
+    )
     args = parser.parse_args()
-    TraverseData(args.wav_path, args.ann_path, args.target_dir, mode=args.mode, speaker_info=args.speaker_info,
-                 new_data_dir=args.new_data_dir, speaker_details=args.speaker_details, text_format=args.text_format)
+    TraverseData(
+        args.wav_path,
+        args.ann_path,
+        args.target_dir,
+        mode=args.mode,
+        speaker_info=args.speaker_info,
+        new_data_dir=args.new_data_dir,
+        speaker_details=args.speaker_details,
+        text_format=args.text_format,
+    )
