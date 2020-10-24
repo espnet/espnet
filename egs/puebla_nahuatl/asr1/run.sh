@@ -27,6 +27,7 @@ annotation_id=nahuatl_filesplit
 # feature configuration
 do_delta=false
 
+preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -188,6 +189,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
+        --preprocess-conf ${preprocess_config} \
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
