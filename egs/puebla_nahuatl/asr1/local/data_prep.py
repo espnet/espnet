@@ -20,7 +20,7 @@ delset = delset.replace("'", "")
 
 
 def TextRefine(text, text_format):
-    text = re.sub("\.\.\.|\*|\[.*?\]", "", text.upper())
+    text = re.sub(r"\.\.\.|\*|\[.*?\]", "", text.upper())
     delset_specific = delset
     if text_format == "underlying_full":
         remove_clear = "()=-"
