@@ -1,7 +1,7 @@
 # Conformer (large model + specaug + speed perturbation + RNNLM)
 
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: (https://drive.google.com/file/d/1SewBGrDz-ZyOyaCUGfxYeL8eprZXO30J)
     - training config file: `conf/tuning/train_pytorch_conformer_large_kernel15_lr2.0.yaml`
     - decoding config file: `conf/decode.yaml`
     - preprocess config file: `conf/specaug.yaml`
