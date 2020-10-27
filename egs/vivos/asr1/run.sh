@@ -21,8 +21,8 @@ resume=
 # feature configuration
 do_delta=false
 
-train_config=conf/train_mtlalpha1.0.yaml
-decode_config=conf/decode_ctcweight1.0.yaml
+train_config=conf/train.yaml
+decode_config=conf/decode.yaml
 lm_config=conf/lm.yaml
 
 # rmmlm related
