@@ -1,7 +1,7 @@
 # Conformer (elayers=12, dlayers=6, units=2048, 4 GPUs, specaug) + large LM
 
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: https://drive.google.com/file/d/11CN3tPF4MXM6wKdTFo7GjX3TlhhZobk-
     - training config file: `conf/tuning/train_conformer.yaml`
     - decoding config file: `conf/decode.yaml`
     - preprocess config file: `conf/specaug.yaml`
@@ -24,7 +24,6 @@ exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_conformer_specaug/decode_test_deco
 # Transformer (elayers=12, dlayers=6, units=2048, 4 GPUs, specaug) + large LM
 
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
     - training config file: `conf/tuning/train_transformer.yaml`
     - decoding config file: `conf/decode.yaml`
     - preprocess config file: `conf/specaug.yaml`
