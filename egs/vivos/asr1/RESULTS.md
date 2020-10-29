@@ -510,7 +510,27 @@
 |decode_train_dev_decode_tsd|100|927|70.9|29.1|0.0|0.1|29.2|94.0|
 |decode_train_dev_decode_tsd_lm_word7184|100|927|74.0|25.9|0.1|0.3|26.3|92.0|
 
-# pytorch CTC model (4 x BLSTMP)
+# Conformer/Transformer-MTL (enc: Conv2DSubsampling + 8 x Conformer, dec: 2 x Transformer)
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_ctcweight0.3|760|32771|89.4|8.1|2.5|2.2|12.9|90.3|
+|decode_test_decode_ctcweight0.3_lm_word7184|760|32771|91.5|6.1|2.3|2.0|10.4|77.6|
+|decode_train_dev_decode_ctcweight0.3|100|4007|89.8|8.7|1.4|1.8|12.0|94.0|
+|decode_train_dev_decode_ctcweight0.3_lm_word7184|100|4007|90.8|7.4|1.8|1.4|10.6|84.0|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_ctcweight0.3|760|7722|69.1|30.3|0.6|0.4|31.4|90.3|
+|decode_test_decode_ctcweight0.3_lm_word7184|760|7722|78.5|20.6|0.9|0.4|21.9|77.6|
+|decode_train_dev_decode_ctcweight0.3|100|927|68.6|31.4|0.0|0.0|31.4|94.0|
+|decode_train_dev_decode_ctcweight0.3_lm_word7184|100|927|75.4|23.9|0.6|0.0|24.6|84.0|
+
+# RNN-CTC (4 x BLSTMP)
 
 ## CER
 
