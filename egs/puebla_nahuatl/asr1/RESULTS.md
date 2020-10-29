@@ -42,7 +42,7 @@
 ## train_elan_p_272_up_466_reserve_sp_pytorch_elan_p_272_up_466_reserve-conformer-specaug-sp
 
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: https://drive.google.com/file/d/1cOEiEc479cMo_lxw8hwgddYHTxrO5NZP/view?usp=sharing
     - training config file: `conf/train_pytorch_conformer_kernel15.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_elan_p_272_up_466_reserve_sp/cmvn.ark`
