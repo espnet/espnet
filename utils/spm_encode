@@ -5,7 +5,6 @@
 # This source code is licensed under the license found in
 # https://github.com/pytorch/fairseq/blob/master/LICENSE
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
 import contextlib
@@ -47,8 +46,8 @@ def main():
     if args.min_len is not None or args.max_len is not None:
         def valid(line):
             return (
-                (args.min_len is None or len(line) >= args.min_len)
-                and (args.max_len is None or len(line) <= args.max_len)
+                (args.min_len is None or len(line) >= args.min_len) and
+                (args.max_len is None or len(line) <= args.max_len)
             )
     else:
         def valid(lines):

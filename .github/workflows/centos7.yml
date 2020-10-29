@@ -1,0 +1,49 @@
+name: centos7
+
+on: [push, pull_request]
+
+jobs:
+  check_skip:
+    runs-on: ubuntu-latest
+    if: "! contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+      - run: echo "${{ github.event.head_commit.message }}"
+  linter_and_test:
+    runs-on: ubuntu-latest
+    container:
+      image: centos:7
+      env:
+        ESPNET_PYTHON_VERSION: 3.6
+        TH_VERSION: 1.7.0
+        CHAINER_VERSION: 6.0.0
+        USE_CONDA: true
+        CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
+        CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
+        # To avoid UnicodeEncodeError for python<=3.6
+        LC_ALL: en_US.UTF-8
+    needs: check_skip
+    steps:
+      - uses: actions/checkout@master
+      - name: check OS
+        run: cat /etc/os-release 
+      - name: install dependencies
+        run: |
+          # NOTE(kamo): cmake sndfile will be download using anacond:
+          yum install -y git centos-release-scl make bzip2 wget which unzip bc
+          yum-config-manager --enable rhel-server-rhscl-7-rpms
+          yum install -y devtoolset-7-gcc-c++
+          localedef -f UTF-8 -i en_US en_US
+      - name: install espnet
+        run: |
+          # NOTE(karita) this line exited 1
+          # source scl_source enable devtoolset-7
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/install.sh
+      - name: test shell
+        run: |
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/test_shell.sh
+      - name: test python
+        run: |
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/test_python.sh

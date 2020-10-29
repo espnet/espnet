@@ -7,7 +7,9 @@ if [ $# != 2 ]; then
   echo " $0 /export/corpora/LDC03S04 /export/corpora/LDC03T19"
   exit 1;
 fi
+set -euo pipefail
 
+sph2pipe=sph2pipe
 hkust_audio_dir=$1
 hkust_text_dir=$2
 
@@ -22,10 +24,13 @@ if [ ! -d $hkust_audio_dir ] || [ ! -d $hkust_text_dir ]; then
   echo "Error: $0 requires two directory arguments"
   exit 1;
 fi
+! command -v "${sph2pipe}" &> /dev/null && echo "Could not find the sph2pipe program" && exit 1;
+python3 -c "import mmseg" 2>/dev/null || \
+  { echo "Install mmseg. cd ../../../tools; make py3mmseg.done" && exit 1; }
 
 #find sph audio file for train dev resp.
-find $hkust_audio_dir -iname "*.sph" | grep -i "audio/train" > $train_dir/sph.flist || exit 1;
-find $hkust_audio_dir -iname "*.sph" | grep -i "audio/dev" > $dev_dir/sph.flist || exit 1;
+find -L $hkust_audio_dir -iname "*.sph" | grep -i "audio/train" > $train_dir/sph.flist || { echo "Error: $hkust_audio_dir is invalid"; exit 1; }
+find -L $hkust_audio_dir -iname "*.sph" | grep -i "audio/dev" > $dev_dir/sph.flist || { echo "Error: $hkust_audio_dir is invalid"; exit 1; }
 
 n=`cat $train_dir/sph.flist $dev_dir/sph.flist | wc -l`
 [ $n -ne 897 ] && \
@@ -34,7 +39,7 @@ n=`cat $train_dir/sph.flist $dev_dir/sph.flist | wc -l`
 #Transcriptions preparation
 
 #collect all trans, convert encodings to utf-8,
-find $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
+find -L $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
   iconv -f GBK -t utf-8 - | perl -e '
     while (<STDIN>) {
       @A = split(" ", $_);
@@ -47,9 +52,9 @@ find $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
         print "\n";
       }
     }
-  ' | sort -k1 > $train_dir/transcripts.txt || exit 1;
+  ' | sort -k1 > $train_dir/transcripts.txt || { echo "Error: $hkust_text_dir is invalid"; exit 1; }
 
-find $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
+find -L $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
   iconv -f GBK -t utf-8 - | perl -e '
     while (<STDIN>) {
       @A = split(" ", $_);
@@ -62,12 +67,10 @@ find $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
         print "\n";
       }
     }
-  ' | sort -k1  > $dev_dir/transcripts.txt || exit 1;
+  ' | sort -k1  > $dev_dir/transcripts.txt || { echo "Error: $hkust_text_dir is invalid"; exit 1; }
 
 #transcripts normalization and segmentation
 #(this needs external tools),
-python -c "import mmseg" 2>/dev/null || \
-  (echo "mmseg is not found. Checkout tools/extra/install_mmseg.sh" && exit 1;)
 
 cat $train_dir/transcripts.txt |\
   sed -e 's/<foreign language=\"[a-zA-Z]\+\">/ /g' |\
@@ -75,7 +78,7 @@ cat $train_dir/transcripts.txt |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  python local/hkust_segment.py |\
+  python3 local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $train_dir/text || exit 1;
 
 cat $dev_dir/transcripts.txt |\
@@ -84,7 +87,7 @@ cat $dev_dir/transcripts.txt |\
   sed -e 's/<noise>\(.\+\)<\/noise>/\1/g' |\
   sed -e 's/((\([^)]\{0,\}\)))/\1/g' |\
   local/hkust_normalize.pl |\
-  python local/hkust_segment.py |\
+  python3 local/hkust_segment.py |\
   awk '{if (NF > 1) print $0;}' > $dev_dir/text || exit 1;
 
 # some data is corrupted. Delete them
@@ -104,8 +107,6 @@ awk '{ segment=$1; split(segment,S,"-"); side=S[2]; audioname=S[1];startf=S[3];e
    print segment " " audioname "-" side " " startf/100 " " endf/100}' <$dev_dir/text > $dev_dir/segments
 awk '{name = $0; gsub(".sph$","",name); gsub(".*/","",name); print(name " " $0)}' $dev_dir/sph.flist > $dev_dir/sph.scp
 
-sph2pipe=`which sph2pipe` || sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
-[ ! -x $sph2pipe ] && echo "Could not find the sph2pipe program at $sph2pipe" && exit 1;
 
 cat $train_dir/sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2);
     printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
@@ -136,4 +137,3 @@ cat $dev_dir/segments | awk '{spk=substr($1,1,33); print $1 " " spk}' > $dev_dir
 cat $dev_dir/utt2spk | sort -k 2 | utils/utt2spk_to_spk2utt.pl > $dev_dir/spk2utt || exit 1;
 
 echo "$0: HKUST data preparation succeeded"
-exit 0

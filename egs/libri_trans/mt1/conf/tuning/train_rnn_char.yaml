@@ -15,7 +15,7 @@ atype: add
 adim: 1024
 
 # minibatch related
-batch-size: 32
+batch-size: 32  # for char
 maxlen-in: 100  # if input length  > maxlen-in, batchsize is automatically reduced
 maxlen-out: 100 # if output length > maxlen-out, batchsize is automatically reduced
 

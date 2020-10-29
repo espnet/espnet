@@ -20,6 +20,10 @@ filetype=""
 preprocess_conf=""
 category=""
 out="" # If omitted, write in stdout
+
+text=""
+multilingual=false
+
 help_message=$(cat << EOF
 Usage: $0 <data-dir> <dict>
 e.g. $0 data/train data/lang_1char/train_units.txt
@@ -47,6 +51,10 @@ dir=$1
 dic=$2
 tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
 trap 'rm -rf ${tmpdir}' EXIT
+
+if [ -z ${text} ]; then
+    text=${dir}/text
+fi
 
 # 1. Create scp files for inputs
 #   These are not necessary for decoding mode, and make it as an option
@@ -78,13 +86,20 @@ fi
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
-    paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text \
-        | spm_encode --model=${bpecode} --output_format=piece) \
-        > ${tmpdir}/output/token.scp
+    if [ ${multilingual} = true ]; then
+        # remove a space before the language ID
+        paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
+            | spm_encode --model=${bpecode} --output_format=piece | cut -f 2- -d" ") \
+            > ${tmpdir}/output/token.scp
+    else
+        paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
+            | spm_encode --model=${bpecode} --output_format=piece) \
+            > ${tmpdir}/output/token.scp
+    fi
 elif [ -n "${nlsyms}" ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 else
-    text2token.py -s 1 -n 1 ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 ${text} --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 # +2 comes from CTC blank and EOS
@@ -92,13 +107,19 @@ vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
 < ${tmpdir}/output/tokenid.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape.scp
 
-cat ${dir}/text > ${tmpdir}/output/text.scp
+cat ${text} > ${tmpdir}/output/text.scp
 
 
 # 3. Create scp files for the others
 mkdir -p ${tmpdir}/other
-if [ -n "${lang}" ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/other/lang.scp
+if [ ${multilingual} == true ]; then
+    awk '{
+        n = split($1,S,"[-]");
+        lang=S[n];
+        print $1 " " lang
+    }' ${text} > ${tmpdir}/other/lang.scp
+elif [ -n "${lang}" ]; then
+    awk -v lang=${lang} '{print $1 " " lang}' ${text} > ${tmpdir}/other/lang.scp
 fi
 
 if [ -n "${category}" ]; then
@@ -109,7 +130,12 @@ cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
 
 # 4. Merge scp files into a JSON file
 opts=""
-for intype in ${input} output other; do
+if [ -n "${feat}" ]; then
+    intypes="${input} output other"
+else
+    intypes="output other"
+fi
+for intype in ${intypes}; do
     if [ -z "$(find "${tmpdir}/${intype}" -name "*.scp")" ]; then
         continue
     fi

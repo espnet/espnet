@@ -1,41 +1,47 @@
 # coding: utf-8
 
 import argparse
-import importlib
 import json
-import numpy as np
 import os
-import pytest
 import tempfile
+
+import numpy as np
+import pytest
 import torch
 
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.pytorch_backend.asr_init import freeze_modules
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-def make_arg(**kwargs):
+def get_rnn_args(**kwargs):
     train_defaults = dict(
         elayers=1,
         subsample="1_2_2_1_1",
         etype="vggblstm",
-        eunits=16,
-        eprojs=8,
+        eunits=2,
+        eprojs=2,
         dtype="lstm",
         dlayers=1,
-        dunits=16,
+        dunits=2,
         atype="location",
-        aheads=2,
-        awin=5,
-        aconv_chans=4,
-        aconv_filts=10,
-        mtlalpha=0.5,
+        aheads=1,
+        awin=2,
+        aconv_chans=1,
+        aconv_filts=2,
+        mtlalpha=1.0,
         lsm_type="",
         lsm_weight=0.0,
         sampling_probability=0.0,
-        adim=16,
+        adim=2,
         dropout_rate=0.0,
         dropout_rate_decoder=0.0,
-        nbest=5,
-        beam_size=2,
+        nbest=1,
+        beam_size=1,
         penalty=0.5,
         maxlenratio=1.0,
         minlenratio=0.0,
@@ -53,10 +59,52 @@ def make_arg(**kwargs):
         replace_sos=False,
         tgt_lang=False,
         enc_init=None,
-        enc_init_mods='enc.',
+        enc_init_mods="enc.",
         dec_init=None,
-        dec_init_mods='dec.,att.',
-        model_module='espnet.nets.pytorch_backend.e2e_asr:E2E'
+        dec_init_mods="dec.",
+        freeze_mods=None,
+        model_module="espnet.nets.pytorch_backend.e2e_asr:E2E",
+    )
+    train_defaults.update(kwargs)
+
+    return argparse.Namespace(**train_defaults)
+
+
+def get_rnnt_args(**kwargs):
+    train_defaults = dict(
+        etype="vggblstmp",
+        elayers=1,
+        subsample="1_2_2_1_1",
+        eunits=4,
+        eprojs=4,
+        dtype="lstm",
+        dlayers=1,
+        dunits=4,
+        dec_embed_dim=4,
+        dropout_rate=0.0,
+        dropout_rate_decoder=0.0,
+        dropout_rate_embed_decoder=0.0,
+        joint_dim=2,
+        joint_activation_type="tanh",
+        mtlalpha=1.0,
+        rnnt_mode="rnnt",
+        trans_type="warp-transducer",
+        char_list=["a", "b", "c", "d"],
+        sym_space="<space>",
+        sym_blank="<blank>",
+        report_cer=False,
+        report_wer=False,
+        beam_size=1,
+        nbest=1,
+        verbose=0,
+        outdir=None,
+        rnnlm=None,
+        enc_init=None,
+        enc_init_mods="enc.",
+        dec_init=None,
+        dec_init_mods="dec.",
+        freeze_mods=None,
+        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
     )
     train_defaults.update(kwargs)
 
@@ -64,12 +112,22 @@ def make_arg(**kwargs):
 
 
 def get_default_scope_inputs():
-    idim = 40
+    idim = 10
     odim = 5
-    ilens = [20, 15]
+    ilens = [10, 6]
     olens = [4, 3]
 
     return idim, odim, ilens, olens
+
+
+def get_lm(n_layers, n_units, char_list):
+    char_list = ["<blank>"] + char_list + ["<eos>"]
+
+    rnnlm = lm_pytorch.ClassifierWithState(
+        lm_pytorch.RNNLM(len(char_list), n_layers, n_units, typ="lstm")
+    )
+
+    return rnnlm
 
 
 def pytorch_prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
@@ -91,76 +149,120 @@ def pytorch_prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
     return xs_pad, ilens, ys_pad
 
 
-@pytest.mark.parametrize("enc_init, enc_mods, dec_init, dec_mods, mtlalpha", [
-    (None, "enc.", None, "dec., att.", 0.0),
-    (None, "enc.", None, "dec., att.", 0.5),
-    (None, "enc.", None, "dec., att.", 1.0),
-    (True, "enc.", None, "dec., att.", 0.5),
-    (None, "enc.", True, "dec., att.", 0.0),
-    (None, "enc.", True, "dec., att.", 0.5),
-    (None, "enc.", True, "dec., att.", 1.0),
-    (True, "enc.", True, "dec., att.", 0.0),
-    (True, "enc.", True, "dec., att.", 0.5),
-    (True, "enc.", True, "dec., att.", 1.0),
-    (True, "test", None, "dec., att.", 0.0),
-    (True, "test", None, "dec., att.", 0.5),
-    (True, "test", None, "dec., att.", 1.0),
-    (None, "enc.", True, "test", 0.0),
-    (None, "enc.", True, "test", 0.5),
-    (None, "enc.", True, "test", 1.0),
-    (True, "enc.enc.0", None, "dec., att.", 0.0),
-    (True, "enc.enc.0", None, "dec., att.", 0.5),
-    (True, "enc.enc.0", None, "dec., att.", 1.0),
-    (None, "enc.", True, "dec.embed.", 0.0),
-    (None, "enc.", True, "dec.embed.", 0.5),
-    (None, "enc.", True, "dec.embed.", 1.0),
-    (True, "enc.enc.0, enc.enc.1", True, "dec., att.", 0.0),
-    (True, "enc.enc.0", True, "dec.embed.,dec.decoder.1", 0.5),
-    (True, "enc.enc.0, enc.enc.1", True, "dec.embed.,dec.decoder.1", 1.0)])
-def test_pytorch_trainable_transferable_and_decodable(enc_init, enc_mods, dec_init, dec_mods, mtlalpha):
+@pytest.mark.parametrize(
+    "model_type, finetune_dic",
+    [
+        (
+            "rnn",
+            {
+                "enc_init": None,
+                "dec_init": True,
+                "dec_init_mods": "dec.,att.",
+                "mtlalpha": 0.5,
+                "use_lm": None,
+            },
+        ),
+        (
+            "rnnt",
+            {
+                "enc_init": None,
+                "dec_init": True,
+                "dec_init_mods": "dec.0.",
+                "use_lm": True,
+            },
+        ),
+    ],
+)
+def test_pytorch_trainable_and_transferable(model_type, finetune_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()
-    args = make_arg()
 
-    module = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
-    model = module.E2E(idim, odim, args)
+    if model_type == "rnn":
+        from espnet.nets.pytorch_backend.e2e_asr import E2E
+
+        arg_function = get_rnn_args
+    else:
+        from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
+
+        arg_function = get_rnnt_args
+
+    args = arg_function()
+
+    model = E2E(idim, odim, args)
 
     batch = pytorch_prepare_inputs(idim, odim, ilens, olens)
 
     loss = model(*batch)
     loss.backward()
 
-    with torch.no_grad():
-        in_data = np.random.randn(20, idim)
-        model.recognize(in_data, args, args.char_list)
-
     if not os.path.exists(".pytest_cache"):
         os.makedirs(".pytest_cache")
-    utils = importlib.import_module('espnet.asr.asr_utils')
 
     tmppath = tempfile.mktemp()
-    utils.torch_save(tmppath, model)
 
-    if enc_init is not None:
-        enc_init = tmppath
-    if dec_init is not None:
-        dec_init = tmppath
+    if finetune_dic["use_lm"] is not None:
+        lm = get_lm(args.dlayers, args.dunits, args.char_list)
+        tmppath += "_rnnlm"
+
+        torch_save(tmppath, lm)
+    else:
+        torch_save(tmppath, model)
+
+    if finetune_dic["enc_init"] is not None:
+        finetune_dic["enc_init"] = tmppath
+    if finetune_dic["dec_init"] is not None:
+        finetune_dic["dec_init"] = tmppath
+
+    finetune_args = arg_function(**finetune_dic)
 
     # create dummy model.json for saved model to go through
     # get_model_conf(...) called in load_trained_modules method.
-    model_conf = os.path.dirname(tmppath) + '/model.json'
-    with open(model_conf, 'wb') as f:
-        f.write(json.dumps((40, 5, vars(args)),
-                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
+    model_conf = os.path.dirname(tmppath) + "/model.json"
+    with open(model_conf, "wb") as f:
+        f.write(
+            json.dumps(
+                (idim, odim, vars(finetune_args)),
+                indent=4,
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf_8")
+        )
 
-    args = make_arg(enc_init=enc_init, enc_init_mods=enc_mods,
-                    dec_init=dec_init, dec_init_mods=dec_mods,
-                    mtlalpha=mtlalpha)
-    transfer = importlib.import_module('espnet.asr.pytorch_backend.asr_init')
-    model = transfer.load_trained_modules(40, 5, args)
+    model = load_trained_modules(idim, odim, finetune_args)
 
     loss = model(*batch)
     loss.backward()
 
-    with torch.no_grad():
-        in_data = np.random.randn(20, idim)
-        model.recognize(in_data, args, args.char_list)
+    if model_type == "rnnt":
+        beam_search = BeamSearchTransducer(
+            decoder=model.dec,
+            beam_size=1,
+            lm=None,
+            lm_weight=0.0,
+            search_type="default",
+            max_sym_exp=2,
+            u_max=10,
+            nstep=1,
+            prefix_alpha=1,
+            score_norm=False,
+        )
+
+        with torch.no_grad():
+            in_data = np.random.randn(10, idim)
+            model.recognize(in_data, beam_search)
+    else:
+        with torch.no_grad():
+            in_data = np.random.randn(10, idim)
+            model.recognize(in_data, args, args.char_list)
+
+
+# todo (b-flo): add test for frozen layers
+def test_pytorch_freezable():
+    from espnet.nets.pytorch_backend.e2e_asr import E2E
+
+    idim, odim, ilens, olens = get_default_scope_inputs()
+    args = get_rnn_args(freeze_mods="enc.enc.0.")
+
+    model = E2E(idim, odim, args)
+    model, model_params = freeze_modules(model, args.freeze_mods)
+
+    model.train()

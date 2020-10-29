@@ -11,9 +11,9 @@ parser = configargparse.ArgumentParser(
     description='generate RST files from <root> module recursively into <dst>/_gen',
     config_file_parser_class=configargparse.YAMLConfigFileParser,
     formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('root', type=str,
+parser.add_argument('--root', nargs='+',
                     help='root module to generate docs recursively')
-parser.add_argument('dst', type=str,
+parser.add_argument('--dst', type=str,
                     help='destination path to generate RSTs')
 parser.add_argument('--exclude', nargs='*', default=[],
                     help='exclude module name')
@@ -74,19 +74,20 @@ modules_rst = """
 """
 gendir = args.dst + "/_gen"
 os.makedirs(gendir, exist_ok=True)
-for p in glob(args.root + "/**", recursive=False):
-    if p in args.exclude:
-        continue
-    if "__pycache__" in p:
-        continue
-    if "__init__" in p:
-        continue
-    fname = to_module(p) + ".rst"
-    dst = f"{gendir}/{fname}"
-    modules_rst += f"   ./_gen/{fname}\n"
-    print(f"[INFO] generating {dst}")
-    with open(dst, "w") as f:
-        gen_rst(p, f)
+for root in args.root:
+    for p in glob(root + "/**", recursive=False):
+        if p in args.exclude:
+            continue
+        if "__pycache__" in p:
+            continue
+        if "__init__" in p:
+            continue
+        fname = to_module(p) + ".rst"
+        dst = f"{gendir}/{fname}"
+        modules_rst += f"   ./_gen/{fname}\n"
+        print(f"[INFO] generating {dst}")
+        with open(dst, "w") as f:
+            gen_rst(p, f)
 
 
 with open(gendir + "/modules.rst", "w") as f:

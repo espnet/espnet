@@ -76,7 +76,9 @@ def make_arg(**kwargs):
     return argparse.Namespace(**defaults)
 
 
-def prepare_inputs(mode, ilens=[20, 15], olens_tgt=[4, 3], olens_src=[3, 2], is_cuda=False):
+def prepare_inputs(
+    mode, ilens=[20, 15], olens_tgt=[4, 3], olens_src=[3, 2], is_cuda=False
+):
     np.random.seed(1)
     assert len(ilens) == len(olens_tgt)
     xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
@@ -104,9 +106,9 @@ def prepare_inputs(mode, ilens=[20, 15], olens_tgt=[4, 3], olens_src=[3, 2], is_
 
 
 def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
-    ilens = np.array([x[1]['input'][0]['shape'][0] for x in batch])
-    olens_tgt = np.array([x[1]['output'][0]['shape'][0] for x in batch])
-    olens_src = np.array([x[1]['output'][1]['shape'][0] for x in batch])
+    ilens = np.array([x[1]["input"][0]["shape"][0] for x in batch])
+    olens_tgt = np.array([x[1]["output"][0]["shape"][0] for x in batch])
+    olens_src = np.array([x[1]["output"][1]["shape"][0] for x in batch])
     xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
     ys_tgt = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens_tgt]
     ys_src = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens_src]
@@ -129,60 +131,142 @@ def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
 
 
 @pytest.mark.parametrize(
-    "module, model_dict", [
-        ('espnet.nets.pytorch_backend.e2e_st', {}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'elayers': 2, 'dlayers': 2}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'grup'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'lstmp'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'bgrup'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'blstmp'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'bgru'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'blstm'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vgggru'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vgggrup'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vgglstm'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vgglstmp'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggbgru'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggbgrup'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'dtype': 'gru'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'noatt'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'add'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'dot'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'coverage'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'coverage_location'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'location2d'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'location_recurrent'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_dot'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_add'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_loc'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'etype': 'vggblstmp', 'atype': 'multi_head_multi_res_loc'}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'mt_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'mt_weight': 0.2}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 0.0, 'mt_weight': 0.2}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 0.5, 'mt_weight': 0.2}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'asr_weight': 0.2, 'mtlalpha': 1.0, 'mt_weight': 0.2}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'sampling_probability': 0.5}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'context_residual': True}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'grad_noise': True}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.5, 'mtlalpha': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.5, 'mtlalpha': 0.5}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'asr_weight': 0.5, 'mtlalpha': 1.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.5}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 1.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'report_wer': True}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True, 'report_wer': True, 'asr_weight': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True,
-                                                'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.0}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True,
-                                                'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 0.5}),
-        ('espnet.nets.pytorch_backend.e2e_st', {'report_cer': True,
-                                                'report_wer': True, 'asr_weight': 0.5, 'mtlalpha': 1.0}),
-    ]
+    "module, model_dict",
+    [
+        ("espnet.nets.pytorch_backend.e2e_st", {}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"elayers": 2, "dlayers": 2}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "grup"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "lstmp"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "bgrup"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "blstmp"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "bgru"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "blstm"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vgggru"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vgggrup"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vgglstm"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vgglstmp"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vggbgru"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vggbgrup"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vggblstmp", "dtype": "gru"}),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "noatt"},
+        ),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vggblstmp", "atype": "add"}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"etype": "vggblstmp", "atype": "dot"}),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "coverage"},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "coverage_location"},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "location2d"},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "location_recurrent"},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "multi_head_dot"},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "multi_head_add"},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "multi_head_loc"},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"etype": "vggblstmp", "atype": "multi_head_multi_res_loc"},
+        ),
+        ("espnet.nets.pytorch_backend.e2e_st", {"asr_weight": 0.0}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"asr_weight": 0.2}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"mt_weight": 0.0}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"mt_weight": 0.2}),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"asr_weight": 0.2, "mtlalpha": 0.0, "mt_weight": 0.2},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"asr_weight": 0.2, "mtlalpha": 0.5, "mt_weight": 0.2},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"asr_weight": 0.2, "mtlalpha": 1.0, "mt_weight": 0.2},
+        ),
+        ("espnet.nets.pytorch_backend.e2e_st", {"sampling_probability": 0.5}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"context_residual": True}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"grad_noise": True}),
+        ("espnet.nets.pytorch_backend.e2e_st", {"report_cer": True, "asr_weight": 0.0}),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_cer": True, "asr_weight": 0.5, "mtlalpha": 0.0},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_cer": True, "asr_weight": 0.5, "mtlalpha": 0.5},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_cer": True, "asr_weight": 0.5, "mtlalpha": 1.0},
+        ),
+        ("espnet.nets.pytorch_backend.e2e_st", {"report_wer": True, "asr_weight": 0.0}),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_wer": True, "asr_weight": 0.5, "mtlalpha": 0.0},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_wer": True, "asr_weight": 0.5, "mtlalpha": 0.5},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_wer": True, "asr_weight": 0.5, "mtlalpha": 1.0},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_cer": True, "report_wer": True},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {"report_cer": True, "report_wer": True, "asr_weight": 0.0},
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {
+                "report_cer": True,
+                "report_wer": True,
+                "asr_weight": 0.5,
+                "mtlalpha": 0.0,
+            },
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {
+                "report_cer": True,
+                "report_wer": True,
+                "asr_weight": 0.5,
+                "mtlalpha": 0.5,
+            },
+        ),
+        (
+            "espnet.nets.pytorch_backend.e2e_st",
+            {
+                "report_cer": True,
+                "report_wer": True,
+                "asr_weight": 0.5,
+                "mtlalpha": 1.0,
+            },
+        ),
+    ],
 )
 def test_model_trainable_and_decodable(module, model_dict):
     args = make_arg(**model_dict)
@@ -205,12 +289,12 @@ def test_model_trainable_and_decodable(module, model_dict):
         model.translate(in_data, args, args.char_list)  # decodable
         if "pytorch" in module:
             batch_in_data = [np.random.randn(10, 40), np.random.randn(5, 40)]
-            model.translate_batch(batch_in_data, args, args.char_list)  # batch decodable
+            model.translate_batch(
+                batch_in_data, args, args.char_list
+            )  # batch decodable
 
 
-@pytest.mark.parametrize(
-    "module", ["pytorch"]
-)
+@pytest.mark.parametrize("module", ["pytorch"])
 def test_gradient_noise_injection(module):
     args = make_arg(grad_noise=True)
     args_org = make_arg()
@@ -232,9 +316,7 @@ def test_gradient_noise_injection(module):
         assert grad[0] != grad_org[0]
 
 
-@pytest.mark.parametrize(
-    "module", ["pytorch"]
-)
+@pytest.mark.parametrize("module", ["pytorch"])
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
     dummy_json = make_dummy_json_st(4, [10, 20], [10, 20], [10, 20], idim=20, odim=5)
@@ -256,14 +338,14 @@ def test_sortagrad_trainable(module):
         model.translate(in_data, args, args.char_list)
 
 
-@pytest.mark.parametrize(
-    "module", ["pytorch"]
-)
+@pytest.mark.parametrize("module", ["pytorch"])
 def test_sortagrad_trainable_with_batch_bins(module):
     args = make_arg(sortagrad=1)
     idim = 20
     odim = 5
-    dummy_json = make_dummy_json_st(4, [10, 20], [10, 20], [10, 20], idim=idim, odim=odim)
+    dummy_json = make_dummy_json_st(
+        4, [10, 20], [10, 20], [10, 20], idim=idim, odim=odim
+    )
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_st as m
     else:
@@ -273,8 +355,8 @@ def test_sortagrad_trainable_with_batch_bins(module):
     for batch in batchset:
         n = 0
         for uttid, info in batch:
-            ilen = int(info['input'][0]['shape'][0])
-            olen = int(info['output'][0]['shape'][0])
+            ilen = int(info["input"][0]["shape"][0])
+            olen = int(info["output"][0]["shape"][0])
             n += ilen * idim + olen * odim
         assert olen < batch_elems
 
@@ -291,30 +373,32 @@ def test_sortagrad_trainable_with_batch_bins(module):
         model.translate(in_data, args, args.char_list)
 
 
-@pytest.mark.parametrize(
-    "module", ["pytorch"]
-)
+@pytest.mark.parametrize("module", ["pytorch"])
 def test_sortagrad_trainable_with_batch_frames(module):
     args = make_arg(sortagrad=1)
     idim = 20
     odim = 5
-    dummy_json = make_dummy_json_st(4, [10, 20], [10, 20], [10, 20], idim=idim, odim=odim)
+    dummy_json = make_dummy_json_st(
+        4, [10, 20], [10, 20], [10, 20], idim=idim, odim=odim
+    )
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_st as m
     else:
         raise NotImplementedError
     batch_frames_in = 50
     batch_frames_out = 50
-    batchset = make_batchset(dummy_json,
-                             batch_frames_in=batch_frames_in,
-                             batch_frames_out=batch_frames_out,
-                             shortest_first=True)
+    batchset = make_batchset(
+        dummy_json,
+        batch_frames_in=batch_frames_in,
+        batch_frames_out=batch_frames_out,
+        shortest_first=True,
+    )
     for batch in batchset:
         i = 0
         o = 0
         for uttid, info in batch:
-            i += int(info['input'][0]['shape'][0])
-            o += int(info['output'][0]['shape'][0])
+            i += int(info["input"][0]["shape"][0])
+            o += int(info["output"][0]["shape"][0])
         assert i <= batch_frames_in
         assert o <= batch_frames_out
 
@@ -345,7 +429,7 @@ def init_chainer_weight_const(m, val):
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_mtl_loss(etype):
-    th = importlib.import_module('espnet.nets.pytorch_backend.e2e_st')
+    th = importlib.import_module("espnet.nets.pytorch_backend.e2e_st")
     args = make_arg(etype=etype)
     th_model = th.E2E(40, 5, args)
 
@@ -365,7 +449,7 @@ def test_mtl_loss(etype):
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_zero_length_target(etype):
-    th = importlib.import_module('espnet.nets.pytorch_backend.e2e_st')
+    th = importlib.import_module("espnet.nets.pytorch_backend.e2e_st")
     args = make_arg(etype=etype)
     th_model = th.E2E(40, 5, args)
 
@@ -373,7 +457,8 @@ def test_zero_length_target(etype):
 
     th_model(*th_batch)
 
-    # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
+    # NOTE: We ignore all zero length case because chainer also fails.
+    # Have a nice data-prep!
     # out_data = ""
     # data = [
     #     ("aaa", dict(feat=np.random.randn(200, 40).astype(np.float32), tokenid="")),
@@ -384,20 +469,21 @@ def test_zero_length_target(etype):
 
 
 @pytest.mark.parametrize(
-    "module, atype", [
-        ('espnet.nets.pytorch_backend.e2e_st', 'noatt'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'dot'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'add'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'location'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'coverage'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'coverage_location'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'location2d'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'location_recurrent'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'multi_head_dot'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'multi_head_add'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'multi_head_loc'),
-        ('espnet.nets.pytorch_backend.e2e_st', 'multi_head_multi_res_loc')
-    ]
+    "module, atype",
+    [
+        ("espnet.nets.pytorch_backend.e2e_st", "noatt"),
+        ("espnet.nets.pytorch_backend.e2e_st", "dot"),
+        ("espnet.nets.pytorch_backend.e2e_st", "add"),
+        ("espnet.nets.pytorch_backend.e2e_st", "location"),
+        ("espnet.nets.pytorch_backend.e2e_st", "coverage"),
+        ("espnet.nets.pytorch_backend.e2e_st", "coverage_location"),
+        ("espnet.nets.pytorch_backend.e2e_st", "location2d"),
+        ("espnet.nets.pytorch_backend.e2e_st", "location_recurrent"),
+        ("espnet.nets.pytorch_backend.e2e_st", "multi_head_dot"),
+        ("espnet.nets.pytorch_backend.e2e_st", "multi_head_add"),
+        ("espnet.nets.pytorch_backend.e2e_st", "multi_head_loc"),
+        ("espnet.nets.pytorch_backend.e2e_st", "multi_head_multi_res_loc"),
+    ],
 )
 def test_calculate_all_attentions(module, atype):
     m = importlib.import_module(module)
@@ -415,9 +501,36 @@ def test_calculate_all_attentions(module, atype):
         print(att_ws.shape)
 
 
+@pytest.mark.parametrize(
+    "module, mtlalpha",
+    [
+        ("espnet.nets.pytorch_backend.e2e_st", 0.0),
+        ("espnet.nets.pytorch_backend.e2e_st", 0.5),
+        ("espnet.nets.pytorch_backend.e2e_st", 1.0),
+    ],
+)
+def test_calculate_all_ctc_probs(module, mtlalpha):
+    m = importlib.import_module(module)
+    args = make_arg(mtlalpha=mtlalpha, asr_weight=0.3)
+    if "pytorch" in module:
+        batch = prepare_inputs("pytorch")
+    else:
+        batch = prepare_inputs("chainer")
+    model = m.E2E(40, 5, args)
+    with chainer.no_backprop_mode():
+        if "pytorch" in module:
+            ctc_probs = model.calculate_all_ctc_probs(*batch)
+            if mtlalpha > 0:
+                print(ctc_probs.shape)
+            else:
+                assert ctc_probs is None
+        else:
+            raise NotImplementedError
+
+
 def test_torch_save_and_load():
-    m = importlib.import_module('espnet.nets.pytorch_backend.e2e_st')
-    utils = importlib.import_module('espnet.asr.asr_utils')
+    m = importlib.import_module("espnet.nets.pytorch_backend.e2e_st")
+    utils = importlib.import_module("espnet.asr.asr_utils")
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly
@@ -438,7 +551,9 @@ def test_torch_save_and_load():
         os.remove(tmppath)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available() and not chainer.cuda.available, reason="gpu required")
+@pytest.mark.skipif(
+    not torch.cuda.is_available() and not chainer.cuda.available, reason="gpu required"
+)
 @pytest.mark.parametrize("module", ["espnet.nets.pytorch_backend.e2e_st"])
 def test_gpu_trainable(module):
     m = importlib.import_module(module)
@@ -469,7 +584,7 @@ def test_multi_gpu_trainable(module):
         model = torch.nn.DataParallel(model, device_ids)
         batch = prepare_inputs("pytorch", is_cuda=True)
         model.cuda()
-        loss = 1. / ngpu * model(*batch)
+        loss = 1.0 / ngpu * model(*batch)
         loss.backward(loss.new_ones(ngpu))  # trainable
     else:
         raise NotImplementedError

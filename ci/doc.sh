@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 
-# to suppress errors during doc generation of utils/ when USE_CONDA=false in travis
-mkdir -p tools/venv/bin
-touch tools/venv/bin/activate
-. tools/venv/bin/activate
+. tools/activate_python.sh
 
 if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
@@ -22,12 +19,15 @@ set -euo pipefail
 )
 
 ./doc/argparse2rst.py ./espnet/bin/*.py > ./doc/_gen/espnet_bin.rst
+# FIXME
+# ./doc/argparse2rst.py ./espnet2/bin/*.py > ./doc/_gen/espnet2_bin.rst
 
 
 find ./utils/{*.sh,spm_*} -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_sh.rst
+find ./espnet2/bin/*.py -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/espnet2_bin.rst
 
 # generate package doc
-./doc/module2rst.py espnet ./doc --exclude espnet.bin
+./doc/module2rst.py --root espnet espnet2 --dst ./doc --exclude espnet.bin
 
 # build html
 travis-sphinx build --source=doc --nowarn

@@ -11,6 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=0         # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+nj=16           # numebr of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -46,8 +47,8 @@ case=lc.rm
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-how2=/export/a13/kduh/mtdata/how2/how2-300h-v1
-# how2=/home/inaguma/how2/how2-300h-v1
+# how2=/export/a13/kduh/mtdata/how2/how2-300h-v1
+how2=/n/rd8/how2/how2-300h-v1
 # how2-300h-v1
 #  |_ data/
 #  |_ features/
@@ -142,7 +143,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${case}.txt
-nlsyms=data/lang_1spm/non_lang_syms_${case}.txt
+nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${case}.txt
 bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -164,13 +165,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # NOTE: ASR vocab is created with a source language only
 
     echo "make json files"
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --bpecode ${bpemodel}.model \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
             data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
     done
 fi
@@ -243,7 +244,8 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best
@@ -259,7 +261,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --out ${expdir}/results/${recog_model} \
             --num ${n_average}
     fi
-    nj=16
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
@@ -281,7 +282,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${recog_model} \
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
         local/score_sclite.sh --case ${case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}

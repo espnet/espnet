@@ -32,7 +32,7 @@ RealData_et_.*_near_room1 RealData_et_.*_far_room1"
 for task in ${tasks}; do
     filename=`echo ${task} | sed -e "s/\.\*_//"`
     mkdir -p ${dir}/${filename}
-    python local/filterjson.py -f ${task} ${jsons} > ${dir}/${filename}/data.1.json
+    python3 local/filterjson.py -f ${task} ${jsons} > ${dir}/${filename}/data.1.json
     score_sclite.sh --wer ${wer} --nlsyms ${nlsyms} ${dir}/${filename} ${dic} 1> /dev/null 2> /dev/null
 done
 

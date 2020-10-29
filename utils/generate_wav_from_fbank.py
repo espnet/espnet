@@ -29,15 +29,17 @@ from espnet.utils.cli_utils import get_commandline_args
 class TimeInvariantMLSAFilter(object):
     """Time invariant MLSA filter.
 
-    This module is used to perform noise shaping described in `An investigation of noise shaping with perceptual
-    weighting for WaveNet-based speech generation`_.
+    This module is used to perform noise shaping described in
+    `An investigation of noise shaping with perceptual
+     weighting for WaveNet-based speech generation`_.
 
     Args:
         coef (ndaaray): MLSA filter coefficient (D,).
         alpha (float): All pass constant value.
         n_shift (int): Shift length in points.
 
-    .. _`An investigation of noise shaping with perceptual weighting for WaveNet-based speech generation`:
+    .. _`An investigation of noise shaping with perceptual
+        weighting for WaveNet-based speech generation`:
         https://ieeexplore.ieee.org/abstract/document/8461332
 
     """
@@ -46,10 +48,8 @@ class TimeInvariantMLSAFilter(object):
         self.coef = coef
         self.n_shift = n_shift
         self.mlsa_filter = pysptk.synthesis.Synthesizer(
-            pysptk.synthesis.MLSADF(
-                order=coef.shape[0] - 1,
-                alpha=alpha),
-            hopsize=n_shift
+            pysptk.synthesis.MLSADF(order=coef.shape[0] - 1, alpha=alpha),
+            hopsize=n_shift,
         )
 
     def __call__(self, y):
@@ -75,23 +75,25 @@ class TimeInvariantMLSAFilter(object):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='generate wav from FBANK using wavenet vocoder',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--fs', type=int, default=22050,
-                        help='Sampling frequency')
-    parser.add_argument('--n_fft', type=int, default=1024,
-                        help='FFT length in point')
-    parser.add_argument('--n_shift', type=int, default=256,
-                        help='Shift length in point')
-    parser.add_argument('--model', type=str, default=None,
-                        help='WaveNet model')
-    parser.add_argument('--filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5'],
-                        help='Specify the file format for the rspecifier. '
-                             '"mat" is the matrix format in kaldi')
-    parser.add_argument('rspecifier', type=str, help='Input feature e.g. scp:feat.scp')
-    parser.add_argument('outdir', type=str,
-                        help='Output directory')
+        description="generate wav from FBANK using wavenet vocoder",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--fs", type=int, default=22050, help="Sampling frequency")
+    parser.add_argument("--n_fft", type=int, default=1024, help="FFT length in point")
+    parser.add_argument(
+        "--n_shift", type=int, default=256, help="Shift length in point"
+    )
+    parser.add_argument("--model", type=str, default=None, help="WaveNet model")
+    parser.add_argument(
+        "--filetype",
+        type=str,
+        default="mat",
+        choices=["mat", "hdf5"],
+        help="Specify the file format for the rspecifier. "
+        '"mat" is the matrix format in kaldi',
+    )
+    parser.add_argument("rspecifier", type=str, help="Input feature e.g. scp:feat.scp")
+    parser.add_argument("outdir", type=str, help="Output directory")
     return parser
 
 
@@ -102,7 +104,8 @@ def main():
     # logging info
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+    )
     logging.info(get_commandline_args())
 
     # check directory
@@ -139,19 +142,21 @@ def main():
         dilation_depth=train_args.dilation_depth,
         dilation_repeat=train_args.dilation_repeat,
         kernel_size=train_args.kernel_size,
-        upsampling_factor=train_args.upsampling_factor
+        upsampling_factor=train_args.upsampling_factor,
     )
-    model.load_state_dict(
-        torch.load(args.model, map_location="cpu")["model"])
+    model.load_state_dict(torch.load(args.model, map_location="cpu")["model"])
     model.eval()
     model.to(device)
 
     for idx, (utt_id, lmspc) in enumerate(
-            file_reader_helper(args.rspecifier, args.filetype), 1):
+        file_reader_helper(args.rspecifier, args.filetype), 1
+    ):
         logging.info("(%d) %s" % (idx, utt_id))
 
         # perform preprocesing
-        x = encode_mu_law(np.zeros((1)), mu=train_args.n_quantize)  # quatize initial seed waveform
+        x = encode_mu_law(
+            np.zeros((1)), mu=train_args.n_quantize
+        )  # quatize initial seed waveform
         h = scaler.transform(lmspc)  # normalize features
 
         # convert to tensor
@@ -165,16 +170,21 @@ def main():
         start_time = time.time()
         with torch.no_grad():
             y = model.generate(x, h, n_samples, interval=100)
-        logging.info("generation speed = %s (sec / sample)" % ((time.time() - start_time) / (len(y) - 1)))
+        logging.info(
+            "generation speed = %s (sec / sample)"
+            % ((time.time() - start_time) / (len(y) - 1))
+        )
         y = decode_mu_law(y, mu=train_args.n_quantize)
 
         # apply mlsa filter for noise shaping
         y = mlsa_filter(y)
 
         # save as .wav file
-        write(os.path.join(args.outdir, "%s.wav" % utt_id),
-              args.fs,
-              (y * np.iinfo(np.int16).max).astype(np.int16))
+        write(
+            os.path.join(args.outdir, "%s.wav" % utt_id),
+            args.fs,
+            (y * np.iinfo(np.int16).max).astype(np.int16),
+        )
 
 
 if __name__ == "__main__":

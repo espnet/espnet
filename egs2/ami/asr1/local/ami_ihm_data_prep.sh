@@ -1,0 +1,1 @@
+../../../../egs/ami/asr1/local/ami_ihm_data_prep.sh

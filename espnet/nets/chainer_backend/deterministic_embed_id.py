@@ -5,6 +5,7 @@ import chainer
 from chainer import cuda
 from chainer import function_node
 from chainer.initializers import normal
+
 # from chainer.functions.connection import embed_id
 from chainer import link
 from chainer.utils import type_check
@@ -19,7 +20,6 @@ from chainer import variable
 
 
 class EmbedIDFunction(function_node.FunctionNode):
-
     def __init__(self, ignore_label=None):
         self.ignore_label = ignore_label
         self._w_shape = None
@@ -28,13 +28,10 @@ class EmbedIDFunction(function_node.FunctionNode):
         type_check.expect(in_types.size() == 2)
         x_type, w_type = in_types
         type_check.expect(
-            x_type.dtype.kind == 'i',
+            x_type.dtype.kind == "i",
             x_type.ndim >= 1,
         )
-        type_check.expect(
-            w_type.dtype == numpy.float32,
-            w_type.ndim == 2
-        )
+        type_check.expect(w_type.dtype == numpy.float32, w_type.ndim == 2)
 
     def forward(self, inputs):
         self.retain_inputs((0,))
@@ -42,9 +39,10 @@ class EmbedIDFunction(function_node.FunctionNode):
         self._w_shape = W.shape
 
         if not type_check.same_types(*inputs):
-            raise ValueError('numpy and cupy must not be used together\n'
-                             'type(W): {0}, type(x): {1}'
-                             .format(type(W), type(x)))
+            raise ValueError(
+                "numpy and cupy must not be used together\n"
+                "type(W): {0}, type(x): {1}".format(type(W), type(x))
+            )
 
         xp = cuda.get_array_module(*inputs)
         if chainer.is_debug():
@@ -52,19 +50,21 @@ class EmbedIDFunction(function_node.FunctionNode):
             if self.ignore_label is not None:
                 valid_x = xp.logical_or(valid_x, x == self.ignore_label)
             if not valid_x.all():
-                raise ValueError('Each not ignored `x` value need to satisfy'
-                                 '`0 <= x < len(W)`')
+                raise ValueError(
+                    "Each not ignored `x` value need to satisfy" "`0 <= x < len(W)`"
+                )
 
         if self.ignore_label is not None:
-            mask = (x == self.ignore_label)
-            return xp.where(mask[..., None], 0, W[xp.where(mask, 0, x)]),
+            mask = x == self.ignore_label
+            return (xp.where(mask[..., None], 0, W[xp.where(mask, 0, x)]),)
 
-        return W[x],
+        return (W[x],)
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
-        gW = EmbedIDGrad(
-            self._w_shape, self.ignore_label).apply(inputs + grad_outputs)[0]
+        gW = EmbedIDGrad(self._w_shape, self.ignore_label).apply(inputs + grad_outputs)[
+            0
+        ]
         return None, gW
 
 
@@ -84,8 +84,7 @@ class EmbedIDGrad(function_node.FunctionNode):
         if xp is numpy:
             # It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is
             # too slow.
-            for ix, igy in six.moves.zip(x.ravel(),
-                                         gy.reshape(x.size, -1)):
+            for ix, igy in six.moves.zip(x.ravel(), gy.reshape(x.size, -1)):
                 if ix == self.ignore_label:
                     continue
                 gW[ix] += igy
@@ -116,12 +115,12 @@ class EmbedIDGrad(function_node.FunctionNode):
             # creates a one-hot vector and applies dot product
             xi = xp.zeros((x.size, len(gW)), dtype=numpy.float32)
             idx = xp.arange(x.size, dtype=numpy.int32) * len(gW) + x.ravel()
-            xi.ravel()[idx] = 1.
+            xi.ravel()[idx] = 1.0
             if self.ignore_label is not None:
-                xi[:, self.ignore_label] = 0.
+                xi[:, self.ignore_label] = 0.0
             gW = xi.T.dot(gy.reshape(x.size, -1)).astype(gW.dtype, copy=False)
 
-        return gW,
+        return (gW,)
 
     def backward(self, indexes, grads):
         xp = cuda.get_array_module(*grads)
@@ -139,7 +138,8 @@ class EmbedIDGrad(function_node.FunctionNode):
 
         if self.ignore_label is not None:
             mask, zero, _ = xp.broadcast_arrays(
-                mask[..., None], xp.zeros((), 'f'), ggy.data)
+                mask[..., None], xp.zeros((), "f"), ggy.data
+            )
             ggy = chainer.functions.where(mask, zero, ggy)
         return None, ggy
 

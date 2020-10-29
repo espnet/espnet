@@ -3,10 +3,9 @@ from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
 
-def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
-                                      normalization=True,
-                                      eps: float = 1e-15
-                                      ) -> ComplexTensor:
+def get_power_spectral_density_matrix(
+    xs: ComplexTensor, mask: torch.Tensor, normalization=True, eps: float = 1e-15
+) -> ComplexTensor:
     """Return cross-channel power spectral density (PSD) matrix
 
     Args:
@@ -19,7 +18,7 @@ def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
 
     """
     # outer product: (..., C_1, T) x (..., C_2, T) -> (..., T, C, C_2)
-    psd_Y = FC.einsum('...ct,...et->...tce', [xs, xs.conj()])
+    psd_Y = FC.einsum("...ct,...et->...tce", [xs, xs.conj()])
 
     # Averaging mask along C: (..., C, T) -> (..., T)
     mask = mask.mean(dim=-2)
@@ -38,10 +37,12 @@ def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
     return psd
 
 
-def get_mvdr_vector(psd_s: ComplexTensor,
-                    psd_n: ComplexTensor,
-                    reference_vector: torch.Tensor,
-                    eps: float = 1e-15) -> ComplexTensor:
+def get_mvdr_vector(
+    psd_s: ComplexTensor,
+    psd_n: ComplexTensor,
+    reference_vector: torch.Tensor,
+    eps: float = 1e-15,
+) -> ComplexTensor:
     """Return the MVDR(Minimum Variance Distortionless Response) vector:
 
         h = (Npsd^-1 @ Spsd) / (Tr(Npsd^-1 @ Spsd)) @ u
@@ -67,16 +68,17 @@ def get_mvdr_vector(psd_s: ComplexTensor,
     psd_n += eps * eye
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    numerator = FC.einsum('...ec,...cd->...ed', [psd_n.inverse(), psd_s])
+    numerator = FC.einsum("...ec,...cd->...ed", [psd_n.inverse(), psd_s])
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
-    beamform_vector = FC.einsum('...fec,...c->...fe', [ws, reference_vector])
+    beamform_vector = FC.einsum("...fec,...c->...fe", [ws, reference_vector])
     return beamform_vector
 
 
-def apply_beamforming_vector(beamform_vector: ComplexTensor,
-                             mix: ComplexTensor) -> ComplexTensor:
+def apply_beamforming_vector(
+    beamform_vector: ComplexTensor, mix: ComplexTensor
+) -> ComplexTensor:
     # (..., C) x (..., C, T) -> (..., T)
-    es = FC.einsum('...c,...ct->...t', [beamform_vector.conj(), mix])
+    es = FC.einsum("...c,...ct->...t", [beamform_vector.conj(), mix])
     return es

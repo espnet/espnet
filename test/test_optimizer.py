@@ -3,13 +3,13 @@
 # Copyright 2017 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
 import chainer
 import numpy
 import pytest
+import torch
 
-pytest.importorskip('torch')
-import torch  # NOQA
+from espnet.optimizer.factory import dynamic_import_optimizer
+from espnet.optimizer.pytorch import OPTIMIZER_FACTORY_DICT
 
 
 class ChModel(chainer.Chain):
@@ -31,14 +31,9 @@ class ThModel(torch.nn.Module):
         return self.a(x).sum()
 
 
-@pytest.mark.parametrize("ch_opt_t,th_opt_t", [
-    (chainer.optimizers.SGD, lambda ps: torch.optim.SGD(ps, lr=0.01)),
-    (chainer.optimizers.Adam, torch.optim.Adam),
-    (chainer.optimizers.AdaDelta, lambda ps: torch.optim.Adadelta(ps, rho=0.95))
-])
-def test_optimizer(ch_opt_t, th_opt_t):
-    if not torch.__version__.startswith("0.3."):
-        torch.set_grad_enabled(True)
+@pytest.mark.parametrize("name", OPTIMIZER_FACTORY_DICT.keys())
+def test_optimizer_backend_compatible(name):
+    torch.set_grad_enabled(True)
     # model construction
     ch_model = ChModel()
     th_model = ThModel()
@@ -48,9 +43,8 @@ def test_optimizer(ch_opt_t, th_opt_t):
     th_model.a.bias.data = torch.from_numpy(numpy.copy(ch_model.a.b.data))
 
     # optimizer setup
-    ch_opt = ch_opt_t()
-    ch_opt.setup(ch_model)
-    th_opt = th_opt_t(th_model.parameters())
+    th_opt = dynamic_import_optimizer(name, "pytorch").build(th_model.parameters())
+    ch_opt = dynamic_import_optimizer(name, "chainer").build(ch_model)
 
     # forward
     ch_model.cleargrads()
@@ -63,6 +57,41 @@ def test_optimizer(ch_opt_t, th_opt_t):
     ch_opt.update()
     th_opt.step()
     numpy.testing.assert_allclose(
-        ch_model.a.W.data, th_model.a.weight.data.numpy(), rtol=1e-6)
+        ch_model.a.W.data, th_model.a.weight.data.numpy(), rtol=1e-6
+    )
     numpy.testing.assert_allclose(
-        ch_model.a.b.data, th_model.a.bias.data.numpy(), rtol=1e-6)
+        ch_model.a.b.data, th_model.a.bias.data.numpy(), rtol=1e-6
+    )
+
+
+def test_pytorch_optimizer_factory():
+    model = torch.nn.Linear(2, 1)
+    opt_class = dynamic_import_optimizer("adam", "pytorch")
+    optimizer = opt_class.build(model.parameters(), lr=0.9)
+    for g in optimizer.param_groups:
+        assert g["lr"] == 0.9
+
+    opt_class = dynamic_import_optimizer("sgd", "pytorch")
+    optimizer = opt_class.build(model.parameters(), lr=0.9)
+    for g in optimizer.param_groups:
+        assert g["lr"] == 0.9
+
+    opt_class = dynamic_import_optimizer("adadelta", "pytorch")
+    optimizer = opt_class.build(model.parameters(), rho=0.9)
+    for g in optimizer.param_groups:
+        assert g["rho"] == 0.9
+
+
+def test_chainer_optimizer_factory():
+    model = chainer.links.Linear(2, 1)
+    opt_class = dynamic_import_optimizer("adam", "chainer")
+    optimizer = opt_class.build(model, lr=0.9)
+    assert optimizer.alpha == 0.9
+
+    opt_class = dynamic_import_optimizer("sgd", "chainer")
+    optimizer = opt_class.build(model, lr=0.9)
+    assert optimizer.lr == 0.9
+
+    opt_class = dynamic_import_optimizer("adadelta", "chainer")
+    optimizer = opt_class.build(model, rho=0.9)
+    assert optimizer.rho == 0.9

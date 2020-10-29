@@ -16,6 +16,8 @@ preprocess_conf=""
 
 help_message=$(cat <<EOF
 Usage: $0 --lm <lm> --dict <dict> <tr_conf> <dec_conf> <cmvn> <e2e>, for example:
+<lm>:       exp/train_rnnlm/rnnlm.model.best
+<dict>:     data/lang_char
 <tr_conf>:  conf/train.yaml
 <dec_conf>: conf/decode.yaml
 <cmvn>:     data/tr_it/cmvn.ark

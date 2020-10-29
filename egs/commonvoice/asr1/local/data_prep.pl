@@ -40,11 +40,18 @@ while(<CSV>) {
     $gender = "m";
   }
   $uttId = $filepath;
+  if (-z "$db_base/clips/$filepath") {
+    print "null file $filepath\n";
+    next;
+  }
   $uttId =~ s/\.mp3//g;
   $uttId =~ tr/\//-/;
   # speaker information should be suffix of the utterance Id
   $uttId = "$spkr-$uttId";
   $text =~ tr/a-z/A-Z/;
+  if (index($text, "{") != -1 and index($text, "}" != -1)) {
+    next;
+  }
   print TEXT "$uttId"," ","$text","\n";
   print GNDR "$uttId"," ","$gender","\n";
   print WAV "$uttId"," ffmpeg -i $db_base/clips/$filepath -f wav -ar 16000 -ab 16 - |\n";

@@ -36,8 +36,9 @@ if [ ${n_gpus} -eq 0 ] || [ ${req_gpus} -gt ${n_gpus} ]; then
   exit 1
 fi
 
+# shellcheck disable=SC2026
 f_gpu=$(nvidia-smi | sed -e '1,/Processes/d' \
-  | tail -n+3 | head -n-1 | awk '{print $2}'\
+  | tail -n+3 | head -n-1 | awk '{print $2}' \
   | awk -v ng=${n_gpus} 'BEGIN{for (n=0;n<ng;++n){g[n] = 1}} {delete g[$1];} END{for (i in g) print i}' \
   | tail -n ${req_gpus})
 

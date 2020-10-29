@@ -1,0 +1,1 @@
+../../vc1_task1/local/clean_text_asr_result.py

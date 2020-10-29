@@ -8,11 +8,10 @@ set -euo pipefail
     cd ./tools/kaldi/tools || exit 1
     echo "" > extras/check_dependencies.sh
     chmod +x extras/check_dependencies.sh
-    make sph2pipe sclite
 )
 
 # download pre-built kaldi binary
 # TODO(karita) support non ubuntu env
-[ ! -e ubuntu16-featbin.tar.gz ] && wget https://18-198329952-gh.circle-artifacts.com/0/home/circleci/repo/ubuntu16-featbin.tar.gz
+[ ! -e ubuntu16-featbin.tar.gz ] && wget --tries=3 https://github.com/espnet/kaldi-bin/releases/download/v0.0.1/ubuntu16-featbin.tar.gz
 tar -xf ./ubuntu16-featbin.tar.gz
 cp featbin/* tools/kaldi/src/featbin/

@@ -34,8 +34,6 @@ n_average=10
 
 # data
 chime5_corpus=/export/corpora4/CHiME5
-json_dir=${chime5_corpus}/transcriptions
-audio_dir=${chime5_corpus}/audio
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -48,6 +46,8 @@ set -e
 set -u
 set -o pipefail
 
+json_dir=${chime5_corpus}/transcriptions
+audio_dir=${chime5_corpus}/audio
 enhancement=beamformit
 train_set=train_worn_u200k
 train_dev=dev_${enhancement}_ref
@@ -239,7 +239,8 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
 			       --snapshots ${expdir}/results/snapshot.ep.* \

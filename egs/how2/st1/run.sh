@@ -11,6 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=0         # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+nj=16           # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -37,7 +38,8 @@ asr_model=
 mt_model=
 
 # preprocessing related
-case=tc
+src_case=lc.rm
+tgt_case=tc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
@@ -45,8 +47,8 @@ case=tc
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-how2=/export/a13/kduh/mtdata/how2/how2-300h-v1
-# how2=/home/inaguma/how2/how2-300h-v1
+# how2=/export/a13/kduh/mtdata/how2/how2-300h-v1
+how2=/n/rd8/how2/how2-300h-v1
 # how2-300h-v1
 #  |_ data/
 #  |_ features/
@@ -139,9 +141,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${case}.txt
-nlsyms=data/lang_1spm/non_lang_syms_${case}.txt
-bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${case}
+dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${tgt_case}.txt
+nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${tgt_case}.txt
+bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${tgt_case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -149,41 +151,41 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d' ' data/train.*/text.${case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+    cut -f 2- -d' ' data/train.*/text.${tgt_case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a dictionary"
+    echo "make a joint source and target dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
-    cut -f 2- -d' ' data/train.*/text.${case} | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    cut -f 2- -d' ' data/train.*/text.${tgt_case} | grep -v -e '^\s*$' > data/lang_1spm/input.txt
     spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --bpecode ${bpemodel}.model \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${case} --bpecode ${bpemodel}.model \
-            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
+        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
     # update json (add source references)
     for x in ${train_set} ${train_dev}; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").en
-        local/update_json.sh --text ${data_dir}/text.${case} --bpecode ${bpemodel}.model \
-            ${feat_dir}/data_${bpemode}${nbpe}.${case}.json ${data_dir} ${dict}
+        update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
+            ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
     done
 fi
 
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    expname=${train_set}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -197,7 +199,7 @@ if [ -z ${tag} ]; then
         expname=${expname}_mttrans
     fi
 else
-    expname=${train_set}_${case}_${backend}_${tag}
+    expname=${train_set}_${tgt_case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -220,8 +222,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json \
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --enc-init ${asr_model} \
         --dec-init ${mt_model}
 fi
@@ -244,7 +246,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --out ${expdir}/results/${trans_model} \
             --num ${n_average}
     fi
-    nj=16
 
     pids=() # initialize pids
     for ttask in ${trans_set}; do
@@ -253,7 +254,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0
@@ -268,7 +269,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} pt ${dict}
     ) &
     pids+=($!) # store background pids

@@ -22,9 +22,12 @@ class MultiSequential(torch.nn.Sequential):
 def repeat(N, fn):
     """Repeat module N times.
 
-    :param int N: repeat time
-    :param function fn: function to generate module
-    :return: repeated modules
-    :rtype: MultiSequential
+    Args:
+        N (int): Number of repeat time.
+        fn (Callable): Function to generate module.
+
+    Returns:
+        MultiSequential: Repeated model instance.
+
     """
-    return MultiSequential(*[fn() for _ in range(N)])
+    return MultiSequential(*[fn(n) for n in range(N)])

@@ -4,7 +4,6 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from __future__ import division
 
 import argparse
 import codecs
@@ -26,28 +25,37 @@ def _time_to_str(time_idx):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='Trim slience with simple power thresholding and make segments file.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--fs', type=int,
-                        help='Sampling frequency')
-    parser.add_argument('--threshold', type=float, default=60,
-                        help='Threshold in decibels')
-    parser.add_argument('--win_length', type=int, default=1024,
-                        help='Analisys window length in point')
-    parser.add_argument('--shift_length', type=int, default=256,
-                        help='Shift length in point')
-    parser.add_argument('--min_silence', type=float, default=0.01,
-                        help='minimum silence length')
-    parser.add_argument('--figdir', type=str, default="figs",
-                        help='Directory to save figures')
-    parser.add_argument('--verbose', '-V', default=0, type=int,
-                        help='Verbose option')
-    parser.add_argument('--normalize', choices=[1, 16, 24, 32], type=int,
-                        default=None,
-                        help='Give the bit depth of the PCM, '
-                             'then normalizes data to scale in [-1,1]')
-    parser.add_argument('rspecifier', type=str, help='WAV scp file')
-    parser.add_argument('wspecifier', type=str, help='Segments file')
+        description="Trim slience with simple power thresholding "
+        "and make segments file.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--fs", type=int, help="Sampling frequency")
+    parser.add_argument(
+        "--threshold", type=float, default=60, help="Threshold in decibels"
+    )
+    parser.add_argument(
+        "--win_length", type=int, default=1024, help="Analisys window length in point"
+    )
+    parser.add_argument(
+        "--shift_length", type=int, default=256, help="Shift length in point"
+    )
+    parser.add_argument(
+        "--min_silence", type=float, default=0.01, help="minimum silence length"
+    )
+    parser.add_argument(
+        "--figdir", type=str, default="figs", help="Directory to save figures"
+    )
+    parser.add_argument("--verbose", "-V", default=0, type=int, help="Verbose option")
+    parser.add_argument(
+        "--normalize",
+        choices=[1, 16, 24, 32],
+        type=int,
+        default=None,
+        help="Give the bit depth of the PCM, "
+        "then normalizes data to scale in [-1,1]",
+    )
+    parser.add_argument("rspecifier", type=str, help="WAV scp file")
+    parser.add_argument("wspecifier", type=str, help="Segments file")
 
     return parser
 
@@ -67,8 +75,9 @@ def main():
     if not os.path.exists(args.figdir):
         os.makedirs(args.figdir)
 
-    with kaldiio.ReadHelper(args.rspecifier) as reader, \
-            codecs.open(args.wspecifier, "w", encoding="utf-8") as f:
+    with kaldiio.ReadHelper(args.rspecifier) as reader, codecs.open(
+        args.wspecifier, "w", encoding="utf-8"
+    ) as f:
         for utt_id, (rate, array) in reader:
             assert rate == args.fs
             array = array.astype(numpy.float32)
@@ -78,7 +87,7 @@ def main():
                 y=array,
                 top_db=args.threshold,
                 frame_length=args.win_length,
-                hop_length=args.shift_length
+                hop_length=args.shift_length,
             )
             start, end = idx / args.fs
 
@@ -98,9 +107,7 @@ def main():
             end = min(len(array) / args.fs, end + args.min_silence)
 
             # write to segments file
-            segment = "%s %s %f %f\n" % (
-                utt_id, utt_id, start, end
-            )
+            segment = "%s %s %f %f\n" % (utt_id, utt_id, start, end)
             f.write(segment)
 
 

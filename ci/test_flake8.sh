@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 
-if ${USE_CONDA:-}; then
-    . tools/venv/bin/activate
-fi
+. tools/activate_python.sh
 
 set -euo pipefail
 
 # TODO: remove files from this list!
 flake8_black_list="\
-espnet/__init__.py
 espnet/asr/asr_utils.py
 espnet/asr/chainer_backend/asr.py
 espnet/asr/pytorch_backend/asr.py
@@ -25,7 +22,6 @@ espnet/nets/chainer_backend/rnn/decoders.py
 espnet/nets/chainer_backend/rnn/encoders.py
 espnet/nets/chainer_backend/rnn/training.py
 espnet/nets/ctc_prefix_score.py
-espnet/nets/e2e_asr_common.py
 espnet/nets/pytorch_backend/ctc.py
 espnet/nets/pytorch_backend/frontends/beamformer.py
 espnet/nets/pytorch_backend/frontends/dnn_beamformer.py
@@ -74,7 +70,7 @@ cov=$(echo "scale = 4; 100 * ${n_ok} / ${n_all}" | bc)
 echo "flake8-docstrings ready files coverage: ${n_ok} / ${n_all} = ${cov}%"
 
 # --extend-ignore for wip files for flake8-docstrings
-flake8 --extend-ignore=D test utils doc ${flake8_black_list}
+flake8 --show-source --extend-ignore=D test utils doc ${flake8_black_list} espnet2 test/espnet2 egs/*/*/local/*.py
 
 # white list of files that should support flake8-docstrings
-flake8 espnet --exclude=${flake8_black_list//$'\n'/,}
+flake8 --show-source espnet --exclude=${flake8_black_list//$'\n'/,}

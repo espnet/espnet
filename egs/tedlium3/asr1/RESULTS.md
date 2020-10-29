@@ -1,7 +1,52 @@
+# Conformer (elayers=12, dlayers=6, units=2048, 4 GPUs, specaug) + large LM
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/11CN3tPF4MXM6wKdTFo7GjX3TlhhZobk-
+    - training config file: `conf/tuning/train_conformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - preprocess config file: `conf/specaug.yaml`
+    - cmvn file: `data/train_trim_sp/cmvn.ark`
+    - e2e file: `exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_conformer_specaug/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_conformer_specaug/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_lm_irie_unit1024_unigram500/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm_irie_unit1024_unigram500/model.json`
+    - dict file: `data/lang_char/train_trim_sp_unigram500_units.txt`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_conformer_specaug/decode_dev_decode/result.wrd.txt
+| SPKR                       | # Snt  # Wrd  | Corr      Sub     Del     Ins     Err   S.Err  |
+| Sum/Avg                    |  507   17783  | 92.0      4.4     3.6     1.6     9.6    73.6  |
+exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_conformer_specaug/decode_test_decode/result.wrd.txt
+|  SPKR                   | # Snt   # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
+|  Sum/Avg                | 1155    27500  |  93.4     3.2      3.5      0.9     7.6     65.2  |
+```
+
+# Transformer (elayers=12, dlayers=6, units=2048, 4 GPUs, specaug) + large LM
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - training config file: `conf/tuning/train_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - preprocess config file: `conf/specaug.yaml`
+    - cmvn file: `data/train_trim_sp/cmvn.ark`
+    - e2e file: `exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_specaug/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_specaug/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_lm_irie_unit1024_unigram500/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm_irie_unit1024_unigram500/model.json`
+    - dict file: `data/lang_char/train_trim_sp_unigram500_units.txt`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_specaug/decode_dev_decode/result.wrd.txt
+| SPKR                      | # Snt # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg                   |  507  17783 | 90.8    5.4    3.8    1.6   10.8   73.6 |
+exp/train_trim_sp_pytorch_nbpe500_ngpu4_train_specaug/decode_test_decode/result.wrd.txt
+| SPKR                   | # Snt # Wrd  | Corr    Sub     Del    Ins     Err  S.Err  |
+| Sum/Avg                | 1155  27500  | 92.5    3.8     3.8    0.8     8.4   65.6  |
+```
+
 # Transformer (elayers=12, dlayers=6, units=2048, 8 GPUs, specaug) + large LM
 
   - Model files (archived to tedlium3_largelm.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=1wYYTwgvbB7uy6agHywhQfnuVWWW_obmO
+    - model link: https://drive.google.com/open?id=1zcPglHAKILwVgfACoMWWERiyIquzSYuU
     - training config file: `./conf/train_pytorch_transformer.v2.yaml`
     - decoding config file: `./conf/decode_pytorch_transformer_beam-size40.yaml`
     - cmvn file: `./data/train_trim_sp/cmvn.ark`
