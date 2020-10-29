@@ -8,6 +8,33 @@
 - pytorch version: `pytorch 1.6.0`
 
 
+## train_mixtec_underlying_full_reserve_sp_pytorch_mixtec_underlying_full_reserve-conformer-specaug-sp
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1K7a3KeXT2_VXXX9sCv2rOlffG5NRpzhL/view?usp=sharing
+    - training config file: `conf/train_pytorch_conformer_kernel15.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_mixtec_underlying_full_reserve_sp/cmvn.ark`
+    - e2e file: `exp/train_mixtec_underlying_full_reserve_sp_pytorch_mixtec_underlying_full_reserve-conformer-specaug-sp/results/model.acc.best`
+    - e2e JSON file: `exp/train_mixtec_underlying_full_reserve_sp_pytorch_mixtec_underlying_full_reserve-conformer-specaug-sp/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_mixtec_underlying_full_reserve_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_mixtec_underlying_full_reserve_unigram150/model.json`
+    - dict file: `data/lang_char/`
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5147|348704|92.7|4.3|3.0|2.5|9.8|78.5|
+|decode_test_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5078|343180|92.5|4.4|3.1|2.2|9.7|78.5|
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5147|83462|86.7|10.3|3.0|2.7|16.0|78.5|
+|decode_test_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5078|81909|86.5|10.5|3.1|2.5|16.1|78.5|
+
+
 ## train_mixtec_underlying_full_reserve_pytorch_mixtec_underlying_full_reserve
 ### CER
 
@@ -101,31 +128,5 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_dev_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5147|83462|79.0|16.6|4.4|3.4|24.4|88.2|
 |decode_test_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5078|81909|78.9|16.8|4.3|3.4|24.5|89.6|
-
-## train_mixtec_underlying_full_reserve_sp_pytorch_mixtec_underlying_full_reserve-conformer-specaug-sp
-  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/file/d/1K7a3KeXT2_VXXX9sCv2rOlffG5NRpzhL/view?usp=sharing
-    - training config file: `conf/train_pytorch_conformer_kernel15.yaml`
-    - decoding config file: `conf/decode.yaml`
-    - cmvn file: `data/train_mixtec_underlying_full_reserve_sp/cmvn.ark`
-    - e2e file: `exp/train_mixtec_underlying_full_reserve_sp_pytorch_mixtec_underlying_full_reserve-conformer-specaug-sp/results/model.acc.best`
-    - e2e JSON file: `exp/train_mixtec_underlying_full_reserve_sp_pytorch_mixtec_underlying_full_reserve-conformer-specaug-sp/results/model.json`
-    - lm file: `exp/train_rnnlm_pytorch_mixtec_underlying_full_reserve_unigram150/rnnlm.model.best`
-    - lm JSON file: `exp/train_rnnlm_pytorch_mixtec_underlying_full_reserve_unigram150/model.json`
-    - dict file: `data/lang_char/`
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_dev_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5147|348704|92.7|4.3|3.0|2.5|9.8|78.5|
-|decode_test_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5078|343180|92.5|4.4|3.1|2.2|9.7|78.5|
-
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_dev_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5147|83462|86.7|10.3|3.0|2.7|16.0|78.5|
-|decode_test_mixtec_underlying_full_reserve_decode_mixtec_underlying_full_reserve|5078|81909|86.5|10.5|3.1|2.5|16.1|78.5|
 
 
