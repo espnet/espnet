@@ -81,7 +81,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/split_tr_dt_et.sh ${annotation_id} ${train_set} ${train_dev} ${test_set} local/spk-train-test-split.txt
 
     # add speed perturbation
-    train_set_org=${train_set}}
+    train_set_org=${train_set}
     utils/perturb_data_dir_speed.sh 0.9 data/${train_set_org} data/temp1
     utils/perturb_data_dir_speed.sh 1.0 data/${train_set_org} data/temp2
     utils/perturb_data_dir_speed.sh 1.1 data/${train_set_org} data/temp3
