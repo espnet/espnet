@@ -17,7 +17,6 @@ cwd=$(pwd)
 if [ ! -e ${db}/TSMV ]; then
     mkdir -p ${db}
     ./download_from_google_drive.sh ${download_url} ${db} zip
-    rm ${db}/*.zip
     echo "Successfully finished download."
 else
     echo "Already exists. Skip download."

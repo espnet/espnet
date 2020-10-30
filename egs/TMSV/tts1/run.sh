@@ -11,14 +11,14 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpu in training
-nj=64        # number of parallel jobs
+nj=8        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 1, get more log)
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=24000      # sampling frequency
+fs=16000      # sampling frequency
 fmax=""       # maximum frequency
 fmin=""       # minimum frequency
 n_mels=80     # number of mel basis
@@ -32,7 +32,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # Set this to somewhere where you want to put your data, or where
@@ -51,9 +51,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_clean_460
-dev_set=dev_clean
-eval_set=test_clean
+train_set=train
+dev_set=dev
+eval_set=test
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -64,10 +64,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for part in dev-clean test-clean train-clean-100 train-clean-360; do
-        # use underscore-separated names in data directories.
-        local/data_prep.sh ${datadir}/LibriTTS/${part} data/${part//-/_}
-    done
+    local/data_prep.sh ${db_root}/TMSV data/all
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -79,7 +76,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
 
     fbankdir=fbank
-    for x in dev_clean test_clean train_clean_100 train_clean_360; do
+    # make train, dev and eval sets
+    utils/subset_data_dir.sh --utt-list data/all/train_utt_list data/all data/${train_set}
+    utils/fix_data_dir.sh data/${train_set}
+    utils/subset_data_dir.sh --utt-list data/all/dev_utt_list data/all data/${dev_set}
+    utils/fix_data_dir.sh data/${dev_set}
+    utils/subset_data_dir.sh --utt-list data/all/eval_utt_list data/all data/${eval_set}
+    utils/fix_data_dir.sh data/${eval_set}
+
+    for x in $train_set $dev_set $eval_set; do
         make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
             --fs ${fs} \
             --fmax "${fmax}" \
@@ -93,13 +98,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             ${fbankdir}
     done
 
-    utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360
-    utils/combine_data.sh data/${dev_set}_org data/dev_clean
-
     # remove utt having more than 3000 frames
     # remove utt having more than 400 characters
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${dev_set}_org data/${dev_set}
+    #remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set} data/${train_set}
+    #remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${dev_set} data/${dev_set}
 
     # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -264,4 +266,97 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished."
+fi
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: Synthesis useing ParallelWaveGAN"
+
+    PWG_DIR=downloads/pwg
+    PWG_steps=495000
+    pids=() # initialize pids
+    
+    for name in ${dev_set} ${eval_set}; do
+    (
+        ls "${outdir}/${name}/feats.scp"
+        [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
+        apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
+            scp:${outdir}/${name}/feats.scp \
+            ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
+        voc_expdir=${PWG_DIR}
+        voc_checkpoint=${PWG_DIR}/checkpoint-${PWG_steps}steps.pkl
+
+        # variable settings
+        voc_conf="$(find "${voc_expdir}" -name "config.yml" -print0 | xargs -0 ls -t | head -n 1)"
+        voc_stats="$(find "${voc_expdir}" -name "stats.h5" -print0 | xargs -0 ls -t | head -n 1)"
+        wav_dir=${outdir}_denorm/${name}/pwg_wav
+        hdf5_norm_dir=${outdir}_denorm/${name}/hdf5_norm
+        [ ! -e "${wav_dir}" ] && mkdir -p ${wav_dir}
+        [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
+
+        # normalize and dump them
+        echo "Normalizing..."
+        ${train_cmd} "${hdf5_norm_dir}/normalize.log" \
+        parallel-wavegan-normalize \
+            --skip-wav-copy \
+            --config "${voc_conf}" \
+            --stats "${voc_stats}" \
+            --feats-scp "${outdir}_denorm/${name}/feats.scp" \
+            --dumpdir ${hdf5_norm_dir} \
+            --verbose "${verbose}"
+        echo "successfully finished normalization."
+
+        # decoding
+        echo "Decoding start. See the progress via ${wav_dir}/decode.log."
+        ${cuda_cmd} --gpu 1 "${wav_dir}/decode.log" \
+            parallel-wavegan-decode \
+                --dumpdir ${hdf5_norm_dir} \
+                --checkpoint "${voc_checkpoint}" \
+                --outdir ${wav_dir} \
+                --verbose "${verbose}"
+        echo "successfully finished decoding."
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished."
+fi
+
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    mcep_dim=24
+    shift_ms=5
+    num_of_spks=18
+    for count_of_spk in $(seq 1 1 $num_of_spks); do
+        spk=SP$(printf "%02d" $count_of_spk)
+
+        out_wavdir=${outdir}_denorm/${eval_set}/pwg_wav
+        gt_wavdir=${db_root}/TMSV/${spk}/audio
+        minf0=$(awk '{print $1}' ${db_root}/TMSV/conf/${spk}.f0)
+        echo "$minf0"
+        maxf0=$(awk '{print $2}' ${db_root}/TMSV/conf/${spk}.f0)
+        echo "$maxf0"
+        out_spk_wavdir=${outdir}_denorm.ob_eval/mcd_eval/pwg_out/${spk}
+        gt_spk_wavdir=${outdir}_denorm.ob_eval/mcd_eval/gt/${spk}
+        mcd_file=${outdir}_denorm.ob_eval/mcd_eval/${spk}_pwg_mcd.log
+        mkdir -p ${out_spk_wavdir}
+        mkdir -p ${gt_spk_wavdir}
+        
+        local/make_spk_dir_for_mcd_eval.sh ${out_wavdir} ${gt_wavdir} \
+            ${out_spk_wavdir} ${gt_spk_wavdir}
+        ${decode_cmd} ${mcd_file} \
+            mcd_calculate.py \
+                --wavdir ${out_spk_wavdir} \
+                --gtwavdir ${gt_spk_wavdir} \
+                --mcep_dim ${mcep_dim} \
+                --shiftms ${shift_ms} \
+                --f0min ${minf0} \
+                --f0max ${maxf0}
+           
+    done
+fi
+
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    echo "Stage 9: objective evaluation on ASR"
+    local/ob_eval/evaluate.sh ${outdir} ${eval_set}
 fi
