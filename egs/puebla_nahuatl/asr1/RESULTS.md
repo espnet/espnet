@@ -6,8 +6,35 @@
 - espnet version: `espnet 0.9.2`
 - chainer version: `chainer 6.0.0`
 - pytorch version: `pytorch 1.6.0`
-- Git hash: ``
-  - Commit date: ``
+
+
+## train_elan_p_272_up_466_reserve_sp_pytorch_elan_p_272_up_466_reserve-conformer-specaug-sp
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1cOEiEc479cMo_lxw8hwgddYHTxrO5NZP/view?usp=sharing
+    - training config file: `conf/train_pytorch_conformer_kernel15.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_elan_p_272_up_466_reserve_sp/cmvn.ark`
+    - e2e file: `exp/train_elan_p_272_up_466_reserve_sp_pytorch_elan_p_272_up_466_reserve-conformer-specaug-sp/results/model.acc.best`
+    - e2e JSON file: `exp/train_elan_p_272_up_466_reserve_sp_pytorch_elan_p_272_up_466_reserve-conformer-specaug-sp/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_elan_p_272_up_466_reserve_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_elan_p_272_up_466_reserve_unigram150/model.json`
+    - dict file: `data/lang_char`
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|11848|285196|90.6|5.0|4.4|4.5|13.9|64.0|
+|decode_test_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|8828|275410|90.8|4.7|4.5|3.5|12.7|70.6|
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|11848|85261|81.2|14.6|4.3|4.7|23.5|64.0|
+|decode_test_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|8828|82153|81.8|13.8|4.4|3.5|21.7|70.6|
+
 
 ## train_elan_p_272_up_466_reserve_pytorch_elan_p_272_up_466_reserve-conformer
 ### CER
@@ -39,30 +66,4 @@
 |decode_dev_elan_p_272_up_466_reserve_decode_rnn_elan_p_272_up_466_reserve|11848|85261|76.5|17.8|5.7|4.1|27.6|70.4|
 |decode_test_elan_p_272_up_466_reserve_decode_rnn_elan_p_272_up_466_reserve|8828|82153|77.7|16.4|5.8|3.4|25.7|75.4|
 
-## train_elan_p_272_up_466_reserve_sp_pytorch_elan_p_272_up_466_reserve-conformer-specaug-sp
-
-  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
-    - training config file: `conf/train_pytorch_conformer_kernel15.yaml`
-    - decoding config file: `conf/decode.yaml`
-    - cmvn file: `data/train_elan_p_272_up_466_reserve_sp/cmvn.ark`
-    - e2e file: `exp/train_elan_p_272_up_466_reserve_sp_pytorch_elan_p_272_up_466_reserve-conformer-specaug-sp/results/model.acc.best`
-    - e2e JSON file: `exp/train_elan_p_272_up_466_reserve_sp_pytorch_elan_p_272_up_466_reserve-conformer-specaug-sp/results/model.json`
-    - lm file: `exp/train_rnnlm_pytorch_elan_p_272_up_466_reserve_unigram150/rnnlm.model.best`
-    - lm JSON file: `exp/train_rnnlm_pytorch_elan_p_272_up_466_reserve_unigram150/model.json`
-    - dict file: `data/lang_char`
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_dev_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|11848|285196|90.6|5.0|4.4|4.5|13.9|64.0|
-|decode_test_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|8828|275410|90.8|4.7|4.5|3.5|12.7|70.6|
-
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_dev_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|11848|85261|81.2|14.6|4.3|4.7|23.5|64.0|
-|decode_test_elan_p_272_up_466_reserve_decode_elan_p_272_up_466_reserve|8828|82153|81.8|13.8|4.4|3.5|21.7|70.6|
 
