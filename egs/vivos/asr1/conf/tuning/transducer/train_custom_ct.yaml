@@ -43,6 +43,8 @@ enc-block-arch:
           use_conv_mod: True
           conv_mod_kernel: 17
           dropout-rate: 0.2
+          pos-dropout-rate: 0.2
+          att-dropout-rate: 0.2
         - type: tdnn
           idim: 512
           odim: 512
@@ -65,6 +67,8 @@ enc-block-arch:
           use_conv_mod: True
           conv_mod_kernel: 17
           dropout-rate: 0.2
+          pos-dropout-rate: 0.2
+          att-dropout-rate: 0.2
         - type: tdnn
           idim: 512
           odim: 512
@@ -87,15 +91,17 @@ enc-block-arch:
           use_conv_mod: True
           conv_mod_kernel: 7
           dropout-rate: 0.2
+          pos-dropout-rate: 0.2
+          att-dropout-rate: 0.2
 ## decoder related
 dtype: lstm
 dlayers: 1
-dec-embed-dim: 256
-dunits: 256
+dec-embed-dim: 512
+dunits: 512
 #dropout-rate-decoder: 0.2
-#dropout-rate-embed-decoder: 0.1
+#dropout-rate-embed-decoder: 0.2
 ## joint network related
-joint-dim: 256
+joint-dim: 128
 
 # transducer related
 rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention
