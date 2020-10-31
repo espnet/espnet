@@ -54,7 +54,7 @@ class TDNN(torch.nn.Module):
 
         self.dropout = torch.nn.Dropout(p=dropout_rate)
 
-    def forward(self, xs, masks):
+    def forward(self, x_input, masks):
         """Forward TDNN.
 
         Args:
@@ -66,6 +66,11 @@ class TDNN(torch.nn.Module):
             masks (torch.Tensor): output mask (B, 1, new_seq_len)
 
         """
+        if isinstance(x_input, tuple):
+            xs, pos_emb = x_input[0], x_input[1]
+        else:
+            xs, pos_emb = x_input, None
+
         xs = xs.transpose(1, 2).contiguous()
         xs = self.tdnn(xs)
 
@@ -77,12 +82,36 @@ class TDNN(torch.nn.Module):
 
         xs = self.dropout(xs.transpose(1, 2).contiguous())
 
-        if masks is not None:
-            sub = (self.ctx_size - 1) * self.dilation
+        return self.create_outputs(xs, pos_emb, masks)
 
+    def create_outputs(self, xs, pos_emb, masks):
+        """Create outputs with subsampled version of pos_emb and masks.
+
+        Args:
+            xs (torch.Tensor): (B, sub(T), attention_dim)
+            pos_emb (torch.Tensor): (B, T, attention_dim)
+            masks (torch.Tensor): (B, 1, T)
+
+        Returns:
+            xs (torch.Tensor): (B, sub(T), attention_dim)
+            pos_emb (torch.Tensor): (B, sub(T), attention_dim)
+            masks (torch.Tensor): (B, 1, sub(T))
+
+        """
+        sub = (self.ctx_size - 1) * self.dilation
+
+        if masks is not None:
             if sub != 0:
                 masks = masks[:, :, :-sub]
 
             masks = masks[:, :, :: self.stride]
+
+        if pos_emb is not None:
+            if sub != 0:
+                pos_emb = pos_emb[:, :-sub, :]
+
+            pos_emb = pos_emb[:, :: self.stride, :]
+
+            return (xs, pos_emb), masks
 
         return xs, masks
