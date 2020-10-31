@@ -132,9 +132,6 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
                     + ": 'use_conv_mod' is True but 'use_conv_kernel' is not specified"
                 )
 
-            if i == 0 and input_layer == "conv2d":
-                input_layer = "conformer-conv2d"
-
             has_conformer = True
             cmp_io.append((blocks_arch[i]["d_hidden"], blocks_arch[i]["d_hidden"]))
         elif block_type == "causal-conv1d":
@@ -165,9 +162,6 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
                     "'idim': int, 'odim': int, 'ctx_size': int, "
                     "'dilation': int, 'stride': int, [...]}"
                 )
-
-            if i == 0:
-                input_layer = "t-linear"
 
             cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
         else:
@@ -280,11 +274,12 @@ def build_input_layer(
             pos_enc_class(odim, pos_dropout_rate),
         )
     elif input_layer == "conv2d":
-        return Conv2dSubsampling(idim, odim, dropout_rate)
-    elif input_layer == "conformer-conv2d":
-        return Conv2dSubsampling(
-            idim, odim, dropout_rate, pos_enc_class(odim, pos_dropout_rate)
-        )
+        if pos_enc_class.__name__ == "RelPositionalEncoding":
+            return Conv2dSubsampling(
+                idim, odim, dropout_rate, pos_enc_class(odim, pos_dropout_rate)
+            )
+        else:
+            return Conv2dSubsampling(idim, odim, dropout_rate)
     elif input_layer == "vgg2l":
         return VGG2L(idim, odim)
     elif input_layer == "embed":
@@ -292,8 +287,6 @@ def build_input_layer(
             torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
             pos_enc_class(odim, pos_dropout_rate),
         )
-    elif input_layer == "t-linear":
-        return torch.nn.Linear(idim, odim)
     elif input_layer == "c-embed":
         return torch.nn.Sequential(
             torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
