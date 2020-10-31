@@ -154,7 +154,7 @@ def prepare(args):
                         "type": "tdnn",
                         "idim": 2,
                         "odim": 2,
-                        "ctx_size": 3,
+                        "ctx_size": 2,
                         "dilation": 1,
                         "stride": 1,
                         "dropout-rate": 0.3,
