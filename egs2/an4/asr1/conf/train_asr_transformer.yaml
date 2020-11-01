@@ -1,13 +1,7 @@
-<<<<<<< HEAD:egs2/an4/asr1/conf/train_asr_transformer.yaml
-batch_size: 24
-#accum_grad: 8
-max_epoch: 200
-=======
 batch_type: folded
 batch_size: 16
 # accum_grad: 8
 max_epoch: 100
->>>>>>> add multi-speaker ASR in egs2/TEMPLATE/asr1/asr_mix.sh and espnet2/asr/espnet_model_mix.py:egs2/wsj0_2mix_spatialized/asr1/conf/tuning/train_asr_transformer.yaml
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
@@ -36,24 +30,37 @@ scheduler_conf:
 # Enhancement Related
 enh: tf_masking
 enh_conf:
-<<<<<<< HEAD:egs2/an4/asr1/conf/train_asr_transformer.yaml
-    mask_type: PSM
-    n_fft: 256
-=======
     train_mask_only: False
     mask_type: PSM^2
     loss_type: mask_mse
     n_fft: 512
     win_length: null
->>>>>>> add multi-speaker ASR in egs2/TEMPLATE/asr1/asr_mix.sh and espnet2/asr/espnet_model_mix.py:egs2/wsj0_2mix_spatialized/asr1/conf/tuning/train_asr_transformer.yaml
     hop_length: 128
     rnn_type: blstm
     layer: 3
     unit: 896
     dropout: 0.5
     num_spk: 2
-    utt_mvn: False
-    nonlinear: relu
+    normalize_input: False
+    use_wpe: False
+    wnet_type: blstmp
+    wlayers: 3
+    wunits: 300
+    wprojs: 320
+    wdropout_rate: 0.0
+    taps: 5
+    delay: 3
+    use_dnn_mask_for_wpe: True
+    use_beamformer: True
+    bnet_type: blstmp
+    blayers: 3
+    bunits: 512
+    bprojs: 512
+    badim: 320
+    ref_channel: 0
+    use_noise_mask: False
+    beamformer_type: mvdr_souden
+    bdropout_rate: 0.0
 
 # ASR Related
 frontend: default

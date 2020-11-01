@@ -49,8 +49,9 @@ class BeamformerNet(AbsEnhancement):
         ref_channel: int = -1,
         use_noise_mask: bool = True,
         bnonlinear: str = "sigmoid",
-        beamformer_type="mvdr",
-        bdropout_rate=0.0,
+        beamformer_type: str = "mvdr_souden",
+        bdropout_rate: float = 0.0,
+        shared_power: bool = True,
     ):
         super(BeamformerNet, self).__init__()
 
@@ -122,6 +123,8 @@ class BeamformerNet(AbsEnhancement):
         else:
             self.beamformer = None
 
+        self.shared_power = shared_power
+
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """Forward.
 
@@ -181,11 +184,12 @@ class BeamformerNet(AbsEnhancement):
             return None, flens, masks
 
         else:
+            powers = None
             # Performing both mask estimation and enhancement
             if input_spectrum.dim() == 3:
                 # single-channel input (B, T, F)
                 if self.use_wpe:
-                    enhanced, flens, mask_w = self.wpe(
+                    enhanced, flens, mask_w, powers = self.wpe(
                         input_spectrum.unsqueeze(-2), flens
                     )
                     enhanced = enhanced.squeeze(-2)
@@ -195,14 +199,20 @@ class BeamformerNet(AbsEnhancement):
                 # multi-channel input (B, T, C, F)
                 # 1. WPE
                 if self.use_wpe:
-                    enhanced, flens, mask_w = self.wpe(input_spectrum, flens)
+                    enhanced, flens, mask_w, powers = self.wpe(input_spectrum, flens)
                     if mask_w is not None:
                         masks["dereverb"] = mask_w
 
                 # 2. Beamformer
                 if self.use_beamformer:
+                    if any(
+                        not self.shared_power,
+                        not self.beamformer.beamformer_type.startswith("wmpdr"),
+                        not self.beamformer.beamformer_type.startswith("wpd"),
+                    ):
+                        powers = None
                     # enhanced: (B, T, C, F) -> (B, T, F)
-                    enhanced, flens, masks_b = self.beamformer(enhanced, flens)
+                    enhanced, flens, masks_b = self.beamformer(enhanced, flens, powers=powers)
                     for spk in range(self.num_spk):
                         masks["spk{}".format(spk + 1)] = masks_b[spk]
                     if len(masks_b) > self.num_spk:
