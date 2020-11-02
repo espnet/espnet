@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -15,16 +15,14 @@ debugmode=1
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
+download_dir=downloads  # download file from openslr
+
 
 # dataset related
+wavdir=${download_dir}/Sound-files-Puebla-Nahuatl
+annotation_dir=${download_dir}/Transcription-files-Puebla-Nahuatl
 annotation_type=eaf
-annotation_id=mixtec_surface
-text_format=surface # underlying_full, underlying_reduce
-
-# wav and transcription data directoy
-download_dir=
-wavdir=${download_dir}/Sound-files-Narratives-for-ASR
-annodir=${download_dir}/Transcriptions-for-ASR/ELAN-files-with-underlying-and-surface-tiers
+annotation_id=nahuatl_filesplit
 
 # feature configuration
 do_delta=false
@@ -33,6 +31,8 @@ preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
+# train_config=conf/tuning/train_rnn.yaml
+# decode_config=conf/tuning/decode_rnn.yaml
 
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
@@ -65,30 +65,28 @@ test_set=test_${annotation_id}
 recog_set="${train_set} ${train_dev} ${test_set}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    local/download_and_untar.sh ${download_dir} http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Data.tgz Yoloxochitl-Mixtec-Data.tgz
-    local/download_and_untar.sh local http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Manifest.tgz Yoloxochitl-Mixtec-Manifest.tgz
+    # Download the Data
+   local/download_and_untar.sh local  http://www.openslr.org/resources/92/Pueble-Nahuatl-Manifest.tgz Pueble-Nahuatl-Manifest.tgz
+   local/download_and_untar.sh ${download_dir} http://www.openslr.org/resources/92/Sound-Files-Pueble-Nahuatl.tgz.part0 Sound-Files-Pueble-Nahuatl.tgz.part0 9
+
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
-    python3 local/data_prep.py -w $wavdir -a $annodir -t data/${annotation_id} \
-                              -m ${annotation_type} -i local/speaker_wav_mapping_mixtec_remove_reserve.csv \
-                              -f ${text_format}
-
-    data/${annotation_id}/remix_script.sh
-
-    # split by speakers ( official split of data)
-    local/split_tr_dt_et.sh ${annotation_id} ${train_set} ${train_dev} ${test_set} local/spk-train-test-split.txt
+    for x in train dev test; do
+        python local/data_prep.py -w $wavdir -t data/${x}_${annotation_id} -m ${annotation_type} -i local/Pueble-Nahuatl-Manifest/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
+        utils/fix_data_dir.sh data/${x}_${annotation_id}
+    done
 
     # add speed perturbation
-    train_set_org=${train_set}
+    train_set_org=train_${annotation_id}
     utils/perturb_data_dir_speed.sh 0.9 data/${train_set_org} data/temp1
     utils/perturb_data_dir_speed.sh 1.0 data/${train_set_org} data/temp2
     utils/perturb_data_dir_speed.sh 1.1 data/${train_set_org} data/temp3
     train_set=train_${annotation_id}_sp
     utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
     rm -r data/temp1 data/temp2 data/temp3
-
+ 
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -118,7 +116,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
-            data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+            data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir} 
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
@@ -217,9 +215,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=4
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
 	recog_model=model.last${n_average}.avg.best
 	average_checkpoints.py --backend ${backend} \
 			       --snapshots ${expdir}/results/snapshot.ep.* \
