@@ -40,6 +40,10 @@ egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
 
+# still working
+egs/TMSV/lts1
+utils/make_face.sh
+
 # tools related
 tools/bin
 tools/include
