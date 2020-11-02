@@ -31,9 +31,9 @@ enh_conf:
     n_fft: 256
     win_length: null
     hop_length: 128
-    num_spk: 2
+    num_spk: 1
     normalize_input: False
-    use_wpe: False
+    use_wpe: True
     wnet_type: blstmp
     wlayers: 3
     wunits: 300
@@ -50,5 +50,7 @@ enh_conf:
     badim: 320
     ref_channel: 0
     use_noise_mask: True
-    beamformer_type: mvdr_souden
+    beamformer_type: wmpdr
+    rtf_iterations: 3
     bdropout_rate: 0.0
+    shared_power: True

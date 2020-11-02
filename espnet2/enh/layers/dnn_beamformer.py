@@ -27,17 +27,17 @@ is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer
-    "mvdr",         # RTF-based formula
+    "mvdr",  # RTF-based formula
     "mvdr_souden",  # Souden's solution
     # Minimum Power Distortionless Response beamformer
-    "mpdr",         # RTF-based formula
+    "mpdr",  # RTF-based formula
     "mpdr_souden",  # Souden's solution
     # weighted MPDR beamformer
-    "wmpdr",        # RTF-based formula
-    "wmpdr_souden", # Souden's solution
+    "wmpdr",  # RTF-based formula
+    "wmpdr_souden",  # Souden's solution
     # Weighted Power minimization Distortionless response beamformer
-    "wpd",          # RTF-based formula
-    "wpd_souden",   # Souden's solution
+    "wpd",  # RTF-based formula
+    "wpd_souden",  # Souden's solution
 )
 
 
@@ -98,12 +98,8 @@ class DNN_Beamformer(torch.nn.Module):
                 "Not supporting beamformer_type={}".format(beamformer_type)
             )
         if (
-            any(
-                beamformer_type == "mvdr_souden",
-                not beamformer_type.endswith("_souden"),
-            )
-            and (not use_noise_mask)
-        ):
+            beamformer_type == "mvdr_souden" or not beamformer_type.endswith("_souden")
+        ) and not use_noise_mask:
             if num_spk == 1:
                 logging.warning(
                     "Initializing {} beamformer without noise mask "
@@ -228,7 +224,7 @@ class DNN_Beamformer(torch.nn.Module):
 
         # mask: [(B, F, C, T)]
         masks, _ = self.mask(data, ilens)
-        assert self.nmask == len(masks)
+        assert self.nmask == len(masks), len(masks)
         # floor masks with self.eps to increase numerical stability
         masks = [torch.clamp(m, min=self.eps) for m in masks]
 
@@ -241,10 +237,9 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_speech = masks[0]
                 mask_noise = 1 - mask_speech
 
-            if any(
-                self.beamformer_type.startswith("wmpdr"),
-                self.beamformer_type.startswith("wpd"),
-            ):
+            if self.beamformer_type.startswith(
+                "wmpdr"
+            ) or self.beamformer_type.startswith("wpd"):
                 if powers is None:
                     power_input = data_d.real ** 2 + data_d.imag ** 2
                     # Averaging along the channel axis: (..., C, T) -> (..., T)
@@ -255,9 +250,9 @@ class DNN_Beamformer(torch.nn.Module):
                 inverse_power = 1 / torch.clamp(powers, min=self.eps)
 
             psd_speech = get_power_spectral_density_matrix(data_d, mask_speech.double())
-            if mask_noise is not None and any(
-                self.beamformer_type == "mvdr_souden",
-                not self.beamformer_type.endswith("_souden"),
+            if mask_noise is not None and (
+                self.beamformer_type == "mvdr_souden"
+                or not self.beamformer_type.endswith("_souden")
             ):
                 # MVDR or other RTF-based formulas
                 psd_noise = get_power_spectral_density_matrix(
@@ -322,10 +317,9 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_speech = list(masks)
                 mask_noise = None
 
-            if any(
-                self.beamformer_type.startswith("wmpdr"),
-                self.beamformer_type.startswith("wpd"),
-            ):
+            if self.beamformer_type.startswith(
+                "wmpdr"
+            ) or self.beamformer_type.startswith("wpd"):
                 if powers is None:
                     power_input = data_d.real ** 2 + data_d.imag ** 2
                     # Averaging along the channel axis: (..., C, T) -> (..., T)
@@ -340,9 +334,9 @@ class DNN_Beamformer(torch.nn.Module):
                 get_power_spectral_density_matrix(data_d, mask.double())
                 for mask in mask_speech
             ]
-            if mask_noise is not None and any(
-                self.beamformer_type == "mvdr_souden",
-                not self.beamformer_type.endswith("_souden"),
+            if mask_noise is not None and (
+                self.beamformer_type == "mvdr_souden"
+                or not self.beamformer_type.endswith("_souden")
             ):
                 # MVDR or other RTF-based formulas
                 psd_noise = get_power_spectral_density_matrix(
@@ -373,9 +367,9 @@ class DNN_Beamformer(torch.nn.Module):
             enhanced, ws = [], []
             for i in range(self.num_spk):
                 psd_speech = psd_speeches.pop(i)
-                if any(
-                    self.beamformer_type == "mvdr_souden",
-                    not self.beamformer_type.endswith("_souden"),
+                if (
+                    self.beamformer_type == "mvdr_souden"
+                    or not self.beamformer_type.endswith("_souden")
                 ):
                     psd_noise_i = (
                         psd_noise + sum(psd_speeches)

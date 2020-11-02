@@ -1,8 +1,3 @@
-"""
-This script is used to construct convolutional beamformers.
-Copyright 2020  Wangyou Zhang
- Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-"""
 from typing import List
 from typing import Optional
 from typing import Union

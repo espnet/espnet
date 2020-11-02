@@ -64,12 +64,12 @@ class DNN_WPE(torch.nn.Module):
             F: Freq or Some dimension of the feature vector
 
         Args:
-            data: (B, C, T, F)
+            data: (B, T, C, F)
             ilens: (B,)
         Returns:
-            enhanced (torch.Tensor or List[torch.Tensor]): (B, C, T, F)
+            enhanced (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             ilens: (B,)
-            mask (torch.Tensor or List[torch.Tensor]): (B, C, T, F)
+            mask (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             power (List[torch.Tensor]): (B, F, T)
         """
         # (B, T, C, F) -> (B, F, C, T)
@@ -113,10 +113,14 @@ class DNN_WPE(torch.nn.Module):
         # (B, F, C, T) -> (B, T, C, F)
         enhanced = [enh.permute(0, 3, 2, 1) for enh in enhanced]
         if mask is not None:
-            mask = [m.transpose(-1, -3) for m in masks]
+            mask = (
+                [m.transpose(-1, -3) for m in masks]
+                if self.nmask > 1
+                else masks[0].transpose(-1, -3)
+            )
         if self.nmask == 1:
             enhanced = enhanced[0]
-            mask = mask[0]
+
         return enhanced, ilens, mask, power
 
     def predict_mask(
