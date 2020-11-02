@@ -22,7 +22,7 @@ resume=        # Resume the training from snapshot
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/tuning/conformer/train_pytorch_conformer_large.yaml # current default recipe requires 4 gpus.
+train_config=conf/train.yaml # current default recipe requires 4 gpus.
                              # if you do not have 4 gpus, please reconfigure the `batch-bins` and `accum-grad` parameters in config.
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
