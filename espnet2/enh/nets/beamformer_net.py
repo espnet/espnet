@@ -39,6 +39,8 @@ class BeamformerNet(AbsEnhancement):
         delay: int = 3,
         use_dnn_mask_for_wpe: bool = True,
         wnonlinear: str = "crelu",
+        multi_source_wpe: bool = True,
+        wnormalization: bool = False,
         # Beamformer options
         use_beamformer: bool = True,
         bnet_type: str = "blstmp",
@@ -50,6 +52,7 @@ class BeamformerNet(AbsEnhancement):
         use_noise_mask: bool = True,
         bnonlinear: str = "sigmoid",
         beamformer_type: str = "mvdr_souden",
+        rtf_iterations: int = 2,
         bdropout_rate: float = 0.0,
         shared_power: bool = True,
     ):
@@ -89,15 +92,17 @@ class BeamformerNet(AbsEnhancement):
             self.wpe = DNN_WPE(
                 wtype=wnet_type,
                 widim=self.num_bin,
+                wlayers=wlayers,
                 wunits=wunits,
                 wprojs=wprojs,
-                wlayers=wlayers,
+                dropout_rate=wdropout_rate,
                 taps=taps,
                 delay=delay,
-                dropout_rate=wdropout_rate,
-                iterations=iterations,
                 use_dnn_mask=use_dnn_mask_for_wpe,
+                nmask=1 if multi_source_wpe else num_spk,
                 nonlinear=wnonlinear,
+                iterations=iterations,
+                normalization=wnormalization,
             )
         else:
             self.wpe = None
@@ -105,11 +110,11 @@ class BeamformerNet(AbsEnhancement):
         self.ref_channel = ref_channel
         if self.use_beamformer:
             self.beamformer = DNN_Beamformer(
-                btype=bnet_type,
                 bidim=self.num_bin,
+                btype=bnet_type,
+                blayers=blayers,
                 bunits=bunits,
                 bprojs=bprojs,
-                blayers=blayers,
                 num_spk=num_spk,
                 use_noise_mask=use_noise_mask,
                 nonlinear=bnonlinear,
@@ -117,12 +122,14 @@ class BeamformerNet(AbsEnhancement):
                 badim=badim,
                 ref_channel=ref_channel,
                 beamformer_type=beamformer_type,
+                rtf_iterations=rtf_iterations,
                 btaps=taps,
                 bdelay=delay,
             )
         else:
             self.beamformer = None
 
+        # share speech powers between WPE and beamforming (wMPDR/WPD)
         self.shared_power = shared_power
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
@@ -157,7 +164,12 @@ class BeamformerNet(AbsEnhancement):
         enhanced = input_spectrum
         masks = OrderedDict()
 
-        if self.training and self.loss_type and self.loss_type.startswith("mask") and self.train_mask_only:
+        if all(
+            self.training,
+            self.loss_type is not None,
+            self.loss_type.startswith("mask"),
+            self.train_mask_only,
+        ):
             # Only estimating masks for training
             if self.use_wpe:
                 if input_spectrum.dim() == 3:
@@ -212,7 +224,9 @@ class BeamformerNet(AbsEnhancement):
                     ):
                         powers = None
                     # enhanced: (B, T, C, F) -> (B, T, F)
-                    enhanced, flens, masks_b = self.beamformer(enhanced, flens, powers=powers)
+                    enhanced, flens, masks_b = self.beamformer(
+                        enhanced, flens, powers=powers
+                    )
                     for spk in range(self.num_spk):
                         masks["spk{}".format(spk + 1)] = masks_b[spk]
                     if len(masks_b) > self.num_spk:

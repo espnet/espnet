@@ -49,6 +49,8 @@ class DNN_WPE(torch.nn.Module):
                 nmask=nmask,
                 nonlinear=nonlinear,
             )
+        else:
+            self.nmask = 1
 
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
@@ -65,9 +67,9 @@ class DNN_WPE(torch.nn.Module):
             data: (B, C, T, F)
             ilens: (B,)
         Returns:
-            data: (B, C, T, F)
+            enhanced (torch.Tensor or List[torch.Tensor]): (B, C, T, F)
             ilens: (B,)
-            mask: (B, C, T, F)
+            mask (torch.Tensor or List[torch.Tensor]): (B, C, T, F)
             power (List[torch.Tensor]): (B, F, T)
         """
         # (B, T, C, F) -> (B, F, C, T)

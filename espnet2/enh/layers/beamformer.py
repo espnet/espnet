@@ -11,30 +11,47 @@ import torch
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends import beamformer
-
 
 def complex_norm(c: ComplexTensor) -> torch.Tensor:
     return torch.sqrt((c.real ** 2 + c.imag ** 2).sum(dim=-1, keepdim=True) + 1e-10)
 
 
-def power_iteration(
-    matrix: ComplexTensor, vector: ComplexTensor, iterations: int = 1
+def get_rtf(
+    psd_speech: ComplexTensor,
+    psd_noise: ComplexTensor,
+    reference_vector: Union[int, torch.Tensor, None] = None,
+    iterations: int = 3,
 ) -> ComplexTensor:
-    """Perform eigenvalue decomposition via the power iteration method.
+    """Calculate the relative transfer function (RTF) using the power method.
+
+    Algorithm:
+        1) rtf = reference_vector
+        2) for i in range(iterations):
+             rtf = (psd_noise^-1 @ psd_speech) @ rtf
+             rtf = rtf / ||rtf||_2  # this normalization can be skipped
+        3) rtf = psd_noise @ rtf
+        4) rtf = rtf / rtf[..., ref_channel, :]
+    Note: 4) Normalization at the reference channel is not performed here.
 
     Args:
-        matrix: (B, F, C, C) matrix to be eigenvalue decomposed
-        vector: (B, F, C) initialized eigen-vector
-        iterations: number of iterations
+        psd_speech (ComplexTensor): speech covariance matrix (..., F, C, C)
+        psd_noise (ComplexTensor): noise covariance matrix (..., F, C, C)
+        reference_vector (torch.Tensor or int): (..., C) or scalar
+        iterations (int): number of iterations in power method
     Returns:
-        eigenvec: (B, F, C) estimated eigenvector corresponding to the maximum eigenvalue
+        rtf (ComplexTensor): (..., F, C, 1)
     """
-    eigenvec = vector
-    for i in range(iterations):
-        eigenvec = FC.matmul(matrix, eigenvec.unsqueeze(-1)).squeeze(-1)
-        eigenvec = eigenvec / complex_norm(eigenvec)
-    return eigenvec
+    phi = FC.solve(psd_speech, psd_noise)[0]
+    rtf = (
+        phi[..., reference_vector, None]
+        if isinstance(reference_vector, int)
+        else FC.matmul(phi, reference_vector.unsqueeze(-1))
+    )
+    for _ in range(iterations - 2):
+        rtf = FC.matmul(phi, rtf)
+        # rtf = rtf / complex_norm(rtf)
+    rtf = FC.matmul(psd_speech, rtf)
+    return rtf
 
 
 def get_mvdr_vector(
@@ -53,8 +70,8 @@ def get_mvdr_vector(
         https://ieeexplore.ieee.org/document/5089420
 
     Args:
-        psd_s (ComplexTensor): (..., F, C, C)
-        psd_n (ComplexTensor): (..., F, C, C)
+        psd_s (ComplexTensor): speech covariance matrix (..., F, C, C)
+        psd_n (ComplexTensor): observation/noise covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor): (..., C)
         eps (float):
     Returns:
@@ -100,12 +117,12 @@ def get_mvdr_vector_with_rtf(
         https://ieeexplore.ieee.org/document/5089420
 
     Args:
-        psd_n (ComplexTensor): (..., F, C, C)
-        psd_speech (ComplexTensor): (..., F, C, C)
-        psd_noise (ComplexTensor): (..., F, C, C)
-        iterations (int)
+        psd_n (ComplexTensor): observation/noise covariance matrix (..., F, C, C)
+        psd_speech (ComplexTensor): speech covariance matrix (..., F, C, C)
+        psd_noise (ComplexTensor): noise covariance matrix (..., F, C, C)
+        iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
-        normalize_ref_channel (int)
+        normalize_ref_channel (int): reference channel for normalizing the RTF
         eps (float):
     Returns:
         beamform_vector (ComplexTensor)r: (..., F, C)
@@ -122,17 +139,8 @@ def get_mvdr_vector_with_rtf(
         epsilon = epsilon + eps
     psd_noise = psd_noise + epsilon * eye
 
-    # (B, F, C)
-    phi = FC.solve(psd_speech, psd_noise)[0]
-    rtf = (
-        phi[..., reference_vector, None]
-        if isinstance(reference_vector, int)
-        else FC.matmul(phi, reference_vector.unsqueeze(-1))
-    )
-    for i in range(iterations - 2):
-        rtf = FC.matmul(phi, rtf)
-        # rtf = rtf / complex_norm(rtf)
-    rtf = FC.matmul(psd_speech, rtf)
+    # (B, F, C, 1)
+    rtf = get_rtf(psd_speech, psd_noise, reference_vector, iterations=iterations)
 
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
     numerator = FC.solve(rtf, psd_n)[0].squeeze(-1)
@@ -394,12 +402,12 @@ def get_WPD_filter_with_rtf(
         https://ieeexplore.ieee.org/document/8691481
 
     Args:
-        psd_observed_bar (ComplexTensor): (..., F, C, C)
-        psd_speech (ComplexTensor): (..., F, C, C)
-        psd_noise (ComplexTensor): (..., F, C, C)
-        iterations (int)
+        psd_observed_bar (ComplexTensor): stacked observation covariance matrix
+        psd_speech (ComplexTensor): speech covariance matrix (..., F, C, C)
+        psd_noise (ComplexTensor): noise covariance matrix (..., F, C, C)
+        iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
-        normalize_ref_channel (int)
+        normalize_ref_channel (int): reference channel for normalizing the RTF
         eps (float):
     Returns:
         beamform_vector (ComplexTensor)r: (..., F, C)
@@ -416,17 +424,8 @@ def get_WPD_filter_with_rtf(
         epsilon = epsilon + eps
     psd_noise = psd_noise + epsilon * eye
 
-    # (B, F, C)
-    phi = FC.solve(psd_speech, psd_noise)[0]
-    rtf = (
-        phi[..., reference_vector, None]
-        if isinstance(reference_vector, int)
-        else FC.matmul(phi, reference_vector.unsqueeze(-1))
-    )
-    for i in range(iterations - 2):
-        rtf = FC.matmul(phi, rtf)
-        # rtf = rtf / complex_norm(rtf)
-    rtf = FC.matmul(psd_speech, rtf)
+    # (B, F, C, 1)
+    rtf = get_rtf(psd_speech, psd_noise, reference_vector, iterations=iterations)
 
     # (B, F, (K+1)*C, 1)
     rtf = FC.pad(rtf, (0, 0, 0, psd_observed_bar.shape[-1] - C), "constant", 0)
@@ -463,49 +462,3 @@ def perform_WPD_filtering(
     # (B, F, T, 1)
     enhanced = FC.einsum("...tc,...c->...t", [Ytilde, filter_matrix.conj()])
     return enhanced
-
-
-if __name__ == "__main__":
-    ############################################
-    #                  Example                 #
-    ############################################
-    eps = 1e-10
-    btaps = 5
-    bdelay = 3
-    # pretend to be some STFT: (B, F, C, T)
-    Z = ComplexTensor(torch.rand(4, 256, 2, 518), torch.rand(4, 256, 2, 518))
-
-    # Calculate power: (B, F, C, T)
-    power = Z.real ** 2 + Z.imag ** 2
-    # pretend to be some mask
-    mask_speech = torch.ones_like(Z.real)
-    # (..., C, T) * (..., C, T) -> (..., C, T)
-    power = power * mask_speech
-    # Averaging along the channel axis: (B, F, C, T) -> (B, F, T)
-    power = power.mean(dim=-2)
-    # (B, F, T) --> (B * F, T)
-    power = power.view(-1, power.shape[-1])
-    inverse_power = 1 / torch.clamp(power, min=eps)
-
-    B, Fdim, C, T = Z.shape
-
-    # covariance matrix: (B, F, (btaps+1) * C, (btaps+1) * C)
-    covariance_matrix = get_covariances(
-        Z, inverse_power, bdelay, btaps, get_vector=False
-    )
-
-    # speech signal PSD: (B, F, C, C)
-    psd_speech = beamformer.get_power_spectral_density_matrix(
-        Z, mask_speech, btaps, normalization=True
-    )
-
-    # reference vector: (B, C)
-    ref_channel = 0
-    u = torch.zeros(*(Z.size()[:-3] + (Z.size(-2),)), device=Z.device)
-    u[..., ref_channel].fill_(1)
-
-    # (B, F, (btaps + 1) * C)
-    WPD_filter = get_WPD_filter_v2(psd_speech, covariance_matrix, u)
-
-    # (B, F, T)
-    enhanced = perform_WPD_filtering(WPD_filter, Z, bdelay, btaps)
