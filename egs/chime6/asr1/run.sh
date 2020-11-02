@@ -25,6 +25,7 @@ decode_config=conf/decode.yaml
 
 # decoding parameter
 recog_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # data
 chime5_corpus=/export/corpora4/CHiME5
@@ -165,6 +166,19 @@ fi
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "[STAGE 7]: Decoding"
     nj=40
+
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then 
+        recog_model=model.last${n_average}.avg.best
+
+        average_checkpoints.py --backend ${backend} \
+			       --snapshots ${expdir}/results/snapshot.ep.* \
+			       --out ${expdir}/results/${recog_model} \
+			       --num ${n_average}
+    fi
+    
     decode_dir=decode_${train_dev}
 
     # split data
