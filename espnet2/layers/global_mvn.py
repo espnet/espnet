@@ -51,7 +51,7 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
             sum_square_v = stats["sum_square"]
             mean = sum_v / count
             var = sum_square_v / count - mean * mean
-        std = np.maximum(np.sqrt(var), eps)
+        std = np.sqrt(np.maximum(var, eps))
 
         self.register_buffer("mean", torch.from_numpy(mean))
         self.register_buffer("std", torch.from_numpy(std))
