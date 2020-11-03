@@ -243,7 +243,7 @@ class BeamformerNet(AbsEnhancement):
             enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
         else:
             # single-speaker output
-            enhanced = torch.stack([enhanced.real, enhanced.imag], dim=-1).float()
+            enhanced = [torch.stack([enhanced.real, enhanced.imag], dim=-1)]
         return enhanced, flens, masks
 
     def forward_rawwav(self, input: torch.Tensor, ilens: torch.Tensor):

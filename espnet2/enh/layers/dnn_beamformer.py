@@ -359,10 +359,6 @@ class DNN_Beamformer(torch.nn.Module):
                     )
                     for inv_p in inverse_power
                 ]
-            else:
-                raise ValueError(
-                    "Not supporting beamformer_type={}".format(self.beamformer_type)
-                )
 
             enhanced, ws = [], []
             for i in range(self.num_spk):

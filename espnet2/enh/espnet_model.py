@@ -228,7 +228,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref,
         dereverb_speech_ref=None,
         noise_ref=None,
-        cal_loss=True,  # weather to calculate enh loss
+        cal_loss=True,
     ):
         """Compute loss according to self.loss_type.
 
@@ -244,6 +244,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         or (Batch, num_speaker, samples, channels)
             noise_ref: (Batch, num_speaker, samples)
                         or (Batch, num_speaker, samples, channels)
+            cal_loss: whether to calculate enh loss, defualt is True
 
         Returns:
             loss: (torch.Tensor) speech enhancement loss
