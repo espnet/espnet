@@ -656,13 +656,14 @@ class FaSNet_base(AbsEnhancement):
     def forward(self, input, voiceP=None):
         """
         input: shape (batch, T)
-        voiceP: batch,topk,spk_emb
+        voiceP: batch,topk,spk_emb, reserved target-spk query
         """
         # pass to a DPRNN
         # input = input.to(device)
         B, _ = input.size()
-        # mixture, rest = self.pad_input(input, self.window)
-        # print('mixture.shape {}'.format(mixture.shape))
+        # input, rest = self.pad_input(input, self.window)
+        # print('padded input shape {}'.format(input.shape))
+        # print('rest',rest)
         mixture_w = self.encoder(input)  # B, E, L
 
         score_ = self.enc_LN(mixture_w)  # B, E, L
@@ -687,11 +688,15 @@ class FaSNet_base(AbsEnhancement):
         est_source = self.decoder(
             mixture_w, est_mask
         )  # [B, E, L] + [B, nspk, E, L]--> [B, nspk, T]
+        T_origin = input.size(-1)
+        T_conv = est_source.size(-1)
+        # print('T_raw, T_est:', T_origin, T_conv)
+        est_source = F.pad(est_source, (0, T_origin - T_conv))  # M,C,T
         # print('final.shape {}'.format(est_source.shape))
 
         # if rest > 0:
         #     est_source = est_source[:, :, :-rest]
-        est_source = [es for es in est_source.transpose(0, 1)]  # List(M,T)
+        est_source = [es for es in est_source.transpose(0, 1)]  # List(B,T)
         masks = OrderedDict(
             zip(["spk{}".format(i + 1) for i in range(self.num_spk)], est_source)
         )
@@ -703,8 +708,18 @@ class FaSNet_base(AbsEnhancement):
 
 
 if __name__ == "__main__":
-    mixture = torch.randn(3, 3000)  # bs, samples
-    voiewiP = torch.randn(3, 2, 256)  # bs, topk , emb
+    mixture = torch.randn(3, 2001)  # bs, samples
+    print("input shape", mixture.shape)
+    voiceP= torch.randn(3, 2, 256)  # bs, topk , emb , reserved spk-target embedding
+
+    print('\n')
     net = FaSNet_base(feature_dim=128, nspk=2)
-    output = net(mixture, voiceP)
-    print("output shape", output.shape)
+    output = net(mixture, voiceP)[0]
+    print("1st spk output shape", output[0].shape)
+    assert output[0].shape == mixture.shape
+
+    print('\n')
+    net = FaSNet_base(segment_size=100, nspk=2, win_len=16)
+    output = net(mixture)[0]
+    print("1st spk output shape", output[0].shape)
+    assert output[0].shape == mixture.shape
