@@ -38,7 +38,7 @@ exp/train_pytorch_train_pytorch_conformer_large_specaug/decode_eval_other_model.
 |   SPKR                 |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err       S.Err   |
 |   Sum/Avg              |   3000       26621   |   79.6       17.4         3.0        5.1       25.5        72.3   |
 ```
-## sWER (space-normalized WER)
+### sWER (space-normalized WER)
 - This metric was measured from space-normalized texts, which was performed only on the hypothesis text, based on spaces in the reference text. A more detailed description is given in our paper.
 ```
 exp/train_pytorch_train_pytorch_conformer_large_specaug/decode_eval_clean_model.val5.avg.best_decode_lm/result.wrd.sp_norm.txt
@@ -85,7 +85,7 @@ exp/train_pytorch_train_pytorch_transformer_large_ngpu4_specaug/decode_eval_othe
 |   SPKR                  |   # Snt       # Wrd    |   Corr         Sub         Del          Ins         Err       S.Err    |
 |   Sum/Avg               |   3000        26621    |   79.5        17.4         3.1          5.0        25.5        71.9    |
 ```
-## sWER (space-normalized WER)
+### sWER (space-normalized WER)
 ```
 exp/train_pytorch_train_pytorch_transformer_large_ngpu4_specaug/decode_eval_clean_model.val5.avg.best_decode_lm/result.wrd.sp_norm.txt
 |    SPKR                  |    # Snt       # Wrd    |    Corr          Sub           Del          Ins          Err        S.Err    |
