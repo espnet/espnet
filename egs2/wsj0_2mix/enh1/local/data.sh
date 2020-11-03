@@ -76,6 +76,8 @@ mkdir -p data/wsj
 log "mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj"
 mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj
 
+# TODO(Jing): for our single-spk, link a train_si281_1 to /data/train_si_284_1,
+# add need to reproduce the text_spk1 text_spk2 from text, and spk1.scp, spk2.scp from wav.scp
 
 
 
