@@ -106,7 +106,7 @@ word_vocab_size=10000 # Size of word vocabulary.
 joint_tag=    # Suffix to the result dir for enhancement model training.
 joint_config= # Config for ehancement + ASR model joint training.
 joint_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
-            # Note that it will overwrite args in enhancement config.
+              # Note that it will overwrite args in enhancement config.
 joint_exp=    # Specify the direcotry path for ASR experiment. If this option is specified, joint_tag is ignored.
 
 # Enhancement model related
@@ -115,7 +115,7 @@ noise_type_num=1
 
 # ASR model related
 feats_normalize=global_mvn  # Normalizaton layer type
-num_splits_asr=1   # Number of splitting for lm corpus
+num_splits_asr=1            # Number of splitting for lm corpus
 
 # Training data related
 use_signal_ref=true
@@ -127,20 +127,20 @@ scoring_protocol="STOI SDR SAR SIR"
 ref_channel=0
 
 # Decoding related
-inference_lm=valid.loss.best.pth       # Language modle path for decoding.
-decode_tag=    # Suffix to the result dir for decoding.
-decode_config= # Config for decoding.
-decode_args="--normalize_output_wav true "   # Arguments for decoding, e.g., "--lm_weight 0.1".
+inference_lm=valid.loss.best.pth            # Language modle path for decoding.
+decode_tag=                                 # Suffix to the result dir for decoding.
+decode_config=                              # Config for decoding.
+decode_args="--normalize_output_wav true "  # Arguments for decoding, e.g., "--lm_weight 0.1".
                                             # Note that it will overwrite args in decode config.
 # TODO(Jing): needs more clean configure choice
 decode_joint_model=valid.acc.best.pth
-decode_lm=valid.loss.best.pth       # Language modle path for decoding.
+decode_lm=valid.loss.best.pth          # Language modle path for decoding.
 decode_asr_model=${decode_joint_model} # ASR model path for decoding.
-                                    # e.g.
-                                    # decode_asr_model=train.loss.best.pth
-                                    # decode_asr_model=3epoch.pth
-                                    # decode_asr_model=valid.acc.best.pth
-                                    # decode_asr_model=valid.loss.ave.pth
+                                       # e.g.
+                                       # decode_asr_model=train.loss.best.pth
+                                       # decode_asr_model=3epoch.pth
+                                       # decode_asr_model=valid.acc.best.pth
+                                       # decode_asr_model=valid.loss.ave.pth
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -481,6 +481,13 @@ if ! "${skip_data_prep}"; then
                         _spk_list+="dereverb "
                     fi
                 fi
+
+                # TODO(Jing): conduct single-spk aux sets independetly
+                # This part should remove the spk1,spk2... in the spk_list for single-spk set
+                # The below is for WSJ1 aux set:
+                # if [ ${dset} == "train_si284_1" ]; then
+                #     _spk_list=" "
+                # fi
     
                 for spk in ${_spk_list} "wav" ; do
                     # shellcheck disable=SC2086
@@ -536,6 +543,13 @@ if ! "${skip_data_prep}"; then
                 fi
             fi
 
+            # TODO(Jing): conduct single-spk aux sets independetly
+            # This part should remove the spk1,spk2... in the spk_list for single-spk set
+            # The below is for WSJ1 aux set:
+            # if [ ${dset} == "train_si284_1" ]; then
+            #     _spk_list=" "
+            # fi
+
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
@@ -581,6 +595,7 @@ if ! "${skip_data_prep}"; then
 
         # TODO(xkc09): modify this
         if [ "${train_aux_sets}" != "${train_set}" ]; then
+            log "Collect the aux sets into the train set."
             rm -r "${data_feats}/${train_set}" 2>/dev/null
             mkdir -p "${data_feats}/${train_set}"
             for dset in ${train_aux_sets}; do
@@ -588,7 +603,7 @@ if ! "${skip_data_prep}"; then
                     cat ${data_feats}/${dset}/${f} >> ${data_feats}/${train_set}/${f}
                 done
             done
-            cp ${data_feats}/${dset}/feats_type >> ${data_feats}/${train_set}/feats_type
+            cp ${data_feats}/${dset}/feats_type ${data_feats}/${train_set}/feats_type
         else
             log "Train set is the same as aux sets."
         fi
