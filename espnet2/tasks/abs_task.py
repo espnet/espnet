@@ -546,6 +546,13 @@ class AbsTask(ABC):
             "training phase. If None is given, it is decided according the number "
             "of training samples automatically .",
         )
+        group.add_argument(
+            "--unused_parameters",
+            type=bool,
+            default=False,
+            help="Weather to use the find_unused_parameters in "
+            "torch.nn.parallel.DistributedDataParallel ",
+        )
 
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", help="This option is obsoleted")
@@ -1244,6 +1251,7 @@ class AbsTask(ABC):
                 val_scheduler_criterion=args.val_scheduler_criterion,
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
+                find_unused_parameters=args.unused_parameters,
             )
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:

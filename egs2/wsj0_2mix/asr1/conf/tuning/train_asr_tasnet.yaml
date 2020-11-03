@@ -4,6 +4,7 @@ max_epoch: 200
 log_interval: 10
 patience: none
 num_att_plot: 0
+unused_parameters: true
 # The initialization method for model parameters
 init: xavier_uniform
 best_model_criterion:
