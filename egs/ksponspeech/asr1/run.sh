@@ -59,7 +59,7 @@ datadir=/mls/jubang/databases/KsponSpeech/
 
 
 # bpemode (unigram or bpe)
-nbpe=2306  # character
+nbpe=2309  # character
 bpemode=unigram
 
 # exp tag
