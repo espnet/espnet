@@ -1,14 +1,15 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 500
+max_epoch: 1500
 batch_type: folded
 batch_size:  64
 num_workers: 4
 optim_conf:
-    lr: 1.0e-03
-    eps: 1.0e-08
-    weight_decay: 1.0e-7
-patience: 10
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 60000
+patience: none
 val_scheduler_criterion:
 - valid
 - loss
@@ -19,12 +20,7 @@ best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 1
-scheduler: reducelronplateau
-scheduler_conf:
-    mode: min
-    factor: 0.7
-    patience: 1
+keep_nbest_models: 10
 enh: tf_masking
 enh_conf:
     mask_type: PSM
@@ -37,10 +33,10 @@ enh_conf:
     layer: 3                                    # rnn related
     unit: 896
     dropout: 0.5
-    adim:  256                                  # transformer related
-    aheads: 4
+    adim:  1024                                 # transformer related
+    aheads: 8
     elayers: 3
-    eunits: 1536
+    eunits: 896
     transformer_enc_dropout_rate: 0.1            # dropout rate for transformer encoder layer
     transformer_enc_positional_dropout_rate: 0.1 # dropout rate for transformer encoder positional encoding
     transformer_enc_attn_dropout_rate: 0.1       # dropout rate for transformer encoder attention layer
@@ -55,7 +51,7 @@ enh_conf:
     conformer_activation_type: swish             # conformer activation type
     use_macaron_style_in_conformer: true         # whether to use macaron style in conformer
     use_cnn_in_conformer: true                   # whether to use CNN in conformer
-    conformer_enc_kernel_size: 15                # kernel size in CNN module of conformer-based encoder
+    conformer_enc_kernel_size: 5                 # kernel size in CNN module of conformer-based encoder
 
 
 
