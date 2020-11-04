@@ -88,7 +88,9 @@ try:
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
         requirements["install"].append("torch_optimizer")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+        requirements["install"].append("torchaudio==0.7.0")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         # Due to https://github.com/pytorch/pytorch/issues/42213,
         # use torchaudio.functional.istft instead of torch.functional.istft
         requirements["install"].append("torchaudio==0.6.0")
@@ -119,7 +121,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.9.4",
+    version="0.9.5",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

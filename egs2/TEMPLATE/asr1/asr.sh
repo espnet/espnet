@@ -289,12 +289,15 @@ if [ -z "${asr_tag}" ]; then
     else
         asr_tag="train_${feats_type}_${token_type}"
     fi
+    if [ "${token_type}" = bpe ]; then
+        asr_tag+="${nbpe}"
+    fi
     # Add overwritten arg's info
     if [ -n "${asr_args}" ]; then
         asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        asr_tag="${asr_tag}_sp"
+        asr_tag+="_sp"
     fi
 fi
 if [ -z "${lm_tag}" ]; then
@@ -303,6 +306,9 @@ if [ -z "${lm_tag}" ]; then
     else
         lm_tag="train_${lm_token_type}"
     fi
+    if [ "${lm_token_type}" = bpe ]; then
+        lm_tag+="${nbpe}"
+    fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
         lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
@@ -310,11 +316,17 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-asr_stats_dir="${expdir}/asr_stats_${feats_type}"
-if [ -n "${speed_perturb_factors}" ]; then
-    asr_stats_dir="${asr_stats_dir}_sp"
+asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
+if [ "${token_type}" = bpe ]; then
+    asr_stats_dir+="${nbpe}"
 fi
-lm_stats_dir="${expdir}/lm_stats"
+if [ -n "${speed_perturb_factors}" ]; then
+    asr_stats_dir+="_sp"
+fi
+lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
+if [ "${lm_token_type}" = bpe ]; then
+    lm_stats_dir+="${nbpe}"
+fi
 # The directory used for training commands
 if [ -z "${asr_exp}" ]; then
     asr_exp="${expdir}/asr_${asr_tag}"
