@@ -1,17 +1,15 @@
 from collections import OrderedDict
+import math
+
 import torch
+from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 
-# import models.utils_szq as utils_szq
-from torch.autograd import Variable
 from espnet2.enh.abs_enh import AbsEnhancement
 
 EPS = 1e-8
 
-import math
-
-import torch
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -26,14 +24,18 @@ def overlap_and_add(signal, frame_step):
         output_size = (frames - 1) * frame_step + frame_length
 
     Args:
-        signal: A [..., frames, frame_length] Tensor. All dimensions may be unknown, and rank must be at least 2.
-        frame_step: An integer denoting overlap offsets. Must be less than or equal to frame_length.
+        signal: A [..., frames, frame_length] Tensor. All dimensions may be unknown,
+                and rank must be at least 2.
+        frame_step: An integer denoting overlap offsets.
+                Must be less than or equal to frame_length.
 
     Returns:
-        A Tensor with shape [..., output_size] containing the overlap-added frames of signal's inner-most two dimensions.
+        A Tensor with shape [..., output_size] containing the
+        overlap-added frames of signal's inner-most two dimensions.
         output_size = (frames - 1) * frame_step + frame_length
 
-    Based on https://github.com/tensorflow/tensorflow/blob/r1.12/tensorflow/contrib/signal/python/ops/reconstruction_ops.py
+    Based on https://github.com/tensorflow/tensorflow/blob/
+    r1.12/tensorflow/contrib/signal/python/ops/reconstruction_ops.py
     """
     outer_dimensions = signal.size()[:-2]
     frames, frame_length = signal.size()[-2:]
@@ -306,7 +308,8 @@ class DPRNN(nn.Module):
                 )
             )
             self.row_norm.append(nn.GroupNorm(1, input_size, eps=1e-8))
-            # default is to use noncausal LayerNorm for inter-chunk RNN. For causal setting change it to causal normalization techniques accordingly.
+            # default is to use noncausal LayerNorm for inter-chunk RNN.
+            # For causal setting change it to causal normalization accordingly.
             self.col_norm.append(nn.GroupNorm(1, input_size, eps=1e-8))
 
         # output layer
@@ -488,7 +491,8 @@ class SEP_module(DPRNN_base):
         batch_size, E, seq_length = input.shape
 
         enc_feature = self.BN(input)  # (B, E, L)-->(B, N, L)
-        N = enc_feature.shape[1]
+        # N = enc_feature.shape[1]
+
         # split the encoder output into overlapped, longer segments
         enc_segments, enc_rest = self.split_feature(
             enc_feature, self.segment_size
@@ -505,7 +509,8 @@ class SEP_module(DPRNN_base):
         # print('output shape',output.shape)
         # overlap-and-add of the outputs
         output = self.merge_feature(output, enc_rest)  # B*topk, N, L
-        # output = output.view(batch_size, self.num_spk,self.feature_dim,seq_length) # B,topk,N,L
+        # output -- > B,topk,N,L
+        # output = output.view(batch_size, self.num_spk,self.feature_dim,seq_length)
 
         # END cat mode
         # gated output layer for filter generation
@@ -520,12 +525,10 @@ class BF_module(DPRNN_base):
         super(BF_module, self).__init__(*args, **kwargs)
 
         # gated output layer
-        # self.output = nn.Sequential(nn.Conv1d(self.feature_dim, self.feature_dim, 1),
-        #                             nn.Tanh()
-        #                             )
-        # self.output_gate = nn.Sequential(nn.Conv1d(self.feature_dim, self.feature_dim, 1),
-        #                                  nn.Sigmoid()
-        #                                  )
+        # self.output = nn.Sequential(
+        #     nn.Conv1d(self.feature_dim, self.feature_dim, 1), nn.Tanh() )
+        # self.output_gate = nn.Sequential(
+        #     nn.Conv1d(self.feature_dim, self.feature_dim, 1), nn.Sigmoid() )
         self.output = nn.Sequential(
             nn.Conv1d(self.feature_dim + 512, self.feature_dim, 1), nn.Tanh()
         )
@@ -596,6 +599,17 @@ class FaSNet_base(AbsEnhancement):
         nspk=2,
         win_len=2,
     ):
+        """
+        FaSNet base.
+
+        Reference:
+            "Dual-path RNN: efficient long sequence modeling for
+            time-domain single-channel speech separation", Yi Luo, Zhuo Chen
+            and Takuya Yoshioka. https://arxiv.org/abs/1910.06379
+
+        Based on https://github.com/kaituoxu/Conv-TasNet and
+              https://github.com/yluo42/TAC
+        """
         super(FaSNet_base, self).__init__()
 
         # parameters
@@ -603,7 +617,7 @@ class FaSNet_base(AbsEnhancement):
         self.window = win_len
         self.stride = self.window // 2
 
-        self.enc_dim = enc_dim  # TODO(Jing): should be 64 in original
+        self.enc_dim = enc_dim
         self.feature_dim = feature_dim  # 64
         self.hidden_dim = hidden_dim  # 128
         self.segment_size = segment_size  # 250
@@ -615,7 +629,7 @@ class FaSNet_base(AbsEnhancement):
         # waveform encoder
         # self.encoder = nn.Conv1d(1, self.enc_dim, self.feature_dim, bias=False)
         self.encoder = Encoder(win_len, enc_dim)  # [B T]-->[B N L]
-        # the norm is groupNorm in raw, but gLN in Asteriod.
+        # Notice: the norm is groupNorm in raw drpnn, but gLN in Asteriod.
         # self.enc_LN = nn.GroupNorm(1, self.enc_dim, eps=1e-8) # [B N L]-->[B N L]
         # self.enc_LN= chose_norm('GroupNorm', self.enc_dim)
         self.enc_LN = chose_norm("gLN", self.enc_dim)
@@ -629,8 +643,10 @@ class FaSNet_base(AbsEnhancement):
         )
         # [B, N, L] -> [B, E, L]
         self.mask_conv1x1 = nn.Conv1d(self.feature_dim, self.enc_dim, 1, bias=False)
-        # self.mask_conv1x1 = nn.Conv1d(self.feature_dim + 512, self.enc_dim, 1, bias=False)
-        # self.mask_conv1x1 = nn.Conv1d(self.feature_dim + 64, self.enc_dim, 1, bias=False)
+        # self.mask_conv1x1 = nn.Conv1d(self.feature_dim + 512,
+        #                               self.enc_dim, 1, bias=False)
+        # self.mask_conv1x1 = nn.Conv1d(self.feature_dim + 64,
+        #                               self.enc_dim, 1, bias=False)
         self.decoder = Decoder(enc_dim, win_len)
         self.forward_rawwav = self.forward
         self.stft = None
@@ -670,7 +686,8 @@ class FaSNet_base(AbsEnhancement):
         # print('mixture_w.shape {}'.format(mixture_w.shape))
         score_ = self.separator(score_, voiceP)  # B*nspk, N, L
         # print('score_.shape {}'.format(score_.shape))
-        # score_ = score_.view(B*self.num_spk, -1, self.feature_dim).transpose(1, 2).contiguous()  # B*nspk, N, T
+        # score_ = score_.view(B*self.num_spk, -1, self.feature_dim).\
+        #     transpose(1, 2).contiguous()  # B*nspk, N, T
         # print('score_.shape {}'.format(score_.shape))
 
         # score_ = voiceP.transpose(1,2) * score_ # bs*steps*d * bs*spk*d*steps
@@ -683,7 +700,8 @@ class FaSNet_base(AbsEnhancement):
         # print('score.shape {}'.format(score.shape))
         est_mask = F.relu(score)
 
-        # est_mask = voiceP.unsqueeze(1).transpose(2,3) * est_mask # bs*steps*d * bs*spk*d*steps
+        # est_mask = voiceP.unsqueeze(1).transpose(2,3) * \
+        #            est_mask # bs*steps*d * bs*spk*d*steps
 
         est_source = self.decoder(
             mixture_w, est_mask

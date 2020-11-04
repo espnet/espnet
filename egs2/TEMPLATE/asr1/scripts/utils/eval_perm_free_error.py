@@ -18,6 +18,7 @@ from scipy.optimize import linear_sum_assignment
 
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
 
+
 def get_parser():
     parser = argparse.ArgumentParser(description="evaluate permutation-free error")
     parser.add_argument(
@@ -32,9 +33,7 @@ def get_parser():
         "e.g. [r1h1, r1h2, r2h1, r2h2] in 2-speaker-mix case.",
     )
     parser.add_argument(
-        "--results-dir",
-        type=str,
-        help="the score dir. ",
+        "--results-dir", type=str, help="the score dir. ",
     )
     return parser
 
@@ -48,9 +47,7 @@ def convert_score(dic, num_spkrs=2) -> List[List[int]]:
         for h_idx in range(num_spkrs):
             key = f"r{r_idx + 1}h{h_idx + 1}"
 
-            score = list(
-                map(int, pat.findall(dic[key]["Scores"]))
-            )  # [c,s,d,i]
+            score = list(map(int, pat.findall(dic[key]["Scores"])))  # [c,s,d,i]
             assert len(score) == 4  # [c,s,d,i]
             ret[r_idx].append(score)
 
@@ -64,25 +61,25 @@ def compute_permutation(old_dic, num_spkrs=2):
         all_scores.append(convert_score(scores, num_spkrs))
     all_scores = np.array(all_scores)  # (B, n_ref, n_hyp, 4)
 
-    all_error_rates = (
-        np.sum(all_scores[:, :, :, 1:4], axis=-1, dtype=np.float) / 
-        np.sum(all_scores[:, :, :, 0:3], axis=-1, dtype=np.float)
-    )   # (s+d+i) / (c+s+d), (B, n_ref, n_hyp)
+    all_error_rates = np.sum(
+        all_scores[:, :, :, 1:4], axis=-1, dtype=np.float
+    ) / np.sum(
+        all_scores[:, :, :, 0:3], axis=-1, dtype=np.float
+    )  # (s+d+i) / (c+s+d), (B, n_ref, n_hyp)
 
     min_scores, hyp_perms = [], []
     for idx, error_rate in enumerate(all_error_rates):
         row_idx, col_idx = linear_sum_assignment(error_rate)
 
         hyp_perms.append(col_idx)
-        min_scores.append(
-            np.sum(all_scores[idx, row_idx, col_idx], axis=0)
-        )
+        min_scores.append(np.sum(all_scores[idx, row_idx, col_idx], axis=0))
 
     min_scores = np.stack(min_scores)
 
     # Print results
     # score_sum = np.sum(min_scores, axis=0, dtype=int)
-    # print(f"Total Scores (#Snt {min_scores.shape[0]}): (#C #S #D #I) " + " ".join(map(str, list(score_sum))))
+    # print(f"Total Scores (#Snt {min_scores.shape[0]}): (#C #S #D #I) "
+    #       + " ".join(map(str, list(score_sum))))
     # print(
     #     "Error Rate:   {:0.2f}".format(
     #         100 * sum(score_sum[1:4]) / float(sum(score_sum[0:3]))
@@ -130,7 +127,7 @@ def read_result(result_file, result_key):
                     tmp_ret = {}
 
                 tmp_id = lst[1]
-                if tmp_id[0] == '(' and tmp_id[-1] == ')':
+                if tmp_id[0] == "(" and tmp_id[-1] == ")":
                     tmp_id = tmp_id[1:-1]
 
             for key, pat in re_patterns.items():
@@ -163,34 +160,34 @@ def read_trn(file_path):
     assert Path(file_path).exists()
 
     ret_dict = OrderedDict()
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             text, utt_id = line.rsplit(maxsplit=1)
-            if utt_id[0] == '(' and utt_id[-1] == ')':
+            if utt_id[0] == "(" and utt_id[-1] == ")":
                 utt_id = utt_id[1:-1]
             ret_dict[utt_id] = text
     return ret_dict
 
 
 def reorder_refs_or_hyps(result_dir, num_spkrs, all_keys, hyp_or_ref=None, perms=None):
-    assert hyp_or_ref in ['hyp', 'ref']
-    if hyp_or_ref == 'ref':
+    assert hyp_or_ref in ["hyp", "ref"]
+    if hyp_or_ref == "ref":
         assert perms is None
         perms = [np.arange(0, num_spkrs) for _ in all_keys]
 
     orig_trns = []
     for i in range(1, num_spkrs + 1):
-        orig_trns.append(read_trn(Path(result_dir, f'{hyp_or_ref}_spk{i}.trn')))
+        orig_trns.append(read_trn(Path(result_dir, f"{hyp_or_ref}_spk{i}.trn")))
         if i > 1:
             assert list(orig_trns[0].keys()) == list(orig_trns[-1].keys())
 
-    with open(Path(result_dir, f'{hyp_or_ref}.trn'), 'w', encoding='utf-8') as f:
+    with open(Path(result_dir, f"{hyp_or_ref}.trn"), "w", encoding="utf-8") as f:
         for idx, (key, perm) in enumerate(zip(orig_trns[0].keys(), perms)):
             # TODO: clean this part, because sclite turn all ids in to lower characters.
             assert key.lower() == all_keys[idx].lower()
             for i in range(num_spkrs):
-                f.write(orig_trns[perm[i]][key] + f'\t({key}-{i+1})' + '\n')
+                f.write(orig_trns[perm[i]][key] + f"\t({key}-{i+1})" + "\n")
 
 
 def main(args):
@@ -199,7 +196,9 @@ def main(args):
     for r in six.moves.range(1, args.num_spkrs + 1):
         for h in six.moves.range(1, args.num_spkrs + 1):
             key = f"r{r}h{h}"
-            result = read_result(Path(args.results_dir, f'result_{key}.txt'), result_key=key)
+            result = read_result(
+                Path(args.results_dir, f"result_{key}.txt"), result_key=key
+            )
             all_results.append(result)
 
     # Merge the results of every permutation
@@ -211,10 +210,10 @@ def main(args):
     # Use the permutation order to reorder hypotheses file
     # Then output the refs and hyps in a new file by combining all speakers
     reorder_refs_or_hyps(
-        args.results_dir, args.num_spkrs, all_keys, 'hyp', hyp_perms,
+        args.results_dir, args.num_spkrs, all_keys, "hyp", hyp_perms,
     )
     reorder_refs_or_hyps(
-        args.results_dir, args.num_spkrs, all_keys, 'ref',
+        args.results_dir, args.num_spkrs, all_keys, "ref",
     )
 
 

@@ -38,7 +38,7 @@ class TFMaskingNet(AbsEnhancement):
         layer: int = 3,
         unit: int = 512,
         dropout: float = 0.0,
-        # Transformer Related
+        # Transformer related
         idim: int = 512,
         adim: int = 384,
         aheads: int = 4,
@@ -53,7 +53,7 @@ class TFMaskingNet(AbsEnhancement):
         transformer_enc_positional_dropout_rate: float = 0.1,
         transformer_enc_attn_dropout_rate: float = 0.1,
         use_scaled_pos_enc: bool = True,
-        # conformer
+        # conformer related
         conformer_pos_enc_layer_type: str = "rel_pos",
         conformer_self_attn_layer_type: str = "rel_selfattn",
         conformer_activation_type: str = "swish",
