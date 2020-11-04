@@ -15,15 +15,15 @@ from espnet2.enh.nets.beamformer_net import BeamformerNet
 @pytest.mark.parametrize("normalize_input", [True])
 @pytest.mark.parametrize("mask_type", ["IPM^2"])
 @pytest.mark.parametrize("loss_type", ["mask_mse", "spectrum"])
-@pytest.mark.parametrize("use_wpe", [False])
+@pytest.mark.parametrize("use_wpe", [True])
 @pytest.mark.parametrize("wnet_type", ["lstm"])
 @pytest.mark.parametrize("wlayers", [2])
 @pytest.mark.parametrize("wunits", [2])
 @pytest.mark.parametrize("wprojs", [2])
-@pytest.mark.parametrize("dropout_rate", [0.0, 0.2])
 @pytest.mark.parametrize("taps", [2])
 @pytest.mark.parametrize("delay", [3])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [False])
+@pytest.mark.parametrize("multi_source_wpe", [True, False])
 @pytest.mark.parametrize("use_beamformer", [True])
 @pytest.mark.parametrize("bnet_type", ["lstm"])
 @pytest.mark.parametrize("blayers", [2])
@@ -31,10 +31,21 @@ from espnet2.enh.nets.beamformer_net import BeamformerNet
 @pytest.mark.parametrize("bprojs", [2])
 @pytest.mark.parametrize("badim", [2])
 @pytest.mark.parametrize("ref_channel", [-1, 0])
-@pytest.mark.parametrize("use_noise_mask", [True, False])
+@pytest.mark.parametrize("use_noise_mask", [True])
 @pytest.mark.parametrize("bnonlinear", ["sigmoid", "relu", "tanh", "crelu"])
-@pytest.mark.parametrize("beamformer_type", ["mvdr_souden", "mpdr_souden", "wpd_souden"])
-@pytest.mark.parametrize("bdropout_rate", [0.0, 0.2])
+@pytest.mark.parametrize(
+    "beamformer_type",
+    [
+        "mvdr_souden",
+        "mpdr_souden",
+        "wmpdr_souden",
+        "wpd_souden",
+        "mvdr",
+        "mpdr",
+        "wmpdr",
+        "wpd",
+    ],
+)
 def test_beamformer_net_forward_backward(
     n_fft,
     win_length,
@@ -48,10 +59,10 @@ def test_beamformer_net_forward_backward(
     wlayers,
     wunits,
     wprojs,
-    dropout_rate,
     taps,
     delay,
     use_dnn_mask_for_wpe,
+    multi_source_wpe,
     use_beamformer,
     bnet_type,
     blayers,
@@ -62,6 +73,20 @@ def test_beamformer_net_forward_backward(
     use_noise_mask,
     beamformer_type,
 ):
+    # Skip some cases
+    if num_spk > 1 and use_wpe and use_beamformer:
+        if not multi_source_wpe:
+            # Single-source WPE is not supported with beamformer in multi-speaker cases
+            return
+    elif num_spk == 1 and multi_source_wpe:
+        # When num_spk == 1, `multi_source_wpe` has no effect
+        return
+    if bnonlinear != "sigmoid" and (
+        beamformer_type != "mvdr_souden" or multi_source_wpe
+    ):
+        # only test different nonlinear layers with MVDR_Souden
+        return
+
     model = BeamformerNet(
         n_fft=n_fft,
         win_length=win_length,
@@ -76,7 +101,6 @@ def test_beamformer_net_forward_backward(
         wlayers=wlayers,
         wunits=wunits,
         wprojs=wprojs,
-        wdropout_rate=dropout_rate,
         taps=taps,
         delay=delay,
         use_dnn_mask_for_wpe=use_dnn_mask_for_wpe,
@@ -89,7 +113,8 @@ def test_beamformer_net_forward_backward(
         ref_channel=ref_channel,
         use_noise_mask=use_noise_mask,
         beamformer_type=beamformer_type,
-        bdropout_rate=dropout_rate,
+        rtf_iterations=2,
+        shared_power=True,
     )
 
     model.train()
@@ -111,13 +136,11 @@ def test_beamformer_net_forward_backward(
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("normalize_input", [True])
 @pytest.mark.parametrize("mask_type", ["IPM^2"])
-@pytest.mark.parametrize("loss_type", ["mask_mse", "spectrum"])
 @pytest.mark.parametrize("use_wpe", [False])
 @pytest.mark.parametrize("wnet_type", ["lstm"])
 @pytest.mark.parametrize("wlayers", [2])
 @pytest.mark.parametrize("wunits", [2])
 @pytest.mark.parametrize("wprojs", [2])
-@pytest.mark.parametrize("dropout_rate", [0.0])
 @pytest.mark.parametrize("taps", [2])
 @pytest.mark.parametrize("delay", [3])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [False])
@@ -126,11 +149,10 @@ def test_beamformer_net_forward_backward(
 @pytest.mark.parametrize("blayers", [2])
 @pytest.mark.parametrize("bunits", [2])
 @pytest.mark.parametrize("bprojs", [2])
-@pytest.mark.parametrize("badim", [10])
+@pytest.mark.parametrize("badim", [2])
 @pytest.mark.parametrize("ref_channel", [-1, 0])
-@pytest.mark.parametrize("use_noise_mask", [True, False])
-@pytest.mark.parametrize("beamformer_type", ["mvdr_souden", "mpdr_souden", "wpd_souden"])
-@pytest.mark.parametrize("bdropout_rate", [0.0, 0.2])
+@pytest.mark.parametrize("use_noise_mask", [True])
+@pytest.mark.parametrize("beamformer_type", ["mvdr_souden"])
 def test_beamformer_net_consistency(
     n_fft,
     win_length,
@@ -138,13 +160,11 @@ def test_beamformer_net_consistency(
     num_spk,
     normalize_input,
     mask_type,
-    loss_type,
     use_wpe,
     wnet_type,
     wlayers,
     wunits,
     wprojs,
-    dropout_rate,
     taps,
     delay,
     use_dnn_mask_for_wpe,
@@ -166,13 +186,11 @@ def test_beamformer_net_consistency(
         normalize_input=normalize_input,
         train_mask_only=True,
         mask_type=mask_type,
-        loss_type=loss_type,
         use_wpe=use_wpe,
         wnet_type=wnet_type,
         wlayers=wlayers,
         wunits=wunits,
         wprojs=wprojs,
-        wdropout_rate=dropout_rate,
         taps=taps,
         delay=delay,
         use_dnn_mask_for_wpe=use_dnn_mask_for_wpe,
@@ -185,7 +203,6 @@ def test_beamformer_net_consistency(
         ref_channel=ref_channel,
         use_noise_mask=use_noise_mask,
         beamformer_type=beamformer_type,
-        bdropout_rate=dropout_rate,
     )
 
     model.eval()
@@ -218,8 +235,9 @@ def test_beamformer_net_consistency(
 
 @pytest.mark.parametrize("ch", [1, 2])
 @pytest.mark.parametrize("num_spk", [1, 2])
+@pytest.mark.parametrize("multi_source_wpe", [True, False])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [True, False])
-def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
+def test_beamformer_net_wpe_output(ch, num_spk, multi_source_wpe, use_dnn_mask_for_wpe):
     torch.random.manual_seed(0)
     inputs = torch.randn(2, 16, ch) if ch > 1 else torch.randn(2, 16)
     inputs = inputs.float()
@@ -230,6 +248,10 @@ def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
         num_spk=num_spk,
         use_wpe=True,
         use_dnn_mask_for_wpe=use_dnn_mask_for_wpe,
+        multi_source_wpe=multi_source_wpe,
+        wlayers=2,
+        wunits=2,
+        wprojs=2,
         taps=5,
         delay=3,
         use_beamformer=False,
@@ -237,8 +259,7 @@ def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
     model.eval()
     specs, _, masks = model(inputs, ilens)
     assert isinstance(specs, list)
-    # currently we only support single-output WPE
-    assert len(specs) == 1
+    assert len(specs) == num_spk if multi_source_wpe else 1
     assert specs[0].shape[0] == 2  # batch size
     assert specs[0].dtype == torch.float
     assert isinstance(masks, dict)
@@ -248,7 +269,8 @@ def test_beamformer_net_wpe_output(ch, num_spk, use_dnn_mask_for_wpe):
 
 
 @pytest.mark.parametrize("num_spk", [1, 2])
-def test_beamformer_net_bf_output(num_spk):
+@pytest.mark.parametrize("use_noise_mask", [True, False])
+def test_beamformer_net_bf_output(num_spk, use_noise_mask):
     ch = 2
     inputs = torch.randn(2, 16, ch)
     inputs = inputs.float()
@@ -259,7 +281,11 @@ def test_beamformer_net_bf_output(num_spk):
         num_spk=num_spk,
         use_wpe=False,
         use_beamformer=True,
-        use_noise_mask=True,
+        blayers=2,
+        bunits=2,
+        bprojs=2,
+        badim=2,
+        use_noise_mask=use_noise_mask,
     )
     model.eval()
     specs, _, masks = model(inputs, ilens)

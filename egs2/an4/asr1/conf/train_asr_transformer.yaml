@@ -100,4 +100,3 @@ joint_model_conf:
     end2end_train: true
     enh_return_type: waveform # waveform or spectrum or none
     cal_enh_loss: true # whether to calculate enh_loss, need the reduce in ctc_conf
-    length_normalized_loss: false

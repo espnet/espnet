@@ -70,7 +70,7 @@ class FoldedBatchSampler(AbsSampler):
             for k in keys:
                 category2utt.setdefault(utt2category[k], []).append(k)
         else:
-            category2utt['default_category'] = keys
+            category2utt["default_category"] = keys
 
         self.batch_list = []
         for d, v in category2utt.items():
@@ -105,7 +105,9 @@ class FoldedBatchSampler(AbsSampler):
 
             if not self.drop_last:
                 # Bug check
-                assert sum(batch_sizes) == len(category_keys), f"{sum(batch_sizes)} != {len(category_keys)}"
+                assert sum(batch_sizes) == len(
+                    category_keys
+                ), f"{sum(batch_sizes)} != {len(category_keys)}"
 
             # Set mini-batch
             cur_batch_list = []

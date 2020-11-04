@@ -195,19 +195,22 @@ class Speech2Text:
 
         # a. To device
         batch = to_device(batch, device=self.device)
-
-        print("speech", batch["speech"].shape, batch["speech_lengths"].shape)
-
-        speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
-            batch["speech"], batch["speech_lengths"]
-        )
-        print("speech_pre", len(speech_pre), speech_pre[0].shape)
-        ref = np.array(
-            torch.stack([speech_ref1, speech_ref2], dim=0).squeeze()
-        )  # nspk,T
-        inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
-        print("ref,inf:", ref.shape, inf.shape)
-        sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
+        if self.joint_model.cal_enh_loss:
+            speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
+                batch["speech"], batch["speech_lengths"]
+            )
+            speech_pre_lengths = batch["speech_lengths"]
+            ref = np.array(
+                torch.stack([speech_ref1, speech_ref2], dim=0).squeeze()
+            )  # nspk,T
+            inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
+            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
+        else:
+            _, _, speech_pre, speech_pre_lengths = self.joint_model.forward_enh(
+                batch["speech"],
+                batch["speech_lengths"],
+            )
+            sdr, sir, sar, perm = None, None, None, np.arange(0, len(speech_pre))
 
         # b. Forward Encoder
         results_list = []
@@ -346,12 +349,6 @@ def inference(
             # N-best list of (text, token, token_int, hyp_object)
             logging.info(f"keys: {keys}")
             results_list = speech2text(**batch)
-<<<<<<< HEAD:espnet2/bin/asr_inference.py
-            print("results_list:", len(results_list), len(results_list[0]))
-            print("results_list:", results_list)
-            print("keys:", keys)
-=======
->>>>>>> Refactor of the joint-training part. TODO:return of rawwav.:espnet2/bin/enh_asr_inference.py
 
             for spk_idx, results in enumerate(results_list):
                 # Only supporting batch_size==1
@@ -373,13 +370,8 @@ def inference(
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
-<<<<<<< HEAD:espnet2/bin/asr_inference.py
-                if text is not None:
-                    ibest_writer["text"][key] = text
-=======
                     if sdr is not None:
                         writer[f"SDR_spk{spk_idx + 1}"][key] = str(sdr)
->>>>>>> Incorporate with the MIMO's features.:espnet2/bin/enh_asr_inference.py
 
 
 def get_parser():
@@ -485,6 +477,14 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+
+    group = parser.add_argument_group("Output wav related")
+    group.add_argument(
+        "--normalize_output_wav",
+        type=str2bool,
+        default=False,
+        help="Whether to normalize the predicted wav to [-1~1]",
     )
 
     return parser

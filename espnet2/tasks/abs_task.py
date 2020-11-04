@@ -550,7 +550,7 @@ class AbsTask(ABC):
             "--unused_parameters",
             type=bool,
             default=False,
-            help="Weather to use the find_unused_parameters in "
+            help="Whether to use the find_unused_parameters in "
             "torch.nn.parallel.DistributedDataParallel ",
         )
 
@@ -1427,8 +1427,15 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        if Path(Path(iter_options.data_path_and_name_and_type[0][0]).parent, 'utt2category').exists():
-            utt2category_file = str(Path(Path(iter_options.data_path_and_name_and_type[0][0]).parent, 'utt2category'))
+        if Path(
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2category"
+        ).exists():
+            utt2category_file = str(
+                Path(
+                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                    "utt2category",
+                )
+            )
         else:
             utt2category_file = None
         batch_sampler = build_batch_sampler(

@@ -74,7 +74,9 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             ), "need apply stft in asr frontend part"
         elif enh_return_type == "spectrum":
             # TODO(Xuankai,Jing): verify this additional uttMVN
-            self.asr_subclass.additional_utt_mvn = UtteranceMVN(norm_means=True, norm_vars=False)
+            self.asr_subclass.additional_utt_mvn = UtteranceMVN(
+                norm_means=True, norm_vars=False
+            )
             assert (
                 not self.asr_subclass.frontend.stft
             ), "avoid usage of stft in asr frontend part"
@@ -257,23 +259,35 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     ).view(-1)
                     n_speaker_asr = 1
                 elif self.enh_return_type == "spectrum":
-                    if isinstance(speech_pre, list):   # multi-speaker case
+                    if isinstance(speech_pre, list):  # multi-speaker case
                         # The return value speech_pre is actually the
                         # spectrum List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
                         if speech_pre[0].dtype == torch.tensor:
-                            assert speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
+                            assert (
+                                speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
+                            )
                         elif isinstance(speech_pre[0], ComplexTensor):
                             speech_pre = [
-                                torch.stack([pre.real, pre.imag], dim=-1) for pre in speech_pre
+                                torch.stack([pre.real, pre.imag], dim=-1)
+                                for pre in speech_pre
                             ]
-                            assert speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
+                            assert (
+                                speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
+                            )
                         speech_pre_all = torch.cat(speech_pre, dim=0)  # (N_spk*B, T, D)
-                        speech_pre_lengths = torch.cat([speech_pre_lengths, speech_pre_lengths])
+                        speech_pre_lengths = torch.cat(
+                            [speech_pre_lengths, speech_pre_lengths]
+                        )
                         text_ref_all = torch.cat([text_ref1, text_ref2], dim=0)
-                        text_ref_lengths = torch.cat([text_ref1_lengths, text_ref2_lengths])
+                        text_ref_lengths = torch.cat(
+                            [text_ref1_lengths, text_ref2_lengths]
+                        )
                         n_speaker_asr = self.num_spk
-                    else:   # single-speaker case
-                        speech_pre_all, speech_pre_lengths = speech_pre, speech_pre_lengths
+                    else:  # single-speaker case
+                        speech_pre_all, speech_pre_lengths = (
+                            speech_pre,
+                            speech_pre_lengths,
+                        )
                         text_ref_all, text_ref_lengths = text_ref1, text_ref1_lengths
                         n_speaker_asr = 1  # single-channel asr after enh
                 else:
@@ -301,9 +315,9 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         if self.ctc_weight == 0.0:
             loss_ctc, cer_ctc = None, None
         else:
-            if (
-                n_speaker_asr == 1 or (self.cal_enh_loss and perm != None)
-            ):   # No permutation is required
+            if n_speaker_asr == 1 or (
+                self.cal_enh_loss and perm != None
+            ):  # No permutation is required
                 assert n_speaker_asr == 1
                 loss_ctc, cer_ctc, _, _, = self._calc_ctc_loss_with_spk(
                     encoder_out,
@@ -576,7 +590,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             speech_ref,
             dereverb_speech_ref=dereverb_speech_ref,
             noise_ref=noise_ref,
-            cal_loss=self.cal_enh_loss,  # weather to cal enh_loss
+            cal_loss=self.cal_enh_loss,  # whether to cal enh_loss
         )
 
         if self.enh_return_type == "waveform" and self.loss_type != "si_snr":

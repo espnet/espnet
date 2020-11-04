@@ -710,15 +710,15 @@ class FaSNet_base(AbsEnhancement):
 if __name__ == "__main__":
     mixture = torch.randn(3, 2001)  # bs, samples
     print("input shape", mixture.shape)
-    voiceP= torch.randn(3, 2, 256)  # bs, topk , emb , reserved spk-target embedding
+    voiceP = torch.randn(3, 2, 256)  # bs, topk , emb , reserved spk-target embedding
 
-    print('\n')
+    print("\n")
     net = FaSNet_base(feature_dim=128, nspk=2)
     output = net(mixture, voiceP)[0]
     print("1st spk output shape", output[0].shape)
     assert output[0].shape == mixture.shape
 
-    print('\n')
+    print("\n")
     net = FaSNet_base(segment_size=100, nspk=2, win_len=16)
     output = net(mixture)[0]
     print("1st spk output shape", output[0].shape)

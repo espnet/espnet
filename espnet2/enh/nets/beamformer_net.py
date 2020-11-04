@@ -225,7 +225,10 @@ class BeamformerNet(AbsEnhancement):
                     # enhanced: (B, T, C, F) -> (B, T, F)
                     if isinstance(enhanced, list):
                         # outputs of single-source WPE
-                        raise NotImplementedError("Single-source WPE is not supported.")
+                        raise NotImplementedError(
+                            "Single-source WPE is not supported with beamformer "
+                            "in multi-speaker cases."
+                        )
                     else:
                         # output of multi-source WPE
                         enhanced, flens, masks_b = self.beamformer(

@@ -85,9 +85,6 @@ class DNN_Beamformer(torch.nn.Module):
         self.ref = AttentionReference(bidim, badim) if ref_channel < 0 else None
         self.ref_channel = ref_channel
 
-        # number of iterations in power method for estimating the RTF
-        self.rtf_iterations = rtf_iterations
-
         self.use_noise_mask = use_noise_mask
         assert num_spk >= 1, num_spk
         self.num_spk = num_spk
@@ -120,6 +117,11 @@ class DNN_Beamformer(torch.nn.Module):
                 )
 
         self.beamformer_type = beamformer_type
+        if not beamformer_type.endswith("_souden"):
+            assert rtf_iterations >= 2, rtf_iterations
+        # number of iterations in power method for estimating the RTF
+        self.rtf_iterations = rtf_iterations
+
         assert btaps >= 0 and bdelay >= 0, (btaps, bdelay)
         self.btaps = btaps
         self.bdelay = bdelay if self.btaps > 0 else 1

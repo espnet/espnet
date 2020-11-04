@@ -122,9 +122,9 @@ class IterableESPnetDataset(IterableDataset):
         else:
             self.non_iterable_dataset = None
 
-        if Path(Path(path_name_type_list[0][0]).parent, 'utt2category').exists():
+        if Path(Path(path_name_type_list[0][0]).parent, "utt2category").exists():
             self.apply_utt2category = True
-            #utt2category_file = str(Path(Path(data_path_and_name_and_type[0][0]).parent, 'utt2category'))
+            # utt2category_file = str(Path(Path(data_path_and_name_and_type[0][0]).parent, 'utt2category'))
         else:
             self.apply_utt2category = False
 

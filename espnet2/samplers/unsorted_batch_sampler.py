@@ -21,7 +21,13 @@ class UnsortedBatchSampler(AbsSampler):
         key_file:
     """
 
-    def __init__(self, batch_size: int, key_file: str, drop_last: bool = False, utt2category_file: str = None):
+    def __init__(
+        self,
+        batch_size: int,
+        key_file: str,
+        drop_last: bool = False,
+        utt2category_file: str = None,
+    ):
         assert check_argument_types()
         assert batch_size > 0
         self.batch_size = batch_size
@@ -49,7 +55,7 @@ class UnsortedBatchSampler(AbsSampler):
             for k, v in utt2category.items():
                 category2utt.setdefault(v, []).append(k)
         else:
-            category2utt['default_category'] = keys
+            category2utt["default_category"] = keys
 
         self.batch_list = []
         for d, v in category2utt.items():
@@ -60,11 +66,13 @@ class UnsortedBatchSampler(AbsSampler):
                 # Split keys evenly as possible as. Note that If N != 1,
                 # the these batches always have size of batch_size at minimum.
                 cur_batch_list = [
-                    category_keys[i * len(keys) // N : (i + 1) * len(keys) // N] for i in range(N)
+                    category_keys[i * len(keys) // N : (i + 1) * len(keys) // N]
+                    for i in range(N)
                 ]
             else:
                 cur_batch_list = [
-                    tuple(category_keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
+                    tuple(category_keys[i * batch_size : (i + 1) * batch_size])
+                    for i in range(N)
                 ]
             self.batch_list.extend(cur_batch_list)
 

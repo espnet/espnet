@@ -163,7 +163,7 @@ class Trainer:
                     if distributed_option.ngpu == 1
                     else None
                 ),
-                find_unused_parameters = find_unused_parameters,
+                find_unused_parameters=find_unused_parameters,
             )
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
