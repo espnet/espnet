@@ -35,7 +35,7 @@ dlayers: 1
 dec-embed-dim: 512
 dunits: 512
 dropout-rate-decoder: 0.2
-dropout-rate-embed-decoder: 0.2 #0.1
+dropout-rate-embed-decoder: 0.2
 ## joint network related
 joint-dim: 128
 
