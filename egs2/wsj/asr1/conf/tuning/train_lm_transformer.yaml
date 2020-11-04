@@ -1,3 +1,4 @@
+# Trained with Nvidia TESLA V100, with 16GM RAM, x4
 lm: transformer
 lm_conf:
     pos_enc: null
