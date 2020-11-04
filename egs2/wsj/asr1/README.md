@@ -6,7 +6,7 @@
 - ASR config: [conf/tuning/train_asr_transformer2.yaml](conf/tuning/train_asr_transformer2.yaml)
 - LM config: [conf/tuning/train_lm_transformer.yaml](conf/tuning/train_lm_transformer.yaml)
 - Decode config:  [conf/decode.conf](conf/decode.conf)
-- Pretrained model: https://zenodo.org/record/4176511
+- Pretrained model: https://zenodo.org/record/4243201
 
 ### WER
 
