@@ -85,5 +85,5 @@ done
 for x in tr cv tt; do
   sed -e "s#_anechoic #_reverb #g" \
     ${data}/${x}_spatialized_anechoic_multich_${min_or_max}_${sample_rate}/wav.scp \
-    > ${data}/${x}_spatialized_reverb_multich_${min_or_max}_${sample_rate}/dereverb.scp
+    > ${data}/${x}_spatialized_reverb_multich_${min_or_max}_${sample_rate}/dereverb1.scp
 done

@@ -162,9 +162,23 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         else:
             noise_ref = None
 
-        # dereverberated noisy signal
+        # dereverberated (noisy) signal
         # (optional, only used for frontend models with WPE)
-        dereverb_speech_ref = kwargs.get("dereverb_ref", None)
+        if "dereverb_ref1" in kwargs:
+            # noise signal (optional, required when using
+            # frontend models with beamformering)
+            dereverb_speech_ref = [
+                kwargs["dereverb_ref{}".format(n + 1)]
+                for n in range(self.num_spk)
+                if "dereverb_ref{}".format(n + 1) in kwargs
+            ]
+            assert len(dereverb_speech_ref) in (1, self.num_spk), len(
+                dereverb_speech_ref
+            )
+            # (Batch, N, samples) or (Batch, N, samples, channels)
+            dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
+        else:
+            dereverb_speech_ref = None
 
         batch_size = speech_mix.shape[0]
         speech_lengths = (
@@ -248,7 +262,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         Returns:
             loss: (torch.Tensor) speech enhancement loss
-            speech_pre: (List[torch.Tensor] or List[ComplexTensor]) enhanced speech or spectrum(s)
+            speech_pre: (List[torch.Tensor] or List[ComplexTensor])
+                        enhanced speech or spectrum(s)
             mask_pre: (OrderedDict) estimated masks or None
             output_lengths: (Batch,)
             perm: () best permutation
@@ -268,12 +283,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
             # prepare reference speech and reference spectrum
             speech_ref = torch.unbind(speech_ref, dim=1)
-            spectrum_ref = [self.enh_model.stft(sr)[0] for sr in speech_ref]
-
             # List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]
             spectrum_ref = [
-                ComplexTensor(sr[..., 0], sr[..., 1]) for sr in spectrum_ref
+                ComplexTensor(*torch.unbind(self.enh_model.stft(sr)[0], dim=-1))
+                for sr in speech_ref
             ]
+
             # compute TF masking loss
             if self.loss_type == "magnitude":
                 # compute loss on magnitude spectrum
@@ -317,26 +332,35 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 # compute TF masking loss
                 tf_loss, perm = self._permutation_loss(mask_ref, mask_pre_, loss_func)
 
-                if "dereverb" in mask_pre:
+                if "dereverb1" in mask_pre:
                     if dereverb_speech_ref is None:
                         raise ValueError(
                             "No dereverberated reference for training!\n"
                             'Please specify "--use_dereverb_ref true" in run.sh'
                         )
 
-                    dereverb_spectrum_ref = self.enh_model.stft(dereverb_speech_ref)[0]
-                    dereverb_spectrum_ref = ComplexTensor(
-                        dereverb_spectrum_ref[..., 0], dereverb_spectrum_ref[..., 1]
+                    mask_wpe_pre = [
+                        mask_pre["dereverb{}".format(spk + 1)]
+                        for spk in range(self.num_spk)
+                        if "dereverb{}".format(spk + 1) in mask_pre
+                    ]
+                    assert len(mask_wpe_pre) == len(dereverb_speech_ref), (
+                        len(mask_wpe_pre),
+                        len(dereverb_speech_ref),
                     )
-                    # ComplexTensor(B, T, F) or ComplexTensor(B, T, C, F)
+                    dereverb_speech_ref = torch.unbind(dereverb_speech_ref, dim=1)
+                    dereverb_spectrum_ref = [
+                        ComplexTensor(*torch.unbind(self.enh_model.stft(dr)[0], dim=-1))
+                        for dr in dereverb_speech_ref
+                    ]
                     dereverb_mask_ref = self._create_mask_label(
-                        spectrum_mix, [dereverb_spectrum_ref], mask_type=self.mask_type
-                    )[0]
-
-                    tf_loss = (
-                        tf_loss
-                        + loss_func(dereverb_mask_ref, mask_pre["dereverb"]).mean()
+                        spectrum_mix, dereverb_spectrum_ref, mask_type=self.mask_type
                     )
+
+                    tf_dereverb_loss, perm_d = self._permutation_loss(
+                        dereverb_mask_ref, mask_wpe_pre, loss_func
+                    )
+                    tf_loss = tf_loss + tf_dereverb_loss
 
                 if "noise1" in mask_pre:
                     if noise_ref is None:
@@ -347,11 +371,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
                     noise_ref = torch.unbind(noise_ref, dim=1)
                     noise_spectrum_ref = [
-                        self.enh_model.stft(nr)[0] for nr in noise_ref
-                    ]
-                    noise_spectrum_ref = [
-                        ComplexTensor(nr[..., 0], nr[..., 1])
-                        for nr in noise_spectrum_ref
+                        ComplexTensor(*torch.unbind(self.enh_model.stft(nr)[0], dim=-1))
+                        for nr in noise_ref
                     ]
                     noise_mask_ref = self._create_mask_label(
                         spectrum_mix, noise_spectrum_ref, mask_type=self.mask_type
@@ -622,7 +643,21 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
 
         # dereverberated noisy signal
         # (optional, only used for frontend models with WPE)
-        dereverb_speech_ref = kwargs.get("dereverb_ref", None)
+        if "dereverb_ref1" in kwargs:
+            # noise signal (optional, required when using
+            # frontend models with beamformering)
+            dereverb_speech_ref = [
+                kwargs["dereverb_ref{}".format(n + 1)]
+                for n in range(self.num_spk)
+                if "dereverb_ref{}".format(n + 1) in kwargs
+            ]
+            assert len(dereverb_speech_ref) in (1, self.num_spk), len(
+                dereverb_speech_ref
+            )
+            # (Batch, N, samples) or (Batch, N, samples, channels)
+            dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
+        else:
+            dereverb_speech_ref = None
 
         batch_size = speech_mix.shape[0]
         mix_uttids = uttids
@@ -670,12 +705,12 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
         ):
             # prepare reference speech and reference spectrum
             speech_ref = torch.unbind(speech_ref, dim=1)
-            spectrum_ref = [self.enh_model.stft(sr)[0] for sr in speech_ref]
-
             # List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]
             spectrum_ref = [
-                ComplexTensor(sr[..., 0], sr[..., 1]) for sr in spectrum_ref
+                ComplexTensor(*torch.unbind(self.enh_model.stft(sr)[0], dim=-1))
+                for sr in speech_ref
             ]
+
             spectrum_mix = self.enh_model.stft(speech_mix)[0]
             spectrum_mix = ComplexTensor(spectrum_mix[..., 0], spectrum_mix[..., 1])
 
@@ -685,20 +720,21 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
             )
 
             if dereverb_speech_ref is not None:
-                dereverb_spectrum_ref = self.enh_model.stft(dereverb_speech_ref)[0]
-                dereverb_spectrum_ref = ComplexTensor(
-                    dereverb_spectrum_ref[..., 0], dereverb_spectrum_ref[..., 1]
-                )
-                # ComplexTensor(B, T, F) or ComplexTensor(B, T, C, F)
+                dereverb_speech_ref = torch.unbind(dereverb_speech_ref, dim=1)
+                dereverb_spectrum_ref = [
+                    ComplexTensor(*torch.unbind(self.enh_model.stft(dr)[0], dim=-1))
+                    for dr in dereverb_speech_ref
+                ]
+                # List[ComplexTensor(B, T, F)] or List[ComplexTensor(B, T, C, F)]
                 dereverb_mask_ref = self._create_mask_label(
-                    spectrum_mix, [dereverb_spectrum_ref], mask_type=self.mask_type
-                )[0]
+                    spectrum_mix, dereverb_spectrum_ref, mask_type=self.mask_type
+                )
 
             if noise_ref is not None:
                 noise_ref = torch.unbind(noise_ref, dim=1)
-                noise_spectrum_ref = [self.enh_model.stft(nr)[0] for nr in noise_ref]
                 noise_spectrum_ref = [
-                    ComplexTensor(nr[..., 0], nr[..., 1]) for nr in noise_spectrum_ref
+                    ComplexTensor(*torch.unbind(self.enh_model.stft(nr)[0], dim=-1))
+                    for nr in noise_ref
                 ]
                 noise_mask_ref = self._create_mask_label(
                     spectrum_mix, noise_spectrum_ref, mask_type=self.mask_type
@@ -731,18 +767,25 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
                     mask_ref, mask_pre_, self.tf_mse_loss
                 )
 
-                if "dereverb" in mask_pre:
+                if "dereverb1" in mask_pre:
                     if dereverb_speech_ref is None:
                         raise ValueError(
                             "No dereverberated reference for training!\n"
                             'Please specify "--use_dereverb_ref true" in run.sh'
                         )
-                    tf_loss = (
-                        tf_loss
-                        + self.tf_l1_loss(
-                            dereverb_mask_ref, mask_pre["dereverb"]
-                        ).mean()
+                    mask_wpe_pre = [
+                        mask_pre["dereverb{}".format(spk + 1)]
+                        for spk in range(self.num_spk)
+                        if "dereverb{}".format(spk + 1) in mask_pre
+                    ]
+                    assert len(mask_wpe_pre) == len(dereverb_speech_ref), (
+                        len(mask_wpe_pre),
+                        len(dereverb_speech_ref),
                     )
+                    tf_dereverb_loss, perm_d = self._permutation_loss(
+                        dereverb_mask_ref, mask_wpe_pre, self.tf_mse_loss
+                    )
+                    tf_loss = tf_loss + tf_dereverb_loss
 
                 if "noise1" in mask_pre:
                     if noise_ref is None:
@@ -946,7 +989,6 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
         batch_size = len(unsup_1spk) + len(unsup_2spk)
         uttids = uttids_1spk + uttids_2spk
         if (type(speech_mix_1spk) is not list) and (type(speech_mix_2spk) is not list):
-            # print('speech_mix:',speech_mix_1spk,speech_mix_2spk)
             speech_mix = torch.cat([speech_mix_1spk, speech_mix_2spk], dim=0)  # BS,T
             speech_ref = torch.cat([speech_ref_1spk, speech_ref_2spk], dim=0)  # BS,2,T
         if (type(speech_mix_1spk) is not list) and (type(speech_mix_2spk) is list):

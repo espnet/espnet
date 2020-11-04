@@ -40,7 +40,7 @@ def get_rtf(
     rtf = (
         phi[..., reference_vector, None]
         if isinstance(reference_vector, int)
-        else FC.matmul(phi, reference_vector.unsqueeze(-1))
+        else FC.matmul(phi, reference_vector[..., None, :, None])
     )
     for _ in range(iterations - 2):
         rtf = FC.matmul(phi, rtf)

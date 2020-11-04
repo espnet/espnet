@@ -552,9 +552,23 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         # dereverberated noisy signal
         # (optional, only used for frontend models with WPE)
-        dereverb_speech_ref = kwargs.get("dereverb_ref", None)
+        if "dereverb_ref1" in kwargs:
+            # noise signal (optional, required when using
+            # frontend models with beamformering)
+            dereverb_speech_ref = [
+                kwargs["dereverb_ref{}".format(n + 1)]
+                for n in range(self.num_spk)
+                if "dereverb_ref{}".format(n + 1) in kwargs
+            ]
+            assert len(dereverb_speech_ref) in (1, self.num_spk), len(
+                dereverb_speech_ref
+            )
+            # (Batch, N, samples) or (Batch, N, samples, channels)
+            dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
+        else:
+            dereverb_speech_ref = None
 
-        if speech_ref == None and noise_ref == None and dereverb_speech_ref == None:
+        if speech_ref is None and noise_ref is None and dereverb_speech_ref is None:
             # There is no ref provided, avoid the enh loss
             assert self.cal_enh_loss == False, (
                 "There is no reference,"

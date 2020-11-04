@@ -144,7 +144,7 @@ class BeamformerNet(AbsEnhancement):
                 torch.Tensor or List[torch.Tensor]
             output lengths
             predcited masks: OrderedDict[
-                'dereverb': torch.Tensor(Batch, Frames, Channel, Freq),
+                'dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
@@ -181,7 +181,13 @@ class BeamformerNet(AbsEnhancement):
                     mask_w, flens = self.wpe.predict_mask(input_spectrum, flens)
 
                 if mask_w is not None:
-                    masks["dereverb"] = mask_w
+                    if isinstance(enhanced, list):
+                        # single-source WPE
+                        for spk in range(self.num_spk):
+                            masks["dereverb{}".format(spk + 1)] = mask_w[spk]
+                    else:
+                        # multi-source WPE
+                        masks["dereverb1"] = mask_w
 
             if self.use_beamformer and input_spectrum.dim() == 4:
                 masks_b, flens = self.beamformer.predict_mask(input_spectrum, flens)
@@ -201,16 +207,31 @@ class BeamformerNet(AbsEnhancement):
                     enhanced, flens, mask_w, powers = self.wpe(
                         input_spectrum.unsqueeze(-2), flens
                     )
-                    enhanced = enhanced.squeeze(-2)
-                    if mask_w is not None:
-                        masks["dereverb"] = mask_w.squeeze(-2)
+                    if isinstance(enhanced, list):
+                        # single-source WPE
+                        enhanced = [enh.squeeze(-2) for enh in enhanced]
+                        if mask_w is not None:
+                            for spk in range(self.num_spk):
+                                key = "dereverb{}".format(spk + 1)
+                                masks[key] = mask_w[spk].squeeze(-2)
+                    else:
+                        # multi-source WPE
+                        enhanced = enhanced.squeeze(-2)
+                        if mask_w is not None:
+                            masks["dereverb1"] = mask_w.squeeze(-2)
             else:
                 # multi-channel input (B, T, C, F)
                 # 1. WPE
                 if self.use_wpe:
                     enhanced, flens, mask_w, powers = self.wpe(input_spectrum, flens)
                     if mask_w is not None:
-                        masks["dereverb"] = mask_w
+                        if isinstance(enhanced, list):
+                            # single-source WPE
+                            for spk in range(self.num_spk):
+                                masks["dereverb{}".format(spk + 1)] = mask_w[spk]
+                        else:
+                            # multi-source WPE
+                            masks["dereverb1"] = mask_w.squeeze(-2)
 
                 # 2. Beamformer
                 if self.use_beamformer:
@@ -261,7 +282,7 @@ class BeamformerNet(AbsEnhancement):
                 torch.Tensor(Batch, Nsamples), or List[torch.Tensor(Batch, Nsamples)]
             output lengths
             predcited masks: OrderedDict[
-                'dereverb': torch.Tensor(Batch, Frames, Channel, Freq),
+                'dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
                 'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...

@@ -112,6 +112,7 @@ joint_exp=    # Specify the direcotry path for ASR experiment. If this option is
 # Enhancement model related
 spk_num=2
 noise_type_num=1
+dereverb_ref_num=1
 
 # ASR model related
 feats_normalize=global_mvn  # Normalizaton layer type
@@ -232,7 +233,7 @@ Options:
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
     --noise_type_num  # Number of noise types in the input audio (default="${noise_type_num}")
-    --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
+    --dereverb_ref_num # Number of references for dereverberation (default="${dereverb_ref_num}")
 
     # Training data related
     --use_signal_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
@@ -473,12 +474,12 @@ if ! "${skip_data_prep}"; then
                         _spk_list+="spk${i} "
                     done
                     if $use_signal_noise_ref; then
-                        # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
+                        # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                         _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
                     fi
                     if $use_signal_dereverb_ref; then
-                        # reference for dereverberation
-                        _spk_list+="dereverb "
+                        # references for dereverberation
+                        _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
                     fi
                 fi
 
@@ -534,12 +535,12 @@ if ! "${skip_data_prep}"; then
                     _spk_list+="spk${i} "
                 done
                 if ${use_signal_noise_ref}; then
-                    # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
+                    # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                     _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
                 fi
                 if ${use_signal_dereverb_ref}; then
-                    # reference for dereverberation
-                    _spk_list+="dereverb "
+                    # references for dereverberation
+                    _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
                 fi
             fi
 
@@ -944,8 +945,10 @@ if ! "${skip_train}"; then
 
         if ${use_signal_dereverb_ref}; then
             # reference for dereverberation
-            _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/dereverb.scp,dereverb_ref,sound "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/dereverb.scp,dereverb_ref,sound "
+            _train_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--train_data_path_and_name_and_type ${_joint_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
+            _valid_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--valid_data_path_and_name_and_type ${_joint_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
         fi
 
         if ${use_signal_noise_ref}; then
@@ -1031,16 +1034,18 @@ if ! "${skip_train}"; then
         done
 
         if ${use_signal_dereverb_ref}; then
-            # reference for dereverberation
-            _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/dereverb.scp,dereverb_ref,sound "
-            _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/dereverb_ref_shape "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/dereverb.scp,dereverb_ref,sound "
-            _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/dereverb_ref_shape "
-            _fold_length_param+="--fold_length ${_fold_length} "
+            # references for dereverberation
+            for n in $(seq "${dereverb_ref_num}"); do
+                _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
+                _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/dereverb_ref${n}_shape "
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
+                _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/dereverb_ref${n}_shape "
+                _fold_length_param+="--fold_length ${_fold_length} "
+            done
         fi
 
         if ${use_signal_noise_ref}; then
-            # reference for denoising
+            # references for denoising
             for n in $(seq "${noise_type_num}"); do
                 _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/noise${n}.scp,noise_ref${n},sound "
                 _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/noise_ref${n}_shape "

@@ -69,13 +69,13 @@ class DNN_WPE(torch.nn.Module):
         Returns:
             enhanced (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             ilens: (B,)
-            mask (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
+            masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             power (List[torch.Tensor]): (B, F, T)
         """
         # (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
         enhanced = [data for i in range(self.nmask)]
-        mask = None
+        masks = None
         power = None
 
         for i in range(self.iterations):
@@ -112,8 +112,8 @@ class DNN_WPE(torch.nn.Module):
 
         # (B, F, C, T) -> (B, T, C, F)
         enhanced = [enh.permute(0, 3, 2, 1) for enh in enhanced]
-        if mask is not None:
-            mask = (
+        if masks is not None:
+            masks = (
                 [m.transpose(-1, -3) for m in masks]
                 if self.nmask > 1
                 else masks[0].transpose(-1, -3)
@@ -121,7 +121,7 @@ class DNN_WPE(torch.nn.Module):
         if self.nmask == 1:
             enhanced = enhanced[0]
 
-        return enhanced, ilens, mask, power
+        return enhanced, ilens, masks, power
 
     def predict_mask(
         self, data: ComplexTensor, ilens: torch.LongTensor
@@ -136,11 +136,11 @@ class DNN_WPE(torch.nn.Module):
             ilens (torch.Tensor): (B,)
         """
         if self.use_dnn_mask:
-            mask, ilens = self.mask_est(data.permute(0, 3, 2, 1).float(), ilens)
+            masks, ilens = self.mask_est(data.permute(0, 3, 2, 1).float(), ilens)
             # (B, F, C, T) -> (B, T, C, F)
-            mask = [m.transpose(-1, -3) for m in mask]
+            masks = [m.transpose(-1, -3) for m in masks]
             if self.nmask == 1:
-                mask = mask[0]
+                masks = masks[0]
         else:
-            mask = None
-        return mask, ilens
+            masks = None
+        return masks, ilens

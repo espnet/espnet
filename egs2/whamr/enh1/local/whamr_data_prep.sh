@@ -84,7 +84,7 @@ for x in tr cv tt; do
       if [[ "$cond" = "reverb" ]]; then
         anechoic_mixwav_dir=${rootdir}/mix_${mixtype}_anechoic
         sed -e "s#${mixwav_dir}#${anechoic_mixwav_dir}#g" ${data}/${ddir}/wav.scp \
-          > ${data}/${ddir}/dereverb.scp
+          > ${data}/${ddir}/dereverb1.scp
       fi
     done
   done

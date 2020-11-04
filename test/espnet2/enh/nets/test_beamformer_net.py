@@ -71,6 +71,7 @@ def test_beamformer_net_forward_backward(
     badim,
     ref_channel,
     use_noise_mask,
+    bnonlinear,
     beamformer_type,
 ):
     # Skip some cases
@@ -259,18 +260,31 @@ def test_beamformer_net_wpe_output(ch, num_spk, multi_source_wpe, use_dnn_mask_f
     model.eval()
     specs, _, masks = model(inputs, ilens)
     assert isinstance(specs, list)
-    assert len(specs) == num_spk if multi_source_wpe else 1
+    assert len(specs) == 1 if multi_source_wpe else num_spk
     assert specs[0].shape[0] == 2  # batch size
     assert specs[0].dtype == torch.float
     assert isinstance(masks, dict)
     if use_dnn_mask_for_wpe:
-        assert "dereverb" in masks
-        assert masks["dereverb"].shape == specs[0].shape
+        assert "dereverb1" in masks, masks.keys()
+        assert masks["dereverb1"].shape == specs[0].shape
 
 
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("use_noise_mask", [True, False])
-def test_beamformer_net_bf_output(num_spk, use_noise_mask):
+@pytest.mark.parametrize(
+    "beamformer_type",
+    [
+        "mvdr_souden",
+        "mpdr_souden",
+        "wmpdr_souden",
+        "wpd_souden",
+        "mvdr",
+        "mpdr",
+        "wmpdr",
+        "wpd",
+    ],
+)
+def test_beamformer_net_bf_output(num_spk, use_noise_mask, beamformer_type):
     ch = 2
     inputs = torch.randn(2, 16, ch)
     inputs = inputs.float()
@@ -286,18 +300,21 @@ def test_beamformer_net_bf_output(num_spk, use_noise_mask):
         bprojs=2,
         badim=2,
         use_noise_mask=use_noise_mask,
+        beamformer_type=beamformer_type,
     )
     model.eval()
     specs, _, masks = model(inputs, ilens)
     assert isinstance(masks, dict)
-    assert "noise1" in masks
-    assert masks["noise1"].shape == masks["spk1"].shape
+    if use_noise_mask:
+        assert "noise1" in masks
+        assert masks["noise1"].shape == masks["spk1"].shape
     assert isinstance(specs, list)
     assert len(specs) == num_spk
     for n in range(1, num_spk + 1):
-        assert "spk{}".format(n) in masks
+        assert "spk{}".format(n) in masks, masks.keys()
         assert masks["spk{}".format(n)].shape[-2] == ch
-        assert specs[n - 1].shape == masks["spk{}".format(n)][..., 0, :].shape
+        assert specs[n - 1].shape[:-1] == masks["spk{}".format(n)][..., 0, :].shape
+        assert specs[n - 1].shape[-1] == 2
         assert specs[n - 1].dtype == torch.float
 
 
