@@ -5,6 +5,7 @@ import torch
 from torch_complex import functional as FC
 
 from espnet2.enh.nets.beamformer_net import BeamformerNet
+from test.espnet2.enh.layers.test_enh_layers import random_speech
 
 
 @pytest.mark.parametrize(
@@ -88,6 +89,8 @@ def test_beamformer_net_forward_backward(
         # only test different nonlinear layers with MVDR_Souden
         return
 
+    # ensures reproducibility and reversibility in the matrix inverse computation
+    torch.random.manual_seed(0)
     model = BeamformerNet(
         n_fft=n_fft,
         win_length=win_length,
@@ -119,9 +122,8 @@ def test_beamformer_net_forward_backward(
     )
 
     model.train()
-    est_speech, flens, masks = model(
-        torch.randn(2, 16, 2, requires_grad=True), ilens=torch.LongTensor([16, 12])
-    )
+    inputs = random_speech[..., :2].float()
+    est_speech, flens, masks = model(inputs, ilens=torch.LongTensor([16, 12]))
     if loss_type.startswith("mask"):
         assert est_speech is None
         loss = sum([abs(m).mean() for m in masks.values()])
@@ -214,7 +216,7 @@ def test_beamformer_net_consistency(
         random_input_numpy.astype("float32")
     )  # np.float64-->np.float32-->torch.float32
 
-    # ensures reproducibility in the matrix inverse computation
+    # ensures reproducibility and reversibility in the matrix inverse computation
     torch.random.manual_seed(0)
     est_speech_numpy, *_ = model(random_input_numpy, ilens=torch.LongTensor([16, 12]))
 
@@ -262,11 +264,12 @@ def test_beamformer_net_wpe_output(ch, num_spk, multi_source_wpe, use_dnn_mask_f
     assert isinstance(specs, list)
     assert len(specs) == 1 if multi_source_wpe else num_spk
     assert specs[0].shape[0] == 2  # batch size
+    assert specs[0].shape[-1] == 2  # real and imaginary parts
     assert specs[0].dtype == torch.float
     assert isinstance(masks, dict)
     if use_dnn_mask_for_wpe:
         assert "dereverb1" in masks, masks.keys()
-        assert masks["dereverb1"].shape == specs[0].shape
+        assert masks["dereverb1"].shape == specs[0].shape[:-1]
 
 
 @pytest.mark.parametrize("num_spk", [1, 2])
@@ -286,14 +289,17 @@ def test_beamformer_net_wpe_output(ch, num_spk, multi_source_wpe, use_dnn_mask_f
 )
 def test_beamformer_net_bf_output(num_spk, use_noise_mask, beamformer_type):
     ch = 2
-    inputs = torch.randn(2, 16, ch)
-    inputs = inputs.float()
+    inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
+
+    torch.random.manual_seed(0)
     model = BeamformerNet(
         n_fft=8,
         hop_length=2,
         num_spk=num_spk,
         use_wpe=False,
+        taps=2,
+        delay=3,
         use_beamformer=True,
         blayers=2,
         bunits=2,

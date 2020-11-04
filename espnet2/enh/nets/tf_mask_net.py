@@ -9,7 +9,6 @@ from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,  # noqa: H301
     ScaledPositionalEncoding,  # noqa: H301
-    RelPositionalEncoding,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,  # noqa: H301

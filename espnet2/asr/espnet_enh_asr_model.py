@@ -1,5 +1,4 @@
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -66,9 +65,9 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         self.num_spk = enh_model.num_spk
         if self.num_spk > 1:
             assert (
-                asr_model.ctc_weight != 0.0 or cal_enh_loss == True
+                asr_model.ctc_weight != 0.0 or cal_enh_loss
             )  # need at least one to cal PIT permutation
-        if enh_return_type == "waveform" or enh_return_type == None:
+        if enh_return_type == "waveform" or enh_return_type is None:
             assert (
                 self.asr_subclass.frontend.stft
             ), "need apply stft in asr frontend part"
@@ -217,7 +216,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         text_ref2 = text_ref2[:, :text_length_max]
 
         # 0. Enhancement
-        if self.enh_return_type != None:
+        if self.enh_return_type is not None:
             # make sure the speech_pre is the raw waveform with same size.
             if text_ref1.equal(text_ref2):
                 # TODO(Jing): find a better way to locate single-spk set
@@ -260,8 +259,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     n_speaker_asr = 1
                 elif self.enh_return_type == "spectrum":
                     if isinstance(speech_pre, list):  # multi-speaker case
-                        # The return value speech_pre is actually the
-                        # spectrum List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
+                        # The return value speech_pre is actually the spectrum
+                        # List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
                         if speech_pre[0].dtype == torch.tensor:
                             assert (
                                 speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
@@ -316,7 +315,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             loss_ctc, cer_ctc = None, None
         else:
             if n_speaker_asr == 1 or (
-                self.cal_enh_loss and perm != None
+                self.cal_enh_loss and perm is not None
             ):  # No permutation is required
                 assert n_speaker_asr == 1
                 loss_ctc, cer_ctc, _, _, = self._calc_ctc_loss_with_spk(
@@ -361,7 +360,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         else:
             loss_asr = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
-        if self.enh_weight == 0.0 or self.cal_enh_loss == False or loss_enh is None:
+        if self.enh_weight == 0.0 or not self.cal_enh_loss or loss_enh is None:
             loss_enh = None
             loss = loss_asr
         else:
@@ -570,7 +569,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         if speech_ref is None and noise_ref is None and dereverb_speech_ref is None:
             # There is no ref provided, avoid the enh loss
-            assert self.cal_enh_loss == False, (
+            assert not self.cal_enh_loss, (
                 "There is no reference,"
                 "cal_enh_loss must be false, but {} given.".format(self.cal_enh_loss)
             )
@@ -614,7 +613,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             ]
 
         if self.enh_return_type == "waveform":
-            if resort_pre and perm != None:
+            if resort_pre and perm is not None:
                 # resort the prediction wav with the perm from enh_loss
                 # speech_pre : list[(bs,...)] of spk
                 # perm : list[(num_spk)] of batch
@@ -630,7 +629,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 speech_pre = torch.stack(speech_pre, dim=1)  # bs,num_spk,...
         elif self.enh_return_type == "spectrum":
             # speech_pre: List([BS,T,F]) of complexTensor
-            if resort_pre and perm != None:
+            if resort_pre and perm is not None:
                 raise NotImplementedError("Resort with Spectrum not implemented.")
 
         return loss, perm, speech_pre, out_lengths

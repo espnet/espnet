@@ -124,7 +124,6 @@ class IterableESPnetDataset(IterableDataset):
 
         if Path(Path(path_name_type_list[0][0]).parent, "utt2category").exists():
             self.apply_utt2category = True
-            # utt2category_file = str(Path(Path(data_path_and_name_and_type[0][0]).parent, 'utt2category'))
         else:
             self.apply_utt2category = False
 
@@ -191,8 +190,8 @@ class IterableESPnetDataset(IterableDataset):
                 for k_idx, k in enumerate(keys):
                     if k != keys[0]:
                         raise RuntimeError(
-                            f"Keys are mismatched. Text files (idx={k_idx}) is not sorted or "
-                            f"not having same keys at L{linenum}"
+                            f"Keys are mismatched. Text files (idx={k_idx}) is "
+                            f"not sorted or not having same keys at L{linenum}"
                         )
 
                 # If the key is matched, break the loop

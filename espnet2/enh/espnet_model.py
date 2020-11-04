@@ -276,6 +276,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             spectrum_pre, tf_length, mask_pre = self.enh_model(
                 speech_mix, speech_lengths
             )
+            if spectrum_pre is not None and not isinstance(
+                spectrum_pre[0], ComplexTensor
+            ):
+                spectrum_pre = [
+                    ComplexTensor(*torch.unbind(sp, dim=-1)) for sp in spectrum_pre
+                ]
 
             if not cal_loss:
                 loss, perm = None, None
@@ -292,6 +298,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # compute TF masking loss
             if self.loss_type == "magnitude":
                 # compute loss on magnitude spectrum
+                assert spectrum_pre is not None
                 magnitude_pre = [abs(ps) for ps in spectrum_pre]
                 if spectrum_ref[0].dim() > magnitude_pre[0].dim():
                     # only select one channel as the reference
@@ -306,6 +313,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 )
             elif self.loss_type == "spectrum":
                 # compute loss on complex spectrum
+                assert spectrum_pre is not None
                 if spectrum_ref[0].dim() > spectrum_pre[0].dim():
                     # only select one channel as the reference
                     spectrum_ref = [sr[..., self.ref_channel, :] for sr in spectrum_ref]
@@ -344,9 +352,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         for spk in range(self.num_spk)
                         if "dereverb{}".format(spk + 1) in mask_pre
                     ]
-                    assert len(mask_wpe_pre) == len(dereverb_speech_ref), (
+                    assert len(mask_wpe_pre) == dereverb_speech_ref.size(1), (
                         len(mask_wpe_pre),
-                        len(dereverb_speech_ref),
+                        dereverb_speech_ref.size(1),
                     )
                     dereverb_speech_ref = torch.unbind(dereverb_speech_ref, dim=1)
                     dereverb_spectrum_ref = [
@@ -425,7 +433,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         :param inf: (Batch, T, F) or (Batch, T, C, F)
         :return: (Batch)
         """
-        assert ref.dim() == inf.dim(), (ref.shape, inf.shape)
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
         if ref.dim() == 3:
             mseloss = (abs(ref - inf) ** 2).mean(dim=[1, 2])
         elif ref.dim() == 4:
@@ -445,7 +453,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         :param inf: (Batch, T, F) or (Batch, T, C, F)
         :return: (Batch)
         """
-        assert ref.dim() == inf.dim(), (ref.shape, inf.shape)
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
         if ref.dim() == 3:
             l1loss = abs(ref - inf).mean(dim=[1, 2])
         elif ref.dim() == 4:
@@ -778,9 +786,9 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
                         for spk in range(self.num_spk)
                         if "dereverb{}".format(spk + 1) in mask_pre
                     ]
-                    assert len(mask_wpe_pre) == len(dereverb_speech_ref), (
+                    assert len(mask_wpe_pre) == len(dereverb_mask_ref), (
                         len(mask_wpe_pre),
-                        len(dereverb_speech_ref),
+                        len(dereverb_mask_ref),
                     )
                     tf_dereverb_loss, perm_d = self._permutation_loss(
                         dereverb_mask_ref, mask_wpe_pre, self.tf_mse_loss
