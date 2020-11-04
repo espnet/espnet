@@ -1,5 +1,8 @@
 """TDNN modules definition for transformer encoder."""
 
+from typing import Tuple
+from typing import Union
+
 import torch
 
 
