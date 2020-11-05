@@ -618,7 +618,7 @@ def main(cmd_args):
 
             train(args)
         elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import train
+            from espnet.asr.pytorch_backend.train import train
 
             train(args)
         else:

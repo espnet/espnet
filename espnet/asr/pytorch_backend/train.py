@@ -1,115 +1,44 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
-# Copyright 2019 Kyoto University (Hirofumi Inaguma)
+# Copyright 2020 The ESPnet Authors.
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Training/decoding definition for the speech translation task."""
+"""Backend module for `asr_train.py`."""
 
 import json
 import logging
 import os
-import sys
 
 from chainer import training
 from chainer.training import extensions
-import numpy as np
 from tensorboardX import SummaryWriter
 import torch
 
 from espnet.asr.asr_utils import adadelta_eps_decay
-from espnet.asr.asr_utils import adam_lr_decay
-from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
+from espnet.asr.asr_utils import format_mulenc_args
+from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.pytorch_backend.asr_init import load_trained_model
+from espnet.asr.pytorch_backend.asr_init import freeze_modules
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
-
-from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.st_interface import STInterface
+from espnet.asr.pytorch_backend.converter import CustomConverter
+from espnet.asr.pytorch_backend.converter import CustomConverterMulEnc
+from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.pytorch_backend.lm import default
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
+from espnet.utils.training.evaluator import CustomEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-from espnet.asr.pytorch_backend.converter import CustomConverter as ASRCustomConverter
-from espnet.utils.training.evaluator import CustomEvaluator
 from espnet.utils.training.updater import CustomUpdater
-
-import matplotlib
-
-matplotlib.use("Agg")
-
-if sys.version_info[0] == 2:
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest as zip_longest
-
-
-class CustomConverter(ASRCustomConverter):
-    """Custom batch converter for Pytorch.
-
-    Args:
-        subsampling_factor (int): The subsampling factor.
-        dtype (torch.dtype): Data type to convert.
-        use_source_text (bool): use source transcription.
-
-    """
-
-    def __init__(
-        self, subsampling_factor=1, dtype=torch.float32, use_source_text=False
-    ):
-        """Construct a CustomConverter object."""
-        super().__init__(subsampling_factor=subsampling_factor, dtype=dtype)
-        self.use_source_text = use_source_text
-
-    def __call__(self, batch, device=torch.device("cpu")):
-        """Transform a batch and send it to a device.
-
-        Args:
-            batch (list): The batch to transform.
-            device (torch.device): The device to send to.
-
-        Returns:
-            tuple(torch.Tensor, torch.Tensor, torch.Tensor)
-
-        """
-        # batch should be located in list
-        assert len(batch) == 1
-        xs, ys, ys_src = batch[0]
-
-        # get batch of lengths of input sequences
-        ilens = np.array([x.shape[0] for x in xs])
-        ilens = torch.from_numpy(ilens).to(device)
-
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(
-            device, dtype=self.dtype
-        )
-
-        ys_pad = pad_list(
-            [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys],
-            self.ignore_id,
-        ).to(device)
-
-        if self.use_source_text:
-            ys_pad_src = pad_list(
-                [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys_src],
-                self.ignore_id,
-            ).to(device)
-        else:
-            ys_pad_src = None
-
-        return xs_pad, ilens, ys_pad, ys_pad_src
 
 
 def train(args):
@@ -120,6 +49,8 @@ def train(args):
 
     """
     set_deterministic_pytorch(args)
+    if args.num_encs > 1:
+        args = format_mulenc_args(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -129,18 +60,57 @@ def train(args):
     with open(args.valid_json, "rb") as f:
         valid_json = json.load(f)["utts"]
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]["input"][0]["shape"][-1])
+    idim_list = [
+        int(valid_json[utts[0]]["input"][i]["shape"][-1]) for i in range(args.num_encs)
+    ]
     odim = int(valid_json[utts[0]]["output"][0]["shape"][-1])
-    logging.info("#input dims : " + str(idim))
+    if hasattr(args, "decoder_mode") and args.decoder_mode == "maskctc":
+        odim += 1  # for the <mask> token
+    for i in range(args.num_encs):
+        logging.info("stream{}: input dims : {}".format(i + 1, idim_list[i]))
     logging.info("#output dims: " + str(odim))
 
-    # Initialize with pre-trained ASR encoder and MT decoder
-    if args.enc_init is not None or args.dec_init is not None:
-        model = load_trained_modules(idim, odim, args, interface=STInterface)
+    # specify attention, CTC, hybrid mode
+    if "transducer" in args.model_module:
+        if (
+            getattr(args, "etype", False) == "transformer"
+            or getattr(args, "dtype", False) == "transformer"
+        ):
+            mtl_mode = "transformer_transducer"
+        else:
+            mtl_mode = "transducer"
+        logging.info("Pure transducer mode")
+    elif args.mtlalpha == 1.0:
+        mtl_mode = "ctc"
+        logging.info("Pure CTC mode")
+    elif args.mtlalpha == 0.0:
+        mtl_mode = "att"
+        logging.info("Pure attention mode")
+    else:
+        mtl_mode = "mtl"
+        logging.info("Multitask learning mode")
+
+    if (args.enc_init is not None or args.dec_init is not None) and args.num_encs == 1:
+        model = load_trained_modules(idim_list[0], odim, args)
     else:
         model_class = dynamic_import(args.model_module)
-        model = model_class(idim, odim, args)
-    assert isinstance(model, STInterface)
+        model = model_class(
+            idim_list[0] if args.num_encs == 1 else idim_list, odim, args
+        )
+    assert isinstance(model, ASRInterface)
+
+    logging.info(
+        " Total parameter of the model = "
+        + str(sum(p.numel() for p in model.parameters()))
+    )
+
+    if args.rnnlm is not None:
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        rnnlm = default.ClassifierWithState(
+            default.RNNLM(len(args.char_list), rnnlm_args.layer, rnnlm_args.unit)
+        )
+        torch_load(args.rnnlm, rnnlm)
+        model.rnnlm = rnnlm
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -150,7 +120,10 @@ def train(args):
         logging.info("writing a model config file to " + model_conf)
         f.write(
             json.dumps(
-                (idim, odim, vars(args)), indent=4, ensure_ascii=False, sort_keys=True
+                (idim_list[0] if args.num_encs == 1 else idim_list, odim, vars(args)),
+                indent=4,
+                ensure_ascii=False,
+                sort_keys=True,
             ).encode("utf_8")
         )
     for key in sorted(vars(args).keys()):
@@ -166,6 +139,11 @@ def train(args):
                 % (args.batch_size, args.batch_size * args.ngpu)
             )
             args.batch_size *= args.ngpu
+        if args.num_encs > 1:
+            # TODO(ruizhili): implement data parallel for multi-encoder setup.
+            raise NotImplementedError(
+                "Data parallel is not supported for multi-encoder setup."
+            )
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
@@ -175,23 +153,30 @@ def train(args):
         dtype = torch.float32
     model = model.to(device=device, dtype=dtype)
 
+    if args.freeze_mods:
+        model, model_params = freeze_modules(model, args.freeze_mods)
+    else:
+        model_params = model.parameters()
+
     # Setup an optimizer
     if args.opt == "adadelta":
         optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps, weight_decay=args.weight_decay
+            model_params, rho=0.95, eps=args.eps, weight_decay=args.weight_decay
         )
     elif args.opt == "adam":
-        optimizer = torch.optim.Adam(
-            model.parameters(), lr=args.lr, weight_decay=args.weight_decay
-        )
+        optimizer = torch.optim.Adam(model_params, weight_decay=args.weight_decay)
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
+        # For transformer-transducer, adim declaration is within the block definition.
+        # Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.
+        if hasattr(args, "enc_block_arch") or hasattr(args, "dec_block_arch"):
+            adim = model.most_dom_dim
+        else:
+            adim = args.adim
+
         optimizer = get_std_opt(
-            model.parameters(),
-            args.adim,
-            args.transformer_warmup_steps,
-            args.transformer_lr,
+            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
@@ -215,6 +200,12 @@ def train(args):
                 model, optimizer, opt_level=args.train_dtype
             )
         use_apex = True
+
+        from espnet.nets.pytorch_backend.ctc import CTC
+
+        amp.register_float_function(CTC, "loss_fn")
+        amp.init()
+        logging.warning("register ctc as float function")
     else:
         use_apex = False
 
@@ -223,11 +214,12 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(
-        subsampling_factor=model.subsample[0],
-        dtype=dtype,
-        use_source_text=args.asr_weight > 0 or args.mt_weight > 0,
-    )
+    if args.num_encs == 1:
+        converter = CustomConverter(subsampling_factor=model.subsample[0], dtype=dtype)
+    else:
+        converter = CustomConverterMulEnc(
+            [i[0] for i in model.subsample_list], dtype=dtype
+        )
 
     # read json data
     with open(args.train_json, "rb") as f:
@@ -336,8 +328,20 @@ def train(args):
             CustomEvaluator(model, {"main": valid_iter}, reporter, device, args.ngpu)
         )
 
-    # Save attention weight at each epoch
-    if args.num_save_attention > 0:
+    # Save attention weight each epoch
+    is_attn_plot = (
+        (
+            "transformer" in args.model_module
+            or "conformer" in args.model_module
+            or mtl_mode in ["att", "mtl"]
+        )
+        or (
+            mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
+        )
+        or mtl_mode == "transformer_transducer"
+    )
+
+    if args.num_save_attention > 0 and is_attn_plot:
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
@@ -362,7 +366,7 @@ def train(args):
         att_reporter = None
 
     # Save CTC prob at each epoch
-    if (args.asr_weight > 0 and args.mtlalpha > 0) and args.num_save_ctc > 0:
+    if mtl_mode in ["ctc", "mtl"] and args.num_save_ctc > 0:
         # NOTE: sort it by output lengths
         data = sorted(
             list(valid_json.items())[: args.num_save_ctc],
@@ -390,39 +394,39 @@ def train(args):
         ctc_reporter = None
 
     # Make a plot for training and validation values
+    if args.num_encs > 1:
+        report_keys_loss_ctc = [
+            "main/loss_ctc{}".format(i + 1) for i in range(model.num_encs)
+        ] + ["validation/main/loss_ctc{}".format(i + 1) for i in range(model.num_encs)]
+        report_keys_cer_ctc = [
+            "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
+        ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
     trainer.extend(
         extensions.PlotReport(
             [
                 "main/loss",
                 "validation/main/loss",
-                "main/loss_asr",
-                "validation/main/loss_asr",
-                "main/loss_mt",
-                "validation/main/loss_mt",
-                "main/loss_st",
-                "validation/main/loss_st",
-            ],
+                "main/loss_ctc",
+                "validation/main/loss_ctc",
+                "main/loss_att",
+                "validation/main/loss_att",
+            ]
+            + ([] if args.num_encs == 1 else report_keys_loss_ctc),
             "epoch",
             file_name="loss.png",
         )
     )
     trainer.extend(
         extensions.PlotReport(
-            [
-                "main/acc",
-                "validation/main/acc",
-                "main/acc_asr",
-                "validation/main/acc_asr",
-                "main/acc_mt",
-                "validation/main/acc_mt",
-            ],
-            "epoch",
-            file_name="acc.png",
+            ["main/acc", "validation/main/acc"], "epoch", file_name="acc.png"
         )
     )
     trainer.extend(
         extensions.PlotReport(
-            ["main/bleu", "validation/main/bleu"], "epoch", file_name="bleu.png"
+            ["main/cer_ctc", "validation/main/cer_ctc"]
+            + ([] if args.num_encs == 1 else report_keys_loss_ctc),
+            "epoch",
+            file_name="cer.png",
         )
     )
 
@@ -431,10 +435,11 @@ def train(args):
         snapshot_object(model, "model.loss.best"),
         trigger=training.triggers.MinValueTrigger("validation/main/loss"),
     )
-    trainer.extend(
-        snapshot_object(model, "model.acc.best"),
-        trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
-    )
+    if mtl_mode not in ["ctc", "transducer", "transformer_transducer"]:
+        trainer.extend(
+            snapshot_object(model, "model.acc.best"),
+            trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
+        )
 
     # save snapshot which contains model and optimizer states
     if args.save_interval_iters > 0:
@@ -447,7 +452,7 @@ def train(args):
 
     # epsilon decay in the optimizer
     if args.opt == "adadelta":
-        if args.criterion == "acc":
+        if args.criterion == "acc" and mtl_mode != "ctc":
             trainer.extend(
                 restore_snapshot(
                     model, args.outdir + "/model.acc.best", load_fn=torch_load
@@ -481,36 +486,13 @@ def train(args):
                     lambda best_value, current_value: best_value < current_value,
                 ),
             )
-    elif args.opt == "adam":
-        if args.criterion == "acc":
+        # NOTE: In some cases, it may take more than one epoch for the model's loss
+        # to escape from a local minimum.
+        # Thus, restore_snapshot extension is not used here.
+        # see details in https://github.com/espnet/espnet/pull/2171
+        elif args.criterion == "loss_eps_decay_only":
             trainer.extend(
-                restore_snapshot(
-                    model, args.outdir + "/model.acc.best", load_fn=torch_load
-                ),
-                trigger=CompareValueTrigger(
-                    "validation/main/acc",
-                    lambda best_value, current_value: best_value > current_value,
-                ),
-            )
-            trainer.extend(
-                adam_lr_decay(args.lr_decay),
-                trigger=CompareValueTrigger(
-                    "validation/main/acc",
-                    lambda best_value, current_value: best_value > current_value,
-                ),
-            )
-        elif args.criterion == "loss":
-            trainer.extend(
-                restore_snapshot(
-                    model, args.outdir + "/model.loss.best", load_fn=torch_load
-                ),
-                trigger=CompareValueTrigger(
-                    "validation/main/loss",
-                    lambda best_value, current_value: best_value < current_value,
-                ),
-            )
-            trainer.extend(
-                adam_lr_decay(args.lr_decay),
+                adadelta_eps_decay(args.eps_decay),
                 trigger=CompareValueTrigger(
                     "validation/main/loss",
                     lambda best_value, current_value: best_value < current_value,
@@ -525,18 +507,17 @@ def train(args):
         "epoch",
         "iteration",
         "main/loss",
-        "main/loss_st",
-        "main/loss_asr",
+        "main/loss_ctc",
+        "main/loss_att",
         "validation/main/loss",
-        "validation/main/loss_st",
-        "validation/main/loss_asr",
+        "validation/main/loss_ctc",
+        "validation/main/loss_att",
         "main/acc",
         "validation/main/acc",
-    ]
-    if args.asr_weight > 0:
-        report_keys.append("main/acc_asr")
-        report_keys.append("validation/main/acc_asr")
-    report_keys += ["elapsed_time"]
+        "main/cer_ctc",
+        "validation/main/cer_ctc",
+        "elapsed_time",
+    ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
     if args.opt == "adadelta":
         trainer.extend(
             extensions.observe_value(
@@ -548,29 +529,10 @@ def train(args):
             trigger=(args.report_interval_iters, "iteration"),
         )
         report_keys.append("eps")
-    elif args.opt in ["adam", "noam"]:
-        trainer.extend(
-            extensions.observe_value(
-                "lr",
-                lambda trainer: trainer.updater.get_optimizer("main").param_groups[0][
-                    "lr"
-                ],
-            ),
-            trigger=(args.report_interval_iters, "iteration"),
-        )
-        report_keys.append("lr")
-    if args.asr_weight > 0:
-        if args.mtlalpha > 0:
-            report_keys.append("main/cer_ctc")
-            report_keys.append("validation/main/cer_ctc")
-        if args.mtlalpha < 1:
-            if args.report_cer:
-                report_keys.append("validation/main/cer")
-            if args.report_wer:
-                report_keys.append("validation/main/wer")
-    if args.report_bleu:
-        report_keys.append("main/bleu")
-        report_keys.append("validation/main/bleu")
+    if args.report_cer:
+        report_keys.append("validation/main/cer")
+    if args.report_wer:
+        report_keys.append("validation/main/wer")
     trainer.extend(
         extensions.PrintReport(report_keys),
         trigger=(args.report_interval_iters, "iteration"),
@@ -591,89 +553,3 @@ def train(args):
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
-
-
-def trans(args):
-    """Decode with the given args.
-
-    Args:
-        args (namespace): The program arguments.
-
-    """
-    set_deterministic_pytorch(args)
-    model, train_args = load_trained_model(args.model)
-    assert isinstance(model, STInterface)
-    model.trans_args = args
-
-    # gpu
-    if args.ngpu == 1:
-        gpu_id = list(range(args.ngpu))
-        logging.info("gpu id: " + str(gpu_id))
-        model.cuda()
-
-    # read json data
-    with open(args.trans_json, "rb") as f:
-        js = json.load(f)["utts"]
-    new_js = {}
-
-    load_inputs_and_targets = LoadInputsAndTargets(
-        mode="asr",
-        load_output=False,
-        sort_in_input_length=False,
-        preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None
-        else args.preprocess_conf,
-        preprocess_args={"train": False},
-    )
-
-    if args.batchsize == 0:
-        with torch.no_grad():
-            for idx, name in enumerate(js.keys(), 1):
-                logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
-                batch = [(name, js[name])]
-                feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.translate(
-                    feat,
-                    args,
-                    train_args.char_list,
-                )
-                new_js[name] = add_results_to_json(
-                    js[name], nbest_hyps, train_args.char_list
-                )
-
-    else:
-
-        def grouper(n, iterable, fillvalue=None):
-            kargs = [iter(iterable)] * n
-            return zip_longest(*kargs, fillvalue=fillvalue)
-
-        # sort data if batchsize > 1
-        keys = list(js.keys())
-        if args.batchsize > 1:
-            feat_lens = [js[key]["input"][0]["shape"][0] for key in keys]
-            sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
-            keys = [keys[i] for i in sorted_index]
-
-        with torch.no_grad():
-            for names in grouper(args.batchsize, keys, None):
-                names = [name for name in names if name]
-                batch = [(name, js[name]) for name in names]
-                feats = load_inputs_and_targets(batch)[0]
-                nbest_hyps = model.translate_batch(
-                    feats,
-                    args,
-                    train_args.char_list,
-                )
-
-                for i, nbest_hyp in enumerate(nbest_hyps):
-                    name = names[i]
-                    new_js[name] = add_results_to_json(
-                        js[name], nbest_hyp, train_args.char_list
-                    )
-
-    with open(args.result_label, "wb") as f:
-        f.write(
-            json.dumps(
-                {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
-            ).encode("utf_8")
-        )
