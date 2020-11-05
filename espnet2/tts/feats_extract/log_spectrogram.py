@@ -23,7 +23,6 @@ class LogSpectrogram(AbsFeatsExtract):
         hop_length: int = 256,
         window: Optional[str] = "hann",
         center: bool = True,
-        pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
     ):
@@ -39,7 +38,6 @@ class LogSpectrogram(AbsFeatsExtract):
             hop_length=hop_length,
             window=window,
             center=center,
-            pad_mode=pad_mode,
             normalized=normalized,
             onesided=onesided,
         )
@@ -58,7 +56,7 @@ class LogSpectrogram(AbsFeatsExtract):
         )
 
     def forward(
-        self, input: torch.Tensor, input_lengths: torch.Tensor
+        self, input: torch.Tensor, input_lengths: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Stft: time -> time-freq
         input_stft, feats_lens = self.stft(input, input_lengths)

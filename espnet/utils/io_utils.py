@@ -50,7 +50,7 @@ class LoadInputsAndTargets(object):
         keep_all_data_on_mem=False,
     ):
         self._loaders = {}
-        if mode not in ["asr", "tts", "mt"]:
+        if mode not in ["asr", "tts", "mt", "vc"]:
             raise ValueError("Only asr or tts are allowed: mode={}".format(mode))
         if preprocess_conf is not None:
             self.preprocessing = Transformation(preprocess_conf)
@@ -66,10 +66,14 @@ class LoadInputsAndTargets(object):
             raise ValueError(
                 'Choose one of "use_second_target" and ' '"use_speaker_embedding "'
             )
-        if (use_second_target or use_speaker_embedding) and mode != "tts":
+        if (
+            (use_second_target or use_speaker_embedding)
+            and mode != "tts"
+            and mode != "vc"
+        ):
             logging.warning(
                 '"use_second_target" and "use_speaker_embedding" is '
-                "used only for tts mode"
+                "used only for tts or vc mode"
             )
 
         self.mode = mode
@@ -166,6 +170,10 @@ class LoadInputsAndTargets(object):
             )
         elif self.mode == "mt":
             return_batch, uttid_list = self._create_batch_mt(
+                x_feats_dict, y_feats_dict, uttid_list
+            )
+        elif self.mode == "vc":
+            return_batch, uttid_list = self._create_batch_vc(
                 x_feats_dict, y_feats_dict, uttid_list
             )
         else:
@@ -364,6 +372,84 @@ class LoadInputsAndTargets(object):
             return_batch = OrderedDict([(x_name, xs), (spembs_name, spembs)])
         else:
             x_name = list(y_feats_dict.keys())[0]
+
+            return_batch = OrderedDict([(x_name, xs)])
+        return return_batch, uttid_list
+
+    def _create_batch_vc(self, x_feats_dict, y_feats_dict, uttid_list):
+        """Create a OrderedDict for the mini-batch
+
+        :param OrderedDict x_feats_dict:
+            e.g. {"input1": [ndarray, ndarray, ...],
+                  "input2": [ndarray, ndarray, ...]}
+        :param OrderedDict y_feats_dict:
+            e.g. {"target1": [ndarray, ndarray, ...],
+                  "target2": [ndarray, ndarray, ...]}
+        :param: List[str] uttid_list:
+        :return: batch, uttid_list
+        :rtype: Tuple[OrderedDict, List[str]]
+        """
+        # Create a list from the first item
+        xs = list(x_feats_dict.values())[0]
+
+        # get index of non-zero length samples
+        nonzero_idx = list(filter(lambda i: len(xs[i]) > 0, range(len(xs))))
+
+        # sort in input lengths
+        if self.sort_in_input_length:
+            # sort in input lengths
+            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        else:
+            nonzero_sorted_idx = nonzero_idx
+
+        # remove zero-length samples
+        xs = [xs[i] for i in nonzero_sorted_idx]
+        uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
+
+        if self.load_output:
+            ys = list(y_feats_dict.values())[0]
+            assert len(xs) == len(ys), (len(xs), len(ys))
+            ys = [ys[i] for i in nonzero_sorted_idx]
+
+            spembs = None
+            spcs = None
+            spembs_name = "spembs_none"
+            spcs_name = "spcs_none"
+
+            if self.use_second_target:
+                raise ValueError("Currently second target not supported.")
+                spcs = list(x_feats_dict.values())[1]
+                spcs = [spcs[i] for i in nonzero_sorted_idx]
+                spcs_name = list(x_feats_dict.keys())[1]
+
+            if self.use_speaker_embedding:
+                spembs = list(x_feats_dict.values())[1]
+                spembs = [spembs[i] for i in nonzero_sorted_idx]
+                spembs_name = list(x_feats_dict.keys())[1]
+
+            x_name = list(x_feats_dict.keys())[0]
+            y_name = list(y_feats_dict.keys())[0]
+
+            return_batch = OrderedDict(
+                [(x_name, xs), (y_name, ys), (spembs_name, spembs), (spcs_name, spcs)]
+            )
+        elif self.use_speaker_embedding:
+            if len(x_feats_dict) == 0:
+                raise IndexError("No speaker embedding is provided")
+            elif len(x_feats_dict) == 1:
+                spembs_idx = 0
+            else:
+                spembs_idx = 1
+
+            spembs = list(x_feats_dict.values())[spembs_idx]
+            spembs = [spembs[i] for i in nonzero_sorted_idx]
+
+            x_name = list(x_feats_dict.keys())[0]
+            spembs_name = list(x_feats_dict.keys())[spembs_idx]
+
+            return_batch = OrderedDict([(x_name, xs), (spembs_name, spembs)])
+        else:
+            x_name = list(x_feats_dict.keys())[0]
 
             return_batch = OrderedDict([(x_name, xs)])
         return return_batch, uttid_list

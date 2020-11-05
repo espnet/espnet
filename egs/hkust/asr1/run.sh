@@ -77,18 +77,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     fbankdir=fbank
-    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train exp/make_fbank/train ${fbankdir}
-    utils/fix_data_dir.sh data/train
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
-        data/dev exp/make_fbank/dev ${fbankdir}
-    utils/fix_data_dir.sh data/dev
-
-    # make a dev set
-    utils/subset_data_dir.sh --first data/train 4000 data/${train_dev}
+    # make a dev set:
+    # 4001 utts will be reduced to 4000 after feature extraction
+    utils/subset_data_dir.sh --first data/train 4001 data/${train_dev}
     utils/fix_data_dir.sh data/${train_dev}
-    n=$(($(wc -l < data/train/segments) - 4000))
+    n=$(($(wc -l < data/train/segments) - 4001))
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
 
     # make a training set
@@ -103,6 +96,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
         data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
     utils/fix_data_dir.sh data/${train_set}
+
+    for rtask in ${recog_set}; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+            data/${rtask} exp/make_fbank/${rtask} ${fbankdir}
+        utils/fix_data_dir.sh data/${rtask}
+    done
+
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -121,8 +121,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
@@ -224,12 +222,15 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-	recog_model=model.last${n_average}.avg.best
-	average_checkpoints.py --backend ${backend} \
-			       --snapshots ${expdir}/results/snapshot.ep.* \
-			       --out ${expdir}/results/${recog_model} \
-			       --num ${n_average}
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+                    --snapshots ${expdir}/results/snapshot.ep.* \
+                    --out ${expdir}/results/${recog_model} \
+                    --num ${n_average}
     fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do

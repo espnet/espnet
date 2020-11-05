@@ -44,13 +44,13 @@ fi
 
 if [ "${stage}" -le 0 ] && [ "${stop_stage}" -ge 0 ]; then
     echo "Stage 0: Data preparation"
-    
+
     if [ ! -e ${download_dir} ]; then
         echo "${download_dir} not found."
         echo "cd ${download_dir}; ./run.sh --stop_stage -1; cd -"
         exit 1;
     fi
-    
+
     local/data_prep.sh \
         --train_set "${train_set}" \
         --dev_set "${dev_set}" \
@@ -122,7 +122,7 @@ if [ "${stage}" -le 2 ] && [ "${stop_stage}" -ge 2 ]; then
     [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
     cp "${dumpdir}/${train_set}/stats.h5" "${expdir}"
     if [ "${n_gpus}" -gt 1 ]; then
-        train="python -m parallel_wavegan.distributed.launch --nproc_per_node ${n_gpus} -c parallel-wavegan-train"
+        train="python3 -m parallel_wavegan.distributed.launch --nproc_per_node ${n_gpus} -c parallel-wavegan-train"
     else
         train="parallel-wavegan-train"
     fi

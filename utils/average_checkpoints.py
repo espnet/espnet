@@ -14,19 +14,36 @@ def main():
             logs = json.load(f)
         val_scores = []
         for log in logs:
-            if "validation/main/acc" in log.keys():
-                val_scores += [[log["epoch"], log["validation/main/acc"]]]
-            elif "val_perplexity" in log.keys():
-                val_scores += [[log["epoch"], 1 / log["val_perplexity"]]]
-            elif "validation/main/loss" in log.keys():
-                val_scores += [[log["epoch"], -log["validation/main/loss"]]]
+            if args.metric == "acc":
+                if "validation/main/acc" in log.keys():
+                    val_scores += [[log["epoch"], log["validation/main/acc"]]]
+            elif args.metric == "perplexity":
+                if "val_perplexity" in log.keys():
+                    val_scores += [[log["epoch"], 1 / log["val_perplexity"]]]
+            elif args.metric == "loss":
+                if "validation/main/loss" in log.keys():
+                    val_scores += [[log["epoch"], -log["validation/main/loss"]]]
+            elif args.metric == "bleu":
+                if "validation/main/bleu" in log.keys():
+                    val_scores += [[log["epoch"], log["validation/main/bleu"]]]
+            elif args.metric == "cer_ctc":
+                if "validation/main/cer_ctc" in log.keys():
+                    val_scores += [[log["epoch"], -log["validation/main/cer_ctc"]]]
+            else:
+                # Keep original order for compatibility
+                if "validation/main/acc" in log.keys():
+                    val_scores += [[log["epoch"], log["validation/main/acc"]]]
+                elif "val_perplexity" in log.keys():
+                    val_scores += [[log["epoch"], 1 / log["val_perplexity"]]]
+                elif "validation/main/loss" in log.keys():
+                    val_scores += [[log["epoch"], -log["validation/main/loss"]]]
+
         if len(val_scores) == 0:
-            raise ValueError(
-                "`validation/main/acc` or `val_perplexity` is not found in log."
-            )
+            raise ValueError("%s is not found in log." % args.metric)
         val_scores = np.array(val_scores)
         sort_idx = np.argsort(val_scores[:, -1])
         sorted_val_scores = val_scores[sort_idx][::-1]
+        print("metric: %s" % args.metric)
         print("best val scores = " + str(sorted_val_scores[: args.num, 1]))
         print(
             "selected epochs = "
@@ -57,7 +74,10 @@ def main():
         # average
         for k in avg.keys():
             if avg[k] is not None:
-                avg[k] /= args.num
+                if avg[k].is_floating_point():
+                    avg[k] /= args.num
+                else:
+                    avg[k] //= args.num
 
         torch.save(avg, args.out)
 
@@ -90,6 +110,13 @@ def get_parser():
     parser.add_argument("--num", default=10, type=int)
     parser.add_argument("--backend", default="chainer", type=str)
     parser.add_argument("--log", default=None, type=str, nargs="?")
+    parser.add_argument(
+        "--metric",
+        default="",
+        type=str,
+        nargs="?",
+        choices=["acc", "bleu", "cer_ctc", "loss", "perplexity"],
+    )
     return parser
 
 

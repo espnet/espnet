@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -32,6 +29,11 @@ from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+from espnet.nets.pytorch_backend.rnn.argument import (
+    add_arguments_rnn_encoder_common,  # noqa: H301
+    add_arguments_rnn_decoder_common,  # noqa: H301
+    add_arguments_rnn_attention_common,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
@@ -94,154 +96,21 @@ class E2E(STInterface, torch.nn.Module):
     def encoder_add_arguments(parser):
         """Add arguments for the encoder."""
         group = parser.add_argument_group("E2E encoder setting")
-        # encoder
-        group.add_argument(
-            "--etype",
-            default="blstmp",
-            type=str,
-            choices=[
-                "lstm",
-                "blstm",
-                "lstmp",
-                "blstmp",
-                "vgglstmp",
-                "vggblstmp",
-                "vgglstm",
-                "vggblstm",
-                "gru",
-                "bgru",
-                "grup",
-                "bgrup",
-                "vgggrup",
-                "vggbgrup",
-                "vgggru",
-                "vggbgru",
-            ],
-            help="Type of encoder network architecture",
-        )
-        group.add_argument(
-            "--elayers", default=4, type=int, help="Number of encoder layers",
-        )
-        group.add_argument(
-            "--eunits",
-            "-u",
-            default=300,
-            type=int,
-            help="Number of encoder hidden units",
-        )
-        group.add_argument(
-            "--eprojs", default=320, type=int, help="Number of encoder projection units"
-        )
-        group.add_argument(
-            "--subsample",
-            default="1",
-            type=str,
-            help="Subsample input frames x_y_z means "
-            "subsample every x frame at 1st layer, "
-            "every y frame at 2nd layer etc.",
-        )
+        group = add_arguments_rnn_encoder_common(group)
         return parser
 
     @staticmethod
     def attention_add_arguments(parser):
         """Add arguments for the attention."""
         group = parser.add_argument_group("E2E attention setting")
-        # attention
-        group.add_argument(
-            "--atype",
-            default="dot",
-            type=str,
-            choices=[
-                "noatt",
-                "dot",
-                "add",
-                "location",
-                "coverage",
-                "coverage_location",
-                "location2d",
-                "location_recurrent",
-                "multi_head_dot",
-                "multi_head_add",
-                "multi_head_loc",
-                "multi_head_multi_res_loc",
-            ],
-            help="Type of attention architecture",
-        )
-        group.add_argument(
-            "--adim",
-            default=320,
-            type=int,
-            help="Number of attention transformation dimensions",
-        )
-        group.add_argument(
-            "--awin", default=5, type=int, help="Window size for location2d attention"
-        )
-        group.add_argument(
-            "--aheads",
-            default=4,
-            type=int,
-            help="Number of heads for multi head attention",
-        )
-        group.add_argument(
-            "--aconv-chans",
-            default=-1,
-            type=int,
-            help="Number of attention convolution channels \
-                           (negative value indicates no location-aware attention)",
-        )
-        group.add_argument(
-            "--aconv-filts",
-            default=100,
-            type=int,
-            help="Number of attention convolution filters \
-                           (negative value indicates no location-aware attention)",
-        )
-        group.add_argument(
-            "--dropout-rate",
-            default=0.0,
-            type=float,
-            help="Dropout rate for the encoder",
-        )
+        group = add_arguments_rnn_attention_common(group)
         return parser
 
     @staticmethod
     def decoder_add_arguments(parser):
         """Add arguments for the decoder."""
         group = parser.add_argument_group("E2E decoder setting")
-        group.add_argument(
-            "--dtype",
-            default="lstm",
-            type=str,
-            choices=["lstm", "gru"],
-            help="Type of decoder network architecture",
-        )
-        group.add_argument(
-            "--dlayers", default=1, type=int, help="Number of decoder layers"
-        )
-        group.add_argument(
-            "--dunits", default=320, type=int, help="Number of decoder hidden units"
-        )
-        group.add_argument(
-            "--dropout-rate-decoder",
-            default=0.0,
-            type=float,
-            help="Dropout rate for the decoder",
-        )
-        group.add_argument(
-            "--sampling-probability",
-            default=0.0,
-            type=float,
-            help="Ratio of predicted labels fed back to decoder",
-        )
-        group.add_argument(
-            "--lsm-type",
-            const="",
-            default="",
-            type=str,
-            nargs="?",
-            choices=["", "unigram"],
-            help="Apply label smoothing with a specified distribution type",
-        )
+        group = add_arguments_rnn_decoder_common(group)
         return parser
 
     def __init__(self, idim, odim, args):
@@ -257,8 +126,8 @@ class E2E(STInterface, torch.nn.Module):
         # fill missing arguments for compatibility
         args = fill_missing_args(args, self.add_arguments)
 
-        self.asr_weight = getattr(args, "asr_weight", 0)
-        self.mt_weight = getattr(args, "mt_weight", 0)
+        self.asr_weight = args.asr_weight
+        self.mt_weight = args.mt_weight
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
         assert 0.0 <= self.mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
@@ -429,122 +298,20 @@ class E2E(STInterface, torch.nn.Module):
             hs_pad, hlens, ys_pad, lang_ids=tgt_lang_ids
         )
 
-        # 2. ASR CTC loss
-        if self.asr_weight == 0 or self.mtlalpha == 0:
-            self.loss_ctc = 0.0
-        else:
-            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad_src)
+        # 3. ASR loss
+        (
+            self.loss_asr_att,
+            acc_asr,
+            self.loss_asr_ctc,
+            cer_ctc,
+            cer,
+            wer,
+        ) = self.forward_asr(hs_pad, hlens, ys_pad_src)
 
-        # 3. ASR attention loss
-        if self.asr_weight == 0 or self.mtlalpha == 1:
-            self.loss_asr = 0.0
-            acc_asr = 0.0
-        else:
-            self.loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad_src)
-            acc_asr = acc_asr
+        # 4. MT attention loss
+        self.loss_mt, acc_mt = self.forward_mt(ys_pad, ys_pad_src)
 
-        # 3. MT attention loss
-        if self.mt_weight == 0:
-            self.loss_mt = 0.0
-            acc_mt = 0.0
-        else:
-            # ys_pad_src, ys_pad = self.target_forcing(ys_pad_src, ys_pad)
-            ilens_mt = torch.sum(ys_pad_src != -1, dim=1).cpu().numpy()
-            # NOTE: ys_pad_src is padded with -1
-            ys_src = [y[y != -1] for y in ys_pad_src]  # parse padded ys_src
-            ys_zero_pad_src = pad_list(ys_src, self.pad)  # re-pad with zero
-            hs_pad_mt, hlens_mt, _ = self.enc_mt(
-                self.dropout_mt(self.embed_mt(ys_zero_pad_src)), ilens_mt
-            )
-            self.loss_mt, acc_mt, _ = self.dec(hs_pad_mt, hlens_mt, ys_pad)
-            acc_mt = acc_mt
-
-        # 4. compute cer without beam search
-        if (self.asr_weight == 0 or self.mtlalpha == 0) or self.char_list is None:
-            cer_ctc = None
-        else:
-            cers = []
-
-            y_hats = self.ctc.argmax(hs_pad).data
-            for i, y in enumerate(y_hats):
-                y_hat = [x[0] for x in groupby(y)]
-                y_true = ys_pad_src[i]
-
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
-                seq_true = [
-                    self.char_list[int(idx)] for idx in y_true if int(idx) != -1
-                ]
-                seq_hat_text = "".join(seq_hat).replace(self.space, " ")
-                seq_hat_text = seq_hat_text.replace(self.blank, "")
-                seq_true_text = "".join(seq_true).replace(self.space, " ")
-
-                hyp_chars = seq_hat_text.replace(" ", "")
-                ref_chars = seq_true_text.replace(" ", "")
-                if len(ref_chars) > 0:
-                    cers.append(
-                        editdistance.eval(hyp_chars, ref_chars) / len(ref_chars)
-                    )
-
-            cer_ctc = sum(cers) / len(cers) if cers else None
-
-        # 5. compute cer/wer
-        if self.training or (
-            self.asr_weight == 0
-            or self.mtlalpha == 1
-            or not (self.report_cer or self.report_wer)
-        ):
-            cer, wer = 0.0, 0.0
-        else:
-            if (
-                self.asr_weight > 0 and self.mtlalpha > 0
-            ) and self.recog_args.ctc_weight > 0.0:
-                lpz = self.ctc.log_softmax(hs_pad).data
-            else:
-                lpz = None
-
-            word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
-            nbest_hyps_asr = self.dec_asr.recognize_beam_batch(
-                hs_pad,
-                torch.tensor(hlens),
-                lpz,
-                self.recog_args,
-                self.char_list,
-                self.rnnlm,
-            )
-            # remove <sos> and <eos>
-            y_hats = [nbest_hyp[0]["yseq"][1:-1] for nbest_hyp in nbest_hyps_asr]
-            for i, y_hat in enumerate(y_hats):
-                y_true = ys_pad[i]
-
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
-                seq_true = [
-                    self.char_list[int(idx)] for idx in y_true if int(idx) != -1
-                ]
-                seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, " ")
-                seq_hat_text = seq_hat_text.replace(self.recog_args.blank, "")
-                seq_true_text = "".join(seq_true).replace(self.recog_args.space, " ")
-
-                hyp_words = seq_hat_text.split()
-                ref_words = seq_true_text.split()
-                word_eds.append(editdistance.eval(hyp_words, ref_words))
-                word_ref_lens.append(len(ref_words))
-                hyp_chars = seq_hat_text.replace(" ", "")
-                ref_chars = seq_true_text.replace(" ", "")
-                char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-                char_ref_lens.append(len(ref_chars))
-
-            wer = (
-                0.0
-                if not self.report_wer
-                else float(sum(word_eds)) / sum(word_ref_lens)
-            )
-            cer = (
-                0.0
-                if not self.report_cer
-                else float(sum(char_eds)) / sum(char_ref_lens)
-            )
-
-        # 6. compute bleu
+        # 5. Compute BLEU
         if self.training or not self.report_bleu:
             self.bleu = 0.0
         else:
@@ -579,18 +346,21 @@ class E2E(STInterface, torch.nn.Module):
                 hyps += [seq_hat_text.split(" ")]
                 list_of_refs += [[seq_true_text.split(" ")]]
 
-            self.bleu = nltk.corpus_bleu(list_of_refs, hyps) * 100
+            self.bleu = nltk.bleu_score.corpus_bleu(list_of_refs, hyps) * 100
 
-        alpha = self.mtlalpha
+        asr_ctc_weight = self.mtlalpha
+        self.loss_asr = (
+            asr_ctc_weight * self.loss_asr_ctc
+            + (1 - asr_ctc_weight) * self.loss_asr_att
+        )
         self.loss = (
             (1 - self.asr_weight - self.mt_weight) * self.loss_st
-            + self.asr_weight * (alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
+            + self.asr_weight * self.loss_asr
             + self.mt_weight * self.loss_mt
         )
         loss_st_data = float(self.loss_st)
-        loss_asr_data = float(alpha * self.loss_ctc + (1 - alpha) * self.loss_asr)
-        loss_mt_data = None if self.mt_weight == 0 else float(self.loss_mt)
-
+        loss_asr_data = float(self.loss_asr)
+        loss_mt_data = float(self.loss_mt)
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(
@@ -609,6 +379,146 @@ class E2E(STInterface, torch.nn.Module):
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
         return self.loss
+
+    def forward_asr(self, hs_pad, hlens, ys_pad):
+        """Forward pass in the auxiliary ASR task.
+
+        :param torch.Tensor hs_pad: batch of padded source sequences (B, Tmax, idim)
+        :param torch.Tensor hlens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
+        :return: ASR attention loss value
+        :rtype: torch.Tensor
+        :return: accuracy in ASR attention decoder
+        :rtype: float
+        :return: ASR CTC loss value
+        :rtype: torch.Tensor
+        :return: character error rate from CTC prediction
+        :rtype: float
+        :return: character error rate from attetion decoder prediction
+        :rtype: float
+        :return: word error rate from attetion decoder prediction
+        :rtype: float
+        """
+        loss_att, loss_ctc = 0.0, 0.0
+        acc = None
+        cer, wer = None, None
+        cer_ctc = None
+        if self.asr_weight == 0:
+            return loss_att, acc, loss_ctc, cer_ctc, cer, wer
+
+        # attention
+        if self.mtlalpha < 1:
+            loss_asr, acc_asr, _ = self.dec_asr(hs_pad, hlens, ys_pad)
+
+            # Compute wer and cer
+            if not self.training and (self.report_cer or self.report_wer):
+                if self.mtlalpha > 0 and self.recog_args.ctc_weight > 0.0:
+                    lpz = self.ctc.log_softmax(hs_pad).data
+                else:
+                    lpz = None
+
+                word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
+                nbest_hyps_asr = self.dec_asr.recognize_beam_batch(
+                    hs_pad,
+                    torch.tensor(hlens),
+                    lpz,
+                    self.recog_args,
+                    self.char_list,
+                    self.rnnlm,
+                )
+                # remove <sos> and <eos>
+                y_hats = [nbest_hyp[0]["yseq"][1:-1] for nbest_hyp in nbest_hyps_asr]
+                for i, y_hat in enumerate(y_hats):
+                    y_true = ys_pad[i]
+
+                    seq_hat = [
+                        self.char_list[int(idx)] for idx in y_hat if int(idx) != -1
+                    ]
+                    seq_true = [
+                        self.char_list[int(idx)] for idx in y_true if int(idx) != -1
+                    ]
+                    seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, " ")
+                    seq_hat_text = seq_hat_text.replace(self.recog_args.blank, "")
+                    seq_true_text = "".join(seq_true).replace(
+                        self.recog_args.space, " "
+                    )
+
+                    hyp_words = seq_hat_text.split()
+                    ref_words = seq_true_text.split()
+                    word_eds.append(editdistance.eval(hyp_words, ref_words))
+                    word_ref_lens.append(len(ref_words))
+                    hyp_chars = seq_hat_text.replace(" ", "")
+                    ref_chars = seq_true_text.replace(" ", "")
+                    char_eds.append(editdistance.eval(hyp_chars, ref_chars))
+                    char_ref_lens.append(len(ref_chars))
+
+                wer = (
+                    0.0
+                    if not self.report_wer
+                    else float(sum(word_eds)) / sum(word_ref_lens)
+                )
+                cer = (
+                    0.0
+                    if not self.report_cer
+                    else float(sum(char_eds)) / sum(char_ref_lens)
+                )
+
+        # CTC
+        if self.mtlalpha > 0:
+            loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
+
+            # Compute cer with CTC prediction
+            if self.char_list is not None:
+                cers = []
+                y_hats = self.ctc.argmax(hs_pad).data
+                for i, y in enumerate(y_hats):
+                    y_hat = [x[0] for x in groupby(y)]
+                    y_true = ys_pad[i]
+
+                    seq_hat = [
+                        self.char_list[int(idx)] for idx in y_hat if int(idx) != -1
+                    ]
+                    seq_true = [
+                        self.char_list[int(idx)] for idx in y_true if int(idx) != -1
+                    ]
+                    seq_hat_text = "".join(seq_hat).replace(self.space, " ")
+                    seq_hat_text = seq_hat_text.replace(self.blank, "")
+                    seq_true_text = "".join(seq_true).replace(self.space, " ")
+
+                    hyp_chars = seq_hat_text.replace(" ", "")
+                    ref_chars = seq_true_text.replace(" ", "")
+                    if len(ref_chars) > 0:
+                        cers.append(
+                            editdistance.eval(hyp_chars, ref_chars) / len(ref_chars)
+                        )
+                cer_ctc = sum(cers) / len(cers) if cers else None
+
+        return loss_att, acc, loss_ctc, cer_ctc, cer, wer
+
+    def forward_mt(self, xs_pad, ys_pad):
+        """Forward pass in the auxiliary MT task.
+
+        :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)
+        :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
+        :return: MT loss value
+        :rtype: torch.Tensor
+        :return: accuracy in MT decoder
+        :rtype: float
+        """
+        loss = 0.0
+        acc = 0.0
+        if self.mt_weight == 0:
+            return loss, acc
+
+        ilens = torch.sum(xs_pad != -1, dim=1).cpu().numpy()
+        # NOTE: xs_pad is padded with -1
+        ys_src = [y[y != -1] for y in xs_pad]  # parse padded ys_src
+        xs_zero_pad = pad_list(ys_src, self.pad)  # re-pad with zero
+        hs_pad, hlens, _ = self.enc_mt(
+            self.dropout_mt(self.embed_mt(xs_zero_pad)), ilens
+        )
+        loss, acc, _ = self.dec(hs_pad, hlens, ys_pad)
+        return loss, acc
 
     def scorers(self):
         """Scorers."""
@@ -653,7 +563,7 @@ class E2E(STInterface, torch.nn.Module):
         return y
 
     def translate_batch(self, xs, trans_args, char_list, rnnlm=None):
-        """E2E beam search.
+        """E2E batch beam search.
 
         :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace trans_args: argument Namespace containing options
@@ -690,11 +600,14 @@ class E2E(STInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad_src:
+            batch of padded token id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             # 1. Encoder
             if self.multilingual:
@@ -708,8 +621,33 @@ class E2E(STInterface, torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(
                 hpad, hlens, ys_pad, lang_ids=tgt_lang_ids
             )
-
+        self.train()
         return att_ws
+
+    def calculate_all_ctc_probs(self, xs_pad, ilens, ys_pad, ys_pad_src):
+        """E2E CTC probability calculation.
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
+        :param torch.Tensor
+            ys_pad_src: batch of padded token id sequence tensor (B, Lmax)
+        :return: CTC probability (B, Tmax, vocab)
+        :rtype: float ndarray
+        """
+        probs = None
+        if self.asr_weight == 0 or self.mtlalpha == 0:
+            return probs
+
+        self.eval()
+        with torch.no_grad():
+            # 1. Encoder
+            hpad, hlens, _ = self.enc(xs_pad, ilens)
+
+            # 2. CTC probs
+            probs = self.ctc.softmax(hpad).cpu().numpy()
+        self.train()
+        return probs
 
     def subsample_frames(self, x):
         """Subsample speeh frames in the encoder."""

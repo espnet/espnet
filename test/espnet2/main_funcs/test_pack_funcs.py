@@ -16,10 +16,11 @@ def test_find_path_and_change_it_recursive():
 
 
 @pytest.mark.parametrize(
-    "type", ["tgz", "tar", "tbz2", "txz", "zip"],
+    "type",
+    ["tgz", "tar", "tbz2", "txz", "zip"],
 )
 def test_pack_unpack(tmp_path: Path, type):
-    files = {"abc.pth": str(tmp_path / "foo.pth")}
+    files = {"abc": str(tmp_path / "foo.pth")}
     with (tmp_path / "foo.pth").open("w"):
         pass
     with (tmp_path / "bar.yaml").open("w") as f:
@@ -33,20 +34,21 @@ def test_pack_unpack(tmp_path: Path, type):
 
     pack(
         files=files,
-        yaml_files={"def.yaml": str(tmp_path / "bar.yaml")},
+        yaml_files={"def": str(tmp_path / "bar.yaml")},
         option=[tmp_path / "a", tmp_path / "b" / "a"],
         outpath=str(tmp_path / f"out.{type}"),
     )
 
     retval = unpack(str(tmp_path / f"out.{type}"), str(tmp_path))
+    # Retry unpack. If cache file exists, generate dict from it
+    retval2 = unpack(str(tmp_path / f"out.{type}"), str(tmp_path))
     assert retval == {
-        "abc": str(tmp_path / "packed" / "abc.pth"),
-        "def": str(tmp_path / "packed" / "def.yaml"),
-        "option": [
-            str(tmp_path / "packed" / "option" / "a"),
-            str(tmp_path / "packed" / "option" / "a.1"),
-        ],
-        "meta": str(tmp_path / "packed" / "meta.yaml"),
+        "abc": str(tmp_path / tmp_path / "foo.pth"),
+        "def": str(tmp_path / tmp_path / "bar.yaml"),
+    }
+    assert retval2 == {
+        "abc": str(tmp_path / tmp_path / "foo.pth"),
+        "def": str(tmp_path / tmp_path / "bar.yaml"),
     }
 
 
@@ -60,3 +62,24 @@ def test_unpack_no_meta_yaml(tmp_path: Path):
         pass
     with pytest.raises(RuntimeError):
         unpack(str(tmp_path / "a.tgz"), "out")
+
+
+@pytest.mark.parametrize(
+    "type",
+    ["tgz", "tar", "tbz2", "txz", "zip"],
+)
+def test_pack_unpack_recursive(tmp_path: Path, type):
+    p = tmp_path / "a" / "b"
+    p.mkdir(parents=True)
+    with (p / "foo.pth").open("w"):
+        pass
+
+    pack(
+        files={},
+        yaml_files={},
+        option=[p],
+        outpath=str(tmp_path / f"out.{type}"),
+    )
+
+    unpack(str(tmp_path / f"out.{type}"), str(tmp_path))
+    assert (tmp_path / p / "foo.pth").exists()

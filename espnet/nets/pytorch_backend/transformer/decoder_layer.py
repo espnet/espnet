@@ -15,19 +15,22 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 class DecoderLayer(nn.Module):
     """Single decoder layer module.
 
-    :param int size: input dim
-    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention
-        self_attn: self attention module
-    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention
-        src_attn: source attention module
-    :param espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.
-        PositionwiseFeedForward feed_forward: feed forward layer module
-    :param float dropout_rate: dropout rate
-    :param bool normalize_before: whether to use layer_norm before the first block
-    :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied.
-        i.e. x -> x + linear(concat(x, att(x)))
-        if False, no additional linear will be applied. i.e. x -> x + att(x)
+    Args:
+        size (int): Input dimension.
+        self_attn (torch.nn.Module): Self-attention module instance.
+            `MultiHeadedAttention` instance can be used as the argument.
+        src_attn (torch.nn.Module): Self-attention module instance.
+            `MultiHeadedAttention` instance can be used as the argument.
+        feed_forward (torch.nn.Module): Feed-forward module instance.
+            `PositionwiseFeedForward`, `MultiLayeredConv1d`, or `Conv1dLinear` instance
+            can be used as the argument.
+        dropout_rate (float): Dropout rate.
+        normalize_before (bool): Whether to use layer_norm before the first block.
+        concat_after (bool): Whether to concat attention layer's input and output.
+            if True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            if False, no additional linear will be applied. i.e. x -> x + att(x)
+
 
     """
 
@@ -61,12 +64,18 @@ class DecoderLayer(nn.Module):
         """Compute decoded features.
 
         Args:
-            tgt (torch.Tensor):
-                decoded previous target features (batch, max_time_out, size)
-            tgt_mask (torch.Tensor): mask for x (batch, max_time_out)
-            memory (torch.Tensor): encoded source features (batch, max_time_in, size)
-            memory_mask (torch.Tensor): mask for memory (batch, max_time_in)
-            cache (torch.Tensor): cached output (batch, max_time_out-1, size)
+            tgt (torch.Tensor): Input tensor (#batch, maxlen_out, size).
+            tgt_mask (torch.Tensor): Mask for input tensor (#batch, maxlen_out).
+            memory (torch.Tensor): Encoded memory, float32 (#batch, maxlen_in, size).
+            memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
+            cache (List[torch.Tensor]): List of cached tensors.
+                Each tensor shape should be (#batch, maxlen_out - 1, size).
+
+        Returns:
+            torch.Tensor: Output tensor(#batch, maxlen_out, size).
+            torch.Tensor: Mask for output tensor (#batch, maxlen_out).
+            torch.Tensor: Encoded memory (#batch, maxlen_in, size).
+            torch.Tensor: Encoded memory mask (#batch, maxlen_in).
 
         """
         residual = tgt

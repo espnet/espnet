@@ -3,7 +3,11 @@ from typing import Collection
 from jaconv import jaconv
 import tacotron_cleaner.cleaners
 from typeguard import check_argument_types
-from vietnamese_cleaner import vietnamese_cleaners
+
+try:
+    from vietnamese_cleaner import vietnamese_cleaners
+except ImportError:
+    vietnamese_cleaners = None
 
 
 class TextCleaner:
@@ -33,6 +37,8 @@ class TextCleaner:
             elif t == "jaconv":
                 text = jaconv.normalize(text)
             elif t == "vietnamese":
+                if vietnamese_cleaners is None:
+                    raise RuntimeError("Please install underthesea")
                 text = vietnamese_cleaners.vietnamese_cleaner(text)
             else:
                 raise RuntimeError(f"Not supported: type={t}")

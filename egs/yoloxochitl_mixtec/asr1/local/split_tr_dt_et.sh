@@ -16,7 +16,7 @@ spk_list=$5
 ./utils/copy_data_dir.sh data/${sdata} data/${dtdata}
 ./utils/copy_data_dir.sh data/${sdata} data/${etdata}
 
-python ./local/split_tr_dt_et.py -s ${trdata} -c ${spk_list} --train ${trdata} --test ${etdata} --dev ${dtdata}
+python3 ./local/split_tr_dt_et.py -s ${trdata} -c ${spk_list} --train ${trdata} --test ${etdata} --dev ${dtdata}
 mv data/${trdata}/new_segments data/${trdata}/segments
 mv data/${etdata}/new_segments data/${etdata}/segments
 mv data/${dtdata}/new_segments data/${dtdata}/segments

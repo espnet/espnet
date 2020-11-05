@@ -8,31 +8,32 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
-epochs: 3
+epochs: 1
+report-interval-iters: 1
 accum-grad: 1
-patience: 2
+patience: 0
 transformer-lr: 5.0
 transformer-warmup-steps: 10
 
 # network architecture
 ## encoder related
 etype: transformer
-elayers: 2
-eunits: 32
-subsample: "1_2_2_1_1"
+enc-block-arch:
+        - type: transformer
+          d_hidden: 4
+          d_ff: 4
+          heads: 2
+enc-block-repeat: 2
 ## decoder related
 dtype: transformer
-dlayers: 1
-dunits: 30
-## attention related
-adim: 32
-aheads: 2
+dec-block-arch:
+        - type: transformer
+          d_hidden: 4
+          d_ff: 4
+          heads: 2
 ## joint network related
-joint-dim: 30
+joint-dim: 4
 
 # transducer related
-## mtlalpha should be set to 1.0 (CTC) to use transducer
-mtlalpha: 1.0
-## switch to 'rnnt-att' to use transducer with attention
 rnnt-mode: 'rnnt-att'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

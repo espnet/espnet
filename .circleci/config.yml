@@ -7,9 +7,8 @@ workflows:
   version: 2
   test:
     jobs:
-      # TODO(karita): support tests without conda
       - test-ubuntu18
-      - test-ubuntu16
+      - test-ubuntu20
       - test-centos7
       - test-debian9
 
@@ -18,12 +17,11 @@ jobs:
     docker:
       - image: circleci/buildpack-deps:18.04
         environment:
+          # default gcc version is 7
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.5.1
+          TH_VERSION: 1.7.0
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
-          CC: gcc-7
-          CXX: g++-7
           # To avoid UnicodeEncodeError for python<=3.6
           LC_ALL: en_US.UTF-8
     working_directory: ~/repo
@@ -34,7 +32,8 @@ jobs:
           name: install dependencies
           command: |
             sudo apt-get update -qq
-            sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
+            # NOTE(kamo): cmake libsndfile1-dev will be download using anacond:
+            sudo apt-get install -qq -y bc
             sudo localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet
@@ -59,21 +58,20 @@ jobs:
       - run:
           name: codecov
           command: |
-            source ./tools/venv/bin/activate
+            . ./tools/activate_python.sh
             bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
           path: egs/mini_an4/asr1/exp
 
-  test-ubuntu16:
+  test-ubuntu20:
     docker:
-      - image: circleci/buildpack-deps:16.04
+      - image: circleci/buildpack-deps:20.04
         environment:
+          # default gcc version is 9
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.5.1
+          TH_VERSION: 1.7.0
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
-          CC: gcc-7
-          CXX: g++-7
           # To avoid UnicodeEncodeError for python<=3.6
           LC_ALL: en_US.UTF-8
     working_directory: ~/repo
@@ -84,10 +82,8 @@ jobs:
           name: install dependencies
           command: |
             sudo apt-get update -qq
-            sudo apt-get install -y software-properties-common
-            sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-            sudo apt-get update -qq
-            sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc
+            # NOTE(kamo): cmake libsndfile1-dev will be download using anacond:
+            sudo apt-get install -qq -y bc
             sudo localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet
@@ -112,7 +108,7 @@ jobs:
       - run:
           name: codecov
           command: |
-            source ./tools/venv/bin/activate
+            . ./tools/activate_python.sh
             bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
           path: egs/mini_an4/asr1/exp
@@ -122,7 +118,7 @@ jobs:
       - image: centos:7
         environment:
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.5.1
+          TH_VERSION: 1.7.0
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
@@ -135,7 +131,8 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            yum install -y git centos-release-scl cmake libsndfile make bzip2 wget which unzip bc
+            # NOTE(kamo): cmake sndfile will be download using anacond:
+            yum install -y git centos-release-scl make bzip2 wget which unzip bc
             yum-config-manager --enable rhel-server-rhscl-7-rpms
             yum install -y devtoolset-7-gcc-c++
             localedef -f UTF-8 -i en_US en_US
@@ -167,20 +164,20 @@ jobs:
       #     name: test integration
       #     command: |
       #       ./ci/test_integration.sh
-      - run:
-          name: codecov
-          command: |
-            source ./tools/venv/bin/activate
-            bash <(curl -s https://codecov.io/bash)
-      - store_artifacts:
-          path: egs/mini_an4/asr1/exp
+      # - run:
+      #     name: codecov
+      #     command: |
+      #       source ./tools/venv/bin/activate
+      #       bash <(curl -s https://codecov.io/bash)
+      # - store_artifacts:
+      #     path: egs/mini_an4/asr1/exp
 
   test-debian9:
     docker:
       - image: debian:9
         environment:
           ESPNET_PYTHON_VERSION: 3.6
-          TH_VERSION: 1.5.1
+          TH_VERSION: 1.7.0
           CHAINER_VERSION: 6.0.0
           USE_CONDA: true
           CC: gcc-6
@@ -195,7 +192,8 @@ jobs:
           name: install dependencies
           command: |
             apt-get update -qq
-            apt-get install -qq -y git cmake g++-6 libsndfile1-dev unzip bzip2 wget curl bc locales
+            # NOTE(kamo): cmake sndfile will be download using anacond:
+            apt-get install -qq -y build-essential git g++-6 unzip bzip2 wget curl bc locales make
             localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet

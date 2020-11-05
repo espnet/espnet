@@ -13,7 +13,12 @@ import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformerLoss
+from espnet.nets.pytorch_backend.conformer.encoder import (
+    Encoder as ConformerEncoder,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
+    FeedForwardTransformerLoss as FastSpeechLoss,  # NOQA
+)
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -21,7 +26,9 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
+from espnet.nets.pytorch_backend.transformer.encoder import (
+    Encoder as TransformerEncoder,  # noqa: H301
+)
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
@@ -117,16 +124,28 @@ class FastSpeech(AbsTTS):
         positionwise_conv_kernel_size: int = 1,
         use_scaled_pos_enc: bool = True,
         use_batch_norm: bool = True,
-        encoder_normalize_before: bool = False,
-        decoder_normalize_before: bool = False,
+        encoder_normalize_before: bool = True,
+        decoder_normalize_before: bool = True,
         encoder_concat_after: bool = False,
         decoder_concat_after: bool = False,
         duration_predictor_layers: int = 2,
         duration_predictor_chans: int = 384,
         duration_predictor_kernel_size: int = 3,
         reduction_factor: int = 1,
+        encoder_type: str = "transformer",
+        decoder_type: str = "transformer",
+        # only for conformer
+        conformer_pos_enc_layer_type: str = "rel_pos",
+        conformer_self_attn_layer_type: str = "rel_selfattn",
+        conformer_activation_type: str = "swish",
+        use_macaron_style_in_conformer: bool = True,
+        use_cnn_in_conformer: bool = True,
+        conformer_enc_kernel_size: int = 7,
+        conformer_dec_kernel_size: int = 31,
+        # pretrained spk emb
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
+        # GST
         use_gst: bool = False,
         gst_tokens: int = 10,
         gst_heads: int = 4,
@@ -160,6 +179,8 @@ class FastSpeech(AbsTTS):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
+        self.encoder_type = encoder_type
+        self.decoder_type = decoder_type
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.use_gst = use_gst
         self.spk_embed_dim = spk_embed_dim
@@ -178,22 +199,47 @@ class FastSpeech(AbsTTS):
         encoder_input_layer = torch.nn.Embedding(
             num_embeddings=idim, embedding_dim=adim, padding_idx=self.padding_idx
         )
-        self.encoder = Encoder(
-            idim=idim,
-            attention_dim=adim,
-            attention_heads=aheads,
-            linear_units=eunits,
-            num_blocks=elayers,
-            input_layer=encoder_input_layer,
-            dropout_rate=transformer_enc_dropout_rate,
-            positional_dropout_rate=transformer_enc_positional_dropout_rate,
-            attention_dropout_rate=transformer_enc_attn_dropout_rate,
-            pos_enc_class=pos_enc_class,
-            normalize_before=encoder_normalize_before,
-            concat_after=encoder_concat_after,
-            positionwise_layer_type=positionwise_layer_type,
-            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
-        )
+        if encoder_type == "transformer":
+            self.encoder = TransformerEncoder(
+                idim=idim,
+                attention_dim=adim,
+                attention_heads=aheads,
+                linear_units=eunits,
+                num_blocks=elayers,
+                input_layer=encoder_input_layer,
+                dropout_rate=transformer_enc_dropout_rate,
+                positional_dropout_rate=transformer_enc_positional_dropout_rate,
+                attention_dropout_rate=transformer_enc_attn_dropout_rate,
+                pos_enc_class=pos_enc_class,
+                normalize_before=encoder_normalize_before,
+                concat_after=encoder_concat_after,
+                positionwise_layer_type=positionwise_layer_type,
+                positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+            )
+        elif encoder_type == "conformer":
+            self.encoder = ConformerEncoder(
+                idim=idim,
+                attention_dim=adim,
+                attention_heads=aheads,
+                linear_units=eunits,
+                num_blocks=elayers,
+                input_layer=encoder_input_layer,
+                dropout_rate=transformer_enc_dropout_rate,
+                positional_dropout_rate=transformer_enc_positional_dropout_rate,
+                attention_dropout_rate=transformer_enc_attn_dropout_rate,
+                normalize_before=encoder_normalize_before,
+                concat_after=encoder_concat_after,
+                positionwise_layer_type=positionwise_layer_type,
+                positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                macaron_style=use_macaron_style_in_conformer,
+                pos_enc_layer_type=conformer_pos_enc_layer_type,
+                selfattention_layer_type=conformer_self_attn_layer_type,
+                activation_type=conformer_activation_type,
+                use_cnn_module=use_cnn_in_conformer,
+                cnn_module_kernel=conformer_enc_kernel_size,
+            )
+        else:
+            raise ValueError(f"{encoder_type} is not supported.")
 
         # define GST
         if self.use_gst:
@@ -232,22 +278,47 @@ class FastSpeech(AbsTTS):
         # define decoder
         # NOTE: we use encoder as decoder
         # because fastspeech's decoder is the same as encoder
-        self.decoder = Encoder(
-            idim=0,
-            attention_dim=adim,
-            attention_heads=aheads,
-            linear_units=dunits,
-            num_blocks=dlayers,
-            input_layer=None,
-            dropout_rate=transformer_dec_dropout_rate,
-            positional_dropout_rate=transformer_dec_positional_dropout_rate,
-            attention_dropout_rate=transformer_dec_attn_dropout_rate,
-            pos_enc_class=pos_enc_class,
-            normalize_before=decoder_normalize_before,
-            concat_after=decoder_concat_after,
-            positionwise_layer_type=positionwise_layer_type,
-            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
-        )
+        if decoder_type == "transformer":
+            self.decoder = TransformerEncoder(
+                idim=0,
+                attention_dim=adim,
+                attention_heads=aheads,
+                linear_units=dunits,
+                num_blocks=dlayers,
+                input_layer=None,
+                dropout_rate=transformer_dec_dropout_rate,
+                positional_dropout_rate=transformer_dec_positional_dropout_rate,
+                attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                pos_enc_class=pos_enc_class,
+                normalize_before=decoder_normalize_before,
+                concat_after=decoder_concat_after,
+                positionwise_layer_type=positionwise_layer_type,
+                positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+            )
+        elif decoder_type == "conformer":
+            self.decoder = ConformerEncoder(
+                idim=0,
+                attention_dim=adim,
+                attention_heads=aheads,
+                linear_units=dunits,
+                num_blocks=dlayers,
+                input_layer=None,
+                dropout_rate=transformer_dec_dropout_rate,
+                positional_dropout_rate=transformer_dec_positional_dropout_rate,
+                attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                normalize_before=decoder_normalize_before,
+                concat_after=decoder_concat_after,
+                positionwise_layer_type=positionwise_layer_type,
+                positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                macaron_style=use_macaron_style_in_conformer,
+                pos_enc_layer_type=conformer_pos_enc_layer_type,
+                selfattention_layer_type=conformer_self_attn_layer_type,
+                activation_type=conformer_activation_type,
+                use_cnn_module=use_cnn_in_conformer,
+                cnn_module_kernel=conformer_dec_kernel_size,
+            )
+        else:
+            raise ValueError(f"{decoder_type} is not supported.")
 
         # define final projection
         self.feat_out = torch.nn.Linear(adim, odim * reduction_factor)
@@ -275,7 +346,7 @@ class FastSpeech(AbsTTS):
         )
 
         # define criterions
-        self.criterion = FeedForwardTransformerLoss(
+        self.criterion = FastSpeechLoss(
             use_masking=use_masking, use_weighted_masking=use_weighted_masking
         )
 
@@ -307,10 +378,10 @@ class FastSpeech(AbsTTS):
         d_masks = make_pad_mask(ilens).to(xs.device)
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, d_outs, ilens, alpha)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, d_outs, alpha)  # (B, Lmax, adim)
         else:
             d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
-            hs = self.length_regulator(hs, ds, ilens)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, ds)  # (B, Lmax, adim)
 
         # forward decoder
         if olens is not None and not is_inference:
@@ -334,10 +405,7 @@ class FastSpeech(AbsTTS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        if is_inference:
-            return before_outs, after_outs, d_outs
-        else:
-            return before_outs, after_outs, ds, d_outs
+        return before_outs, after_outs, d_outs
 
     def forward(
         self,
@@ -356,8 +424,8 @@ class FastSpeech(AbsTTS):
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            durations (LongTensor): Batch of padded durations (B, Tmax).
-            durations_lengths (LongTensor): Batch of lengths of each duration (B, Tmax).
+            durations (LongTensor): Batch of padded durations (B, Tmax + 1).
+            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
 
         Returns:
@@ -382,7 +450,7 @@ class FastSpeech(AbsTTS):
         olens = speech_lengths
 
         # forward propagation
-        before_outs, after_outs, ds, d_outs = self._forward(
+        before_outs, after_outs, d_outs = self._forward(
             xs, ilens, ys, olens, ds, spembs=spembs, is_inference=False
         )
 
@@ -394,13 +462,10 @@ class FastSpeech(AbsTTS):
 
         # calculate loss
         if self.postnet is None:
-            l1_loss, duration_loss = self.criterion(
-                None, before_outs, d_outs, ys, ds, ilens, olens
-            )
-        else:
-            l1_loss, duration_loss = self.criterion(
-                after_outs, before_outs, d_outs, ys, ds, ilens, olens
-            )
+            after_outs = None
+        l1_loss, duration_loss = self.criterion(
+            after_outs, before_outs, d_outs, ys, ds, ilens, olens
+        )
         loss = l1_loss + duration_loss
 
         stats = dict(
@@ -410,9 +475,12 @@ class FastSpeech(AbsTTS):
         )
 
         # report extra information
-        if self.use_scaled_pos_enc:
+        if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
             stats.update(
                 encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+            )
+        if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
+            stats.update(
                 decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
             )
 
@@ -424,7 +492,9 @@ class FastSpeech(AbsTTS):
         text: torch.Tensor,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        durations: torch.Tensor = None,
         alpha: float = 1.0,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -432,7 +502,10 @@ class FastSpeech(AbsTTS):
             text (LongTensor): Input sequence of characters (T,).
             speech (Tensor, optional): Feature sequence to extract style (N, idim).
             spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
+            durations (LongTensor, optional): Groundtruth of duration (T + 1,).
             alpha (float, optional): Alpha to control the speed.
+            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
+                If true, groundtruth of duration, pitch and energy will be used.
 
         Returns:
             Tensor: Output sequence of features (L, odim).
@@ -440,27 +513,40 @@ class FastSpeech(AbsTTS):
             None: Dummy for compatibility.
 
         """
-        x = text
-        y = speech
-        spemb = spembs
+        x, y = text, speech
+        spemb, d = spembs, durations
 
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
 
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
-        xs = x.unsqueeze(0)
-        ys, olens = None, None
+        xs, ys = x.unsqueeze(0), None
         if y is not None:
             ys = y.unsqueeze(0)
-            olens = torch.tensor([y.shape[0]], dtype=torch.long, device=y.device)
         if spemb is not None:
             spembs = spemb.unsqueeze(0)
 
-        # inference
-        _, outs, _ = self._forward(
-            xs, ilens, ys, olens, spembs=spembs, is_inference=True, alpha=alpha,
-        )  # (1, L, odim)
+        if use_teacher_forcing:
+            # use groundtruth of duration, pitch, and energy
+            ds = d.unsqueeze(0)
+            _, outs, *_ = self._forward(
+                xs,
+                ilens,
+                ys,
+                ds=ds,
+                spembs=spembs,
+            )  # (1, L, odim)
+        else:
+            # inference
+            _, outs, _ = self._forward(
+                xs,
+                ilens,
+                ys,
+                spembs=spembs,
+                is_inference=True,
+                alpha=alpha,
+            )  # (1, L, odim)
 
         return outs[0], None, None
 
@@ -519,6 +605,7 @@ class FastSpeech(AbsTTS):
             initialize(self, init_type)
 
         # initialize alpha in scaled positional encoding
-        if self.use_scaled_pos_enc:
+        if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
             self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
+        if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
             self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)

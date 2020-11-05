@@ -1,4 +1,3 @@
-import functools
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -8,6 +7,10 @@ import g2p_en
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
+
+
+def split_by_space(text) -> List[str]:
+    return text.split(" ")
 
 
 def pyopenjtalk_g2p(text) -> List[str]:
@@ -24,12 +27,6 @@ def pyopenjtalk_g2p_kana(text) -> List[str]:
 
     kanas = pyopenjtalk.g2p(text, kana=True)
     return list(kanas)
-
-
-def g2p_en_no_space(g2p, text) -> List[str]:
-    # remove space which represents word serapater
-    phones = list(filter(lambda s: s != " ", g2p(text)))
-    return phones
 
 
 def pypinyin_g2p(text) -> List[str]:
@@ -58,21 +55,45 @@ def pypinyin_g2p_phone(text) -> List[str]:
     return phones
 
 
+class G2p_en:
+    """On behalf of g2p_en.G2p.
+
+    g2p_en.G2p isn't pickalable and it can't be copied to the other processes
+    via multiprocessing module.
+    As a workaround, g2p_en.G2p is instantiated upon calling this class.
+
+    """
+
+    def __init__(self, no_space: bool = False):
+        self.no_space = no_space
+        self.g2p = None
+
+    def __call__(self, text) -> List[str]:
+        if self.g2p is None:
+            self.g2p = g2p_en.G2p()
+
+        phones = self.g2p(text)
+        if self.no_space:
+            # remove space which represents word serapater
+            phones = list(filter(lambda s: s != " ", phones))
+        return phones
+
+
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
-        g2p_type: str,
+        g2p_type: Union[None, str],
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
     ):
         assert check_argument_types()
-        if g2p_type == "g2p_en":
-            self.g2p = g2p_en.G2p()
+        if g2p_type is None:
+            self.g2p = split_by_space
+        elif g2p_type == "g2p_en":
+            self.g2p = G2p_en(no_space=False)
         elif g2p_type == "g2p_en_no_space":
-            # TODO(kan-bayashi): Include within a function?
-            g2p = g2p_en.G2p()
-            self.g2p = functools.partial(g2p_en_no_space, g2p)
+            self.g2p = G2p_en(no_space=True)
         elif g2p_type == "pyopenjtalk":
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":

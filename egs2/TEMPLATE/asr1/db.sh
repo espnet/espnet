@@ -1,3 +1,69 @@
+# Set the path of your corpus
+# "downloads" means the corpus can be downloaded by the recipe automatically
+
+AISHELL=downloads
+AN4=downloads
+WSJ0=
+WSJ1=
+WSJCAM0=
+REVERB=
+CHIME3=
+CHIME4=
+CSJDATATOP=
+CSJVER=dvd  ## Set your CSJ format (dvd or usb).
+            ## Usage    :
+            ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
+            ##            Neccesary directory is dvd3 - dvd17.
+            ##            e.g. $ ls $CSJDATATOP(DVD) => 00README.txt dvd1 dvd2 ... dvd17
+            ##
+            ## Case USB : Neccesary directory is MORPH/SDB and WAV
+            ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
+            ## Case merl :MERL setup. Neccesary directory is WAV and sdb
+CSMSC=downloads
+HKUST1=
+HKUST2=
+LIBRISPEECH=
+LJSPEECH=downloads
+JSSS=downloads
+JSUT=downloads
+JVS=downloads
+TIMIT=
+VOXFORGE=downloads
+AMI=
+COMMONVOICE=downloads
+BABEL_101=
+BABEL_102=
+BABEL_103=
+BABEL_104=
+BABEL_105=
+BABEL_106=
+BABEL_107=
+BABEL_201=
+BABEL_202=
+BABEL_203=
+BABEL_204=
+BABEL_205=
+BABEL_206=
+BABEL_207=
+BABEL_301=
+BABEL_302=
+BABEL_303=
+BABEL_304=
+BABEL_305=
+BABEL_306=
+BABEL_307=
+BABEL_401=
+BABEL_402=
+BABEL_403=
+BABEL_404=
+VCTK=downloads
+VIVOS=downloads
+YESNO=downloads
+HOW2_TEXT=downloads/how2-300h-v1
+HOW2_FEATS=downloads/fbank_pitch_181516
+ZEROTH_KOREAN=downloads
+
+# For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
     AN4=
@@ -17,12 +83,14 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
                 ## Case USB : Neccesary directory is MORPH/SDB and WAV
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Neccesary directory is WAV and sdb
-    CSMSC=
+    CSMSC=downloads
     HKUST1=
     HKUST2=
     LIBRISPEECH=
-    LJSPEECH=
-    JSUT=
+    LJSPEECH=downloads
+    JSSS=downloads
+    JSUT=downloads
+    JVS=downloads
     TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
@@ -52,67 +120,11 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     BABEL_402=/export/babel/data/402-javanese/IARPA-babel402b-v1.0b-build/BABEL_OP3_402
     BABEL_403=/export/babel/data/403-dholuo/IARPA-babel403b-v1.0b-build/BABEL_OP3_403
     BABEL_404=/export/corpora/LDC/LDC2016S12/IARPA_BABEL_OP3_404
+    VCTK=downloads
     VIVOS=
     YESNO=
     HOW2_TEXT=
     HOW2_FEATS=
+    ZEROTH_KOREAN=downloads
 
-else
-    AISHELL=downloads
-    AN4=downloads
-    WSJ0=
-    WSJ1=
-    WSJCAM0=
-    REVERB=
-    CHIME3=
-    CHIME4=
-    CSJDATATOP=
-    CSJVER=dvd  ## Set your CSJ format (dvd or usb).
-                ## Usage    :
-                ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
-                ##            Neccesary directory is dvd3 - dvd17.
-                ##            e.g. $ ls $CSJDATATOP(DVD) => 00README.txt dvd1 dvd2 ... dvd17
-                ##
-                ## Case USB : Neccesary directory is MORPH/SDB and WAV
-                ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
-                ## Case merl :MERL setup. Neccesary directory is WAV and sdb
-    CSMSC=downloads
-    HKUST1=
-    HKUST2=
-    LIBRISPEECH=
-    LJSPEECH=downloads
-    JSUT=downloads
-    TIMIT=
-    VOXFORGE=downloads
-    AMI=
-    COMMONVOICE=downloads
-    BABEL_101=
-    BABEL_102=
-    BABEL_103=
-    BABEL_104=
-    BABEL_105=
-    BABEL_106=
-    BABEL_107=
-    BABEL_201=
-    BABEL_202=
-    BABEL_203=
-    BABEL_204=
-    BABEL_205=
-    BABEL_206=
-    BABEL_207=
-    BABEL_301=
-    BABEL_302=
-    BABEL_303=
-    BABEL_304=
-    BABEL_305=
-    BABEL_306=
-    BABEL_307=
-    BABEL_401=
-    BABEL_402=
-    BABEL_403=
-    BABEL_404=
-    VIVOS=downloads
-    YESNO=downloads
-    HOW2_TEXT=downloads/how2-300h-v1
-    HOW2_FEATS=downloads/fbank_pitch_181516
 fi

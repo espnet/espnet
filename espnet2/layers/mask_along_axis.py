@@ -30,7 +30,10 @@ def mask_along_axis(
     D = spec.shape[dim]
     # mask_length: (B, num_mask, 1)
     mask_length = torch.randint(
-        mask_width_range[0], mask_width_range[1], (B, num_mask), device=spec.device,
+        mask_width_range[0],
+        mask_width_range[1],
+        (B, num_mask),
+        device=spec.device,
     ).unsqueeze(2)
 
     # mask_pos: (B, num_mask, 1)

@@ -11,7 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=4            # numebr of parallel jobs for decoding
+nj=4            # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -29,6 +29,8 @@ trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of NMT models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best NMT models will be averaged.
                              # if false, the last `n_average` NMT models will be averaged.
+metric=bleu                  # loss/acc/bleu
+
 
 # cascaded-ST related
 asr_model=
@@ -231,7 +233,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # Average NMT models
         if ${use_valbest_average}; then
             trans_model=model.val${n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${expdir}/results/log --metric ${metric}"
         else
             trans_model=model.last${n_average}.avg.best
             opt="--log"

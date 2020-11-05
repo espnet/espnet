@@ -126,8 +126,7 @@ class SubReporter:
         self._finished = False
         self.total_count = total_count
         self.count = 0
-        self.prev_count = 0
-        self.prev_positions = {}
+        self._seen_keys_in_the_step = set()
 
     def get_total_count(self) -> int:
         """Returns the number of iterations over all epochs."""
@@ -136,47 +135,79 @@ class SubReporter:
     def get_epoch(self) -> int:
         return self.epoch
 
+    def next(self):
+        """Close up this step and reset state for the next step"""
+        for key, stats_list in self.stats.items():
+            if key not in self._seen_keys_in_the_step:
+                # Fill nan value if the key is not registered in this step
+                if isinstance(stats_list[0], WeightedAverage):
+                    stats_list.append(to_reported_value(np.nan, 0))
+                elif isinstance(stats_list[0], Average):
+                    stats_list.append(to_reported_value(np.nan))
+                else:
+                    raise NotImplementedError(f"type={type(stats_list[0])}")
+
+            assert len(stats_list) == self.count, (len(stats_list), self.count)
+
+        self._seen_keys_in_the_step = set()
+
     def register(
         self,
         stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
         weight: Num = None,
-        not_increment_count: bool = False,
     ) -> None:
         assert check_argument_types()
         if self._finished:
             raise RuntimeError("Already finished")
-        if not not_increment_count:
+        if len(self._seen_keys_in_the_step) == 0:
+            # Increment count as the first register in this step
             self.total_count += 1
             self.count += 1
 
         for key2, v in stats.items():
             if key2 in _reserved:
                 raise RuntimeError(f"{key2} is reserved.")
-            # if None value, the key is not registered
+            if key2 in self._seen_keys_in_the_step:
+                raise RuntimeError(f"{key2} is registered twice.")
             if v is None:
-                continue
+                v = np.nan
             r = to_reported_value(v, weight)
-            self.stats[key2].append(r)
 
-    def log_message(self) -> str:
+            if key2 not in self.stats:
+                # If it's the first time to register the key,
+                # append nan values in front of the the value
+                # to make it same length to the other stats
+                # e.g.
+                # stat A: [0.4, 0.3, 0.5]
+                # stat B: [nan, nan, 0.2]
+                nan = to_reported_value(np.nan, None if weight is None else 0)
+                self.stats[key2].extend(
+                    r if i == self.count - 1 else nan for i in range(self.count)
+                )
+            else:
+                self.stats[key2].append(r)
+            self._seen_keys_in_the_step.add(key2)
+
+    def log_message(self, start: int = None, end: int = None) -> str:
         if self._finished:
             raise RuntimeError("Already finished")
-        if self.count == 0:
+        if start is None:
+            start = 0
+        if start < 0:
+            start = self.count + start
+        if end is None:
+            end = self.count
+
+        if self.count == 0 or start == end:
             return ""
 
-        message = (
-            f"{self.epoch}epoch:{self.key}:"
-            f"{self.prev_count + 1}-{self.count}batch: "
-        )
+        message = f"{self.epoch}epoch:{self.key}:" f"{start + 1}-{end}batch: "
 
-        stats = list(self.stats.items())
-
-        for idx, (key2, stats) in enumerate(stats):
+        for idx, (key2, stats_list) in enumerate(self.stats.items()):
+            assert len(stats_list) == self.count, (len(stats_list), self.count)
             # values: List[ReportValue]
-            pos = self.prev_positions.setdefault(key2, 0)
-            self.prev_positions[key2] = len(stats)
-            values = stats[pos:]
-            if idx != 0 and idx != len(stats):
+            values = stats_list[start:end]
+            if idx != 0 and idx != len(stats_list):
                 message += ", "
 
             v = aggregate(values)
@@ -186,9 +217,20 @@ class SubReporter:
                 message += f"{key2}={v:.3f}"
             else:
                 message += f"{key2}={v:.3e}"
-
-        self.prev_count = self.count
         return message
+
+    def tensorboard_add_scalar(self, summary_writer: SummaryWriter, start: int = None):
+        if start is None:
+            start = 0
+        if start < 0:
+            start = self.count + start
+
+        for key2, stats_list in self.stats.items():
+            assert len(stats_list) == self.count, (len(stats_list), self.count)
+            # values: List[ReportValue]
+            values = stats_list[start:]
+            v = aggregate(values)
+            summary_writer.add_scalar(key2, v, self.total_count)
 
     def finished(self) -> None:
         self._finished = True
@@ -198,7 +240,7 @@ class SubReporter:
         start = time.perf_counter()
         yield start
         t = time.perf_counter() - start
-        self.register({name: t}, not_increment_count=True)
+        self.register({name: t})
 
     def measure_iter_time(self, iterable, name: str):
         iterator = iter(iterable)
@@ -207,7 +249,7 @@ class SubReporter:
                 start = time.perf_counter()
                 retval = next(iterator)
                 t = time.perf_counter() - start
-                self.register({name: t}, not_increment_count=True)
+                self.register({name: t})
                 yield retval
             except StopIteration:
                 break
@@ -473,17 +515,15 @@ class Reporter:
         if epoch is None:
             epoch = self.get_epoch()
 
-        keys2 = set.union(*[set(self.get_keys2(k)) for k in self.get_keys()])
-        for key2 in keys2:
-            summary_writer.add_scalars(
-                key2,
-                {
-                    k: self.stats[epoch][k][key2]
-                    for k in self.get_keys(epoch)
-                    if key2 in self.stats[epoch][k]
-                },
-                epoch,
-            )
+        for key1 in self.get_keys(epoch):
+            for key2 in self.stats[epoch][key1]:
+                if key2 in ("time", "total_count"):
+                    continue
+                summary_writer.add_scalar(
+                    f"{key1}_{key2}_epoch",
+                    self.stats[epoch][key1][key2],
+                    epoch,
+                )
 
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}

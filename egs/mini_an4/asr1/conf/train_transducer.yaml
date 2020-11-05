@@ -8,30 +8,29 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: adadelta
-epochs: 3
-patience: 2
+epochs: 1
+patience: 0
 
 # network architecture
 ## encoder related
 etype: blstmp
-elayers: 2
-eunits: 32
-eprojs: 32
+elayers: 1
+eunits: 4
+eprojs: 4
 subsample: "1_2_2_1_1"
 ## decoder related
 dtype: lstm
 dlayers: 1
-dec-embed-dim: 30
-dunits: 30
+dec-embed-dim: 4
+dunits: 4
 ## attention related
 atype: location
-adim: 32
+adim: 4
 aconv-chans: 4
 aconv-filts: 3
 ## joint network related
-joint-dim: 30
+joint-dim: 4
 
 # transducer related
-mtlalpha: 1.0
 rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

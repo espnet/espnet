@@ -7,11 +7,12 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
+python=python3
 backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=0       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=2         # numebr of parallel jobs
+nj=2         # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -73,7 +74,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         exit 1
     fi
 
-    python local/data_prep.py ${an4_root} ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+    python3 local/data_prep.py ${an4_root} sph2pipe
 
     for x in test train; do
         for f in text wav.scp utt2spk; do
@@ -156,7 +157,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        tts_train.py \
+        ${python} -m espnet.bin.tts_train \
            --backend ${backend} \
            --ngpu ${ngpu} \
            --minibatches ${N} \
@@ -190,7 +191,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
-            tts_decode.py \
+            ${python} -m espnet.bin.tts_decode \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \

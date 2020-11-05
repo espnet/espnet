@@ -106,7 +106,7 @@ Checkpoint includes the following states.
 - Optimizer states
 - Scheduler states
 - Reporter state
-- apex.amp state
+- torch.cuda.amp state (from torch=1.6)
 
 ## Change logging interval
 The result in the middle state of the training will be shown by the specified number:
@@ -183,10 +183,20 @@ The behavior for batch-size during multi-GPU training is **different from that o
   ```
 
 ## Change mini-batch type
-We adopt variable mini-batch size with considering the length of each sequence 
-to spread the data in the GPU memory as possible.
+We adopt variable mini-batch size with considering the dimension of the input features
+to make the best use of the GPU memory.
 
-There are 5 choices:
+There are 5 types:
+
+|batch_type|Option to change batch-size|Variable batch-size|Requirement|
+|---|---|---|---|
+|unsorted|--batch_size|No|-|
+|sorted|--batch_size|No|Length information of features|
+|folded|--batch_size|Yes|Length information of features|
+|length|--batch_bins|Yes|Length information of features|
+|numel|--batch_bins|Yes|Shape information of features|
+
+Note that **--batch_size is ignored if --batch_type=length or --batch_type=numel**.
 
 ### `--batch_type unsorted`
 
@@ -314,7 +324,7 @@ This technique can be also applied for `--batch_type length` and `--batch_type n
 **In ESPnet1, this mode is referred as frame.**
 
 
-You need to specify `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
+You need to specify `--batch_bins` to determine the mini-batch size instead of `--batch_size`. 
 Each mini-batch has equal number of bins as possible counting by the total length in the mini-batch; 
 i.e. `bins = sum(len(feat) for feats in batch for feat in feats)`. 
 This mode requires the information of length.
@@ -337,7 +347,7 @@ python -m espnet.bin.asr_train \
 
 **In ESPnet1, this mode is referred as bins.**
 
-You need to specify `--batch_bin` to determine the mini-batch size instead of `--batch_size`. 
+You need to specify `--batch_bins` to determine the mini-batch size instead of `--batch_size`. 
 Each mini-batches has equal number of bins as possible 
 counting by the total number of elements; 
 i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`, 
@@ -393,18 +403,12 @@ python -m espnet.bin.asr_train --accum_grad 2
 - Some statistical layers based on mini-batch e.g. BatchNormalization
 - The case that the batch_size is not unified for each iteration.
 
-## Using apex: mixed-precision training
+## Automatic Mixed Precision training
+
 ```bash
-python -m espnet.bin.asr_train --train_dtype float16 # Just training with half precision
-python -m espnet.bin.asr_train --train_dtype float32 # default
-python -m espnet.bin.asr_train --train_dtype float64
-python -m espnet.bin.asr_train --train_dtype O0 # opt_level of apex
-python -m espnet.bin.asr_train --train_dtype O1 # opt_level of apex
-python -m espnet.bin.asr_train --train_dtype O2 # opt_level of apex
-python -m espnet.bin.asr_train --train_dtype O3 # opt_level of apex
+python -m espnet.bin.asr_train --use_amp true
 ```
 
-Note that you need to install apex manually to use mixed-precision: https://github.com/NVIDIA/apex#linux
 
 ## Reproducibility and determinization
 There are some possibilities to make training non-reproducible.

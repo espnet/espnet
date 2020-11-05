@@ -113,10 +113,10 @@ def compute_perplexity(result):
 class ParallelSentenceIterator(chainer.dataset.Iterator):
     """Dataset iterator to create a batch of sentences.
 
-       This iterator returns a pair of sentences, where one token is shifted
-       between the sentences like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
-       Sentence batches are made in order of longer sentences, and then
-       randomly shuffled.
+    This iterator returns a pair of sentences, where one token is shifted
+    between the sentences like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
+    Sentence batches are made in order of longer sentences, and then
+    randomly shuffled.
     """
 
     def __init__(
@@ -272,9 +272,7 @@ class MakeSymlinkToBestModel(extension.Extension):
 # TODO(Hori): currently it only works with character-word level LM.
 #             need to consider any types of subwords-to-word mapping.
 def make_lexical_tree(word_dict, subword_dict, word_unk):
-    """Make a lexical tree to compute word-level probabilities
-
-    """
+    """Make a lexical tree to compute word-level probabilities"""
     # node [dict(subword_id -> node), word_id, word_set[start-1, end]]
     root = [{}, -1, None]
     for w, wid in word_dict.items():

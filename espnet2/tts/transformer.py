@@ -158,8 +158,8 @@ class Transformer(AbsTTS):
         positionwise_conv_kernel_size: int = 1,
         use_scaled_pos_enc: bool = True,
         use_batch_norm: bool = True,
-        encoder_normalize_before: bool = False,
-        decoder_normalize_before: bool = False,
+        encoder_normalize_before: bool = True,
+        decoder_normalize_before: bool = True,
         encoder_concat_after: bool = False,
         decoder_concat_after: bool = False,
         reduction_factor: int = 1,
@@ -353,7 +353,8 @@ class Transformer(AbsTTS):
         )
         if self.use_guided_attn_loss:
             self.attn_criterion = GuidedMultiHeadAttentionLoss(
-                sigma=guided_attn_loss_sigma, alpha=guided_attn_loss_lambda,
+                sigma=guided_attn_loss_sigma,
+                alpha=guided_attn_loss_lambda,
             )
 
         # initialize parameters
@@ -440,7 +441,9 @@ class Transformer(AbsTTS):
             raise ValueError("unknown --loss-type " + self.loss_type)
 
         stats = dict(
-            l1_loss=l1_loss.item(), l2_loss=l2_loss.item(), bce_loss=bce_loss.item(),
+            l1_loss=l1_loss.item(),
+            l2_loss=l2_loss.item(),
+            bce_loss=bce_loss.item(),
         )
 
         # calculate guided attention loss

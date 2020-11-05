@@ -50,8 +50,6 @@ def build_tokenizer(
         )
 
     elif token_type == "phn":
-        if g2p_type is None:
-            raise ValueError("g2p_type is required if token_type=phn")
         return PhonemeTokenizer(
             g2p_type=g2p_type,
             non_linguistic_symbols=non_linguistic_symbols,
