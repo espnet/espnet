@@ -12,7 +12,7 @@ while(<STDIN>) {
   # remove punctuation except apostrophe
   s/<space>/spacemark/g;  # for scoring
   s/<unk>/unknown1/g;
-  s/[unk]/unknown2/g;
+  s/\[unk\]/unknown2/g;
   s/\+/repeatsym/g;
   s/\//fillersym/g;
   s/'/apostrophe/g;
@@ -21,7 +21,7 @@ while(<STDIN>) {
   s/spacemark/<space>/g;  # for scoring
   s/fillersym/\//g;
   s/repeatsym/\+/g;
-  s/unknown2/[unk]/g;
+  s/unknown2/\[unk\]/g;
   s/unknown1/<unk>/g;
 
   # remove consecutive commas and spaces
