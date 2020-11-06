@@ -82,7 +82,7 @@ asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
 echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
-ground_truth_txt="${db_root}/etc/arctic.data" # corpus dependent
+ground_truth_txt="${db_root}/metadata.csv" # corpus dependent
 local/ob_eval/data_prep_for_asr.sh \
     ${outdir}_denorm/${name}/wav \
     ${asr_data_dir}/${name} \

@@ -29,6 +29,7 @@ text=${data_dir}/text
 # make scp, utt2spk, and spk2utt
 sox=`which sox` || { echo "Could not find sox in PATH"; exit 1; }
 silence="local/ob_eval/silence_16k_100ms.wav"
+# Silence (mainly electrical noise) was recorded using a microphone jack with no microphone connected.
 find ${db} -name "*.wav" | sort | while read -r filename;do
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
     echo "${id} $sox -t wav ${filename} -c 1 -b 16 -t wav - rate 16000 | $sox ${silence} -t wav - -t wav - |" >> ${scp}
