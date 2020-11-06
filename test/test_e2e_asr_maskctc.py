@@ -29,7 +29,7 @@ def make_arg(**kwargs):
         mtlalpha=0.3,
         lsm_weight=0.001,
         wshare=4,
-        char_list=["<blank>", "a", "e", "<eos>", "<mask>"],
+        char_list=["<blank>", "a", "e", "<eos>"],
         ctc_type="warpctc",
     )
     defaults.update(kwargs)
@@ -45,7 +45,7 @@ def prepare(args):
     x = torch.randn(batchsize, 15, idim)
     ilens = [15, 10]
 
-    n_token = odim - 2  # w/o <eos>/<sos>, <mask>
+    n_token = model.odim - 2  # w/o <eos>/<sos>, <mask>
     y = (torch.rand(batchsize, 10) * n_token % n_token).long()
     olens = [7, 6]
     for i in range(batchsize):
@@ -72,7 +72,7 @@ def test_mask():
     model, x, ilens, y, data = prepare(args)
 
     # check <sos>/<eos>, <mask> position
-    n_char = len(args.char_list)
+    n_char = len(args.char_list) + 1
     assert model.sos == n_char - 2
     assert model.eos == n_char - 2
     assert model.mask_token == n_char - 1
