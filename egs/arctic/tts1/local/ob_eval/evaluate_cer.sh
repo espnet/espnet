@@ -64,8 +64,8 @@ else
     mkdir -p ${outdir}_denorm/${name}/wav
     cat < data/${name}/wav.scp | awk '{print $1}' | while read -r wav_id; do
         filename=$(echo ${wav_id} | awk -F'_' '{printf("%s_%s",$2,$3)}') # corpus dependent
-        if [ -L ${outdir}_denorm/${name}/wav/${filename}.wav ]; then
-            unlink ${outdir}_denorm/${name}/wav/${filename}.wav
+        if [ -L ${outdir}_denorm/${name}/wav/${wav_id}.wav ]; then
+            unlink ${outdir}_denorm/${name}/wav/${wav_id}.wav
         fi
         ground_truth_wav="${db_root}/wav/${filename}.wav" # corpus dependent
         ln -s ${ground_truth_wav} ${outdir}_denorm/${name}/wav/${wav_id}.wav
