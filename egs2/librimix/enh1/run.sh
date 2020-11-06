@@ -5,7 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-min_or_max=max # "min" or "max". This is to determine how the mixtures are generated in local/data.sh.
 sample_rate=16k
 
 

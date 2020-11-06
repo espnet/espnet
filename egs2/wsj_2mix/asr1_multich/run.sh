@@ -10,7 +10,7 @@ sample_rate=16k
 n_channels=2
 
 
-train_set="tr_anechoic_spatialized_${n_chnnels}ch_w_singlespkr"
+train_set="tr_anechoic_spatialized_${n_channels}ch_w_singlespkr"
 train_aux_sets="train_si284 tr_anechoic_spatialized_${n_channels}ch"
 valid_set="cv_anechoic_spatialized_${n_channels}ch"
 test_sets="tt_anechoic_spatialized_${n_channels}ch"

@@ -31,8 +31,12 @@ nlsyms=data/nlsyms.txt
 min_or_max=min
 sample_rate=8k
 
-
 . utils/parse_options.sh
+
+if [ $# -ne 0 ]; then
+    echo "${help_message}"
+    exit 1;
+fi
 
 
 if [ ! -e "${WSJ0}" ]; then

@@ -16,7 +16,7 @@ log() {
 
 
 stage=1
-stage=2
+stop_stage=2
 wavdir=${PWD}/wav # set the directory of the multi-condition training WAV files to be generated
 nch_train=2 # number of training channels
 
@@ -62,7 +62,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data preparation"
 
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
-    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
+    local/wsj_data_prep.sh ${WSJ0}/??-{?,??}.? ${WSJ1}/??-{?,??}.?
     local/wsj_format_data.sh
 
     tasks="tr_simu_${nch_train}ch dt_simu_${nch_train}ch dt_real_${nch_train}ch"

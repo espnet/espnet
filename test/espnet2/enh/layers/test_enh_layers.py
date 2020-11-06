@@ -4,9 +4,9 @@ import torch
 import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.layers.stft import Stft
 from espnet2.enh.layers.beamformer import get_rtf
 from espnet2.enh.layers.beamformer import signal_framing
+from espnet2.layers.stft import Stft
 
 
 random_speech = torch.tensor(

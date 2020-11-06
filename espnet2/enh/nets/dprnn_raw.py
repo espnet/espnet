@@ -65,7 +65,8 @@ def overlap_and_add(signal, frame_step):
 
 
 def remove_pad(inputs, inputs_lengths):
-    """
+    """Remove the padding part for all inputs.
+
     Args:
         inputs: torch.Tensor, [B, C, T] or [B, T], B is batch size
         inputs_lengths: torch.Tensor, [B]
@@ -84,9 +85,12 @@ def remove_pad(inputs, inputs_lengths):
     return results
 
 
-def chose_norm(norm_type, channel_size):
-    """The input of normalization will be (M, C, K), where M is batch size,
-    C is channel size and K is sequence length.
+def choose_norm(norm_type, channel_size):
+    """The input of normalization will be (M, C, K).
+
+    M: batch size
+    C: channel size
+    K: sequence length
     """
     if norm_type == "gLN":
         return GlobalLayerNorm(channel_size)
@@ -102,7 +106,7 @@ def chose_norm(norm_type, channel_size):
         raise ValueError("Unsupported normalization type")
 
 
-# TODO: Use nn.LayerNorm to impl cLN to speed up
+# TODO(Jing): Use nn.LayerNorm to impl cLN to speed up
 class ChannelwiseLayerNorm(nn.Module):
     """Channel-wise Layer Normalization (cLN)"""
 
@@ -117,7 +121,8 @@ class ChannelwiseLayerNorm(nn.Module):
         self.beta.data.zero_()
 
     def forward(self, y):
-        """
+        """ChannelwiseLayerNorm forwad
+
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
         Returns:
@@ -143,13 +148,14 @@ class GlobalLayerNorm(nn.Module):
         self.beta.data.zero_()
 
     def forward(self, y):
-        """
+        """GlobalLayerNorm forward
+
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
         Returns:
             gLN_y: [M, N, K]
         """
-        # TODO: in torch 1.0, torch.mean() support dim list
+        # TODO(Jing): in torch 1.0, torch.mean() support dim list
         mean = y.mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)  # [M, 1, 1]
         var = (
             (torch.pow(y - mean, 2)).mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)
@@ -170,7 +176,8 @@ class Encoder(nn.Module):
         self.conv1d_U = nn.Conv1d(1, N, kernel_size=W, stride=W // 2, bias=False)
 
     def forward(self, mixture):
-        """
+        """Encoder forward
+
         Args:
             mixture: [B, T], B is batch size, T is #samples
         Returns:
@@ -191,7 +198,8 @@ class Decoder(nn.Module):
         self.basis_signals = nn.Linear(E, W, bias=False)
 
     def forward(self, mixture_w, est_mask):
-        """
+        """Decoder forward
+
         Args:
             mixture_w: [B, E, L]
             est_mask: [B, C, E, L]
@@ -210,8 +218,7 @@ class Decoder(nn.Module):
 
 
 class SingleRNN(nn.Module):
-    """
-    Container module for a single RNN layer.
+    """Container module for a single RNN layer.
 
     args:
         rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
@@ -257,8 +264,7 @@ class SingleRNN(nn.Module):
 
 # dual-path RNN
 class DPRNN(nn.Module):
-    """
-    Deep duaL-path RNN.
+    """Deep dual-path RNN.
 
     args:
         rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
@@ -599,8 +605,7 @@ class FaSNet_base(AbsEnhancement):
         nspk=2,
         win_len=2,
     ):
-        """
-        FaSNet base.
+        """FaSNet base.
 
         Reference:
             "Dual-path RNN: efficient long sequence modeling for
@@ -631,8 +636,8 @@ class FaSNet_base(AbsEnhancement):
         self.encoder = Encoder(win_len, enc_dim)  # [B T]-->[B N L]
         # Notice: the norm is groupNorm in raw drpnn, but gLN in Asteriod.
         # self.enc_LN = nn.GroupNorm(1, self.enc_dim, eps=1e-8) # [B N L]-->[B N L]
-        # self.enc_LN= chose_norm('GroupNorm', self.enc_dim)
-        self.enc_LN = chose_norm("gLN", self.enc_dim)
+        # self.enc_LN= choose_norm('GroupNorm', self.enc_dim)
+        self.enc_LN = choose_norm("gLN", self.enc_dim)
         self.separator = SEP_module(
             input_dim=self.enc_dim,
             feature_dim=self.feature_dim,
@@ -653,9 +658,7 @@ class FaSNet_base(AbsEnhancement):
         self.loss_type = "si_snr"
 
     def pad_input(self, input, window):
-        """
-        Zero-padding input according to window/stride size.
-        """
+        """Zero-padding input according to window/stride size."""
         batch_size, nsample = input.shape
         stride = window // 2
 
@@ -670,9 +673,15 @@ class FaSNet_base(AbsEnhancement):
         return input, rest
 
     def forward(self, input, voiceP=None):
-        """
-        input: shape (batch, T)
-        voiceP: batch,topk,spk_emb, reserved target-spk query
+        """FaSNet_base forward
+
+        Args:
+            input: torch.Tensor(batch, T)
+            voiceP: (batch, topk, spk_emb) reserved target-spk query
+        Returns:
+            est_source: List[torch.Tensor(batch, T)]
+            voiceP
+            masks: OrderedDict
         """
         # pass to a DPRNN
         # input = input.to(device)

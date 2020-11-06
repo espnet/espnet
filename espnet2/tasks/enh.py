@@ -12,7 +12,7 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet2.enh.abs_enh import AbsEnhancement
-from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.enh.espnet_model import ESPnetEnhancementModel_mixIT
 from espnet2.enh.nets.beamformer_net import BeamformerNet
 from espnet2.enh.nets.dprnn_raw import FaSNet_base as DPRNN
 from espnet2.enh.nets.tasnet import TasNet
@@ -92,8 +92,6 @@ class EnhancementTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
 
-<<<<<<< HEAD:espnet2/tasks/enh.py
-=======
         group = parser.add_argument_group(description="MIXit related")
         group.add_argument(
             "--N_per_mixture",
@@ -117,7 +115,6 @@ class EnhancementTask(AbsTask):
             type=int,
             default=30,
         )
->>>>>>> update multi-speaker ASR task:espnet2/tasks/enh_mixIT.py
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -130,6 +127,7 @@ class EnhancementTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        # TODO(jing)  here to mix the mixtures.
         assert check_argument_types()
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=0)

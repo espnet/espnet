@@ -210,7 +210,7 @@ class Speech2Text:
                 batch["speech"],
                 batch["speech_lengths"],
             )
-            sdr, sir, sar, perm = None, None, None, np.arange(0, len(speech_pre))
+            sdr, perm = None, np.arange(0, len(speech_pre))
 
         # b. Forward Encoder
         results_list = []

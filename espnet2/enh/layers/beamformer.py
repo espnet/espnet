@@ -70,7 +70,7 @@ def get_mvdr_vector(
         reference_vector (torch.Tensor): (..., C)
         eps (float):
     Returns:
-        beamform_vector (ComplexTensor)r: (..., F, C)
+        beamform_vector (ComplexTensor): (..., F, C)
     """
 
     # Add eps
@@ -121,7 +121,7 @@ def get_mvdr_vector_with_rtf(
         eps (float):
     Returns:
         beamform_vector (ComplexTensor)r: (..., F, C)
-    """
+    """  # noqa: H405
     # Add eps
     B, F = psd_noise.shape[:2]
     C = psd_noise.size(-1)
@@ -227,18 +227,17 @@ def get_covariances(
     btaps: int,
     get_vector: bool = False,
 ) -> ComplexTensor:
-    """Calculates the power normalized spatio-temporal
-
-     covariance matrix of the framed signal.
+    """Calculates the power normalized spatio-temporal covariance
+        matrix of the framed signal.
 
     Args:
         Y : Complext STFT signal with shape (B, F, C, T)
         inverse_power : Weighting factor with shape (B, F, T)
 
     Returns:
-        Correlation matrix of shape (B, F, (btaps+1) * C, (btaps+1) * C)
-        Correlation vector of shape (B, F, btaps + 1, C, C)
-    """
+        Correlation matrix: (B, F, (btaps+1) * C, (btaps+1) * C)
+        Correlation vector: (B, F, btaps + 1, C, C)
+    """  # noqa: H405
     assert inverse_power.dim() == 3, inverse_power.dim()
     assert inverse_power.size(0) == Y.size(0), (inverse_power.size(0), Y.size(0))
 
