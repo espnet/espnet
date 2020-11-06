@@ -1,8 +1,6 @@
-<<<<<<< HEAD
 from functools import reduce
-=======
+
 from itertools import combinations
->>>>>>> refactor espnet2/enh/espnet_model.py to make it more flexible; update egs2/dirha_wsj/enh1
 from itertools import permutations
 from typing import Dict
 from typing import Optional
@@ -16,10 +14,6 @@ from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
 
 ALL_LOSS_TYPES = (
     # mse_loss(predicted_mask, target_label)
@@ -581,7 +575,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         feats, feats_lengths = speech_mix, speech_mix_lengths
         return {"feats": feats, "feats_lengths": feats_lengths}
->>>>>>> refactor espnet2/enh/espnet_model.py to make it more flexible; update egs2/dirha_wsj/enh1
 
 
 class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
@@ -1149,15 +1142,3 @@ class ESPnetEnhancementModel_mixIT(ESPnetEnhancementModel):
             loss = losses[torch.arange(losses.shape[0]), perm]
 
         return loss.mean(), perm
-<<<<<<< HEAD
-
-    def collect_feats(
-        self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs
-    ) -> Dict[str, torch.Tensor]:
-        # for data-parallel
-        speech_mix = speech_mix[:, : speech_mix_lengths.max()]
-
-        feats, feats_lengths = speech_mix, speech_mix_lengths
-        return {"feats": feats, "feats_lengths": feats_lengths}
-=======
->>>>>>> refactor espnet2/enh/espnet_model.py to make it more flexible; update egs2/dirha_wsj/enh1
