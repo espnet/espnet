@@ -81,7 +81,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     if [ -n "${pretrained_model}" ]; then
         local/pretrained_model_download.sh ${db_root} ${pretrained_model}
     fi
-    
+
     # download pretrained PWG
     if [ ${voc} == "PWG" ]; then
         local/pretrained_model_download.sh ${db_root} pwg_${trgspk}
@@ -112,16 +112,16 @@ pair_dt_dir=${dumpdir}/${pair_dev_set}_${norm_name}; mkdir -p ${pair_dt_dir}
 pair_ev_dir=${dumpdir}/${pair_eval_set}_${norm_name}; mkdir -p ${pair_ev_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
-   
+
     # Generate the fbank features; by default 80-dimensional on each frame
     fbankdir=fbank
     for spk_org_set in ${src_org_set} ${trg_org_set}; do
         echo "Generating fbanks features for ${spk_org_set}..."
-        
+
         spk_train_set=${spk_org_set}_train
         spk_dev_set=${spk_org_set}_dev
         spk_eval_set=${spk_org_set}_eval
-       
+
         make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
             --fs ${fs} \
             --fmax "${fmax}" \
@@ -142,7 +142,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/subset_data_dir.sh --first data/${spk_org_set} ${n} data/${spk_train_set}
         rm -rf data/${spk_org_set}_tmp
     done
-        
+
     # If not using pretrained models statistics, calculate in a speaker-dependent way.
     if [ -n "${pretrained_model}" ]; then
         src_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
@@ -153,7 +153,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         src_cmvn=data/${src_train_set}/cmvn.ark
         trg_cmvn=data/${trg_train_set}/cmvn.ark
     fi
-    
+
     # dump features
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${src_train_set}/feats.scp ${src_cmvn} exp/dump_feats/${src_train_set}_${norm_name} ${src_feat_tr_dir}
@@ -174,11 +174,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # make dummy dict
     dict="data/dummy_dict/X.txt"
-    if [ -e ${dict} ]; then
-        mkdir -p ${dict%/*}
-        echo "<unk> 1" > ${dict}
-    fi
-    
+    mkdir -p ${dict%/*}
+    echo "<unk> 1" > ${dict}
+
     # make json labels
     data2json.sh --feat ${src_feat_tr_dir}/feats.scp \
          data/${src_train_set} ${dict} > ${src_feat_tr_dir}/data.json
@@ -299,14 +297,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-    
+
     echo "Synthesis..."
 
     pids=() # initialize pids
     for name in ${pair_dev_set} ${pair_eval_set}; do
     (
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
-        
+
         # Normalization
         # If not using pretrained models statistics, use statistics of target speaker
         if [ -n "${pretrained_model}" ]; then

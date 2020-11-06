@@ -227,7 +227,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
        [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]]; then
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
+       [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
+       [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best
             average_opts="--log ${expdir}/results/log"

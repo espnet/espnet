@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Shigeki Karita
+# Copyright 2020 Johns Hopkins University (Shinji Watanabe)
+#                Northwestern Polytechnical University (Pengcheng Guo)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
@@ -42,8 +43,8 @@ class Encoder(torch.nn.Module):
         linear_units (int): The number of units of position-wise feed forward.
         num_blocks (int): The number of decoder blocks.
         dropout_rate (float): Dropout rate.
-        attention_dropout_rate (float): Dropout rate in attention.
         positional_dropout_rate (float): Dropout rate after adding positional encoding.
+        attention_dropout_rate (float): Dropout rate in attention.
         input_layer (Union[str, torch.nn.Module]): Input layer type.
         normalize_before (bool): Whether to use layer_norm before the first block.
         concat_after (bool): Whether to concat attention layer's input and output.
@@ -52,10 +53,10 @@ class Encoder(torch.nn.Module):
             if False, no additional linear will be applied. i.e. x -> x + att(x)
         positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
         positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
-        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
-        encoder_attn_layer_type (str): Encoder attention layer type.
-        activation_type (str): Encoder activation function type.
         macaron_style (bool): Whether to use macaron style for positionwise layer.
+        pos_enc_layer_type (str): Encoder positional encoding layer type.
+        selfattention_layer_type (str): Encoder attention layer type.
+        activation_type (str): Encoder activation function type.
         use_cnn_module (bool): Whether to use convolution module.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
@@ -132,6 +133,28 @@ class Encoder(torch.nn.Module):
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
+
+        # self-attention module definition
+        if selfattention_layer_type == "selfattn":
+            logging.info("encoder self-attention layer type = self-attention")
+            encoder_selfattn_layer = MultiHeadedAttention
+            encoder_selfattn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
+        elif selfattention_layer_type == "rel_selfattn":
+            assert pos_enc_layer_type == "rel_pos"
+            encoder_selfattn_layer = RelPositionMultiHeadedAttention
+            encoder_selfattn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
+        else:
+            raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
+
+        # feed-forward module definition
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
             positionwise_layer_args = (
@@ -159,25 +182,7 @@ class Encoder(torch.nn.Module):
         else:
             raise NotImplementedError("Support only linear or conv1d.")
 
-        if selfattention_layer_type == "selfattn":
-            logging.info("encoder self-attention layer type = self-attention")
-            encoder_selfattn_layer = MultiHeadedAttention
-            encoder_selfattn_layer_args = (
-                attention_heads,
-                attention_dim,
-                attention_dropout_rate,
-            )
-        elif selfattention_layer_type == "rel_selfattn":
-            assert pos_enc_layer_type == "rel_pos"
-            encoder_selfattn_layer = RelPositionMultiHeadedAttention
-            encoder_selfattn_layer_args = (
-                attention_heads,
-                attention_dim,
-                attention_dropout_rate,
-            )
-        else:
-            raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
-
+        # convolution module definition
         convolution_layer = ConvolutionModule
         convolution_layer_args = (attention_dim, cnn_module_kernel, activation)
 

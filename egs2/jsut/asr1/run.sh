@@ -18,14 +18,15 @@ train_set=tr_no_dev
 valid_set=dev
 test_sets="dev eval1"
 
-asr_config=conf/train_asr_rnn.yaml
-inference_config=conf/decode_rnn.yaml
+asr_config=conf/train_asr_conformer.yaml
+inference_config=conf/decode_transformer.yaml
 lm_config=conf/train_lm.yaml
 ./asr.sh \
     --lang jp \
     --token_type char \
     --feats_type raw \
     --fs ${fs} \
+    --speed_perturb_factors "0.9 1.0 1.1" \
     --local_data_opts "--fs ${fs}" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \

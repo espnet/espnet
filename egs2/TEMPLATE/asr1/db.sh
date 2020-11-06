@@ -24,6 +24,7 @@ HKUST1=
 HKUST2=
 LIBRISPEECH=
 LJSPEECH=downloads
+JSSS=downloads
 JSUT=downloads
 JVS=downloads
 TIMIT=
@@ -87,6 +88,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HKUST2=
     LIBRISPEECH=
     LJSPEECH=downloads
+    JSSS=downloads
     JSUT=downloads
     JVS=downloads
     TIMIT=
