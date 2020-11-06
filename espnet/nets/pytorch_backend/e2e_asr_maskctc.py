@@ -77,6 +77,28 @@ class E2E(E2ETransformer):
         self.eos = odim - 2
         self.odim = odim
 
+        if args.maskctc_use_conformer_encoder:
+            if args.transformer_attn_dropout_rate is None:
+                args.transformer_attn_dropout_rate = args.conformer_dropout_rate
+            self.encoder = Encoder(
+                idim=idim,
+                attention_dim=args.adim,
+                attention_heads=args.aheads,
+                linear_units=args.eunits,
+                num_blocks=args.elayers,
+                input_layer=args.transformer_input_layer,
+                dropout_rate=args.dropout_rate,
+                positional_dropout_rate=args.dropout_rate,
+                attention_dropout_rate=args.transformer_attn_dropout_rate,
+                pos_enc_layer_type=args.transformer_encoder_pos_enc_layer_type,
+                selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
+                activation_type=args.transformer_encoder_activation_type,
+                macaron_style=args.macaron_style,
+                use_cnn_module=args.use_cnn_module,
+                cnn_module_kernel=args.cnn_module_kernel,
+            )
+        self.reset_parameters(args)
+
     def forward(self, xs_pad, ilens, ys_pad):
         """E2E forward.
 
