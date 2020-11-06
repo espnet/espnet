@@ -118,4 +118,4 @@ def test_transformer_trainable_and_decodable(model_dict):
 
     # test decoding
     with torch.no_grad():
-        model.recognize_maskctc(x[0, : ilens[0]].numpy(), recog_args, args.char_list)
+        model.recognize(x[0, : ilens[0]].numpy(), recog_args, args.char_list)
