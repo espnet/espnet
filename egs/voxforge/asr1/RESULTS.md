@@ -1,3 +1,41 @@
+# Conformer results
+
+## Environments
+- date: `Fri Nov  6 18:57:07 JST 2020`
+- python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.2`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.1.0`
+- Git hash: `87bc8f1a1ad548b7dfc062c0820c969200fed3b4`
+  - Commit date: `Sat Sep 5 01:30:59 2020 +0900`
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/file/d/1-s4AUuqCyNNH-lZk9ZLLWH11cdDSLnL5/view?usp=sharing
+  - training config file: `conf/work/train_pytorch_conformer_k7.yaml`
+  - decoding config file: `conf/work/decode_pytorch_transformer_bs20_ctc0.3.yaml`
+  - cmvn file: `data/tr_it/cmvn.ark`
+  - e2e file: `exp/tr_it_pytorch_train_pytorch_conformer_k7/results/model.last10.avg.best`
+  - e2e JSON file: `exp/tr_it_pytorch_train_pytorch_conformer_k7/results/model.json`
+
+### WER
+```
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_pytorch_transformer_bs1_ctc0.3|1082|13235|71.2|24.1|4.7|3.8|32.6|94.4|
+|decode_dt_it_decode_pytorch_transformer_bs20_ctc0.3|1082|13235|71.1|24.4|4.6|3.7|32.6|94.2|
+|decode_et_it_decode_pytorch_transformer_bs1_ctc0.3|1055|12990|73.4|22.2|4.4|3.9|30.5|92.8|
+|decode_et_it_decode_pytorch_transformer_bs20_ctc0.3|1055|12990|73.4|22.2|4.3|3.9|30.5|93.1|
+```
+
+### CER
+```
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_pytorch_transformer_bs1_ctc0.3|1082|79133|92.9|3.8|3.3|2.0|9.1|93.5|
+|decode_dt_it_decode_pytorch_transformer_bs20_ctc0.3|1082|79133|93.2|3.8|3.0|1.9|8.7|94.1|
+|decode_et_it_decode_pytorch_transformer_bs1_ctc0.3|1055|77966|93.3|3.4|3.3|1.7|8.4|92.3|
+|decode_et_it_decode_pytorch_transformer_bs20_ctc0.3|1055|77966|93.5|3.4|3.1|1.7|8.2|92.4|
+```
+
 # Transformer 300 epochs, decoder 6 layer 2048 unitsns
   - Environments (obtained by `$ get_sys_info.sh`)
       - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
@@ -24,7 +62,7 @@ exp/tr_it_pytorch_train_d6-2048/decode_et_it_decode/result.txt
 | Sum/Avg               | 1055   77966 | 92.6    3.7    3.7    1.7    9.1   95.6 |
 ```
 
-# Transformer 300 epochs, decoder 1 layer 1024 units 
+# Transformer 300 epochs, decoder 1 layer 1024 units
   - Environments (obtained by `$ get_sys_info.sh`)
       - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
 	  - python version: `Python 3.7.3`
@@ -119,7 +157,7 @@ exp/tr_it_a02/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 
 # VGGBLSMP, adaeldta with eps decay monitoring validation accuracy
 ```bash
-$ grep Avg exp/tr_it_a10/decode_*t_it_beam20_eacc.best_p0_len0.0-0.8/result.txt 
+$ grep Avg exp/tr_it_a10/decode_*t_it_beam20_eacc.best_p0_len0.0-0.8/result.txt
 exp/tr_it_a10/decode_dt_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 exp/tr_it_a10/decode_dt_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg               | 1080   78951 | 86.7    5.9    7.3    3.2   16.5   98.1 |
 exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
