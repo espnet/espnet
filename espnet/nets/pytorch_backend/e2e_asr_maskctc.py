@@ -16,6 +16,10 @@ import math
 import numpy
 import torch
 
+from espnet.nets.pytorch_backend.conformer.encoder import Encoder
+from espnet.nets.pytorch_backend.conformer.argument import (
+    add_arguments_conformer_common,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
 from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
@@ -45,6 +49,11 @@ class E2E(E2ETransformer):
     def add_maskctc_arguments(parser):
         """Add arguments for maskctc model."""
         group = parser.add_argument_group("maskctc specific setting")
+
+        group.add_argument(
+             "--maskctc-use-conformer-encoder", default=False, type=strtobool,
+        )
+        group = add_arguments_conformer_common(group)
 
         return parser
 
