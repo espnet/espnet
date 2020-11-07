@@ -38,6 +38,8 @@ This is a template of TTS recipe for ESPnet2.
     * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
     * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
     * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
+    * [How is the duration for FastSpeech2 generated?](#how-is-the-duration-for-fastspeech2-generated)
+    * [Why the output of Tacotron2 or Transformer is non-deterministic?](#why-the-output-of-tacotron2-or-transformer-is-non-deterministic)
 
 ## Recipe flow
 
@@ -151,10 +153,10 @@ Then, you can get the following directories in the recipe directory.
 └── exp/ # experiment directory
     ├── tts_stats_raw_phn_tacotron_g2p_en_no_space # statistics
     └── tts_train_raw_phn_tacotron_g2p_en_no_space # model
-        ├── att_ws/                 # attention plot during training
-        ├── tensorboard/            # tensorboard log
-        ├── images/                 # plot of training curves
-        ├── decode_train.loss.best/ # decoded results
+        ├── att_ws/                # attention plot during training
+        ├── tensorboard/           # tensorboard log
+        ├── images/                # plot of training curves
+        ├── decode_train.loss.ave/ # decoded results
         │    ├── dev/   # validation set
         │    └── eval1/ # evaluation set
         │        ├── att_ws/      # attention plot in decoding
@@ -199,13 +201,13 @@ $ ./run.sh --stage 7 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
     --test_sets "tr_no_dev dev eval1"
 ```
-This will generate `durations` for training, validation, and evaluation sets in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.best`.
+This will generate `durations` for training, validation, and evaluation sets in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.ave`.
 
 Then, you can train FastSpeech by specifying the directory including `durations` via `--teacher_dumpdir` option.
 ```sh
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech.yaml \
-    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.best
+    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.ave
 ```
 
 In the above example, we use generated mel-spectrogram as the target, which is known as knowledge distillation training.
@@ -216,13 +218,13 @@ $ ./run.sh --stage 7 \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "tr_no_dev dev eval1"
 ```
-You can get the groundtruth aligned durations in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best`.
+You can get the groundtruth aligned durations in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave`.
 
 Then, you can train FastSpeech without knowledge distillation.
 ```sh
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech.yaml \
-    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best
+    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave
 ```
 
 ### FastSpeech2 training
@@ -239,9 +241,9 @@ To train FastSpeech2, we use additional feature (F0 and energy).
 Therefore, we need to start from `stage 5` to calculate additional statistics.
 ```sh
 $ ./run.sh --stage 5 \
-    --train_config conf/tuning/train_fastspeech.yaml \
-    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best \
-    --tts_stats_dir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best/stats \
+    --train_config conf/tuning/train_fastspeech2.yaml \
+    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave \
+    --tts_stats_dir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave/stats \
     --write_collected_feats true
 ```
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
@@ -362,15 +364,15 @@ See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.
 
 ### How to handle the errors in `validate_data_dir.sh`?
 
-> utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line
+> `utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line`
 
 This is caused by the recent change in kaldi.
 We recommend modifying the following part in `utils/validate_data_dir.sh` to be `non_print=true`.
 
 https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
 
-> utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces  
-> utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)
+> `utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces`  
+> `utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)`
 
 The use of zenkaku whitespace in `text` is not allowed.
 Please changes it to hankaku whitespace or the other symbol.
@@ -397,3 +399,13 @@ Please check the following items carefully:
 - If the dataset is small, please consider the use of adaptation with pretrained model.
 - If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
 - Check the attention plot during the training. Loss value is not so meaningfull in TTS.
+
+### How is the duration for FastSpeech2 generated?
+
+We use the teacher model attention weight to calculate the duration as the same as FastSpeech.
+See more info in [FastSpeech paper](https://arxiv.org/abs/1905.09263).
+
+### Why the output of Tacotron2 or Transformer is non-deterministic?
+
+This is because we use prenet in the decoder, which always applies dropout.
+See more info in [Tacotron2 paper](https://arxiv.org/abs/1712.05884).
