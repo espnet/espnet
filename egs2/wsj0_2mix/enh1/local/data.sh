@@ -98,3 +98,17 @@ zcat ${WSJ1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | \
 log "Create non linguistic symbols: ${nlsyms}"
 cut -f 2- data/wsj/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
 cat ${nlsyms}
+
+
+# Prepare utt2category for wsj_mix
+for folder in ${train_set} ${train_dev} ${recog_set};
+do
+    awk '{print($1, "multi-speaker")}' ./data/${folder}/wav.scp > ./data/${folder}/utt2category
+done
+# Prepare utt2category, spk*.scp and text_spk* for train_si284
+awk '{print($1, "single-speaker")}' ./data/wsj/train_si284/wav.scp > ./data/wsj/train_si284/utt2category
+ln -s wav.scp ./data/wsj/train_si284/spk1.scp
+ln -s wav.scp ./data/wsj/train_si284/spk2.scp
+ln -s text ./data/wsj/train_si284/text_spk1
+ln -s text ./data/wsj/train_si284/text_spk2
+ln -s wsj/train_si284 ./data/

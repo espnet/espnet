@@ -8,6 +8,7 @@ export LC_ALL=C
 
 . "${MAIN_ROOT}"/tools/activate_python.sh && . "${MAIN_ROOT}"/tools/extra_path.sh
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
+export PATH=${KALDI_ROOT}/tools/sph2pipe_v2.5:$PATH
 
 export OMP_NUM_THREADS=1
 
