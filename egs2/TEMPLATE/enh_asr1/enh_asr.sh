@@ -584,7 +584,9 @@ if ! "${skip_data_prep}"; then
         if [ ! -z "${train_aux_set}" ]; then
             combined_train_set=${train_set}"_"${train_aux_set}
             log "Combine the aux set with the train set into new set: ${data_feats}/${combined_train_set}."
-            rm -r "${data_feats}/${combined_train_set}" 2>/dev/null
+            if [ -d ${data_feats}/${combined_train_set} ]; then
+                rm -r ${data_feats}/${combined_train_set} 2>/dev/null
+            fi
             mkdir -p "${data_feats}/${combined_train_set}"
             for dset in "${train_set}" "${train_aux_set}"; do
                 for f in `ls ${data_feats}/${dset}/`; do
