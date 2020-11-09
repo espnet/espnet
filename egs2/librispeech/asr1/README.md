@@ -12,6 +12,7 @@
   - LM: Adam optimizer
 
 ## asr_train_asr_transformer_e18_raw_bpe_sp
+- https://zenodo.org/record/3966501
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
