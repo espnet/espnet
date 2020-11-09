@@ -141,6 +141,9 @@ class E2E(E2ETransformer):
             if self.error_calculator is not None:
                 ys_hat = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
                 cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+            # for visualization
+            if not self.training:
+                self.ctc.softmax(hs_pad)
 
         # 5. compute cer/wer
         if self.training or self.error_calculator is None or self.decoder is None:

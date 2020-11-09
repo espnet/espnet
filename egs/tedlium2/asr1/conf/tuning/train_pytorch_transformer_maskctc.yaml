@@ -46,6 +46,7 @@ report-wer: true
 n-iter-processes: 2
 
 ### important configurations to specify in run.sh
+# skip_lm_training=true
 # preprocess_config=conf/specaug.yaml
 # use_valbest_average=true
 # n_average=30

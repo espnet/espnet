@@ -42,6 +42,7 @@ transformer-init: pytorch
 report-cer: true
 
 ### important configurations to specify in run.sh
+# skip_lm_training=true
 # preprocess_config=conf/specaug.yaml
 # use_valbest_average=true
 # n_average=30
