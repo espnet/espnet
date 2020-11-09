@@ -27,4 +27,5 @@ fi
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --srctexts "data/train_data_01/text" "$@"
+    --bpe_train_text "data/train_data_01/text" \
+    --lm_train_text "data/train_data_01/text" "$@"
