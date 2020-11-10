@@ -18,7 +18,7 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
-        "ctc-segmentation>=1.1.0",
+        "ctc-segmentation>=1.4.0",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",

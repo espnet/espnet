@@ -268,7 +268,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --model ${align_model} \
         --subsampling-factor ${subsampling_factor} \
         --min-window-size ${min_window_size} \
-        --use-dict-blank 1 \
         --scoring-length ${scoring_length} \
         --api ${api} \
         --utt-text ${align_dir}/utt_text \
