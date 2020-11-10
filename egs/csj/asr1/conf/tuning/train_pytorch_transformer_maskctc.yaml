@@ -26,7 +26,7 @@ opt: noam
 accum-grad: 8
 grad-clip: 5
 patience: 0
-epochs: 500
+epochs: 100
 dropout-rate: 0.1
 
 # transformer specific setting
@@ -39,15 +39,10 @@ transformer-attn-dropout-rate: 0.0
 transformer-length-normalized-loss: false
 transformer-init: pytorch
 
-# Report CER & WER
 report-cer: true
-report-wer: true
-
-# if training is too slow (over 4 days)
-# n-iter-processes: 2
 
 ### important configurations to specify in run.sh
 # skip_lm_training=true
 # preprocess_config=conf/specaug.yaml
 # use_valbest_average=true
-# n_average=50
+# n_average=30
