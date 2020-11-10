@@ -21,4 +21,5 @@ test_sets="test_dev93 test_eval92"
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --srctexts "data/train_si284/text data/local/other_text/text" "$@"
+    --bpe_train_text "data/train_si284/text" \
+    --lm_train_text "data/train_si284/text data/local/other_text/text" "$@"

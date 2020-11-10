@@ -37,4 +37,4 @@ speed_perturb_factors="0.9 1.0 1.1"
     --asr_speech_fold_length 512 \
     --asr_text_fold_length 150 \
     --lm_fold_length 150 \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"
