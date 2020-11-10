@@ -24,7 +24,6 @@ def test_ctc_segmentation():
     config.max_window_size = 50
     char_list = ["•", "a", "c", "d", "g", "o", "s", "t"]
     text = ["catzz#\n", "dogs!!\n"]
-    # lpz = torch.nn.functional.log_softmax(torch.rand(30, 8) * 10, dim=0).numpy()
     ground_truth_mat, utt_begin_indices = prepare_text(config, text, char_list)
     timings, char_probs, state_list = ctc_segmentation(config, lpz, ground_truth_mat)
 
