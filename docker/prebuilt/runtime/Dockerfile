@@ -17,10 +17,12 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
         cmake \
         curl \
         flac \
+        ffmpeg \
         gawk \
         gfortran \
         git \
         libtool \
+        libsndfile1-dev \
         python2.7 \
         python3 \
         sox \
@@ -49,6 +51,10 @@ RUN cd /kaldi/tools && \
     make depend -j${NUM_BUILD_CORES} && \
     make -j${NUM_BUILD_CORES} && \
     find /kaldi/src -name "*.o" -exec rm -f {} \; && \
-    find /kaldi/src -name "*.o" -exec rm -f {} \; 
+    find /kaldi/src -name "*.o" -exec rm -f {} \;
+
+RUN wget --tries=3 "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
+    bash miniconda.sh -b -p /miniconda && \
+    rm miniconda.sh
 
 WORKDIR /

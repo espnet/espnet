@@ -5,6 +5,16 @@ LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ARG THIS_USER
 ARG THIS_UID
+ARG EXTRA_LIBS
+
+# Add extra libraries (VC/TTS)
+
+RUN if [ ${EXTRA_LIBS} = true ]; then \
+        cd /espnet/tools; \
+        . ./activate_python.sh; \
+        pip install parallel_wavegan; \
+        pip install git+https://github.com/cybertronai/pytorch-lamb; \
+    fi
 
 # Add user to container
 RUN if [ ! -z "${THIS_UID}"  ]; then \

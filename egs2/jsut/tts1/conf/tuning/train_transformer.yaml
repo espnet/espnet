@@ -1,8 +1,8 @@
-# This configuration is for ESPnet2 to train TTS-Transformer. Compared to the
+# This configuration is for ESPnet2 to train Transformer-TTS. Compared to the
 # original paper, this configuration additionally use the guided attention
 # loss to accelerate the learning of the diagonal attention. It requires
-# only a single GPU with 12 GB memory and it takes ~2 days to finish the
-# training on Titan V.
+# 4 GPUs with 32 GB memory and it will finish within 1 day to finish the
+# training on Tesla V100.
 
 ##########################################################
 #                  TTS MODEL SETTING                     #
@@ -30,8 +30,8 @@ tts_conf:                  # keyword arguments for the selected model
     use_masking: True                # whether to apply masking for padded part in loss calculation
     bce_pos_weight: 5.0              # weight of positive sample in binary cross entropy calculation
     use_scaled_pos_enc: True         # whether to use scaled positional encoding
-    encoder_normalize_before: False  # whether to perform layer normalization before the input
-    decoder_normalize_before: False  # whether to perform layer normalization before the input
+    encoder_normalize_before: True   # whether to perform layer normalization before the input
+    decoder_normalize_before: True   # whether to perform layer normalization before the input
     reduction_factor: 1              # reduction factor
     init_type: xavier_uniform        # initialization type
     init_enc_alpha: 1.0              # initial value of alpha of encoder scaled position encoding
@@ -50,27 +50,29 @@ tts_conf:                  # keyword arguments for the selected model
     num_heads_applied_guided_attn: 2                 # number of layers to apply guided attention loss
     num_layers_applied_guided_attn: 2                # number of heads to apply guided attention loss
     modules_applied_guided_attn: ["encoder-decoder"] # modules to apply guided attention loss
+    guided_attn_loss_sigma: 0.4                      # sigma in guided attention loss
+    guided_attn_loss_lambda: 10.0                    # lambda in guided attention loss
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
-optim: adam            # optimizer type
-optim_conf:            # keyword arguments for selected optimizer
-    lr: 1.0            # learning rate
-scheduler: noamlr      # scheduler type
-scheduler_conf:        # keyword arguments for selected scheduler
-    model_size: 512    # model size, a.k.a., attention dimenstion
-    warmup_steps: 4000 # the number of warmup steps
+optim: adam             # optimizer type
+optim_conf:             # keyword arguments for selected optimizer
+    lr: 1.0             # learning rate
+scheduler: noamlr       # scheduler type
+scheduler_conf:         # keyword arguments for selected scheduler
+    model_size: 512     # model size, a.k.a., attention dimenstion
+    warmup_steps: 8000  # the number of warmup steps
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-max_epoch: 1000             # number of epochs
+num_iters_per_epoch: 1000   # number of iterations per epoch
+max_epoch: 200              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
-accum_grad: 6               # gradient accumulation
-# batch_bins: 800000        # batch bins (for feats_type=fbank)
-batch_bins: 3000000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
+accum_grad: 2               # gradient accumulation
+batch_bins: 9000000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
 batch_type: numel           # how to make batch
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches

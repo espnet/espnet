@@ -4,24 +4,21 @@ import torch
 from espnet2.tts.fastspeech2 import FastSpeech2
 
 
-@pytest.mark.parametrize("postnet_layers", [0, 1])
-@pytest.mark.parametrize("reduction_factor", [1, 2, 3])
+@pytest.mark.parametrize("reduction_factor", [1, 3])
 @pytest.mark.parametrize(
     "spk_embed_dim, spk_embed_integration_type",
     [(None, "add"), (2, "add"), (2, "concat")],
 )
+@pytest.mark.parametrize("encoder_type", ["transformer", "conformer"])
+@pytest.mark.parametrize("decoder_type", ["transformer", "conformer"])
 @pytest.mark.parametrize("use_gst", [True, False])
-@pytest.mark.parametrize(
-    "use_masking, use_weighted_masking", [[True, False], [False, True]]
-)
 def test_fastspeech2(
-    postnet_layers,
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
+    encoder_type,
+    decoder_type,
     use_gst,
-    use_masking,
-    use_weighted_masking,
 ):
     model = FastSpeech2(
         idim=10,
@@ -32,10 +29,12 @@ def test_fastspeech2(
         eunits=4,
         dlayers=1,
         dunits=4,
-        postnet_layers=postnet_layers,
+        postnet_layers=1,
         postnet_chans=4,
         postnet_filts=5,
         reduction_factor=reduction_factor,
+        encoder_type=encoder_type,
+        decoder_type=decoder_type,
         duration_predictor_layers=2,
         duration_predictor_chans=4,
         duration_predictor_kernel_size=3,
@@ -62,8 +61,8 @@ def test_fastspeech2(
         gst_conv_stride=2,
         gst_gru_layers=1,
         gst_gru_units=4,
-        use_masking=use_masking,
-        use_weighted_masking=use_weighted_masking,
+        use_masking=False,
+        use_weighted_masking=True,
     )
 
     inputs = dict(

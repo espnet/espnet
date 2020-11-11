@@ -1,0 +1,7 @@
+# decoding parameters
+batch: 0
+beam-size: 10
+search-type: nsc
+nstep: 3
+prefix-alpha: 2
+score-norm: True

@@ -1,0 +1,14 @@
+This directory is a copy of egs/callhome_diarization/v1/diarization of JSALT fork of Kaldi:
+
+https://github.com/jsalt2020-asrdiar/kaldi/tree/cf2f35550cdc15496bfc0bda946e97941183e71c/egs/callhome_diarization/v1/diarization
+
+Following files are deleted:
+
+VB_diarization.py
+VB_resegmentation.py
+VB_resegmentation.sh
+convert_VB_model.py
+extract_ivectors.sh
+score_plda.sh
+train_ivector_extractor_diag.sh
+vad_to_segments.sh

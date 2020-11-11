@@ -8,11 +8,11 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-torch_12_plus=$(python3 <<EOF
+torch_17_plus=$(python3 <<EOF
 from distutils.version import LooseVersion as V
 import torch
 
-if V(torch.__version__) >= V("1.2"):
+if V(torch.__version__) >= V("1.7"):
     print("true")
 else:
     print("false")
@@ -41,6 +41,13 @@ else:
 EOF
 )
 
+torch_version=$(python3 <<EOF
+import torch
+version = torch.__version__.split(".")
+print(version[0] + version[1])
+EOF
+)
+
 cuda_version=$(python3 <<EOF
 import torch
 if torch.cuda.is_available():
@@ -53,16 +60,17 @@ EOF
 )
 echo "cuda_version=${cuda_version}"
 
-if "${torch_12_plus}"; then
+if "${torch_17_plus}"; then
 
-    echo "[WARNING] warp-ctc is not prepared for pytorch>=1.2.0 now"
+    echo "[WARNING] warp-ctc is not prepared for pytorch>=1.7.0 now"
 
 elif "${torch_11_plus}"; then
 
+    warpctc_version=0.2.1
     if [ -z "${cuda_version}" ]; then
-        python3 -m pip install warpctc-pytorch11-cpu;
+        python3 -m pip install warpctc-pytorch==${warpctc_version}+torch"${torch_version}".cpu
     else
-        python3 -m pip install warpctc-pytorch11-cuda"${cuda_version}"
+        python3 -m pip install warpctc-pytorch==${warpctc_version}+torch"${torch_version}".cuda"${cuda_version}"
     fi
 
 elif "${torch_10_plus}"; then
@@ -92,7 +100,7 @@ else
         python3 -m pip install cffi
         (
             set -euo pipefail
-            cd pytorch_binding && python3 setup.py installl
+            cd pytorch_binding && python3 -m pip install -e .
         )
     )
 

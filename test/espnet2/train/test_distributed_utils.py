@@ -205,6 +205,7 @@ def test_init_cpu(dist_init_method):
         fn2.result()
 
 
+@pytest.mark.skipif(True, reason="sometimes hangup?")
 def test_init_cpu2():
     args = argparse.Namespace(
         multiprocessing_distributed=True,
@@ -257,6 +258,7 @@ def test_init_cpu3():
             fn2.result()
 
 
+@pytest.mark.skipif(True, reason="sometimes hangup?")
 def test_init_cpu4():
     args = argparse.Namespace(
         multiprocessing_distributed=True,
@@ -282,6 +284,7 @@ def test_init_cpu4():
         fn2.result()
 
 
+@pytest.mark.skipif(True, reason="sometimes hangup?")
 def test_init_cpu5():
     args = argparse.Namespace(
         multiprocessing_distributed=True,

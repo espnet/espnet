@@ -9,7 +9,7 @@ train_set=train_nodup
 valid_set=train_dev
 test_sets="eval1 eval2 eval3"
 
-asr_config=conf/train_asr_rnn.yaml
+asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
@@ -17,7 +17,9 @@ lm_config=conf/train_lm.yaml
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
 speed_perturb_factors="0.9 1.0 1.1"
 
+# NOTE: The default settings require 4 GPUs with 32 GB memory
 ./asr.sh \
+    --ngpu 4 \
     --lang jp \
     --token_type char \
     --feats_type raw \
@@ -28,4 +30,4 @@ speed_perturb_factors="0.9 1.0 1.1"
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
-    --srctexts "data/train_nodev/text" "$@"
+    --lm_train_text "data/train_nodev/text" "$@"
