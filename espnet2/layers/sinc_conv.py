@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+# encoding: utf-8
+#  2020, Technische Universität München;  Ludwig Kürzinger
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Sinc convolutions."""
+import torch
+
+CONSTANT_PI = 3.141592653589793
+
+
+class LogCompression(torch.nn.Module):
+    """Log Compression Activation.
+
+    Activation function log(abs(x) + 1)
+    """
+
+    def __init__(self):
+        """Initialize."""
+        super(LogCompression, self).__init__()
+
+    def forward(self, x):
+        """Forward.
+
+        Applies the Log Compression function elementwise on tensor x.
+        """
+        return torch.log(torch.abs(x) + 1)
+
+
+class SincConv(torch.nn.Module):
+    """Sinc Convolution.
+
+    This module performs a convolution using Sinc filters in time domain as kernel.
+    Sinc filters function as band passes in spectral domain.
+    The filtering is done as a convolution in time domain, and no transformation
+    to spectral domain is necessary.
+
+    This implementation of the Sinc convolution is heavily inspired
+    by Ravanelli et al. https://github.com/mravanelli/SincNet,
+    and adapted for the ESpnet toolkit.
+    Combine Sinc convolutions with a log compression activation function, as in:
+    https://arxiv.org/abs/2010.07597
+
+    Notes:
+    Currently, the same filters are applied to all input channels.
+    The windowing function is applied on the kernel to obtained a smoother filter,
+    and not on the input values, which is different to traditional ASR.
+    """
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        window_func="hamming",
+        fs=16000,
+    ):
+        """Initialize Sinc convolutions.
+
+        :param int in_channels: Number of input channels
+        :param int out_channels: Number of output channels
+        :param int kernel_size: Sinc filter kernel size (needs to be an odd number)
+        :param int stride: See torch.nn.functional.conv1d
+        :param int padding: See torch.nn.functional.conv1d
+        :param int dilation: See torch.nn.functional.conv1d
+        :param int window_func: Window function to use on the filter,
+         one of ["hamming", "none"].
+        :param int fs: Sample rate of the input data
+        """
+        super(SincConv, self).__init__()
+        window_funcs = {
+            "none": self.none_window,
+            "hamming": self.hamming_window,
+        }
+        if window_func not in window_funcs:
+            raise NotImplementedError(
+                f"Window function has to be one of {list(window_funcs.keys())}",
+            )
+        self.window_func = window_funcs[window_func]
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.dilation = dilation
+        self.stride = stride
+        self.fs = float(fs)
+        if self.kernel_size % 2 == 0:
+            raise ValueError("SincConv: Kernel size must be odd.")
+        self.f = None
+        N = self.kernel_size // 2
+        self._x = 2 * CONSTANT_PI * torch.linspace(1, N, N)
+        self._window = self.window_func(torch.linspace(1, N, N))
+        # init may get overwritten by E2E network,
+        # but is still required to calculate output dim
+        self.init_filters()
+
+    @staticmethod
+    def sinc(x):
+        """Sinc function."""
+        x2 = x + 1e-6
+        return torch.sin(x2) / x2
+
+    @staticmethod
+    def none_window(x):
+        """Identity-like windowing function."""
+        return torch.ones_like(x)
+
+    @staticmethod
+    def hamming_window(x):
+        """Hamming Windowing function."""
+        L = 2 * x.size(0) + 1
+        x = x.flip(0)
+        return 0.54 - 0.46 * torch.cos(2.0 * CONSTANT_PI * x / L)
+
+    def init_filters(self):
+        """Initialize filters with mel filterbank values."""
+
+        def mel(x):
+            return 1125.0 * torch.log(1.0 + torch.tensor(float(x)) / 700.0)
+
+        def hz(x):
+            return 700.0 * (torch.exp(x / 1125.0) - 1)
+
+        # mel filter bank
+        fs = torch.linspace(mel(30), mel(self.fs * 0.5), self.out_channels + 2)
+        fs = hz(fs) / self.fs
+        f1, f2 = fs[:-2], fs[2:]
+        self.f = torch.nn.Parameter(torch.stack([f1, f2], dim=1), requires_grad=True)
+
+    def _create_filters(self, device):
+        f_mins = torch.abs(self.f[:, 0])
+        f_maxs = torch.abs(self.f[:, 0]) + torch.abs(self.f[:, 1] - self.f[:, 0])
+
+        self._x = self._x.to(device)
+        self._window = self._window.to(device)
+
+        f_mins_x = torch.matmul(f_mins.view(-1, 1), self._x.view(1, -1))
+        f_maxs_x = torch.matmul(f_maxs.view(-1, 1), self._x.view(1, -1))
+
+        kernel = (torch.sin(f_maxs_x) - torch.sin(f_mins_x)) / (0.5 * self._x)
+        kernel = kernel * self._window
+
+        kernel_left = kernel.flip(1)
+        kernel_center = (2 * f_maxs - 2 * f_mins).unsqueeze(1)
+        filters = torch.cat([kernel_left, kernel_center, kernel], dim=1)
+
+        filters = filters.view(filters.size(0), 1, filters.size(1))
+        self.sinc_filters = filters
+
+    def forward(self, xs):
+        """Sinc convolution forward function.
+
+        :param torch.Tensor xs: batch of input data (B, C_in, D_in)
+        :return: batch of output data (B, C_out, D_out)
+        :rtype: torch.Tensor
+        """
+        self._create_filters(xs.device)
+        xs = torch.nn.functional.conv1d(
+            xs,
+            self.sinc_filters,
+            padding=self.padding,
+            stride=self.stride,
+            dilation=self.dilation,
+            groups=self.in_channels,
+        )
+        return xs
+
+    def get_odim(self, idim):
+        """Obtain the output dimension of the filter."""
+        D_out = idim + 2 * self.padding - self.dilation * (self.kernel_size - 1) - 1
+        D_out = (D_out // self.stride) + 1
+        return D_out

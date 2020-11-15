@@ -43,6 +43,7 @@ class ESPnetASRModel(AbsESPnetModel):
         frontend: Optional[AbsFrontend],
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
+        preencoder: Optional[AbsFrontend],
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
@@ -73,6 +74,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.specaug = specaug
         self.normalize = normalize
         self.adddiontal_utt_mvn = None
+        self.preencoder = preencoder
         self.encoder = encoder
         self.decoder = decoder
         if ctc_weight == 0.0:
@@ -189,7 +191,7 @@ class ESPnetASRModel(AbsESPnetModel):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-            # 2. Data augmentation for spectrogram
+            # 2. Data augmentation
             if self.specaug is not None and self.training:
                 feats, feats_lengths = self.specaug(feats, feats_lengths)
 
@@ -198,6 +200,10 @@ class ESPnetASRModel(AbsESPnetModel):
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
                 if self.adddiontal_utt_mvn is not None:
                     feats, feats_lengths = self.adddiontal_utt_mvn(feats, feats_lengths)
+
+        # Pre-encoder, e.g. used for raw input data
+        if self.preencoder is not None:
+            feats, feats_lengths = self.preencoder(feats, feats_lengths)
 
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
