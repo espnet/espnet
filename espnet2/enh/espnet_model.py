@@ -434,10 +434,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
+        diff = ref - inf
+        if isinstance(diff, ComplexTensor):
+            mseloss = diff.real ** 2 + diff.imag ** 2
+        else:
+            mseloss = diff ** 2
         if ref.dim() == 3:
-            mseloss = (abs(ref - inf) ** 2).mean(dim=[1, 2])
+            mseloss = mseloss.mean(dim=[1, 2])
         elif ref.dim() == 4:
-            mseloss = (abs(ref - inf) ** 2).mean(dim=[1, 2, 3])
+            mseloss = mseloss.mean(dim=[1, 2, 3])
         else:
             raise ValueError(
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
@@ -456,10 +461,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
+        if isinstance(inf, ComplexTensor):
+            l1loss = abs(ref - inf + 1e-15)
+        else:
+            l1loss = abs(ref - inf)
         if ref.dim() == 3:
-            l1loss = abs(ref - inf).mean(dim=[1, 2])
+            l1loss = l1loss.mean(dim=[1, 2])
         elif ref.dim() == 4:
-            l1loss = abs(ref - inf).mean(dim=[1, 2, 3])
+            l1loss = l1loss.mean(dim=[1, 2, 3])
         else:
             raise ValueError(
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
