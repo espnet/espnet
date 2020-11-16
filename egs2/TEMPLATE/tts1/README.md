@@ -347,8 +347,30 @@ You can find the all of the pretrained model list from [here](https://github.com
 
 ### How to load the pretrained model?
 
-Please use `--pretrain_path` and `--pretrain_key` options in training config (`*.yaml`).
-See the usage in [abs_task.py](https://github.com/espnet/espnet/blob/3cc59a16c3655f3b39dc2ae19ffafa7bfac879bf/espnet2/tasks/abs_task.py#L1040-L1054).
+Please use `--init_param` option or add it in training config (`*.yaml`).
+
+```bash
+# Usage
+--init_param <file_path>:<src_key>:<dst_key>:<exclude_keys>
+
+# Load all parameters
+python -m espnet2.bin.tts_train --init_param model.pth
+
+# Load only the parameters starting with "decoder"
+python -m espnet2.bin.tts_train --init_param model.pth:tts.dec
+
+# Load only the parameters starting with "decoder" and set it to model.tts.dec
+python -m espnet2.bin.tts_train --init_param model.pth:decoder:tts.dec
+
+# Set parameters to model.tts.dec
+python -m espnet2.bin.tts_train --init_param decoder.pth::tts.dec
+
+# Load all parameters excluding "tts.enc.embed"
+python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed
+
+# Load all parameters excluding "tts.enc.embed" and "tts.dec"
+python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed,tts.dec
+```
 
 ### How to finetune the pretrained model?
 
