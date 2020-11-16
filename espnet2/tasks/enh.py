@@ -170,7 +170,7 @@ class EnhancementTask(AbsTask):
         enh_model = enh_choices.get_class(args.enh)(**args.enh_conf)
 
         # 1. Build model
-        model = ESPnetEnhancementModel(enh_model=enh_model)
+        model = ESPnetEnhancementModel(enh_model=enh_model, **args.model_conf)
 
         # FIXME(kamo): Should be done in model?
         # 2. Initialize

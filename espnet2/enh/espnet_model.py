@@ -36,7 +36,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
     """Speech enhancement or separation Frontend model"""
 
     def __init__(
-        self, enh_model: Optional[AbsEnhancement],
+        self,
+        enh_model: Optional[AbsEnhancement],
+        stft_consistency: bool = False,
     ):
         assert check_argument_types()
 
@@ -51,7 +53,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # get loss type for model training
         self.loss_type = getattr(self.enh_model, "loss_type", None)
         # whether to compute the TF-domain loss while enforcing STFT consistency
-        self.stft_consistency = False
+        self.stft_consistency = stft_consistency
 
         assert self.loss_type in ALL_LOSS_TYPES, self.loss_type
         # for multi-channel signal
@@ -301,7 +303,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if self.loss_type == "magnitude":
                 # compute loss on magnitude spectrum
                 assert spectrum_pre is not None
-                magnitude_pre = [abs(ps) for ps in spectrum_pre]
+                magnitude_pre = [abs(ps + 1e-15) for ps in spectrum_pre]
                 if spectrum_ref[0].dim() > magnitude_pre[0].dim():
                     # only select one channel as the reference
                     magnitude_ref = [

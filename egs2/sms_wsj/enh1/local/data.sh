@@ -52,7 +52,7 @@ if [[ ! -d ${sms_wsj_scripts} ]]; then
     python -m pip install -e ${sms_wsj_scripts}
     if ! ${download_rir}; then
         git clone https://github.com/boeddeker/rir-generator.git ${sms_wsj_scripts}/reverb/rirgen_rep
-	    python -m pip install -e ${sms_wsj_scripts}/reverb/rirgen_rep/python/
+        python -m pip install -e ${sms_wsj_scripts}/reverb/rirgen_rep/python/
     fi
 fi
 

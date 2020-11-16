@@ -134,6 +134,13 @@ class ASRTask(AbsTask):
         required += ["token_list"]
 
         group.add_argument(
+            "--enh_model_conf",
+            action=NestedDictAction,
+            default=get_default_kwargs(ESPnetEnhancementModel),
+            help="The keyword arguments for enh model class.",
+        )
+
+        group.add_argument(
             "--token_list",
             type=str_or_none,
             default=None,
@@ -171,14 +178,14 @@ class ASRTask(AbsTask):
             "--asr_model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetASRModel),
-            help="The keyword arguments for model class.",
+            help="The keyword arguments for ASR model class.",
         )
 
         group.add_argument(
             "--enh_model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetEnhancementModel),
-            help="The keyword arguments for model class.",
+            default=get_default_kwargs(ESPnetEnhASRModel),
+            help="The keyword arguments for joint Enh and ASR model class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -306,10 +313,7 @@ class ASRTask(AbsTask):
 
         # 0. Build pre enhancement model
         enh_model = enh_choices.get_class(args.enh)(**args.enh_conf)
-<<<<<<< HEAD
-=======
-        enh_model = ESPnetEnhancementModel(enh_model)
->>>>>>> update multi-speaker ASR task
+        enh_model = ESPnetEnhancementModel(enh_model, **args.enh_model_conf)
 
         # 1. frontend
         if args.input_size is None:

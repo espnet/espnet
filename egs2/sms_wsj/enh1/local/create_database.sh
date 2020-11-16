@@ -83,9 +83,9 @@ fi
 
 mkdir -p ${json_dir}
 if [[ ! -f ${json_dir}/wsj_${sample_rate}_zeromean.json ]]; then
-	echo "Creating ${json_dir}/wsj_${sample_rate}_zeromean.json"
-	python -m sms_wsj.database.wsj.create_json \
-		with json_path=${json_dir}/wsj_${sample_rate}_zeromean.json \
+  echo "Creating ${json_dir}/wsj_${sample_rate}_zeromean.json"
+  python -m sms_wsj.database.wsj.create_json \
+    with json_path=${json_dir}/wsj_${sample_rate}_zeromean.json \
     database_dir=${wsj_zeromean_wav} as_wav=True
 fi
 
@@ -116,17 +116,17 @@ fi
 
 
 if [[ ! -f ${json_dir}/sms_wsj.json ]]; then
-	echo "Creating ${json_dir}/sms_wsj.json"
-	python -m sms_wsj.database.create_json \
-		with json_path=${json_dir}/sms_wsj.json rir_dir=${rir_dir} \
-		wsj_json_path=${json_dir}/wsj_${sample_rate}_zeromean.json
+  echo "Creating ${json_dir}/sms_wsj.json"
+  python -m sms_wsj.database.create_json \
+    with json_path=${json_dir}/sms_wsj.json rir_dir=${rir_dir} \
+    wsj_json_path=${json_dir}/wsj_${sample_rate}_zeromean.json
 fi
 
 
 echo "Creating ${sms_wsj_wav} audio data in '${sms_wsj_wav}'"
 mpiexec -np ${nj} python -m sms_wsj.database.write_files \
-	with dst_dir=${sms_wsj_wav} json_path=${json_dir}/sms_wsj.json \
-	write_all=True new_json_path=${json_dir}/sms_wsj.json
+  with dst_dir=${sms_wsj_wav} json_path=${json_dir}/sms_wsj.json \
+  write_all=True new_json_path=${json_dir}/sms_wsj.json
 
 
 # The total disc usage of SMS-WSJ is 442.1 GiB.
