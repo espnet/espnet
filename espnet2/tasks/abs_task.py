@@ -548,8 +548,27 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Pretraining model related")
-        group.add_argument("--pretrain_path", type=str, default=[], nargs="*")
-        group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="*")
+        group.add_argument("--pretrain_path", help="This option is obsoleted")
+        group.add_argument(
+            "--init_param",
+            type=str,
+            default=[],
+            nargs="*",
+            help="Specify the file path used for initialization of parameters. "
+            "The format is '<file_path>:<src_key>:<dst_key>:<exclude_keys>', "
+            "where file_path is the model file path, "
+            "src_key specifies the key of model states to be used in the model file, "
+            "dst_key specifies the attribute of the model to be initialized, "
+            "and exclude_keys excludes keys of model states for the initialization."
+            "e.g.\n"
+            "  # Load all parameters"
+            "  --init_param some/where/model.pth\n"
+            "  # Load only decoder parameters"
+            "  --init_param some/where/model.pth:decoder:decoder\n"
+            "  # Load only decoder parameters excluding decoder.embed"
+            "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n"
+            "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n",
+        )
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
@@ -828,10 +847,6 @@ class AbsTask(ABC):
         for k in vars(args):
             if "-" in k:
                 raise RuntimeError(f'Use "_" instead of "-": parser.get_parser("{k}")')
-        if len(args.pretrain_path) != len(args.pretrain_key):
-            raise RuntimeError(
-                "The number of --pretrain_path and --pretrain_key must be same"
-            )
 
         required = ", ".join(
             f"--{a}" for a in args.required if getattr(args, a) is None
@@ -930,6 +945,8 @@ class AbsTask(ABC):
         if args is None:
             parser = cls.get_parser()
             args = parser.parse_args(cmd)
+        if args.pretrain_path is not None:
+            raise RuntimeError("--pretrain_path is deprecated. Use --init_param")
         if args.print_config:
             cls.print_config()
             sys.exit(0)
@@ -1085,15 +1102,11 @@ class AbsTask(ABC):
                 yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
         # 6. Loads pre-trained model
-        for p, k in zip(args.pretrain_path, args.pretrain_key):
-            logging.info(f"Loading pretrained params from {p} (key: {k})")
+        for p in args.init_param:
+            logging.info(f"Loading pretrained params from {p}")
             load_pretrained_model(
                 model=model,
-                # Directly specify the model path e.g. exp/train/loss.best.pt
-                pretrain_path=p,
-                # if pretrain_key is None -> model
-                # elif pretrain_key is str e.g. "encoder" -> model.encoder
-                pretrain_key=k,
+                init_param=p,
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                 #   in PyTorch<=1.4
                 map_location=f"cuda:{torch.cuda.current_device()}"
