@@ -2,6 +2,9 @@
 
 # Copyright  2020  Shanghai Jiao Tong University (Authors: Wangyou Zhang)
 # Apache 2.0
+set -e
+set -u
+set -o pipefail
 
 nj=16
 min_or_max=min
@@ -9,7 +12,6 @@ sample_rate=8k
 download_rir=true
 
 . utils/parse_options.sh
-. ./cmd.sh
 . ./path.sh
 
 if [[ "$min_or_max" != "max" ]] && [[ "$min_or_max" != "min" ]]; then
@@ -53,7 +55,7 @@ json_dir=${sms_wsj_wav}
 rir_dir=${sms_wsj_wav}/rirs
 
 
-sph2pipe=sph2pipe
+sph2pipe=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
 if ! command -v "${sph2pipe}" &> /dev/null; then
   echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
   exit 1;
@@ -64,10 +66,16 @@ if ! command -v "mpiexec" &> /dev/null; then
   exit 1;
 fi
 
+if ! command -v "sox" &> /dev/null; then
+  echo "Could not find (or execute) the sox program";
+  exit 1;
+fi
 
+
+# This takes about 15 minutes with nj=16.
 if [[ ! -d ${wsj_zeromean_wav} ]]; then
   echo "Creating zero-mean normalized wsj at '${wsj_zeromean_wav}'."
-  ${train_cmd} mpiexec -np ${nj} python -m sms_wsj.database.wsj.write_wav \
+  mpiexec -np ${nj} python -m sms_wsj.database.wsj.write_wav \
       with dst_dir=${wsj_zeromean_wav} wsj0_root=${wsj0_path} \
       wsj1_root=${wsj1_path} sample_rate=${sample_rate}
 fi
@@ -76,22 +84,32 @@ fi
 mkdir -p ${json_dir}
 if [[ ! -f ${json_dir}/wsj_${sample_rate}_zeromean.json ]]; then
 	echo "Creating ${json_dir}/wsj_${sample_rate}_zeromean.json"
-	${train_cmd} mpiexec -np ${nj} python -m sms_wsj.database.wsj.create_json \
+	python -m sms_wsj.database.wsj.create_json \
 		with json_path=${json_dir}/wsj_${sample_rate}_zeromean.json \
     database_dir=${wsj_zeromean_wav} as_wav=True
 fi
 
 
 if [[ ! -d ${rir_dir} ]]; then
-  mkdir -p ${rir_dir}
   if ${download_rir}; then
+    mkdir -p ${rir_dir}
     echo "Downloading RIRs (50.8 GB) in '${rir_dir}'"
     wget -qO- https://zenodo.org/record/3517889/files/sms_wsj.tar.gz.parta{a,b,c,d,e} \
       | tar -C ${rir_dir}/ -zx --checkpoint=10000 --checkpoint-action=echo="%u/5530000 %c"
+
+    ## In case of instable network connection, please use the following command:
+    # Make temporary directory, delete on signal, but not on 'exit 1'.
+    temp_dir=$(mktemp -d data/temp.XXX) || exit 1
+    for url in https://zenodo.org/record/3517889/files/sms_wsj.tar.gz.parta{a,b,c,d,e}; do
+      wget --continue -O "${temp_dir}/$(basename ${url})" ${url}
+    done
+    cat ${temp_dir}/sms_wsj.tar.gz.parta* | \
+      tar -C ${rir_dir}/ -zx --checkpoint=10000 --checkpoint-action=echo="%u/5530000 %c"
+    rm -rf "${temp_dir}"
   else
     echo "Simulating RIRs in '${rir_dir}'"
     # This takes around 1900 / (ncpus - 1) hours.
-    ${train_cmd} mpiexec -np ${nj} python -m sms_wsj.database.create_rirs \
+    mpiexec -np ${nj} python -m sms_wsj.database.create_rirs \
       with database_path=${rir_dir}
   fi
 fi
@@ -99,14 +117,14 @@ fi
 
 if [[ ! -f ${json_dir}/sms_wsj.json ]]; then
 	echo "Creating ${json_dir}/sms_wsj.json"
-	${train_cmd} mpiexec -np ${nj} python -m sms_wsj.database.create_json \
+	python -m sms_wsj.database.create_json \
 		with json_path=${json_dir}/sms_wsj.json rir_dir=${rir_dir} \
 		wsj_json_path=${json_dir}/wsj_${sample_rate}_zeromean.json
 fi
 
 
 echo "Creating ${sms_wsj_wav} audio data in '${sms_wsj_wav}'"
-${train_cmd} mpiexec -np ${nj} python -m sms_wsj.database.write_files \
+mpiexec -np ${nj} python -m sms_wsj.database.write_files \
 	with dst_dir=${sms_wsj_wav} json_path=${json_dir}/sms_wsj.json \
 	write_all=True new_json_path=${json_dir}/sms_wsj.json
 

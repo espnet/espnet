@@ -16,14 +16,6 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-help_message=$(cat << EOF
-Usage: $0 [--min_or_max <min/max>] [--sample_rate <8k/16k>]
-  optional argument:
-    [--min_or_max]: min (Default), max
-    [--sample_rate]: 8k (Default), 16k
-EOF
-)
-
 . ./db.sh
 
 
@@ -56,20 +48,11 @@ fi
 if [[ ! -d ${sms_wsj_scripts} ]]; then
     log "Cloning and installing SMS-WSJ repository"
     git clone https://github.com/fgnt/sms_wsj.git ${sms_wsj_scripts}
+    # Note: MPI pre-installation is required here.
     python -m pip install -e ${sms_wsj_scripts}
-    if ${download_rir}; then
+    if ! ${download_rir}; then
         git clone https://github.com/boeddeker/rir-generator.git ${sms_wsj_scripts}/reverb/rirgen_rep
 	    python -m pip install -e ${sms_wsj_scripts}/reverb/rirgen_rep/python/
-    fi
-    # for reproducing the exact simulation
-    if ! python -c 'import sacred' &> /dev/null; then
-        log "Installing 'sacred' (required for generating SMS-WSJ)"
-        python -m pip install sacred
-    fi
-    # Note: MPI pre-installation is required here.
-    if ! python -c 'import dlp_mpi' &> /dev/null; then
-        log "Installing 'dlp_mpi' (required for generating SMS-WSJ)"
-        python -m pip install dlp_mpi
     fi
 fi
 

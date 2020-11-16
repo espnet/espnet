@@ -247,8 +247,5 @@ class TFMaskingNet(AbsEnhancement):
             predicted_wavs = [
                 self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums
             ]
-        else:
-            # single-speaker input
-            predicted_wavs = self.stft.inverse(predicted_spectrums, ilens)[0]
 
         return predicted_wavs, ilens, masks
