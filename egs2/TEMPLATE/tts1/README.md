@@ -363,13 +363,13 @@ python -m espnet2.bin.tts_train --init_param model.pth:tts.dec
 python -m espnet2.bin.tts_train --init_param model.pth:decoder:tts.dec
 
 # Set parameters to model.tts.dec
-python -m espnet2.bin.asr_train --init_param decoder.pth::tts.dec
+python -m espnet2.bin.tts_train --init_param decoder.pth::tts.dec
 
 # Load all parameters excluding "tts.enc.embed"
-python -m espnet2.bin.asr_train --init_param model.pth:::tts.enc.embed
+python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed
 
 # Load all parameters excluding "tts.enc.embed" and "tts.dec"
-python -m espnet2.bin.asr_train --init_param model.pth:::tts.enc.embed,tts.dec
+python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed,tts.dec
 ```
 
 ### How to finetune the pretrained model?
