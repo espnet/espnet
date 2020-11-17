@@ -9,4 +9,6 @@ class NoAliasSafeDumper(yaml.SafeDumper):
 
 def yaml_no_alias_safe_dump(data, stream=None, **kwargs):
     """Safe-dump in yaml with no anchor/alias"""
-    return yaml.dump(data, stream, Dumper=NoAliasSafeDumper, **kwargs)
+    return yaml.dump(
+        data, stream, allow_unicode=True, Dumper=NoAliasSafeDumper, **kwargs
+    )

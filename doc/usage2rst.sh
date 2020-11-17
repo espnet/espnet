@@ -7,14 +7,16 @@ if [ $1 == "--help" ]; then
     exit 0;
 fi
 
-cd ./egs/wsj/asr1
+real=$(realpath $1)
+
+cd ./egs2/wsj/asr1
 . path.sh
 
 cmd=$(basename $1)
 len=${#cmd}
-r=$(pwd)/../../../utils/
+r=$(dirname $real)
 sep=$(printf '~%.0s' $(seq $len))
-usage=$($cmd --help |& sed "s?${r}??g" | grep -v -e '--help' | sed "s/^/    /g")
+usage=$($real --help |& sed "s?${r}/??g" | grep -v -e '--help' | sed "s/^/    /g")
 cat <<EOF
 .. _${cmd}:
 

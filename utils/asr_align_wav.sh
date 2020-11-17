@@ -17,7 +17,6 @@ backend=pytorch
 stage=-1       # start from -1 if you need to start from model download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
-debugmode=1
 verbose=1      # verbose option
 
 # feature configuration
@@ -35,8 +34,10 @@ api=v1
 subsampling_factor=4
 # minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
 min_confidence_score=-5.0
-# minimum length of one utterance
+# minimum length of one utterance (counted in frames)
 min_window_size=8000
+# partitioning length L for calculation of the confidence score
+scoring_length=30
 
 
 # download related
@@ -262,13 +263,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${python} -m espnet.bin.asr_align \
         --config ${align_config} \
         --ngpu ${ngpu} \
-        --debugmode ${debugmode} \
         --verbose ${verbose} \
         --data-json ${feat_align_dir}/data.json \
         --model ${align_model} \
         --subsampling-factor ${subsampling_factor} \
         --min-window-size ${min_window_size} \
-        --use-dict-blank 1 \
+        --scoring-length ${scoring_length} \
         --api ${api} \
         --utt-text ${align_dir}/utt_text \
         --output ${align_dir}/aligned_segments || exit 1;

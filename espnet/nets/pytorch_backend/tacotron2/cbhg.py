@@ -199,7 +199,9 @@ class CBHG(torch.nn.Module):
         # total_length needs for DataParallel
         # (see https://github.com/pytorch/pytorch/pull/6327)
         total_length = xs.size(1)
-        xs = pack_padded_sequence(xs, ilens, batch_first=True)
+        if not isinstance(ilens, torch.Tensor):
+            ilens = torch.tensor(ilens)
+        xs = pack_padded_sequence(xs, ilens.cpu(), batch_first=True)
         self.gru.flatten_parameters()
         xs, _ = self.gru(xs)
         xs, ilens = pad_packed_sequence(xs, batch_first=True, total_length=total_length)
