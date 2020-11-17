@@ -265,6 +265,11 @@ def build_input_layer(
         (torch.nn.*): input layer module
 
     """
+    if pos_enc_class.__name__ == "RelPositionalEncoding":
+        pos_enc_class_subsampling = pos_enc_class(odim, pos_dropout_rate)
+    else:
+        pos_enc_class_subsampling = None
+
     if input_layer == "linear":
         return torch.nn.Sequential(
             torch.nn.Linear(idim, odim),
@@ -274,14 +279,11 @@ def build_input_layer(
             pos_enc_class(odim, pos_dropout_rate),
         )
     elif input_layer == "conv2d":
-        if pos_enc_class.__name__ == "RelPositionalEncoding":
-            return Conv2dSubsampling(
-                idim, odim, dropout_rate, pos_enc_class(odim, pos_dropout_rate)
-            )
-        else:
-            return Conv2dSubsampling(idim, odim, dropout_rate)
+        return Conv2dSubsampling(
+            idim, odim, dropout_rate, pos_enc_class_subsampling
+        )
     elif input_layer == "vgg2l":
-        return VGG2L(idim, odim)
+        return VGG2L(idim, odim, pos_enc_class_subsampling)
     elif input_layer == "embed":
         return torch.nn.Sequential(
             torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
