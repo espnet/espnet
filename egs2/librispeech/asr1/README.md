@@ -8,6 +8,7 @@
   - Commit date: `Thu Oct 8 07:32:49 2020 -0400`
 
 ## asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
+- https://zenodo.org/record/4276519
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
