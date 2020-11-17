@@ -6,13 +6,15 @@ import cvtransforms
 import torch
 from models import pretrained
 
+
 def reload_model(model, path=""):
     if not bool(path):
         return model
     else:
         model_dict = model.state_dict()
         pretrained_dict = torch.load(path, map_location='cpu')
-        pretrained_dict = {k:v for k,v in pretrained_dict.items() if k in model_dict and v.size() == model_dict[k].size()}
+        pretrained_dict = {k: v for k, v in pretrained_dict.items(
+        ) if k in model_dict and v.size() == model_dict[k].size()}
         model_dict.update(pretrained_dict)
         print('load {} parameters'.format(len(pretrained_dict)))
         model.load_state_dict(model_dict)
@@ -40,6 +42,12 @@ class BoundingBox(object):
                 self.maxx = int(x)
             if y > self.maxy:
                 self.maxy = int(y)
+        if self.maxx <= self.minx or self.maxy <= self.miny:
+            print("Box failed, return center box")
+            self.minx, self.miny = 192, 192
+            self.maxx, self.maxy = 64, 64
+
+
 
     @property
     def width(self):
@@ -52,6 +60,7 @@ class BoundingBox(object):
     def __repr__(self):
         return "BoundingBox({}, {}, {}, {})".format(
             self.minx, self.maxx, self.miny, self.maxy)
+
 
 def parse_scripts(scp_path, value_processor=lambda x: x, num_tokens=2):
     """
@@ -79,12 +88,14 @@ def parse_scripts(scp_path, value_processor=lambda x: x, num_tokens=2):
             scp_dict[key] = value_processor(value)
     return scp_dict
 
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model  = pretrained.Lipreading(mode='temporalConv', nClasses=500)
+model = pretrained.Lipreading(mode='temporalConv', nClasses=500)
 model = reload_model(model, "./local/feature_extract/finetuneGRU_19.pt")
 model = model.float()
 model.eval()
 model.to(device)
+
 
 class VideoReader(object):
     """
@@ -95,9 +106,9 @@ class VideoReader(object):
         self.index_dict = parse_scripts(
             scp_path, value_processor=value_processor, num_tokens=2)
         self.index_keys = list(self.index_dict.keys())
-        self.face_align_model = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False)
-
-
+        self.face_align_model = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D,
+                                                             flip_input=False,
+                                                             device="cuda:0" if torch.cuda.is_available() else "cpu")
 
     def video_face_crop(self, input_video):
         video = input_video
@@ -113,17 +124,20 @@ class VideoReader(object):
 
         bounding_box = BoundingBox(heatmap[2:15])
 
-        croped = video[:,  bounding_box.miny:bounding_box.maxy,bounding_box.minx:bounding_box.maxx, :]
+        croped = video[:, bounding_box.miny:bounding_box.maxy,
+                       bounding_box.minx:bounding_box.maxx, :]
 
         crop_resize = np.zeros((np.shape(video)[0], 112, 112, np.shape(video)[-1]))
-
+        
+        print(crop_resize)
         for i in range(len(croped)):
-            crop_resize[i] = skimage.transform.resize(croped[i], (112,112), preserve_range=True)
+            crop_resize[i] = skimage.transform.resize(
+                croped[i], (112, 112), preserve_range=True)
 
         crop_resize = crop_resize.astype(np.uint8)
 
         return crop_resize
-    
+
     def transform_to_gray(self, data):
         r, g, b = data[..., 0], data[..., 1], data[..., 2]
         data = (0.2989 * r + 0.5870 * g + 0.1140 * b) / 255
@@ -138,7 +152,6 @@ class VideoReader(object):
             outputs = model(inputs.to(device))
         return outputs.cpu().numpy()
 
-    
     def _load(self, key):
         # return path
         video = skvideo.io.vread(self.index_dict[key])
