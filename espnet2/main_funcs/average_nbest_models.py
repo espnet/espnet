@@ -90,7 +90,7 @@ def average_nbest_models(
                         #  please report.)
                         pass
                     else:
-                        avg[k] = avg[k]/n
+                        avg[k] = avg[k] / n
 
                 # 2.b. Save the ave model and create a symlink
                 torch.save(avg, op)
