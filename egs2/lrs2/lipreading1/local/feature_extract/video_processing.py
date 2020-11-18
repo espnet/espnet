@@ -129,10 +129,14 @@ class VideoReader(object):
 
         crop_resize = np.zeros((np.shape(video)[0], 112, 112, np.shape(video)[-1]))
         
-        print(crop_resize)
         for i in range(len(croped)):
-            crop_resize[i] = skimage.transform.resize(
-                croped[i], (112, 112), preserve_range=True)
+            try:
+                crop_resize[i] = skimage.transform.resize(
+                    croped[i], (112, 112), preserve_range=True)
+            except:
+                print(croped)
+                print('frame fails')
+
 
         crop_resize = crop_resize.astype(np.uint8)
 
