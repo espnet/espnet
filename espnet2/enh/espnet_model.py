@@ -278,6 +278,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         spectrum_pre.append(spec_pre)
                 else:
                     spectrum_pre = None
+                    _, tf_length = self.enh_model.stft(speech_mix, speech_lengths)
             else:
                 # compute loss on pseudo STFT directly
                 spectrum_pre, tf_length, mask_pre = self.enh_model(
