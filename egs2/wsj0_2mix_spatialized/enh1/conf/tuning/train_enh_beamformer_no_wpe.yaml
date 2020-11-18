@@ -49,6 +49,6 @@ enh_conf:
     bprojs: 512
     badim: 320
     ref_channel: 0
-    use_noise_mask: True
-    beamformer_type: mvdr_souden
+    use_noise_mask: False
+    beamformer_type: mvdr
     bdropout_rate: 0.0

@@ -4,7 +4,7 @@
 # Apache 2.0
 
 min_or_max=min
-sample_rate=8k
+sample_rate=8000
 nj=16
 
 . utils/parse_options.sh
@@ -41,8 +41,8 @@ if [ $# -ne 3 ]; then
 fi
 
 dir=$1
-wsj0_2mix_wav=$2
-wsj0_2mix_spatialized_wav=$3
+wsj0_2mix_wav=$3
+wsj0_2mix_spatialized_wav=$2
 
 
 if ! command -v matlab >/dev/null 2>&1; then
@@ -107,7 +107,7 @@ echo $matlab_cmd >> $cmdfile
 chmod +x $cmdfile
 
 # Run Matlab (This takes more than 8 hours)
-# Expected data directories to be generated:
+# Expected data directory to be generated:
 #   - ${wsj0_2mix_spatialized_wav}/RIRs_16k/rir_*.mat
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_anechoic/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_reverb/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav

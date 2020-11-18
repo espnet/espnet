@@ -27,14 +27,14 @@ stage=1          # Processes starts from the specified stage.
 stop_stage=10000 # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
-skip_eval=false      # Skip inference and evaluation stages
+skip_eval=false      # Skip decoding and evaluation stages
 skip_upload=true     # Skip packing and uploading stages
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1      # The number of nodes
 nj=32            # The number of parallel jobs.
 dumpdir=dump     # Directory to dump features.
-inference_nj=32     # The number of parallel jobs in inference.
-gpu_inference=false # Whether to perform gpu inference.
+inference_nj=32     # The number of parallel jobs in decoding.
+gpu_inference=false # Whether to perform gpu decoding.
 expdir=exp       # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
 
@@ -56,20 +56,12 @@ enh_tag=    # Suffix to the result dir for enhancement model training.
 enh_config= # Config for ehancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
-spk_num=2   # Number of speakers
+spk_num=2
 noise_type_num=1
-dereverb_ref_num=1
 
 # Training data related
 use_dereverb_ref=false
 use_noise_ref=false
-
-# Pretrained model related
-# The number of --pretrain_path and --pretrain_key must be same.
-pretrain_path=
-# if pretrain_key is None -> model
-# elif pretrain_key is str e.g. "encoder" -> model.encoder
-pretrain_key=
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
@@ -95,7 +87,7 @@ Options:
     --stop_stage    # Processes is stopped at the specified stage (default="${stop_stage}").
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip inference and evaluation stages (default="${skip_eval}").
+    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --ngpu          # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes     # The number of nodes
@@ -126,8 +118,7 @@ Options:
     --enh_args   # Arguments for enhancement model training, e.g., "--max_epoch 10" (default="${enh_args}").
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
-    --noise_type_num   # Number of noise types in the input audio (default="${noise_type_num}")
-    --dereverb_ref_num # Number of references for dereverberation (default="${dereverb_ref_num}")
+    --noise_type_num  # Number of noise types in the input audio (default="${noise_type_num}")
 
     # Training data related
     --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
@@ -135,13 +126,9 @@ Options:
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
 
-    # Pretrained model related
-    --pretrain_path    # pretrained model path (default="${pretrain_path}")
-    --pretrain_key     # name of module to be initialized from the pretrained model (default="${pretrain_key}")
-
     # Enhancement related
-    --inference_args   # Arguments for enhancement in the inference stage (default="${inference_args}")
-    --inference_model  # Enhancement model path for inference (default="${inference_model}").
+    --inference_args      # Arguments for enhancement in the inference stage (default="${inference_args}")
+    --inference_model # Enhancement model path for inference (default="${inference_model}").
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -277,13 +264,13 @@ if ! "${skip_data_prep}"; then
             for i in $(seq ${spk_num}); do
                 _spk_list+="spk${i} "
             done
-            if $use_noise_ref && [ -n "${_suf}" ]; then
-                # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
+            if $use_noise_ref; then
+                # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                 _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
             fi
-            if $use_dereverb_ref && [ -n "${_suf}" ]; then
-                # references for dereverberation
-                _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
+            if $use_dereverb_ref; then
+                # reference for dereverberation
+                _spk_list+="dereverb "
             fi
 
             for spk in ${_spk_list} "wav" ; do
@@ -312,12 +299,12 @@ if ! "${skip_data_prep}"; then
                 _spk_list+="spk${i} "
             done
             if $use_noise_ref; then
-                # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
+                # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                 _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
             fi
             if $use_dereverb_ref; then
-                # references for dereverberation
-                _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
+                # reference for dereverberation
+                _spk_list+="dereverb "
             fi
 
             # Copy data dir
@@ -415,15 +402,13 @@ if ! "${skip_train}"; then
         done
 
         if $use_dereverb_ref; then
-            # references for dereverberation
-            _train_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
-                "--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
-            _valid_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
-                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
+            # reference for dereverberation
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
         fi
 
         if $use_noise_ref; then
-            # references for denoising
+            # reference for denoising
             _train_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
                 "--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "; done)
             _valid_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
@@ -490,18 +475,16 @@ if ! "${skip_train}"; then
         done
 
         if $use_dereverb_ref; then
-            # references for dereverberation
-            for n in $(seq "${dereverb_ref_num}"); do
-                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
-                _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref${n}_shape "
-                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
-                _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref${n}_shape "
-                _fold_length_param+="--fold_length ${_fold_length} "
-            done
+            # reference for dereverberation
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
+            _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref_shape "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
+            _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref_shape "
+            _fold_length_param+="--fold_length ${_fold_length} "
         fi
 
         if $use_noise_ref; then
-            # references for denoising
+            # reference for denoising
             for n in $(seq "${noise_type_num}"); do
                 _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "
                 _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/noise_ref${n}_shape "
@@ -580,7 +563,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Submit inference jobs
+            # 2. Submit decoding jobs
             log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
@@ -643,7 +626,7 @@ if ! "${skip_eval}"; then
                 _inf_scp+="--inf_scp ${_inf_dir}/spk${spk}.scp "
             done
 
-            # 2. Submit scoring jobs
+            # 2. Submit decoding jobs
             log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
@@ -693,8 +676,8 @@ if ! "${skip_upload}"; then
     fi
 
 
-    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-        log "Stage 12: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
