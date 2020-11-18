@@ -1,1 +1,0 @@
-../../../../egs/chime4/asr1/local/make_stft.sh

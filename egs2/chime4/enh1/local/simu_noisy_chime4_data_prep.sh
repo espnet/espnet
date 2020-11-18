@@ -1,1 +1,0 @@
-../../asr1/local/simu_noisy_chime4_data_prep.sh
