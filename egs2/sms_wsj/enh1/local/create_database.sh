@@ -7,19 +7,22 @@ set -u
 set -o pipefail
 
 nj=16
-min_or_max=min
+min_or_max=max
 sample_rate=8k
 download_rir=true
+write_all=true
 
 . utils/parse_options.sh
 . ./path.sh
 
-if [[ "$min_or_max" != "max" ]] && [[ "$min_or_max" != "min" ]]; then
-  echo "Error: min_or_max must be either max or min: ${min_or_max}"
+if [[ "$min_or_max" != "max" ]]; then
+  echo "Error: min_or_max must be max: ${min_or_max}"
   exit 1
 fi
 if [[ "$sample_rate" == "16k" ]]; then
   sample_rate=16000
+  echo "Warning: sample_rate=16k is not officially supported yet."
+  exit 1
 elif [[ "$sample_rate" == "8k" ]]; then
   sample_rate=8000
 else
@@ -28,6 +31,10 @@ else
 fi
 if [[ "$download_rir" != "true" ]] && [[ "$download_rir" != "false" ]]; then
   echo "Error: download_rir must be either true or false: ${download_rir}"
+  exit 1
+fi
+if [[ "$write_all" != "true" ]] && [[ "$write_all" != "false" ]]; then
+  echo "Error: write_all must be either true or false: ${write_all}"
   exit 1
 fi
 
@@ -42,6 +49,7 @@ if [ $# -ne 4 ]; then
   echo "  --min-or-max <min_or_max>     # min or max length for generating mixtures (Default=${min_or_max})"
   echo "  --sample-rate <sample_rate>   # sample rate (Default=${sample_rate})"
   echo "  --download-rir <download_rir> # whether to download or simulate RIRs (Default=${download_rir})"
+  echo "  --write-all <download_rir>    # whether to store all intermediate audio data (Default=${write_all})"
   echo "Note: this script won't actually re-download things if called twice,"
   echo "because we use the --continue flag to 'wget'."
   exit 1;
@@ -94,11 +102,10 @@ if [[ ! -d ${rir_dir} ]]; then
   if ${download_rir}; then
     mkdir -p ${rir_dir}
     echo "Downloading RIRs (50.8 GB) in '${rir_dir}'"
-    wget -qO- https://zenodo.org/record/3517889/files/sms_wsj.tar.gz.parta{a,b,c,d,e} \
-      | tar -C ${rir_dir}/ -zx --checkpoint=10000 --checkpoint-action=echo="%u/5530000 %c"
+    # wget -qO- https://zenodo.org/record/3517889/files/sms_wsj.tar.gz.parta{a,b,c,d,e} \
+    #   | tar -C ${rir_dir}/ -zx --checkpoint=10000 --checkpoint-action=echo="%u/5530000 %c"
 
     ## In case of instable network connection, please use the following command:
-    # Make temporary directory, delete on signal, but not on 'exit 1'.
     temp_dir=$(mktemp -d data/temp.XXX) || exit 1
     for url in https://zenodo.org/record/3517889/files/sms_wsj.tar.gz.parta{a,b,c,d,e}; do
       wget --continue -O "${temp_dir}/$(basename ${url})" ${url}
@@ -115,28 +122,40 @@ if [[ ! -d ${rir_dir} ]]; then
 fi
 
 
-if [[ ! -f ${json_dir}/sms_wsj.json ]]; then
-  echo "Creating ${json_dir}/sms_wsj.json"
-  python -m sms_wsj.database.create_json \
-    with json_path=${json_dir}/sms_wsj.json rir_dir=${rir_dir} \
-    wsj_json_path=${json_dir}/wsj_${sample_rate}_zeromean.json
+if [[ ! -f ${json_dir}/intermediate_sms_wsj.json ]]; then
+  echo "Creating ${json_dir}/intermediate_sms_wsj.json"
+  python -m sms_wsj.database.create_intermediate_json \
+    with json_path=${json_dir}/intermediate_sms_wsj.json rir_dir=${rir_dir} \
+    wsj_json_path=${json_dir}/wsj_${sample_rate}_zeromean.json debug=False
 fi
 
 
+# This takes about 15 minutes with nj=16.
 echo "Creating ${sms_wsj_wav} audio data in '${sms_wsj_wav}'"
 mpiexec -np ${nj} python -m sms_wsj.database.write_files \
-  with dst_dir=${sms_wsj_wav} json_path=${json_dir}/sms_wsj.json \
-  write_all=True new_json_path=${json_dir}/sms_wsj.json
+  with dst_dir=${sms_wsj_wav} json_path=${json_dir}/intermediate_sms_wsj.json \
+  write_all=True debug=False
 
 
-# The total disc usage of SMS-WSJ is 442.1 GiB.
-# directory	      disc usage
-# --------------------------
-# tail	          120.1 GiB
-# early	          120.1 GiB
-# observation	    60.0 GiB
-# noise	          60.0 GiB
-# rirs	          52.6 GiB
-# wsj_8k_zeromean	29.2 GiB
-# sms_wsj.json	  1397 MiB
-# wsj_8k.json	    316 MiB
+if [[ ! -f ${json_dir}/sms_wsj.json ]]; then
+  echo "Creating ${json_dir}/sms_wsj.json"
+  python -m sms_wsj.database.create_json_for_written_files \
+    with db_dir=${sms_wsj_wav} intermed_json_path=${json_dir}/intermediate_sms_wsj.json \
+    write_all=True json_path=${json_dir}/sms_wsj.json debug=False
+fi
+
+
+# The total disk usage of SMS-WSJ is 442.1 GiB.
+# directory/file  disk usage  #channels   #samples
+# --------------------------------------------------------------------------------
+# tail	          120.1 GiB   6           35875 * 2 (only when write_all=True)
+# early	          120.1 GiB   6           35875 * 2 (only when write_all=True)
+# observation	    60.0 GiB    6           35875
+# noise	          60.0 GiB    6           35875
+# --------------------------------------------------------------------------------
+# rirs	          52.6 GiB    6           143500=(33561+982+1332)*4 (up to 4 srcs)
+# wsj_8k_zeromean	29.2 GiB    1           131824
+# --------------------------------------------------------------------------------
+# sms_wsj.json	  1397 MiB                -
+# wsj_8k.json	    316 MiB                 -
+# --------------------------------------------------------------------------------

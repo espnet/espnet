@@ -20,8 +20,8 @@ log() {
 
 
 nj=16
-min_or_max=min
 sample_rate=8k
+use_reverb_reference=false
 download_rir=true
 
 . utils/parse_options.sh
@@ -29,8 +29,8 @@ download_rir=true
 . ./path.sh
 
 
-wsj_zeromean_wav=$PWD/data/sms_wsj/wsj_${sample_rate}_zeromean
-sms_wsj_wav=$PWD/data/sms_wsj/2speakers
+sms_wsj_wav=$PWD/data/sms_wsj
+wsj_zeromean_wav=${sms_wsj_wav}/wsj_${sample_rate}_zeromean
 sms_wsj_scripts=$PWD/local/sms_wsj
 other_text=data/local/other_text/text
 nlsyms=data/nlsyms.txt
@@ -58,7 +58,6 @@ fi
 
 local/create_database.sh \
     --nj ${nj} \
-    --min-or-max ${min_or_max} \
     --sample-rate ${sample_rate} \
     --download-rir ${download_rir} \
     ${WSJ0} ${WSJ1} ${wsj_zeromean_wav} ${sms_wsj_wav} || exit 1;
@@ -70,8 +69,11 @@ local/create_database.sh \
 #   - `both`: a mixture of speech1, speech2 and noise (for speech separation)
 #   - `clean`: a mixture of speech1 and speech2 (for speech separation)
 #   - `single`: a mixture of speech1 and noise (for speech enhancement)
-local/sms_wsj_data_prep.sh --min-or-max ${min_or_max} --sample-rate ${sample_rate} \
-    ${sms_wsj_scripts}/whamr_scripts ${sms_wsj_wav} ${wsj_zeromean_wav} || exit 1;
+python local/sms_wsj_data_prep.py \
+    --sample-rate ${sample_rate} \
+    --use-reverb-reference ${use_reverb_reference} \
+    --dist-dir data \
+    ${sms_wsj_wav}/sms_wsj.json || exit 1;
 
 
 ### Also need wsj corpus to prepare language information

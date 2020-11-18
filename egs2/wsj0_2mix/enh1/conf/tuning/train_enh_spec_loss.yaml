@@ -28,6 +28,7 @@ scheduler_conf:
 enh: tf_masking
 enh_conf:
     mask_type: PSM
+    loss_type: spectrum
     n_fft: 256
     hop_length: 128
     rnn_type: blstm
@@ -37,3 +38,5 @@ enh_conf:
     num_spk: 2
     utt_mvn: False
     nonlinear: relu
+model_conf:
+    stft_consistency: False

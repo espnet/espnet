@@ -1,13 +1,13 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 100
+max_epoch: 120
 batch_type: folded
-batch_size:  8
+batch_size: 8
 num_workers: 4
 optim_conf:
-    lr: 1.0e-03
+    lr: 0.001
     eps: 1.0e-08
-    weight_decay: 1.0e-7
+    weight_decay: 1.0e-07
 patience: 10
 val_scheduler_criterion:
 - valid
@@ -27,7 +27,7 @@ scheduler_conf:
     patience: 1
 enh: tf_masking
 enh_conf:
-    mask_type: PSM
+    loss_type: spectrum
     n_fft: 256
     hop_length: 128
     rnn_type: blstm
@@ -35,5 +35,7 @@ enh_conf:
     unit: 896
     dropout: 0.5
     num_spk: 2
-    utt_mvn: False
+    utt_mvn: false
     nonlinear: relu
+model_conf:
+    stft_consistency: true

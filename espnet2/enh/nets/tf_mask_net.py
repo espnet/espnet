@@ -68,7 +68,7 @@ class TFMaskingNet(AbsEnhancement):
         self.mask_type = mask_type
         self.loss_type = loss_type
         self.return_spec_in_training = False
-        if loss_type not in ("mask_mse", "magnitude", "spectrum"):
+        if loss_type not in ("mask_mse", "magnitude", "spectrum", "si_snr"):
             raise ValueError("Unsupported loss type: %s" % loss_type)
         self.rnn_type = rnn_type
 
