@@ -1239,8 +1239,9 @@ if ! "${skip_eval}"; then
                 log "Write ${_type} result in ${_scoredir}/result.txt"
                 grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
             done
-
         done
+
+        [ -f local/score.sh ] && local/score.sh "${asr_exp}"
 
         # Show results in Markdown syntax
         scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
