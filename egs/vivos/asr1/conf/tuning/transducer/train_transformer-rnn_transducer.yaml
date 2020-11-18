@@ -27,16 +27,16 @@ enc-block-arch:
           d_ff: 320
           heads: 4
           att-dropout-rate: 0.4
-enc-block-repeat: 6
+enc-block-repeat: 8
 ## decoder related
 dtype: lstm
 dlayers: 1
-dec-embed-dim: 300
-dunits: 300
+dec-embed-dim: 512
+dunits: 512
 dropout-rate-decoder: 0.2
 dropout-rate-embed-decoder: 0.1
 ## joint network related
-joint-dim: 300
+joint-dim: 128
 
 # transducer related
 rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention

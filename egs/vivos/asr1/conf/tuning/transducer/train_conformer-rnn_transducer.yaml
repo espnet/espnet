@@ -16,7 +16,7 @@ grad-clip: 5.0
 # network architecture
 ## encoder related
 etype: transformer
-transformer-enc-input-layer: conv2d
+transformer-enc-input-layer: vgg2l
 enc-block-arch:
         - type: conformer
           d_hidden: 320
