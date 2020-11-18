@@ -26,6 +26,7 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.duration_calculator import DurationCalculator
 from espnet2.tts.fastspeech import FastSpeech
+from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
 from espnet2.utils import config_argparse
@@ -91,7 +92,6 @@ class Text2Speech:
                     "threshold": threshold,
                     "maxlenratio": maxlenratio,
                     "minlenratio": minlenratio,
-                    "use_teacher_forcing": use_teacher_forcing,
                 }
             )
         if isinstance(self.tts, Tacotron2):
@@ -102,8 +102,10 @@ class Text2Speech:
                     "backward_window": backward_window,
                 }
             )
-        if isinstance(self.tts, FastSpeech):
+        if isinstance(self.tts, (FastSpeech, FastSpeech2)):
             decode_config.update({"alpha": speed_control_alpha})
+        decode_config.update({"use_teacher_forcing": use_teacher_forcing})
+
         self.decode_config = decode_config
 
         if vocoder_conf is None:
@@ -126,6 +128,7 @@ class Text2Speech:
         self,
         text: Union[str, torch.Tensor, np.ndarray],
         speech: Union[torch.Tensor, np.ndarray] = None,
+        durations: Union[torch.Tensor, np.ndarray] = None,
     ):
         assert check_argument_types()
 
@@ -138,6 +141,8 @@ class Text2Speech:
         batch = {"text": text}
         if speech is not None:
             batch["speech"] = speech
+        if durations is not None:
+            batch["durations"] = durations
 
         batch = to_device(batch, self.device)
         outs, outs_denorm, probs, att_ws = self.model.inference(
@@ -245,7 +250,7 @@ def inference(
         key_file=key_file,
         num_workers=num_workers,
         preprocess_fn=TTSTask.build_preprocess_fn(text2speech.train_args, False),
-        collate_fn=TTSTask.build_collate_fn(text2speech.train_args),
+        collate_fn=TTSTask.build_collate_fn(text2speech.train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -267,7 +272,8 @@ def inference(
     from matplotlib.ticker import MaxNLocator
 
     with NpyScpWriter(
-        output_dir / "norm", output_dir / "norm/feats.scp",
+        output_dir / "norm",
+        output_dir / "norm/feats.scp",
     ) as norm_writer, NpyScpWriter(
         output_dir / "denorm", output_dir / "denorm/feats.scp"
     ) as denorm_writer, open(
@@ -372,9 +378,10 @@ def inference(
     # remove duration related files if attention is not provided
     if att_ws is None:
         shutil.rmtree(output_dir / "att_ws")
-        shutil.rmtree(output_dir / "probs")
         shutil.rmtree(output_dir / "durations")
         shutil.rmtree(output_dir / "focus_rates")
+    if probs is None:
+        shutil.rmtree(output_dir / "probs")
 
 
 def get_parser():
@@ -390,18 +397,27 @@ def get_parser():
         "--log_level",
         type=lambda x: x.upper(),
         default="INFO",
-        choices=("INFO", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+        choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
     )
 
     parser.add_argument(
-        "--output_dir", type=str, required=True, help="The path of output directory",
+        "--output_dir",
+        type=str,
+        required=True,
+        help="The path of output directory",
     )
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument(
-        "--seed", type=int, default=0, help="Random seed",
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed",
     )
     parser.add_argument(
         "--dtype",
@@ -416,7 +432,10 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
 
     group = parser.add_argument_group("Input data related")
@@ -427,18 +446,25 @@ def get_parser():
         action="append",
     )
     group.add_argument(
-        "--key_file", type=str_or_none,
+        "--key_file",
+        type=str_or_none,
     )
     group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False,
+        "--allow_variable_data_keys",
+        type=str2bool,
+        default=False,
     )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--train_config", type=str, help="Training configuration file.",
+        "--train_config",
+        type=str,
+        help="Training configuration file.",
     )
     group.add_argument(
-        "--model_file", type=str, help="Model parameter file.",
+        "--model_file",
+        type=str,
+        help="Model parameter file.",
     )
 
     group = parser.add_argument_group("Decoding related")
@@ -455,7 +481,10 @@ def get_parser():
         help="Minimum length ratio in decoding",
     )
     group.add_argument(
-        "--threshold", type=float, default=0.5, help="Threshold value in decoding",
+        "--threshold",
+        type=float,
+        default=0.5,
+        help="Threshold value in decoding",
     )
     group.add_argument(
         "--use_att_constraint",

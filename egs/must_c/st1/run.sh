@@ -32,6 +32,7 @@ trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of ST models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ST models will be averaged.
                              # if false, the last `n_average` ST models will be averaged.
+metric=bleu                  # loss/acc/bleu
 
 # pre-training related
 asr_model=
@@ -43,6 +44,10 @@ tgt_case=tc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
+
+# postprocessing related
+remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
+# NOTE: IWSLT community accepts this setting and therefore we use this by default
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
@@ -206,13 +211,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
         data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
     # update json (add source references)
@@ -220,7 +225,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").en-${tgt_lang}.en
         update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
-            ${feat_dir}/data_${bpemode}${nbpe}.${tgt_case}.json ${data_dir} ${dict}
+            ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
     done
 fi
 
@@ -264,8 +269,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --enc-init ${asr_model} \
         --dec-init ${mt_model}
 fi
@@ -276,7 +281,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # Average ST models
         if ${use_valbest_average}; then
             trans_model=model.val${n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${expdir}/results/log --metric ${metric}"
         else
             trans_model=model.last${n_average}.avg.best
             opt="--log"
@@ -296,7 +301,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0
@@ -312,6 +317,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
     ) &
     pids+=($!) # store background pids

@@ -30,7 +30,6 @@ class DefaultFrontend(AbsFrontend):
         hop_length: int = 128,
         window: Optional[str] = "hann",
         center: bool = True,
-        pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
         n_mels: int = 80,
@@ -53,7 +52,6 @@ class DefaultFrontend(AbsFrontend):
             hop_length=hop_length,
             center=center,
             window=window,
-            pad_mode=pad_mode,
             normalized=normalized,
             onesided=onesided,
         )
@@ -63,7 +61,12 @@ class DefaultFrontend(AbsFrontend):
             self.frontend = None
 
         self.logmel = LogMel(
-            fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk,
+            fs=fs,
+            n_fft=n_fft,
+            n_mels=n_mels,
+            fmin=fmin,
+            fmax=fmax,
+            htk=htk,
         )
         self.n_mels = n_mels
 

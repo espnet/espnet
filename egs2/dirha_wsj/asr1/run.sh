@@ -17,7 +17,7 @@ test_sets=dirha_real_$mic
 # config files
 #preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
 asr_config=conf/train.yaml
-decode_config=conf/decode.yaml
+inference_config=conf/decode.yaml
 
 lm_config=conf/train_lm.yaml
 use_word_lm=false
@@ -29,7 +29,7 @@ word_vocab_size=65000
     --token_type char                           \
     --feats_type fbank_pitch                    \
     --asr_config "${asr_config}"                \
-    --decode_config "${decode_config}"          \
+    --inference_config "${inference_config}"          \
     --lm_config "${lm_config}"                  \
     --use_word_lm ${use_word_lm}                \
     --word_vocab_size ${word_vocab_size}        \
@@ -37,4 +37,5 @@ word_vocab_size=65000
     --valid_set "${valid_set}"                  \
     --test_sets "${test_sets}"                  \
     --local_data_opts "${local_data_opts}"      \
-    --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
+    --bpe_train_text "data/${train_set}/text" \
+    --lm_train_text "data/${train_set}/text data/local/other_text/text" "$@"

@@ -19,7 +19,7 @@ test_sets=${test_sets%% }
 
 asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
-decode_config=conf/decode_asr.yaml
+inference_config=conf/decode_asr.yaml
 
 nlsyms_txt=data/nlsym.txt
 
@@ -34,8 +34,8 @@ nlsyms_txt=data/nlsym.txt
     --feats_type raw \
     --nlsyms_txt ${nlsyms_txt} \
     --asr_config "${asr_config}" \
-    --decode_config "${decode_config}" \
+    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"

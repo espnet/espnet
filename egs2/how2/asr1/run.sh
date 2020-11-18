@@ -9,7 +9,7 @@ valid_set="dev5"
 test_sets="dev5 test_set_iwslt2019"
 
 asr_config=conf/train_asr_rnn.yaml
-decode_config=conf/decode.yaml
+inference_config=conf/decode.yaml
 
 feats_type=extracted
 
@@ -31,8 +31,9 @@ use_lm=false
     --bpe_nlsyms ${bpe_nlsyms}                  \
     --use_lm ${use_lm}                          \
     --asr_config "${asr_config}"                \
-    --decode_config "${decode_config}"          \
+    --inference_config "${inference_config}"          \
     --train_set "${train_set}"                  \
     --valid_set "${valid_set}"                  \
     --test_sets "${test_sets}"                  \
-    --srctexts "data/${train_set}/text" "$@"
+    --bpe_train_text "data/${train_set}/text" \
+    --lm_train_text "data/${train_set}/text" "$@"

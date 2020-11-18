@@ -1,6 +1,8 @@
 from abc import ABC
 from abc import abstractmethod
 import argparse
+from contextlib import contextmanager
+from dataclasses import dataclass
 from distutils.version import LooseVersion
 import functools
 import logging
@@ -47,6 +49,7 @@ from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
+from espnet2.train.dataset import AbsDataset
 from espnet2.train.dataset import DATA_TYPES
 from espnet2.train.dataset import ESPnetDataset
 from espnet2.train.distributed_utils import DistributedOption
@@ -122,6 +125,16 @@ try:
     del apex
 except ImportError:
     pass
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    from torch.cuda.amp import GradScaler
+else:
+    # Nothing to do if torch<1.6.0
+    @contextmanager
+    def autocast(enabled=True):
+        yield
+
+    GradScaler = None
+
 
 scheduler_classes = dict(
     ReduceLROnPlateau=torch.optim.lr_scheduler.ReduceLROnPlateau,
@@ -133,7 +146,8 @@ scheduler_classes = dict(
 )
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     scheduler_classes.update(
-        noamlr=NoamLR, warmuplr=WarmupLR,
+        noamlr=NoamLR,
+        warmuplr=WarmupLR,
     )
 if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
     CosineAnnealingWarmRestarts = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
@@ -145,6 +159,23 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}
 scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
+
+
+@dataclass
+class IteratorOptions:
+    preprocess_fn: callable
+    collate_fn: callable
+    data_path_and_name_and_type: list
+    shape_files: list
+    batch_size: int
+    batch_bins: int
+    batch_type: str
+    max_cache_size: float
+    max_cache_fd: int
+    distributed: bool
+    num_batches: Optional[int]
+    num_iters_per_epoch: Optional[int]
+    train: bool
 
 
 class AbsTask(ABC):
@@ -167,12 +198,12 @@ class AbsTask(ABC):
     @classmethod
     @abstractmethod
     def build_collate_fn(
-        cls, args: argparse.Namespace
+        cls, args: argparse.Namespace, train: bool
     ) -> Callable[[Sequence[Dict[str, np.ndarray]]], Dict[str, torch.Tensor]]:
         """Return "collate_fn", which is a callable object and given to DataLoader.
 
         >>> from torch.utils.data import DataLoader
-        >>> loader = DataLoader(collate_fn=cls.build_collate_fn(args), ...)
+        >>> loader = DataLoader(collate_fn=cls.build_collate_fn(args, train=True), ...)
 
         In many cases, you can use our common collate_fn.
         """
@@ -187,7 +218,9 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def required_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
+    def required_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
         """Define the required names by Task
 
         This function is used by
@@ -206,12 +239,14 @@ class AbsTask(ABC):
 
     @classmethod
     @abstractmethod
-    def optional_data_names(cls, inference: bool = False) -> Tuple[str, ...]:
+    def optional_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
         """Define the optional names by Task
 
         This function is used by
         >>> cls.check_task_requirements()
-        If your model is defined as following,
+        If your model is defined as follows,
 
         >>> from espnet2.train.abs_espnet_model import AbsESPnetModel
         >>> class Model(AbsESPnetModel):
@@ -233,7 +268,8 @@ class AbsTask(ABC):
         assert check_argument_types()
 
         class ArgumentDefaultsRawTextHelpFormatter(
-            argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter,
+            argparse.RawTextHelpFormatter,
+            argparse.ArgumentDefaultsHelpFormatter,
         ):
             pass
 
@@ -272,7 +308,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--iterator_type",
             type=str,
-            choices=["sequence", "none"],
+            choices=["sequence", "chunk", "task", "none"],
             default="sequence",
             help="Specify iterator type",
         )
@@ -301,7 +337,10 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("distributed training related")
         group.add_argument(
-            "--dist_backend", default="nccl", type=str, help="distributed backend",
+            "--dist_backend",
+            default="nccl",
+            type=str,
+            help="distributed backend",
         )
         group.add_argument(
             "--dist_init_method",
@@ -445,7 +484,8 @@ class AbsTask(ABC):
         group.add_argument(
             "--keep_nbest_models",
             type=int,
-            default=10,
+            nargs="+",
+            default=[10],
             help="Remove previous snapshots excluding the n-best scored epochs",
         )
         group.add_argument(
@@ -453,6 +493,12 @@ class AbsTask(ABC):
             type=float,
             default=5.0,
             help="Gradient norm threshold to clip",
+        )
+        group.add_argument(
+            "--grad_clip_type",
+            type=float,
+            default=2.0,
+            help="The type of the used p-norm for gradient clip. Can be inf",
         )
         group.add_argument(
             "--grad_noise",
@@ -483,9 +529,14 @@ class AbsTask(ABC):
         group.add_argument(
             "--train_dtype",
             default="float32",
-            choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
-            help="Data type for training. O0,O1,.. flags require apex. "
-            "See https://nvidia.github.io/apex/amp.html#opt-levels",
+            choices=["float16", "float32", "float64"],
+            help="Data type for training.",
+        )
+        group.add_argument(
+            "--use_amp",
+            type=str2bool,
+            default=False,
+            help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
         )
         group.add_argument(
             "--log_interval",
@@ -497,8 +548,27 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Pretraining model related")
-        group.add_argument("--pretrain_path", type=str, default=[], nargs="*")
-        group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="*")
+        group.add_argument("--pretrain_path", help="This option is obsoleted")
+        group.add_argument(
+            "--init_param",
+            type=str,
+            default=[],
+            nargs="*",
+            help="Specify the file path used for initialization of parameters. "
+            "The format is '<file_path>:<src_key>:<dst_key>:<exclude_keys>', "
+            "where file_path is the model file path, "
+            "src_key specifies the key of model states to be used in the model file, "
+            "dst_key specifies the attribute of the model to be initialized, "
+            "and exclude_keys excludes keys of model states for the initialization."
+            "e.g.\n"
+            "  # Load all parameters"
+            "  --init_param some/where/model.pth\n"
+            "  # Load only decoder parameters"
+            "  --init_param some/where/model.pth:decoder:decoder\n"
+            "  # Load only decoder parameters excluding decoder.embed"
+            "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n"
+            "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n",
+        )
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
@@ -645,6 +715,14 @@ class AbsTask(ABC):
             help="The maximum cache size for data loader. e.g. 10MB, 20GB.",
         )
         group.add_argument(
+            "--max_cache_fd",
+            type=int,
+            default=32,
+            help="The maximum number of file descriptors to be kept "
+            "as opened for ark files. "
+            "This feature is only valid when data type is 'kaldi_ark'.",
+        )
+        group.add_argument(
             "--valid_max_cache_size",
             type=humanfriendly_parse_size_or_none,
             default=None,
@@ -690,7 +768,9 @@ class AbsTask(ABC):
 
     @classmethod
     def build_optimizers(
-        cls, args: argparse.Namespace, model: torch.nn.Module,
+        cls,
+        args: argparse.Namespace,
+        model: torch.nn.Module,
     ) -> List[torch.optim.Optimizer]:
         if cls.num_optimizers != 1:
             raise RuntimeError(
@@ -767,10 +847,6 @@ class AbsTask(ABC):
         for k in vars(args):
             if "-" in k:
                 raise RuntimeError(f'Use "_" instead of "-": parser.get_parser("{k}")')
-        if len(args.pretrain_path) != len(args.pretrain_key):
-            raise RuntimeError(
-                "The number of --pretrain_path and --pretrain_key must be same"
-            )
 
         required = ", ".join(
             f"--{a}" for a in args.required if getattr(args, a) is None
@@ -790,8 +866,9 @@ class AbsTask(ABC):
     @classmethod
     def check_task_requirements(
         cls,
-        dataset: Union[ESPnetDataset, IterableESPnetDataset],
+        dataset: Union[AbsDataset, IterableESPnetDataset],
         allow_variable_data_keys: bool,
+        train: bool,
         inference: bool = False,
     ) -> None:
         """Check if the dataset satisfy the requirement of current Task"""
@@ -803,16 +880,16 @@ class AbsTask(ABC):
             f"Otherwise you need to set --allow_variable_data_keys true "
         )
 
-        for k in cls.required_data_names(inference):
+        for k in cls.required_data_names(train, inference):
             if not dataset.has_name(k):
                 raise RuntimeError(
-                    f'"{cls.required_data_names(inference)}" are required for'
+                    f'"{cls.required_data_names(train, inference)}" are required for'
                     f' {cls.__name__}. but "{dataset.names()}" are input.\n{mes}'
                 )
         if not allow_variable_data_keys:
-            task_keys = cls.required_data_names(inference) + cls.optional_data_names(
-                inference
-            )
+            task_keys = cls.required_data_names(
+                train, inference
+            ) + cls.optional_data_names(train, inference)
             for k in dataset.names():
                 if k not in task_keys:
                     raise RuntimeError(
@@ -827,8 +904,8 @@ class AbsTask(ABC):
         reporter: Reporter,
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
+        scaler: Optional[GradScaler],
         ngpu: int = 0,
-        use_apex: bool = False,
     ):
         states = torch.load(
             checkpoint,
@@ -841,15 +918,11 @@ class AbsTask(ABC):
         for scheduler, state in zip(schedulers, states["schedulers"]):
             if scheduler is not None:
                 scheduler.load_state_dict(state)
-        if use_apex and states["amp"] is not None:
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    "You need to install apex. "
-                    "See https://github.com/NVIDIA/apex#linux"
-                )
-            amp.load_state_dict(states["amp"])
+        if scaler is not None:
+            if states["scaler"] is None:
+                logging.warning("scaler state is not found")
+            else:
+                scaler.load_state_dict(states["scaler"])
 
         logging.info(f"The training was resumed using {checkpoint}")
 
@@ -872,6 +945,8 @@ class AbsTask(ABC):
         if args is None:
             parser = cls.get_parser()
             args = parser.parse_args(cmd)
+        if args.pretrain_path is not None:
+            raise RuntimeError("--pretrain_path is deprecated. Use --init_param")
         if args.print_config:
             cls.print_config()
             sys.exit(0)
@@ -922,7 +997,9 @@ class AbsTask(ABC):
                 local_args.ngpu = 1
 
                 process = mp.Process(
-                    target=cls.main_worker, args=(local_args,), daemon=False,
+                    target=cls.main_worker,
+                    args=(local_args,),
+                    daemon=False,
                 )
                 process.start()
                 processes.append(process)
@@ -979,29 +1056,13 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        if args.train_dtype in ("float16", "float32", "float64"):
-            dtype = getattr(torch, args.train_dtype)
-        else:
-            dtype = torch.float32
-        model = model.to(dtype=dtype, device="cuda" if args.ngpu > 0 else "cpu")
+        model = model.to(
+            dtype=getattr(torch, args.train_dtype),
+            device="cuda" if args.ngpu > 0 else "cpu",
+        )
 
         # 3. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
-
-        # For apex support
-        use_apex = args.train_dtype in ("O0", "O1", "O2", "O3")
-        if use_apex:
-            try:
-                from apex import amp
-            except ImportError:
-                logging.error(
-                    "You need to install apex. "
-                    "See https://github.com/NVIDIA/apex#linux"
-                )
-                raise
-            model, optimizers = amp.initialize(
-                model, optimizers, opt_level=args.train_dtype
-            )
 
         # 4. Build schedulers
         schedulers = []
@@ -1032,20 +1093,20 @@ class AbsTask(ABC):
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
         output_dir = Path(args.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
-            logging.info(f'Saving the configuration in {output_dir / "config.yaml"}')
-            yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
+        if not distributed_option.distributed or distributed_option.dist_rank == 0:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
+                logging.info(
+                    f'Saving the configuration in {output_dir / "config.yaml"}'
+                )
+                yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
         # 6. Loads pre-trained model
-        for p, k in zip(args.pretrain_path, args.pretrain_key):
+        for p in args.init_param:
+            logging.info(f"Loading pretrained params from {p}")
             load_pretrained_model(
                 model=model,
-                # Directly specify the model path e.g. exp/train/loss.best.pt
-                pretrain_path=p,
-                # if pretrain_key is None -> model
-                # elif pretrain_key is str e.g. "encoder" -> model.encoder
-                pretrain_key=k,
+                init_param=p,
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                 #   in PyTorch<=1.4
                 map_location=f"cuda:{torch.cuda.current_device()}"
@@ -1055,6 +1116,14 @@ class AbsTask(ABC):
 
         # 7. Resume the training state from the previous epoch
         reporter = Reporter()
+        if args.use_amp:
+            if LooseVersion(torch.__version__) < LooseVersion("1.6.0"):
+                raise RuntimeError(
+                    "Require torch>=1.6.0 for  Automatic Mixed Precision"
+                )
+            scaler = GradScaler()
+        else:
+            scaler = None
         if args.resume and (output_dir / "checkpoint.pth").exists():
             cls.resume(
                 checkpoint=output_dir / "checkpoint.pth",
@@ -1062,8 +1131,8 @@ class AbsTask(ABC):
                 optimizers=optimizers,
                 schedulers=schedulers,
                 reporter=reporter,
+                scaler=scaler,
                 ngpu=args.ngpu,
-                use_apex=use_apex,
             )
 
         if args.dry_run:
@@ -1096,7 +1165,7 @@ class AbsTask(ABC):
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
-                    collate_fn=cls.build_collate_fn(args),
+                    collate_fn=cls.build_collate_fn(args, train=False),
                 ),
                 valid_iter=cls.build_streaming_iterator(
                     data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
@@ -1107,7 +1176,7 @@ class AbsTask(ABC):
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
-                    collate_fn=cls.build_collate_fn(args),
+                    collate_fn=cls.build_collate_fn(args, train=False),
                 ),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
@@ -1117,90 +1186,44 @@ class AbsTask(ABC):
         else:
 
             # 8. Build iterator factories
-            common_iter_kwargs = dict(
-                iterator_type=args.iterator_type,
-                train_dtype=args.train_dtype,
-                num_workers=args.num_workers,
-                seed=args.seed,
-                allow_variable_data_keys=args.allow_variable_data_keys,
-                ngpu=args.ngpu,
-                fold_length=args.fold_length,
-                sort_in_batch=args.sort_in_batch,
-                sort_batch=args.sort_batch,
-                chunk_length=args.chunk_length,
-                chunk_shift_ratio=args.chunk_shift_ratio,
-                num_cache_chunks=args.num_cache_chunks,
-            )
-
-            train_iter_factory = cls.build_iter_factory(
-                data_path_and_name_and_type=args.train_data_path_and_name_and_type,
-                shape_files=args.train_shape_file,
-                batch_size=args.batch_size,
-                batch_bins=args.batch_bins,
-                batch_type=args.batch_type,
-                train=not args.collect_stats,
-                multiple_iterator=args.multiple_iterator,
-                preprocess_fn=cls.build_preprocess_fn(args, train=True),
-                collate_fn=cls.build_collate_fn(args),
-                num_iters_per_epoch=args.num_iters_per_epoch,
-                max_cache_size=args.max_cache_size,
-                distributed=distributed_option.distributed,
-                name="train",
-                **common_iter_kwargs,
-            )
-            if args.valid_batch_type is None:
-                args.valid_batch_type = args.batch_type
-            if args.valid_batch_size is None:
-                args.valid_batch_size = args.batch_size
-            if args.valid_batch_bins is None:
-                args.valid_batch_bins = args.batch_bins
-            if args.valid_max_cache_size is None:
-                # Cache 5% of maximum size for validation loader
-                args.valid_max_cache_size = 0.05 * args.max_cache_size
+            if args.multiple_iterator:
+                train_iter_factory = cls.build_multiple_iter_factory(
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="train",
+                )
+            else:
+                train_iter_factory = cls.build_iter_factory(
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="train",
+                )
             valid_iter_factory = cls.build_iter_factory(
-                data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
-                shape_files=args.valid_shape_file,
-                batch_size=args.valid_batch_size,
-                batch_bins=args.valid_batch_bins,
-                batch_type=args.batch_type,
-                train=False,
-                multiple_iterator=False,
-                preprocess_fn=cls.build_preprocess_fn(args, train=False),
-                collate_fn=cls.build_collate_fn(args),
-                num_iters_per_epoch=None,
-                max_cache_size=args.valid_max_cache_size,
-                distributed=distributed_option.distributed,
-                name="valid",
-                **common_iter_kwargs,
+                args=args,
+                distributed_option=distributed_option,
+                mode="valid",
             )
             if args.num_att_plot != 0:
                 plot_attention_iter_factory = cls.build_iter_factory(
-                    data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
-                    shape_files=args.valid_shape_file,
-                    batch_type="unsorted",
-                    batch_size=1,
-                    batch_bins=0,
-                    train=False,
-                    multiple_iterator=False,
-                    preprocess_fn=cls.build_preprocess_fn(args, train=False),
-                    collate_fn=cls.build_collate_fn(args),
-                    num_batches=args.num_att_plot,
-                    num_iters_per_epoch=None,
-                    # num_att_plot should be a few sample ~ 3, so cache all data.
-                    max_cache_size=np.inf if args.max_cache_size != 0.0 else 0.0,
-                    # always False because plot_attention performs on RANK0
-                    distributed=False,
-                    name="plot_att",
-                    **common_iter_kwargs,
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="plot_att",
                 )
             else:
                 plot_attention_iter_factory = None
 
             # 9. Start training
-
             # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
             trainer_options = cls.trainer.build_options(args)
+
+            if isinstance(args.keep_nbest_models, int):
+                keep_nbest_models = args.keep_nbest_models
+            else:
+                if len(args.keep_nbest_models) == 0:
+                    logging.warning("No keep_nbest_models is given. Change to [1]")
+                    args.keep_nbest_models = [1]
+                keep_nbest_models = max(args.keep_nbest_models)
 
             cls.trainer.run(
                 model=model,
@@ -1210,11 +1233,12 @@ class AbsTask(ABC):
                 valid_iter_factory=valid_iter_factory,
                 plot_attention_iter_factory=plot_attention_iter_factory,
                 reporter=reporter,
+                scaler=scaler,
                 output_dir=output_dir,
                 max_epoch=args.max_epoch,
                 seed=args.seed,
                 patience=args.patience,
-                keep_nbest_models=args.keep_nbest_models,
+                keep_nbest_models=keep_nbest_models,
                 early_stopping_criterion=args.early_stopping_criterion,
                 best_model_criterion=args.best_model_criterion,
                 val_scheduler_criterion=args.val_scheduler_criterion,
@@ -1232,34 +1256,98 @@ class AbsTask(ABC):
                 )
 
     @classmethod
+    def build_iter_options(
+        cls,
+        args: argparse.Namespace,
+        distributed_option: DistributedOption,
+        mode: str,
+    ):
+        if mode == "train":
+            preprocess_fn = cls.build_preprocess_fn(args, train=True)
+            collate_fn = cls.build_collate_fn(args, train=True)
+            data_path_and_name_and_type = args.train_data_path_and_name_and_type
+            shape_files = args.train_shape_file
+            batch_size = args.batch_size
+            batch_bins = args.batch_bins
+            batch_type = args.batch_type
+            max_cache_size = args.max_cache_size
+            max_cache_fd = args.max_cache_fd
+            distributed = distributed_option.distributed
+            num_batches = None
+            num_iters_per_epoch = args.num_iters_per_epoch
+            train = True
+
+        elif mode == "valid":
+            preprocess_fn = cls.build_preprocess_fn(args, train=False)
+            collate_fn = cls.build_collate_fn(args, train=False)
+            data_path_and_name_and_type = args.valid_data_path_and_name_and_type
+            shape_files = args.valid_shape_file
+
+            if args.valid_batch_type is None:
+                batch_type = args.batch_type
+            else:
+                batch_type = args.valid_batch_type
+            if args.valid_batch_size is None:
+                batch_size = args.batch_size
+            else:
+                batch_size = args.valid_batch_size
+            if args.valid_batch_bins is None:
+                batch_bins = args.batch_bins
+            else:
+                batch_bins = args.valid_batch_bins
+            if args.valid_max_cache_size is None:
+                # Cache 5% of maximum size for validation loader
+                max_cache_size = 0.05 * args.max_cache_size
+            else:
+                max_cache_size = args.valid_max_cache_size
+            max_cache_fd = args.max_cache_fd
+            distributed = distributed_option.distributed
+            num_batches = None
+            num_iters_per_epoch = None
+            train = False
+
+        elif mode == "plot_att":
+            preprocess_fn = cls.build_preprocess_fn(args, train=False)
+            collate_fn = cls.build_collate_fn(args, train=False)
+            data_path_and_name_and_type = args.valid_data_path_and_name_and_type
+            shape_files = args.valid_shape_file
+            batch_type = "unsorted"
+            batch_size = 1
+            batch_bins = 0
+            num_batches = args.num_att_plot
+            max_cache_fd = args.max_cache_fd
+            # num_att_plot should be a few sample ~ 3, so cache all data.
+            max_cache_size = np.inf if args.max_cache_size != 0.0 else 0.0
+            # always False because plot_attention performs on RANK0
+            distributed = False
+            num_iters_per_epoch = None
+            train = False
+        else:
+            raise NotImplementedError(f"mode={mode}")
+
+        return IteratorOptions(
+            preprocess_fn=preprocess_fn,
+            collate_fn=collate_fn,
+            data_path_and_name_and_type=data_path_and_name_and_type,
+            shape_files=shape_files,
+            batch_type=batch_type,
+            batch_size=batch_size,
+            batch_bins=batch_bins,
+            num_batches=num_batches,
+            max_cache_size=max_cache_size,
+            max_cache_fd=max_cache_fd,
+            distributed=distributed,
+            num_iters_per_epoch=num_iters_per_epoch,
+            train=train,
+        )
+
+    @classmethod
     def build_iter_factory(
         cls,
-        iterator_type: str,
-        batch_size: int,
-        batch_bins: int,
-        preprocess_fn,
-        collate_fn,
-        train_dtype: str,
-        num_workers: int,
-        seed: int,
-        allow_variable_data_keys: bool,
-        ngpu: int,
-        data_path_and_name_and_type,
-        shape_files: Union[Tuple[str, ...], List[str]],
-        batch_type: str,
-        train: bool,
-        num_iters_per_epoch: Optional[int],
-        max_cache_size: float,
-        distributed: bool,
-        name: str,
-        fold_length: Sequence[int],
-        sort_in_batch: str,
-        sort_batch: str,
-        chunk_length: Union[int, str],
-        chunk_shift_ratio: float,
-        num_cache_chunks: int,
-        multiple_iterator: bool,
-        num_batches: int = None,
+        args: argparse.Namespace,
+        distributed_option: DistributedOption,
+        mode: str,
+        kwargs: dict = None,
     ) -> AbsIterFactory:
         """Build a factory object of mini-batch iterator.
 
@@ -1286,122 +1374,79 @@ class AbsTask(ABC):
 
         """
         assert check_argument_types()
+        iter_options = cls.build_iter_options(args, distributed_option, mode)
 
-        kwargs = dict(
-            data_path_and_name_and_type=data_path_and_name_and_type,
-            shape_files=shape_files,
-            train=train,
-            preprocess_fn=preprocess_fn,
-            collate_fn=collate_fn,
-            num_batches=num_batches,
-            num_iters_per_epoch=num_iters_per_epoch,
-            max_cache_size=max_cache_size,
-            distributed=distributed,
-            name=name,
-            batch_size=batch_size,
-            train_dtype=train_dtype,
-            num_workers=num_workers,
-            seed=seed,
-            allow_variable_data_keys=allow_variable_data_keys,
-            ngpu=ngpu,
-        )
+        # Overwrite iter_options if any kwargs is given
+        if kwargs is not None:
+            for k, v in kwargs.items():
+                setattr(iter_options, k, v)
 
-        if multiple_iterator:
-            return cls.build_multiple_iter_factroy(
-                **kwargs,
-                multiple_iterator=False,
-                iterator_type=iterator_type,
-                batch_type=batch_type,
-                batch_bins=batch_bins,
-                fold_length=fold_length,
-                sort_in_batch=sort_in_batch,
-                sort_batch=sort_batch,
-                chunk_length=chunk_length,
-                chunk_shift_ratio=chunk_shift_ratio,
-                num_cache_chunks=num_cache_chunks,
-            )
-        elif iterator_type == "sequence":
+        if args.iterator_type == "sequence":
             return cls.build_sequence_iter_factory(
-                **kwargs,
-                batch_type=batch_type,
-                batch_bins=batch_bins,
-                fold_length=fold_length,
-                sort_in_batch=sort_in_batch,
-                sort_batch=sort_batch,
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
             )
-        elif iterator_type == "chunk":
+        elif args.iterator_type == "chunk":
             return cls.build_chunk_iter_factory(
-                **kwargs,
-                chunk_length=chunk_length,
-                chunk_shift_ratio=chunk_shift_ratio,
-                num_cache_chunks=num_cache_chunks,
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
+        elif args.iterator_type == "task":
+            return cls.build_task_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
             )
         else:
-            raise RuntimeError(f"Not supported: iterator_type={iterator_type}")
+            raise RuntimeError(f"Not supported: iterator_type={args.iterator_type}")
 
     @classmethod
     def build_sequence_iter_factory(
-        cls,
-        data_path_and_name_and_type,
-        shape_files: Union[Tuple[str, ...], List[str]],
-        batch_type: str,
-        train: bool,
-        preprocess_fn,
-        batch_size: int,
-        batch_bins: int,
-        collate_fn,
-        train_dtype: str,
-        fold_length: Sequence[int],
-        num_workers: int,
-        sort_in_batch: str,
-        sort_batch: str,
-        seed: int,
-        allow_variable_data_keys: bool,
-        ngpu: int,
-        num_batches: Optional[int],
-        num_iters_per_epoch: Optional[int],
-        max_cache_size: float,
-        distributed: bool,
-        name: str,
+        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
     ) -> AbsIterFactory:
         assert check_argument_types()
-        if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            train_dtype = "float32"
 
         dataset = ESPnetDataset(
-            data_path_and_name_and_type,
-            float_dtype=train_dtype,
-            preprocess=preprocess_fn,
-            max_cache_size=max_cache_size,
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
         )
-        cls.check_task_requirements(dataset, allow_variable_data_keys)
+        cls.check_task_requirements(
+            dataset, args.allow_variable_data_keys, train=iter_options.train
+        )
 
         batch_sampler = build_batch_sampler(
-            type=batch_type,
-            shape_files=shape_files,
-            fold_lengths=fold_length,
-            batch_size=batch_size,
-            batch_bins=batch_bins,
-            sort_in_batch=sort_in_batch,
-            sort_batch=sort_batch,
+            type=iter_options.batch_type,
+            shape_files=iter_options.shape_files,
+            fold_lengths=args.fold_length,
+            batch_size=iter_options.batch_size,
+            batch_bins=iter_options.batch_bins,
+            sort_in_batch=args.sort_in_batch,
+            sort_batch=args.sort_batch,
             drop_last=False,
-            min_batch_size=torch.distributed.get_world_size() if distributed else 1,
+            min_batch_size=torch.distributed.get_world_size()
+            if iter_options.distributed
+            else 1,
         )
 
         batches = list(batch_sampler)
-        if num_batches is not None:
-            batches = batches[:num_batches]
+        if iter_options.num_batches is not None:
+            batches = batches[: iter_options.num_batches]
 
         bs_list = [len(batch) for batch in batches]
 
-        logging.info(f"[{name}] dataset:\n{dataset}")
-        logging.info(f"[{name}] Batch sampler: {batch_sampler}")
+        logging.info(f"[{mode}] dataset:\n{dataset}")
+        logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
         logging.info(
-            f"[{name}] mini-batch sizes summary: N-batch={len(bs_list)}, "
+            f"[{mode}] mini-batch sizes summary: N-batch={len(bs_list)}, "
             f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
         )
 
-        if distributed:
+        if iter_options.distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
             for batch in batches:
@@ -1415,117 +1460,137 @@ class AbsTask(ABC):
         return SequenceIterFactory(
             dataset=dataset,
             batches=batches,
-            seed=seed,
-            num_iters_per_epoch=num_iters_per_epoch,
-            shuffle=train,
-            num_workers=num_workers,
-            collate_fn=collate_fn,
-            pin_memory=ngpu > 0,
+            seed=args.seed,
+            num_iters_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
         )
 
     @classmethod
     def build_chunk_iter_factory(
         cls,
-        data_path_and_name_and_type,
-        shape_files: Union[Tuple[str, ...], List[str]],
-        train: bool,
-        preprocess_fn,
-        collate_fn,
-        train_dtype: str,
-        num_workers: int,
-        seed: int,
-        allow_variable_data_keys: bool,
-        batch_size: int,
-        ngpu: int,
-        chunk_length: Union[int, str],
-        chunk_shift_ratio: float,
-        num_cache_chunks: int,
-        num_batches: Optional[int],
-        num_iters_per_epoch: Optional[int],
-        max_cache_size: float,
-        distributed: bool,
-        name: str,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
     ) -> AbsIterFactory:
         assert check_argument_types()
-        if train_dtype in ("float32", "O0", "O1", "O2", "O3"):
-            train_dtype = "float32"
 
         dataset = ESPnetDataset(
-            data_path_and_name_and_type,
-            float_dtype=train_dtype,
-            preprocess=preprocess_fn,
-            max_cache_size=max_cache_size,
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
         )
-        cls.check_task_requirements(dataset, allow_variable_data_keys)
+        cls.check_task_requirements(
+            dataset, args.allow_variable_data_keys, train=iter_options.train
+        )
 
-        if len(shape_files) == 0:
-            key_file = data_path_and_name_and_type[0][0]
+        if len(iter_options.shape_files) == 0:
+            key_file = iter_options.data_path_and_name_and_type[0][0]
         else:
-            key_file = shape_files[0]
+            key_file = iter_options.shape_files[0]
 
         batch_sampler = UnsortedBatchSampler(batch_size=1, key_file=key_file)
         batches = list(batch_sampler)
-        if num_batches is not None:
-            batches = batches[:num_batches]
-        logging.info(f"[{name}] dataset:\n{dataset}")
+        if iter_options.num_batches is not None:
+            batches = batches[: iter_options.num_batches]
+        logging.info(f"[{mode}] dataset:\n{dataset}")
 
-        if distributed:
+        if iter_options.distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
             if len(batches) < world_size:
                 raise RuntimeError("Number of samples is smaller than world_size")
-            if batch_size < world_size:
+            if iter_options.batch_size < world_size:
                 raise RuntimeError("batch_size must be equal or more than world_size")
 
-            if rank < batch_size % world_size:
-                batch_size = batch_size // world_size + 1
+            if rank < iter_options.batch_size % world_size:
+                batch_size = iter_options.batch_size // world_size + 1
             else:
-                batch_size = batch_size // world_size
-            num_cache_chunks = num_cache_chunks // world_size
+                batch_size = iter_options.batch_size // world_size
+            num_cache_chunks = args.num_cache_chunks // world_size
             # NOTE(kamo): Split whole corpus by sample numbers without considering
             #   each of the lengths, therefore the number of iteration counts are not
             #   always equal to each other and the iterations are limitted
             #   by the fewest iterations.
             #   i.e. the samples over the counts are discarded.
             batches = batches[rank::world_size]
+        else:
+            batch_size = iter_options.batch_size
+            num_cache_chunks = args.num_cache_chunks
 
         return ChunkIterFactory(
             dataset=dataset,
             batches=batches,
-            seed=seed,
+            seed=args.seed,
+            batch_size=batch_size,
             # For chunk iterator,
             # --num_iters_per_epoch doesn't indicate the number of iterations,
             # but indicates the number of samples.
-            num_samples_per_epoch=num_iters_per_epoch,
-            shuffle=train,
-            num_workers=num_workers,
-            collate_fn=collate_fn,
-            pin_memory=ngpu > 0,
-            batch_size=batch_size,
-            chunk_length=chunk_length,
-            chunk_shift_ratio=chunk_shift_ratio,
+            num_samples_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
+            chunk_length=args.chunk_length,
+            chunk_shift_ratio=args.chunk_shift_ratio,
             num_cache_chunks=num_cache_chunks,
         )
 
+    # NOTE(kamo): Not abstract class
     @classmethod
-    def build_multiple_iter_factroy(
+    def build_task_iter_factory(
         cls,
-        data_path_and_name_and_type,
-        shape_files: Union[Tuple[str, ...], List[str]],
-        train: bool,
-        num_iters_per_epoch: Optional[int],
-        max_cache_size: float,
-        seed: int,
-        **kwargs,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
+    ) -> AbsIterFactory:
+        """Build task specific iterator factory
+
+        Example:
+
+            >>> class YourTask(AbsTask):
+            ... @classmethod
+            ... def add_task_arguments(cls, parser: argparse.ArgumentParser):
+            ...     parser.set_defaults(iterator_type="task")
+            ...
+            ... @classmethod
+            ... def build_task_iter_factory(
+            ...     cls,
+            ...     args: argparse.Namespace,
+            ...     iter_options: IteratorOptions,
+            ...     mode: str,
+            ... ):
+            ...     return FooIterFactory(...)
+            ...
+            ... @classmethod
+            ... def build_iter_options(
+            ....    args: argparse.Namespace,
+            ...     distributed_option: DistributedOption,
+            ...     mode: str
+            ... ):
+            ...     # if you need to customize options object
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def build_multiple_iter_factory(
+        cls, args: argparse.Namespace, distributed_option: DistributedOption, mode: str
     ):
         assert check_argument_types()
-        assert len(data_path_and_name_and_type) > 0, len(data_path_and_name_and_type)
+        iter_options = cls.build_iter_options(args, distributed_option, mode)
+        assert len(iter_options.data_path_and_name_and_type) > 0, len(
+            iter_options.data_path_and_name_and_type
+        )
 
         # 1. Sanity check
         num_splits = None
-        for path in [path for path, _, _ in data_path_and_name_and_type] + list(
-            shape_files
-        ):
+        for path in [
+            path for path, _, _ in iter_options.data_path_and_name_and_type
+        ] + list(iter_options.shape_files):
             if not Path(path).is_dir():
                 raise RuntimeError(f"{path} is not a directory")
             p = Path(path) / "num_splits"
@@ -1536,7 +1601,7 @@ class AbsTask(ABC):
                 if num_splits is not None and num_splits != _num_splits:
                     raise RuntimeError(
                         f"Number of splits are mismathed: "
-                        f"{data_path_and_name_and_type[0][0]} and {path}"
+                        f"{iter_options.data_path_and_name_and_type[0][0]} and {path}"
                     )
                 num_splits = _num_splits
 
@@ -1549,33 +1614,35 @@ class AbsTask(ABC):
         data_path_and_name_and_type_list = [
             [
                 (str(Path(p) / f"split.{i}"), n, t)
-                for p, n, t in data_path_and_name_and_type
+                for p, n, t in iter_options.data_path_and_name_and_type
             ]
             for i in range(num_splits)
         ]
         shape_files_list = [
-            [str(Path(s) / f"split.{i}") for s in shape_files]
+            [str(Path(s) / f"split.{i}") for s in iter_options.shape_files]
             for i in range(num_splits)
         ]
         num_iters_per_epoch_list = [
-            (num_iters_per_epoch + i) // num_splits
-            if num_iters_per_epoch is not None
+            (iter_options.num_iters_per_epoch + i) // num_splits
+            if iter_options.num_iters_per_epoch is not None
             else None
             for i in range(num_splits)
         ]
-        max_cache_size = max_cache_size / num_splits
+        max_cache_size = iter_options.max_cache_size / num_splits
 
         # Note that iter-factories are built for each epoch at runtime lazily.
         build_funcs = [
             functools.partial(
                 cls.build_iter_factory,
-                data_path_and_name_and_type=_data_path_and_name_and_type,
-                shape_files=_shape_files,
-                num_iters_per_epoch=_num_iters_per_epoch,
-                max_cache_size=max_cache_size,
-                seed=seed,
-                train=train,
-                **kwargs,
+                args,
+                distributed_option,
+                mode,
+                kwargs=dict(
+                    data_path_and_name_and_type=_data_path_and_name_and_type,
+                    shape_files=_shape_files,
+                    num_iters_per_epoch=_num_iters_per_epoch,
+                    max_cache_size=max_cache_size,
+                ),
             )
             for (
                 _data_path_and_name_and_type,
@@ -1589,7 +1656,9 @@ class AbsTask(ABC):
         ]
 
         # 3. Build MultipleIterFactory
-        return MultipleIterFactory(build_funcs=build_funcs, shuffle=train, seed=seed,)
+        return MultipleIterFactory(
+            build_funcs=build_funcs, shuffle=iter_options.train, seed=args.seed
+        )
 
     @classmethod
     def build_streaming_iterator(
@@ -1607,9 +1676,6 @@ class AbsTask(ABC):
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         assert check_argument_types()
-        if dtype in ("float32", "O0", "O1", "O2", "O3"):
-            dtype = "float32"
-
         # For backward compatibility for pytorch DataLoader
         if collate_fn is not None:
             kwargs = dict(collate_fn=collate_fn)
@@ -1634,14 +1700,21 @@ class AbsTask(ABC):
             if key_file is None:
                 key_file = data_path_and_name_and_type[0][0]
             batch_sampler = UnsortedBatchSampler(
-                batch_size=batch_size, key_file=key_file, drop_last=False,
+                batch_size=batch_size,
+                key_file=key_file,
+                drop_last=False,
             )
             kwargs.update(batch_sampler=batch_sampler)
 
-        cls.check_task_requirements(dataset, allow_variable_data_keys, inference)
+        cls.check_task_requirements(
+            dataset, allow_variable_data_keys, train=False, inference=inference
+        )
 
         return DataLoader(
-            dataset=dataset, pin_memory=ngpu > 0, num_workers=num_workers, **kwargs,
+            dataset=dataset,
+            pin_memory=ngpu > 0,
+            num_workers=num_workers,
+            **kwargs,
         )
 
     # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~

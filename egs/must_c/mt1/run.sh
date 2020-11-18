@@ -29,6 +29,7 @@ trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of NMT models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best NMT models will be averaged.
                              # if false, the last `n_average` NMT models will be averaged.
+metric=bleu                  # loss/acc/bleu
 
 # cascaded-ST related
 asr_model=
@@ -41,6 +42,10 @@ tgt_case=tc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
+
+# postprocessing related
+remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
+# NOTE: IWSLT community accepts this setting and therefore we use this by default
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
@@ -246,7 +251,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # Average NMT models
         if ${use_valbest_average}; then
             trans_model=model.val${n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${expdir}/results/log --metric ${metric}"
         else
             trans_model=model.last${n_average}.avg.best
             opt="--log"
@@ -347,6 +352,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
     ) &
     pids+=($!) # store background pids

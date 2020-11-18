@@ -11,7 +11,7 @@ backend=pytorch # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=4            # numebr of parallel jobs for decoding
+nj=4            # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -32,6 +32,7 @@ trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of ST models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ST models will be averaged.
                              # if false, the last `n_average` ST models will be averaged.
+metric=bleu                  # loss/acc/bleu
 
 # pre-training related
 asr_model=
@@ -218,13 +219,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for ttask in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
         data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
-            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
     # Fisher has 4 references per utterance
@@ -241,7 +242,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
         update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
-            ${feat_dir}/data_${bpemode}${nbpe}.${tgt_case}.json ${data_dir} ${dict}
+            ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
     done
     for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
@@ -293,19 +294,20 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${tgt_case}.json \
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --enc-init ${asr_model} \
         --dec-init ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
         # Average ST models
         if ${use_valbest_average}; then
             trans_model=model.val${n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${expdir}/results/log --metric ${metric}"
         else
             trans_model=model.last${n_average}.avg.best
             opt="--log"
@@ -325,7 +327,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         #### use CPU for decoding
         ngpu=0

@@ -9,6 +9,7 @@ import argparse
 import importlib
 import logging
 import sys
+import traceback
 
 from distutils.version import LooseVersion
 
@@ -36,6 +37,8 @@ COMPATIBLE_TORCH_VERSIONS = (
     "1.4.0",
     "1.5.0",
     "1.5.1",
+    "1.6.0",
+    "1.7.0",
 )
 
 
@@ -48,14 +51,22 @@ def main(args):
         default=False,
         help="Disable cuda-related tests",
     )
+    parser.add_argument(
+        "--no-cupy",
+        action="store_true",
+        default=False,
+        help="Disable cupy test",
+    )
     args = parser.parse_args(args)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logging.info(f"python version = {sys.version}")
 
     library_list = []
+    if args.no_cuda:
+        args.no_cupy = True
 
-    if not args.no_cuda:
+    if not args.no_cupy:
         library_list.append(("cupy", ("6.0.0")))
 
     # check torch installation at first
@@ -70,9 +81,9 @@ def main(args):
         logging.warning("please try to setup again and then re-run this script.")
         sys.exit(1)
 
-    # warpctc can be installed only for pytorch < 1.2
-    if LooseVersion(torch.__version__) < LooseVersion("1.2.0"):
-        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.3")))
+    # warpctc can be installed only for pytorch < 1.7
+    if LooseVersion(torch.__version__) < LooseVersion("1.7.0"):
+        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.2", "0.1.3", "0.2.1")))
 
     library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 
@@ -86,8 +97,20 @@ def main(args):
             logging.info("--> %s is installed." % name)
             is_correct_installed_list.append(True)
         except ImportError:
-            logging.warning("--> %s is not installed." % name)
+            logging.warning("--> %s is not installed.\n###### Raw Error ######\n%s#######################" % (name, traceback.format_exc()))
             is_correct_installed_list.append(False)
+
+    # warp-rnnt was only tested and successfull with CUDA_VERSION=10.0
+    # however the library installation is optional ("warp-transducer" is used by default)
+    try:
+        importlib.import_module("warp_rnnt")
+        is_correct_installed_list.append(True)
+        library_list.append(("warp_rnnt", ("0.4.0")))
+        logging.info("--> warp_rnnt is installed")
+    except ImportError:
+        logging.info("--> warp_rnnt is not installed (optional). Setup again with "
+                     "CUDA_VERSION=10.0 if you want to use it.")
+
     logging.info("library availableness check done.")
     logging.info(
         "%d / %d libraries are correctly installed."
@@ -109,7 +132,7 @@ def main(args):
         if version is not None:
             # Note: temp. fix for warprnnt_pytorch
             # not found version with importlib
-            if name == "warprnnt_pytorch":
+            if name == "warprnnt_pytorch" or name == "warp_rnnt":
                 import pkg_resources
 
                 vers = pkg_resources.get_distribution(name).version

@@ -32,14 +32,10 @@ lmtag=            # tag for managing LMs
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
 
-datadir=downloads # original data directory to be stored
-lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru
+lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk 
 
-# base url for downloads.
-data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
-
+nbpe=
 # bpemode (unigram or bpe)
-nbpe=150 # 2020 for zh-TW
 bpemode=unigram
 
 # exp tag
@@ -53,10 +49,22 @@ set -e
 set -u
 set -o pipefail
 
-train_set=valid_train_${lang}
-train_dev=valid_dev_${lang}
-test_set=valid_test_${lang}
-recog_set="valid_dev_${lang} valid_test_${lang}"
+datadir=download/${lang}_data # original data directory to be stored
+# base url for downloads.
+# Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
+data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-5.1-2020-06-22/${lang}.tar.gz
+if [ -z ${nbpe} ]; then
+  if [[ "zh" == *"${lang}"* ]]; then
+    nbpe=2500
+  else
+    nbpe=150
+  fi
+fi
+
+train_set=train_"$(echo "${lang}" | tr - _)"
+train_dev=dev_"$(echo "${lang}" | tr - _)"
+test_set=test_"$(echo "${lang}" | tr - _)"
+recog_set="${train_dev} ${test_set}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then 
     echo "stage -1: Data Download"
@@ -67,20 +75,16 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases 
-    for part in "validated"; do
+    for part in "validated" "test" "dev"; do
         # use underscore-separated names in data directories.
-        local/data_prep.pl ${datadir} ${part} data/"$(echo "${part}_${lang}" | tr - _)"
+        local/data_prep.pl "${datadir}/cv-corpus-5.1-2020-06-22/${lang}" ${part} data/"$(echo "${part}_${lang}" | tr - _)"
     done
 
-    # Kaldi Version Split
-    # ./utils/subset_data_dir_tr_cv.sh data/validated data/valid_train data/valid_test_dev
-    # ./utils/subset_data_dir_tr_cv.sh --cv-spk-percent 50 data/valid_test_dev data/valid_test data/valid_dev
-
-    # ESPNet Version (same as voxforge)
-    # consider duplicated sentences (does not consider speaker split)
-    # filter out the same sentences (also same text) of test&dev set from validated set
-    echo data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
-    local/split_tr_dt_et.sh data/validated_${lang} data/${train_set} data/${train_dev} data/${test_set}
+    # remove test&dev data from validated sentences
+    utils/copy_data_dir.sh data/"$(echo "validated_${lang}" | tr - _)" data/${train_set}
+    utils/filter_scp.pl --exclude data/${train_dev}/wav.scp data/${train_set}/wav.scp > data/${train_set}/temp_wav.scp
+    utils/filter_scp.pl --exclude data/${test_set}/wav.scp data/${train_set}/temp_wav.scp > data/${train_set}/wav.scp
+    utils/fix_data_dir.sh data/${train_set}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -89,7 +93,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    fbankdir=fbank
+    fbankdir=fbank/${lang}
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in ${train_set} ${train_dev} ${recog_set}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 4 --write_utt2num_frames true \
@@ -119,18 +123,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_char/${train_set}_${bpemode}${nbpe}_units.txt
-bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
+dict=data/${lang}_lang_char/${train_set}_${bpemode}${nbpe}_units.txt
+bpemodel=data/${lang}_lang_char/${train_set}_${bpemode}${nbpe}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_char/
+    mkdir -p data/${lang}_lang_char/
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
-    spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
+    cut -f 2- -d" " data/${train_set}/text > data/${lang}_lang_char/input.txt
+    spm_train --input=data/${lang}_lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/${lang}_lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
@@ -149,7 +153,7 @@ fi
 if [ -z ${lmtag} ]; then
     lmtag=$(basename ${lm_config%.*})
 fi
-lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+lmexpname=train_${lang}_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
@@ -207,12 +211,15 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=4
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-	recog_model=model.last${n_average}.avg.best
-	average_checkpoints.py --backend ${backend} \
-			       --snapshots ${expdir}/results/snapshot.ep.* \
-			       --out ${expdir}/results/${recog_model} \
-			       --num ${n_average}
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+                    --snapshots ${expdir}/results/snapshot.ep.* \
+                    --out ${expdir}/results/${recog_model} \
+                    --num ${n_average}
     fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do

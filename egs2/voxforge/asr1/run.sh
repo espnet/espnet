@@ -11,7 +11,7 @@ valid_set="dt_${lang}"
 test_sets="dt_${lang} et_${lang}"
 
 asr_config=conf/train_asr_rnn.yaml
-decode_config=conf/decode_asr.yaml
+inference_config=conf/decode_asr.yaml
 
 # FIXME(kamo):
 # The results with norm_vars=True is odd.
@@ -25,8 +25,8 @@ decode_config=conf/decode_asr.yaml
     --feats_type raw \
     --asr_args "--normalize_conf norm_vars=False " \
     --asr_config "${asr_config}" \
-    --decode_config "${decode_config}" \
+    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"

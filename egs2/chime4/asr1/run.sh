@@ -16,7 +16,7 @@ dt05_real_beamformit_5mics dt05_simu_beamformit_5mics et05_real_beamformit_5mics
 "
 
 asr_config=conf/train_asr_rnn.yaml
-decode_config=conf/decode_asr_rnn.yaml
+inference_config=conf/decode_asr_rnn.yaml
 lm_config=conf/train_lm.yaml
 
 
@@ -29,11 +29,12 @@ word_vocab_size=65000
     --token_type char                      \
     --feats_type fbank_pitch               \
     --asr_config "${asr_config}"           \
-    --decode_config "${decode_config}"     \
+    --inference_config "${inference_config}"     \
     --lm_config "${lm_config}"             \
     --use_word_lm ${use_word_lm}           \
     --word_vocab_size ${word_vocab_size}   \
     --train_set "${train_set}"             \
     --valid_set "${valid_set}"             \
     --test_sets "${test_sets}"             \
-    --srctexts "data/${train_set}/text data/local/other_text/text" "$@"
+    --bpe_train_text "data/${train_set}/text" \
+    --lm_train_text "data/${train_set}/text data/local/other_text/text" "$@"

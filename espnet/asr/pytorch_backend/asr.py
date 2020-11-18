@@ -38,6 +38,7 @@ from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
@@ -414,10 +415,15 @@ def train(args):
 
     # specify attention, CTC, hybrid mode
     if "transducer" in args.model_module:
-        assert args.mtlalpha == 1.0
-        mtl_mode = "transducer"
+        if (
+            getattr(args, "etype", False) == "transformer"
+            or getattr(args, "dtype", False) == "transformer"
+        ):
+            mtl_mode = "transformer_transducer"
+        else:
+            mtl_mode = "transducer"
         logging.info("Pure transducer mode")
-    if args.mtlalpha == 1.0:
+    elif args.mtlalpha == 1.0:
         mtl_mode = "ctc"
         logging.info("Pure CTC mode")
     elif args.mtlalpha == 0.0:
@@ -505,8 +511,15 @@ def train(args):
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
+        # For transformer-transducer, adim declaration is within the block definition.
+        # Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.
+        if hasattr(args, "enc_block_arch") or hasattr(args, "dec_block_arch"):
+            adim = model.most_dom_dim
+        else:
+            adim = args.adim
+
         optimizer = get_std_opt(
-            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
@@ -659,9 +672,19 @@ def train(args):
         )
 
     # Save attention weight each epoch
-    if args.num_save_attention > 0 and (
-        mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt"
-    ):
+    is_attn_plot = (
+        (
+            "transformer" in args.model_module
+            or "conformer" in args.model_module
+            or mtl_mode in ["att", "mtl"]
+        )
+        or (
+            mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
+        )
+        or mtl_mode == "transformer_transducer"
+    )
+
+    if args.num_save_attention > 0 and is_attn_plot:
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["input"][0]["shape"][1]),
@@ -684,6 +707,34 @@ def train(args):
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
         att_reporter = None
+
+    # Save CTC prob at each epoch
+    if mtl_mode in ["ctc", "mtl"] and args.num_save_ctc > 0:
+        # NOTE: sort it by output lengths
+        data = sorted(
+            list(valid_json.items())[: args.num_save_ctc],
+            key=lambda x: int(x[1]["output"][0]["shape"][0]),
+            reverse=True,
+        )
+        if hasattr(model, "module"):
+            ctc_vis_fn = model.module.calculate_all_ctc_probs
+            plot_class = model.module.ctc_plot_class
+        else:
+            ctc_vis_fn = model.calculate_all_ctc_probs
+            plot_class = model.ctc_plot_class
+        ctc_reporter = plot_class(
+            ctc_vis_fn,
+            data,
+            args.outdir + "/ctc_prob",
+            converter=converter,
+            transform=load_cv,
+            device=device,
+            ikey="output",
+            iaxis=1,
+        )
+        trainer.extend(ctc_reporter, trigger=(1, "epoch"))
+    else:
+        ctc_reporter = None
 
     # Make a plot for training and validation values
     if args.num_encs > 1:
@@ -727,7 +778,7 @@ def train(args):
         snapshot_object(model, "model.loss.best"),
         trigger=training.triggers.MinValueTrigger("validation/main/loss"),
     )
-    if mtl_mode not in ["ctc", "transducer"]:
+    if mtl_mode not in ["ctc", "transducer", "transformer_transducer"]:
         trainer.extend(
             snapshot_object(model, "model.acc.best"),
             trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
@@ -739,8 +790,9 @@ def train(args):
             torch_snapshot(filename="snapshot.iter.{.updater.iteration}"),
             trigger=(args.save_interval_iters, "iteration"),
         )
-    else:
-        trainer.extend(torch_snapshot(), trigger=(1, "epoch"))
+
+    # save snapshot at every epoch - for model averaging
+    trainer.extend(torch_snapshot(), trigger=(1, "epoch"))
 
     # epsilon decay in the optimizer
     if args.opt == "adadelta":
@@ -771,6 +823,18 @@ def train(args):
                     lambda best_value, current_value: best_value < current_value,
                 ),
             )
+            trainer.extend(
+                adadelta_eps_decay(args.eps_decay),
+                trigger=CompareValueTrigger(
+                    "validation/main/loss",
+                    lambda best_value, current_value: best_value < current_value,
+                ),
+            )
+        # NOTE: In some cases, it may take more than one epoch for the model's loss
+        # to escape from a local minimum.
+        # Thus, restore_snapshot extension is not used here.
+        # see details in https://github.com/espnet/espnet/pull/2171
+        elif args.criterion == "loss_eps_decay_only":
             trainer.extend(
                 adadelta_eps_decay(args.eps_decay),
                 trigger=CompareValueTrigger(
@@ -823,7 +887,11 @@ def train(args):
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         trainer.extend(
-            TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
+            TensorboardLogger(
+                SummaryWriter(args.tensorboard_dir),
+                att_reporter=att_reporter,
+                ctc_reporter=ctc_reporter,
+            ),
             trigger=(args.report_interval_iters, "iteration"),
         )
     # Run the training
@@ -921,6 +989,26 @@ def recog(args):
         preprocess_args={"train": False},
     )
 
+    # load transducer beam search
+    if hasattr(model, "rnnt_mode"):
+        if hasattr(model, "dec"):
+            trans_decoder = model.dec
+        else:
+            trans_decoder = model.decoder
+
+        beam_search_transducer = BeamSearchTransducer(
+            decoder=trans_decoder,
+            beam_size=args.beam_size,
+            lm=rnnlm,
+            lm_weight=args.lm_weight,
+            search_type=args.search_type,
+            max_sym_exp=args.max_sym_exp,
+            u_max=args.u_max,
+            nstep=args.nstep,
+            prefix_alpha=args.prefix_alpha,
+            score_norm=args.score_norm,
+        )
+
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
@@ -976,6 +1064,8 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
+                elif hasattr(model, "rnnt_mode"):
+                    nbest_hyps = model.recognize(feat, beam_search_transducer)
                 else:
                     nbest_hyps = model.recognize(
                         feat, args, train_args.char_list, rnnlm

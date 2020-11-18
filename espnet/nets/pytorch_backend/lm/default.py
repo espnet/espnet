@@ -344,14 +344,11 @@ class RNNLM(nn.Module):
     def forward(self, state, x):
         """Forward neural networks."""
         if state is None:
-            h = [
-                to_device(self, self.zero_state(x.size(0)))
-                for n in range(self.n_layers)
-            ]
+            h = [to_device(x, self.zero_state(x.size(0))) for n in range(self.n_layers)]
             state = {"h": h}
             if self.typ == "lstm":
                 c = [
-                    to_device(self, self.zero_state(x.size(0)))
+                    to_device(x, self.zero_state(x.size(0)))
                     for n in range(self.n_layers)
                 ]
                 state = {"c": c, "h": h}

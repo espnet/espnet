@@ -1,4 +1,3 @@
-from collections import defaultdict
 from datetime import datetime
 from io import BytesIO
 from io import TextIOWrapper
@@ -8,6 +7,7 @@ import sys
 import tarfile
 from typing import Dict
 from typing import Iterable
+from typing import Optional
 from typing import Union
 import zipfile
 
@@ -38,6 +38,7 @@ class Archiver:
         if self.type == "tar":
             self.fopen = tarfile.open(file, mode=mode)
         elif self.type == "zip":
+
             self.fopen = zipfile.ZipFile(file, mode=mode)
         else:
             raise ValueError(f"Not supported: type={type}")
@@ -59,7 +60,25 @@ class Archiver:
         else:
             raise ValueError(f"Not supported: type={self.type}")
 
-    def add(self, filename, arcname=None):
+    def add(self, filename, arcname=None, recursive: bool = True):
+        if arcname is not None:
+            print(f"adding: {arcname}")
+        else:
+            print(f"adding: {filename}")
+
+        if recursive and Path(filename).is_dir():
+            for f in Path(filename).glob("**/*"):
+                if f.is_dir():
+                    continue
+
+                if arcname is not None:
+                    _arcname = Path(arcname) / f
+                else:
+                    _arcname = None
+
+                self.add(f, _arcname)
+            return
+
         if self.type == "tar":
             return self.fopen.add(filename, arcname)
         elif self.type == "zip":
@@ -68,6 +87,8 @@ class Archiver:
             raise ValueError(f"Not supported: type={self.type}")
 
     def addfile(self, info, fileobj):
+        print(f"adding: {self.get_name_from_info(info)}")
+
         if self.type == "tar":
             return self.fopen.addfile(info, fileobj)
         elif self.type == "zip":
@@ -139,38 +160,74 @@ def find_path_and_change_it_recursive(value, src: str, tgt: str):
         return value
 
 
+def get_dict_from_cache(meta: Union[Path, str]) -> Optional[Dict[str, str]]:
+    meta = Path(meta)
+    outpath = meta.parent.parent
+    if not meta.exists():
+        return None
+
+    with meta.open("r", encoding="utf-8") as f:
+        d = yaml.safe_load(f)
+        assert isinstance(d, dict), type(d)
+        yaml_files = d["yaml_files"]
+        files = d["files"]
+        assert isinstance(yaml_files, dict), type(yaml_files)
+        assert isinstance(files, dict), type(files)
+
+        retval = {}
+        for key, value in list(yaml_files.items()) + list(files.items()):
+            if not (outpath / value).exists():
+                return None
+            retval[key] = str(outpath / value)
+        return retval
+
+
 def unpack(
-    input_tarfile: Union[Path, str], outpath: Union[Path, str],
+    input_archive: Union[Path, str],
+    outpath: Union[Path, str],
+    use_cache: bool = True,
 ) -> Dict[str, str]:
     """Scan all files in the archive file and return as a dict of files.
 
     Examples:
         tarfile:
-           packed/asr_model_file.pth
-           packed/option/some1.file
-           packed/option/some2.file
+           model.pth
+           some1.file
+           some2.file
 
         >>> unpack("tarfile", "out")
-        {'asr_model_file': 'out/packed/asr_model_file.pth',
-         'option': ['out/packed/option/some1.file', 'out/packed/option/some2.file']}
+        {'asr_model_file': 'out/model.pth'}
     """
-    input_tarfile = Path(input_tarfile)
+    input_archive = Path(input_archive)
     outpath = Path(outpath)
 
-    with Archiver(input_tarfile) as archive:
+    with Archiver(input_archive) as archive:
         for info in archive:
             if Path(archive.get_name_from_info(info)).name == "meta.yaml":
+                if (
+                    use_cache
+                    and (outpath / Path(archive.get_name_from_info(info))).exists()
+                ):
+                    retval = get_dict_from_cache(
+                        outpath / Path(archive.get_name_from_info(info))
+                    )
+                    if retval is not None:
+                        return retval
                 d = yaml.safe_load(archive.extractfile(info))
+                assert isinstance(d, dict), type(d)
                 yaml_files = d["yaml_files"]
+                files = d["files"]
+                assert isinstance(yaml_files, dict), type(yaml_files)
+                assert isinstance(files, dict), type(files)
                 break
         else:
             raise RuntimeError("Format error: not found meta.yaml")
 
-        retval = defaultdict(list)
         for info in archive:
-            outname = outpath / archive.get_name_from_info(info)
+            fname = archive.get_name_from_info(info)
+            outname = outpath / fname
             outname.parent.mkdir(parents=True, exist_ok=True)
-            if archive.get_name_from_info(info) in yaml_files:
+            if fname in set(yaml_files.values()):
                 d = yaml.safe_load(archive.extractfile(info))
                 # Rewrite yaml
                 for info2 in archive:
@@ -181,11 +238,21 @@ def unpack(
             else:
                 archive.extract(info, path=outpath)
 
-            key = archive.get_name_from_info(info).split("/")[1]
-            key = Path(key).stem
-            retval[key].append(str(outname))
-        retval = {k: v[0] if len(v) == 1 else v for k, v in retval.items()}
+        retval = {}
+        for key, value in list(yaml_files.items()) + list(files.items()):
+            retval[key] = str(outpath / value)
         return retval
+
+
+def _to_relative_or_resolve(f):
+    # Resolve to avoid symbolic link
+    p = Path(f).resolve()
+    try:
+        # Change to relative if it can
+        p = p.relative_to(Path(".").resolve())
+    except ValueError:
+        pass
+    return str(p)
 
 
 def pack(
@@ -193,46 +260,18 @@ def pack(
     yaml_files: Dict[str, Union[str, Path]],
     outpath: Union[str, Path],
     option: Iterable[Union[str, Path]] = (),
-    dirname: str = "packed",
 ):
     for v in list(files.values()) + list(yaml_files.values()) + list(option):
         if not Path(v).exists():
             raise FileNotFoundError(f"No such file or directory: {v}")
-    dirname = Path(dirname)
 
-    files_map = {}
-    for name, src in list(files.items()):
-        # Save as e.g. packed/asr_model_file.pth
-        dst = str(dirname / name)
-        files_map[dst] = src
-
-    for src in option:
-        # Save as packed/option/${basename}
-        idx = 0
-        while True:
-            p = Path(src)
-            if idx == 0:
-                dst = str(dirname / "option" / p.name)
-            else:
-                dst = str(dirname / "option" / f"{p.stem}.{idx}{p.suffix}")
-            if dst not in files_map:
-                files_map[dst] = src
-                break
-            idx += 1
-
-    # Read yaml and Change the file path to the archived path
-    yaml_files_map = {}
-    for name, path in yaml_files.items():
-        with open(path, "r", encoding="utf-8") as f:
-            dic = yaml.safe_load(f)
-            for dst, src in files_map.items():
-                dic = find_path_and_change_it_recursive(dic, src, dst)
-            dst = str(dirname / name)
-            yaml_files_map[dst] = dic
+    files = {k: _to_relative_or_resolve(v) for k, v in files.items()}
+    yaml_files = {k: _to_relative_or_resolve(v) for k, v in yaml_files.items()}
+    option = [_to_relative_or_resolve(v) for v in option]
 
     meta_objs = dict(
-        files=list(files_map),
-        yaml_files=list(yaml_files_map),
+        files=files,
+        yaml_files=yaml_files,
         timestamp=datetime.now().timestamp(),
         python=sys.version,
     )
@@ -254,15 +293,10 @@ def pack(
     with Archiver(outpath, mode="w") as archive:
         # Write packed/meta.yaml
         fileobj = BytesIO(yaml.safe_dump(meta_objs).encode())
-        info = archive.generate_info(dirname / "meta.yaml", fileobj.getbuffer().nbytes)
+        info = archive.generate_info("meta.yaml", fileobj.getbuffer().nbytes)
         archive.addfile(info, fileobj=fileobj)
 
-        for dst, dic in yaml_files_map.items():
-            # Dump dict as yaml-bytes
-            fileobj = BytesIO(yaml.safe_dump(dic).encode())
-            # Embed the yaml-bytes in tarfile
-            info = archive.generate_info(dst, fileobj.getbuffer().nbytes)
-            archive.addfile(info, fileobj=fileobj)
-        for dst, src in files_map.items():
-            # Resolve to avoid symbolic link
-            archive.add(Path(src).resolve(), dst)
+        for f in list(yaml_files.values()) + list(files.values()) + list(option):
+            archive.add(f)
+
+    print(f"Generate: {outpath}")

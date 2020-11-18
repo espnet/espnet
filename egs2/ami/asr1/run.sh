@@ -22,7 +22,7 @@ test_sets="${mic}_eval ${mic}_dev"
 
 asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
-decode_config=conf/decode_asr.yaml
+inference_config=conf/decode_asr.yaml
 
 speed_perturb_factors="0.9 1.0 1.1"
 
@@ -36,9 +36,9 @@ speed_perturb_factors="0.9 1.0 1.1"
     --token_type char \
     --feats_type raw \
     --asr_config "${asr_config}" \
-    --decode_config "${decode_config}" \
+    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"

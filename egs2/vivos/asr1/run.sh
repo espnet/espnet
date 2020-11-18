@@ -9,7 +9,7 @@ valid_set="train_dev"
 test_sets="train_dev test"
 
 asr_config=conf/train_asr.yaml
-decode_config=conf/decode.yaml
+inference_config=conf/decode.yaml
 
 lm_config=conf/train_lm_char.yaml
 use_lm=true
@@ -26,8 +26,8 @@ word_vocab_size=7184
     --word_vocab_size ${word_vocab_size}        \
     --lm_config "${lm_config}"                  \
     --asr_config "${asr_config}"                \
-    --decode_config "${decode_config}"          \
+    --inference_config "${inference_config}"          \
     --train_set "${train_set}"                  \
     --valid_set "${valid_set}"                  \
     --test_sets "${test_sets}"                  \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"

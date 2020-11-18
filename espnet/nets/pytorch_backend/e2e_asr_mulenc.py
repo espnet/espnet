@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
-
-"""Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf."""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Copyright 2017 Johns Hopkins University (Ruizhi Li)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf."""
 
 import argparse
 from itertools import groupby
@@ -824,6 +822,7 @@ class E2E(ASRInterface, torch.nn.Module):
             3) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray or list
         """
+        self.eval()
         with torch.no_grad():
             # 1. Encoder
             if self.replace_sos:
@@ -842,5 +841,35 @@ class E2E(ASRInterface, torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(
                 hs_pad_list, hlens_list, ys_pad, lang_ids=tgt_lang_ids
             )
-
+        self.train()
         return att_ws
+
+    def calculate_all_ctc_probs(self, xs_pad_list, ilens_list, ys_pad):
+        """E2E CTC probability calculation.
+
+        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences
+                                [(B, Tmax_1, idim), (B, Tmax_2, idim),..]
+        :param List ilens_list:
+            list of batch (torch.Tensor) of lengths of input sequences [(B), (B), ..]
+        :param torch.Tensor ys_pad:
+            batch of padded character id sequence tensor (B, Lmax)
+        :return: CTC probability (B, Tmax, vocab)
+        :rtype: float ndarray or list
+        """
+        probs_list = [None]
+        if self.mtlalpha == 0:
+            return probs_list
+
+        self.eval()
+        probs_list = []
+        with torch.no_grad():
+            # 1. Encoder
+            for idx in range(self.num_encs):
+                hs_pad, hlens, _ = self.enc[idx](xs_pad_list[idx], ilens_list[idx])
+
+                # 2. CTC loss
+                ctc_idx = 0 if self.share_ctc else idx
+                probs = self.ctc[ctc_idx].softmax(hs_pad).cpu().numpy()
+                probs_list.append(probs)
+        self.train()
+        return probs_list

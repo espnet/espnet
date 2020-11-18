@@ -20,6 +20,8 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
@@ -80,6 +82,10 @@ class TransformerEncoder(AbsEncoder):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(input_size, output_size, dropout_rate)
+        elif input_layer == "conv2d6":
+            self.embed = Conv2dSubsampling6(input_size, output_size, dropout_rate)
+        elif input_layer == "conv2d8":
+            self.embed = Conv2dSubsampling8(input_size, output_size, dropout_rate)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
@@ -153,7 +159,11 @@ class TransformerEncoder(AbsEncoder):
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
-        if isinstance(self.embed, Conv2dSubsampling):
+        if (
+            isinstance(self.embed, Conv2dSubsampling)
+            or isinstance(self.embed, Conv2dSubsampling6)
+            or isinstance(self.embed, Conv2dSubsampling8)
+        ):
             xs_pad, masks = self.embed(xs_pad, masks)
         else:
             xs_pad = self.embed(xs_pad)

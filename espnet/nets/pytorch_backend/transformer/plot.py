@@ -60,6 +60,7 @@ def plot_multi_head_attention(
     iaxis=0,
     okey="output",
     oaxis=0,
+    subsampling_rate=4,
 ):
     """Plot multi head attentions.
 
@@ -69,33 +70,44 @@ def plot_multi_head_attention(
     :param str outdir: dir to save fig
     :param str suffix: filename suffix including image type (e.g., png)
     :param savefn: function to save
+    :param str ikey: key to access input
+    :param int iaxis: dimension to access input
+    :param str okey: key to access output
+    :param int oaxis: dimension to access output
+    :param subsampling_rate: subsampling rate in encoder
 
     """
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (outdir, data[idx][0], name, suffix)
-            dec_len = int(data[idx][1][okey][oaxis]["shape"][0])
+            dec_len = int(data[idx][1][okey][oaxis]["shape"][0]) + 1  # +1 for <eos>
             enc_len = int(data[idx][1][ikey][iaxis]["shape"][0])
+            is_mt = "token" in data[idx][1][ikey][iaxis].keys()
+            # for ASR/ST
+            if not is_mt:
+                enc_len //= subsampling_rate
             xtokens, ytokens = None, None
             if "encoder" in name:
                 att_w = att_w[:, :enc_len, :enc_len]
                 # for MT
-                if "token" in data[idx][1][ikey][iaxis].keys():
+                if is_mt:
                     xtokens = data[idx][1][ikey][iaxis]["token"].split()
                     ytokens = xtokens[:]
             elif "decoder" in name:
                 if "self" in name:
-                    att_w = att_w[:, : dec_len + 1, : dec_len + 1]  # +1 for <sos>
+                    # self-attention
+                    att_w = att_w[:, :dec_len, :dec_len]
+                    if "token" in data[idx][1][okey][oaxis].keys():
+                        ytokens = data[idx][1][okey][oaxis]["token"].split() + ["<eos>"]
+                        xtokens = ["<sos>"] + data[idx][1][okey][oaxis]["token"].split()
                 else:
-                    att_w = att_w[:, : dec_len + 1, :enc_len]  # +1 for <sos>
+                    # cross-attention
+                    att_w = att_w[:, :dec_len, :enc_len]
+                    if "token" in data[idx][1][okey][oaxis].keys():
+                        ytokens = data[idx][1][okey][oaxis]["token"].split() + ["<eos>"]
                     # for MT
-                    if "token" in data[idx][1][ikey][iaxis].keys():
+                    if is_mt:
                         xtokens = data[idx][1][ikey][iaxis]["token"].split()
-                # for ASR/ST/MT
-                if "token" in data[idx][1][okey][oaxis].keys():
-                    ytokens = ["<sos>"] + data[idx][1][okey][oaxis]["token"].split()
-                    if "self" in name:
-                        xtokens = ytokens[:]
             else:
                 logging.warning("unknown name for shaping attention")
             fig = _plot_and_save_attention(att_w, filename, xtokens, ytokens)
