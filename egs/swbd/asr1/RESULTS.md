@@ -1,18 +1,21 @@
-# conformer with BPE 2000, specaug, LM decoding
+# conformer with BPE 2000, specaug, speed perturbation, Transformer LM decoding
 ## Models
-- model link: https://drive.google.com/file/d/1n5yD08H8g0bMLeqPXx7MZ8IU5S-o681E/view
-- training config file: `conf/train.yaml`
+- model link: https://drive.google.com/file/d/1FhDeQ4eFxBsnGitZkG7rgScZB0oNpeg7/view
+- training config file: `conf/tuning/train_pytorch_conformer_lr5.yaml`
 - preprocess config file: `conf/specaug.yaml`
 - decoding config file: `conf/decode.yaml`
 
 ## WER
 ```
-exp/train_nodup_pytorch_train_pytorch_conformer_specaug/decode_eval2000_model.last10.avg.best_decode_lm/scoring/hyp.callhm.ctm.filt.sys:|    SPK          |    # Snt       # Wrd     |    Corr          Sub          Del          Ins           Err        S.Err    |
-exp/train_nodup_pytorch_train_pytorch_conformer_specaug/decode_eval2000_model.last10.avg.best_decode_lm/scoring/hyp.callhm.ctm.filt.sys:|    SumAvg       |    2628        21594     |    86.3         10.3          3.4          2.5          16.2         51.9    |
-exp/train_nodup_pytorch_train_pytorch_conformer_specaug/decode_eval2000_model.last10.avg.best_decode_lm/scoring/hyp.ctm.filt.sys:|   SPKR          |    # Snt      # Wrd    |    Corr         Sub          Del         Ins          Err       S.Err    |
-exp/train_nodup_pytorch_train_pytorch_conformer_specaug/decode_eval2000_model.last10.avg.best_decode_lm/scoring/hyp.ctm.filt.sys:|   Sum/Avg       |    4459       42989    |    89.8         7.5          2.7         1.7         11.9        46.8    |
-exp/train_nodup_pytorch_train_pytorch_conformer_specaug/decode_eval2000_model.last10.avg.best_decode_lm/scoring/hyp.swbd.ctm.filt.sys:|    SPKR         |    # Snt       # Wrd    |    Corr          Sub           Del          Ins          Err        S.Err    |
-exp/train_nodup_pytorch_train_pytorch_conformer_specaug/decode_eval2000_model.last10.avg.best_decode_lm/scoring/hyp.swbd.ctm.filt.sys:|    Sum/Avg      |    1831        21395    |    93.4          4.6           2.1          1.0          7.7         39.4    |
+exp_sp/train_nodup_sp_pytorch_train_pytorch_conformer_lr5_specaug_resume/decode_eval2000_model.last10.avg.best_decode_train_transformer_lm_pytorch_swbd+fisher_bpe2000/scoring/hyp.callhm.ctm.filt.sys
+|       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
+|       Sum/Avg           |        2628               21594        |        87.9                 8.9                  3.2                 2.0                 14.0                49.8        |
+exp_sp/train_nodup_sp_pytorch_train_pytorch_conformer_lr5_specaug_resume/decode_eval2000_model.last10.avg.best_decode_train_transformer_lm_pytorch_swbd+fisher_bpe2000/scoring/hyp.ctm.filt.sys
+|       SPKR              |       # Snt             # Wrd        |       Corr                 Sub                Del                 Ins                 Err              S.Err        |
+|       Sum/Avg           |       4459              42989        |       91.0                 6.5                2.5                 1.4                10.4               44.5        |
+exp_sp/train_nodup_sp_pytorch_train_pytorch_conformer_lr5_specaug_resume/decode_eval2000_model.last10.avg.best_decode_train_transformer_lm_pytorch_swbd+fisher_bpe2000/scoring/hyp.swbd.ctm.filt.sys
+|       SPKR             |        # Snt              # Wrd        |       Corr                  Sub                 Del                 Ins                  Err               S.Err        |
+|       Sum/Avg          |        1831               21395        |       94.1                  4.1                 1.9                 0.9                  6.8                36.9        |
 ```
 
 # transformer with BPE 2000, specaug, LM decoding

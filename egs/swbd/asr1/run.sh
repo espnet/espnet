@@ -57,9 +57,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodup
-train_dev=train_dev
-recog_set="train_dev eval2000 rt03"
+train_set=train_nodup_sp
+train_dev=train_dev_trim
+recog_set="train_dev_trim eval2000 rt03"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -107,10 +107,25 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/fix_data_dir.sh data/${x}
     done
 
-    utils/subset_data_dir.sh --first data/train 4000 data/${train_dev} # 5hr 6min
+    utils/subset_data_dir.sh --first data/train 4000 data/train_dev # 5hr 6min
     n=$(($(wc -l < data/train/segments) - 4000))
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
-    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set} # 286hr
+    utils/data/remove_dup_utts.sh 300 data/train_nodev data/train_nodup # 286hr
+
+    # remove utt having > 2000 frames or < 10 frames or
+    # remove utt having > 400 characters or 0 characters
+    remove_longshortdata.sh --maxchars 400 data/train data/train_nodup_trim
+    remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
+
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/train_nodup_trim data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/train_nodup_trim data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/train_nodup_trim data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    utils/fix_data_dir.sh data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -138,8 +153,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_char/${train_set}_${bpemode}${nbpe}_units.txt
-bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
+dict=data/lang_char/train_nodup_${bpemode}${nbpe}_units.txt
+bpemodel=data/lang_char/train_nodup_${bpemode}${nbpe}
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -194,7 +209,7 @@ fi
 if [ -z ${lmtag} ]; then
     lmtag=$(basename ${lm_config%.*})
 fi
-lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+lmexpname=train_transformer_lm_${backend}_${lmtag}_${bpemode}${nbpe}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
