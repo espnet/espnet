@@ -63,6 +63,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/laborotv_data_prep.sh ${LABOROTV}
     local/csj_rm_tag_sp_space.sh data/train
     local/csj_rm_tag_sp_space.sh data/dev
+
+    # make a development set
+    utils/subset_data_dir.sh --first data/train 4000 data/dev_4k
+    n=$(($(wc -l < data/train/text) - 4000))
+    utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

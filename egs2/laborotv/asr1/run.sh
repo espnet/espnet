@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-valid_set=dev
-test_sets="dev"
+train_set=train_nodev
+valid_set=dev_4k
+test_sets="dev_4k dev"
 # tedx-jp-10k_verbatim generation script has some error in 
 # https://github.com/laboroai/LaboroTVSpeech/issues/1
 #test_sets="dev tedx-jp-10k_verbatim"
@@ -23,6 +23,8 @@ speed_perturb_factors="0.9 1.0 1.1"
 # NOTE: The default settings require 4 GPUs with 32 GB memory
 ./asr.sh \
     --ngpu 4 \
+    --nj 128 \
+    --inference_nj 256 \
     --lang jp \
     --token_type char \
     --feats_type raw \
@@ -33,4 +35,4 @@ speed_perturb_factors="0.9 1.0 1.1"
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
-    --lm_train_text "data/train_nodev/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"
