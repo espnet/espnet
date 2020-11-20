@@ -5,7 +5,6 @@
 
 from typing import Any
 from typing import Dict
-from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -29,7 +28,7 @@ class Energy(AbsFeatsExtract):
         n_fft: int = 1024,
         win_length: int = None,
         hop_length: int = 256,
-        window: Optional[str] = "hann",
+        window: str = "hann",
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
@@ -74,6 +73,7 @@ class Energy(AbsFeatsExtract):
             center=self.stft.center,
             normalized=self.stft.normalized,
             use_token_averaged_energy=self.use_token_averaged_energy,
+            reduction_factor=self.reduction_factor,
         )
 
     def forward(

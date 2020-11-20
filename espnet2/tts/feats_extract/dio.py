@@ -7,7 +7,6 @@ import logging
 
 from typing import Any
 from typing import Dict
-from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -84,6 +83,7 @@ class Dio(AbsFeatsExtract):
             use_token_averaged_f0=self.use_token_averaged_f0,
             use_continuous_f0=self.use_continuous_f0,
             use_log_f0=self.use_log_f0,
+            reduction_factor=self.reduction_factor,
         )
 
     def forward(
