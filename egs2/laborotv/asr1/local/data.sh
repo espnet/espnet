@@ -34,19 +34,21 @@ fi
 TEDXJP_DATA_ROOT="tedx-jp"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    # for some reason youtube-dl is quite unstable and we need to add
+    # the following 5-times retry process
     awk -F',' 'NR > 1 {print $3}' < local/tedx-jp/tedx-jp-10k.csv | while IFS= read -r line; do
-	until youtube-dl \
-	    --extract-audio \
-	    --audio-format wav \
-	    --write-sub \
-	    --sub-format vtt \
-	    --sub-lang ja \
-	    --output "${TEDXJP_DATA_ROOT}/%(id)s.%(ext)s" \
-	    ${line}
-	do
-	    # for some reason youtube-dl is quite unstable and we need to add
-	    # the following resume process
-	    echo "Try again"
+	n=0
+	until [ "${n}" -ge 5 ]; do
+	    youtube-dl \
+		--extract-audio \
+		--audio-format wav \
+		--write-sub \
+		--sub-format vtt \
+		--sub-lang ja \
+		--output "${TEDXJP_DATA_ROOT}/%(id)s.%(ext)s" \
+		${line} && break
+	    n=$((n+1)) 
+	    echo "Try again (${n}-th trial)"
 	done
     done
 fi
