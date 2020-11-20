@@ -135,6 +135,7 @@ class Trainer:
         val_scheduler_criterion: Sequence[str],
         trainer_options,
         distributed_option: DistributedOption,
+        find_unused_parameters: bool = False,
     ) -> None:
         """Perform training. This method performs the main process of training."""
         assert check_argument_types()
@@ -162,11 +163,13 @@ class Trainer:
                     if distributed_option.ngpu == 1
                     else None
                 ),
+                find_unused_parameters=find_unused_parameters,
             )
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
                 model,
                 device_ids=list(range(distributed_option.ngpu)),
+                find_unused_parameters=find_unused_parameters,
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
