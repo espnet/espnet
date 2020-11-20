@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
 import yaml
+import wandb
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -545,6 +546,18 @@ class AbsTask(ABC):
             help="Show the logs every the number iterations in each epochs at the "
             "training phase. If None is given, it is decided according the number "
             "of training samples automatically .",
+        )
+        group.add_argument(
+            "--use_tensorboard",
+            type=str2bool,
+            default=True,
+            help="Enable tensorboard logging",
+        )
+        group.add_argument(
+            "--use_wandb",
+            type=str2bool,
+            default=False,
+            help="Enable wandb logging",
         )
 
         group = parser.add_argument_group("Pretraining model related")
@@ -1224,6 +1237,32 @@ class AbsTask(ABC):
                     logging.warning("No keep_nbest_models is given. Change to [1]")
                     args.keep_nbest_models = [1]
                 keep_nbest_models = max(args.keep_nbest_models)
+
+            if args.use_wandb:
+                if (
+                    not distributed_option.distributed
+                    or distributed_option.dist_rank == 0
+                ):
+                    p = output_dir / "wandb" / "id"
+                    if p.exists() and args.resume:
+                        with p.open() as f:
+                            wandb_id = f.read()
+                    else:
+                        wandb_id = None
+                    wandb.init(
+                        project=str(output_dir).replace("/", "_"),
+                        dir=output_dir,
+                        id=wandb_id,
+                        resume="allow",
+                    )
+                    with p.open("w") as f:
+                        f.write(wandb.run.id)
+                    wandb.config.update(args)
+                else:
+                    # wandb also supports grouping for distributed training,
+                    # but we only logs aggregated data,
+                    # so it's enough to perform on rank0 node.
+                    args.use_wandb = False
 
             cls.trainer.run(
                 model=model,
