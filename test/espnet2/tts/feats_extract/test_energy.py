@@ -5,7 +5,7 @@ from espnet2.tts.feats_extract.energy import Energy
 
 
 @pytest.mark.parametrize(
-    "use_token_averaged_f0, reduction_factor", [(False, 1), (True, 1), (True, 3)]
+    "use_token_averaged_energy, reduction_factor", [(False, 1), (True, 1), (True, 3)]
 )
 def test_forward(use_token_averaged_energy, reduction_factor):
     layer = Energy(
