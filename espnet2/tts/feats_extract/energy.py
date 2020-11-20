@@ -48,7 +48,7 @@ class Energy(AbsFeatsExtract):
         self.use_token_averaged_energy = use_token_averaged_energy
         if use_token_averaged_energy:
             assert reduction_factor >= 1
-            self.reduction_factor = reduction_factor
+        self.reduction_factor = reduction_factor
 
         self.stft = Stft(
             n_fft=n_fft,

@@ -68,7 +68,7 @@ class Dio(AbsFeatsExtract):
         self.use_log_f0 = use_log_f0
         if use_token_averaged_f0:
             assert reduction_factor >= 1
-            self.reduction_factor = reduction_factor
+        self.reduction_factor = reduction_factor
 
     def output_size(self) -> int:
         return 1
