@@ -31,9 +31,6 @@ for x in train dev; do
   # where each utterance corresponds to a unique speaker.
   awk '{print $1,$1_spk}' data/${x}/text >data/${x}/utt2spk
   utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk >data/${x}/spk2utt
-
-  utils/data/get_utt2dur.sh data/${x}
-
   utils/fix_data_dir.sh data/${x}
   utils/validate_data_dir.sh --no-feats data/${x}
 done

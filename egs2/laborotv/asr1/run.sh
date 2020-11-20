@@ -8,6 +8,8 @@ set -o pipefail
 train_set=train
 valid_set=dev
 test_sets="dev"
+# tedx-jp-10k_verbatim generation script has some error in 
+# https://github.com/laboroai/LaboroTVSpeech/issues/1
 #test_sets="dev tedx-jp-10k_verbatim"
 
 asr_config=conf/train_asr_conformer.yaml
