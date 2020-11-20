@@ -34,7 +34,7 @@ fi
 TEDXJP_DATA_ROOT="tedx-jp"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    for x in `awk -F',' 'NR > 1 {print $3}' local/tedx-jp/tedx-jp-10k.csv`; do
+    for x in $(awk -F',' 'NR > 1 {print $3}' local/tedx-jp/tedx-jp-10k.csv); do
 	until youtube-dl \
 	    --extract-audio \
 	    --audio-format wav \
