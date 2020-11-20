@@ -39,6 +39,8 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${TEDXJP}/-6K2nN9aWsg.wav" ]; then
         echo "stage 1: Data Download to ${TEDXJP}"
+	echo "Note that the current downloaded data has some issues and we basically skip this"
+	echo "stage for now."
 	awk -F',' 'NR > 1 {print $3}' < local/tedx-jp/tedx-jp-10k.csv | while IFS= read -r line; do
 	    n=0
 	    until [ "${n}" -ge 5 ]; do
@@ -48,7 +50,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 		    --write-sub \
 		    --sub-format vtt \
 		    --sub-lang ja \
-		    --output "${TEDXJP_DATA_ROOT}/%(id)s.%(ext)s" \
+		    --output "${TEDXJP}/%(id)s.%(ext)s" \
 		    ${line} && break
 		n=$((n+1)) 
 		echo "Try again (${n}-th trial)"
@@ -60,7 +62,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    local/tedx-jp/10k_data_prep.sh ${TEDXJP_DATA_ROOT}
+    local/tedx-jp/10k_data_prep.sh ${TEDXJP}
     local/csj_rm_tag_sp_space.sh data/tedx-jp-10k_verbatim
 fi
 
