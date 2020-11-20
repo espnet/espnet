@@ -301,14 +301,14 @@ class TTSTask(AbsTask):
         energy_normalize = None
         if getattr(args, "pitch_extract", None) is not None:
             pitch_extract_class = pitch_extractor_choices.get_class(args.pitch_extract)
-            args.pitch_extract_conf["reduction_factor"] = args.tts_conf[
-                "reduction_factor"
-            ]
+            args.pitch_extract_conf["reduction_factor"] = args.tts_conf.get(
+                "reduction_factor", 1
+            )
             pitch_extract = pitch_extract_class(**args.pitch_extract_conf)
         if getattr(args, "energy_extract", None) is not None:
-            args.energy_extract_conf["reduction_factor"] = args.tts_conf[
-                "reduction_factor"
-            ]
+            args.energy_extract_conf["reduction_factor"] = args.tts_conf.get(
+                "reduction_factor", 1
+            )
             energy_extract_class = energy_extractor_choices.get_class(
                 args.energy_extract
             )
