@@ -19,6 +19,7 @@ requirements = {
         "gdown",
         "espnet_model_zoo",
         "ctc-segmentation>=1.4.0",
+        "wandb",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",

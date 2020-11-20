@@ -176,7 +176,7 @@ def get_parser():
         "--normalize_output_wav",
         type=str2bool,
         default=False,
-        help="Weather to normalize the predicted wav to [-1~1]",
+        help="Whether to normalize the predicted wav to [-1~1]",
     )
 
     group = parser.add_argument_group("The model configuration related")

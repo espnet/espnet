@@ -7,7 +7,6 @@ import logging
 
 from typing import Any
 from typing import Dict
-from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -47,11 +46,12 @@ class Dio(AbsFeatsExtract):
         fs: Union[int, str] = 22050,
         n_fft: int = 1024,
         hop_length: int = 256,
-        f0min: Optional[int] = 80,
-        f0max: Optional[int] = 400,
+        f0min: int = 80,
+        f0max: int = 400,
         use_token_averaged_f0: bool = True,
         use_continuous_f0: bool = True,
         use_log_f0: bool = True,
+        reduction_factor: int = None,
     ):
         assert check_argument_types()
         super().__init__()
@@ -66,6 +66,9 @@ class Dio(AbsFeatsExtract):
         self.use_token_averaged_f0 = use_token_averaged_f0
         self.use_continuous_f0 = use_continuous_f0
         self.use_log_f0 = use_log_f0
+        if use_token_averaged_f0:
+            assert reduction_factor >= 1
+        self.reduction_factor = reduction_factor
 
     def output_size(self) -> int:
         return 1
@@ -80,6 +83,7 @@ class Dio(AbsFeatsExtract):
             use_token_averaged_f0=self.use_token_averaged_f0,
             use_continuous_f0=self.use_continuous_f0,
             use_log_f0=self.use_log_f0,
+            reduction_factor=self.reduction_factor,
         )
 
     def forward(
@@ -108,6 +112,7 @@ class Dio(AbsFeatsExtract):
 
         # (Optional): Average by duration to calculate token-wise f0
         if self.use_token_averaged_f0:
+            durations = durations * self.reduction_factor
             pitch = [
                 self._average_by_duration(p, d).view(-1)
                 for p, d in zip(pitch, durations)
@@ -170,9 +175,8 @@ class Dio(AbsFeatsExtract):
 
         return f0
 
-    @staticmethod
-    def _average_by_duration(x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
-        assert d.sum() == len(x)
+    def _average_by_duration(self, x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
+        assert 0 <= len(x) - d.sum() < self.reduction_factor
         d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
         x_avg = [
             x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)

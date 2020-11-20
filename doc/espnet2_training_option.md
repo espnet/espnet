@@ -164,6 +164,32 @@ for epoch in range(max_epoch):
 
 Therefore, the training can be resumed at the start of the epoch.
 
+## Weights & Biases integration
+
+About Weights & Biases: https://docs.wandb.com/
+
+1. Installation and setup
+
+    See: https://docs.wandb.com/quickstart
+
+    ```sh
+    wandb login
+    ```
+1. Enable wandb
+
+    ```sh
+    python -m espnet2.bin.asr_train --use_wandb true
+    ```
+
+    and go to the shown URL.
+1. [Option] To use HTTPS PROXY
+    ```sh
+    export HTTPS_PROXY=...your proxy
+    export CURL_CA_BUNDLE=your.pem
+    export CURL_CA_BUNDLE=   # Disable SSL certificate verification
+    ```
+
+
 ## Multi GPUs
 
 ```bash
