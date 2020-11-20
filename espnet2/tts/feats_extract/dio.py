@@ -51,7 +51,7 @@ class Dio(AbsFeatsExtract):
         use_token_averaged_f0: bool = True,
         use_continuous_f0: bool = True,
         use_log_f0: bool = True,
-        reduction_factor: int = 1,
+        reduction_factor: int = None,
     ):
         assert check_argument_types()
         super().__init__()
