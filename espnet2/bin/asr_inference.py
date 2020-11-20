@@ -34,6 +34,12 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
+def humanfriendly_or_none(value: str):
+    if value in ("none", "None", "NONE"):
+        return None
+    return humanfriendly.parse_size(value)
+
+
 class Speech2Text:
     """Speech2Text class
 
@@ -160,8 +166,13 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+        self,
+        speech_mix: Union[torch.Tensor, np.ndarray],
+        speech_ref1: Union[torch.Tensor, np.ndarray] = None,
+        speech_ref2: Union[torch.Tensor, np.ndarray] = None,
+    ) -> List[
+        List[Tuple[Optional[float], Optional[str], List[str], List[int], Hypothesis]]
+    ]:
         """Inference
 
         Args:
@@ -184,10 +195,37 @@ class Speech2Text:
 
         # a. To device
         batch = to_device(batch, device=self.device)
+        if self.joint_model.cal_enh_loss:
+            speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
+                batch["speech"], batch["speech_lengths"]
+            )
+            speech_pre_lengths = batch["speech_lengths"]
+            ref = np.array(
+                torch.stack([speech_ref1, speech_ref2], dim=0).squeeze()
+            )  # nspk,T
+            inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
+            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
+        else:
+            _, _, speech_pre, speech_pre_lengths = self.joint_model.forward_enh(
+                batch["speech"],
+                batch["speech_lengths"],
+            )
+            sdr, perm = None, np.arange(0, len(speech_pre))
 
         # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
-        assert len(enc) == 1, len(enc)
+        results_list = []
+        # For each predicted spk
+        for idx, p in enumerate(perm):
+            speech_spk = speech_pre[int(p)]
+            # enc, _ = self.joint_model.encode(speech_spk, batch['speech_lengths'])
+            enc, _ = self.joint_model.encode(speech_spk, speech_pre_lengths)
+            assert len(enc) == 1, len(enc)
+
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+            nbest_hyps = nbest_hyps[: self.nbest]
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
@@ -309,7 +347,17 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(**batch)
+            logging.info(f"keys: {keys}")
+            results_list = speech2text(**batch)
+
+            for spk_idx, results in enumerate(results_list):
+                # Only supporting batch_size==1
+                key = keys[0]
+                for n, (sdr, text, token, token_int, hyp) in zip(
+                    range(1, nbest + 1), results
+                ):
+                    # Create a directory: outdir/{n}best_recog
+                    ibest_writer = writer[f"{n}best_recog_spk{spk_idx+1}"]
 
             # Only supporting batch_size==1
             key = keys[0]
@@ -322,8 +370,8 @@ def inference(
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
-                if text is not None:
-                    ibest_writer["text"][key] = text
+                    if sdr is not None:
+                        writer[f"SDR_spk{spk_idx + 1}"][key] = str(sdr)
 
 
 def get_parser():
@@ -409,7 +457,7 @@ def get_parser():
     group.add_argument(
         "--ctc_weight",
         type=float,
-        default=0.5,
+        default=0.2,
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
@@ -429,6 +477,14 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+
+    group = parser.add_argument_group("Output wav related")
+    group.add_argument(
+        "--normalize_output_wav",
+        type=str2bool,
+        default=False,
+        help="Whether to normalize the predicted wav to [-1~1]",
     )
 
     return parser
