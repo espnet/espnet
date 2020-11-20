@@ -5,9 +5,10 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodev
-valid_set=train_dev
-test_sets="train_dev dev"
+train_set=train
+valid_set=dev
+test_sets="dev"
+#test_sets="dev tedx-jp-10k_verbatim"
 
 asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr.yaml

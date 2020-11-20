@@ -39,6 +39,7 @@ requirements = {
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.17.0",
+        "youtube_dl",  # for laborotv
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
