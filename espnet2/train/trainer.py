@@ -242,7 +242,8 @@ class Trainer:
                 # 3. Report the results
                 logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
-                reporter.tensorboard_add_scalar(summary_writer)
+                if summary_writer is not None:
+                    reporter.tensorboard_add_scalar(summary_writer)
 
                 # 4. Save/Update the checkpoint
                 torch.save(
