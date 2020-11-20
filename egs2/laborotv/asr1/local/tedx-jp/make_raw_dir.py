@@ -150,7 +150,8 @@ def main():
     )
     parser.add_argument("dst_dir", type=Path, help="")
     parser.add_argument(
-        "--copy-wav", action="store_true",
+        "--copy-wav",
+        action="store_true",
     )
     parser.add_argument("--video-csv")
     parser.add_argument(
