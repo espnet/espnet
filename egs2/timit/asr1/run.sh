@@ -16,10 +16,10 @@ asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
-    --token_type ${trans_type} \
-    --train_set ${train_set} \
-    --valid_set ${train_dev} \
-    --test_sets ${test_sets} \
+    --token_type "${trans_type}" \
+    --train_set "${train_set}" \
+    --valid_set "${train_dev}" \
+    --test_sets "${test_sets}" \
     --use_lm false \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
