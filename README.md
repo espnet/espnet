@@ -59,6 +59,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Also support: mixed RNN/Transformer architecture, attention mechanism (RNN decoder), VGG2L (RNN/Transformer encoder), Conformer (Transformer encoder), TDNN (Transformer encoder), Causal Conv1d (Transformer decoder) and various decoding algorithms.
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
+- Non-autoregressive based on Mask CTC
 - ASR examples for supporting endangered language documentation (Please refer to egs/puebla_nahuatl and egs/yoloxochitl_mixtec for details)
 
 ### TTS: Text-to-speech
@@ -150,26 +151,20 @@ You can find useful tutorials and demos in [Interspeech 2019 Tutorial](https://g
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
-| Task                   | CER (%) | WER (%) | Pretrained model                                                                                                                                                      |
+| Task                   | CER (%) | WER (%) | Pretrained model|
 | -----------            | :----:  | :----:  | :----:                                                                                                                                                                |
-| Aishell dev            | 6.0     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#transformer-result-default-transformer-with-initial-learning-rate--10-and-epochs--50) |
-| Aishell test           | 6.6     | N/A     | same as above                                                                                                                                                         |
-| Common Voice dev       | 1.7     | 2.2     | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
-| Common Voice test      | 1.8     | 2.3     | same as above                                                                                                                                                         |
-| CSJ eval1              | 5.7     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/csj/asr1/RESULTS.md#pytorch-backend-transformer-without-any-hyperparameter-tuning)                            |
-| CSJ eval2              | 3.8     | N/A     | same as above                                                                                                                                                         |
-| CSJ eval3              | 4.2     | N/A     | same as above                                                                                                                                                         |
+| Aishell dev/test            | 4.6/5.1    | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#conformer-kernel-size--15--specaugment--lm-weight--00-result) |
+| **ESPnet2** Aishell dev/test            | 4.4/4.7    | N/A     | [link](https://github.com/espnet/espnet/tree/master/egs2/aishell/asr1#conformer--specaug--speed-perturbation-featsraw-n_fft512-hop_length128) |
+| Common Voice dev/test       | 1.7/1.8     | 2.2/2.3     | [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu) |
+| CSJ eval1/eval2/eval3              | 5.7/3.8/4.2     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/csj/asr1/RESULTS.md#pytorch-backend-transformer-without-any-hyperparameter-tuning)                            |
+| **ESPnet2** CSJ eval1/eval2/eval3              | 4.5/3.3/3.6     | N/A     | [link](https://github.com/espnet/espnet/tree/master/egs2/csj/asr1#initial-conformer-results)                            |
 | HKUST dev              | 23.5    | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs)                                                             |
-| Librispeech dev_clean  | N/A     | 1.9     | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--transformer-lm-4-gpus)             |
-| Librispeech dev_other  | N/A     | 4.9     | same as above                                                                                                                                                         |
-| Librispeech test_clean | N/A     | 2.1     | same as above                                                                                                                                                         |
-| Librispeech test_other | N/A     | 4.9     | same as above                                                                                                                                                         |
-| TEDLIUM2 dev           | N/A     | 9.3     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#transformer-large-model--specaug--large-lm)                                          |
-| TEDLIUM2 test          | N/A     | 8.1     | same as above                                                                                                                                                         |
-| TEDLIUM3 dev           | N/A     | 9.7     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md#transformer-elayers12-dlayers6-units2048-8-gpus-specaug--large-lm)                   |
-| TEDLIUM3 test          | N/A     | 8.0     | same as above                                                                                                                                                         |
-| WSJ dev93              | 3.2     | 7.0     | N/A                                                                                                                                                                   |
-| WSJ eval92             | 2.1     | 4.7     | N/A                                                                                                                                                                   |
+| Librispeech dev_clean/dev_other/test_clean/test_other  | N/A     | 1.9/4.9/2.1/4.9     | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-conformer-with-specaug--speed-perturbation-8-gpus--transformer-lm-4-gpus)             |
+| Switchboard (eval2000) callhm/swbd           | N/A     | 14.0/6.8     | [link](https://github.com/espnet/espnet/blob/master/egs/swbd/asr1/RESULTS.md#conformer-with-bpe-2000-specaug-speed-perturbation-transformer-lm-decoding)   |
+| TEDLIUM2 dev/test           | N/A     | 8.6/7.2     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#conformer-large-model--specaug--speed-perturbation--rnnlm)   |
+| TEDLIUM3 dev/test           | N/A     | 9.6/7.6     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md)                   |
+| WSJ dev93/eval92              | 3.2/2.1     | 7.0/4.7     | N/A |
+|  **ESPnet2** WSJ dev93/eval92              | 2.7/1.8     | 6.6/4.6     | [link](https://github.com/espnet/espnet/tree/master/egs2/wsj/asr1#using-transformer-lm-asr-model-is-same-as-the-above-lm_weight12-ctc_weight03-beam_size20) |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 

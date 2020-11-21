@@ -28,7 +28,7 @@ esac
 dir=${download_dir}/${pretrained_model}
 mkdir -p ${dir}
 if [ ! -e ${dir}/.complete ]; then
-    download_from_google_drive_2.sh ${share_url} ${dir} "tar.gz"
+    download_from_google_drive.sh ${share_url} ${dir} "tar.gz"
     touch ${dir}/.complete
 fi
 echo "Successfully finished donwload of pretrained model."

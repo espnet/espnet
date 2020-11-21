@@ -24,11 +24,7 @@ fi
 odir=$1
 dir=${PWD}/data/local/data
 
-if [ -z $BEAMFORMIT ] ; then
-  export BEAMFORMIT=$KALDI_ROOT/tools/extras/BeamformIt
-fi
-export PATH=${PATH}:$BEAMFORMIT
-! hash BeamformIt && echo "Missing BeamformIt, run 'cd ../../../tools/; extras/install_beamformit.sh;'" && exit 1
+! type BeamformIt && echo "Missing BeamformIt, run 'cd ../../../tools; installers/install_beamformit.sh;'" && exit 1
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -69,19 +65,19 @@ for task in dt et; do
           split_wavfiles="$split_wavfiles $output_wavfiles.$n"
         done
         utils/split_scp.pl $output_wavfiles $split_wavfiles || exit 1;
-        
+
         echo -e "Beamforming - $task - real - $nch ch\n"
         # making a shell script for each job
         for n in `seq $nj`; do
 	cat <<-EOF > $wdir/log/beamform.$n.sh
 	while read line; do
-	  $BEAMFORMIT/BeamformIt -s \$line -c $arrays \
+	  BeamformIt -s \$line -c $arrays \
 	    --config_file `pwd`/conf/reverb_beamformit.cfg \
 	    --result_dir $odir
 	done < $output_wavfiles.$n
 	EOF
         done
-        
+
         chmod a+x $wdir/log/beamform.*.sh
         $cmd JOB=1:$nj $wdir/log/beamform.JOB.log \
           $wdir/log/beamform.JOB.sh
@@ -121,19 +117,19 @@ for task in dt et; do
           split_wavfiles="$split_wavfiles $output_wavfiles.$n"
         done
         utils/split_scp.pl $output_wavfiles $split_wavfiles || exit 1;
-        
+
         echo -e "Beamforming - $task - simu - $nch ch\n"
         # making a shell script for each job
         for n in `seq $nj`; do
 	cat <<-EOF > $wdir/log/beamform.$n.sh
 	while read line; do
-	  $BEAMFORMIT/BeamformIt -s \$line -c $arrays \
+	  BeamformIt -s \$line -c $arrays \
 	    --config_file `pwd`/conf/reverb_beamformit.cfg \
 	    --result_dir $odir
 	done < $output_wavfiles.$n
 	EOF
         done
-        
+
         chmod a+x $wdir/log/beamform.*.sh
         $cmd JOB=1:$nj $wdir/log/beamform.JOB.log \
           $wdir/log/beamform.JOB.sh
