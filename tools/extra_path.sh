@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
-TOOL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+if [ -n "${BASH_VERSION:-}" ]; then
+    # shellcheck disable=SC2046
+    TOOL_DIR="$( cd $( dirname ${BASH_SOURCE[0]} ) >/dev/null 2>&1 && pwd )"
+elif [ -n "${ZSH_VERSION:-}" ]; then
+    # shellcheck disable=SC2046
+    TOOL_DIR="$( cd $( dirname ${(%):-%N} ) >/dev/null 2>&1 && pwd )"
+else
+    # assume something else
+    echo "ERROR: Must be executed by bash or zsh."
+fi
+
 if [ -z "${TOOL_DIR}" ]; then
     echo "ERROR: Cannot derive the directory path of espnet/tools. This might be a bug."
     return 1
@@ -12,4 +22,5 @@ export PATH="${TOOL_DIR}"/moses/scripts/tokenizer:"${TOOL_DIR}"/moses/scripts/ge
 export PATH="${TOOL_DIR}"/nkf/nkf-2.1.4:"${PATH:-}"
 export PATH="${TOOL_DIR}"/PESQ/P862_annex_A_2005_CD/source:"${PATH:-}"
 export PATH="${TOOL_DIR}"/kenlm/build/bin:"${PATH:-}"
+export PATH="${TOOL_DIR}"/BeamformIt:"${PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/lib:"${TOOL_DIR}"/lib64:"${LD_LIBRARY_PATH:-}"

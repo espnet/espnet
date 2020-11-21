@@ -11,12 +11,19 @@ test_sets="dev test"
 
 # Set this to one of ["phn", "char"] depending on your requirement
 trans_type=phn
+if [ "${trans_type}" = phn ]; then
+    # If the transcription is "phn" type, the token splitting should be done in word level
+    token_type=word
+else
+    token_type="${trans_type}"
+fi
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
+
 ./asr.sh \
-    --token_type "${trans_type}" \
+    --token_type "${token_type}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_sets}" \
@@ -24,4 +31,4 @@ inference_config=conf/decode_asr.yaml
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --local_data_opts "--trans_type ${trans_type}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"

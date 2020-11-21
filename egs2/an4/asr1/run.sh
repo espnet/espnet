@@ -11,4 +11,4 @@ set -o pipefail
     --lm_config conf/train_lm.yaml \
     --valid_set train_dev \
     --test_sets "train_dev test" \
-    --srctexts "data/train_nodev/text" "$@"
+    --lm_train_text "data/train_nodev/text" "$@"
