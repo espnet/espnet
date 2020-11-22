@@ -70,6 +70,8 @@ class TrainerOptions:
     grad_clip_type: float
     log_interval: Optional[int]
     no_forward_run: bool
+    use_tensorboard: bool
+    use_wandb: bool
 
 
 class Trainer:
@@ -135,6 +137,7 @@ class Trainer:
         val_scheduler_criterion: Sequence[str],
         trainer_options,
         distributed_option: DistributedOption,
+        find_unused_parameters: bool = False,
     ) -> None:
         """Perform training. This method performs the main process of training."""
         assert check_argument_types()
@@ -162,18 +165,22 @@ class Trainer:
                     if distributed_option.ngpu == 1
                     else None
                 ),
+                find_unused_parameters=find_unused_parameters,
             )
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
                 model,
                 device_ids=list(range(distributed_option.ngpu)),
+                find_unused_parameters=find_unused_parameters,
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
             # but for debuggability it's better to keep this block.
             dp_model = model
 
-        if not distributed_option.distributed or distributed_option.dist_rank == 0:
+        if trainer_options.use_tensorboard and (
+            not distributed_option.distributed or distributed_option.dist_rank == 0
+        ):
             summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
         else:
             summary_writer = None
@@ -242,7 +249,10 @@ class Trainer:
                 # 3. Report the results
                 logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
-                reporter.tensorboard_add_scalar(summary_writer)
+                if summary_writer is not None:
+                    reporter.tensorboard_add_scalar(summary_writer)
+                if trainer_options.use_wandb:
+                    reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
                 torch.save(
@@ -348,6 +358,7 @@ class Trainer:
         log_interval = options.log_interval
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
+        use_wandb = options.use_wandb
         distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
 
         if log_interval is None:
@@ -486,6 +497,8 @@ class Trainer:
                 logging.info(reporter.log_message(-log_interval))
                 if summary_writer is not None:
                     reporter.tensorboard_add_scalar(summary_writer, -log_interval)
+                if use_wandb:
+                    reporter.wandb_log()
 
         else:
             if distributed:

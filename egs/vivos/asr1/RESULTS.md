@@ -1,16 +1,16 @@
 # RNN-Transducer (enc: 4 x BLSTMP, dec: 1 x LSTM)
 
 - Environments
-  - date: `Sat Sep 19 14:46:02 CEST 2020`
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.2`
+  - espnet version: `espnet 0.9.3`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.4.0`
-  - Git hash: `4344f5e6a11e394c99e1527dc880d5766299306b`
-  - Commit date: `Sat Sep 19 12:52:30 2020 +0200`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1ix3Lm0Ov3E-nSvdtRK9L1pRsMmW6N-qL
+  - model link: https://drive.google.com/open?id=1KtzW_F4escMuUTvTT41J-Bzdf4tiFBDn
   - training config file: `conf/tuning/transducer/train_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -65,16 +65,16 @@
 # RNN-Transducer w/ att. (enc: 4 x BLSTMP, dec: 1 x LSTM)
 
 - Environments
-  - date: `Sat Sep 19 14:46:02 CEST 2020`
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.2`
+  - espnet version: `espnet 0.9.3`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.4.0`
-  - Git hash: `4344f5e6a11e394c99e1527dc880d5766299306b`
-  - Commit date: `Sat Sep 19 12:52:30 2020 +0200`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to rnn_transducer_att.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1H7lRJ7WffS5fjIo3-7BhxyOcNaY5UzWP
+  - model link: https://drive.google.com/open?id=1dmH07AxYYmJq1mLhMxPfRHl1R_LqaY79
   - training config file: `conf/tuning/transducer/train_transducer_att.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -129,16 +129,16 @@
 # Transformer-Transducer (enc: VGG2L + 8 x Transformer, dec: 2 x Transformer)
 
 - Environments
-  - date: `Sat Sep 19 14:46:02 CEST 2020`
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.2`
+  - espnet version: `espnet 0.9.3`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.4.0`
-  - Git hash: `4344f5e6a11e394c99e1527dc880d5766299306b`
-  - Commit date: `Sat Sep 19 12:52:30 2020 +0200`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to transformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1XJZUx3Kl5gf1DQ4P_pwqzgZZR-stzoWT
+  - model link: https://drive.google.com/open?id=1qGGTCbZGGTbkj3A22C-ornRw5Gsf7rLy
   - training config file: `conf/tuning/transducer/train_transformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -193,16 +193,16 @@
 # Transformer/RNN-Transducer (enc: VGG2L + 6 x Transformer, dec: 1 x LSTM)
 
 - Environments
-  - date: `Sat Sep 19 14:46:02 CEST 2020`
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.2`
+  - espnet version: `espnet 0.9.3`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.4.0`
-  - Git hash: `4344f5e6a11e394c99e1527dc880d5766299306b`
-  - Commit date: `Sat Sep 19 12:52:30 2020 +0200`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to transformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1lBK8jSoETIljgQAA4qX2ogaIFIgGYCfX
+  - model link: https://drive.google.com/open?id=1DbxunJLXFCczYf1BuSserirhAOTY8qmo
   - training config file: `conf/tuning/transducer/train_transformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -257,16 +257,16 @@
 # Transformer-Transducer (enc: 3 x TDNN-TDNN-Transformer, dec: 1 x CausalConv1d-Transformer)
 
 - Environments
-  - date: `Sat Sep 19 14:46:02 CEST 2020`
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.2`
+  - espnet version: `espnet 0.9.3`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.4.0`
-  - Git hash: `4344f5e6a11e394c99e1527dc880d5766299306b`
-  - Commit date: `Sat Sep 19 12:52:30 2020 +0200`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to tdnn_transformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1BKtwYEWv4UKXqaPL4zhQVpVpEChBIaNz
+  - model link: https://drive.google.com/open?id=1Fds3PYJtSCXmvZuNDNaWCud-FWquFomH
   - training config file: `conf/tuning/transducer/train_custom_tt.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -321,16 +321,16 @@
 # Conformer-Transducer (enc: Conv2DSubsampling + 8 x Conformer, dec: 2 x Transformer)
 
 - Environments
-  - date: `Sat Sep 19 14:46:02 CEST 2020`
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.2`
+  - espnet version: `espnet 0.9.3`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.4.0`
-  - Git hash: `4344f5e6a11e394c99e1527dc880d5766299306b`
-  - Commit date: `Sat Sep 19 12:52:30 2020 +0200`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to conformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1QLP8gPu2FZpABlGsvW8eEPQjTlL9tDCc
+  - model link: https://drive.google.com/open?id=1AoQyTlFixQvf3KO3Da8EiSW33-KjH4if
   - training config file: `conf/tuning/transducer/train_conformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -385,16 +385,16 @@
 # Conformer/RNN-Transducer (enc: Conv2DSubsampling + 8 x Conformer, dec: 1 x LSTM)
 
 - Environments
-  - date: `Sat Sep 19 14:46:02 CEST 2020`
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
   - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.2`
+  - espnet version: `espnet 0.9.3`
   - chainer version: `chainer 6.0.0`
   - pytorch version: `pytorch 1.4.0`
-  - Git hash: `4344f5e6a11e394c99e1527dc880d5766299306b`
-  - Commit date: `Sat Sep 19 12:52:30 2020 +0200`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
 
 - Model files (archived to conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1D_72MGf7-uBbNSDZdYQ0jSkuu1CAeVN5
+  - model link: https://drive.google.com/open?id=1pIVZAd3P1eyYR-yH-mCg64hpUoRm8lxG
   - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -445,6 +445,70 @@
 |decode_train_dev_decode_nsc_lm_word7184|100|927|68.9|31.1|0.0|0.1|31.2|96.0|
 |decode_train_dev_decode_tsd|100|927|67.3|32.7|0.0|0.1|32.8|95.0|
 |decode_train_dev_decode_tsd_lm_word7184|100|927|68.9|31.0|0.1|0.0|31.1|93.0|
+
+# Conformer/RNN-Transducer (enc: 3 x TDNN-TDNN-Conformer, dec: 1 x LSTM)
+
+- Environments
+  - date: `Fri Oct 16 20:22:19 CEST 2020`
+  - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.9.3`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.4.0`
+  - Git hash: `20b0c89369d9dd3e05780b65fdd00a9b4f4891e5`
+  - Commit date: `Mon Oct 12 09:28:20 2020 -0400`
+
+- Model files (archived to rnn_transducer.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1xFizgC6k9r4-UkcAk7TRFB7bkUt4L2Bd
+  - training config file: `conf/tuning/transducer/train_custom_ct.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/train_nodev/cmvn.ark`
+  - e2e file: `exp/train_nodev_pytorch_train_custom_ct/results/model.loss.best`
+  - e2e JSON file: `exp/train_nodev_pytorch_train_custom_ct/results/model.json`
+  - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
+  - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`
+  - dict file: `data/lang_1char/`
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|32771|89.5|8.2|2.4|2.7|13.2|87.8|
+|decode_test_decode_alsd_lm_word7184|760|32771|90.1|7.7|2.2|2.5|12.5|85.4|
+|decode_test_decode_default|760|32771|89.4|8.3|2.3|2.5|13.1|87.8|
+|decode_test_decode_default_lm_word7184|760|32771|90.1|7.7|2.2|2.4|12.3|85.3|
+|decode_test_decode_nsc|760|32771|89.4|8.3|2.3|2.7|13.3|89.5|
+|decode_test_decode_nsc_lm_word7184|760|32771|89.9|7.8|2.3|2.6|12.7|87.2|
+|decode_test_decode_tsd|760|32771|89.4|8.2|2.4|2.6|13.2|88.7|
+|decode_test_decode_tsd_lm_word7184|760|32771|90.1|7.6|2.3|2.3|12.3|85.7|
+|decode_train_dev_decode_alsd|100|4007|90.5|7.8|1.7|1.9|11.3|93.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|4007|90.9|7.4|1.7|1.9|11.0|93.0|
+|decode_train_dev_decode_default|100|4007|90.2|7.9|1.8|1.9|11.6|93.0|
+|decode_train_dev_decode_default_lm_word7184|100|4007|90.9|7.4|1.6|1.8|10.9|92.0|
+|decode_train_dev_decode_nsc|100|4007|90.2|8.0|1.8|2.0|11.8|94.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|4007|90.3|7.9|1.7|2.0|11.6|92.0|
+|decode_train_dev_decode_tsd|100|4007|90.1|7.9|1.9|1.9|11.7|94.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|4007|90.7|7.3|1.9|1.7|11.0|92.0|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|7722|71.5|27.8|0.7|0.5|29.0|87.8|
+|decode_test_decode_alsd_lm_word7184|760|7722|73.7|25.7|0.7|0.5|26.8|85.4|
+|decode_test_decode_default|760|7722|71.5|27.9|0.6|0.5|29.0|87.8|
+|decode_test_decode_default_lm_word7184|760|7722|73.8|25.6|0.6|0.4|26.6|85.3|
+|decode_test_decode_nsc|760|7722|71.1|28.4|0.6|0.6|29.5|89.3|
+|decode_test_decode_nsc_lm_word7184|760|7722|72.9|26.5|0.6|0.5|27.7|87.1|
+|decode_test_decode_tsd|760|7722|71.5|27.9|0.6|0.5|29.0|88.0|
+|decode_test_decode_tsd_lm_word7184|760|7722|74.1|25.3|0.7|0.4|26.4|85.3|
+|decode_train_dev_decode_alsd|100|927|71.6|28.4|0.0|0.0|28.4|93.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|927|73.6|26.4|0.0|0.0|26.4|93.0|
+|decode_train_dev_decode_default|100|927|71.3|28.7|0.0|0.0|28.7|93.0|
+|decode_train_dev_decode_default_lm_word7184|100|927|73.6|26.4|0.0|0.0|26.4|92.0|
+|decode_train_dev_decode_nsc|100|927|70.7|29.3|0.0|0.2|29.6|94.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|927|71.5|28.5|0.0|0.2|28.7|92.0|
+|decode_train_dev_decode_tsd|100|927|70.9|29.1|0.0|0.1|29.2|94.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|927|74.0|25.9|0.1|0.3|26.3|92.0|
 
 # pytorch CTC model (4 x BLSTMP)
 

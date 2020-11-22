@@ -59,7 +59,7 @@ else
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done
 endif
 
-extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done
+extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
@@ -196,6 +196,10 @@ PESQ/P862_annex_A_2005_CD/source/PESQ:
 py3mmseg.done: espnet.done
 	. ./activate_python.sh && ./installers/install_py3mmseg.sh
 	touch py3mmseg.done
+
+beamformit.done:
+	./installers/install_beamformit.sh
+	touch beamformit.done
 
 check_install: python
 ifeq ($(strip $(CPU_ONLY)),)

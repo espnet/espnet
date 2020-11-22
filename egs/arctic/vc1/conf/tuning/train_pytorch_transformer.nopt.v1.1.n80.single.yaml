@@ -5,7 +5,6 @@
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_vc_transformer:Transformer
-embed-dim: 0
 eprenet-conv-layers: 0  # one more linear layer w/o non-linear will be added for 0-centor
 eprenet-conv-filts: 0
 eprenet-conv-chans: 0
