@@ -566,6 +566,18 @@ class AbsTask(ABC):
             default=False,
             help="Enable wandb logging",
         )
+        group.add_argument(
+            "--wandb_project",
+            type=str,
+            default=None,
+            help="Specify wandb project",
+        )
+        group.add_argument(
+            "--wandb_id",
+            type=str,
+            default=None,
+            help="Specify wandb id",
+        )
 
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", help="This option is obsoleted")
@@ -1250,20 +1262,25 @@ class AbsTask(ABC):
                     not distributed_option.distributed
                     or distributed_option.dist_rank == 0
                 ):
-                    p = output_dir / "wandb" / "id"
-                    if p.exists() and args.resume:
-                        with p.open() as f:
-                            wandb_id = f.read()
+                    if args.wandb_project is None:
+                        project = (
+                            "ESPnet_"
+                            + cls.__name__
+                            + str(Path(".").resolve()).replace("/", "_")
+                        )
                     else:
-                        wandb_id = None
+                        project = args.wandb_project
+                    if args.wandb_id is None:
+                        wandb_id = str(output_dir).replace("/", "_")
+                    else:
+                        wandb_id = args.wandb_id
+
                     wandb.init(
-                        project=str(output_dir).replace("/", "_"),
+                        project=project,
                         dir=output_dir,
                         id=wandb_id,
                         resume="allow",
                     )
-                    with p.open("w") as f:
-                        f.write(wandb.run.id)
                     wandb.config.update(args)
                 else:
                     # wandb also supports grouping for distributed training,
