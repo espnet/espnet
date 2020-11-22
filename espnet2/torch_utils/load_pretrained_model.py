@@ -1,6 +1,4 @@
-from pathlib import Path
 from typing import Any
-from typing import Union
 
 import torch
 import torch.nn
@@ -8,19 +6,42 @@ import torch.optim
 
 
 def load_pretrained_model(
-    pretrain_path: Union[str, Path],
+    init_param: str,
     model: torch.nn.Module,
-    pretrain_key: str = None,
     map_location: str = "cpu",
-    ignore_not_existing_keys: bool = True,
 ):
     """Load a model state and set it to the model.
 
+    Args:
+        init_param: <file_path>:<src_key>:<dst_key>:<exclude_Keys>
+
     Examples:
         >>> load_pretrained_model("somewhere/model.pth", model)
-        >>> load_pretrained_model("somewhere/encoder.pth", model, "encoder")
+        >>> load_pretrained_model("somewhere/model.pth:decoder:decoder", model)
+        >>> load_pretrained_model("somewhere/model.pth:decoder:decoder:", model)
+        >>> load_pretrained_model(
+        ...     "somewhere/model.pth:decoder:decoder:decoder.embed", model
+        ... )
+        >>> load_pretrained_model("somewhere/decoder.pth::decoder", model)
     """
-    if pretrain_key is None:
+    sps = init_param.split(":", 4)
+    if len(sps) == 4:
+        path, src_key, dst_key, excludes = sps
+    elif len(sps) == 3:
+        path, src_key, dst_key = sps
+        excludes = None
+    elif len(sps) == 2:
+        path, src_key = sps
+        dst_key, excludes = None, None
+    else:
+        (path,) = sps
+        src_key, dst_key, excludes = None, None, None
+    if src_key == "":
+        src_key = None
+    if dst_key == "":
+        dst_key = None
+
+    if dst_key is None:
         obj = model
     else:
 
@@ -41,12 +62,20 @@ def load_pretrained_model(
                 obj = getattr(obj, k)
             return obj
 
-        obj = get_attr(model, pretrain_key)
+        obj = get_attr(model, dst_key)
 
-    state_dict = obj.state_dict()
-    pretrained_dict = torch.load(pretrain_path, map_location=map_location)
-    if ignore_not_existing_keys:
-        # Ignores the parameters not existing in the train-model
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in state_dict}
-    state_dict.update(pretrained_dict)
-    obj.load_state_dict(state_dict)
+    src_state = torch.load(path, map_location=map_location)
+    if excludes is not None:
+        for e in excludes.split(","):
+            src_state = {k: v for k, v in src_state.items() if not k.startswith(e)}
+
+    if src_key is not None:
+        src_state = {
+            k[len(src_key) + 1 :]: v
+            for k, v in src_state.items()
+            if k.startswith(src_key)
+        }
+
+    dst_state = obj.state_dict()
+    dst_state.update(src_state)
+    obj.load_state_dict(dst_state)

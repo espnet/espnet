@@ -20,6 +20,7 @@ import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
+import wandb
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
@@ -231,6 +232,22 @@ class SubReporter:
             values = stats_list[start:]
             v = aggregate(values)
             summary_writer.add_scalar(key2, v, self.total_count)
+
+    def wandb_log(self, start: int = None, commit: bool = True):
+        if start is None:
+            start = 0
+        if start < 0:
+            start = self.count + start
+
+        d = {}
+        for key2, stats_list in self.stats.items():
+            assert len(stats_list) == self.count, (len(stats_list), self.count)
+            # values: List[ReportValue]
+            values = stats_list[start:]
+            v = aggregate(values)
+            d[key2] = v
+        d["iteration"] = self.total_count
+        wandb.log(d, commit=commit)
 
     def finished(self) -> None:
         self._finished = True
@@ -524,6 +541,19 @@ class Reporter:
                     self.stats[epoch][key1][key2],
                     epoch,
                 )
+
+    def wandb_log(self, epoch: int = None, commit: bool = True):
+        if epoch is None:
+            epoch = self.get_epoch()
+
+        d = {}
+        for key1 in self.get_keys(epoch):
+            for key2 in self.stats[epoch][key1]:
+                if key2 in ("time", "total_count"):
+                    continue
+                d[f"{key1}_{key2}_epoch"] = self.stats[epoch][key1][key2]
+        d["epoch"] = epoch
+        wandb.log(d, commit=commit)
 
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}

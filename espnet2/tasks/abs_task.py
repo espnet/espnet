@@ -27,6 +27,7 @@ import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
+import wandb
 import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
@@ -546,10 +547,60 @@ class AbsTask(ABC):
             "training phase. If None is given, it is decided according the number "
             "of training samples automatically .",
         )
+        group.add_argument(
+            "--unused_parameters",
+            type=bool,
+            default=False,
+            help="Whether to use the find_unused_parameters in "
+            "torch.nn.parallel.DistributedDataParallel ",
+        )
+        group.add_argument(
+            "--use_tensorboard",
+            type=str2bool,
+            default=True,
+            help="Enable tensorboard logging",
+        )
+        group.add_argument(
+            "--use_wandb",
+            type=str2bool,
+            default=False,
+            help="Enable wandb logging",
+        )
+        group.add_argument(
+            "--wandb_project",
+            type=str,
+            default=None,
+            help="Specify wandb project",
+        )
+        group.add_argument(
+            "--wandb_id",
+            type=str,
+            default=None,
+            help="Specify wandb id",
+        )
 
         group = parser.add_argument_group("Pretraining model related")
-        group.add_argument("--pretrain_path", type=str, default=[], nargs="*")
-        group.add_argument("--pretrain_key", type=str_or_none, default=[], nargs="*")
+        group.add_argument("--pretrain_path", help="This option is obsoleted")
+        group.add_argument(
+            "--init_param",
+            type=str,
+            default=[],
+            nargs="*",
+            help="Specify the file path used for initialization of parameters. "
+            "The format is '<file_path>:<src_key>:<dst_key>:<exclude_keys>', "
+            "where file_path is the model file path, "
+            "src_key specifies the key of model states to be used in the model file, "
+            "dst_key specifies the attribute of the model to be initialized, "
+            "and exclude_keys excludes keys of model states for the initialization."
+            "e.g.\n"
+            "  # Load all parameters"
+            "  --init_param some/where/model.pth\n"
+            "  # Load only decoder parameters"
+            "  --init_param some/where/model.pth:decoder:decoder\n"
+            "  # Load only decoder parameters excluding decoder.embed"
+            "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n"
+            "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n",
+        )
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
@@ -828,10 +879,6 @@ class AbsTask(ABC):
         for k in vars(args):
             if "-" in k:
                 raise RuntimeError(f'Use "_" instead of "-": parser.get_parser("{k}")')
-        if len(args.pretrain_path) != len(args.pretrain_key):
-            raise RuntimeError(
-                "The number of --pretrain_path and --pretrain_key must be same"
-            )
 
         required = ", ".join(
             f"--{a}" for a in args.required if getattr(args, a) is None
@@ -930,6 +977,8 @@ class AbsTask(ABC):
         if args is None:
             parser = cls.get_parser()
             args = parser.parse_args(cmd)
+        if args.pretrain_path is not None:
+            raise RuntimeError("--pretrain_path is deprecated. Use --init_param")
         if args.print_config:
             cls.print_config()
             sys.exit(0)
@@ -1085,15 +1134,11 @@ class AbsTask(ABC):
                 yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
         # 6. Loads pre-trained model
-        for p, k in zip(args.pretrain_path, args.pretrain_key):
-            logging.info(f"Loading pretrained params from {p} (key: {k})")
+        for p in args.init_param:
+            logging.info(f"Loading pretrained params from {p}")
             load_pretrained_model(
                 model=model,
-                # Directly specify the model path e.g. exp/train/loss.best.pt
-                pretrain_path=p,
-                # if pretrain_key is None -> model
-                # elif pretrain_key is str e.g. "encoder" -> model.encoder
-                pretrain_key=k,
+                init_param=p,
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                 #   in PyTorch<=1.4
                 map_location=f"cuda:{torch.cuda.current_device()}"
@@ -1200,10 +1245,6 @@ class AbsTask(ABC):
                 plot_attention_iter_factory = None
 
             # 9. Start training
-            # Don't give args to trainer.run() directly!!!
-            # Instead of it, define "Options" object and build here.
-            trainer_options = cls.trainer.build_options(args)
-
             if isinstance(args.keep_nbest_models, int):
                 keep_nbest_models = args.keep_nbest_models
             else:
@@ -1212,6 +1253,40 @@ class AbsTask(ABC):
                     args.keep_nbest_models = [1]
                 keep_nbest_models = max(args.keep_nbest_models)
 
+            if args.use_wandb:
+                if (
+                    not distributed_option.distributed
+                    or distributed_option.dist_rank == 0
+                ):
+                    if args.wandb_project is None:
+                        project = (
+                            "ESPnet_"
+                            + cls.__name__
+                            + str(Path(".").resolve()).replace("/", "_")
+                        )
+                    else:
+                        project = args.wandb_project
+                    if args.wandb_id is None:
+                        wandb_id = str(output_dir).replace("/", "_")
+                    else:
+                        wandb_id = args.wandb_id
+
+                    wandb.init(
+                        project=project,
+                        dir=output_dir,
+                        id=wandb_id,
+                        resume="allow",
+                    )
+                    wandb.config.update(args)
+                else:
+                    # wandb also supports grouping for distributed training,
+                    # but we only logs aggregated data,
+                    # so it's enough to perform on rank0 node.
+                    args.use_wandb = False
+
+            # Don't give args to trainer.run() directly!!!
+            # Instead of it, define "Options" object and build here.
+            trainer_options = cls.trainer.build_options(args)
             cls.trainer.run(
                 model=model,
                 optimizers=optimizers,
@@ -1231,6 +1306,7 @@ class AbsTask(ABC):
                 val_scheduler_criterion=args.val_scheduler_criterion,
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
+                find_unused_parameters=args.unused_parameters,
             )
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
@@ -1406,6 +1482,17 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
+        if Path(
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2category"
+        ).exists():
+            utt2category_file = str(
+                Path(
+                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                    "utt2category",
+                )
+            )
+        else:
+            utt2category_file = None
         batch_sampler = build_batch_sampler(
             type=iter_options.batch_type,
             shape_files=iter_options.shape_files,
@@ -1418,6 +1505,7 @@ class AbsTask(ABC):
             min_batch_size=torch.distributed.get_world_size()
             if iter_options.distributed
             else 1,
+            utt2category_file=utt2category_file,
         )
 
         batches = list(batch_sampler)
@@ -1677,7 +1765,10 @@ class AbsTask(ABC):
                 preprocess=preprocess_fn,
                 key_file=key_file,
             )
-            kwargs.update(batch_size=batch_size)
+            if dataset.apply_utt2category:
+                kwargs.update(batch_size=1)
+            else:
+                kwargs.update(batch_size=batch_size)
         else:
             dataset = ESPnetDataset(
                 data_path_and_name_and_type,
