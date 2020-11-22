@@ -271,6 +271,9 @@ if [ "${token_type}" = bpe ]; then
 elif [ "${token_type}" = char ]; then
     token_list="${chartoken_list}"
     bpemodel=none
+elif [ "${token_type}" = word ]; then
+    token_list="${wordtoken_list}"
+    bpemodel=none
 else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
@@ -581,7 +584,7 @@ if ! "${skip_data_prep}"; then
             echo "${sos_eos}"
             } > "${token_list}"
 
-        elif [ "${token_type}" = char ]; then
+        elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
             log "Stage 5: Generate character level token_list from ${lm_train_text}"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
@@ -605,7 +608,7 @@ if ! "${skip_data_prep}"; then
         fi
 
         # Create word-list for word-LM training
-        if ${use_word_lm}; then
+        if ${use_word_lm} && [ "${token_type}" != word ]; then
             log "Generate word level token_list from ${data_feats}/lm_train.txt"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type word \
@@ -1229,6 +1232,7 @@ if ! "${skip_eval}"; then
                                   ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
+
                 fi
 
                 sclite \
