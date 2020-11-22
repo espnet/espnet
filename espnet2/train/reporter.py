@@ -233,7 +233,7 @@ class SubReporter:
             v = aggregate(values)
             summary_writer.add_scalar(key2, v, self.total_count)
 
-    def wandb_log(self, start: int = None):
+    def wandb_log(self, start: int = None, commit: bool = True):
         if start is None:
             start = 0
         if start < 0:
@@ -246,7 +246,8 @@ class SubReporter:
             values = stats_list[start:]
             v = aggregate(values)
             d[key2] = v
-        wandb.log(d, step=self.total_count)
+        d["iteration"] = self.total_count
+        wandb.log(d, commit=commit)
 
     def finished(self) -> None:
         self._finished = True
@@ -541,7 +542,7 @@ class Reporter:
                     epoch,
                 )
 
-    def wandb_log(self, epoch: int = None):
+    def wandb_log(self, epoch: int = None, commit: bool = True):
         if epoch is None:
             epoch = self.get_epoch()
 
@@ -551,7 +552,8 @@ class Reporter:
                 if key2 in ("time", "total_count"):
                     continue
                 d[f"{key1}_{key2}_epoch"] = self.stats[epoch][key1][key2]
-        wandb.log(d, step=epoch)
+        d["epoch"] = epoch
+        wandb.log(d, commit=commit)
 
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}
