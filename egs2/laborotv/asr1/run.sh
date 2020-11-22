@@ -7,10 +7,11 @@ set -o pipefail
 
 train_set=train_nodev
 valid_set=dev_4k
-# tedx-jp-10k_verbatim generation script has some error in 
-# https://github.com/laboroai/LaboroTVSpeech/issues/1
-# If you faced on this issue, you can only use the `dev_4k` and `dev` for the test sets
-# test_sets="dev_4k dev"
+# NOTE: tedx-jp-10k_verbatim generation script has some error.
+#   See https://github.com/laboroai/LaboroTVSpeech/issues/1
+#   If you faced on this issue, you can only use the `dev_4k` and `dev` for
+#   the test sets by changing to `test_sets="dev_4k dev"` and adding the
+#   option `--local_data_opts "--stage 3"`.
 test_sets="dev_4k dev tedx-jp-10k_verbatim"
 
 asr_config=conf/train_asr_conformer.yaml

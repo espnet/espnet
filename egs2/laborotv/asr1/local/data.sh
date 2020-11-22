@@ -52,7 +52,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 		    --sub-lang ja \
 		    --output "${TEDXJP}/%(id)s.%(ext)s" \
 		    ${line} && break
-		n=$((n+1)) 
+		n=$((n+1))
 		echo "Try again (${n}-th trial)"
 	    done
 	done
