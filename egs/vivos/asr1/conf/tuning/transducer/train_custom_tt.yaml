@@ -28,7 +28,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -37,7 +37,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: transformer
           d_hidden: 512
@@ -51,7 +51,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -60,7 +60,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: transformer
           d_hidden: 512
@@ -74,7 +74,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -83,7 +83,7 @@ enc-block-arch:
           dilation: 1
           stride: 3
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: transformer
           d_hidden: 512
