@@ -16,7 +16,7 @@ test_sets="dev_4k dev tedx-jp-10k_verbatim"
 
 asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr.yaml
-lm_config=conf/tuning/train_lm_largh1.yaml
+lm_config=conf/train_lm.yaml
 
 # speed perturbation related
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
