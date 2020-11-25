@@ -279,9 +279,7 @@ def build_input_layer(
             pos_enc_class(odim, pos_dropout_rate),
         )
     elif input_layer == "conv2d":
-        return Conv2dSubsampling(
-            idim, odim, dropout_rate, pos_enc_class_subsampling
-        )
+        return Conv2dSubsampling(idim, odim, dropout_rate, pos_enc_class_subsampling)
     elif input_layer == "vgg2l":
         return VGG2L(idim, odim, pos_enc_class_subsampling)
     elif input_layer == "embed":
