@@ -128,6 +128,14 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
     ```
 
     There are some required packages depending on each task other than above. If you meet ImportError, please intall them at that time.
+    
+## Test as a Service
+You can run a file as a service after installing the following:
+pip install soundfile espnet_model_zoo parallel_wavegan
+Then run:
+> python MyTTsService.py
+From a different terminal
+> echo "some text." | nc localhost 9988
 
 ## Usage
 See [Usage](https://espnet.github.io/espnet/tutorial.html).
