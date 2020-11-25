@@ -142,7 +142,7 @@
   - training config file: `conf/tuning/transducer/train_transformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
-  - e2e file: `exp/train_nodev_pytorch_train_transformer_transducer/results/model.loss.best`
+  - e2e file: `exp/train_nodev_pytorch_train_transformer_transducer/results/model.last5.avg.best`
   - e2e JSON file: `exp/train_nodev_pytorch_train_transformer_transducer/results/model.json`
   - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
   - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`
@@ -206,7 +206,7 @@
   - training config file: `conf/tuning/transducer/train_transformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
-  - e2e file: `exp/train_nodev_pytorch_train_transformer-rnn_transducer/results/model.loss.best`
+  - e2e file: `exp/train_nodev_pytorch_train_transformer-rnn_transducer/results/model.last5.avg.best`
   - e2e JSON file: `exp/train_nodev_pytorch_train_transformer-rnn_transducer/results/model.json`
   - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
   - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`
@@ -270,7 +270,7 @@
   - training config file: `conf/tuning/transducer/train_custom_tt.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
-  - e2e file: `exp/train_nodev_pytorch_train_custom_tt/results/model.loss.best`
+  - e2e file: `exp/train_nodev_pytorch_train_custom_tt/results/model.last5.avg.best`
   - e2e JSON file: `exp/train_nodev_pytorch_train_custom_tt/results/model.json`
   - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
   - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`
@@ -334,7 +334,7 @@
   - training config file: `conf/tuning/transducer/train_conformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
-  - e2e file: `exp/train_nodev_pytorch_train_conformer_transducer/results/model.loss.best`
+  - e2e file: `exp/train_nodev_pytorch_train_conformer_transducer/results/model.last5.avg.best`
   - e2e JSON file: `exp/train_nodev_pytorch_train_conformer_transducer/results/model.json`
   - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
   - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`
@@ -398,7 +398,7 @@
   - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
-  - e2e file: `exp/train_nodev_pytorch_train_conformer-rnn_transducer/results/model.loss.best`
+  - e2e file: `exp/train_nodev_pytorch_train_conformer-rnn_transducer/results/model.last5.avg.best`
   - e2e JSON file: `exp/train_nodev_pytorch_train_conformer-rnn_transducer/results/model.json`
   - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
   - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`
@@ -462,7 +462,7 @@
   - training config file: `conf/tuning/transducer/train_custom_ct.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
-  - e2e file: `exp/train_nodev_pytorch_train_custom_ct/results/model.loss.best`
+  - e2e file: `exp/train_nodev_pytorch_train_custom_ct/results/model.last10.avg.best`
   - e2e JSON file: `exp/train_nodev_pytorch_train_custom_ct/results/model.json`
   - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
   - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`
@@ -470,7 +470,45 @@
 
 ## CER
 
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|32771|90.0|7.5|2.5|2.2|12.2|84.1|
+|decode_test_decode_alsd_lm_word7184|760|32771|90.1|7.4|2.5|2.2|12.1|83.9|
+|decode_test_decode_default|760|32771|90.0|7.6|2.4|2.2|12.2|84.7|
+|decode_test_decode_default_lm_word7184|760|32771|90.1|7.5|2.4|2.3|12.1|84.2|
+|decode_test_decode_nsc|760|32771|89.9|7.6|2.5|2.3|12.4|85.1|
+|decode_test_decode_nsc_lm_word7184|760|32771|89.9|7.6|2.5|2.2|12.3|85.1|
+|decode_test_decode_tsd|760|32771|90.0|7.5|2.5|2.2|12.2|84.9|
+|decode_test_decode_tsd_lm_word7184|760|32771|90.0|7.4|2.6|2.1|12.1|84.2|
+|decode_train_dev_decode_alsd|100|4007|91.6|6.9|1.5|1.6|10.1|90.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|4007|91.8|6.5|1.6|1.5|9.7|85.0|
+|decode_train_dev_decode_default|100|4007|91.2|7.2|1.6|1.6|10.3|87.0|
+|decode_train_dev_decode_default_lm_word7184|100|4007|91.7|6.8|1.5|1.5|9.8|85.0|
+|decode_train_dev_decode_nsc|100|4007|91.5|7.0|1.6|1.7|10.2|89.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|4007|91.3|7.0|1.6|1.8|10.5|87.0|
+|decode_train_dev_decode_tsd|100|4007|91.6|6.9|1.5|1.5|10.0|88.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|4007|91.8|6.6|1.6|1.5|9.7|86.0|
+
 ## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_test_decode_alsd|760|7722|73.6|25.5|0.9|0.4|26.8|84.1|
+|decode_test_decode_alsd_lm_word7184|760|7722|74.3|24.9|0.8|0.4|26.1|83.9|
+|decode_test_decode_default|760|7722|73.3|25.9|0.8|0.4|27.1|84.7|
+|decode_test_decode_default_lm_word7184|760|7722|73.9|25.4|0.8|0.4|26.5|84.2|
+|decode_test_decode_nsc|760|7722|72.9|26.3|0.8|0.4|27.5|85.1|
+|decode_test_decode_nsc_lm_word7184|760|7722|73.3|25.9|0.8|0.4|27.1|85.1|
+|decode_test_decode_tsd|760|7722|73.4|25.8|0.8|0.4|27.0|84.9|
+|decode_test_decode_tsd_lm_word7184|760|7722|74.1|24.9|0.9|0.4|26.3|84.2|
+|decode_train_dev_decode_alsd|100|927|75.8|24.2|0.0|0.1|24.3|90.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|927|77.3|22.7|0.0|0.1|22.8|85.0|
+|decode_train_dev_decode_default|100|927|75.6|24.4|0.0|0.1|24.5|87.0|
+|decode_train_dev_decode_default_lm_word7184|100|927|76.9|23.1|0.0|0.1|23.2|85.0|
+|decode_train_dev_decode_nsc|100|927|75.7|24.3|0.0|0.1|24.4|89.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|927|76.1|23.9|0.0|0.1|24.1|87.0|
+|decode_train_dev_decode_tsd|100|927|76.4|23.6|0.0|0.1|23.7|88.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|927|77.6|22.4|0.0|0.1|22.5|86.0|
 
 # RNN-CTC (4 x BLSTMP)
 
@@ -501,7 +539,7 @@
   - training config file: `conf/tuning/train_conformer.yaml`
   - decoding config file: `conf/tuning/decode_ctcweight0.3.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
-  - e2e file: `exp/train_nodev_pytorch_train_conformer/results/model.acc.best`
+  - e2e file: `exp/train_nodev_pytorch_train_conformer/results/model.last5.avg.best`
   - e2e JSON file: `exp/train_nodev_pytorch_train_conformer/results/model.json`
   - lm file: `exp/train_rnnlm_pytorch_lm_word7184/rnnlm.model.best`
   - lm JSON file: `exp/train_rnnlm_pytorch_lm_word7184/model.json`

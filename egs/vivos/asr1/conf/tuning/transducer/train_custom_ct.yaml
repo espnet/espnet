@@ -28,7 +28,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -37,7 +37,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: conformer
           d_hidden: 512
@@ -45,8 +45,33 @@ enc-block-arch:
           heads: 8
           macaron_style: True
           use_conv_mod: True
-          conv_mod_kernel: 15
+          conv_mod_kernel: 31
+          att-dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
           dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: conformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 8
+          macaron_style: True
+          use_conv_mod: True
+          conv_mod_kernel: 31
           att-dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -55,7 +80,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -64,7 +89,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: conformer
           d_hidden: 512
@@ -72,8 +97,7 @@ enc-block-arch:
           heads: 8
           macaron_style: True
           use_conv_mod: True
-          conv_mod_kernel: 15
-          dropout-rate: 0.2
+          conv_mod_kernel: 31
           att-dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -82,7 +106,7 @@ enc-block-arch:
           dilation: 1
           stride: 1
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: tdnn
           idim: 512
@@ -91,7 +115,7 @@ enc-block-arch:
           dilation: 1
           stride: 3
           use-relu: True
-          use-batchnorm: True
+          use-batch-norm: True
           dropout-rate: 0.2
         - type: conformer
           d_hidden: 512
@@ -99,8 +123,7 @@ enc-block-arch:
           heads: 4
           macaron_style: True
           use_conv_mod: True
-          conv_mod_kernel: 7
-          dropout-rate: 0.2
+          conv_mod_kernel: 17
           att-dropout-rate: 0.2
 ## decoder related
 dtype: lstm
