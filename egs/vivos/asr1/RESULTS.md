@@ -138,7 +138,7 @@
   - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
 
 - Model files (archived to transformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1m-LzNfH6J51zW1-z6D2DLikiWxbUmifX
   - training config file: `conf/tuning/transducer/train_transformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -190,7 +190,7 @@
 |decode_train_dev_decode_tsd|100|927|57.2|40.5|2.4|0.1|42.9|99.0|
 |decode_train_dev_decode_tsd_lm_word7184|100|927|63.1|33.0|3.9|0.1|37.0|99.0|
 
-# Transformer/RNN-Transducer (enc: VGG2L + 6 x Transformer, dec: 1 x LSTM)
+# Transformer/RNN-Transducer (enc: VGG2L + 8 x Transformer, dec: 1 x LSTM)
 
 - Environments
   - date: `Thu Nov 19 23:25:08 CET 2020`
@@ -202,7 +202,7 @@
   - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
 
 - Model files (archived to transformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1C-vNmUtWJuy1j27lDumuE5guczbhLyw_
   - training config file: `conf/tuning/transducer/train_transformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -266,7 +266,7 @@
   - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
 
 - Model files (archived to tdnn_transformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1N5W4Su5WYiAWIl2QPhcy8wsMnLY7SPQM
   - training config file: `conf/tuning/transducer/train_custom_tt.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -330,7 +330,7 @@
   - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
 
 - Model files (archived to conformer_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=15AkFzFLM4FTWcfNmt1Ca2fWu2K68wtH-
   - training config file: `conf/tuning/transducer/train_conformer_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -394,7 +394,7 @@
   - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
 
 - Model files (archived to conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=17-8XfOQAH-6zuRMTZfJ_awojJtchO95l
   - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -458,7 +458,7 @@
   - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
 
 - Model files (archived to tdnn_conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link:
+  - model link: https://drive.google.com/open?id=1qUz5UK3rdHRLWPQNuWLCQOmlyrbiUDA3
   - training config file: `conf/tuning/transducer/train_custom_ct.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
@@ -472,43 +472,43 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_test_decode_alsd|760|32771|90.0|7.5|2.5|2.2|12.2|84.1|
-|decode_test_decode_alsd_lm_word7184|760|32771|90.1|7.4|2.5|2.2|12.1|83.9|
-|decode_test_decode_default|760|32771|90.0|7.6|2.4|2.2|12.2|84.7|
-|decode_test_decode_default_lm_word7184|760|32771|90.1|7.5|2.4|2.3|12.1|84.2|
-|decode_test_decode_nsc|760|32771|89.9|7.6|2.5|2.3|12.4|85.1|
-|decode_test_decode_nsc_lm_word7184|760|32771|89.9|7.6|2.5|2.2|12.3|85.1|
-|decode_test_decode_tsd|760|32771|90.0|7.5|2.5|2.2|12.2|84.9|
-|decode_test_decode_tsd_lm_word7184|760|32771|90.0|7.4|2.6|2.1|12.1|84.2|
-|decode_train_dev_decode_alsd|100|4007|91.6|6.9|1.5|1.6|10.1|90.0|
-|decode_train_dev_decode_alsd_lm_word7184|100|4007|91.8|6.5|1.6|1.5|9.7|85.0|
-|decode_train_dev_decode_default|100|4007|91.2|7.2|1.6|1.6|10.3|87.0|
-|decode_train_dev_decode_default_lm_word7184|100|4007|91.7|6.8|1.5|1.5|9.8|85.0|
-|decode_train_dev_decode_nsc|100|4007|91.5|7.0|1.6|1.7|10.2|89.0|
-|decode_train_dev_decode_nsc_lm_word7184|100|4007|91.3|7.0|1.6|1.8|10.5|87.0|
-|decode_train_dev_decode_tsd|100|4007|91.6|6.9|1.5|1.5|10.0|88.0|
-|decode_train_dev_decode_tsd_lm_word7184|100|4007|91.8|6.6|1.6|1.5|9.7|86.0|
+|decode_test_decode_alsd|760|32771|90.2|7.4|2.4|2.5|12.2|84.1|
+|decode_test_decode_alsd_lm_word7184|760|32771|90.6|7.1|2.3|2.4|11.8|82.0|
+|decode_test_decode_default|760|32771|90.2|7.6|2.2|2.4|12.2|83.9|
+|decode_test_decode_default_lm_word7184|760|32771|90.7|7.1|2.2|2.2|11.6|81.8|
+|decode_test_decode_nsc|760|32771|90.2|7.5|2.3|2.5|12.3|85.5|
+|decode_test_decode_nsc_lm_word7184|760|32771|90.6|7.2|2.2|2.4|11.8|84.5|
+|decode_test_decode_tsd|760|32771|90.2|7.5|2.3|2.5|12.2|85.1|
+|decode_test_decode_tsd_lm_word7184|760|32771|90.6|7.1|2.3|2.2|11.7|82.8|
+|decode_train_dev_decode_alsd|100|4007|92.3|6.4|1.2|1.8|9.5|88.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|4007|92.3|6.3|1.3|2.0|9.7|89.0|
+|decode_train_dev_decode_default|100|4007|92.2|6.5|1.2|1.8|9.6|85.0|
+|decode_train_dev_decode_default_lm_word7184|100|4007|92.4|6.3|1.3|1.7|9.3|84.0|
+|decode_train_dev_decode_nsc|100|4007|92.2|6.5|1.3|2.0|9.8|84.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|4007|92.3|6.4|1.3|1.9|9.6|88.0|
+|decode_train_dev_decode_tsd|100|4007|92.1|6.5|1.3|2.0|9.8|85.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|4007|92.1|6.3|1.5|1.7|9.6|85.0|
 
 ## WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_test_decode_alsd|760|7722|73.6|25.5|0.9|0.4|26.8|84.1|
-|decode_test_decode_alsd_lm_word7184|760|7722|74.3|24.9|0.8|0.4|26.1|83.9|
-|decode_test_decode_default|760|7722|73.3|25.9|0.8|0.4|27.1|84.7|
-|decode_test_decode_default_lm_word7184|760|7722|73.9|25.4|0.8|0.4|26.5|84.2|
-|decode_test_decode_nsc|760|7722|72.9|26.3|0.8|0.4|27.5|85.1|
-|decode_test_decode_nsc_lm_word7184|760|7722|73.3|25.9|0.8|0.4|27.1|85.1|
-|decode_test_decode_tsd|760|7722|73.4|25.8|0.8|0.4|27.0|84.9|
-|decode_test_decode_tsd_lm_word7184|760|7722|74.1|24.9|0.9|0.4|26.3|84.2|
-|decode_train_dev_decode_alsd|100|927|75.8|24.2|0.0|0.1|24.3|90.0|
-|decode_train_dev_decode_alsd_lm_word7184|100|927|77.3|22.7|0.0|0.1|22.8|85.0|
-|decode_train_dev_decode_default|100|927|75.6|24.4|0.0|0.1|24.5|87.0|
-|decode_train_dev_decode_default_lm_word7184|100|927|76.9|23.1|0.0|0.1|23.2|85.0|
-|decode_train_dev_decode_nsc|100|927|75.7|24.3|0.0|0.1|24.4|89.0|
-|decode_train_dev_decode_nsc_lm_word7184|100|927|76.1|23.9|0.0|0.1|24.1|87.0|
-|decode_train_dev_decode_tsd|100|927|76.4|23.6|0.0|0.1|23.7|88.0|
-|decode_train_dev_decode_tsd_lm_word7184|100|927|77.6|22.4|0.0|0.1|22.5|86.0|
+|decode_test_decode_alsd|760|7722|73.4|25.9|0.7|0.5|27.1|84.1|
+|decode_test_decode_alsd_lm_word7184|760|7722|74.7|24.6|0.7|0.4|25.7|82.0|
+|decode_test_decode_default|760|7722|73.3|26.1|0.6|0.4|27.1|83.9|
+|decode_test_decode_default_lm_word7184|760|7722|75.1|24.3|0.6|0.4|25.3|81.8|
+|decode_test_decode_nsc|760|7722|72.7|26.7|0.6|0.5|27.8|85.4|
+|decode_test_decode_nsc_lm_word7184|760|7722|74.3|25.1|0.6|0.5|26.2|84.3|
+|decode_test_decode_tsd|760|7722|73.1|26.3|0.6|0.5|27.4|85.1|
+|decode_test_decode_tsd_lm_word7184|760|7722|74.8|24.6|0.6|0.4|25.6|82.6|
+|decode_train_dev_decode_alsd|100|927|76.9|23.1|0.0|0.1|23.2|88.0|
+|decode_train_dev_decode_alsd_lm_word7184|100|927|77.2|22.8|0.0|0.1|22.9|89.0|
+|decode_train_dev_decode_default|100|927|76.5|23.5|0.0|0.1|23.6|85.0|
+|decode_train_dev_decode_default_lm_word7184|100|927|77.5|22.5|0.0|0.1|22.7|84.0|
+|decode_train_dev_decode_nsc|100|927|76.2|23.8|0.0|0.5|24.4|84.0|
+|decode_train_dev_decode_nsc_lm_word7184|100|927|76.8|23.2|0.0|0.4|23.6|88.0|
+|decode_train_dev_decode_tsd|100|927|76.5|23.5|0.0|0.5|24.1|85.0|
+|decode_train_dev_decode_tsd_lm_word7184|100|927|77.5|22.5|0.0|0.5|23.1|85.0|
 
 # RNN-CTC (4 x BLSTMP)
 
@@ -534,8 +534,8 @@
   - Git hash: `e9c1a554f0fbeeaeedd0f7e5c9ab096d243011b2`
   - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
 
-- Model files (archived to conformer_mtl.tar.gz by `$ pack_model.sh`)
-  - model link:
+- Model files (archived to conformer_mtlalpha_0.3.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1sDQXEMrmiCP0HPiLw-Z-q0Av_PdokFiZ
   - training config file: `conf/tuning/train_conformer.yaml`
   - decoding config file: `conf/tuning/decode_ctcweight0.3.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
