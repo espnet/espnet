@@ -21,17 +21,24 @@ Output:
 Selected parameters:
     `--min-window-size`:
         Minimum window size considered for a single utterance. The current default value
-         should be OK in most cases. Larger values might give better results; too large
-          values cause IndexErrors.
+        should be OK in most cases. Larger values might give better results; too large
+        values cause IndexErrors.
     `--subsampling-factor`:
         If the encoder sub-samples its input, the number of frames at the CTC layer is
         reduced by this factor.
     `--frame-duration`:
         This is the non-overlapping duration of a single frame in milliseconds (the
         inverse of frames per millisecond).
-    `--use-dict-blank`:
-        Use the Blank character from the model. Useful if in the model dictionary,
-        e.g. "<blank>" instead of the default "_" is used.
+    `--set-blank`:
+        In the rare case that the blank token has not the index 0 in the character
+        dictionary, this parameter sets the index of the blank token.
+    `--gratis-blank`:
+        Sets the transition cost for blank tokens to zero. Useful if there are longer
+        unrelated segments between segments.
+    `--replace-spaces-with-blanks`:
+        Spaces are replaced with blanks. Helps to model pauses between words. May
+        increase length of ground truth. May lead to misaligned segments when combined
+        with the option `--gratis-blank`.
 """
 
 import configargparse
@@ -109,8 +116,8 @@ def get_parser():
         type=int,
         default=None,
         help="Subsampling factor."
-        "If the encoder sub-samples its input, the number of frames at the CTC layer is"
-        " reduced by this factor. For example, a BLSTMP with subsampling 1_2_2_1_1"
+        " If the encoder sub-samples its input, the number of frames at the CTC layer"
+        " is reduced by this factor. For example, a BLSTMP with subsampling 1_2_2_1_1"
         " has a subsampling factor of 4.",
     )
     parser.add_argument(
@@ -134,8 +141,30 @@ def get_parser():
     parser.add_argument(
         "--use-dict-blank",
         type=int,
-        default=1,
-        help="Use the Blank character of the model dictionary.",
+        default=None,
+        help="DEPRECATED.",
+    )
+    parser.add_argument(
+        "--set-blank",
+        type=int,
+        default=None,
+        help="Index of model dictionary for blank token (default: 0).",
+    )
+    parser.add_argument(
+        "--gratis-blank",
+        type=int,
+        default=None,
+        help="Set the transition cost of the blank token to zero. Audio sections"
+        " labeled with blank tokens can then be skipped without penalty. Useful"
+        " if there are unrelated audio segments between utterances.",
+    )
+    parser.add_argument(
+        "--replace-spaces-with-blanks",
+        type=int,
+        default=None,
+        help="Fill blanks in between words to better model pauses between words."
+        " Segments can be misaligned if this option is combined with --gratis-blank."
+        " May increase length of ground truth.",
     )
     parser.add_argument(
         "--scoring-length",
@@ -259,16 +288,25 @@ def ctc_align(args, device):
     if args.max_window_size is not None:
         config.max_window_size = args.max_window_size
     config.char_list = train_args.char_list
-    if args.use_dict_blank and args.use_dict_blank > 0:
-        config.blank = config.char_list[0]
-        logging.info(f"Blank char was set to >{config.blank}<")
-    else:
-        logging.debug(
-            f"Blank char >{config.blank}< (align) >{config.char_list[0]}< (model)"
+    if args.use_dict_blank is not None:
+        logging.warning(
+            "The option --use-dict-blank is deprecated. If needed,"
+            " use --set-blank instead."
         )
-        if config.blank != config.char_list[0]:
-            logging.error("Blank char mismatch; this can result in an IndexError.")
-            logging.error("Pass the parameter --use-dict-blank 1 to asr_align.py")
+    if args.set_blank is not None:
+        config.blank = args.set_blank
+    if args.replace_spaces_with_blanks is not None:
+        if args.replace_spaces_with_blanks:
+            config.replace_spaces_with_blanks = True
+        else:
+            config.replace_spaces_with_blanks = False
+    if args.gratis_blank:
+        config.blank_transition_cost_zero = True
+    if config.blank_transition_cost_zero and args.replace_spaces_with_blanks:
+        logging.error(
+            "Blanks are inserted between words, and also the transition cost of blank"
+            " is zero. This configuration may lead to misalignments!"
+        )
     if args.scoring_length is not None:
         config.score_min_mean_over_L = args.scoring_length
     logging.info(

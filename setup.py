@@ -18,7 +18,8 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
-        "ctc-segmentation>=1.1.0",
+        "ctc-segmentation>=1.4.0",
+        "wandb",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
@@ -39,6 +40,7 @@ requirements = {
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.17.0",
+        "youtube_dl",  # for laborotv
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",

@@ -33,18 +33,9 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=10
 
 lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk 
-datadir=download/${lang}_data # original data directory to be stored
 
-# base url for downloads.
-# Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
-data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-5.1-2020-06-22/${lang}.tar.gz
-
+nbpe=
 # bpemode (unigram or bpe)
-if [[ "zh" == *"${lang}"* ]]; then
-  nbpe=2500
-else
-  nbpe=150
-fi
 bpemode=unigram
 
 # exp tag
@@ -57,6 +48,18 @@ tag="" # tag for managing experiments.
 set -e
 set -u
 set -o pipefail
+
+datadir=download/${lang}_data # original data directory to be stored
+# base url for downloads.
+# Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
+data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-5.1-2020-06-22/${lang}.tar.gz
+if [ -z ${nbpe} ]; then
+  if [[ "zh" == *"${lang}"* ]]; then
+    nbpe=2500
+  else
+    nbpe=150
+  fi
+fi
 
 train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"

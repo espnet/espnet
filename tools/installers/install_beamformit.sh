@@ -1,0 +1,1 @@
+../kaldi/tools/extras/install_beamformit.sh
