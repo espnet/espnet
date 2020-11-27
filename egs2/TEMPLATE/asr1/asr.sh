@@ -165,7 +165,7 @@ Options:
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
     --lm_exp          # Specify the direcotry path for LM experiment.
                       # If this option is specified, lm_tag is ignored (default="${lm_exp}").
-    --lm_stats_dir    # Specify the direcotry path for LM statistics.
+    --lm_stats_dir    # Specify the direcotry path for LM statistics (default="${lm_stats_dir}").
     --lm_config       # Config for language model training (default="${lm_config}").
     --lm_args         # Arguments for language model training (default="${lm_args}").
                       # e.g., --lm_args "--max_epoch 10"
@@ -178,7 +178,7 @@ Options:
     --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
     --asr_exp          # Specify the direcotry path for ASR experiment.
                        # If this option is specified, asr_tag is ignored (default="${asr_exp}").
-    --asr_stats_dir    # Specify the direcotry path for ASR statistics.
+    --asr_stats_dir    # Specify the direcotry path for ASR statistics (default="${asr_stats_dir}").
     --asr_config       # Config for asr model training (default="${asr_config}").
     --asr_args         # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
