@@ -1,5 +1,5 @@
 # minibatch related
-batch-size: 48
+batch-size: 64
 maxlen-in: 512
 maxlen-out: 150
 
@@ -8,7 +8,7 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
-epochs: 130
+epochs: 200
 patience: 0
 accum-grad: 2
 grad-clip: 5.0
@@ -37,8 +37,8 @@ dtype: lstm
 dlayers: 1
 dec-embed-dim: 1024
 dunits: 1024
-dropout-rate-embed-decoder: 0.1
-dropout-rate-decoder: 0.2
+dropout-rate-embed-decoder: 0.2
+dropout-rate-decoder: 0.1
 ## joint network related
 joint-dim: 256
 

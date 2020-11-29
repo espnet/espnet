@@ -354,6 +354,11 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 |decode_et_it_decode_tsd|1055|12990|62.7|31.2|6.1|4.5|41.8|97.4|
 
 # Conformer/RNN-Transducer (enc: 8 x Conformer, dec: 1 x LSTM)
+# modified decoding params:
+#   - general: n_average=20
+#   - alsd: beam-size=10, u-max=300, score-norm=True
+#   - nsc: nstep=4, prefix-alpha=3
+#   - tsd: max-sym-exp=5, score-norm=True
 
 - Environments
   - date: `Fri Nov 27 11:41:31 CET 2020`
@@ -365,7 +370,7 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
   - Commit date: `Fri Nov 27 10:14:20 2020 +0100
 
 - Model files (archived to conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1o8os1zB5BXfT8xqmXBkKy_xhDbJYFWAt
+  - model link: https://drive.google.com/open?id=13HHW3Qs5Yk4vzmEuOHl-VJ46M-e3qtZ6
   - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/tr_it/cmvn.ark`
@@ -377,24 +382,24 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dt_it_decode_alsd|1082|79133|93.5|3.5|3.0|2.5|9.0|92.9|
-|decode_dt_it_decode_default|1082|79133|93.5|3.5|3.0|2.5|9.0|93.1|
-|decode_dt_it_decode_nsc|1082|79133|93.4|3.5|3.1|2.3|8.9|93.3|
-|decode_dt_it_decode_tsd|1082|79133|93.4|3.5|3.2|2.3|8.9|93.2|
-|decode_et_it_decode_alsd|1055|77966|93.5|3.6|2.9|2.2|8.7|93.3|
-|decode_et_it_decode_default|1055|77966|93.5|3.6|2.9|2.1|8.6|93.2|
-|decode_et_it_decode_nsc|1055|77966|93.3|3.6|3.1|2.0|8.7|93.5|
-|decode_et_it_decode_tsd|1055|77966|93.2|3.6|3.2|2.0|8.7|93.4|
+|decode_dt_it_decode_alsd|1082|79133|93.6|3.5|2.9|2.4|8.8|93.5|
+|decode_dt_it_decode_default|1082|79133|93.6|3.4|3.0|2.4|8.8|93.3|
+|decode_dt_it_decode_nsc|1082|79133|93.6|3.4|3.0|2.3|8.7|93.2|
+|decode_dt_it_decode_tsd|1082|79133|93.6|3.4|3.0|2.4|8.8|93.3|
+|decode_et_it_decode_alsd|1055|77966|93.4|3.5|3.1|2.1|8.6|93.3|
+|decode_et_it_decode_default|1055|77966|93.5|3.5|3.1|2.1|8.7|92.9|
+|decode_et_it_decode_nsc|1055|77966|93.4|3.5|3.1|2.1|8.7|93.3|
+|decode_et_it_decode_tsd|1055|77966|93.4|3.5|3.1|2.1|8.7|93.0|
 
 ## WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dt_it_decode_alsd|1082|13235|71.0|24.4|4.6|4.9|33.9|92.9|
-|decode_dt_it_decode_default|1082|13235|71.1|24.2|4.7|5.0|33.8|93.1|
-|decode_dt_it_decode_nsc|1082|13235|71.0|24.2|4.8|4.6|33.6|93.3|
-|decode_dt_it_decode_tsd|1082|13235|70.9|24.2|4.9|4.4|33.6|93.2|
-|decode_et_it_decode_alsd|1055|12990|71.9|23.5|4.6|4.4|32.4|93.3|
-|decode_et_it_decode_default|1055|12990|71.7|23.7|4.6|4.3|32.6|93.2|
-|decode_et_it_decode_nsc|1055|12990|71.2|23.9|4.9|4.2|32.9|93.5|
-|decode_et_it_decode_tsd|1055|12990|71.0|24.0|5.0|4.1|33.1|93.4|
+|decode_dt_it_decode_alsd|1082|13235|71.5|23.9|4.6|4.1|32.7|93.5|
+|decode_dt_it_decode_default|1082|13235|71.4|23.9|4.7|4.3|32.9|93.3|
+|decode_dt_it_decode_nsc|1082|13235|71.4|23.9|4.7|4.2|32.9|93.2|
+|decode_dt_it_decode_tsd|1082|13235|71.4|23.9|4.7|4.3|32.9|93.3|
+|decode_et_it_decode_alsd|1055|12990|71.8|23.6|4.6|4.2|32.4|93.3|
+|decode_et_it_decode_default|1055|12990|71.8|23.6|4.6|4.4|32.6|92.9|
+|decode_et_it_decode_nsc|1055|12990|71.7|23.6|4.7|4.2|32.5|93.3|
+|decode_et_it_decode_tsd|1055|12990|71.7|23.7|4.6|4.2|32.5|93.0|
