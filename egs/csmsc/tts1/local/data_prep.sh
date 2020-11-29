@@ -44,7 +44,7 @@ find ${db}/PhoneLabeling -name "*.interval" -follow | sort | while read -r filen
     id="$(basename ${filename} .interval)"
     content=$(nkf -Lu -w ${filename} | tail -n +13 | grep "\"" | grep -v "sil" | sed -e "s/\"//g" | tr "\n" " " | sed -e "s/ $//g")
     start_sec=$(nkf -Lu -w ${filename} | tail -n +14 | head -n 1)
-    end_sec=$(nkf -Lu -w ${filename} | head -n -2 ${filename} | tail -n 1)
+    end_sec=$(nkf -Lu -w ${filename} | head -n -2 | tail -n 1)
     echo "${id} ${content}" >> ${text}
     echo "${id} ${id} ${start_sec} ${end_sec}" >> ${segments}
 done

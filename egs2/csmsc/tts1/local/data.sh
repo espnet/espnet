@@ -82,7 +82,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     find ${db_root}/CSMSC/PhoneLabeling -name "*.interval" -follow | sort | while read -r filename; do
         id="$(basename ${filename} .interval)"
         start_sec=$(nkf -Lu -w ${filename} | tail -n +14 | head -n 1)
-        end_sec=$(nkf -Lu -w ${filename} | head -n -2 ${filename} | tail -n 1)
+        end_sec=$(nkf -Lu -w ${filename} | head -n -2 | tail -n 1)
         echo "${id} ${id} ${start_sec} ${end_sec}" >> ${segments}
     done
 
