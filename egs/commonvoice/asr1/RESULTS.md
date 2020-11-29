@@ -460,3 +460,40 @@
 |decode_valid_dev_zh_TW_decode_lm|3979|3979|15.8|84.2|0.0|0.0|84.2|84.2|
 |decode_valid_test_zh_TW_decode_lm|4067|4067|15.2|84.8|0.0|0.0|84.8|84.8|
 ```
+
+# Czech results (Conformer/RNN-Transducer, enc: VGG2L + 12 x Conformer, dec: 3 x LSTM)
+
+- Environments
+  - date: `Thu Nov 27 12:25:08 CET 2020`
+  - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.9.4`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.4.0`
+  - Git hash: `e9c1a554f0fbeeaeedd0f7e5c9ab096d243011b2`
+  - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
+
+- Model files (archived to cs_conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1qTINFIvzy0O6ZaSvLVKYB-7dUyQP-gTj
+  - training config file: `conf/tuning/train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/decode_transducer.yaml`
+  - cmvn file: `data/train_cs/cmvn.ark`
+  - e2e file: `exp/train_cs_pytorch_train_conformer-rnn_transducer/results/model.last5.avg.best`
+  - e2e JSON file: `exp/train_cs_pytorch_train_conformer-rnn_transducer/results/model.json`
+  - lm file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+  - lm JSON file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/model.json`
+  - dict file: `data/cs_lang_char/`
+
+## train_cs_pytorch_train_conformer-rnn_transducer
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_cs_decode_transducer_lm|2584|62452|90.9|6.7|2.4|1.4|10.4|48.2|
+|decode_test_cs_decode_transducer_lm|2574|65232|87.5|9.7|2.8|2.2|14.7|54.7|
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_cs_decode_transducer_lm|2584|16239|82.1|15.4|2.4|2.1|19.9|48.2|
+|decode_test_cs_decode_transducer_lm|2574|16508|75.6|21.8|2.5|3.2|27.6|54.7|
