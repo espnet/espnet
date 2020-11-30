@@ -322,8 +322,8 @@ def inference(
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
 
-                    if sdr is not None:
-                        writer[f"SDR_spk{spk_idx + 1}"][key] = str(sdr)
+                if text is not None:
+                    ibest_writer["text"][key] = text
 
 
 def get_parser():

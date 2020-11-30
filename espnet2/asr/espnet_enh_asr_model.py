@@ -14,8 +14,6 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-<<<<<<< HEAD
-=======
 
 def fliter_attrs(a, b):
     a_attr = [attr for attr in a if attr[:2] != "__" and attr[-2:] != "__"]
@@ -24,7 +22,6 @@ def fliter_attrs(a, b):
     b_attr_ = [i for i in b_attr if i not in a_attr]
     return a_attr_, b_attr_
 
->>>>>>> update multi-speaker ASR task
 
 class ESPnetEnhASRModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
@@ -84,64 +81,12 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         self.enh_attr = enh_model.__dir__()
         self.asr_attr = asr_model.__dir__()
 
-<<<<<<< HEAD
-        assert mask_type in [
-            "IBM",
-            "IRM",
-            "IAM",
-            "PSM",
-            "NPSM",
-            "PSM^2",
-        ], f"mask type {mask_type} not supported"
-        eps = 10e-8
-        mask_label = []
-        for r in ref_spec:
-            mask = None
-            if mask_type == "IBM":
-                flags = [abs(r) >= abs(n) for n in ref_spec]
-                mask = reduce(lambda x, y: x * y, flags)
-                mask = mask.int()
-            elif mask_type == "IRM":
-                # TODO(Wangyou): need to fix this,
-                #  as noise referecens are provided separately
-                mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + eps)
-            elif mask_type == "IAM":
-                mask = abs(r) / (abs(mix_spec) + eps)
-                mask = mask.clamp(min=0, max=1)
-            elif mask_type == "PSM" or mask_type == "NPSM":
-                phase_r = r / (abs(r) + eps)
-                phase_mix = mix_spec / (abs(mix_spec) + eps)
-                # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
-                cos_theta = (
-                    phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
-                )
-                mask = (abs(r) / (abs(mix_spec) + eps)) * cos_theta
-                mask = (
-                    mask.clamp(min=0, max=1)
-                    if mask_label == "NPSM"
-                    else mask.clamp(min=-1, max=1)
-                )
-            elif mask_type == "PSM^2":
-                # This is for training beamforming masks
-                phase_r = r / (abs(r) + eps)
-                phase_mix = mix_spec / (abs(mix_spec) + eps)
-                # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
-                cos_theta = (
-                    phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
-                )
-                mask = (abs(r).pow(2) / (abs(mix_spec).pow(2) + eps)) * cos_theta
-                mask = mask.clamp(min=-1, max=1)
-            assert mask is not None, f"mask type {mask_type} not supported"
-            mask_label.append(mask)
-        return mask_label
-=======
         # fliter the specific attr for each subclass
         self.enh_attr, self.asr_attr = fliter_attrs(self.enh_attr, self.asr_attr)
         for arr in self.enh_attr:
             exec("self.{} = self.enh_subclass.{}".format(arr, arr))
         for arr in self.asr_attr:
             exec("self.{} = self.asr_subclass.{}".format(arr, arr))
->>>>>>> update multi-speaker ASR task
 
         self.enh_model.return_spec_in_training = True
 
@@ -214,7 +159,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         if self.enh_return_type is not None:
             if self.enh_return_type == "waveform":
                 # make sure the speech_pre is the raw waveform with same size.
-                if text_ref1.equal(text_ref2):  # single-spk case
+                if text_ref1.equal(text_ref2): #single-spk case
                     # TODO(Jing): find a better way to locate single-spk set
                     # single-speaker case
                     speech_pre_all, speech_pre_lengths = speech_mix, speech_mix_lengths
@@ -238,10 +183,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                         speech_pre = torch.stack([speech_ref1, speech_ref2], dim=1)
 
                     # Pack the separated speakers into the ASR part.
-                    speech_pre_all = (
-                        speech_pre.transpose(0, 1)
-                        .contiguous()
-                        .view(-1, speech_mix.shape[-1])
+                    speech_pre_all = speech_pre.transpose(0,1).contiguous().view(
+                        -1, speech_mix.shape[-1]
                     )  # (N_spk*B, T)
                     speech_pre_lengths = torch.stack(
                         [speech_mix_lengths, speech_mix_lengths], dim=1
@@ -264,24 +207,31 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     # The return value speech_pre is actually the spectrum
                     # List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
                     if speech_pre[0].dtype == torch.tensor:
-                        assert speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
+                        assert (
+                            speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
+                        )
                     elif isinstance(speech_pre[0], ComplexTensor):
                         speech_pre = [
                             torch.stack([pre.real, pre.imag], dim=-1)
                             for pre in speech_pre
                         ]
-                        assert speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
+                        assert (
+                            speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
+                        )
                     speech_pre_all = torch.cat(speech_pre, dim=0)  # (N_spk*B, T, D)
                     speech_pre_lengths = torch.cat(
                         [speech_pre_lengths, speech_pre_lengths]
                     )
                     text_ref_all = torch.cat([text_ref1, text_ref2], dim=0)
-                    text_ref_lengths = torch.cat([text_ref1_lengths, text_ref2_lengths])
+                    text_ref_lengths = torch.cat(
+                        [text_ref1_lengths, text_ref2_lengths]
+                    )
                     n_speaker_asr = 1 if self.cal_enh_loss else self.num_spk
                 else:  # single-speaker case
                     assert isinstance(speech_pre[0], ComplexTensor)
                     speech_pre = [
-                        torch.stack([pre.real, pre.imag], dim=-1) for pre in speech_pre
+                        torch.stack([pre.real, pre.imag], dim=-1)
+                        for pre in speech_pre
                     ]
                     speech_pre_all, speech_pre_lengths = (
                         speech_pre[0],
@@ -390,122 +340,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         feats, feats_lengths = speech_mix, speech_mix_lengths
         return {"feats": feats, "feats_lengths": feats_lengths}
 
-<<<<<<< HEAD
-    def encode(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by asr_inference.py
-
-        Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
-        """
-        # 1. Extract feats
-        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-
-        # 2. Data augmentation for spectrogram
-        if self.specaug is not None and self.training:
-            feats, feats_lengths = self.specaug(feats, feats_lengths)
-
-        # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-        if self.normalize is not None:
-            feats, feats_lengths = self.normalize(feats, feats_lengths)
-
-        # 4. Forward encoder
-        # feats: (Batch, Length, Dim)
-        # -> encoder_out: (Batch, Length2, Dim2)
-        encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
-
-        assert encoder_out.size(0) == speech.size(0), (
-            encoder_out.size(),
-            speech.size(0),
-        )
-        assert encoder_out.size(1) <= encoder_out_lens.max(), (
-            encoder_out.size(),
-            encoder_out_lens.max(),
-        )
-
-        return encoder_out, encoder_out_lens
-
-    def _extract_feats(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert speech_lengths.dim() == 1, speech_lengths.shape
-
-        # for data-parallel
-        speech = speech[:, : speech_lengths.max()]
-
-        if self.frontend is not None:
-            # Frontend
-            #  e.g. STFT and Feature extract
-            #       data_loader may send time-domain signal in this case
-            # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-            feats, feats_lengths = self.frontend(speech, speech_lengths)
-        else:
-            # No frontend and no feature extract
-            feats, feats_lengths = speech, speech_lengths
-        return feats, feats_lengths
-
-    def _calc_att_loss(
-        self,
-        encoder_out: torch.Tensor,
-        encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
-    ):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
-        ys_in_lens = ys_pad_lens + 1
-
-        # 1. Forward decoder
-        decoder_out, _ = self.decoder(
-            encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
-        )
-
-        # 2. Compute attention loss
-        loss_att = self.criterion_att(decoder_out, ys_out_pad)
-        acc_att = th_accuracy(
-            decoder_out.view(-1, self.vocab_size),
-            ys_out_pad,
-            ignore_label=self.ignore_id,
-        )
-
-        # Compute cer/wer using attention-decoder
-        if self.training or self.error_calculator is None:
-            cer_att, wer_att = None, None
-        else:
-            ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
-
-        return loss_att, acc_att, cer_att, wer_att
-
-    def _calc_ctc_loss(
-        self,
-        encoder_out: torch.Tensor,
-        encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
-    ):
-        # Calc CTC loss
-        loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
-
-        # Calc CER using CTC
-        cer_ctc = None
-        if not self.training and self.error_calculator is not None:
-            ys_hat = self.ctc.argmax(encoder_out).data
-            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
-        return loss_ctc, cer_ctc
-
-    def _calc_rnnt_loss(
-        self,
-        encoder_out: torch.Tensor,
-        encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
-    ):
-        raise NotImplementedError
-
-=======
->>>>>>> update multi-speaker ASR task
     # Enhancement related, basicly from the espnet2/enh/espnet_model.py
     def forward_enh(
         self,

@@ -27,7 +27,6 @@ ALL_LOSS_TYPES = (
 )
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
->>>>>>> initial trial
 
 class ESPnetEnhancementModel(AbsESPnetModel):
     """Speech enhancement or separation Frontend model"""
