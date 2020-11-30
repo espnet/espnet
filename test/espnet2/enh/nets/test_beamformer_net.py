@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 
-import pytest
 import numpy as np
+import pytest
 import torch
 from torch_complex import functional as FC
 
