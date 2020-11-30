@@ -159,7 +159,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         if self.enh_return_type is not None:
             if self.enh_return_type == "waveform":
                 # make sure the speech_pre is the raw waveform with same size.
-                if text_ref1.equal(text_ref2): #single-spk case
+                if text_ref1.equal(text_ref2):  # single-spk case
                     # TODO(Jing): find a better way to locate single-spk set
                     # single-speaker case
                     speech_pre_all, speech_pre_lengths = speech_mix, speech_mix_lengths
@@ -183,8 +183,10 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                         speech_pre = torch.stack([speech_ref1, speech_ref2], dim=1)
 
                     # Pack the separated speakers into the ASR part.
-                    speech_pre_all = speech_pre.transpose(0,1).contiguous().view(
-                        -1, speech_mix.shape[-1]
+                    speech_pre_all = (
+                        speech_pre.transpose(0, 1)
+                        .contiguous()
+                        .view(-1, speech_mix.shape[-1])
                     )  # (N_spk*B, T)
                     speech_pre_lengths = torch.stack(
                         [speech_mix_lengths, speech_mix_lengths], dim=1
@@ -207,31 +209,24 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     # The return value speech_pre is actually the spectrum
                     # List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
                     if speech_pre[0].dtype == torch.tensor:
-                        assert (
-                            speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
-                        )
+                        assert speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
                     elif isinstance(speech_pre[0], ComplexTensor):
                         speech_pre = [
                             torch.stack([pre.real, pre.imag], dim=-1)
                             for pre in speech_pre
                         ]
-                        assert (
-                            speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
-                        )
+                        assert speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
                     speech_pre_all = torch.cat(speech_pre, dim=0)  # (N_spk*B, T, D)
                     speech_pre_lengths = torch.cat(
                         [speech_pre_lengths, speech_pre_lengths]
                     )
                     text_ref_all = torch.cat([text_ref1, text_ref2], dim=0)
-                    text_ref_lengths = torch.cat(
-                        [text_ref1_lengths, text_ref2_lengths]
-                    )
+                    text_ref_lengths = torch.cat([text_ref1_lengths, text_ref2_lengths])
                     n_speaker_asr = 1 if self.cal_enh_loss else self.num_spk
                 else:  # single-speaker case
                     assert isinstance(speech_pre[0], ComplexTensor)
                     speech_pre = [
-                        torch.stack([pre.real, pre.imag], dim=-1)
-                        for pre in speech_pre
+                        torch.stack([pre.real, pre.imag], dim=-1) for pre in speech_pre
                     ]
                     speech_pre_all, speech_pre_lengths = (
                         speech_pre[0],
