@@ -1,11 +1,14 @@
-import pytest
+from distutils.version import LooseVersion
 
+import pytest
 import numpy as np
 import torch
 from torch_complex import functional as FC
 
 from espnet2.enh.nets.beamformer_net import BeamformerNet
 from test.espnet2.enh.layers.test_enh_layers import random_speech
+
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 
 
 @pytest.mark.parametrize(
@@ -227,6 +230,9 @@ def test_beamformer_net_consistency(
     for est in est_speech_torch:
         assert est.dtype == torch.float
 
+    if not is_torch_1_2_plus:
+        # torchaudio.functional.istft is only available with pytorch 1.2+
+        return
     for ps in est_speech_torch:
         enh_waveform = model.stft.inverse(ps, torch.LongTensor([16, 12]))[0]
 
