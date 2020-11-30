@@ -13,9 +13,7 @@ from typeguard import check_return_type
 
 from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.nets.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.nets.beamformer_net import BeamformerNet
-from espnet2.enh.nets.deep_mfmvdr_net import DeepMFMVDRNet
 from espnet2.enh.nets.dprnn_raw import FaSNet_base as DPRNN
 from espnet2.enh.nets.tasnet import TasNet
 from espnet2.enh.nets.tf_mask_net import TFMaskingNet
@@ -35,9 +33,7 @@ enh_choices = ClassChoices(
         tf_masking=TFMaskingNet,
         tasnet=TasNet,
         wpe_beamformer=BeamformerNet,
-        mfmvdr=DeepMFMVDRNet,
         dprnn=DPRNN,
-        asteroid=AsteroidModel_Converter,
     ),
     type_check=AbsEnhancement,
     default="tf_masking",
