@@ -18,7 +18,8 @@ requirements = {
         "editdistance==0.5.2",
         "gdown",
         "espnet_model_zoo",
-        "ctc-segmentation>=1.0.6",
+        "ctc-segmentation>=1.4.0",
+        "wandb",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
@@ -39,6 +40,7 @@ requirements = {
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.17.0",
+        "youtube_dl",  # for laborotv
         # TTS related
         "inflect>=1.0.0",
         "unidecode>=1.0.22",
@@ -88,7 +90,9 @@ try:
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
         requirements["install"].append("torch_optimizer")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+        requirements["install"].append("torchaudio==0.7.0")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         # Due to https://github.com/pytorch/pytorch/issues/42213,
         # use torchaudio.functional.istft instead of torch.functional.istft
         requirements["install"].append("torchaudio==0.6.0")
@@ -119,7 +123,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.9.4",
+    version="0.9.5",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

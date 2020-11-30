@@ -67,6 +67,7 @@ use_lm=true       # Use language model for ASR decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the direcotry path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
+lm_stats_dir=     # Specify the direcotry path for LM statistics.
 lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
                   # Note that it will overwrite args in lm config.
@@ -76,12 +77,13 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
-asr_tag=    # Suffix to the result dir for asr model training.
-asr_exp=    # Specify the direcotry path for ASR experiment.
-            # If this option is specified, asr_tag is ignored.
-asr_config= # Config for asr model training.
-asr_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
-            # Note that it will overwrite args in asr config.
+asr_tag=       # Suffix to the result dir for asr model training.
+asr_exp=       # Specify the direcotry path for ASR experiment.
+               # If this option is specified, asr_tag is ignored.
+asr_stats_dir= # Specify the direcotry path for ASR statistics.
+asr_config=    # Config for asr model training.
+asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
+               # Note that it will overwrite args in asr config.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
@@ -103,7 +105,8 @@ download_model= # Download a model from Model Zoo and use it for decoding.
 train_set=       # Name of training set.
 valid_set=       # Name of validation set used for monitoring/tuning network training.
 test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-srctexts=        # Used for the training of BPE and LM and the creation of a vocabulary list.
+bpe_train_text=  # Text file path of bpe training set.
+lm_train_text=   # Text file path of language model training set.
 lm_dev_text=     # Text file path of language model development set.
 lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
@@ -115,7 +118,7 @@ asr_text_fold_length=150   # fold_length for text data during ASR training.
 lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
-Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
 
 Options:
     # General configuration
@@ -162,6 +165,7 @@ Options:
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
     --lm_exp          # Specify the direcotry path for LM experiment.
                       # If this option is specified, lm_tag is ignored (default="${lm_exp}").
+    --lm_stats_dir    # Specify the direcotry path for LM statistics (default="${lm_stats_dir}").
     --lm_config       # Config for language model training (default="${lm_config}").
     --lm_args         # Arguments for language model training (default="${lm_args}").
                       # e.g., --lm_args "--max_epoch 10"
@@ -174,6 +178,7 @@ Options:
     --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
     --asr_exp          # Specify the direcotry path for ASR experiment.
                        # If this option is specified, asr_tag is ignored (default="${asr_exp}").
+    --asr_stats_dir    # Specify the direcotry path for ASR statistics (default="${asr_stats_dir}").
     --asr_config       # Config for asr model training (default="${asr_config}").
     --asr_args         # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
@@ -196,7 +201,8 @@ Options:
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
     --test_sets     # Names of test sets.
                     # Multiple items (e.g., both dev and eval sets) can be specified (required).
-    --srctexts      # Used for the training of BPE and LM and the creation of a vocabulary list (required).
+    --bpe_train_text # Text file path of bpe training set.
+    --lm_train_text  # Text file path of language model training set.
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
@@ -228,7 +234,6 @@ fi
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
 [ -z "${valid_set}" ] && { log "${help_message}"; log "Error: --valid_set is required"; exit 2; };
 [ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
-[ -z "${srctexts}" ] &&  { log "${help_message}"; log "Error: --srctexts is required" ; exit 2; };
 
 # Check feature type
 if [ "${feats_type}" = raw ]; then
@@ -245,6 +250,10 @@ else
     exit 2
 fi
 
+# Use the same text as ASR for bpe training if not specified.
+[ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"
+# Use the same text as ASR for lm training if not specified.
+[ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text"
 # Use the same text as ASR for lm training if not specified.
 [ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text"
 # Use the text of the 1st evaldir if lm_test is not specified
@@ -265,6 +274,9 @@ if [ "${token_type}" = bpe ]; then
     token_list="${bpetoken_list}"
 elif [ "${token_type}" = char ]; then
     token_list="${chartoken_list}"
+    bpemodel=none
+elif [ "${token_type}" = word ]; then
+    token_list="${wordtoken_list}"
     bpemodel=none
 else
     log "Error: not supported --token_type '${token_type}'"
@@ -289,12 +301,15 @@ if [ -z "${asr_tag}" ]; then
     else
         asr_tag="train_${feats_type}_${token_type}"
     fi
+    if [ "${token_type}" = bpe ]; then
+        asr_tag+="${nbpe}"
+    fi
     # Add overwritten arg's info
     if [ -n "${asr_args}" ]; then
         asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        asr_tag="${asr_tag}_sp"
+        asr_tag+="_sp"
     fi
 fi
 if [ -z "${lm_tag}" ]; then
@@ -303,6 +318,9 @@ if [ -z "${lm_tag}" ]; then
     else
         lm_tag="train_${lm_token_type}"
     fi
+    if [ "${lm_token_type}" = bpe ]; then
+        lm_tag+="${nbpe}"
+    fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
         lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
@@ -310,11 +328,21 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-asr_stats_dir="${expdir}/asr_stats_${feats_type}"
-if [ -n "${speed_perturb_factors}" ]; then
-    asr_stats_dir="${asr_stats_dir}_sp"
+if [ -z "${asr_stats_dir}" ]; then
+    asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
+    if [ "${token_type}" = bpe ]; then
+        asr_stats_dir+="${nbpe}"
+    fi
+    if [ -n "${speed_perturb_factors}" ]; then
+        asr_stats_dir+="_sp"
+    fi
 fi
-lm_stats_dir="${expdir}/lm_stats"
+if [ -z "${lm_stats_dir}" ]; then
+    lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
+    if [ "${lm_token_type}" = bpe ]; then
+        lm_stats_dir+="${nbpe}"
+    fi
+fi
 # The directory used for training commands
 if [ -z "${asr_exp}" ]; then
     asr_exp="${expdir}/asr_${asr_tag}"
@@ -529,17 +557,17 @@ if ! "${skip_data_prep}"; then
         done
 
         # shellcheck disable=SC2002
-        cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
+        cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
     fi
 
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         if [ "${token_type}" = bpe ]; then
-            log "Stage 5: Generate token_list from ${data_feats}/srctexts using BPE"
+            log "Stage 5: Generate token_list from ${bpe_train_text} using BPE"
 
             mkdir -p "${bpedir}"
             # shellcheck disable=SC2002
-            <"${data_feats}/srctexts" cut -f 2- -d" "  > "${bpedir}"/train.txt
+            cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
             if [ -n "${bpe_nlsyms}" ]; then
                 _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
@@ -556,37 +584,43 @@ if ! "${skip_data_prep}"; then
                 --input_sentence_size="${bpe_input_sentence_size}" \
                 ${_opts_spm}
 
-            _opts="--bpemodel ${bpemodel}"
+            {
+            echo "${blank}"
+            echo "${oov}"
+            # Remove <unk>, <s>, </s> from the vocabulary
+            <"${bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+            echo "${sos_eos}"
+            } > "${token_list}"
 
-        elif [ "${token_type}" = char ]; then
-            log "Stage 5: Generate character level token_list from ${data_feats}/srctexts"
+        elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
+            log "Stage 5: Generate character level token_list from ${lm_train_text}"
+
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
+
+            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type "${token_type}" \
+                --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+                --field 2- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"
 
         else
             log "Error: not supported --token_type '${token_type}'"
             exit 2
         fi
 
-        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-        # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-
-        ${python} -m espnet2.bin.tokenize_text  \
-            --token_type "${token_type}" \
-            --input "${data_feats}/srctexts" --output "${token_list}" ${_opts} \
-            --field 2- \
-            --cleaner "${cleaner}" \
-            --g2p "${g2p}" \
-            --write_vocabulary true \
-            --add_symbol "${blank}:0" \
-            --add_symbol "${oov}:1" \
-            --add_symbol "${sos_eos}:-1"
-
         # Create word-list for word-LM training
-        if ${use_word_lm}; then
-            log "Generate word level token_list from ${data_feats}/srctexts"
+        if ${use_word_lm} && [ "${token_type}" != word ]; then
+            log "Generate word level token_list from ${data_feats}/lm_train.txt"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type word \
-                --input "${data_feats}/srctexts" --output "${lm_token_list}" \
+                --input "${data_feats}/lm_train.txt" --output "${lm_token_list}" \
                 --field 2- \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -609,7 +643,7 @@ fi
 if ! "${skip_train}"; then
     if "${use_lm}"; then
         if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-            log "Stage 6: LM collect stats: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+            log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
             _opts=
             if [ -n "${lm_config}" ]; then
@@ -622,9 +656,9 @@ if ! "${skip_train}"; then
             _logdir="${lm_stats_dir}/logdir"
             mkdir -p "${_logdir}"
             # Get the minimum number among ${nj} and the number lines of input files
-            _nj=$(min "${nj}" "$(<${data_feats}/srctexts wc -l)" "$(<${lm_dev_text} wc -l)")
+            _nj=$(min "${nj}" "$(<${data_feats}/lm_train.txt wc -l)" "$(<${lm_dev_text} wc -l)")
 
-            key_file="${data_feats}/srctexts"
+            key_file="${data_feats}/lm_train.txt"
             split_scps=""
             for n in $(seq ${_nj}); do
                 split_scps+=" ${_logdir}/train.${n}.scp"
@@ -659,7 +693,7 @@ if ! "${skip_train}"; then
                     --non_linguistic_symbols "${nlsyms_txt}" \
                     --cleaner "${cleaner}" \
                     --g2p "${g2p}" \
-                    --train_data_path_and_name_and_type "${data_feats}/srctexts,text,text" \
+                    --train_data_path_and_name_and_type "${data_feats}/lm_train.txt,text,text" \
                     --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
@@ -686,7 +720,7 @@ if ! "${skip_train}"; then
 
 
         if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-            log "Stage 7: LM Training: train_set=${data_feats}/srctexts, dev_set=${lm_dev_text}"
+            log "Stage 7: LM Training: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
             _opts=
             if [ -n "${lm_config}" ]; then
@@ -704,7 +738,7 @@ if ! "${skip_train}"; then
                 if [ ! -f "${_split_dir}/.done" ]; then
                     rm -f "${_split_dir}/.done"
                     ${python} -m espnet2.bin.split_scps \
-                      --scps "${data_feats}/srctexts" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+                      --scps "${data_feats}/lm_train.txt" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
                       --num_splits "${num_splits_lm}" \
                       --output_dir "${_split_dir}"
                     touch "${_split_dir}/.done"
@@ -712,12 +746,12 @@ if ! "${skip_train}"; then
                     log "${_split_dir}/.done exists. Spliting is skipped"
                 fi
 
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/srctexts,text,text "
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/lm_train.txt,text,text "
                 _opts+="--train_shape_file ${_split_dir}/text_shape.${lm_token_type} "
                 _opts+="--multiple_iterator true "
 
             else
-                _opts+="--train_data_path_and_name_and_type ${data_feats}/srctexts,text,text "
+                _opts+="--train_data_path_and_name_and_type ${data_feats}/lm_train.txt,text,text "
                 _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
             fi
 
@@ -1206,6 +1240,7 @@ if ! "${skip_eval}"; then
                                   ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
+
                 fi
 
                 sclite \
@@ -1216,8 +1251,9 @@ if ! "${skip_eval}"; then
                 log "Write ${_type} result in ${_scoredir}/result.txt"
                 grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
             done
-
         done
+
+        [ -f local/score.sh ] && local/score.sh "${asr_exp}"
 
         # Show results in Markdown syntax
         scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md

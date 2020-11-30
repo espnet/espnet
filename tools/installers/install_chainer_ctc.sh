@@ -11,5 +11,5 @@ git clone https://github.com/jheymann85/chainer_ctc.git
 python3 -m pip install cython
 (
     set -euo pipefail
-    cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh && python3 -m pip install .
+    cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh && python3 -m pip install -e .
 )

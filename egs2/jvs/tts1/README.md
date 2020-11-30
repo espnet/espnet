@@ -67,15 +67,14 @@ Now ready to perform fine-tuning!
 
 Run the recipe from stage 6.
 
-You need to specify `--pretrain_path` and `--pretrain_key` for `--train_args` to load pretrained parameters (Or you can write them in `*.yaml` config).
-If you want to load the entire network, please specify `--pretrain_key null`.
+You need to specify `--init_param` for `--train_args` to load pretrained parameters (Or you can write them in `*.yaml` config).
 
 ```sh
 # NOTE: The path may be changed. Please change it to match with your case.
 
 # Recommend using --tag to name the experiment directory
 $ ./run.sh --stage 6 --train_config conf/tuning/finetune_tacotron2.yaml \
-    --train_args "--pretrain_path downloads/2dc62478870c846065fe39e609ba6657/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk/199epoch.pth --pretrain_key null" \
+    --train_args "--init_param downloads/2dc62478870c846065fe39e609ba6657/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk/199epoch.pth" \
     --tag finetune_jsut_pretrained_tacotron2
 ```
 

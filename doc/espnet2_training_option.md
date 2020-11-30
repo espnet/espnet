@@ -108,6 +108,25 @@ Checkpoint includes the following states.
 - Reporter state
 - torch.cuda.amp state (from torch=1.6)
 
+## Transfer learning / Fine tuning using pretrained model
+
+Use `--init_param <file_path>:<src_key>:<dst_key>:<exclude_keys>`
+
+```bash
+# Load all parameters
+python -m espnet2.bin.asr_train --init_param model.pth
+# Load only the parameters starting with "decoder"
+python -m espnet2.bin.asr_train --init_param model.pth:decoder
+# Load only the parameters starting with "decoder" and set it to model.decoder
+python -m espnet2.bin.asr_train --init_param model.pth:decoder:decoder
+# Set parameters to model.decoder
+python -m espnet2.bin.asr_train --init_param decoder.pth::decoder
+# Load all parameters excluding "decoder.embed"
+python -m espnet2.bin.asr_train --init_param model.pth:::decoder.embed
+# Load all parameters excluding "encoder" and "decoder.embed"
+python -m espnet2.bin.asr_train --init_param model.pth:::encoder,decoder.embed
+```
+
 ## Change logging interval
 The result in the middle state of the training will be shown by the specified number:
 
@@ -144,6 +163,32 @@ for epoch in range(max_epoch):
 ```
 
 Therefore, the training can be resumed at the start of the epoch.
+
+## Weights & Biases integration
+
+About Weights & Biases: https://docs.wandb.com/
+
+1. Installation and setup
+
+    See: https://docs.wandb.com/quickstart
+
+    ```sh
+    wandb login
+    ```
+1. Enable wandb
+
+    ```sh
+    python -m espnet2.bin.asr_train --use_wandb true
+    ```
+
+    and go to the shown URL.
+1. [Option] To use HTTPS PROXY
+    ```sh
+    export HTTPS_PROXY=...your proxy
+    export CURL_CA_BUNDLE=your.pem
+    export CURL_CA_BUNDLE=   # Disable SSL certificate verification
+    ```
+
 
 ## Multi GPUs
 
