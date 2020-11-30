@@ -10,7 +10,6 @@ test_sets="train_dev test"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode.yaml
-inference_asr_model=valid.loss.best.pth
 
 lm_config=conf/train_lm_char.yaml
 use_lm=true
@@ -28,8 +27,7 @@ word_vocab_size=7184
     --lm_config "${lm_config}"                          \
     --asr_config "${asr_config}"                        \
     --inference_config "${inference_config}"            \
-    --inference_asr_model "${inference_asr_model}"      \
     --train_set "${train_set}"                          \
     --valid_set "${valid_set}"                          \
     --test_sets "${test_sets}"                          \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"
