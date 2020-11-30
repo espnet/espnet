@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 from typing import List
 from typing import Optional
 from typing import Union
@@ -5,6 +6,8 @@ from typing import Union
 import torch
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
+
+is_torch_1_1_plus = LooseVersion(torch.__version__) >= LooseVersion("1.1.0")
 
 
 def complex_norm(c: ComplexTensor) -> torch.Tensor:
@@ -36,7 +39,11 @@ def get_rtf(
     Returns:
         rtf (ComplexTensor): (..., F, C, 1)
     """
-    phi = FC.solve(psd_speech, psd_noise)[0]
+    if is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
+        phi = FC.solve(psd_speech, psd_noise)[0]
+    else:
+        phi = FC.matmul(psd_noise.inverse2(), psd_speech)
     rtf = (
         phi[..., reference_vector, None]
         if isinstance(reference_vector, int)
@@ -84,7 +91,11 @@ def get_mvdr_vector(
         # in case that correlation_matrix is all-zero
         epsilon = epsilon + eps
 
-    numerator = FC.solve(psd_s, psd_n + epsilon * eye)[0]
+    if is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
+        numerator = FC.solve(psd_s, psd_n + epsilon * eye)[0]
+    else:
+        numerator = FC.matmul((psd_n + epsilon * eye).inverse2(), psd_s)
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
@@ -138,7 +149,11 @@ def get_mvdr_vector_with_rtf(
     rtf = get_rtf(psd_speech, psd_noise, reference_vector, iterations=iterations)
 
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
-    numerator = FC.solve(rtf, psd_n)[0].squeeze(-1)
+    if is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
+        numerator = FC.solve(rtf, psd_n)[0].squeeze(-1)
+    else:
+        numerator = FC.matmul(psd_n.inverse2(), rtf).squeeze(-1)
     denominator = FC.einsum("...d,...d->...", [rtf.squeeze(-1).conj(), numerator])
     if normalize_ref_channel is not None:
         scale = rtf.squeeze(-1)[..., normalize_ref_channel, None].conj()
@@ -317,7 +332,11 @@ def get_WPD_filter(
         epsilon = epsilon + eps
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    numerator = FC.solve(Phi, Rf + epsilon * eye)
+    if is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
+        numerator = FC.solve(Phi, Rf + epsilon * eye)[0]
+    else:
+        numerator = FC.matmul((Rf + epsilon * eye).inverse2(), Phi)
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
@@ -424,7 +443,11 @@ def get_WPD_filter_with_rtf(
     # (B, F, (K+1)*C, 1)
     rtf = FC.pad(rtf, (0, 0, 0, psd_observed_bar.shape[-1] - C), "constant", 0)
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
-    numerator = FC.solve(rtf, psd_observed_bar)[0].squeeze(-1)
+    if is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
+        numerator = FC.solve(rtf, psd_observed_bar)[0].squeeze(-1)
+    else:
+        numerator = FC.matmul(psd_observed_bar.inverse2(), rtf).squeeze(-1)
     denominator = FC.einsum("...d,...d->...", [rtf.squeeze(-1).conj(), numerator])
     if normalize_ref_channel is not None:
         scale = rtf.squeeze(-1)[..., normalize_ref_channel, None].conj()

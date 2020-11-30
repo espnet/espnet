@@ -1,5 +1,6 @@
-import pytest
+from distutils.version import LooseVersion
 
+import pytest
 import torch
 import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
@@ -7,6 +8,8 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.layers.beamformer import get_rtf
 from espnet2.enh.layers.beamformer import signal_framing
 from espnet2.layers.stft import Stft
+
+is_torch_1_1_plus = LooseVersion(torch.__version__) >= LooseVersion("1.1.0")
 
 
 random_speech = torch.tensor(
@@ -76,8 +79,13 @@ def test_get_rtf(ch):
     rtf = get_rtf(Phi_X, Phi_N, reference_vector=0, iterations=20)
     rtf = rtf / (rtf.abs().max(dim=-2, keepdims=True).values + 1e-15)
     # rtf \approx Phi_N MaxEigVec(Phi_N^-1 @ Phi_X)
-    mat = FC.solve(Phi_X, Phi_N)[0]
-    max_eigenvec = FC.solve(rtf, Phi_N)[0]
+    if is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
+        mat = FC.solve(Phi_X, Phi_N)[0]
+        max_eigenvec = FC.solve(rtf, Phi_N)[0]
+    else:
+        mat = FC.matmul(Phi_N.inverse2(), Phi_X)
+        max_eigenvec = FC.matmul(Phi_N.inverse2(), rtf)
     factor = FC.matmul(mat, max_eigenvec)
     assert FC.allclose(
         FC.matmul(max_eigenvec, factor.transpose(-1, -2)),
