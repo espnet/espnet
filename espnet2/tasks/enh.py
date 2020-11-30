@@ -12,8 +12,10 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 
 from espnet2.enh.abs_enh import AbsEnhancement
-from espnet2.enh.espnet_model import ESPnetEnhancementModel_mixIT
+from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.enh.nets.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.nets.beamformer_net import BeamformerNet
+from espnet2.enh.nets.deep_mfmvdr_net import DeepMFMVDRNet
 from espnet2.enh.nets.dprnn_raw import FaSNet_base as DPRNN
 from espnet2.enh.nets.tasnet import TasNet
 from espnet2.enh.nets.tf_mask_net import TFMaskingNet
@@ -33,7 +35,9 @@ enh_choices = ClassChoices(
         tf_masking=TFMaskingNet,
         tasnet=TasNet,
         wpe_beamformer=BeamformerNet,
+        mfmvdr=DeepMFMVDRNet,
         dprnn=DPRNN,
+        asteroid=AsteroidModel_Converter,
     ),
     type_check=AbsEnhancement,
     default="tf_masking",
@@ -92,29 +96,6 @@ class EnhancementTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
 
-        group = parser.add_argument_group(description="MIXit related")
-        group.add_argument(
-            "--N_per_mixture",
-            type=int,
-            default=4,
-            help="Number of sources for each mixture",
-        )
-        group.add_argument(
-            "--M_per_MoM",
-            type=int,
-            default=8,
-            help="M for each mixture of mixtures",
-        )
-        group.add_argument(
-            "--ratio_supervised",
-            type=float,
-            default=0.2,
-        )
-        group.add_argument(
-            "--SNR_max",
-            type=int,
-            default=30,
-        )
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -127,7 +108,6 @@ class EnhancementTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        # TODO(jing)  here to mix the mixtures.
         assert check_argument_types()
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=0)

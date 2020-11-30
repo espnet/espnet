@@ -37,6 +37,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         enh_return_type: Union[str, None] = "waveform",
         cal_enh_loss: bool = True,
         end2end_train: bool = True,
+        additional_utt_mvn: bool = False,
     ):
         assert check_argument_types()
         assert 0.0 <= asr_model.ctc_weight <= 1.0, asr_model.ctc_weight
@@ -48,13 +49,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         assert asr_model.rnnt_decoder is None, "Not implemented"
         super().__init__()
 
-        super().__init__()
-        # note that eos is the same as sos (equivalent ID)
-        self.sos = vocab_size - 1
-        self.eos = vocab_size - 1
-        self.vocab_size = vocab_size
-        self.ignore_id = ignore_id
-        self.ctc_weight = ctc_weight
+        self.enh_subclass = enh_model
+        self.asr_subclass = asr_model
         self.enh_weight = enh_weight
         self.enh_return_type = enh_return_type  # 'waveform' or 'spectrum' or None
         self.cal_enh_loss = cal_enh_loss
@@ -72,22 +68,21 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 self.asr_subclass.frontend.stft
             ), "need apply stft in asr frontend part"
         elif enh_return_type == "spectrum":
-            # TODO(Xuankai,Jing): verify this additional uttMVN
-            self.asr_subclass.additional_utt_mvn = UtteranceMVN(
-                norm_means=True, norm_vars=False
-            )
             assert (
                 not self.asr_subclass.frontend.stft
             ), "avoid usage of stft in asr frontend part"
+            # TODO(Xuankai,Jing): verify this additional uttMVN
+            if additional_utt_mvn:
+                self.asr_subclass.additional_utt_mvn = UtteranceMVN(
+                    norm_means=True, norm_vars=False
+                )
+            else:
+                self.asr_subclass.additional_utt_mvn = None
 
-    def _create_mask_label(self, mix_spec, ref_spec, mask_type="IAM"):
-        """Create mask label.
-
-        :param mix_spec: ComplexTensor(B, T, F)
-        :param ref_spec: [ComplexTensor(B, T, F), ...] or ComplexTensor(B, T, F)
-        :param noise_spec: ComplexTensor(B, T, F)
-        :return: [Tensor(B, T, F), ...] or [ComplexTensor(B, T, F), ...]
-        """
+        # self.end2end_train = False
+        self.end2end_train = end2end_train
+        self.enh_attr = enh_model.__dir__()
+        self.asr_attr = asr_model.__dir__()
 
 <<<<<<< HEAD
         assert mask_type in [
@@ -217,23 +212,23 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         # 0. Enhancement
         if self.enh_return_type is not None:
-            # make sure the speech_pre is the raw waveform with same size.
-            if text_ref1.equal(text_ref2):
-                # TODO(Jing): find a better way to locate single-spk set
-                # single-speaker case
-                speech_pre_all, speech_pre_lengths = speech_mix, speech_mix_lengths
-                text_ref_all, text_ref_lengths = text_ref1, text_ref1_lengths
-                perm = True
-                loss_enh = 0 * speech_mix.mean()
-                n_speaker_asr = 1
-            else:
-                loss_enh, perm, speech_pre, speech_pre_lengths = self.forward_enh(
-                    speech_mix,
-                    speech_mix_lengths,
-                    speech_ref1=speech_ref1,
-                    speech_ref2=speech_ref2,
-                )
-                if self.enh_return_type == "waveform":
+            if self.enh_return_type == "waveform":
+                # make sure the speech_pre is the raw waveform with same size.
+                if text_ref1.equal(text_ref2):  # single-spk case
+                    # TODO(Jing): find a better way to locate single-spk set
+                    # single-speaker case
+                    speech_pre_all, speech_pre_lengths = speech_mix, speech_mix_lengths
+                    text_ref_all, text_ref_lengths = text_ref1, text_ref1_lengths
+                    perm = True
+                    loss_enh = None
+                    n_speaker_asr = 1
+                else:
+                    loss_enh, perm, speech_pre, speech_pre_lengths = self.forward_enh(
+                        speech_mix,
+                        speech_mix_lengths,
+                        speech_ref1=speech_ref1,
+                        speech_ref2=speech_ref2,
+                    )
                     # speech_pre: (bs,num_spk,T)
                     assert speech_pre[:, 0].shape == speech_mix.shape
 
@@ -243,10 +238,11 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                         speech_pre = torch.stack([speech_ref1, speech_ref2], dim=1)
 
                     # Pack the separated speakers into the ASR part.
-                    # TODO(Jing): unified order bs*spk or spk*bs
-                    speech_pre_all = speech_pre.view(
-                        -1, speech_mix.shape[-1]
-                    )  # (bs*num_spk, T)
+                    speech_pre_all = (
+                        speech_pre.transpose(0, 1)
+                        .contiguous()
+                        .view(-1, speech_mix.shape[-1])
+                    )  # (N_spk*B, T)
                     speech_pre_lengths = torch.stack(
                         [speech_mix_lengths, speech_mix_lengths], dim=1
                     ).view(-1)
@@ -256,41 +252,45 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     text_ref_lengths = torch.stack(
                         [text_ref1_lengths, text_ref2_lengths], dim=1
                     ).view(-1)
-                    n_speaker_asr = 1
-                elif self.enh_return_type == "spectrum":
-                    if isinstance(speech_pre, list):  # multi-speaker case
-                        # The return value speech_pre is actually the spectrum
-                        # List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
-                        if speech_pre[0].dtype == torch.tensor:
-                            assert (
-                                speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
-                            )
-                        elif isinstance(speech_pre[0], ComplexTensor):
-                            speech_pre = [
-                                torch.stack([pre.real, pre.imag], dim=-1)
-                                for pre in speech_pre
-                            ]
-                            assert (
-                                speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
-                            )
-                        speech_pre_all = torch.cat(speech_pre, dim=0)  # (N_spk*B, T, D)
-                        speech_pre_lengths = torch.cat(
-                            [speech_pre_lengths, speech_pre_lengths]
-                        )
-                        text_ref_all = torch.cat([text_ref1, text_ref2], dim=0)
-                        text_ref_lengths = torch.cat(
-                            [text_ref1_lengths, text_ref2_lengths]
-                        )
-                        n_speaker_asr = self.num_spk
-                    else:  # single-speaker case
-                        speech_pre_all, speech_pre_lengths = (
-                            speech_pre,
-                            speech_pre_lengths,
-                        )
-                        text_ref_all, text_ref_lengths = text_ref1, text_ref1_lengths
-                        n_speaker_asr = 1  # single-channel asr after enh
-                else:
-                    raise NotImplementedError("No such enh_return_type")
+                    n_speaker_asr = 1 if self.cal_enh_loss else self.num_spk
+            elif self.enh_return_type == "spectrum":
+                loss_enh, perm, speech_pre, speech_pre_lengths = self.forward_enh(
+                    speech_mix,
+                    speech_mix_lengths,
+                    speech_ref1=speech_ref1,
+                    speech_ref2=speech_ref2,
+                )
+                if len(speech_pre) > 1:  # multi-speaker case
+                    # The return value speech_pre is actually the spectrum
+                    # List[torch.Tensor(B, T, D, 2)] or List[torch.complex(B, T, D)]
+                    if speech_pre[0].dtype == torch.tensor:
+                        assert speech_pre[0].dim >= 4 and speech_pre[0].size(-1) == 2
+                    elif isinstance(speech_pre[0], ComplexTensor):
+                        speech_pre = [
+                            torch.stack([pre.real, pre.imag], dim=-1)
+                            for pre in speech_pre
+                        ]
+                        assert speech_pre[0].dim() >= 4 and speech_pre[0].size(-1) == 2
+                    speech_pre_all = torch.cat(speech_pre, dim=0)  # (N_spk*B, T, D)
+                    speech_pre_lengths = torch.cat(
+                        [speech_pre_lengths, speech_pre_lengths]
+                    )
+                    text_ref_all = torch.cat([text_ref1, text_ref2], dim=0)
+                    text_ref_lengths = torch.cat([text_ref1_lengths, text_ref2_lengths])
+                    n_speaker_asr = 1 if self.cal_enh_loss else self.num_spk
+                else:  # single-speaker case
+                    assert isinstance(speech_pre[0], ComplexTensor)
+                    speech_pre = [
+                        torch.stack([pre.real, pre.imag], dim=-1) for pre in speech_pre
+                    ]
+                    speech_pre_all, speech_pre_lengths = (
+                        speech_pre[0],
+                        speech_pre_lengths,
+                    )
+                    text_ref_all, text_ref_lengths = text_ref1, text_ref1_lengths
+                    n_speaker_asr = 1  # single-channel asr after enh
+            else:
+                raise NotImplementedError("No such enh_return_type")
         else:
             # Dont do enhancement
             speech_pre_all = speech_mix  # bs,T
@@ -326,6 +326,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                     n_speakers=n_speaker_asr,
                 )
             else:  # Permutation is determined by CTC
+                assert n_speaker_asr > 1
                 (
                     loss_ctc,
                     cer_ctc,

@@ -223,6 +223,7 @@ class DNN_Beamformer(torch.nn.Module):
 
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
+        data_d = data.double()
 
         # mask: [(B, F, C, T)]
         masks, _ = self.mask(data, ilens)
