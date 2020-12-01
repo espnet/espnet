@@ -549,13 +549,14 @@ def get_adjacent_th(spec: torch.Tensor, filter_length: int = 5) -> torch.Tensor:
 
 
 def vector_to_Hermitian(vec):
-    """Construct a Hermitian matrix from a vector of N**2 independent real-valued elements.
+    """Construct a Hermitian matrix from a vector of N**2 independent
+    real-valued elements.
 
     Args:
         vec (torch.Tensor): (..., N ** 2)
     Returns:
         mat (ComplexTensor): (..., N, N)
-    """
+    """  # noqa: H405, D205, D400
     N = int(np.sqrt(vec.shape[-1]))
     mat = torch.zeros(size=vec.shape[:-1] + (N, N, 2), device=vec.device)
 
