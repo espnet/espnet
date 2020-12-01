@@ -8,10 +8,7 @@ import torch.nn.functional as F
 
 from espnet2.enh.abs_enh import AbsEnhancement
 
-EPS = 1e-8
-
-
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
 def overlap_and_add(signal, frame_step):
@@ -46,9 +43,6 @@ def overlap_and_add(signal, frame_step):
     output_size = frame_step * (frames - 1) + frame_length
     output_subframes = output_size // subframe_length
 
-    # print(subframe_length)
-    # print(signal.shape)
-    # print(outer_dimensions)
     # subframe_signal = signal.view(*outer_dimensions, -1, subframe_length)
     subframe_signal = signal.reshape(*outer_dimensions, -1, subframe_length)
 
@@ -108,7 +102,7 @@ def choose_norm(norm_type, channel_size):
 
 # TODO(Jing): Use nn.LayerNorm to impl cLN to speed up
 class ChannelwiseLayerNorm(nn.Module):
-    """Channel-wise Layer Normalization (cLN)"""
+    """Channel-wise Layer Normalization (cLN)."""
 
     def __init__(self, channel_size):
         super(ChannelwiseLayerNorm, self).__init__()
@@ -121,7 +115,7 @@ class ChannelwiseLayerNorm(nn.Module):
         self.beta.data.zero_()
 
     def forward(self, y):
-        """ChannelwiseLayerNorm forwad
+        """Channel-wise layer normalization forwad.
 
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
@@ -135,7 +129,7 @@ class ChannelwiseLayerNorm(nn.Module):
 
 
 class GlobalLayerNorm(nn.Module):
-    """Global Layer Normalization (gLN)"""
+    """Global Layer Normalization (gLN)."""
 
     def __init__(self, channel_size):
         super(GlobalLayerNorm, self).__init__()
@@ -148,7 +142,7 @@ class GlobalLayerNorm(nn.Module):
         self.beta.data.zero_()
 
     def forward(self, y):
-        """GlobalLayerNorm forward
+        """Global layer normalization forward.
 
         Args:
             y: [M, N, K], M is batch size, N is channel size, K is length
@@ -176,7 +170,7 @@ class Encoder(nn.Module):
         self.conv1d_U = nn.Conv1d(1, N, kernel_size=W, stride=W // 2, bias=False)
 
     def forward(self, mixture):
-        """Encoder forward
+        """Encoder forward.
 
         Args:
             mixture: [B, T], B is batch size, T is #samples
@@ -198,7 +192,7 @@ class Decoder(nn.Module):
         self.basis_signals = nn.Linear(E, W, bias=False)
 
     def forward(self, mixture_w, est_mask):
-        """Decoder forward
+        """Decoder forward.
 
         Args:
             mixture_w: [B, E, L]
@@ -207,8 +201,6 @@ class Decoder(nn.Module):
             est_source: [B, C, T]
         """
         # D = W * M
-        # print(mixture_w.shape)
-        # print(est_mask.shape)
         source_w = torch.unsqueeze(mixture_w, 1) * est_mask  # [B, C, E, L]
         source_w = torch.transpose(source_w, 2, 3)  # [B, C, L, E]
         # S = DV
@@ -503,16 +495,12 @@ class SEP_module(DPRNN_base):
         enc_segments, enc_rest = self.split_feature(
             enc_feature, self.segment_size
         )  # B, N, L, K: L is the segment_size
-        # print('enc_segments.shape {}'.format(enc_segments.shape))
-        # print('output shape',enc_segments.shape)
         # pass to DPRNN
         output = self.DPRNN(enc_segments)  # B, topk*N, L, K
-        # print('output shape',output.shape)
         output = output.view(
             batch_size * self.num_spk, self.feature_dim, self.segment_size, -1
         )  # B*topk, N, L, K
 
-        # print('output shape',output.shape)
         # overlap-and-add of the outputs
         output = self.merge_feature(output, enc_rest)  # B*topk, N, L
         # output -- > B,topk,N,L
@@ -557,11 +545,8 @@ class BF_module(DPRNN_base):
         enc_segments, enc_rest = self.split_feature(
             enc_feature, self.segment_size
         )  # B, N, L, K: L is the segment_size
-        # print('enc_segments.shape {}'.format(enc_segments.shape))
-        # print('output shape',enc_segments.shape)
         # pass to DPRNN
         output = self.DPRNN(enc_segments)
-        # print('output shape',output.shape)
         output = output.view(
             batch_size, self.feature_dim, self.segment_size, -1
         )  # B, N, L, K
@@ -569,14 +554,10 @@ class BF_module(DPRNN_base):
         # print('output shape',output.shape)
         # overlap-and-add of the outputs
         output = self.merge_feature(output, enc_rest)  # B, N, L
-        # print('output shape',output.shape)
         output = output.unsqueeze(1).expand(-1, topk, -1, -1)  # B,topk,N,L
-        # print('output shape',output.shape)
         voiceP = voiceP.unsqueeze(-1).expand(
             batch_size, topk, D, seq_length
         )  # B,topk,D,L
-        # print('output shape',output.shape)
-        # print('voiceP shape',voiceP.shape)
 
         # END cat mode
         output = torch.cat((output, voiceP), dim=2).view(
@@ -605,7 +586,7 @@ class FaSNet_base(AbsEnhancement):
         nspk=2,
         win_len=2,
     ):
-        """FaSNet base.
+        """Fasnet base.
 
         Reference:
             "Dual-path RNN: efficient long sequence modeling for
@@ -634,7 +615,7 @@ class FaSNet_base(AbsEnhancement):
         # waveform encoder
         # self.encoder = nn.Conv1d(1, self.enc_dim, self.feature_dim, bias=False)
         self.encoder = Encoder(win_len, enc_dim)  # [B T]-->[B N L]
-        # Notice: the norm is groupNorm in raw drpnn, but gLN in Asteriod.
+        # Notice: the norm is groupNorm in raw drpnn, but gLN in Asteroid.
         # self.enc_LN = nn.GroupNorm(1, self.enc_dim, eps=1e-8) # [B N L]-->[B N L]
         # self.enc_LN= choose_norm('GroupNorm', self.enc_dim)
         self.enc_LN = choose_norm("gLN", self.enc_dim)
@@ -673,7 +654,7 @@ class FaSNet_base(AbsEnhancement):
         return input, rest
 
     def forward(self, input, voiceP=None):
-        """FaSNet_base forward
+        """FaSNet_base forward.
 
         Args:
             input: torch.Tensor(batch, T)
@@ -687,26 +668,19 @@ class FaSNet_base(AbsEnhancement):
         # input = input.to(device)
         B, _ = input.size()
         # input, rest = self.pad_input(input, self.window)
-        # print('padded input shape {}'.format(input.shape))
-        # print('rest',rest)
         mixture_w = self.encoder(input)  # B, E, L
 
         score_ = self.enc_LN(mixture_w)  # B, E, L
-        # print('mixture_w.shape {}'.format(mixture_w.shape))
         score_ = self.separator(score_, voiceP)  # B*nspk, N, L
-        # print('score_.shape {}'.format(score_.shape))
         # score_ = score_.view(B*self.num_spk, -1, self.feature_dim).\
         #     transpose(1, 2).contiguous()  # B*nspk, N, T
-        # print('score_.shape {}'.format(score_.shape))
 
         # score_ = voiceP.transpose(1,2) * score_ # bs*steps*d * bs*spk*d*steps
 
         score = self.mask_conv1x1(score_)  # [B*nspk, N, L] -> [B*nspk, E, L]
-        # print('score.shape {}'.format(score.shape))
         score = score.view(
             B, self.num_spk, self.enc_dim, -1
         )  # [B*nspk, E, L] -> [B, nspk, E, L]
-        # print('score.shape {}'.format(score.shape))
         est_mask = F.relu(score)
 
         # est_mask = voiceP.unsqueeze(1).transpose(2,3) * \
@@ -717,9 +691,7 @@ class FaSNet_base(AbsEnhancement):
         )  # [B, E, L] + [B, nspk, E, L]--> [B, nspk, T]
         T_origin = input.size(-1)
         T_conv = est_source.size(-1)
-        # print('T_raw, T_est:', T_origin, T_conv)
         est_source = F.pad(est_source, (0, T_origin - T_conv))  # M,C,T
-        # print('final.shape {}'.format(est_source.shape))
 
         # if rest > 0:
         #     est_source = est_source[:, :, :-rest]

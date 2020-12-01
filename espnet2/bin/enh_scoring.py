@@ -67,6 +67,10 @@ def scoring(
                     "Reference must be multi-channel when the \
                     network output is multi-channel."
                 )
+            elif ref.ndim == inf.ndim == 3:
+                # multi-channel reference and output
+                ref = ref[..., ref_channel]
+                inf = inf[..., ref_channel]
 
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
@@ -83,6 +87,8 @@ def scoring(
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
+                # save permutation assigned script file
+                writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
 
 
 def get_parser():

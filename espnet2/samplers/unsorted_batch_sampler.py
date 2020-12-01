@@ -6,6 +6,7 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import read_2column_text
 from espnet2.samplers.abs_sampler import AbsSampler
+from espnet2.samplers.read_category import get_category2utt
 
 
 class UnsortedBatchSampler(AbsSampler):
@@ -45,17 +46,7 @@ class UnsortedBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {key_file}")
 
-        category2utt = {}
-        if utt2category_file is not None:
-            utt2category = read_2column_text(utt2category_file)
-            if set(utt2category) != set(keys):
-                raise RuntimeError(
-                    f"keys are mismatched between {utt2category_file} != {key_file}"
-                )
-            for k, v in utt2category.items():
-                category2utt.setdefault(v, []).append(k)
-        else:
-            category2utt["default_category"] = keys
+        category2utt = get_category2utt(keys, utt2category_file)
 
         self.batch_list = []
         for d, v in category2utt.items():

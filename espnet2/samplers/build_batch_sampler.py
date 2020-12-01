@@ -109,7 +109,10 @@ def build_batch_sampler(
 
     if type == "unsorted":
         retval = UnsortedBatchSampler(
-            batch_size=batch_size, key_file=shape_files[0], drop_last=drop_last
+            batch_size=batch_size,
+            key_file=shape_files[0],
+            drop_last=drop_last,
+            utt2category_file=utt2category_file,
         )
 
     elif type == "sorted":
@@ -119,6 +122,7 @@ def build_batch_sampler(
             sort_in_batch=sort_in_batch,
             sort_batch=sort_batch,
             drop_last=drop_last,
+            utt2category_file=utt2category_file,
         )
 
     elif type == "folded":
@@ -148,6 +152,7 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
+            utt2category_file=utt2category_file,
         )
 
     elif type == "length":
@@ -159,6 +164,7 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
+            utt2category_file=utt2category_file,
         )
 
     else:

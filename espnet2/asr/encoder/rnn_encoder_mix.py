@@ -160,10 +160,6 @@ class RNNEncoderMix(AbsEncoder):
                 xs_pad_sd[ns], ilens_sd[ns], _ = module(xs_pad_sd[ns], ilens_sd[ns])
 
         if self.use_projection:
-            xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0)
-        else:
-            xs_pad = xs_pad.masked_fill(make_pad_mask(ilens, xs_pad, 1), 0.0)
-        if self.use_projection:
             for ns in range(self.num_spkrs):
                 xs_pad_sd[ns].masked_fill_(
                     make_pad_mask(ilens_sd[ns], xs_pad_sd[ns], 1), 0.0

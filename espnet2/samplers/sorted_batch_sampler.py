@@ -6,6 +6,7 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
+from espnet2.samplers.read_category import get_category2utt
 
 
 class SortedBatchSampler(AbsSampler):
@@ -25,6 +26,7 @@ class SortedBatchSampler(AbsSampler):
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
         drop_last: bool = False,
+        utt2category_file: str = None,
     ):
         assert check_argument_types()
         assert batch_size > 0
@@ -52,31 +54,39 @@ class SortedBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_file}")
 
-        # Apply max(, 1) to avoid 0-batches
-        N = max(len(keys) // batch_size, 1)
-        if not self.drop_last:
-            # Split keys evenly as possible as. Note that If N != 1,
-            # the these batches always have size of batch_size at minimum.
-            self.batch_list = [
-                keys[i * len(keys) // N : (i + 1) * len(keys) // N] for i in range(N)
-            ]
-        else:
-            self.batch_list = [
-                tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
-            ]
+        category2utt = get_category2utt(keys, utt2category_file)
 
-        if len(self.batch_list) == 0:
-            logging.warning(f"{shape_file} is empty")
+        self.batch_list = []
+        for ctg, v in category2utt.items():
+            category_keys = v
+            cur_batch_list = []
 
-        if sort_in_batch != sort_batch:
-            if sort_batch not in ("ascending", "descending"):
-                raise ValueError(
-                    f"sort_batch must be ascending or descending: {sort_batch}"
-                )
-            self.batch_list.reverse()
+            # Apply max(, 1) to avoid 0-batches
+            N = max(len(category_keys) // batch_size, 1)
+            if not self.drop_last:
+                # Split keys evenly as possible as. Note that If N != 1,
+                # the these batches always have size of batch_size at minimum.
+                cur_batch_list = [
+                    category_keys[i * len(keys) // N : (i + 1) * len(category_keys) // N] for i in range(N)
+                ]
+            else:
+                cur_batch_list = [
+                    tuple(category_keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
+                ]
 
-        if len(self.batch_list) == 0:
-            raise RuntimeError("0 batches")
+            if len(cur_batch_list) == 0:
+                logging.warning(f"{shape_file} is empty in category {ctg}")
+
+            if sort_in_batch != sort_batch:
+                if sort_batch not in ("ascending", "descending"):
+                    raise ValueError(
+                        f"sort_batch must be ascending or descending: {sort_batch}"
+                    )
+                cur_batch_list.reverse()
+
+            if len(cur_batch_list) == 0:
+                raise RuntimeError("0 batches in category {ctg}")
+            self.batch_list.extend(cur_batch_list)
 
     def __repr__(self):
         return (

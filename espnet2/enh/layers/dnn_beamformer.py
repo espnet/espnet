@@ -42,7 +42,7 @@ BEAMFORMER_TYPES = (
 
 
 class DNN_Beamformer(torch.nn.Module):
-    """DNN mask based Beamformer
+    """DNN mask based Beamformer.
 
     Citation:
         Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;
@@ -66,6 +66,11 @@ class DNN_Beamformer(torch.nn.Module):
         beamformer_type: str = "mvdr_souden",
         rtf_iterations: int = 2,
         eps: float = 1e-6,
+        diagonal_loading: bool = True,
+        diag_eps: float = 1e-7,
+        mask_flooring: bool = False,
+        flooring_thres: float = 1e-6,
+        use_torch_solver: bool = True,
         # only for WPD beamformer
         btaps: int = 5,
         bdelay: int = 3,
@@ -91,29 +96,27 @@ class DNN_Beamformer(torch.nn.Module):
         self.nmask = bnmask
 
         if beamformer_type not in BEAMFORMER_TYPES:
-            raise ValueError(
-                "Not supporting beamformer_type={}".format(beamformer_type)
-            )
+            raise ValueError("Not supporting beamformer_type=%s" % beamformer_type)
         if (
             beamformer_type == "mvdr_souden" or not beamformer_type.endswith("_souden")
         ) and not use_noise_mask:
             if num_spk == 1:
                 logging.warning(
-                    "Initializing {} beamformer without noise mask "
-                    "estimator (single-speaker case)".format(beamformer_type.upper())
+                    "Initializing %s beamformer without noise mask "
+                    "estimator (single-speaker case)" % beamformer_type.upper()
                 )
                 logging.warning(
                     "(1 - speech_mask) will be used for estimating noise "
-                    "PSD in {} beamformer!".format(beamformer_type.upper())
+                    "PSD in %s beamformer!" % beamformer_type.upper()
                 )
             else:
                 logging.warning(
-                    "Initializing {} beamformer without noise mask "
-                    "estimator (multi-speaker case)".format(beamformer_type.upper())
+                    "Initializing %s beamformer without noise mask "
+                    "estimator (multi-speaker case)" % beamformer_type.upper()
                 )
                 logging.warning(
                     "Interference speech masks will be used for estimating "
-                    "noise PSD in {} beamformer!".format(beamformer_type.upper())
+                    "noise PSD in %s beamformer!" % beamformer_type.upper()
                 )
 
         self.beamformer_type = beamformer_type
@@ -126,6 +129,11 @@ class DNN_Beamformer(torch.nn.Module):
         self.btaps = btaps
         self.bdelay = bdelay if self.btaps > 0 else 1
         self.eps = eps
+        self.diagonal_loading = diagonal_loading
+        self.diag_eps = diag_eps
+        self.mask_flooring = mask_flooring
+        self.flooring_thres = flooring_thres
+        self.use_torch_solver = use_torch_solver
 
     def forward(
         self,
@@ -133,7 +141,7 @@ class DNN_Beamformer(torch.nn.Module):
         ilens: torch.LongTensor,
         powers: Union[List[torch.Tensor], None] = None,
     ) -> Tuple[ComplexTensor, torch.LongTensor, torch.Tensor]:
-        """The forward function
+        """DNN_Beamformer forward function.
 
         Notation:
             B: Batch
@@ -152,7 +160,7 @@ class DNN_Beamformer(torch.nn.Module):
         """
 
         def apply_beamforming(data, ilens, psd_n, psd_speech, psd_distortion=None):
-            """Beamforming with the provided statistics
+            """Beamforming with the provided statistics.
 
             Args:
                 data (ComplexTensor): (B, F, C, T)
@@ -192,10 +200,20 @@ class DNN_Beamformer(torch.nn.Module):
                     iterations=self.rtf_iterations,
                     reference_vector=u,
                     normalize_ref_channel=self.ref_channel,
+                    use_torch_solver=self.use_torch_solver,
+                    diagonal_loading=self.diagonal_loading,
+                    diag_eps=self.diag_eps,
                 )
                 enhanced = apply_beamforming_vector(ws, data.double())
             elif self.beamformer_type in ("mpdr_souden", "mvdr_souden", "wmpdr_souden"):
-                ws = get_mvdr_vector(psd_speech.double(), psd_n.double(), u)
+                ws = get_mvdr_vector(
+                    psd_speech.double(),
+                    psd_n.double(),
+                    u,
+                    use_torch_solver=self.use_torch_solver,
+                    diagonal_loading=self.diagonal_loading,
+                    diag_eps=self.diag_eps,
+                )
                 enhanced = apply_beamforming_vector(ws, data.double())
             elif self.beamformer_type == "wpd":
                 ws = get_WPD_filter_with_rtf(
@@ -205,12 +223,21 @@ class DNN_Beamformer(torch.nn.Module):
                     iterations=self.rtf_iterations,
                     reference_vector=u,
                     normalize_ref_channel=self.ref_channel,
+                    use_torch_solver=self.use_torch_solver,
+                    diagonal_loading=self.diagonal_loading,
+                    diag_eps=self.diag_eps,
                 )
                 enhanced = perform_WPD_filtering(
                     ws, data.double(), self.bdelay, self.btaps
                 )
             elif self.beamformer_type == "wpd_souden":
-                ws = get_WPD_filter_v2(psd_speech.double(), psd_n.double(), u)
+                ws = get_WPD_filter_v2(
+                    psd_speech.double(),
+                    psd_n.double(),
+                    u,
+                    diagonal_loading=self.diagonal_loading,
+                    diag_eps=self.diag_eps,
+                )
                 enhanced = perform_WPD_filtering(
                     ws, data.double(), self.bdelay, self.btaps
                 )
@@ -228,8 +255,9 @@ class DNN_Beamformer(torch.nn.Module):
         # mask: [(B, F, C, T)]
         masks, _ = self.mask(data, ilens)
         assert self.nmask == len(masks), len(masks)
-        # floor masks with self.eps to increase numerical stability
-        masks = [torch.clamp(m, min=self.eps) for m in masks]
+        # floor masks to increase numerical stability
+        if self.mask_flooring:
+            masks = [torch.clamp(m, min=self.flooring_thres) for m in masks]
 
         if self.num_spk == 1:  # single-speaker case
             if self.use_noise_mask:
@@ -432,7 +460,7 @@ class DNN_Beamformer(torch.nn.Module):
     def predict_mask(
         self, data: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
-        """Predict masks for beamforming
+        """Predict masks for beamforming.
 
         Args:
             data (ComplexTensor): (B, T, C, F), double precision
@@ -456,7 +484,7 @@ class AttentionReference(torch.nn.Module):
     def forward(
         self, psd_in: ComplexTensor, ilens: torch.LongTensor, scaling: float = 2.0
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
-        """The forward function
+        """Attention-based reference forward function.
 
         Args:
             psd_in (ComplexTensor): (B, F, C, C)

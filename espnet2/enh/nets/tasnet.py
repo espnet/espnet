@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from espnet2.enh.abs_enh import AbsEnhancement
 
-EPS = 1e-8
+EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
 def overlap_and_add(signal, frame_step):
@@ -166,7 +166,7 @@ class TasNet(AbsEnhancement):
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
-            est_source: [M, C, T]
+            est_source: List[M, T]
             lens:  [Batch]
         """
         mixture_w = self.encoder(mixture)
@@ -236,7 +236,7 @@ class TasNet(AbsEnhancement):
 
 
 class Encoder(nn.Module):
-    """Estimation of the nonnegative mixture weight by a 1-D conv layer. """
+    """Estimation of the nonnegative mixture weight by a 1-D conv layer."""
 
     def __init__(self, L, N):
         super(Encoder, self).__init__()
@@ -269,7 +269,7 @@ class Decoder(nn.Module):
         self.basis_signals = nn.Linear(N, L, bias=False)
 
     def forward(self, mixture_w, est_mask):
-        """Forward
+        """Forward.
 
         Args:
             mixture_w: [M, N, K]
@@ -343,7 +343,7 @@ class TemporalConvNet(nn.Module):
         )
 
     def forward(self, mixture_w):
-        """Keep this API same with TasNet
+        """Keep this API same with TasNet.
 
         Args:
             mixture_w: [M, N, K], M is batch size
@@ -460,7 +460,7 @@ class DepthwiseSeparableConv(nn.Module):
 
 
 class Chomp1d(nn.Module):
-    """To ensure the output length is the same as the input. """
+    """To ensure the output length is the same as the input."""
 
     def __init__(self, chomp_size):
         super(Chomp1d, self).__init__()
@@ -501,7 +501,7 @@ def chose_norm(norm_type, channel_size):
 
 
 class ChannelwiseLayerNorm(nn.Module):
-    """Channel-wise Layer Normalization (cLN)"""
+    """Channel-wise Layer Normalization (cLN)."""
 
     def __init__(self, channel_size):
         super(ChannelwiseLayerNorm, self).__init__()
@@ -529,7 +529,7 @@ class ChannelwiseLayerNorm(nn.Module):
 
 
 class GlobalLayerNorm(nn.Module):
-    """Global Layer Normalization (gLN)"""
+    """Global Layer Normalization (gLN)."""
 
     def __init__(self, channel_size):
         super(GlobalLayerNorm, self).__init__()

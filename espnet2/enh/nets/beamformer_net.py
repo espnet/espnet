@@ -11,7 +11,7 @@ from espnet2.layers.stft import Stft
 
 
 class BeamformerNet(AbsEnhancement):
-    """TF Masking based beamformer"""
+    """TF Masking based beamformer."""
 
     def __init__(
         self,
@@ -55,6 +55,14 @@ class BeamformerNet(AbsEnhancement):
         rtf_iterations: int = 2,
         bdropout_rate: float = 0.0,
         shared_power: bool = True,
+        # For numerical stability
+        diagonal_loading: bool = True,
+        diag_eps_wpe: float = 1e-7,
+        diag_eps_bf: float = 1e-7,
+        mask_flooring: bool = False,
+        flooring_thres_wpe: float = 1e-6,
+        flooring_thres_bf: float = 1e-6,
+        use_torch_solver: bool = True,
     ):
         super(BeamformerNet, self).__init__()
 
@@ -62,7 +70,7 @@ class BeamformerNet(AbsEnhancement):
         self.train_mask_only = train_mask_only
         self.mask_type = mask_type
         self.loss_type = loss_type
-        if loss_type not in ("mask_mse", "spectrum", "magnitude"):
+        if loss_type not in ("mask_mse", "spectrum", "spectrum_log", "magnitude"):
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.num_spk = num_spk
@@ -103,6 +111,11 @@ class BeamformerNet(AbsEnhancement):
                 nonlinear=wnonlinear,
                 iterations=iterations,
                 normalization=wnormalization,
+                diagonal_loading=diagonal_loading,
+                diag_eps=diag_eps_wpe,
+                mask_flooring=mask_flooring,
+                flooring_thres=flooring_thres_wpe,
+                use_torch_solver=use_torch_solver,
             )
         else:
             self.wpe = None
@@ -125,6 +138,11 @@ class BeamformerNet(AbsEnhancement):
                 rtf_iterations=rtf_iterations,
                 btaps=taps,
                 bdelay=delay,
+                diagonal_loading=diagonal_loading,
+                diag_eps=diag_eps_bf,
+                mask_flooring=mask_flooring,
+                flooring_thres=flooring_thres_bf,
+                use_torch_solver=use_torch_solver,
             )
         else:
             self.beamformer = None
@@ -290,7 +308,6 @@ class BeamformerNet(AbsEnhancement):
                 'noise1': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
-
         # predict spectrum for each speaker
         predicted_spectrums, flens, masks = self.forward(input, ilens)
 

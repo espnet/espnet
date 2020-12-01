@@ -68,7 +68,13 @@ class TFMaskingNet(AbsEnhancement):
         self.mask_type = mask_type
         self.loss_type = loss_type
         self.return_spec_in_training = False
-        if loss_type not in ("mask_mse", "magnitude", "spectrum", "si_snr"):
+        if loss_type not in (
+            "mask_mse",
+            "magnitude",
+            "spectrum",
+            "spectrum_log",
+            "si_snr",
+        ):
             raise ValueError("Unsupported loss type: %s" % loss_type)
         self.rnn_type = rnn_type
 
@@ -173,7 +179,6 @@ class TFMaskingNet(AbsEnhancement):
                 'spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
-
         # wave -> stft -> magnitude specturm
         input_spectrum, flens = self.stft(input, ilens)
         input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
@@ -236,7 +241,6 @@ class TFMaskingNet(AbsEnhancement):
                 'spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
-
         # predict spectrum for each speaker
         predicted_spectrums, flens, masks = self.forward(input, ilens)
 

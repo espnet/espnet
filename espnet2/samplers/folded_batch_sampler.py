@@ -7,8 +7,8 @@ from typing import Union
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import load_num_sequence_text
-from espnet2.fileio.read_text import read_2column_text
 from espnet2.samplers.abs_sampler import AbsSampler
+from espnet2.samplers.read_category import get_category2utt
 
 
 class FoldedBatchSampler(AbsSampler):
@@ -60,22 +60,12 @@ class FoldedBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
 
-        category2utt = {}
-        if utt2category_file is not None:
-            utt2category = read_2column_text(utt2category_file)
-            if set(utt2category) != set(first_utt2shape):
-                raise RuntimeError(
-                    "keys are mismatched between "
-                    f"{utt2category_file} != {shape_files[0]}"
-                )
-            for k in keys:
-                category2utt.setdefault(utt2category[k], []).append(k)
-        else:
-            category2utt["default_category"] = keys
+        category2utt = get_category2utt(keys, utt2category_file)
 
         self.batch_list = []
-        for d, v in category2utt.items():
+        for ctg, v in category2utt.items():
             category_keys = v
+
             # Decide batch-sizes
             start = 0
             batch_sizes = []
@@ -108,7 +98,7 @@ class FoldedBatchSampler(AbsSampler):
                 # Bug check
                 assert sum(batch_sizes) == len(
                     category_keys
-                ), f"{sum(batch_sizes)} != {len(category_keys)}"
+                ), f"{sum(batch_sizes)} != {len(category_keys)} in category {ctg}"
 
             # Set mini-batch
             cur_batch_list = []

@@ -3,15 +3,17 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+import numpy as np
 import torch
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
 is_torch_1_1_plus = LooseVersion(torch.__version__) >= LooseVersion("1.1.0")
+EPS = torch.finfo(torch.double).eps
 
 
 def complex_norm(c: ComplexTensor) -> torch.Tensor:
-    return torch.sqrt((c.real ** 2 + c.imag ** 2).sum(dim=-1, keepdim=True) + 1e-10)
+    return torch.sqrt((c.real ** 2 + c.imag ** 2).sum(dim=-1, keepdim=True) + EPS)
 
 
 def get_rtf(
@@ -19,6 +21,7 @@ def get_rtf(
     psd_noise: ComplexTensor,
     reference_vector: Union[int, torch.Tensor, None] = None,
     iterations: int = 3,
+    use_torch_solver: bool = True,
 ) -> ComplexTensor:
     """Calculate the relative transfer function (RTF) using the power method.
 
@@ -36,10 +39,11 @@ def get_rtf(
         psd_noise (ComplexTensor): noise covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor or int): (..., C) or scalar
         iterations (int): number of iterations in power method
+        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
     Returns:
         rtf (ComplexTensor): (..., F, C, 1)
     """
-    if is_torch_1_1_plus:
+    if use_torch_solver and is_torch_1_1_plus:
         # torch.solve is required, which is only available after pytorch 1.1.0+
         phi = FC.solve(psd_speech, psd_noise)[0]
     else:
@@ -60,6 +64,9 @@ def get_mvdr_vector(
     psd_s: ComplexTensor,
     psd_n: ComplexTensor,
     reference_vector: torch.Tensor,
+    use_torch_solver: bool = True,
+    diagonal_loading: bool = True,
+    diag_eps: float = 1e-7,
     eps: float = 1e-8,
 ) -> ComplexTensor:
     """Return the MVDR (Minimum Variance Distortionless Response) vector:
@@ -75,27 +82,20 @@ def get_mvdr_vector(
         psd_s (ComplexTensor): speech covariance matrix (..., F, C, C)
         psd_n (ComplexTensor): observation/noise covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor): (..., C)
+        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
+        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
+        diag_eps (float):
         eps (float):
     Returns:
         beamform_vector (ComplexTensor): (..., F, C)
-    """
+    """  # noqa: D400
+    if diagonal_loading:
+        psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
-    # Add eps
-    B, F = psd_n.shape[:2]
-    C = psd_n.size(-1)
-    eye = torch.eye(C, dtype=psd_n.dtype, device=psd_n.device)
-    shape = [1 for _ in range(psd_n.dim() - 2)] + [C, C]
-    eye = eye.view(*shape).repeat(B, F, 1, 1)
-    with torch.no_grad():
-        epsilon = FC.trace(psd_n).real.abs()[..., None, None] * eps
-        # in case that correlation_matrix is all-zero
-        epsilon = epsilon + eps
-
-    if is_torch_1_1_plus:
-        # torch.solve is required, which is only available after pytorch 1.1.0+
-        numerator = FC.solve(psd_s, psd_n + epsilon * eye)[0]
+    if use_torch_solver:
+        numerator = FC.solve(psd_s, psd_n)[0]
     else:
-        numerator = FC.matmul((psd_n + epsilon * eye).inverse2(), psd_s)
+        numerator = FC.matmul(psd_n.inverse2(), psd_s)
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
@@ -110,6 +110,9 @@ def get_mvdr_vector_with_rtf(
     iterations: int = 3,
     reference_vector: Union[int, torch.Tensor, None] = None,
     normalize_ref_channel: Optional[int] = None,
+    use_torch_solver: bool = True,
+    diagonal_loading: bool = True,
+    diag_eps: float = 1e-7,
     eps: float = 1e-8,
 ) -> ComplexTensor:
     """Return the MVDR (Minimum Variance Distortionless Response) vector
@@ -129,27 +132,27 @@ def get_mvdr_vector_with_rtf(
         iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
         normalize_ref_channel (int): reference channel for normalizing the RTF
+        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
+        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
+        diag_eps (float):
         eps (float):
     Returns:
-        beamform_vector (ComplexTensor)r: (..., F, C)
-    """  # noqa: H405
-    # Add eps
-    B, F = psd_noise.shape[:2]
-    C = psd_noise.size(-1)
-    eye = torch.eye(C, dtype=psd_noise.dtype, device=psd_noise.device)
-    shape = [1 for _ in range(psd_noise.dim() - 2)] + [C, C]
-    eye = eye.view(*shape).repeat(B, F, 1, 1)
-    with torch.no_grad():
-        epsilon = FC.trace(psd_noise).real.abs()[..., None, None] * eps
-        # in case that correlation_matrix is all-zero
-        epsilon = epsilon + eps
-    psd_noise = psd_noise + epsilon * eye
+        beamform_vector (ComplexTensor): (..., F, C)
+    """  # noqa: H405, D205, D400
+    if diagonal_loading:
+        psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
 
     # (B, F, C, 1)
-    rtf = get_rtf(psd_speech, psd_noise, reference_vector, iterations=iterations)
+    rtf = get_rtf(
+        psd_speech,
+        psd_noise,
+        reference_vector,
+        iterations=iterations,
+        use_torch_solver=use_torch_solver,
+    )
 
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
-    if is_torch_1_1_plus:
+    if use_torch_solver and is_torch_1_1_plus:
         # torch.solve is required, which is only available after pytorch 1.1.0+
         numerator = FC.solve(rtf, psd_n)[0].squeeze(-1)
     else:
@@ -188,21 +191,19 @@ def signal_framing(
             if do_padding: (..., T, frame_length)
             else:          (..., T - bdelay - frame_length + 2, frame_length)
     """
-    if indices is None:
-        frame_length2 = frame_length - 1
-        # pad to the right at the last dimension of `signal` (time dimension)
-        if do_padding:
-            # (..., T) --> (..., T + bdelay + frame_length - 2)
-            signal = FC.pad(
-                signal, (bdelay + frame_length2 - 1, 0), "constant", pad_value
-            )
+    frame_length2 = frame_length - 1
+    # pad to the right at the last dimension of `signal` (time dimension)
+    if do_padding:
+        # (..., T) --> (..., T + bdelay + frame_length - 2)
+        signal = FC.pad(signal, (bdelay + frame_length2 - 1, 0), "constant", pad_value)
+        do_padding = False
 
-        # indices:
+    if indices is None:
         # [[ 0, 1, ..., frame_length2 - 1,              frame_length2 - 1 + bdelay ],
         #  [ 1, 2, ..., frame_length2,                  frame_length2 + bdelay     ],
         #  [ 2, 3, ..., frame_length2 + 1,              frame_length2 + 1 + bdelay ],
         #  ...
-        #  [ T-bdelay-frame_length2, ..., T-1-bdelay,   T-1 ]
+        #  [ T-bdelay-frame_length2, ..., T-1-bdelay,   T-1 ]]
         indices = [
             [*range(i, i + frame_length2), i + frame_length2 + bdelay - 1]
             for i in range(0, signal.shape[-1] - frame_length2 - bdelay + 1, frame_step)
@@ -252,7 +253,7 @@ def get_covariances(
     Returns:
         Correlation matrix: (B, F, (btaps+1) * C, (btaps+1) * C)
         Correlation vector: (B, F, btaps + 1, C, C)
-    """  # noqa: H405
+    """  # noqa: H405, D205, D400, D401
     assert inverse_power.dim() == 3, inverse_power.dim()
     assert inverse_power.size(0) == Y.size(0), (inverse_power.size(0), Y.size(0))
 
@@ -293,6 +294,9 @@ def get_WPD_filter(
     Phi: ComplexTensor,
     Rf: ComplexTensor,
     reference_vector: torch.Tensor,
+    use_torch_solver: bool = True,
+    diagonal_loading: bool = True,
+    diag_eps: float = 1e-7,
     eps: float = 1e-8,
 ) -> ComplexTensor:
     """Return the WPD vector.
@@ -316,27 +320,23 @@ def get_WPD_filter(
             is the power normalized spatio-temporal covariance matrix.
         reference_vector (torch.Tensor): (B, (btaps+1) * C)
             is the reference_vector.
+        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
+        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
+        diag_eps (float):
         eps (float):
 
     Returns:
         filter_matrix (ComplexTensor): (B, F, (btaps + 1) * C)
     """
-    B, F = Rf.shape[:2]
-    Cbtaps = Rf.size(-1)
-    eye = torch.eye(Cbtaps, dtype=Rf.dtype, device=Rf.device)
-    shape = [1 for _ in range(Rf.dim() - 2)] + [Cbtaps, Cbtaps]
-    eye = eye.view(*shape).repeat(B, F, 1, 1)
-    with torch.no_grad():
-        epsilon = FC.trace(Rf).real.abs()[..., None, None] * eps
-        # in case that correlation_matrix is all-zero
-        epsilon = epsilon + eps
+    if diagonal_loading:
+        Rf = tik_reg(Rf, reg=diag_eps, eps=eps)
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    if is_torch_1_1_plus:
+    if use_torch_solver and is_torch_1_1_plus:
         # torch.solve is required, which is only available after pytorch 1.1.0+
-        numerator = FC.solve(Phi, Rf + epsilon * eye)[0]
+        numerator = FC.solve(Phi, Rf)[0]
     else:
-        numerator = FC.matmul((Rf + epsilon * eye).inverse2(), Phi)
+        numerator = FC.matmul(Rf.inverse2(), Phi)
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
@@ -349,6 +349,8 @@ def get_WPD_filter_v2(
     Phi: ComplexTensor,
     Rf: ComplexTensor,
     reference_vector: torch.Tensor,
+    diagonal_loading: bool = True,
+    diag_eps: float = 1e-7,
     eps: float = 1e-8,
 ) -> ComplexTensor:
     """Return the WPD vector (v2).
@@ -363,22 +365,17 @@ def get_WPD_filter_v2(
             is the power normalized spatio-temporal covariance matrix.
         reference_vector (torch.Tensor): (B, C)
             is the reference_vector.
+        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
+        diag_eps (float):
         eps (float):
 
     Returns:
         filter_matrix (ComplexTensor): (B, F, (btaps+1) * C)
     """
     C = reference_vector.shape[-1]
-    B, F = Rf.shape[:2]
-    Cbtaps = Rf.size(-1)
-    eye = torch.eye(Cbtaps, dtype=Rf.dtype, device=Rf.device)
-    shape = [1 for _ in range(Rf.dim() - 2)] + [Cbtaps, Cbtaps]
-    eye = eye.view(*shape).repeat(B, F, 1, 1)
-    with torch.no_grad():
-        epsilon = FC.trace(Rf).real.abs()[..., None, None] * eps
-        # in case that correlation_matrix is all-zero
-        epsilon = epsilon + eps
-    inv_Rf = (Rf + epsilon * eye).inverse2()
+    if diagonal_loading:
+        Rf = tik_reg(Rf, reg=diag_eps, eps=eps)
+    inv_Rf = Rf.inverse2()
     # (B, F, (btaps+1) * C, C)
     inv_Rf_pruned = inv_Rf[..., :C]
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
@@ -398,6 +395,9 @@ def get_WPD_filter_with_rtf(
     iterations: int = 3,
     reference_vector: Union[int, torch.Tensor, None] = None,
     normalize_ref_channel: Optional[int] = None,
+    use_torch_solver: bool = True,
+    diagonal_loading: bool = True,
+    diag_eps: float = 1e-7,
     eps: float = 1e-15,
 ) -> ComplexTensor:
     """Return the WPD vector calculated with RTF.
@@ -421,29 +421,30 @@ def get_WPD_filter_with_rtf(
         iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
         normalize_ref_channel (int): reference channel for normalizing the RTF
+        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
+        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
+        diag_eps (float):
         eps (float):
     Returns:
         beamform_vector (ComplexTensor)r: (..., F, C)
     """
-    # Add eps
-    B, F = psd_noise.shape[:2]
     C = psd_noise.size(-1)
-    eye = torch.eye(C, dtype=psd_noise.dtype, device=psd_noise.device)
-    shape = [1 for _ in range(psd_noise.dim() - 2)] + [C, C]
-    eye = eye.view(*shape).repeat(B, F, 1, 1)
-    with torch.no_grad():
-        epsilon = FC.trace(psd_noise).real.abs()[..., None, None] * eps
-        # in case that correlation_matrix is all-zero
-        epsilon = epsilon + eps
-    psd_noise = psd_noise + epsilon * eye
+    if diagonal_loading:
+        psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
 
     # (B, F, C, 1)
-    rtf = get_rtf(psd_speech, psd_noise, reference_vector, iterations=iterations)
+    rtf = get_rtf(
+        psd_speech,
+        psd_noise,
+        reference_vector,
+        iterations=iterations,
+        use_torch_solver=use_torch_solver,
+    )
 
     # (B, F, (K+1)*C, 1)
     rtf = FC.pad(rtf, (0, 0, 0, psd_observed_bar.shape[-1] - C), "constant", 0)
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
-    if is_torch_1_1_plus:
+    if use_torch_solver and is_torch_1_1_plus:
         # torch.solve is required, which is only available after pytorch 1.1.0+
         numerator = FC.solve(rtf, psd_observed_bar)[0].squeeze(-1)
     else:
@@ -460,7 +461,7 @@ def get_WPD_filter_with_rtf(
 def perform_WPD_filtering(
     filter_matrix: ComplexTensor, Y: ComplexTensor, bdelay: int, btaps: int
 ) -> ComplexTensor:
-    """perform_filter_operation
+    """Perform WPD filtering.
 
     Args:
         filter_matrix: Filter matrix (B, F, (btaps + 1) * C)
@@ -479,3 +480,159 @@ def perform_WPD_filtering(
     # (B, F, T, 1)
     enhanced = FC.einsum("...tc,...c->...t", [Ytilde, filter_matrix.conj()])
     return enhanced
+
+
+def tik_reg(mat: ComplexTensor, reg: float = 1e-8, eps: float = 1e-8) -> ComplexTensor:
+    """Perform Tikhonov regularization (only modifying real part).
+
+    Args:
+        mat (ComplexTensor): input matrix (..., C, C)
+        reg (float): regularization factor
+        eps (float)
+    Returns:
+        ret (ComplexTensor): regularized matrix (..., C, C)
+    """
+    # Add eps
+    C = mat.size(-1)
+    eye = torch.eye(C, dtype=mat.dtype, device=mat.device)
+    shape = [1 for _ in range(mat.dim() - 2)] + [C, C]
+    eye = eye.view(*shape).repeat(*mat.shape[:-2], 1, 1)
+    with torch.no_grad():
+        epsilon = FC.trace(mat).real[..., None, None] * reg
+        # in case that correlation_matrix is all-zero
+        epsilon = epsilon + eps
+    mat = mat + epsilon * eye
+    return mat
+
+
+##############################################
+# Below are for Multi-Frame MVDR beamforming #
+##############################################
+# modified from https://gitlab.uni-oldenburg.de/hura4843/deep-mfmvdr/-/blob/master/deep_mfmvdr (# noqa: E501)
+def get_adjacent(spec: ComplexTensor, filter_length: int = 5) -> ComplexTensor:
+    """Zero-pad and unfold stft, i.e.,
+
+    add zeros to the beginning so that, using the multi-frame signal model,
+    there will be as many output frames as input frames.
+
+    Args:
+        spec (ComplexTensor): input spectrum (B, F, T)
+        filter_length (int): length for frame extension
+    Returns:
+        ret (ComplexTensor): output spectrum (B, F, T, filter_length)
+    """  # noqa: D400
+    return (
+        FC.pad(spec, pad=[filter_length - 1, 0])
+        .unfold(dim=-1, size=filter_length, step=1)
+        .contiguous()
+    )
+
+
+def get_adjacent_th(spec: torch.Tensor, filter_length: int = 5) -> torch.Tensor:
+    """Zero-pad and unfold stft, i.e.,
+
+    add zeros to the beginning so that, using the multi-frame signal model,
+    there will be as many output frames as input frames.
+
+    Args:
+        spec (torch.Tensor): input spectrum (B, F, T, 2)
+        filter_length (int): length for frame extension
+    Returns:
+        ret (torch.Tensor): output spectrum (B, F, T, filter_length, 2)
+    """  # noqa: D400
+    return (
+        torch.nn.functional.pad(spec, pad=[0, 0, filter_length - 1, 0])
+        .unfold(dimension=-2, size=filter_length, step=1)
+        .transpose(-2, -1)
+        .contiguous()
+    )
+
+
+def vector_to_Hermitian(vec):
+    """Construct a Hermitian matrix from a vector of N**2 independent real-valued elements.
+
+    Args:
+        vec (torch.Tensor): (..., N ** 2)
+    Returns:
+        mat (ComplexTensor): (..., N, N)
+    """
+    N = int(np.sqrt(vec.shape[-1]))
+    mat = torch.zeros(size=vec.shape[:-1] + (N, N, 2), device=vec.device)
+
+    # real component
+    triu = np.triu_indices(N, 0)
+    triu2 = np.triu_indices(N, 1)  # above main diagonal
+    tril = (triu2[1], triu2[0])  # below main diagonal; for symmetry
+    mat[(...,) + triu + (np.zeros(triu[0].shape[0]),)] = vec[..., : triu[0].shape[0]]
+    start = triu[0].shape[0]
+    mat[(...,) + tril + (np.zeros(tril[0].shape[0]),)] = mat[
+        (...,) + triu2 + (np.zeros(triu2[0].shape[0]),)
+    ]
+
+    # imaginary component
+    mat[(...,) + triu2 + (np.ones(triu2[0].shape[0]),)] = vec[
+        ..., start : start + triu2[0].shape[0]
+    ]
+    mat[(...,) + tril + (np.ones(tril[0].shape[0]),)] = -mat[
+        (...,) + triu2 + (np.ones(triu2[0].shape[0]),)
+    ]
+
+    return ComplexTensor(mat[..., 0], mat[..., 1])
+
+
+def get_mfmvdr_vector(gammax, Phi, eps: float = EPS):
+    """Compute conventional MFMPDR/MFMVDR filter.
+
+    Args:
+        gammax (ComplexTensor): (..., L, N)
+        Phi (ComplexTensor): (..., L, N, N)
+        eps (float)
+    Returns:
+        beamforming_vector (ComplexTensor): (..., L, N)
+    """
+    # (..., L, N)
+    numerator = FC.solve(gammax.unsqueeze(-1), Phi)[0].squeeze(-1)
+    denominator = FC.einsum("...d,...d->...", [gammax.conj(), numerator])
+    return numerator / (denominator.real.unsqueeze(-1) + eps)
+
+
+def filter_minimum_gain_like(
+    G_min, w, y, alpha=None, k: float = 10.0, eps: float = EPS
+):
+    """Approximate a minimum gain operation.
+
+    speech_estimate = alpha w^H y + (1 - alpha) G_min Y,
+    where alpha = 1 / (1 + exp(-2 k x)), x = w^H y - G_min Y
+
+    Args:
+        G_min (float): minimum gain
+        w (ComplexTensor): filter coefficients (..., L, N)
+        y (ComplexTensor): buffered and stacked input (..., L, N)
+        alpha: mixing factor
+        k (float): scaling in tanh-like function
+        esp (float)
+    Returns:
+        output (ComplexTensor): minimum gain-filtered output
+        alpha (float): optional
+    """
+    # (..., L)
+    filtered_input = FC.einsum("...d,...d->...", [w.conj(), y])
+    # (..., L)
+    Y = y[..., -1]
+    return minimum_gain_like(G_min, Y, filtered_input, alpha, k, eps)
+
+
+def minimum_gain_like(
+    G_min, Y, filtered_input, alpha=None, k: float = 10.0, eps: float = EPS
+):
+    if alpha is None:
+        diff = (filtered_input + eps).abs() - (G_min * Y + eps).abs()
+        alpha = 1.0 / (1.0 + torch.exp(-2 * k * diff))
+        return_alpha = True
+    else:
+        return_alpha = False
+    output = alpha * filtered_input + (1 - alpha) * G_min * Y
+    if return_alpha:
+        return output, alpha
+    else:
+        return output

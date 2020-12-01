@@ -25,6 +25,11 @@ class DNN_WPE(torch.nn.Module):
         iterations: int = 1,
         normalization: bool = False,
         eps: float = 1e-6,
+        diagonal_loading: bool = True,
+        diag_eps: float = 1e-7,
+        mask_flooring: bool = False,
+        flooring_thres: float = 1e-6,
+        use_torch_solver: bool = True,
     ):
         super().__init__()
         self.iterations = iterations
@@ -36,6 +41,11 @@ class DNN_WPE(torch.nn.Module):
         self.use_dnn_mask = use_dnn_mask
 
         self.inverse_power = True
+        self.diagonal_loading = diagonal_loading
+        self.diag_eps = diag_eps
+        self.mask_flooring = mask_flooring
+        self.flooring_thres = flooring_thres
+        self.use_torch_solver = use_torch_solver
 
         if self.use_dnn_mask:
             self.nmask = nmask
@@ -55,7 +65,7 @@ class DNN_WPE(torch.nn.Module):
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
-        """The forward function
+        """DNN_WPE forward function.
 
         Notation:
             B: Batch
@@ -84,6 +94,9 @@ class DNN_WPE(torch.nn.Module):
             if i == 0 and self.use_dnn_mask:
                 # mask: (B, F, C, T)
                 masks, _ = self.mask_est(data, ilens)
+                # floor masks to increase numerical stability
+                if self.mask_flooring:
+                    mask = [m.clamp(min=self.flooring_thres) for m in masks]
                 if self.normalization:
                     # Normalize along T
                     masks = [m / m.sum(dim=-1, keepdim=True) for m in masks]
@@ -126,7 +139,7 @@ class DNN_WPE(torch.nn.Module):
     def predict_mask(
         self, data: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
-        """Predict mask for WPE dereverberation
+        """Predict mask for WPE dereverberation.
 
         Args:
             data (ComplexTensor): (B, T, C, F), double precision
