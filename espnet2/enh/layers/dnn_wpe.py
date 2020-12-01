@@ -96,7 +96,7 @@ class DNN_WPE(torch.nn.Module):
                 masks, _ = self.mask_est(data, ilens)
                 # floor masks to increase numerical stability
                 if self.mask_flooring:
-                    mask = [m.clamp(min=self.flooring_thres) for m in masks]
+                    masks = [m.clamp(min=self.flooring_thres) for m in masks]
                 if self.normalization:
                     # Normalize along T
                     masks = [m / m.sum(dim=-1, keepdim=True) for m in masks]

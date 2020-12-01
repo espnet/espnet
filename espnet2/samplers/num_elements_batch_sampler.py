@@ -74,7 +74,8 @@ class NumElementsBatchSampler(AbsSampler):
                         for k in category_keys
                     ):
                         raise RuntimeError(
-                            "If padding=True, the feature dimension must be unified: {s}",
+                            "If padding=True, the feature dimension must be "
+                            f"unified: {s}",
                         )
                 # If padding case, the feat-dim must be same over whole corpus,
                 # therefore the first sample is referred
@@ -145,7 +146,8 @@ class NumElementsBatchSampler(AbsSampler):
                     pass
                 else:
                     raise ValueError(
-                        f"sort_in_batch must be ascending or descending: {sort_in_batch}"
+                        "sort_in_batch must be ascending or descending: "
+                        f"{sort_in_batch}"
                     )
                 cur_batch_list.append(tuple(minibatch_keys))
 

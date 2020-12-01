@@ -130,7 +130,8 @@ class LengthBatchSampler(AbsSampler):
                     pass
                 else:
                     raise ValueError(
-                        f"sort_in_batch must be ascending or descending: {sort_in_batch}"
+                        "sort_in_batch must be ascending or descending: "
+                        "f{sort_in_batch}"
                     )
                 cur_batch_list.append(tuple(minibatch_keys))
 
