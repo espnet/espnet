@@ -77,7 +77,7 @@ def test_get_rtf(ch):
     Phi_N = FC.einsum("...ct,...et->...ce", [N, N.conj()])
     # (B, F, C, 1)
     rtf = get_rtf(Phi_X, Phi_N, reference_vector=0, iterations=20)
-    rtf = rtf / (rtf.abs().max(dim=-2, keepdims=True).values + 1e-15)
+    rtf = rtf / (rtf.abs().max(dim=-2, keepdim=True).values + 1e-15)
     # rtf \approx Phi_N MaxEigVec(Phi_N^-1 @ Phi_X)
     if is_torch_1_1_plus:
         # torch.solve is required, which is only available after pytorch 1.1.0+
