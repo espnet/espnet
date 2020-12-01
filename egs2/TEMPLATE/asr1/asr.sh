@@ -67,6 +67,7 @@ use_lm=true       # Use language model for ASR decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the direcotry path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
+lm_stats_dir=     # Specify the direcotry path for LM statistics.
 lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
                   # Note that it will overwrite args in lm config.
@@ -76,12 +77,13 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
-asr_tag=    # Suffix to the result dir for asr model training.
-asr_exp=    # Specify the direcotry path for ASR experiment.
-            # If this option is specified, asr_tag is ignored.
-asr_config= # Config for asr model training.
-asr_args=   # Arguments for asr model training, e.g., "--max_epoch 10".
-            # Note that it will overwrite args in asr config.
+asr_tag=       # Suffix to the result dir for asr model training.
+asr_exp=       # Specify the direcotry path for ASR experiment.
+               # If this option is specified, asr_tag is ignored.
+asr_stats_dir= # Specify the direcotry path for ASR statistics.
+asr_config=    # Config for asr model training.
+asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
+               # Note that it will overwrite args in asr config.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
@@ -163,6 +165,7 @@ Options:
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
     --lm_exp          # Specify the direcotry path for LM experiment.
                       # If this option is specified, lm_tag is ignored (default="${lm_exp}").
+    --lm_stats_dir    # Specify the direcotry path for LM statistics (default="${lm_stats_dir}").
     --lm_config       # Config for language model training (default="${lm_config}").
     --lm_args         # Arguments for language model training (default="${lm_args}").
                       # e.g., --lm_args "--max_epoch 10"
@@ -175,6 +178,7 @@ Options:
     --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
     --asr_exp          # Specify the direcotry path for ASR experiment.
                        # If this option is specified, asr_tag is ignored (default="${asr_exp}").
+    --asr_stats_dir    # Specify the direcotry path for ASR statistics (default="${asr_stats_dir}").
     --asr_config       # Config for asr model training (default="${asr_config}").
     --asr_args         # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
@@ -271,6 +275,9 @@ if [ "${token_type}" = bpe ]; then
 elif [ "${token_type}" = char ]; then
     token_list="${chartoken_list}"
     bpemodel=none
+elif [ "${token_type}" = word ]; then
+    token_list="${wordtoken_list}"
+    bpemodel=none
 else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
@@ -321,16 +328,20 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
-if [ "${token_type}" = bpe ]; then
-    asr_stats_dir+="${nbpe}"
+if [ -z "${asr_stats_dir}" ]; then
+    asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
+    if [ "${token_type}" = bpe ]; then
+        asr_stats_dir+="${nbpe}"
+    fi
+    if [ -n "${speed_perturb_factors}" ]; then
+        asr_stats_dir+="_sp"
+    fi
 fi
-if [ -n "${speed_perturb_factors}" ]; then
-    asr_stats_dir+="_sp"
-fi
-lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
-if [ "${lm_token_type}" = bpe ]; then
-    lm_stats_dir+="${nbpe}"
+if [ -z "${lm_stats_dir}" ]; then
+    lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
+    if [ "${lm_token_type}" = bpe ]; then
+        lm_stats_dir+="${nbpe}"
+    fi
 fi
 # The directory used for training commands
 if [ -z "${asr_exp}" ]; then
@@ -581,7 +592,7 @@ if ! "${skip_data_prep}"; then
             echo "${sos_eos}"
             } > "${token_list}"
 
-        elif [ "${token_type}" = char ]; then
+        elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
             log "Stage 5: Generate character level token_list from ${lm_train_text}"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
@@ -605,7 +616,7 @@ if ! "${skip_data_prep}"; then
         fi
 
         # Create word-list for word-LM training
-        if ${use_word_lm}; then
+        if ${use_word_lm} && [ "${token_type}" != word ]; then
             log "Generate word level token_list from ${data_feats}/lm_train.txt"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type word \
@@ -1229,6 +1240,7 @@ if ! "${skip_eval}"; then
                                   ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp.trn"
+
                 fi
 
                 sclite \
