@@ -9,7 +9,7 @@
 - Git hash: `a0075233a29d7e2f5a965c2123f5fda8c718fd35`
   - Commit date: `Mon Nov 30 13:25:15 2020`
 
-## train_cy_pytorch_conformer
+## train_cy_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -25,7 +25,7 @@
 |decode_test_cy_decode_lm|2937|26046|87.1|11.5|1.4|1.2|14.2|38.5|
 
 
-## train_ru_pytorch_conformer
+## train_ru_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -40,7 +40,7 @@
 |decode_dev_ru_decode_lm|7242|70009|93.5|5.6|0.9|0.4|6.9|33.5|
 |decode_test_ru_decode_lm|7307|71189|92.2|6.7|1.1|0.7|8.5|38.3|
 
-## train_it_pytorch_conformer
+## train_it_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -55,7 +55,7 @@
 |decode_dev_it_decode_lm|11904|116060|85.7|12.7|1.6|1.3|15.6|63.5|
 |decode_test_it_decode_lm|11900|117102|84.5|13.8|1.7|1.4|17.0|66.6|
 
-## train_fa_pytorch_conformer
+## train_fa_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -71,7 +71,7 @@
 |decode_test_fa_decode_lm|3989|30347|98.1|1.4|0.5|0.2|2.1|5.4|
 
 
-## train_cs_pytorch_conformer-small
+## train_cs_pytorch_conformer_spec_sp-small
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -86,7 +86,7 @@
 |decode_dev_cs_decode_lm|2584|16239|88.7|9.7|1.6|0.7|12.0|35.4|
 |decode_test_cs_decode_lm|2574|16508|84.4|13.6|1.9|1.4|16.9|42.7|
 
-## train_cs_pytorch_conformer-med
+## train_cs_pytorch_conformer_spec_sp-med
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -101,7 +101,7 @@
 |decode_dev_cs_decode_lm|2584|16239|92.0|6.9|1.1|0.5|8.5|25.8|
 |decode_test_cs_decode_lm|2574|16508|87.3|11.1|1.6|1.2|13.9|34.1|
 
-## train_cs_pytorch_conformer-large
+## train_cs_pytorch_conformer_spec_sp-large
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -117,7 +117,7 @@
 |decode_test_cs_decode_lm|2574|16508|87.6|10.9|1.5|1.2|13.6|31.0|
 
 
-## train_pl_pytorch_conformer
+## train_pl_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -132,7 +132,7 @@
 |decode_dev_pl_decode_lm|4458|32280|91.6|7.7|0.6|0.5|8.8|28.5|
 |decode_test_pl_decode_lm|4458|31588|97.6|2.1|0.3|0.2|2.6|8.6|
 
-## train_kab_pytorch_conformer
+## train_kab_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -148,7 +148,7 @@
 |decode_test_kab_decode_lm|13384|61644|94.6|4.8|0.6|0.3|5.7|18.9|
 
 
-## train_nl_pytorch_conformer
+## train_nl_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -163,7 +163,7 @@
 |decode_dev_nl_decode_lm|2198|18481|95.9|3.6|0.5|0.6|4.8|10.6|
 |decode_test_nl_decode_lm|2198|18259|98.8|1.0|0.2|0.1|1.4|4.7|
 
-## train_fr_pytorch_conformer
+## train_fr_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -178,7 +178,7 @@
 |decode_dev_fr_decode_lm|15621|148984|87.9|11.2|0.9|0.8|12.9|54.3|
 |decode_test_fr_decode_lm|15621|151227|86.3|12.7|1.0|1.1|14.8|58.8|
 
-## train_es_pytorch_conformer
+## train_es_pytorch_conformer_spec_sp
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
