@@ -43,7 +43,8 @@ def humanfriendly_or_none(value: str):
 
 
 class Speech2Text:
-    """Speech2Text class
+    """Speech2Text class.
+
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2Text("asr_config.yml", "asr.pth")
@@ -173,7 +174,8 @@ class Speech2Text:
     ) -> List[
         List[Tuple[Optional[float], Optional[str], List[str], List[int], Hypothesis]]
     ]:
-        """Inference
+        """Inference.
+
         Args:
             data: Input speech data
         Returns:

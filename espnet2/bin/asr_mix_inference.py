@@ -35,7 +35,7 @@ from espnet2.utils.types import str_or_none
 
 
 class Speech2Text:
-    """Speech2Text class
+    """Speech2Text class.
 
     Examples:
         >>> import soundfile
@@ -162,7 +162,7 @@ class Speech2Text:
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
-        """Inference
+        """Inference.
 
         Args:
             data: Input speech data
