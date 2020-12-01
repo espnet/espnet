@@ -11,6 +11,7 @@ def get_category2utt(
     utt2category_file: str = None,
 ) -> Dict[str, List]:
     """Read the utt2category file.
+
     Examples:
         utt2category:
             key1 category1
