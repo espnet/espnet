@@ -80,7 +80,7 @@ def average_nbest_models(
                     else:
                         # Accumulated
                         for k in avg:
-                            avg[k] += states[k]
+                            avg[k] = avg[k] + states[k]
                 for k in avg:
                     if str(avg[k].dtype).startswith("torch.int"):
                         # For int type, not averaged, but only accumulated.
@@ -90,7 +90,7 @@ def average_nbest_models(
                         #  please report.)
                         pass
                     else:
-                        avg[k] /= n
+                        avg[k] = avg[k] / n
 
                 # 2.b. Save the ave model and create a symlink
                 torch.save(avg, op)
