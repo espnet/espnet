@@ -22,4 +22,3 @@ test_sets="tt_${min_or_max}_${sample_rate} "
     --ngpu 1 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
     --srctexts "data/train_si284/text data/local/other_text/text" "$@"
-    "$@"

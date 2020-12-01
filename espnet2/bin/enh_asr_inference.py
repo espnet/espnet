@@ -8,6 +8,8 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+import humanfriendly
+from mir_eval.separation import bss_eval_sources
 import numpy as np
 import torch
 from typeguard import check_argument_types
@@ -22,7 +24,7 @@ from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.asr_mix import ASRMixTask
+from espnet2.tasks.enh_asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -34,22 +36,26 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
+def humanfriendly_or_none(value: str):
+    if value in ("none", "None", "NONE"):
+        return None
+    return humanfriendly.parse_size(value)
+
+
 class Speech2Text:
     """Speech2Text class
-
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2Text("asr_config.yml", "asr.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
         [(text, token, token_int, hypothesis object), ...]
-
     """
 
     def __init__(
         self,
-        asr_train_config: Union[Path, str],
-        asr_model_file: Union[Path, str] = None,
+        joint_train_config: Union[Path, str],
+        joint_model_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         token_type: str = None,
@@ -67,16 +73,16 @@ class Speech2Text:
     ):
         assert check_argument_types()
 
-        # 1. Build ASR model
+        # 1. Build Joint model
         scorers = {}
-        asr_model, asr_train_args = ASRMixTask.build_model_from_file(
-            asr_train_config, asr_model_file, device
+        joint_model, joint_train_args = ASRTask.build_model_from_file(
+            joint_train_config, joint_model_file, device
         )
-        asr_model.to(dtype=getattr(torch, dtype)).eval()
+        joint_model.eval()
 
-        decoder = asr_model.decoder
-        ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
-        token_list = asr_model.token_list
+        decoder = joint_model.decoder
+        ctc = CTCPrefixScorer(ctc=joint_model.ctc, eos=joint_model.eos)
+        token_list = joint_model.token_list
         scorers.update(
             decoder=decoder,
             ctc=ctc,
@@ -101,8 +107,8 @@ class Speech2Text:
             beam_size=beam_size,
             weights=weights,
             scorers=scorers,
-            sos=asr_model.sos,
-            eos=asr_model.eos,
+            sos=joint_model.sos,
+            eos=joint_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key=None if ctc_weight == 1.0 else "full",
@@ -131,9 +137,9 @@ class Speech2Text:
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
-            token_type = asr_train_args.token_type
+            token_type = joint_train_args.token_type
         if bpemodel is None:
-            bpemodel = asr_train_args.bpemodel
+            bpemodel = joint_train_args.bpemodel
 
         if token_type is None:
             tokenizer = None
@@ -147,8 +153,8 @@ class Speech2Text:
         converter = TokenIDConverter(token_list=token_list)
         logging.info(f"Text tokenizer: {tokenizer}")
 
-        self.asr_model = asr_model
-        self.asr_train_args = asr_train_args
+        self.joint_model = joint_model
+        self.joint_train_args = joint_train_args
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
@@ -160,17 +166,21 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+        self,
+        speech_mix: Union[torch.Tensor, np.ndarray],
+        speech_ref1: Union[torch.Tensor, np.ndarray] = None,
+        speech_ref2: Union[torch.Tensor, np.ndarray] = None,
+    ) -> List[
+        List[Tuple[Optional[float], Optional[str], List[str], List[int], Hypothesis]]
+    ]:
         """Inference
-
         Args:
             data: Input speech data
         Returns:
             text, token, token_int, hyp
-
         """
         assert check_argument_types()
+        speech = speech_mix
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -184,38 +194,66 @@ class Speech2Text:
 
         # a. To device
         batch = to_device(batch, device=self.device)
+        if self.joint_model.cal_enh_loss:
+            speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
+                batch["speech"], batch["speech_lengths"]
+            )
+            speech_pre_lengths = batch["speech_lengths"]
+            ref = np.array(
+                torch.stack([speech_ref1, speech_ref2], dim=0).squeeze()
+            )  # nspk,T
+            inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
+            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
+        else:
+            _, _, speech_pre, speech_pre_lengths = self.joint_model.forward_enh(
+                batch["speech"],
+                batch["speech_lengths"],
+            )
+            sdr, perm = None, np.arange(0, len(speech_pre))
 
         # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
-        assert len(enc) == 1, len(enc)
+        results_list = []
+        # For each predicted spk
+        for idx, p in enumerate(perm):
+            speech_spk = speech_pre[int(p)]
+            # enc, _ = self.joint_model.encode(speech_spk, batch['speech_lengths'])
+            enc, _ = self.joint_model.encode(speech_spk, speech_pre_lengths)
+            assert len(enc) == 1, len(enc)
 
-        # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
-        nbest_hyps = nbest_hyps[: self.nbest]
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+            nbest_hyps = nbest_hyps[: self.nbest]
 
-        results = []
-        for hyp in nbest_hyps:
-            assert isinstance(hyp, Hypothesis), type(hyp)
+            results = []
+            for hyp in nbest_hyps:
+                assert isinstance(hyp, Hypothesis), type(hyp)
 
-            # remove sos/eos and get results
-            token_int = hyp.yseq[1:-1].tolist()
+                # remove sos/eos and get results
+                token_int = hyp.yseq[1:-1].tolist()
 
-            # remove blank symbol id, which is assumed to be 0
-            token_int = list(filter(lambda x: x != 0, token_int))
+                # remove blank symbol id, which is assumed to be 0
+                token_int = list(filter(lambda x: x != 0, token_int))
 
-            # Change integer-ids to tokens
-            token = self.converter.ids2tokens(token_int)
+                # Change integer-ids to tokens
+                token = self.converter.ids2tokens(token_int)
 
-            if self.tokenizer is not None:
-                text = self.tokenizer.tokens2text(token)
-            else:
-                text = None
-            results.append((text, token, token_int, hyp))
+                if self.tokenizer is not None:
+                    text = self.tokenizer.tokens2text(token)
+                else:
+                    text = None
+                if sdr is not None:
+                    sdr_rslt = float(sdr[idx])
+                else:
+                    sdr_rslt = None
 
-        assert check_return_type(results)
-        return results
+                results.append((sdr_rslt, text, token, token_int, hyp))
+
+            results_list.append(results)
+
+        assert check_return_type(results_list)
+        return results_list
 
 
 def inference(
@@ -224,6 +262,7 @@ def inference(
     minlenratio: float,
     batch_size: int,
     dtype: str,
+    fs: int,
     beam_size: int,
     ngpu: int,
     seed: int,
@@ -235,8 +274,8 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    asr_train_config: str,
-    asr_model_file: str,
+    joint_train_config: str,
+    joint_model_file: str,
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
@@ -244,6 +283,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    normalize_output_wav: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -268,8 +308,8 @@ def inference(
 
     # 2. Build speech2text
     speech2text = Speech2Text(
-        asr_train_config=asr_train_config,
-        asr_model_file=asr_model_file,
+        joint_train_config=joint_train_config,
+        joint_model_file=joint_model_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         token_type=token_type,
@@ -286,14 +326,14 @@ def inference(
     )
 
     # 3. Build data-iterator
-    loader = ASRMixTask.build_streaming_iterator(
+    loader = ASRTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=ASRMixTask.build_preprocess_fn(speech2text.asr_train_args, False),
-        collate_fn=ASRMixTask.build_collate_fn(speech2text.asr_train_args, False),
+        preprocess_fn=ASRTask.build_preprocess_fn(speech2text.joint_train_args, False),
+        collate_fn=ASRTask.build_collate_fn(speech2text.joint_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -309,21 +349,28 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(**batch)
+            logging.info(f"keys: {keys}")
+            results_list = speech2text(**batch)
 
-            # Only supporting batch_size==1
-            key = keys[0]
-            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
-                # Create a directory: outdir/{n}best_recog
-                ibest_writer = writer[f"{n}best_recog"]
+            for spk_idx, results in enumerate(results_list):
+                # Only supporting batch_size==1
+                key = keys[0]
+                for n, (sdr, text, token, token_int, hyp) in zip(
+                    range(1, nbest + 1), results
+                ):
+                    # Create a directory: outdir/{n}best_recog
+                    ibest_writer = writer[f"{n}best_recog_spk{spk_idx+1}"]
 
-                # Write the result to each file
-                ibest_writer["token"][key] = " ".join(token)
-                ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                ibest_writer["score"][key] = str(hyp.score)
+                    # Write the result to each file
+                    ibest_writer["token"][key] = " ".join(token)
+                    ibest_writer["token_int"][key] = " ".join(map(str, token_int))
+                    ibest_writer["score"][key] = str(hyp.score)
 
-                if text is not None:
-                    ibest_writer["text"][key] = text
+                    if text is not None:
+                        ibest_writer["text"][key] = text
+
+                    if sdr is not None:
+                        writer[f"SDR_spk{spk_idx + 1}"][key] = str(sdr)
 
 
 def get_parser():
@@ -363,6 +410,9 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
 
+    parser.add_argument(
+        "--fs", type=humanfriendly_or_none, default=8000, help="Sampling rate"
+    )
     group = parser.add_argument_group("Input data related")
     group.add_argument(
         "--data_path_and_name_and_type",
@@ -374,8 +424,8 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--asr_train_config", type=str, required=True)
-    group.add_argument("--asr_model_file", type=str, required=True)
+    group.add_argument("--joint_train_config", type=str, required=True)
+    group.add_argument("--joint_model_file", type=str, required=True)
     group.add_argument("--lm_train_config", type=str)
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)
@@ -409,7 +459,7 @@ def get_parser():
     group.add_argument(
         "--ctc_weight",
         type=float,
-        default=0.5,
+        default=0.2,
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
@@ -429,6 +479,14 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+
+    group = parser.add_argument_group("Output wav related")
+    group.add_argument(
+        "--normalize_output_wav",
+        type=str2bool,
+        default=False,
+        help="Whether to normalize the predicted wav to [-1~1]",
     )
 
     return parser
