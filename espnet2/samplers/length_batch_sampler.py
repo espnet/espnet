@@ -81,7 +81,9 @@ class LengthBatchSampler(AbsSampler):
                 else:
                     # bins = sum of lengths
                     bins = sum(
-                        d[category_keys[i]][0] for i in range(start, start + bs) for d in utt2shapes
+                        d[category_keys[i]][0]
+                        for i in range(start, start + bs)
+                        for d in utt2shapes
                     )
 
                 if bins > batch_bins and bs >= min_batch_size:

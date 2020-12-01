@@ -64,12 +64,15 @@ class NumElementsBatchSampler(AbsSampler):
 
         self.batch_list = []
         for ctg, v in category2utt.items():
-            category_keys  = v
+            category_keys = v
 
             if padding:
                 for d, s in zip(utt2shapes, shape_files):
                     # shape: (Length, dim1, dim2, ...)
-                    if not all(tuple(d[k][1:]) == tuple(d[category_keys[0]][1:]) for k in category_keys):
+                    if not all(
+                        tuple(d[k][1:]) == tuple(d[category_keys[0]][1:])
+                        for k in category_keys
+                    ):
                         raise RuntimeError(
                             "If padding=True, the feature dimension must be unified: {s}",
                         )

@@ -67,11 +67,15 @@ class SortedBatchSampler(AbsSampler):
                 # Split keys evenly as possible as. Note that If N != 1,
                 # the these batches always have size of batch_size at minimum.
                 cur_batch_list = [
-                    category_keys[i * len(keys) // N : (i + 1) * len(category_keys) // N] for i in range(N)
+                    category_keys[
+                        i * len(keys) // N : (i + 1) * len(category_keys) // N
+                    ]
+                    for i in range(N)
                 ]
             else:
                 cur_batch_list = [
-                    tuple(category_keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
+                    tuple(category_keys[i * batch_size : (i + 1) * batch_size])
+                    for i in range(N)
                 ]
 
             if len(cur_batch_list) == 0:

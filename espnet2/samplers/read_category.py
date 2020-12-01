@@ -25,8 +25,7 @@ def get_category2utt(
         utt2category = read_2column_text(utt2category_file)
         if set(utt2category) != set(keys):
             raise RuntimeError(
-                "keys are mismatched between "
-                f"{utt2category_file} != utterance keys"
+                "keys are mismatched between " f"{utt2category_file} != utterance keys"
             )
         for k in keys:
             category2utt.setdefault(utt2category[k], []).append(k)
