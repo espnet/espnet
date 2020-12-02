@@ -186,7 +186,11 @@ class Speech2Text:
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
-            speech = torch.tensor(speech)
+            speech = torch.from_numpy(speech)
+        if isinstance(speech_ref1, np.ndarray):
+            speech_ref1 = torch.from_numpy(speech_ref1)
+        if isinstance(speech_ref2, np.ndarray):
+            speech_ref2 = torch.from_numpy(speech_ref2)
 
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
