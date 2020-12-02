@@ -73,7 +73,7 @@ def lm_config_file(tmp_path: Path, token_list):
     return tmp_path / "lm" / "config.yaml"
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(10)
 def test_Speech2Text(joint_model_config_file, lm_config_file):
     speech2text = Speech2Text(
         joint_train_config=joint_model_config_file,
