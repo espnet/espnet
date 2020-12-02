@@ -306,9 +306,9 @@ if ! "${skip_data_prep}"; then
                 _scp_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n.scp "; done)                
             fi
             if $use_dereverb_ref; then
-                # reference for dereverberation
-                _spk_list+="dereverb "
-                _scp_list+="dereverb.scp "
+                # references for dereverberation
+                _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
+                _scp_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n.scp "; done)
             fi
 
             # Copy data dir
