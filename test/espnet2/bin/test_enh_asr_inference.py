@@ -1,10 +1,11 @@
-from distutils.version import LooseVersion
 from argparse import ArgumentParser
+from distutils.version import LooseVersion
 from pathlib import Path
 import string
 
 import numpy as np
 import pytest
+import torch
 
 from espnet.nets.beam_search import Hypothesis
 from espnet2.bin.enh_asr_inference import get_parser
