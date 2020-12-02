@@ -353,7 +353,7 @@ if ! "${skip_data_prep}"; then
             done
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh --extra-files "${_scp_list}" "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${_scp_list}" "${data_feats}/${dset}"
         done
     fi
 else
