@@ -38,27 +38,31 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
     rm -rf /var/lib/apt/lists/*
 
 # Install Kaldi
-RUN git clone --depth 1 https://github.com/kaldi-asr/kaldi 
+RUN git clone --depth 1 https://github.com/kaldi-asr/kaldi /opt/kaldi
 
-RUN cd /kaldi/tools && \
-    ./extras/install_mkl.sh -sp debian intel-mkl-64bit-2019.2-057 && \
+WORKDIR /opt/kaldi/tools
+
+RUN ./extras/install_mkl.sh -sp debian intel-mkl-64bit-2019.2-057 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     make all && \
     rm -r openfst-*/src && \
     ./extras/install_beamformit.sh && \
-    ./extras/install_irstlm.sh && \
-    cd /kaldi/src && \
-    ./configure --shared --use-cuda=no && \
+    ./extras/install_irstlm.sh
+
+WORKDIR /kaldi/src 
+
+RUN  ./configure --shared --use-cuda=no && \
     make depend -j${NUM_BUILD_CORES} && \
-    make -j${NUM_BUILD_CORES} && \
-    find /kaldi -type f \( -name "*.o" -o name "*.la" -o -name "*.a" \) -exec rm -f {} \; && \
+    make -j${NUM_BUILD_CORES}
+
+WORKDIR /
+
+RUN find /opt/kaldi -type f \( -name "*.o" -o name "*.la" -o -name "*.a" \) -exec rm -f {} \; && \
     find /opt/intel -type f -name "*.a" -exec rm -f {} \; && \
     find /opt/intel -type f -regex '.*\(_mc.?\|_mic\|_thread\|_ilp64\)\.so' -exec rm {} \; && \
     rm -rf /kaldi/.git
 
 RUN wget --tries=3 "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
-    bash miniconda.sh -b -p /miniconda && \
+    bash miniconda.sh -b -p /opt/miniconda && \
     rm miniconda.sh
-
-WORKDIR /

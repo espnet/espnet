@@ -111,7 +111,7 @@ build_local(){
     test -r ${ESPNET_ARCHIVE} || exit 1;
     sleep 1
 
-    if [ "${build_base_image}" = true ] && [ "${default_ubuntu_ver}" != "${ubuntu_ver}" ]; then
+    if [ "${build_base_image}" = true ]; then
         echo "building ESPnet base image with ubuntu:${ubuntu_ver}"
         docker build --build-arg DOCKER_VER=${docker_ver} \
                     --build-arg FROM_TAG=${ubuntu_ver} \
@@ -250,6 +250,16 @@ done
 mode=$1
 default_ubuntu_ver=18.04
 default_cuda_ver=10.1
+
+check=true
+[ "${default_ubuntu_ver}" != "${ubuntu_ver}" ] || [ "${default_cuda_ver}" != "${cuda_ver}" ] && check=false
+
+if [ ${check} = false ] && [ "${mode}" != "fully_local" ]; then
+    echo "Error: Use of custom versions of Ubuntu (!=${default_ubuntu_ver}) and CUDA (!=${default_cuda_ver})
+        is only available for <mode> == fully_local.
+        Exiting... "
+    exit 0;
+fi
 
 
 echo "Using Docker Ver.${docker_ver}"
