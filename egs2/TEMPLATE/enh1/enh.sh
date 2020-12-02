@@ -295,16 +295,20 @@ if ! "${skip_data_prep}"; then
         # NOTE: Not applying to test_sets to keep original data
 
             _spk_list=" "
+            _scp_list=" "
             for i in $(seq ${spk_num}); do
                 _spk_list+="spk${i} "
+                _scp_list+="spk${i}.scp "
             done
             if $use_noise_ref; then
                 # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                 _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
+                _scp_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n.scp "; done)                
             fi
             if $use_dereverb_ref; then
                 # reference for dereverberation
                 _spk_list+="dereverb "
+                _scp_list+="dereverb.scp "
             fi
 
             # Copy data dir
@@ -330,7 +334,7 @@ if ! "${skip_data_prep}"; then
             done
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --extra-files "${_scp_list}" "${data_feats}/${dset}"
         done
     fi
 else
