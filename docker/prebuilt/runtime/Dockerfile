@@ -40,25 +40,20 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
 # Install Kaldi
 RUN git clone --depth 1 https://github.com/kaldi-asr/kaldi /opt/kaldi
 
-WORKDIR /opt/kaldi/tools
-
-RUN ./extras/install_mkl.sh -sp debian intel-mkl-64bit-2019.2-057 && \
+RUN cd /opt/kaldi/tools && \
+    ./extras/install_mkl.sh -sp debian intel-mkl-64bit-2019.2-057 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     make all && \
     rm -r openfst-*/src && \
     ./extras/install_beamformit.sh && \
-    ./extras/install_irstlm.sh
-
-WORKDIR /kaldi/src 
-
-RUN  ./configure --shared --use-cuda=no && \
+    ./extras/install_irstlm.sh && \
+    cd /opt/kaldi/src && \
+    ./configure --shared --use-cuda=no && \
     make depend -j${NUM_BUILD_CORES} && \
-    make -j${NUM_BUILD_CORES}
-
-WORKDIR /
-
-RUN find /opt/kaldi -type f \( -name "*.o" -o name "*.la" -o -name "*.a" \) -exec rm -f {} \; && \
+    make -j${NUM_BUILD_CORES} && \
+    cd / && \
+    find /opt/kaldi  -type f \( -name "*.o" -o -name "*.la" -o -name "*.a" \) -exec rm {} \; && \
     find /opt/intel -type f -name "*.a" -exec rm -f {} \; && \
     find /opt/intel -type f -regex '.*\(_mc.?\|_mic\|_thread\|_ilp64\)\.so' -exec rm {} \; && \
     rm -rf /kaldi/.git

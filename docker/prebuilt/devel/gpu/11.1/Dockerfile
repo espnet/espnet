@@ -1,4 +1,5 @@
-FROM espnet/espnet:runtime
+ARG FROM_TAG
+FROM espnet/espnet:${FROM_TAG}
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ## FROM CUDA 10.1 base [https://gitlab.com/nvidia/cuda/blob/ubuntu18.04/10.1/base/Dockerfile] 
