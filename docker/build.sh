@@ -11,6 +11,7 @@ ubuntu_ver=18.04
 cuda_ver=10.1
 build_ver=cpu
 build_cores=24
+th_ver=1.6.0
 
 docker_ver=$(docker version -f '{{.Server.Version}}')
 
@@ -47,7 +48,8 @@ cmd_usage() {
                             (default: 18.04)
             cuda-ver        any cuda version available at nvidia (e.g. 9.0/9.1/...)
                             (default: 10.1)
-            build-cores     cores employed for building the container 
+            build-cores     cores employed for building the container
+            th-ver          Pytorch version for fully local build
 
     CAVEATS
         For local builds, the image pulled from Docker Hub is based on Ubuntu 16,
@@ -85,14 +87,19 @@ build(){
         docker_image=$( docker images -q ${this_tag} )
         [ -z "${docker_image}" ] && exit 1
     fi
-    exit 1
+
     # build cpu based
     docker_image=$( docker images -q espnet/espnet:cpu-latest )
+    this_tag=espnet/espnet:cpu-latest
+    docker_image=$( docker images -q  ${this_tag} )
     if ! [[ -n ${docker_image} ]]; then
         echo "Now building cpu-latest with ubuntu:${default_ubuntu_ver}"
-        docker build --build-arg FROM_TAG=runtime -f prebuilt/devel/Dockerfile -t espnet/espnet:cpu-latest . || exit 1
-    fi
+        docker build --build-arg FROM_TAG=runtime-latest -f prebuilt/devel/Dockerfile -t ${this_tag} . | tee -a build_cpu.log > /dev/null
 
+        docker_image=$( docker images -q ${this_tag} )
+        [ -z "${docker_image}" ] && exit 1
+    fi
+    exit 1
     # build gpu based
     build_args="--build-arg FROM_TAG=cuda-latest 
                 --build-arg CUDA_VER=${default_cuda_ver}"

@@ -36,46 +36,4 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=10.1 brand=tesla,driver>=396,driver<397 brand=tes
 
 ENV CUDA_HOME /usr/local/cuda
 
-## FROM CUDA 10.1 runtime [https://gitlab.com/nvidia/cuda/blob/ubuntu18.04/10.1/runtime/Dockerfile]
-
-ENV NCCL_VERSION 2.7.8
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        cuda-libraries-$CUDA_PKG_VERSION \
-        cuda-nvtx-$CUDA_PKG_VERSION \
-        libnccl2=$NCCL_VERSION-1+cuda10.1 && \
-    apt-mark hold libnccl2 && \
-    rm -rf /var/lib/apt/lists/*
-
-## FROM CUDA 10.1 devel [https://gitlab.com/nvidia/cuda/blob/ubuntu18.04/10.1/devel/Dockerfile]
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        cuda-nvml-dev-$CUDA_PKG_VERSION \
-        cuda-command-line-tools-$CUDA_PKG_VERSION \
-        cuda-nvprof-$CUDA_PKG_VERSION \
-        cuda-npp-dev-$CUDA_PKG_VERSION \
-        cuda-libraries-dev-$CUDA_PKG_VERSION \
-        cuda-minimal-build-$CUDA_PKG_VERSION \
-        libcublas-dev=10.2.1.243-1 \
-        libnccl-dev=2.7.8-1+cuda10.1 && \
-    apt-mark hold libnccl-dev &&  \
-    rm -rf /var/lib/apt/lists/*
-
-# apt from auto upgrading the cublas package. See https://gitlab.com/nvidia/container-images/cuda/-/issues/88
-RUN apt-mark hold libcublas-dev
-
-
-ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
-
-## FROM CUDA 10.1-CUDNN 7 devel
-
-ENV CUDNN_VERSION 7.6.5.32
-LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-            libcudnn7=$CUDNN_VERSION-1+cuda10.1 \
-            libcudnn7-dev=$CUDNN_VERSION-1+cuda10.1 && \
-    apt-mark hold libcudnn7 && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /
