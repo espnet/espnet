@@ -66,6 +66,7 @@ def test_get_rtf(ch):
         normalized=False,
         onesided=True,
     )
+    torch.random.manual_seed(0)
     x = random_speech[..., :ch]
     n = torch.rand(2, 16, ch, dtype=torch.double)
     ilens = torch.LongTensor([16, 12])
