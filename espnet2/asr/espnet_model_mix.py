@@ -312,7 +312,7 @@ class ESPnetASRMixModel(AbsESPnetModel):
                     ignore_label=self.ignore_id,
                 )
             )
-        loss_att = torch.mean(loss_att)
+        loss_att = torch.stack(loss_att, dim=0).mean()
         acc_att = np.mean(acc_att)
 
         # Compute cer/wer using attention-decoder

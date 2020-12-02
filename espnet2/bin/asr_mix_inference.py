@@ -148,6 +148,7 @@ class Speech2Text:
         logging.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
+        self.num_spkrs = asr_model.encoder.num_spkrs
         self.asr_train_args = asr_train_args
         self.converter = converter
         self.tokenizer = tokenizer
@@ -161,7 +162,7 @@ class Speech2Text:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+    ) -> List[List[Tuple[Optional[str], List[str], List[int], Hypothesis]]]:
         """Inference.
 
         Args:
@@ -186,36 +187,41 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
-        assert len(enc) == 1, len(enc)
+        enc_outputs, _ = self.asr_model.encode(**batch)
+        assert len(enc_outputs) == self.num_spkrs, len(enc_outputs)
 
         # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
-        nbest_hyps = nbest_hyps[: self.nbest]
+        results_list = []
+        # For each predicted spk
+        for enc in enc_outputs:
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+            nbest_hyps = nbest_hyps[: self.nbest]
 
-        results = []
-        for hyp in nbest_hyps:
-            assert isinstance(hyp, Hypothesis), type(hyp)
+            results = []
+            for hyp in nbest_hyps:
+                assert isinstance(hyp, Hypothesis), type(hyp)
 
-            # remove sos/eos and get results
-            token_int = hyp.yseq[1:-1].tolist()
+                # remove sos/eos and get results
+                token_int = hyp.yseq[1:-1].tolist()
 
-            # remove blank symbol id, which is assumed to be 0
-            token_int = list(filter(lambda x: x != 0, token_int))
+                # remove blank symbol id, which is assumed to be 0
+                token_int = list(filter(lambda x: x != 0, token_int))
 
-            # Change integer-ids to tokens
-            token = self.converter.ids2tokens(token_int)
+                # Change integer-ids to tokens
+                token = self.converter.ids2tokens(token_int)
 
-            if self.tokenizer is not None:
-                text = self.tokenizer.tokens2text(token)
-            else:
-                text = None
-            results.append((text, token, token_int, hyp))
+                if self.tokenizer is not None:
+                    text = self.tokenizer.tokens2text(token)
+                else:
+                    text = None
+                results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
-        return results
+            results_list.append(results)
+
+        assert check_return_type(results_list)
+        return results_list
 
 
 def inference(
@@ -309,26 +315,29 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(**batch)
+            results_list = speech2text(**batch)
 
             # Only supporting batch_size==1
             key = keys[0]
-            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
-                # Create a directory: outdir/{n}best_recog
-                ibest_writer = writer[f"{n}best_recog"]
+            for spk_idx, results in enumerate(results_list, 1):
+                for n, (text, token, token_int, hyp) in zip(
+                    range(1, nbest + 1), results
+                ):
+                    # Create a directory: outdir/{n}best_recog
+                    ibest_writer = writer[f"{n}best_recog_spk{spk_idx}"]
 
-                # Write the result to each file
-                ibest_writer["token"][key] = " ".join(token)
-                ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                ibest_writer["score"][key] = str(hyp.score)
+                    # Write the result to each file
+                    ibest_writer["token"][key] = " ".join(token)
+                    ibest_writer["token_int"][key] = " ".join(map(str, token_int))
+                    ibest_writer["score"][key] = str(hyp.score)
 
-                if text is not None:
-                    ibest_writer["text"][key] = text
+                    if text is not None:
+                        ibest_writer["text"][key] = text
 
 
 def get_parser():
     parser = config_argparse.ArgumentParser(
-        description="ASR Decoding",
+        description="ASRMix Decoding",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -338,7 +347,7 @@ def get_parser():
         "--log_level",
         type=lambda x: x.upper(),
         default="INFO",
-        choices=("INFO", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+        choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
     )
 

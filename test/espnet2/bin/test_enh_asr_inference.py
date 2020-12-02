@@ -34,7 +34,7 @@ def token_list(tmp_path: Path):
 
 
 @pytest.fixture()
-def asr_config_file(tmp_path: Path, token_list):
+def joint_model_config_file(tmp_path: Path, token_list):
     # Write default configuration file
     ASRTask.main(
         cmd=[
