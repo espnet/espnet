@@ -84,7 +84,9 @@ def test_Speech2Text(joint_model_config_file, lm_config_file):
         # torchaudio.functional.istft is only available with pytorch 1.2+
         return
     speech = np.random.randn(100000)
-    results_list = speech2text(speech)
+    speech_ref1 = np.random.randn(100000)
+    speech_ref2 = np.random.randn(100000)
+    results_list = speech2text(speech, speech_ref1=speech_ref1, speech_ref2=speech_ref2)
     for spk_idx, results in enumerate(results_list):
         for sdr, text, token, token_int, hyp in results:
             assert sdr is None or isinstance(sdr, float)
