@@ -456,7 +456,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             diff = ref - inf
         else:
             # in case of binary masks
-            diff = ref - inf.float()
+            diff = ref.type_as(inf) - inf
         if isinstance(diff, ComplexTensor):
             mseloss = diff.real ** 2 + diff.imag ** 2
         else:
@@ -487,7 +487,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             diff = ref - inf
         else:
             # in case of binary masks
-            diff = ref - inf.float()
+            diff = ref.type_as(inf) - inf
         if isinstance(diff, ComplexTensor):
             log_mse_loss = diff.real ** 2 + diff.imag ** 2
         else:
@@ -516,7 +516,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
         if not is_torch_1_3_plus:
             # in case of binary masks
-            inf = inf.float()
+            ref = ref.type_as(inf)
         if isinstance(inf, ComplexTensor):
             l1loss = abs(ref - inf + EPS)
         else:
