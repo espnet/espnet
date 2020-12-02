@@ -6,13 +6,13 @@
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
-tags="cpu-u18
-      gpu-cuda10.0-cudnn7-u18
-      gpu-cuda10.1-cudnn7-u18"
-cuda_vers="10.0
-           10.1"
+# Default values
+ubuntu_ver=18.04
+cuda_ver=10.1
+build_ver=cpu
+build_cores=24
+
 docker_ver=$(docker version -f '{{.Server.Version}}')
-echo "Using Docker Ver.${docker_ver}"
 
 
 cmd_usage() {
@@ -24,11 +24,12 @@ cmd_usage() {
         Also able to build containers based on local build configuration.
     
     USAGE
-        ${PROGRAM} <mode>
+        ${PROGRAM} <args> <mode>
         ${PROGRAM} build_and_push
-        ${PROGRAM} local [cpu|9.1|9.2|10.0|10.1]
+        ${PROGRAM} --build-ver [cpu|gpu] local
 
             mode      Select script functionality
+            args      Set up building features
 
         Modes
             build           build docker containers
@@ -39,6 +40,14 @@ cmd_usage() {
                             using the base image from Docker Hub (espnet/espnet:runtime)
                             optional: cpu or CUDA version (default: cpu)
             fully_local     like local, but also builds the base image
+        
+        Arguments
+            build-ver       cpu/gpu
+            ubuntu-ver      any ubuntu version available at docker hub (e.g. 18.04/20.04/...)
+                            (default: 18.04)
+            cuda-ver        any cuda version available at nvidia (e.g. 9.0/9.1/...)
+                            (default: 10.1)
+            build-cores     cores employed for building the container 
 
     CAVEATS
         For local builds, the image pulled from Docker Hub is based on Ubuntu 16,
@@ -51,40 +60,46 @@ cmd_usage() {
 
 
 build(){
+    # Default values
+    tags="cpu-latest
+      gpu-latest"
+
     echo "Build docker containers"
     # build runtime and gpu based containers
     docker_image=$( docker images -q espnet/espnet:runtime )
     if ! [[ -n ${docker_image} ]]; then
-        docker build --build-arg DOCKER_VER=${docker_ver} -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
+        docker build --build-arg DOCKER_VER=${docker_ver} \
+                    --build-arg FROM_TAG=${default_ubuntu_ver} \
+                    --build-arg NUM_BUILD_CORES=${build_cores} \
+                    -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
     fi
-    for ver in ${cuda_vers}; do
-        docker_image=$( docker images -q espnet/espnet:cuda${ver}-cudnn7 )
-        if ! [[ -n ${docker_image} ]]; then
-            docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
-        fi
-    done
+
+    docker_image=$( docker images -q espnet/espnet:cuda-latest )
+    if ! [[ -n ${docker_image} ]]; then
+        docker build -f prebuilt/devel/gpu/${default_cuda_ver}/Dockerfile -t espnet/espnet:cuda-latest . || exit 1
+    fi
 
     # build cpu based
-    docker_image=$( docker images -q espnet/espnet:cpu-u18 )
+    docker_image=$( docker images -q espnet/espnet:cpu-latest )
     if ! [[ -n ${docker_image} ]]; then
-        echo "Now building cpu-u18"
-        docker build --build-arg FROM_TAG=runtime -f prebuilt/devel/Dockerfile -t espnet/espnet:cpu-u18 . || exit 1
+        echo "Now building cpu-latest with ubuntu:${default_ubunt_ver}"
+        docker build --build-arg FROM_TAG=runtime -f prebuilt/devel/Dockerfile -t espnet/espnet:cpu-latest . || exit 1
     fi
+
     # build gpu based
-    for ver in ${cuda_vers}; do
-        build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
-        build_args="${build_args} --build-arg CUDA_VER=${ver}"
-        docker_image=$( docker images -q espnet/espnet:gpu-cuda${ver}-cudnn7-u18 )
-        if ! [[ -n ${docker_image} ]]; then
-            echo "Now building gpu-cuda${ver}-cudnn7-u18"
-            docker build ${build_args} -f prebuilt/devel/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-u18 . || exit 1
-        fi
-    done
+    build_args="--build-arg FROM_TAG=cuda-latest 
+                --build-arg CUDA_VER=${default_cuda_ver}"
+    docker_image=$( docker images -q espnet/espnet:gpu-latest )
+    if ! [[ -n ${docker_image} ]]; then
+        echo "Now building gpu-latest with ubuntu:${default_ubunt_ver} and cuda:${default_cuda_ver}"
+        docker build ${build_args} -f prebuilt/devel/Dockerfile -t espnet/espnet:gpu-latest . || exit 1
+    fi
+
 }
 
 
 build_local(){
-    echo "Building docker container: base image, and image for ${ver}"
+    echo "Building docker container: base image, and image for ${build_ver}"
     sleep 1
 
     # prepare espnet-repo, assuming that this script is in folder espnet/docker
@@ -96,23 +111,26 @@ build_local(){
     test -r ${ESPNET_ARCHIVE} || exit 1;
     sleep 1
 
-    if [ "${build_base_image}" = true ] ; then
-        echo "building ESPnet base image"
-        docker build --build-arg DOCKER_VER=${docker_ver} -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
+    if [ "${build_base_image}" = true ] && [ "${default_ubuntu_ver}" != "${ubuntu_ver}" ]; then
+        echo "building ESPnet base image with ubuntu:${ubuntu_ver}"
+        docker build --build-arg DOCKER_VER=${docker_ver} \
+                    --build-arg FROM_TAG=${ubuntu_ver} \
+                    --build-arg NUM_BUILD_CORES=${build_cores} \
+                    -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
         sleep 1
     fi
 
-    if [[ ${ver} == "cpu" ]]; then
-        echo "building ESPnet CPU Image"
+    if [[ ${build_ver} == "cpu" ]]; then
+        echo "building ESPnet CPU Image with ubuntu:${ubuntu_ver}"
         docker build --build-arg FROM_TAG=runtime  --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
                      -f prebuilt/local/Dockerfile -t espnet/espnet:cpu-local . || exit 1
-    elif [[ ${ver} =~ ^(9.1|9.2|10.0|10.1)$ ]]; then
-        echo "building ESPnet GPU Image for ${ver}"
+    elif [[ ${build_ver} == "gpu" ]]; then
+        echo "building ESPnet GPU Image with ubuntu:${ubuntu_ver} and cuda:${cuda_ver}"
         if [ "${build_base_image}" = true ] ; then
             docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
         else
-            if ! [[ -n $( docker images -q espnet/espnet:cuda${ver}-cudnn7)  ]]; then
-                docker pull espnet/espnet:cuda${ver}-cudnn7
+            if ! [[ -n $( docker images -q espnet/espnet:cuda-latest)  ]]; then
+                docker pull espnet/espnet:cuda-latest
             fi
         fi
         build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
@@ -196,29 +214,59 @@ push(){
     done
 }
 
+## Parameter initialization:
+while test $# -gt 0
+do
+    case "$1" in
+        -h) cmd_usage
+            exit 0;;
+        --help) cmd_usage
+            exit 0;;
+        --*) ext=${1#--}
+            ext=${ext//-/_}
+            frombreak=true
+            for i in _ {a..z} {A..Z}; do
+                for var in `eval echo "\\${!${i}@}"`; do
+                    if [ "$var" == "$ext" ]; then
+                        eval ${ext}=$2
+                        frombreak=false
+                        shift
+                        break 2
+                    fi 
+                done 
+            done
+            if ${frombreak} ; then
+                echo "bad option $1" 
+                exit 1
+            fi
+            ;;
+        *) break
+            ;;
+    esac
+    shift
+done
 
-## Parameter initialization: cpu or gpu docker container (default: cpu)
-if [[ -z "$2" ]]; then
-    ver='cpu'
-else
-    ver=$2
-fi
+
+mode=$1
+default_ubuntu_ver=18.04
+default_cuda_ver=10.1
 
 
+echo "Using Docker Ver.${docker_ver}"
 ## Application menu
-if   [[ $1 == "build" ]]; then
+if   [[ "${mode}" == "build" ]]; then
     build
-elif [[ $1 == "local" ]]; then
+elif [[ "${mode}" == "local" ]]; then
     build_base_image=false
     build_local
-elif [[ $1 == "fully_local" ]]; then
+elif [[ "${mode}" == "fully_local" ]]; then
     build_base_image=true
     build_local
-elif [[ $1 == "push" ]]; then
+elif [[ "${mode}" == "push" ]]; then
     push
-elif [[ $1 == "test" ]]; then
+elif [[ "${mode}" == "test" ]]; then
     testing
-elif [[ $1 == "build_and_push" ]]; then
+elif [[ "${mode}" == "build_and_push" ]]; then
     build
     testing
     push
