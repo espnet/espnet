@@ -92,7 +92,8 @@ def get_mvdr_vector(
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
-    if use_torch_solver:
+    if use_torch_solver and is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
         numerator = FC.solve(psd_s, psd_n)[0]
     else:
         numerator = FC.matmul(psd_n.inverse2(), psd_s)
@@ -581,18 +582,23 @@ def vector_to_Hermitian(vec):
     return ComplexTensor(mat[..., 0], mat[..., 1])
 
 
-def get_mfmvdr_vector(gammax, Phi, eps: float = EPS):
+def get_mfmvdr_vector(gammax, Phi, use_torch_solver: bool = True, eps: float = EPS):
     """Compute conventional MFMPDR/MFMVDR filter.
 
     Args:
         gammax (ComplexTensor): (..., L, N)
         Phi (ComplexTensor): (..., L, N, N)
+        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         eps (float)
     Returns:
         beamforming_vector (ComplexTensor): (..., L, N)
     """
     # (..., L, N)
-    numerator = FC.solve(gammax.unsqueeze(-1), Phi)[0].squeeze(-1)
+    if use_torch_solver and is_torch_1_1_plus:
+        # torch.solve is required, which is only available after pytorch 1.1.0+
+        numerator = FC.solve(gammax.unsqueeze(-1), Phi)[0].squeeze(-1)
+    else:
+        numerator = FC.matmul(Phi.inverse2(), gammax.unsqueeze(-1)).squeeze(-1)
     denominator = FC.einsum("...d,...d->...", [gammax.conj(), numerator])
     return numerator / (denominator.real.unsqueeze(-1) + eps)
 

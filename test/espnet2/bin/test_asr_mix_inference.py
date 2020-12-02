@@ -75,9 +75,10 @@ def test_Speech2Text(asr_config_file, lm_config_file):
         asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
     )
     speech = np.random.randn(100000)
-    results = speech2text(speech)
-    for text, token, token_int, hyp in results:
-        assert isinstance(text, str)
-        assert isinstance(token[0], str)
-        assert isinstance(token_int[0], int)
-        assert isinstance(hyp, Hypothesis)
+    results_list = speech2text(speech)
+    for spk_idx, results in enumerate(results_list, 1):
+        for text, token, token_int, hyp in results:
+            assert isinstance(text, str)
+            assert isinstance(token[0], str)
+            assert isinstance(token_int[0], int)
+            assert isinstance(hyp, Hypothesis)

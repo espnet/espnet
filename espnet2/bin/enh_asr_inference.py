@@ -179,7 +179,7 @@ class Speech2Text:
         Args:
             data: Input speech data
         Returns:
-            text, token, token_int, hyp
+            sdr, text, token, token_int, hyp
         """
         assert check_argument_types()
         speech = speech_mix

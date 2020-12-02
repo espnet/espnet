@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 from functools import reduce
 from itertools import permutations
 from typing import Dict
@@ -13,6 +14,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
+is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
 ALL_LOSS_TYPES = (
     # mse_loss(predicted_mask, target_label)
     "mask_mse",
@@ -450,7 +452,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        diff = ref - inf
+        if is_torch_1_3_plus:
+            diff = ref - inf
+        else:
+            # in case of binary masks
+            diff = ref - inf.float()
         if isinstance(diff, ComplexTensor):
             mseloss = diff.real ** 2 + diff.imag ** 2
         else:
@@ -477,7 +483,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        diff = ref - inf
+        if is_torch_1_3_plus:
+            diff = ref - inf
+        else:
+            # in case of binary masks
+            diff = ref - inf.float()
         if isinstance(diff, ComplexTensor):
             log_mse_loss = diff.real ** 2 + diff.imag ** 2
         else:
@@ -504,8 +514,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
+        if not is_torch_1_3_plus:
+            # in case of binary masks
+            inf = inf.float()
         if isinstance(inf, ComplexTensor):
-            l1loss = abs(ref - inf + 1e-15)
+            l1loss = abs(ref - inf + EPS)
         else:
             l1loss = abs(ref - inf)
         if ref.dim() == 3:

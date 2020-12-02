@@ -1,5 +1,6 @@
-import pytest
+from distutils.version import LooseVersion
 
+import pytest
 import torch
 
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
@@ -8,10 +9,14 @@ from espnet2.enh.nets.tasnet import TasNet
 from espnet2.enh.nets.tf_mask_net import TFMaskingNet
 from test.espnet2.enh.layers.test_enh_layers import random_speech
 
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
+
 
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "PSM^2"])
-@pytest.mark.parametrize("loss_type", ["mask_mse", "magnitude", "spectrum"])
+@pytest.mark.parametrize(
+    "loss_type", ["mask_mse", "magnitude", "spectrum", "spectrum_log"]
+)
 @pytest.mark.parametrize("num_spk", [1, 2, 3])
 @pytest.mark.parametrize("use_noise_mask", [True, False])
 @pytest.mark.parametrize("stft_consistency", [True, False])
@@ -21,6 +26,9 @@ def test_forward_with_beamformer_net(
     # Skip some testing cases
     if not loss_type.startswith("mask") and mask_type != "IBM":
         # `mask_type` has no effect when `loss_type` is not "mask..."
+        return
+    if stft_consistency and not is_torch_1_2_plus:
+        # torchaudio.functional.istft is only available with pytorch 1.2+
         return
     ch = 2
     inputs = random_speech[..., :ch].float()
@@ -100,9 +108,14 @@ def test_forward_with_tasnet(training, loss_type, num_spk):
 
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM"])
-@pytest.mark.parametrize("loss_type", ["mask_mse", "magnitude", "spectrum"])
+@pytest.mark.parametrize(
+    "loss_type", ["mask_mse", "magnitude", "spectrum", "spectrum_log"]
+)
 @pytest.mark.parametrize("num_spk", [1, 2, 3])
-def test_forward_with_tf_mask_net(training, mask_type, loss_type, num_spk):
+@pytest.mark.parametrize("stft_consistency", [True, False])
+def test_forward_with_tf_mask_net(
+    training, mask_type, loss_type, num_spk, stft_consistency
+):
     inputs = torch.randn(2, 16).float()
     ilens = torch.LongTensor([16, 12])
     speech_refs = [torch.randn(2, 16).float() for spk in range(num_spk)]
@@ -118,11 +131,17 @@ def test_forward_with_tf_mask_net(training, mask_type, loss_type, num_spk):
         mask_type=mask_type,
         loss_type=loss_type,
     )
-    enh_model = ESPnetEnhancementModel(model)
+    enh_model = ESPnetEnhancementModel(model, stft_consistency=stft_consistency)
     if training:
         enh_model.train()
+        if stft_consistency and not is_torch_1_2_plus:
+            # torchaudio.functional.istft is only available with pytorch 1.2+
+            return
     else:
         enh_model.eval()
+        if not is_torch_1_2_plus:
+            # torchaudio.functional.istft is only available with pytorch 1.2+
+            return
 
     kwargs = {
         "speech_mix": inputs,
