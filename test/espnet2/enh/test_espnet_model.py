@@ -27,9 +27,7 @@ def test_forward_with_beamformer_net(
     if not loss_type.startswith("mask") and mask_type != "IBM":
         # `mask_type` has no effect when `loss_type` is not "mask..."
         return
-    if stft_consistency and not is_torch_1_2_plus:
-        # torchaudio.functional.istft is only available with pytorch 1.2+
-        return
+
     ch = 2
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
@@ -61,8 +59,14 @@ def test_forward_with_beamformer_net(
     enh_model = ESPnetEnhancementModel(model, stft_consistency=stft_consistency)
     if training:
         enh_model.train()
+        if stft_consistency and not is_torch_1_2_plus:
+            # torchaudio.functional.istft is only available with pytorch 1.2+
+            return
     else:
         enh_model.eval()
+        if not is_torch_1_2_plus:
+            # torchaudio.functional.istft is only available with pytorch 1.2+
+            return
 
     kwargs = {
         "speech_mix": inputs,
