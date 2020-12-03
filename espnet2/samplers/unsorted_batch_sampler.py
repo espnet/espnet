@@ -21,7 +21,13 @@ class UnsortedBatchSampler(AbsSampler):
         key_file:
     """
 
-    def __init__(self, batch_size: int, key_file: str, drop_last: bool = False):
+    def __init__(
+        self,
+        batch_size: int,
+        key_file: str,
+        drop_last: bool = False,
+        utt2category_file: str = None,
+    ):
         assert check_argument_types()
         assert batch_size > 0
         self.batch_size = batch_size
@@ -39,18 +45,36 @@ class UnsortedBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {key_file}")
 
-        # Apply max(, 1) to avoid 0-batches
-        N = max(len(keys) // batch_size, 1)
-        if not self.drop_last:
-            # Split keys evenly as possible as. Note that If N != 1,
-            # the these batches always have size of batch_size at minimum.
-            self.batch_list = [
-                keys[i * len(keys) // N : (i + 1) * len(keys) // N] for i in range(N)
-            ]
+        category2utt = {}
+        if utt2category_file is not None:
+            utt2category = read_2column_text(utt2category_file)
+            if set(utt2category) != set(keys):
+                raise RuntimeError(
+                    f"keys are mismatched between {utt2category_file} != {key_file}"
+                )
+            for k, v in utt2category.items():
+                category2utt.setdefault(v, []).append(k)
         else:
-            self.batch_list = [
-                tuple(keys[i * batch_size : (i + 1) * batch_size]) for i in range(N)
-            ]
+            category2utt["default_category"] = keys
+
+        self.batch_list = []
+        for d, v in category2utt.items():
+            category_keys = v
+            # Apply max(, 1) to avoid 0-batches
+            N = max(len(category_keys) // batch_size, 1)
+            if not self.drop_last:
+                # Split keys evenly as possible as. Note that If N != 1,
+                # the these batches always have size of batch_size at minimum.
+                cur_batch_list = [
+                    category_keys[i * len(keys) // N : (i + 1) * len(keys) // N]
+                    for i in range(N)
+                ]
+            else:
+                cur_batch_list = [
+                    tuple(category_keys[i * batch_size : (i + 1) * batch_size])
+                    for i in range(N)
+                ]
+            self.batch_list.extend(cur_batch_list)
 
     def __repr__(self):
         return (

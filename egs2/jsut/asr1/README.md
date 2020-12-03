@@ -8,6 +8,18 @@
 - Git hash: `53b60092f8d2b874f2e3f8d06244dc9d86949b2b`
   - Commit date: `Fri Oct 2 16:17:49 2020 -0400`
 
+## asr_train_asr_conformer8_raw_char_sp (conformer)
+- https://zenodo.org/record/4292742
+
+### CER
+#### 16k
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transformer_lm_lm_train_lm_char_valid.loss.ave_asr_model_valid.acc.ave/dev|250|6349|89.2|8.6|2.2|1.1|12.0|85.2|
+|decode_transformer_lm_lm_train_lm_char_valid.loss.ave_asr_model_valid.acc.ave/eval1|250|5928|87.5|9.9|2.6|1.3|13.9|86.4|
+
+
 ## asr_train_asr_conformer_raw_char_optim_conflr5_sp (conformer)
 - https://zenodo.org/record/4073045
 
