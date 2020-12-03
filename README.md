@@ -108,7 +108,7 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 - A template recipe which can be applied for all corpora
 - Possible to train any size of corpus without cpu memory error
 - (Under development) [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
-- Integrated with [wandb](https://www.wandb.com/: https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration
+- Integrated with [wandb](https://www.wandb.com/): https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration
 
 ## Installation
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
