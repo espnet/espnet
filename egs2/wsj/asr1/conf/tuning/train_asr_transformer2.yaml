@@ -11,6 +11,10 @@ best_model_criterion:
     - max
 keep_nbest_models: 10
 
+frontend: wav2vec
+frontend_conf:
+    model_path: /home/ubuntu/project/model/wav2vec_vox_new.pt
+
 encoder: transformer
 encoder_conf:
     output_size: 256

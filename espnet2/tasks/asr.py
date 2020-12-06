@@ -53,9 +53,9 @@ from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(default=DefaultFrontend),
+    classes=dict(default=Wav2vecFrontend),
     type_check=AbsFrontend,
-    default="default",
+    default="wav2vec",
 )
 specaug_choices = ClassChoices(
     name="specaug",
