@@ -1,5 +1,5 @@
 # import copy
-# from typing import Optional
+from typing import Optional
 from typing import Tuple
 # from typing import Union
 
@@ -9,7 +9,7 @@ import torch
 # from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
-# from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 # from espnet2.layers.log_mel import LogMel
 # from espnet2.layers.stft import Stft
@@ -31,19 +31,19 @@ class Wav2vecFrontend(AbsFrontend):
 
     def __init__(
         self,
-        model_path,
-        n_mels: int = 80,
-    ):
+        model_path="/home/ubuntu/project/manifest/train/outputs/2020-12-04/06-26-12/checkpoints/checkpoint_best.pt",
+        embedding_dim:int=768):
         assert check_argument_types()
         super().__init__()
         
-        # cp = '/content/pretrain_model/wav2vec_vox_new.pt'
+        # cp = '/home/ubuntu/project/manifest/train/outputs/2020-12-04/06-26-12/checkpoints/checkpoint_best.pt'
         model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([model_path])
         model = model[0]
         self.wav2vec = model
+        self.embedding_dim = embedding_dim
 
     def output_size(self) -> int:
-        return self.n_mels
+        return self.embedding_dim
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
@@ -56,6 +56,6 @@ class Wav2vecFrontend(AbsFrontend):
             feats_lens.append(get_output_lens(self.wav2vec, len))
         feats_lens = torch.stack(feats_lens)
         
-        print("feats is wroking!")
+        print("feats is working!")
 
         return input_feats, feats_lens

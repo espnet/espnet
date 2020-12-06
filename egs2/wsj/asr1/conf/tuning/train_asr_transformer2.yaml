@@ -13,7 +13,8 @@ keep_nbest_models: 10
 
 frontend: wav2vec
 frontend_conf:
-    model_path: /home/ubuntu/project/model/wav2vec_vox_new.pt
+    model_path: /home/ubuntu/project/manifest/train/outputs/2020-12-04/06-26-12/checkpoints/checkpoint_best.pt
+    embedding_dim: 768
 
 encoder: transformer
 encoder_conf:
