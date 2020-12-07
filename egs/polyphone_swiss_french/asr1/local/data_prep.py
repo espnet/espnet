@@ -8,7 +8,7 @@ from collections import defaultdict
 from random import shuffle
 
 
-class FrPolyphonePrepper() :
+class FrPolyphonePrepper:
     """Data preparation script for the Swiss French Polyphone corpus.
 
     This class provides the scripting backbone for preparing the
@@ -24,7 +24,7 @@ class FrPolyphonePrepper() :
 
     """
 
-    def __init__(self, datadir, trainlist=None, devlist=None, testlist=None) :
+    def __init__(self, datadir, trainlist=None, devlist=None, testlist=None):
         """Initializes a new instance of the dataprepper class.
 
         This __init__ function requires a root datadir, and optionally takes
@@ -50,7 +50,7 @@ class FrPolyphonePrepper() :
         self.testlist = testlist
         self._loadlists()
 
-    def _loadlists(self) :
+    def _loadlists(self):
         """Helper function to load pre-defined train/dev/test lists.
 
         Helper function to load pre-defined train/dev/test lists if
@@ -58,26 +58,26 @@ class FrPolyphonePrepper() :
 
         """
         trainlist = set([])
-        with open(self.trainlist) as ifp :
-            for fid in ifp :
+        with open(self.trainlist) as ifp:
+            for fid in ifp:
                 trainlist.add(fid.strip())
         self.trainlist = trainlist
 
         devlist = set([])
-        with open(self.devlist) as ifp :
-            for fid in ifp :
+        with open(self.devlist) as ifp:
+            for fid in ifp:
                 devlist.add(fid.strip())
         self.devlist = devlist
 
         testlist = set([])
-        with open(self.testlist) as ifp :
-            for fid in ifp :
+        with open(self.testlist) as ifp:
+            for fid in ifp:
                 testlist.add(fid.strip())
         self.testlist = testlist
 
         return
 
-    def _cleantext(self, text) :
+    def _cleantext(self, text):
         """Preprocess and cleanup the text as needed.
 
         Preprocess and cleanup the text as needed.  These regexes perform
@@ -95,7 +95,7 @@ class FrPolyphonePrepper() :
 
         """
         # Skip digits
-        if re.match(r"^.*[0-9].*$", text) :
+        if re.match(r"^.*[0-9].*$", text):
             return ""
 
         text = text.lower()
@@ -114,12 +114,12 @@ class FrPolyphonePrepper() :
         text = re.sub(r"[ˢ…^ńı\|ā/“:½\–=*»ßł”°ÿ\}\)í\{ú\$]+", " ", text)
         text = re.sub(r"\s+", " ", text)
         text = text.strip()
-        for c in list(text) :
+        for c in list(text):
             self.all_chars[c] += 1
 
         return text
 
-    def printcharcounts(self) :
+    def printcharcounts(self):
         """Utility function for dumping unique character counts.
 
         Utility function for dumping accumulated unique character counts.
@@ -127,10 +127,10 @@ class FrPolyphonePrepper() :
         routines defined in `_cleantext`
 
         """
-        for key, val in sorted(self.all_chars.items(), key=lambda x: x[1]) :
+        for key, val in sorted(self.all_chars.items(), key=lambda x: x[1]):
             print(key, val)
 
-    def _processline(self, line) :
+    def _processline(self, line):
         """Process a single input line from the corpus.
 
         Process a single input line from the corpus.  These lines include
@@ -155,7 +155,7 @@ class FrPolyphonePrepper() :
 
         return uttid, text, gender, spkrid
 
-    def fixdirnames(self, folderroot) :
+    def fixdirnames(self, folderroot):
         """Remove spaces, dashes, and commas from folder names.
 
         The default directory naming conventions for the corpus are not
@@ -167,9 +167,10 @@ class FrPolyphonePrepper() :
             folderroot (str): The folder root to start processing from.
 
         """
-        for folder in os.listdir(folderroot) :
-            if not folder.startswith("Polyphone") \
-               or not os.path.isdir(os.path.join(folderroot, folder)) :
+        for folder in os.listdir(folderroot):
+            if not folder.startswith("Polyphone") or not os.path.isdir(
+                os.path.join(folderroot, folder)
+            ):
                 continue
             nospace = re.sub(r"\s+", "_", folder)
             nospace = re.sub(r"\-", "_", nospace)
@@ -178,27 +179,27 @@ class FrPolyphonePrepper() :
             folderpath = os.path.join(folderroot, folder)
             nospacepath = os.path.join(folderroot, nospace)
 
-            if not folderpath == nospacepath :
+            if not folderpath == nospacepath:
                 os.rename(folderpath, nospace)
 
         return
 
-    def maprefstofiles(self, ofpath) :
+    def maprefstofiles(self, ofpath):
         """Map all valid references to corresponding files.
 
         Map all valid references to corresponding files.
 
         """
-        with open(ofpath, "w", encoding="utf-8") as ofp :
-            for fid, fpath in self.audiocorpus.items() :
-                if fid in self.references :
+        with open(ofpath, "w", encoding="utf-8") as ofp:
+            for fid, fpath in self.audiocorpus.items():
+                if fid in self.references:
                     trans = "{0}\t{1}".format(fid, self.references[fid])
                     print(trans, file=ofp)
                     self.valid += 1
 
         print(
             "Wrote: {0} potential targets to {1}.".format(self.valid, ofpath),
-            file=sys.stderr
+            file=sys.stderr,
         )
 
         return
@@ -213,18 +214,18 @@ class FrPolyphonePrepper() :
         mime = subprocess.Popen(
             "/usr/bin/file --mime {0}".format(infile),
             shell=True,
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
         ).communicate()[0]
 
         mime = re.split(r"\s+", mime.decode("utf8").strip())[-1]
         mime = re.sub(r"^charset=", "", mime)
 
-        if mime == "unknown-8bit" :
+        if mime == "unknown-8bit":
             return "850"
 
         return mime
 
-    def processreference(self, referencefile) :
+    def processreference(self, referencefile):
         """Process a single reference file.
 
         Process a single reference file.  Each file covers the full
@@ -238,8 +239,8 @@ class FrPolyphonePrepper() :
 
         encoding = self.guess_encoding(referencefile)
 
-        with open(referencefile, encoding=encoding) as ifp :
-            for line in ifp :
+        with open(referencefile, encoding=encoding) as ifp:
+            for line in ifp:
                 parts = re.split(r"\s+", line.strip())
                 fid = parts.pop(0).upper()
                 fid = os.path.split(fid)[-1]
@@ -249,7 +250,7 @@ class FrPolyphonePrepper() :
 
         return
 
-    def findfiles(self, path) :
+    def findfiles(self, path):
         """Recursively search the target dir for reference files.
 
         Recursively search the root target directory for reference files,
@@ -263,25 +264,25 @@ class FrPolyphonePrepper() :
         """
         for fname in os.listdir(path):
             fpath = os.path.join(path, fname)
-            if os.path.isfile(fpath) :
+            if os.path.isfile(fpath):
                 # .ALW are audio files
-                if fpath.endswith(".ALW") :
+                if fpath.endswith(".ALW"):
                     fid = os.path.split(fpath)[-1]
                     fid = re.sub(r"\.ALW$", "", fid)
                     fpath = re.sub(r"^\./", "", fpath)
                     self.audiocorpus[fid] = fpath
                 # .LST files contain transcriptions
-                elif fpath.endswith(".LST") :
-                    if "/DOS/" in fpath :
+                elif fpath.endswith(".LST"):
+                    if "/DOS/" in fpath:
                         self.processreference(fpath)
-                    elif "/UNIX/" in fpath :
+                    elif "/UNIX/" in fpath:
                         self.processreference(fpath)
-                    else :
+                    else:
                         pass
             else:
                 self.findfiles(fpath)
 
-    def _collatecorpusdata(self, datadir, corpus) :
+    def _collatecorpusdata(self, datadir, corpus):
         """Collate all corpus data.
 
         Collate all specified corpus data.  This is a hack to call the
@@ -298,13 +299,12 @@ class FrPolyphonePrepper() :
         command = command.format(os.path.join(datadir, corpus))
         print(command)
         subprocess.call(
-            ["export LC_COLLATE='C';export LC_ALL='C'; {0}".format(command)],
-            shell=True
+            ["export LC_COLLATE='C';export LC_ALL='C'; {0}".format(command)], shell=True
         )
 
         return
 
-    def _loadconf(self, fbank_conf) :
+    def _loadconf(self, fbank_conf):
         """Load the filterbank configuration file.
 
         Load the filterbank configuration file.  Here we are still
@@ -319,19 +319,19 @@ class FrPolyphonePrepper() :
 
         """
         conf = {}
-        with open(fbank_conf) as ifp :
-            for line in ifp :
+        with open(fbank_conf) as ifp:
+            for line in ifp:
                 flag, val = line.strip().split("=")
                 conf[flag] = val
 
-        if not conf.get('--sample-frequency', None) :
-            conf['--sample-frequency'] = 16000
-        else :
-            conf['--sample-frequency'] = int(conf['--sample-frequency'])
+        if not conf.get("--sample-frequency", None):
+            conf["--sample-frequency"] = 16000
+        else:
+            conf["--sample-frequency"] = int(conf["--sample-frequency"])
 
         return conf
 
-    def processcorpus(self, trans, fbank_conf) :
+    def processcorpus(self, trans, fbank_conf):
         """The primary corpus processing entrypoint.
 
         The primary corpus processing entrypoint. There is a lot
@@ -349,22 +349,19 @@ class FrPolyphonePrepper() :
         text_file = trans
         out_dir = os.path.join(datadir, "preprocess")
         spk2utt = defaultdict(list)
-        if not os.path.isdir(out_dir) :
+        if not os.path.isdir(out_dir):
             pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
 
         spkr_ofp = open(os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8")
         gndr_ofp = open(os.path.join(out_dir, "utt2gender"), "w", encoding="utf-8")
         text_ofp = open(os.path.join(out_dir, "text"), "w", encoding="utf-8")
         wav_ofp = open(os.path.join(out_dir, "wav.scp"), "w", encoding="utf-8")
-        with open(text_file) as ifp :
-            for line in ifp :
+        with open(text_file) as ifp:
+            for line in ifp:
                 uttid, text, gender, spkrid = self._processline(line)
 
-                if re.match(r"^\s*$", text) :
-                    print(
-                        "Empty utterance: {0}".format(uttid),
-                        file=sys.stderr
-                    )
+                if re.match(r"^\s*$", text):
+                    print("Empty utterance: {0}".format(uttid), file=sys.stderr)
                     continue
 
                 spk2utt[spkrid].append(uttid)
@@ -373,9 +370,7 @@ class FrPolyphonePrepper() :
                 print("{0} {1}".format(uttid, text), file=text_ofp)
                 sample = "{0} ffmpeg -i {1} -f wav -ar {2} -ab 16 - |"
                 sample = sample.format(
-                    uttid,
-                    self.audiocorpus[uttid],
-                    fbank['--sample-frequency']
+                    uttid, self.audiocorpus[uttid], fbank["--sample-frequency"]
                 )
                 print(sample, file=wav_ofp)
 
@@ -385,7 +380,7 @@ class FrPolyphonePrepper() :
         wav_ofp.close()
 
         spkr2utt_ofp = open(os.path.join(out_dir, "spk2utt"), "w")
-        for key, vals in spk2utt.items() :
+        for key, vals in spk2utt.items():
             print("{0} {1}".format(key, " ".join(vals)), file=spkr2utt_ofp)
         spkr2utt_ofp.close()
 
@@ -394,7 +389,7 @@ class FrPolyphonePrepper() :
 
         return
 
-    def make_train_dev_test(self, train, dev, test, splits, useexisting) :
+    def make_train_dev_test(self, train, dev, test, splits, useexisting):
         """Create or read the train/dev/test splits.
 
         Create or read in the existing train/dev/test splits.  If the reference
@@ -415,27 +410,25 @@ class FrPolyphonePrepper() :
         dev_path = os.path.join(datadir, dev)
         test_path = os.path.join(datadir, test)
 
-        for path in [train_path, dev_path, test_path] :
-            if not os.path.isdir(path) :
+        for path in [train_path, dev_path, test_path]:
+            if not os.path.isdir(path):
                 os.mkdir(path)
 
         corpus = {}
-        with open(os.path.join(datadir, "preprocess", "wav.scp")) as ifp :
-            for line in ifp :
+        with open(os.path.join(datadir, "preprocess", "wav.scp")) as ifp:
+            for line in ifp:
                 parts = re.split(r"\s+", line.strip())
                 uttid = parts.pop(0)
                 wav = " ".join(parts)
-                corpus[uttid] = {
-                    "wav": wav
-                }
-        with open(os.path.join(datadir, "preprocess", "utt2gender")) as ifp :
-            for line in ifp :
+                corpus[uttid] = {"wav": wav}
+        with open(os.path.join(datadir, "preprocess", "utt2gender")) as ifp:
+            for line in ifp:
                 uttid, gender = re.split(r"\s+", line.strip())
                 corpus[uttid]["gender"] = gender
 
         self.spkr2utts = defaultdict(list)
-        with open(os.path.join(datadir, "preprocess", "text")) as ifp :
-            for line in ifp :
+        with open(os.path.join(datadir, "preprocess", "text")) as ifp:
+            for line in ifp:
                 parts = re.split(r"\s+", line.strip())
                 uttid = parts.pop(0)
                 text = " ".join(parts)
@@ -451,15 +444,9 @@ class FrPolyphonePrepper() :
         self.dv_text_ofp = open(os.path.join(dev_path, "text"), "w")
         self.te_text_ofp = open(os.path.join(test_path, "text"), "w")
 
-        self.tr_utt2gender_ofp = open(
-            os.path.join(train_path, "utt2gender"), "w"
-        )
-        self.dv_utt2gender_ofp = open(
-            os.path.join(dev_path, "utt2gender"), "w"
-        )
-        self.te_utt2gender_ofp = open(
-            os.path.join(test_path, "utt2gender"), "w"
-        )
+        self.tr_utt2gender_ofp = open(os.path.join(train_path, "utt2gender"), "w")
+        self.dv_utt2gender_ofp = open(os.path.join(dev_path, "utt2gender"), "w")
+        self.te_utt2gender_ofp = open(os.path.join(test_path, "utt2gender"), "w")
 
         self.tr_utt2spk_ofp = open(os.path.join(train_path, "utt2spk"), "w")
         self.dv_utt2spk_ofp = open(os.path.join(dev_path, "utt2spk"), "w")
@@ -469,9 +456,9 @@ class FrPolyphonePrepper() :
         self.dv_spk2utt_ofp = open(os.path.join(dev_path, "spk2utt"), "w")
         self.te_spk2utt_ofp = open(os.path.join(test_path, "spk2utt"), "w")
 
-        if useexisting :
+        if useexisting:
             self._replicate_existing(corpus)
-        else :
+        else:
             self._generate_random(corpus, splits)
 
         self._collatecorpusdata(datadir, train)
@@ -480,7 +467,7 @@ class FrPolyphonePrepper() :
 
         return
 
-    def _replicate_existing(self, corpus) :
+    def _replicate_existing(self, corpus):
         """Replicate the original training and eval setup.
 
         Replicate the original training and eval setup using the
@@ -492,44 +479,40 @@ class FrPolyphonePrepper() :
         """
         items = list(self.spkr2utts.items())
 
-        for idx, spkr_item in enumerate(items) :
-            for d_item in spkr_item[1] :
+        for idx, spkr_item in enumerate(items):
+            for d_item in spkr_item[1]:
                 item = [d_item, corpus[d_item]]
                 wav_line = "{0} {1}".format(item[0], item[1]["wav"])
                 text_line = "{0} {1}".format(item[0], item[1]["text"])
-                utt2gender_line = "{0} {1}".format(
-                    item[0], item[1]["gender"]
-                )
+                utt2gender_line = "{0} {1}".format(item[0], item[1]["gender"])
                 utt2spk_line = "{0} {1}".format(item[0], spkr_item[0])
 
-                if item[0] in self.trainlist :
+                if item[0] in self.trainlist:
                     print(wav_line, file=self.tr_wav_ofp)
                     print(text_line, file=self.tr_text_ofp)
                     print(utt2gender_line, file=self.tr_utt2gender_ofp)
                     print(utt2spk_line, file=self.tr_utt2spk_ofp)
-                elif item[0] in self.devlist :
+                elif item[0] in self.devlist:
                     print(wav_line, file=self.dv_wav_ofp)
                     print(text_line, file=self.dv_text_ofp)
                     print(utt2gender_line, file=self.dv_utt2gender_ofp)
                     print(utt2spk_line, file=self.dv_utt2spk_ofp)
-                elif item[0] in self.testlist :
+                elif item[0] in self.testlist:
                     print(wav_line, file=self.te_wav_ofp)
                     print(text_line, file=self.te_text_ofp)
                     print(utt2gender_line, file=self.te_utt2gender_ofp)
                     print(utt2spk_line, file=self.te_utt2spk_ofp)
 
-            spk2utt_line = "{0} {1}".format(
-                spkr_item[0], " ".join(spkr_item[1])
-            )
-            if item[0] in self.trainlist :
+            spk2utt_line = "{0} {1}".format(spkr_item[0], " ".join(spkr_item[1]))
+            if item[0] in self.trainlist:
                 print(spk2utt_line, file=self.tr_spk2utt_ofp)
-            elif item[0] in self.devlist :
+            elif item[0] in self.devlist:
                 print(spk2utt_line, file=self.dv_spk2utt_ofp)
-            else :
+            else:
                 print(spk2utt_line, file=self.te_spk2utt_ofp)
         return
 
-    def _generate_random(self, corpus, splits) :
+    def _generate_random(self, corpus, splits):
         """Generate a new, randomized partition.
 
         Generate a new, randomized partition for the corpus for
@@ -550,74 +533,66 @@ class FrPolyphonePrepper() :
         items = list(self.spkr2utts.items())
         shuffle(items)
 
-        for idx, spkr_item in enumerate(items) :
-            for d_item in spkr_item[1] :
+        for idx, spkr_item in enumerate(items):
+            for d_item in spkr_item[1]:
                 item = [d_item, corpus[d_item]]
                 wav_line = "{0} {1}".format(item[0], item[1]["wav"])
                 text_line = "{0} {1}".format(item[0], item[1]["text"])
-                utt2gender_line = "{0} {1}".format(
-                    item[0], item[1]["gender"]
-                )
+                utt2gender_line = "{0} {1}".format(item[0], item[1]["gender"])
                 utt2spk_line = "{0} {1}".format(item[0], spkr_item[0])
 
-                if idx >= 0 and idx < tr :
+                if idx >= 0 and idx < tr:
                     print(wav_line, file=self.tr_wav_ofp)
                     print(text_line, file=self.tr_text_ofp)
                     print(utt2gender_line, file=self.tr_utt2gender_ofp)
                     print(utt2spk_line, file=self.tr_utt2spk_ofp)
-                elif idx >= tr and idx < tr + dv :
+                elif idx >= tr and idx < tr + dv:
                     print(wav_line, file=self.dv_wav_ofp)
                     print(text_line, file=self.dv_text_ofp)
                     print(utt2gender_line, file=self.dv_utt2gender_ofp)
                     print(utt2spk_line, file=self.dv_utt2spk_ofp)
-                else :
+                else:
                     print(wav_line, file=self.te_wav_ofp)
                     print(text_line, file=self.te_text_ofp)
                     print(utt2gender_line, file=self.te_utt2gender_ofp)
                     print(utt2spk_line, file=self.te_utt2spk_ofp)
 
-            spk2utt_line = "{0} {1}".format(
-                spkr_item[0], " ".join(spkr_item[1])
-            )
-            if idx >= 0 and idx < tr :
+            spk2utt_line = "{0} {1}".format(spkr_item[0], " ".join(spkr_item[1]))
+            if idx >= 0 and idx < tr:
                 print(spk2utt_line, file=self.tr_spk2utt_ofp)
-            elif idx >= tr and idx < tr + dv :
+            elif idx >= tr and idx < tr + dv:
                 print(spk2utt_line, file=self.dv_spk2utt_ofp)
-            else :
+            else:
                 print(spk2utt_line, file=self.te_spk2utt_ofp)
 
         return
 
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     import argparse
     import yaml
 
     example = "{0} --config conf/dataprep.yml".format(sys.argv[0])
     parser = argparse.ArgumentParser(description=example)
-    parser.add_argument("--config", "-c", help="YAML config file.",
-                        required=True)
+    parser.add_argument("--config", "-c", help="YAML config file.", required=True)
     args = parser.parse_args()
 
     config = yaml.load(open(args.config), Loader=yaml.Loader)
 
     mapper = FrPolyphonePrepper(
-        datadir=config.get('datadir', 'data'),
-        trainlist=config.get('trainlist', None),
-        devlist=config.get('devlist', None),
-        testlist=config.get('testlist', None)
+        datadir=config.get("datadir", "data"),
+        trainlist=config.get("trainlist", None),
+        devlist=config.get("devlist", None),
+        testlist=config.get("testlist", None),
     )
-    mapper.fixdirnames(config['download_dir'])
-    mapper.findfiles(config['download_dir'])
-    mapper.maprefstofiles(config['trans_file'])
-    mapper.processcorpus(
-        config['trans_file'],
-        config['fbank_conf']
-    )
+    mapper.fixdirnames(config["download_dir"])
+    mapper.findfiles(config["download_dir"])
+    mapper.maprefstofiles(config["trans_file"])
+    mapper.processcorpus(config["trans_file"], config["fbank_conf"])
     mapper.make_train_dev_test(
         config["train"],
         config["dev"],
         config["test"],
         config["splits"],
-        config["useexisting"]
+        config["useexisting"],
     )
