@@ -59,7 +59,13 @@ to prepare the appropriate environments
 - debian9
 
 
-### Step 1) Install Kaldi
+### Step 1) [Optional] Install Kaldi
+- If you'll use ESPnet1 (under egs/): You need to compile Kaldi.  
+- If you'll use ESPnet2 (under egs2/): You can skip installation of Kaldi.
+
+<details><summary>To compile Kaldi...</summary><div>
+
+
 Related links:
 - [Kaldi Github](https://github.com/kaldi-asr/kaldi)
 - [Kaldi Documentation](https://kaldi-asr.org/)
@@ -118,23 +124,26 @@ Kaldi's requirements:
     ```
 We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh).
 
+</div></details>
+
 ### Step 2) Installation ESPnet
 1. Git clone ESPnet
     ```sh
     $ cd <any-place>
     $ git clone https://github.com/espnet/espnet
     ```
-1. Put Kaldi at espnet/tools
+1. [Optional] Put compiled Kaldi at espnet/tools
 
-    Create a symbolic link to Kaldi directory.
+    If you have compiled Kaldi at Step1, put it under `tools`.
+
 
     ```sh
     $ cd <espnet-root>/tools
     $ ln -s <kaldi-root> .
     ```
-1. Setup CUDA environment
+1. [Optional] Setup CUDA environment
 
-    Specify your CUDA directory.
+    Setup your CUDA environment if you'll use some extented library using CUDA e.g. WarpCTC, WarpTransducer, etc.
 
     ```sh
     $ cd <espnet-root>/tools
@@ -144,29 +153,21 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     ```
 1. Setup Python environment
 
-    The Python interpreter used in espnet recipes is determined by `<espnet-root>/tools/activate_python.sh`,
-    and in this step, you need to create the file.
+    You have to create `<espnet-root>/tools/activate_python.sh` to specify the Python interpreter used in espnet recipes.
+    (To understand how ESPnet specifies Python, see [path.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh) for example.)
 
-    You must select one of setup scripts for Python environment here.
-    We prepare scripts for `Anaconda`, `venv`, and `System Python` environment, so
-    if you'll use the other Python environment manager, e.g. `pipenv`, `pyenv`, or etc.
-    you need to create `activate_python.sh` by yourself.
-
-    If you don't stick to any Python environments, please select `Anaconda` environment.
+    We also have some scripts to generate `tools/activate_python.sh`.
 
     - Option A) Setup Anaconda environment
 
         ```sh
         $ cd <espnet-root>/tools
-        $ ./setup_anaconda.sh [output-dir-name] [conda-env-name] [python-version]
+        $ ./setup_anaconda.sh [output-dir-name|default=venv] [conda-env-name|default=root] [python-version|default=none]
         # e.g.
         $ ./setup_anaconda.sh anaconda espnet 3.8
         ```
-        If `[output-dir-name]` is omitted, `venv` is generated.
-        If `[conda-env-name]` and `[python-version]` are omitted,
-        the root environment and the default Python of Anaconda are selected respectively.
 
-        This script tries to create a new miniconda at `venv` if it doesn't exist.
+        This script tries to create a new miniconda if the output directory doesn't exist.
         If you already have Anaconda and you'll use it then,
 
         ```sh
@@ -213,7 +214,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ make CPU_ONLY=0
     ```
 
-### Step 3) [Option] Custom tool installation
+### Step 3) [Optional] Custom tool installation
 Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default, 
 so if you meet some installation error when running these recipe, you need to install them optionally.
 
@@ -223,6 +224,7 @@ so you need to activate it before installing python packages.
 ```sh
 cd <espnet-root>/tools
 . activate_python.sh
+. ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
 python3 -m pip install <some-package>
 ./installers/install_<some-tool>.sh
 ```
@@ -232,7 +234,6 @@ e.g.
 - To install Warp CTC: [install_warp-ctc.sh](https://github.com/espnet/espnet/blob/master/tools/installers/install_warp-ctc.sh)
 - To install Warp Transducer: [install_warp-transducer.sh](https://github.com/espnet/espnet/blob/master/tools/installers/install_warp-transducer.sh)
 
-e.g. To install warp-ctc
 
 ### Check installation
 You can check whether your installation is succesfully finished by
