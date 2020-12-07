@@ -2,6 +2,8 @@
 
 Official homepage: [http://www.vc-challenge.org/](http://www.vc-challenge.org/)
 
+**Update (2020/12)**: With the [release of the official dataset](https://github.com/nii-yamagishilab/VCC2020-database), we updated this recipe so that the dataset can now be automatically downloaded. Also, we provided evaluation scripts to calculate MCD (mel-cepstrum distortion), CER (character error rate) and WER (word error rate) of the test set.
+
 ## Introduction
 
 This recipe describes a baseline for the Voice Conversion (VC) Challenge 2020 (VCC2020 for short). VCC2020 contains two tasks. In either task, the source speaker is always native English and the source speech is always  English. Task 1 requires to convert to a English target speaker with a small amount of English parallel training set, and task 2 requires to convert to a non-English (German/Finnish/Mandarin) target speaker with a non-English training set. Task 2 is also referred to as cross-lingual VC.
@@ -20,6 +22,8 @@ The training flow is as follows:
 2. TTS pretraining. We use a [multi-speaker, x-vector Transformer-TTS model](https://github.com/espnet/espnet/tree/master/egs/libritts/tts1). In task 1, we use the [Libritts pretrained model](https://github.com/espnet/espnet/blob/master/egs/libritts/tts1/RESULTS.md#v050-first-multi-speaker-transformer-1024-pt-window--256-pt-shift--x-vector-with-add-integration--fast-gl-64-iters) provided by ESPnet. In task 2, corpora of two languages are used for pretraining: English and the language of the target speaker.
 3. TTS finetuning. We update all parameters using the training set of the target speaker.
 4. PWG training. We pool the training data from all available speakers in each task.
+
+!(./asr-tts-big.pdf)
 
 ## Recipe structure
 
@@ -49,7 +53,7 @@ The following datasets are used to train this baseline method.
 - **M-AILABS** contains English and German data for task 2 TTS pretraining. It can be downloaded automatically in the recipe.
 - **[CSS10](https://www.kaggle.com/bryanpark/finnish-single-speaker-speech-dataset)** contains Finnish data for task2 TTS pretraining. To download this dataset, Kaggle membership is required. Please download and put it in the desired directory. (default is `tts_en_fi/downloads/`)
 - **CSMSC** contains Mandarin data for task 2 TTS pretraining. It can be downloaded automatically in the recipe.
-- **VCC2020** contains the main training data of the challenge. Please follow the instruction from the organizers and put in the desired directory. (default is `vc1_task[1/2]/downloads/`)
+- **VCC2020** contains the main training data of the challenge. It can be downloaded automatically in the recipe.
 
 ## Usage
 
@@ -59,12 +63,37 @@ For detailed usage, please see the readme in each recipe.
 
 ## Converted samples
 
-The evaluation set has not been released yet, so we provide two sets of converted samples as reference:
+We provide two sets of converted samples as reference:
 
 1. Since the training set of the source English speakers (Numbers `E10001` to `E10060`) is not used in this baseline method, we use it as the development set. You can find the converted samples [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
 
 1. The organizers prepared another reference set (Numbers `E20001` to `E20020`). You can find the converted samples [here](https://drive.google.com/drive/folders/1C2BlumRiSNPsOCHgJNZVhpCbOXlBTT1w?usp=sharing).
 
+## Citations
+
+If you use this recipe for your research, please kindly cite the following papers:
+
+```
+@inproceedings{Yi2020,
+    author={Zhao Yi and Wen-Chin Huang and Xiaohai Tian and Junichi Yamagishi and Rohan Kumar Das and Tomi Kinnunen and Zhen-Hua Ling and Tomoki Toda},
+    title={{Voice Conversion Challenge 2020 –- Intra-lingual semi-parallel and cross-lingual voice conversion –-}},
+    year=2020,
+    booktitle={Proc. Joint Workshop for the Blizzard Challenge and Voice Conversion Challenge 2020},
+    pages={80--98},
+    doi={10.21437/VCC_BC.2020-14},
+    url={http://dx.doi.org/10.21437/VCC_BC.2020-14}
+}
+
+@inproceedings{Huang2020,
+    author={Wen-Chin Huang and Tomoki Hayashi and Shinji Watanabe and Tomoki Toda},
+    title={{The Sequence-to-Sequence Baseline for the Voice Conversion Challenge 2020: Cascading ASR and TTS}},
+    year=2020,
+    booktitle={Proc. Joint Workshop for the Blizzard Challenge and Voice Conversion Challenge 2020},
+    pages={160--164},
+    doi={10.21437/VCC_BC.2020-24},
+    url={http://dx.doi.org/10.21437/VCC_BC.2020-24}
+}
+```
 
 ## Author
 
