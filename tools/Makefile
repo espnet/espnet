@@ -54,12 +54,13 @@ PIP_CHAINER := chainer==$(CHAINER_VERSION)
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
-python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done chainer_ctc.done chainer.done
+python: activate_python.sh espnet.done pytorch.done chainer.done
+extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 else
-python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done
+python: activate_python.sh espnet.done pytorch.done
+extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 endif
 
-extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
