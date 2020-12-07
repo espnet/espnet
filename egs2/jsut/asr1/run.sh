@@ -18,10 +18,11 @@ train_set=tr_no_dev
 valid_set=dev
 test_sets="dev eval1"
 
-asr_config=conf/train_asr_conformer.yaml
+asr_config=conf/tuning/train_asr_conformer8.yaml
 inference_config=conf/decode_transformer.yaml
 lm_config=conf/train_lm.yaml
 ./asr.sh \
+    --ngpu 4 \
     --lang jp \
     --token_type char \
     --feats_type raw \

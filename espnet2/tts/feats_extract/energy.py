@@ -5,7 +5,6 @@
 
 from typing import Any
 from typing import Dict
-from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -29,11 +28,12 @@ class Energy(AbsFeatsExtract):
         n_fft: int = 1024,
         win_length: int = None,
         hop_length: int = 256,
-        window: Optional[str] = "hann",
+        window: str = "hann",
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
         use_token_averaged_energy: bool = True,
+        reduction_factor: int = None,
     ):
         assert check_argument_types()
         super().__init__()
@@ -46,6 +46,9 @@ class Energy(AbsFeatsExtract):
         self.win_length = win_length
         self.window = window
         self.use_token_averaged_energy = use_token_averaged_energy
+        if use_token_averaged_energy:
+            assert reduction_factor >= 1
+        self.reduction_factor = reduction_factor
 
         self.stft = Stft(
             n_fft=n_fft,
@@ -70,6 +73,7 @@ class Energy(AbsFeatsExtract):
             center=self.stft.center,
             normalized=self.stft.normalized,
             use_token_averaged_energy=self.use_token_averaged_energy,
+            reduction_factor=self.reduction_factor,
         )
 
     def forward(
@@ -107,6 +111,7 @@ class Energy(AbsFeatsExtract):
 
         # (Optional): Average by duration to calculate token-wise energy
         if self.use_token_averaged_energy:
+            durations = durations * self.reduction_factor
             energy = [
                 self._average_by_duration(e[:el].view(-1), d)
                 for e, el, d in zip(energy, energy_lengths, durations)
@@ -120,9 +125,8 @@ class Energy(AbsFeatsExtract):
         # Return with the shape (B, T, 1)
         return energy.unsqueeze(-1), energy_lengths
 
-    @staticmethod
-    def _average_by_duration(x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
-        assert d.sum() == len(x)
+    def _average_by_duration(self, x: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
+        assert 0 <= len(x) - d.sum() < self.reduction_factor
         d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
         x_avg = [
             x[start:end].mean() if len(x[start:end]) != 0 else x.new_tensor(0.0)
