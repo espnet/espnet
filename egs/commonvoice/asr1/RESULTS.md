@@ -503,10 +503,10 @@
 |decode_test_cs_decode_default_lm|2574|16508|78.4|19.1|2.5|2.5|24.0|48.6|
 
 # Welsh (train_cy_pytorch_cy_train_conformer-rnn_transducer)
-# Note: early results, lm-weight=0.1
+# Note: early results, lm-weight = 0.1 for decoding
 
 - Model files
-  - model link:
+  - model link: https://drive.google.com/open?id=1POQmnorwiZrWwwszvkEKNaAfsuyQStjU
   - training config file: `conf/tuning/transducer/cy_train_conformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_cy/cmvn.ark`
@@ -520,12 +520,12 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_cy_decode_transducer_lm|2933|91050|87.2|8.7|4.0|2.1|14.8|66.5|
-|decode_test_cy_decode_transducer_lm|2937|80473|90.3|6.7|3.0|1.8|11.5|37.1|
+|decode_dev_cy_decode_default_lm|2933|91050|86.5|9.3|4.2|2.3|15.8|64.6|
+|decode_test_cy_decode_default_lm|2937|80473|89.9|6.9|3.2|1.7|11.8|35.6|
 
 ## WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_cy_decode_transducer_lm|2933|28498|78.5|18.8|2.7|2.3|23.7|66.5|
-|decode_test_cy_decode_transducer_lm|2937|26046|85.2|12.9|1.9|1.7|16.5|37.1|
+|decode_dev_cy_decode_default_lm|2933|28498|78.1|19.1|2.8|2.3|24.2|64.6|
+|decode_test_cy_decode_default_lm|2937|26046|85.4|12.6|2.1|1.6|16.2|35.6|
