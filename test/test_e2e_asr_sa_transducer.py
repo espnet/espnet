@@ -6,8 +6,8 @@ import pytest
 import torch
 
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
-from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
+from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 
 
 def make_train_args(**kwargs):
