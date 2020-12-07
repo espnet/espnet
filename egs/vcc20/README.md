@@ -23,7 +23,7 @@ The training flow is as follows:
 3. TTS finetuning. We update all parameters using the training set of the target speaker.
 4. PWG training. We pool the training data from all available speakers in each task.
 
-!(./asr-tts-big.pdf)
+!(./asr+tts-big.png)
 
 ## Recipe structure
 
