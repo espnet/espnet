@@ -559,7 +559,6 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] ; then
 
     local/ob_eval/evaluate.sh --nj ${nj} \
         --db_root ${db_root} \
-        --vocoder ${voc} \
         --asr_model_dir exp/${asr_model}_asr \
         ${outdir} ${pairname} ${srcspk} ${trgspk} ${wavdir}
 fi
