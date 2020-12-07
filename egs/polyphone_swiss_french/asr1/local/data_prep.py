@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import os
-import sys
-import re
-import pathlib
-import subprocess
 from collections import defaultdict
+import os
+import pathlib
 from random import shuffle
+import re
+import subprocess
+import sys
 
 
 class FrPolyphonePrepper:
