@@ -51,11 +51,6 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         out_dim (int): output dim of last block
 
     """
-    if blocks_arch[0]["type"] in ("tdnn", "causal-conv1d"):
-        input_layer_odim = blocks_arch[0]["idim"]
-    else:
-        input_layer_odim = blocks_arch[0]["d_hidden"]
-
     input_dropout_rate = sorted(
         Counter(
             b["dropout-rate"] for b in blocks_arch if "dropout-rate" in b
@@ -191,6 +186,11 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
                 + net_part
             )
 
+    if blocks_arch[0]["type"] in ("tdnn", "causal-conv1d"):
+        input_layer_odim = blocks_arch[0]["idim"]
+    else:
+        input_layer_odim = blocks_arch[0]["d_hidden"]
+
     if blocks_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
         out_dim = blocks_arch[-1]["idim"]
     else:
@@ -292,8 +292,6 @@ def build_input_layer(
             torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
             torch.nn.Dropout(dropout_rate_embed),
         )
-    elif input_layer is None:
-        return pos_enc_class(odim, pos_dropout_rate)
     else:
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
 
