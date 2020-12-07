@@ -159,6 +159,8 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         ```sh
         $ cd <espnet-root>/tools
         $ ./setup_anaconda.sh [output-dir-name] [conda-env-name] [python-version]
+        # e.g.
+        $ ./setup_anaconda.sh anaconda espnet 3.8
         ```
         If `[output-dir-name]` is omitted, `venv` is generated.
         If `[conda-env-name]` and `[python-version]` are omitted,
@@ -171,6 +173,8 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ CONDA_TOOLS_DIR=$(dirname ${CONDA_EXE})/..
         $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} [conda-env-name] [python-version]
+        # e.g.
+        $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} espnet 3.8
         ```
 
     - Option B) Setup venv from system Python
@@ -208,8 +212,10 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ cd <espnet-root>/tools
     $ make CPU_ONLY=0
     ```
-### Step 3) [Option] Manual installation
-If you are stuck in some troubles when installation, you can also install them ignoring the Makefile.
+
+### Step 3) [Option] Custom tool installation
+Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default, 
+so if you meet some installation error when running these recipe, you need to install them optionally.
 
 Note that the Python interpreter used in ESPnet experiments is written in `<espnet-root>/tools/activate_python.sh`,
 so you need to activate it before installing python packages.
@@ -220,6 +226,13 @@ cd <espnet-root>/tools
 python3 -m pip install <some-package>
 ./installers/install_<some-tool>.sh
 ```
+
+e.g. 
+
+- To install Warp CTC: [install_warp-ctc.sh](https://github.com/espnet/espnet/blob/master/tools/installers/install_warp-ctc.sh)
+- To install Warp Transducer: [install_warp-transducer.sh](https://github.com/espnet/espnet/blob/master/tools/installers/install_warp-transducer.sh)
+
+e.g. To install warp-ctc
 
 ### Check installation
 You can check whether your installation is succesfully finished by
