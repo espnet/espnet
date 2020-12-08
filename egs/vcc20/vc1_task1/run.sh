@@ -532,7 +532,7 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] ; then
     mcd_file=${outdir}_denorm/${pairname}/mcd.log
 
     # Decide wavdir depending on vocoder
-    if [ ! -z ${voc} ]; then
+    if [ -n "${voc}" ]; then
         # select vocoder type (GL, PWG)
         if [ ${voc} == "PWG" ]; then
             wavdir=${outdir}_denorm/${pairname}/pwg_wav
