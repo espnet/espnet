@@ -64,6 +64,7 @@ def low_cut_filter(x, fs, cutoff=70):
 
     return lcf_x
 
+
 def spc2npow(spectrogram):
     """Calculate normalized power sequence from spectrogram
 
@@ -86,6 +87,7 @@ def spc2npow(spectrogram):
     npow = 10.0 * np.log10(npow / meanpow)
 
     return npow
+
 
 def _spvec2pow(specvec):
     """Convert a spectrum envelope into a power
@@ -114,6 +116,7 @@ def _spvec2pow(specvec):
 
     return power
 
+
 def extfrm(data, npow, power_threshold=-20):
     """Extract frame over the power threshold
 
@@ -137,13 +140,14 @@ def extfrm(data, npow, power_threshold=-20):
 
     T = data.shape[0]
     if T != len(npow):
-        raise("Length of two vectors is different.")
+        raise ("Length of two vectors is different.")
 
     valid_index = np.where(npow > power_threshold)
     extdata = data[valid_index]
     assert extdata.shape[0] <= T
 
     return extdata
+
 
 def world_extract(wav_path, args):
     fs, x = wavfile.read(wav_path)
@@ -185,11 +189,15 @@ def calculate(file_list, gt_file_list, args, MCD):
         # extract ground truth and converted features
         gt_feats = world_extract(gt_path, args)
         cvt_feats = world_extract(cvt_path, args)
-        
+
         # VAD & DTW based on power
         gt_mcep_nonsil_pow = extfrm(gt_feats["mcep"], gt_feats["npow"])
         cvt_mcep_nonsil_pow = extfrm(cvt_feats["mcep"], cvt_feats["npow"])
-        _, path = fastdtw(cvt_mcep_nonsil_pow, gt_mcep_nonsil_pow, dist=scipy.spatial.distance.euclidean)
+        _, path = fastdtw(
+            cvt_mcep_nonsil_pow,
+            gt_mcep_nonsil_pow,
+            dist=scipy.spatial.distance.euclidean,
+        )
         twf_pow = np.array(path).T
 
         # MCD using power-based DTW
