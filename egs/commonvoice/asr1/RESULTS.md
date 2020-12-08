@@ -9,7 +9,18 @@
 - Git hash: `a0075233a29d7e2f5a965c2123f5fda8c718fd35`
   - Commit date: `Mon Nov 30 13:25:15 2020`
 
-## train_cy_pytorch_conformer_spec_sp
+## train_cy_pytorch_conformer
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/19hrIFuse28HmToR1HiXwxPCgLfUahxB4/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_cy/cmvn.ark`
+    - e2e file: `exp/train_cy_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_cy_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_cy_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_cy_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/cy_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -25,7 +36,19 @@
 |decode_test_cy_decode_lm|2937|26046|87.1|11.5|1.4|1.2|14.2|38.5|
 
 
-## train_ru_pytorch_conformer_spec_sp
+## train_ru_pytorch_conformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1RqZTNi9ovZ8u-BKMHwtzUI4OnMMOz6Wh/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_ru/cmvn.ark`
+    - e2e file: `exp/train_ru_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_ru_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_ru_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_ru_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/ru_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -40,7 +63,19 @@
 |decode_dev_ru_decode_lm|7242|70009|93.5|5.6|0.9|0.4|6.9|33.5|
 |decode_test_ru_decode_lm|7307|71189|92.2|6.7|1.1|0.7|8.5|38.3|
 
-## train_it_pytorch_conformer_spec_sp
+## train_it_pytorch_conformer
+
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1XMxoHsyddPqHcfqGrEB5NFTKsS3HdGdj/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_it/cmvn.ark`
+    - e2e file: `exp/train_it_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_it_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_it_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_it_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/it_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -55,7 +90,19 @@
 |decode_dev_it_decode_lm|11904|116060|85.7|12.7|1.6|1.3|15.6|63.5|
 |decode_test_it_decode_lm|11900|117102|84.5|13.8|1.7|1.4|17.0|66.6|
 
-## train_fa_pytorch_conformer_spec_sp
+## train_fa_pytorch_conformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1SCCT4ZJw_oLdkAQhy0cBUqLz3qFrN3m3/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_fa/cmvn.ark`
+    - e2e file: `exp/train_fa_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_fa_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_fa_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_fa_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/fa_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -71,7 +118,7 @@
 |decode_test_fa_decode_lm|3989|30347|98.1|1.4|0.5|0.2|2.1|5.4|
 
 
-## train_cs_pytorch_conformer_spec_sp-small
+## train_cs_pytorch_conformer-small
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -86,7 +133,7 @@
 |decode_dev_cs_decode_lm|2584|16239|88.7|9.7|1.6|0.7|12.0|35.4|
 |decode_test_cs_decode_lm|2574|16508|84.4|13.6|1.9|1.4|16.9|42.7|
 
-## train_cs_pytorch_conformer_spec_sp-med
+## train_cs_pytorch_conformer-med
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -101,7 +148,19 @@
 |decode_dev_cs_decode_lm|2584|16239|92.0|6.9|1.1|0.5|8.5|25.8|
 |decode_test_cs_decode_lm|2574|16508|87.3|11.1|1.6|1.2|13.9|34.1|
 
-## train_cs_pytorch_conformer_spec_sp-large
+## train_cs_pytorch_conformer-large
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1c2m6WMcHq9xToaF57twlvQGp6ydhJuTt/view?usp=sharing
+    - training config file: `conf/train_conformer_large.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_cs/cmvn.ark`
+    - e2e file: `exp/train_cs_pytorch_conformer-large/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_cs_pytorch_conformer-large/results/model.json`
+    - lm file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/cs_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -117,7 +176,19 @@
 |decode_test_cs_decode_lm|2574|16508|87.6|10.9|1.5|1.2|13.6|31.0|
 
 
-## train_pl_pytorch_conformer_spec_sp
+## train_pl_pytorch_conformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1nEd94h1Iy3zG2k1TjhCCL51F75xc5-uE/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_pl/cmvn.ark`
+    - e2e file: `exp/train_pl_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_pl_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_pl_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_pl_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/pl_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -132,7 +203,19 @@
 |decode_dev_pl_decode_lm|4458|32280|91.6|7.7|0.6|0.5|8.8|28.5|
 |decode_test_pl_decode_lm|4458|31588|97.6|2.1|0.3|0.2|2.6|8.6|
 
-## train_kab_pytorch_conformer_spec_sp
+## train_kab_pytorch_conformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1UsYCHrRBjlXM1sBoBo6sC4lGmWXQs2V-/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_kab/cmvn.ark`
+    - e2e file: `exp/train_kab_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_kab_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_kab_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_kab_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/kab_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -148,7 +231,19 @@
 |decode_test_kab_decode_lm|13384|61644|94.6|4.8|0.6|0.3|5.7|18.9|
 
 
-## train_nl_pytorch_conformer_spec_sp
+## train_nl_pytorch_conformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1H3WMoNC9JRkuynZ1O5tc5b_LkQvLw1ay/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_nl/cmvn.ark`
+    - e2e file: `exp/train_nl_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_nl_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_nl_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_nl_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/nl_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -163,7 +258,19 @@
 |decode_dev_nl_decode_lm|2198|18481|95.9|3.6|0.5|0.6|4.8|10.6|
 |decode_test_nl_decode_lm|2198|18259|98.8|1.0|0.2|0.1|1.4|4.7|
 
-## train_fr_pytorch_conformer_spec_sp
+## train_fr_pytorch_conformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1fLbQlo0P8_iC5z_o9VmpwBBe5nxm5czf/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_fr/cmvn.ark`
+    - e2e file: `exp/train_fr_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_fr_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_fr_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_fr_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/fr_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -178,7 +285,19 @@
 |decode_dev_fr_decode_lm|15621|148984|87.9|11.2|0.9|0.8|12.9|54.3|
 |decode_test_fr_decode_lm|15621|151227|86.3|12.7|1.0|1.1|14.8|58.8|
 
-## train_es_pytorch_conformer_spec_sp
+## train_es_pytorch_conformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1rUgqXAPBmzkswOhyPd-VuJou5BIHfNgM/view?usp=sharing
+    - training config file: `conf/train_conformer_standard.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_es/cmvn.ark`
+    - e2e file: `exp/train_es_pytorch_conformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_es_pytorch_conformer/results/model.json`
+    - lm file: `exp/train_es_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_es_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/es_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -208,6 +327,18 @@
 |decode_test_cy_decode_lm|2937|26046|80.3|17.3|2.4|2.1|21.8|49.4|
 
 ## train_tt_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1k7mpjiHacFP0exKzznMlkqbqoFtZLwnD/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_tt/cmvn.ark`
+    - e2e file: `exp/train_tt_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_tt_pytorch_train/results/model.json`
+    - lm file: `exp/train_tt_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_tt_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/tt_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -253,6 +384,18 @@
 |decode_test_fr_decode_lm|15621|151227|78.4|19.6|2.0|2.0|23.6|74.6|
 
 ## train_eu_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1nuHHroL_YbqYjBQa_v6PLZgBiEmdBDMo/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_eu/cmvn.ark`
+    - e2e file: `exp/train_eu_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_eu_pytorch_train/results/model.json`
+    - lm file: `exp/train_eu_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_eu_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/eu_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -283,6 +426,7 @@
 |decode_test_kab_decode_lm|13384|61644|84.2|14.1|1.7|1.1|16.9|43.5|
 
 ## train_fa_pytorch_train_transformer
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -312,6 +456,18 @@
 |decode_test_es_decode_lm|14860|146742|75.4|21.1|3.4|2.0|26.6|80.6|
 
 ## train_zh_TW_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1aDEhNAvyaQrFRcR1L-Uq3wumDjjqH7G4/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_zh_TW/cmvn.ark`
+    - e2e file: `exp/train_zh_TW_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_zh_TW_pytorch_train/results/model.json`
+    - lm file: `exp/train_zh-TW_rnnlm_pytorch_lm_unigram2500/rnnlm.model.best`
+    - lm JSON file: `exp/train_zh-TW_rnnlm_pytorch_lm_unigram2500/model.json`
+    - dict file: `data/zh-TW_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -327,6 +483,18 @@
 |decode_test_zh_TW_decode_lm|2627|2627|88.5|11.5|0.0|0.0|11.5|11.5|
 
 ## train_de_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1IYqKPhaiQ0iy2kPxHej7Q0A3-_DOpC0U/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_de/cmvn.ark`
+    - e2e file: `exp/train_de_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_de_pytorch_train/results/model.json`
+    - lm file: `exp/train_de_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_de_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/de_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -342,6 +510,18 @@
 |decode_test_de_decode_lm|15341|137514|82.4|15.2|2.4|1.3|19.0|64.3|
 
 ## train_ca_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1NWv7XVWpLLFI5gYmTV509n_aNVk_7il0/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_ca/cmvn.ark`
+    - e2e file: `exp/train_ca_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_ca_pytorch_train/results/model.json`
+    - lm file: `exp/train_ca_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_ca_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/ca_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -372,6 +552,18 @@
 |decode_test_it_decode_lm|11900|117102|69.5|26.8|3.8|3.2|33.7|87.6|
 
 ## train_tr_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1KODnDC1A-ezBTE9P44O_5vMHQaw5FerP/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_tr/cmvn.ark`
+    - e2e file: `exp/train_tr_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_tr_pytorch_train/results/model.json`
+    - lm file: `exp/train_tr_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_tr_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/tr_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -402,6 +594,18 @@
 |decode_test_nl_decode_lm|2198|18259|84.1|13.7|2.2|1.9|17.8|55.3|
 
 ## train_eo_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1d8IfV4SgXffCBW6xuLwmwFdEqaz8xIeo/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_eo/cmvn.ark`
+    - e2e file: `exp/train_eo_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_eo_pytorch_train/results/model.json`
+    - lm file: `exp/train_eo_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_eo_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/eo_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -417,6 +621,18 @@
 |decode_test_eo_decode_lm|8453|65874|67.4|29.3|3.3|2.5|35.1|83.8|
 
 ## train_zh_CN_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1XNdzHctQhadloZ7annhw_57M_pTH1N-d/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_zh_CN/cmvn.ark`
+    - e2e file: `exp/train_zh_CN_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_zh_CN_pytorch_train/results/model.json`
+    - lm file: `exp/train_zh-CN_rnnlm_pytorch_lm_unigram4500/rnnlm.model.best`
+    - lm JSON file: `exp/train_zh-CN_rnnlm_pytorch_lm_unigram4500/model.json`
+    - dict file: `data/zh-CN_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -432,6 +648,18 @@
 |decode_test_zh_CN_decode_lm|8273|8273|6.6|93.4|0.0|0.0|93.4|93.4|
 
 ## train_pt_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1WGuFNFtb_K3M24nJgYhR0fVdS5Qy8ib0/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_pt/cmvn.ark`
+    - e2e file: `exp/train_pt_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_pt_pytorch_train/results/model.json`
+    - lm file: `exp/train_pt_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_pt_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/pt_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -447,6 +675,18 @@
 |decode_test_pt_decode_lm|4334|33716|67.5|27.2|5.3|3.1|35.5|80.4|
 
 ## train_rw_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1Cn-f4HePi37hUHHhGEso17Ly6cV9SqwW/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_rw/cmvn.ark`
+    - e2e file: `exp/train_rw_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_rw_pytorch_train/results/model.json`
+    - lm file: `exp/train_rw_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_rw_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/rw_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -462,6 +702,18 @@
 |decode_test_rw_decode_lm|14251|117926|63.5|31.6|4.9|3.5|40.0|86.9|
 
 ## train_uk_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1DJq8ZSnvApgXPgrAtQpk-hT51MqNGVB9/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_uk/cmvn.ark`
+    - e2e file: `exp/train_uk_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_uk_pytorch_train/results/model.json`
+    - lm file: `exp/train_uk_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+    - lm JSON file: `exp/train_uk_rnnlm_pytorch_lm_unigram150/model.json`
+    - dict file: `data/uk_lang_char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -492,6 +744,19 @@
 |decode_test_cs_decode_lm|2574|16508|59.2|35.3|5.6|3.5|44.3|81.9|
 
 ## train_zh_HK_pytorch_train_transformer
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1PcArQDzNJVD7IMiFfgGGU1EvLJWCpBJu/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_zh_HK/cmvn.ark`
+    - e2e file: `exp/train_zh_HK_pytorch_train/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_zh_HK_pytorch_train/results/model.json`
+    - lm file: `exp/train_zh-HK_rnnlm_pytorch_lm_unigram4500/rnnlm.model.best`
+    - lm JSON file: `exp/train_zh-HK_rnnlm_pytorch_lm_unigram4500/model.json`
+    - dict file: `data/zh-HK_lang_char/`
+
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
