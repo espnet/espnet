@@ -939,3 +939,71 @@
 |decode_dev_pl_decode_lm|4458|32280|91.6|7.8|0.6|0.5|8.9|28.1|
 |decode_test_pl_decode_lm|4458|31588|97.6|2.1|0.3|0.2|2.6|8.1|
 
+---
+
+# Transducer results (no data augmentation)
+# Encoder: VGG2L + 12 x Conformer / Decoder: embedding + 3 x LSTM
+
+- Environments
+  - date: `Thu Nov 27 12:25:08 CET 2020`
+  - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.9.4`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.4.0`
+  - Git hash: `e9c1a554f0fbeeaeedd0f7e5c9ab096d243011b2`
+  - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
+
+# Czech (train_cs_pytorch_cs_train_conformer-rnn_transducer)
+
+- Model files
+  - model link:
+  - training config file: `conf/tuning/transducer/cs_train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/train_cs/cmvn.ark`
+  - e2e file: `exp/train_cs_pytorch_train_cs_conformer-rnn_transducer/results/model.last20.avg.best`
+  - e2e JSON file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer/results/model.json`
+  - lm file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+  - lm JSON file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/model.json`
+  - dict file: `data/cs_lang_char/`
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_cs_decode_default_lm|2584|62452|91.8|5.9|2.3|1.1|9.3|41.2|
+|decode_test_cs_decode_default_lm|2574|65232|88.5|8.6|2.9|1.8|13.3|48.6|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_cs_decode_default_lm|2584|16239|84.4|13.3|2.3|1.6|17.2|41.2|
+|decode_test_cs_decode_default_lm|2574|16508|78.4|19.1|2.5|2.5|24.0|48.6|
+
+# Welsh (train_cy_pytorch_cy_train_conformer-rnn_transducer)
+# Note: early results, lm-weight = 0.1 for decoding
+
+- Model files
+  - model link: https://drive.google.com/open?id=1POQmnorwiZrWwwszvkEKNaAfsuyQStjU
+  - training config file: `conf/tuning/transducer/cy_train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/train_cy/cmvn.ark`
+  - e2e file: `exp/train_cy_pytorch_cy_train_conformer-rnn_transducer/results/model.last20.avg.best`
+  - e2e JSON file: `exp/train_cy_pytorch_cy_train_conformer-rnn_transducer/results/model.json`
+  - lm file: `exp/train_cy_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
+  - lm JSON file: `exp/train_cy_rnnlm_pytorch_lm_unigram150/model.json`
+  - dict file: `data/cy_lang_char/`
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_cy_decode_default_lm|2933|91050|86.5|9.3|4.2|2.3|15.8|64.6|
+|decode_test_cy_decode_default_lm|2937|80473|89.9|6.9|3.2|1.7|11.8|35.6|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_cy_decode_default_lm|2933|28498|78.1|19.1|2.8|2.3|24.2|64.6|
+|decode_test_cy_decode_default_lm|2937|26046|85.4|12.6|2.1|1.6|16.2|35.6|
