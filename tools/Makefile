@@ -54,15 +54,16 @@ PIP_CHAINER := chainer==$(CHAINER_VERSION)
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
-python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done chainer_ctc.done chainer.done
+python: activate_python.sh espnet.done pytorch.done chainer.done
+extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 else
-python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done
+python: activate_python.sh espnet.done pytorch.done
+extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 endif
 
-extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 
 kaldi:
-	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
+	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || git clone --depth 1 https://github.com/kaldi-asr/kaldi
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_anaconda.sh"; exit 1; }
@@ -70,7 +71,6 @@ activate_python.sh:
 ################ Logging ################
 showenv: activate_python.sh
 ifeq ($(strip $(CPU_ONLY)),)
-	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
 	@echo CUDA_VERSION=$(CUDA_VERSION)
 	. ./activate_python.sh && python3 check_pytorch_cuda_compatibility.py $(TH_VERSION) ${CUDA_VERSION} || { echo "Change TH_VERSION or CUDA_VERSION"; exit 1; }
 else
@@ -152,11 +152,15 @@ endif
 
 # NOTE(kamo): Add conda_packages.done if cmake is used
 warp-ctc.done: pytorch.done conda_packages.done
+ifeq ($(strip $(CPU_ONLY)),)
+	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
+endif
 	. ./activate_python.sh && ./installers/install_warp-ctc.sh
 	touch warp-ctc.done
 
 warp-transducer.done: pytorch.done conda_packages.done
 ifeq ($(strip $(CPU_ONLY)),)
+	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
 	. ./activate_python.sh && ./installers/install_warp-transducer.sh
 	. ./activate_python.sh &&  ./installers/install_warp-rnnt.sh $(CUDA_VERSION)
 	touch warp-transducer.done
@@ -166,6 +170,9 @@ else
 endif
 
 chainer_ctc.done: chainer.done
+ifeq ($(strip $(CPU_ONLY)),)
+	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
+endif
 	. ./activate_python.sh && ./installers/install_chainer_ctc.sh
 	touch chainer_ctc.done
 
