@@ -7,7 +7,7 @@ lm: seq_rnn
 lm_conf:
     rnn_type: lstm
     nlayers: 2
-    unit: 650
+    unit: 2024
 
 best_model_criterion:
 -   - valid

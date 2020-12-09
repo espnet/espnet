@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-mic=L1C     # Beam_Circular_Array Beam_Linear_Array KA6 L1C
+mic=Beam_Circular_Array     # Beam_Circular_Array Beam_Linear_Array KA6 L1C
 
 local_data_opts="--mic ${mic}"
 
@@ -16,18 +16,21 @@ test_sets=dirha_real_$mic
 
 # config files
 #preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
-asr_config=conf/train.yaml
+asr_config=conf/tuning/train_asr_transformer.yaml
+lm_config=conf/tuning/train_lm_transformer.yaml
 inference_config=conf/decode.yaml
 
-lm_config=conf/train_lm.yaml
 use_word_lm=false
 word_vocab_size=65000
 
 ./asr.sh                                        \
     --lang en \
+    --ngpu 4 \
+    --audio_format wav \
     --nlsyms_txt data/nlsyms.txt                \
     --token_type char                           \
-    --feats_type fbank_pitch                    \
+    --feats_type raw                    \
+    --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}"                \
     --inference_config "${inference_config}"          \
     --lm_config "${lm_config}"                  \
