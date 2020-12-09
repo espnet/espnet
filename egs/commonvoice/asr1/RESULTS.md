@@ -309,6 +309,7 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
+|decode_dev_es_decode_lm|14860|146643|89.9|9.2|0.9|0.8|11.0|51.5|
 |decode_test_es_decode_lm|14860|146742|89.2|9.8|1.0|1.0|11.8|53.9|
 
 ## train_cy_pytorch_train_transformer
