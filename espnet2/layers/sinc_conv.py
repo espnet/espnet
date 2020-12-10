@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# encoding: utf-8
 #  2020, Technische Universität München;  Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Sinc convolutions."""
 import torch
+from typing import Union
 
 CONSTANT_PI = 3.141592653589793
 
@@ -12,14 +12,14 @@ CONSTANT_PI = 3.141592653589793
 class LogCompression(torch.nn.Module):
     """Log Compression Activation.
 
-    Activation function log(abs(x) + 1)
+    Activation function `log(abs(x) + 1)`.
     """
 
     def __init__(self):
         """Initialize."""
         super(LogCompression, self).__init__()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward.
 
         Applies the Log Compression function elementwise on tensor x.
@@ -49,26 +49,26 @@ class SincConv(torch.nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        window_func="hamming",
-        fs=16000,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        padding: int = 0,
+        dilation: int = 1,
+        window_func: str = "hamming",
+        fs: Union[int, float] = 16000,
     ):
         """Initialize Sinc convolutions.
 
-        :param int in_channels: Number of input channels
-        :param int out_channels: Number of output channels
-        :param int kernel_size: Sinc filter kernel size (needs to be an odd number)
-        :param int stride: See torch.nn.functional.conv1d
-        :param int padding: See torch.nn.functional.conv1d
-        :param int dilation: See torch.nn.functional.conv1d
-        :param int window_func: Window function to use on the filter,
-         one of ["hamming", "none"].
-        :param int fs: Sample rate of the input data
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            kernel_size: Sinc filter kernel size (needs to be an odd number).
+            stride: See torch.nn.functional.conv1d.
+            padding: See torch.nn.functional.conv1d.
+            dilation: See torch.nn.functional.conv1d.
+            window_func: Window function on the filter, one of ["hamming", "none"].
+            fs (str, int, float): Sample rate of the input data
         """
         super(SincConv, self).__init__()
         window_funcs = {
@@ -98,18 +98,18 @@ class SincConv(torch.nn.Module):
         self.init_filters()
 
     @staticmethod
-    def sinc(x):
+    def sinc(x: torch.Tensor) -> torch.Tensor:
         """Sinc function."""
         x2 = x + 1e-6
         return torch.sin(x2) / x2
 
     @staticmethod
-    def none_window(x):
+    def none_window(x: torch.Tensor) -> torch.Tensor:
         """Identity-like windowing function."""
         return torch.ones_like(x)
 
     @staticmethod
-    def hamming_window(x):
+    def hamming_window(x: torch.Tensor) -> torch.Tensor:
         """Hamming Windowing function."""
         L = 2 * x.size(0) + 1
         x = x.flip(0)
@@ -130,7 +130,11 @@ class SincConv(torch.nn.Module):
         f1, f2 = fs[:-2], fs[2:]
         self.f = torch.nn.Parameter(torch.stack([f1, f2], dim=1), requires_grad=True)
 
-    def _create_filters(self, device):
+    def _create_filters(self, device: str):
+        """Calculate coefficients.
+
+        This function (re-)calculates the filter convolutions coefficients.
+        """
         f_mins = torch.abs(self.f[:, 0])
         f_maxs = torch.abs(self.f[:, 0]) + torch.abs(self.f[:, 1] - self.f[:, 0])
 
@@ -150,12 +154,14 @@ class SincConv(torch.nn.Module):
         filters = filters.view(filters.size(0), 1, filters.size(1))
         self.sinc_filters = filters
 
-    def forward(self, xs):
+    def forward(self, xs: torch.Tensor) -> torch.Tensor:
         """Sinc convolution forward function.
 
-        :param torch.Tensor xs: batch of input data (B, C_in, D_in)
-        :return: batch of output data (B, C_out, D_out)
-        :rtype: torch.Tensor
+        Args:
+            xs: Batch in form of torch.Tensor (B, C_in, D_in).
+
+        Returns:
+            xs: Batch in form of torch.Tensor (B, C_out, D_out).
         """
         self._create_filters(xs.device)
         xs = torch.nn.functional.conv1d(

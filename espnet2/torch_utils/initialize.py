@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# encoding: utf-8
 
 """Initialize modules for espnet2 neural networks."""
 
@@ -16,8 +15,9 @@ def initialize(model: torch.nn.Module, init: str):
     Custom initialization routines can be implemented into submodules
     as function `espnet_initialization_fn` within the custom module.
 
-    :param model: target
-    :param init: method of initialization
+    Args:
+        model: Target.
+        init: Method of initialization.
     """
     assert check_argument_types()
 

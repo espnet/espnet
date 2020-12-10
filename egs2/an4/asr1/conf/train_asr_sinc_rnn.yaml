@@ -25,7 +25,7 @@ scheduler_conf:
     patience: 1
 
 # lightweight  sinc convolutions
-frontend: raw
+frontend: sliding_window
 frontend_conf:
     hop_length: 240
 preencoder: sinc

@@ -14,8 +14,8 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
 import torch
-
 
 def get_parser():
     """Construct the parser."""
@@ -43,15 +43,21 @@ def get_parser():
     return parser
 
 
-def plot_filtergraph(filters, sample_rate, img_path, sorted=True, logscale=False):
+def plot_filtergraph(
+    filters: torch.Tensor,
+    sample_rate: int,
+    img_path: str,
+    sorted: bool = True,
+    logscale: bool = False,
+):
     """Plot the Sinc filter bandpass frequencies.
 
-    :param filters: Filter parameters
-    :param sample_rate: Sample rate of signal
-    :param img_path: Output plot file
-    :param sorted: Sort bandpasses by center frequency.
-    :param logscale: Set Y axis to logarithmic scale.
-    :return:
+    Args:
+        filters: Filter parameters.
+        sample_rate: Sample rate of signal.
+        img_path: Output plot file.
+        sorted: Sort bandpasses by center frequency.
+        logscale: Set Y axis to logarithmic scale.
     """
 
     def convert(f1, f2):
@@ -99,13 +105,13 @@ def plot_filtergraph(filters, sample_rate, img_path, sorted=True, logscale=False
     print("Plotted %s" % img_path)
 
 
-def plot_filter_kernels(filters, sample_rate, args):
+def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
     """Plot the Sinc filter kernels.
 
-    :param filters: Filter parameters
-    :param sample_rate: Sample rate of Signal
-    :param args: Dictionary with output options.
-    :return:
+    Args:
+        filters (torch.Tensor): Filter parameters.
+        sample_rate (int): Sample rate of Signal.
+        args (dict): Dictionary with output options.
     """
     from espnet2.layers.sinc_conv import SincConv
 
@@ -209,10 +215,10 @@ def plot_filter_kernels(filters, sample_rate, args):
     print("Plotted %s" % img_path)
 
 
-def main():
+def main(argv):
     """Load the model, generate kernel and bandpass plots."""
     parser = get_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     model_path = args.model_path
     sample_rate = args.sample_rate
 
@@ -251,4 +257,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

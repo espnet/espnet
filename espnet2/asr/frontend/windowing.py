@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# encoding: utf-8
 #  2020, Technische Universität München;  Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -20,26 +19,24 @@ class SlidingWindow(AbsFrontend):
     Output length is calculated incorrectly if audio shorter than win_length.
     WARNING: trailing values are discarded - padding not implemented yet.
     There is currently no additional window function applied to input values.
-
-    input: Tensor with (B, T, C*D) or (B, T*C*D), With D=1
-    output: Tensor with dimensions (B, T, C, D)
     """
 
     def __init__(
         self,
-        win_length=400,
-        hop_length=160,
-        channels=1,
-        padding=None,
+        win_length: int = 400,
+        hop_length: int = 160,
+        channels: int = 1,
+        padding: int = None,
         fs=None,
     ):
         """Initialize.
 
-        :param win_length: Length of frame.
-        :param hop_length: Relative starting point of next frame.
-        :param channels: Number of input channels.
-        :param padding: Padding (placeholder, currently not implemented).
-        :param fs: Sampling rate (placeholder for compatibility, not used).
+        Args:
+            win_length: Length of frame.
+            hop_length: Relative starting point of next frame.
+            channels: Number of input channels.
+            padding: Padding (placeholder, currently not implemented).
+            fs:  Sampling rate (placeholder for compatibility, not used).
         """
         super().__init__()
         self.fs = fs
@@ -51,7 +48,16 @@ class SlidingWindow(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward."""
+        """Forward.
+
+        Args:
+            input: Input (B, T, C*D) or (B, T*C*D), with D=1.
+            input_lengths: Input lengths within batch.
+
+        Returns:
+            Tensor: Output with dimensions (B, T, C, D), with D=win_length.
+            Tensor: Output lengths within batch.
+        """
         input_size = input.size()
         B = input_size[0]
         T = input_size[1]

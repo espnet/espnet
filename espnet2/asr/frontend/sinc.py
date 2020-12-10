@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# encoding: utf-8
 #  2020, Technische Universität München;  Ludwig Kürzinger
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -11,6 +10,7 @@ from espnet2.layers.sinc_conv import LogCompression
 from espnet2.layers.sinc_conv import SincConv
 import humanfriendly
 import torch
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -24,19 +24,20 @@ class LightweightSincConvs(AbsFrontend):
 
     def __init__(
         self,
-        fs: Union[int, str] = 16000,
-        in_channels=1,
-        out_channels=256,
-        activation_type="leakyrelu",
-        dropout_type="dropout",
+        fs: Union[int, str, float] = 16000,
+        in_channels: int = 1,
+        out_channels: int = 256,
+        activation_type: str = "leakyrelu",
+        dropout_type: str = "dropout",
     ):
         """Initialize the module.
 
-        :param fs: Sample rate
-        :param in_channels: Number of input channels
-        :param out_channels: Number of output channels (for each input channel)
-        :param activation_type: Choice of activation function
-        :param dropout_type:  Choice of dropout function
+        Args:
+            fs: Sample rate.
+            in_channels: Number of input channels.
+            out_channels: Number of output channels (for each input channel).
+            activation_type: Choice of activation function.
+            dropout_type: Choice of dropout function.
         """
         super().__init__()
         if isinstance(fs, str):
@@ -62,6 +63,7 @@ class LightweightSincConvs(AbsFrontend):
         # initialization
         self._create_sinc_convs()
         self.init_sinc_convs()
+        # Sinc filters require custom initialization
         self.espnet_initialization_fn = self.init_sinc_convs
 
     def _create_sinc_convs(self):
@@ -118,26 +120,29 @@ class LightweightSincConvs(AbsFrontend):
 
     def gen_lsc_block(
         self,
-        in_channels,
-        out_channels,
-        depthwise_kernel_size=9,
-        depthwise_stride=1,
+        in_channels: int,
+        out_channels: int,
+        depthwise_kernel_size: int = 9,
+        depthwise_stride: int = 1,
         depthwise_groups=None,
         pointwise_groups=0,
-        dropout_probability=0.15,
+        dropout_probability: float = 0.15,
         avgpool=False,
     ):
         """Generate a block for lightweight Sinc convolutions.
 
-        :param in_channels:  Number of input channels
-        :param out_channels:  Number of output channels
-        :param depthwise_kernel_size: Kernel size of the depthwise convolution
-        :param depthwise_stride: Stride of the depthwise convolution
-        :param depthwise_groups: Number of groups of the depthwise convolution
-        :param pointwise_groups: Number of groups of the pointwise convolution
-        :param dropout_probability: Dropout probability in the block
-        :param avgpool: If True, an AvgPool layer is inserted
-        :return:
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            depthwise_kernel_size: Kernel size of the depthwise convolution.
+            depthwise_stride: Stride of the depthwise convolution.
+            depthwise_groups: Number of groups of the depthwise convolution.
+            pointwise_groups: Number of groups of the pointwise convolution.
+            dropout_probability: Dropout probability in the block.
+            avgpool: If True, an AvgPool layer is inserted.
+
+        Returns:
+            torch.nn.Sequential: Neural network building block.
         """
         block = OrderedDict()
         if not depthwise_groups:
@@ -190,12 +195,15 @@ class LightweightSincConvs(AbsFrontend):
     def get_odim(self, idim=400):
         """Get output dimension by making one inference.
 
-        The test vector that is used has dimentions (1,T,idim).
-        T set to idim without any special reason
-        :param idim: input dimension D (sample points within one frame)
-        :return: output size
+        The test vector that is used has dimensions (1, T, 1, idim).
+        T was set to idim without any special reason,
+        Args:
+            idim: Input dimension D (i.e., sample points within one frame).
+
+        Returns:
+            int: Output dimension D.
         """
-        in_test = torch.zeros((1, idim, idim))
+        in_test = torch.zeros((1, idim, 1, idim))
         out, _ = self.forward(in_test, [idim])
         return out.size(2)
 
@@ -210,11 +218,16 @@ class SpatialDropout(torch.nn.Module):
     Apply dropout to full channels on tensors of input (B, C, D)
     """
 
-    def __init__(self, dropout_probability=0.15, shape=None):
+    def __init__(
+        self,
+        dropout_probability: float = 0.15,
+        shape: Optional[Union[tuple, list]] = None,
+    ):
         """Initialize.
 
-        :param dropout_probability: Dropout probability
-        :param shape: Shape as tuple or list
+        Args:
+            dropout_probability: Dropout probability.
+            shape (tuple, list): Shape of input tensors.
         """
         super().__init__()
         if shape is None:
@@ -222,7 +235,7 @@ class SpatialDropout(torch.nn.Module):
         self.dropout = torch.nn.Dropout2d(dropout_probability)
         self.shape = (shape,)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward of spatial dropout module."""
         y = x.permute(*self.shape)
         y = self.dropout(y)
