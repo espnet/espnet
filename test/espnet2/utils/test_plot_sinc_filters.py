@@ -16,7 +16,7 @@ def test_plot_sinc_filters_help():
 
 def test_plot_sinc_filters_plot_filters():
     # switch showing of figures off to avoid testing issues
-    matplotlib.use("Agg")
+    matplotlib.use("SVG")
     # random path to avoid errors from existing files
     random_number = int(torch.rand(1) * 100000)
     output_path = f"./test_plot_sinc_filters_{random_number}"
@@ -32,5 +32,13 @@ def test_plot_sinc_filters_plot_filters():
     # WARNING. plotting with --all gives full test coverage,
     # but also plotting all filters takes ~ 2 minutes
     # for speedup, remove the --all in the list below
-    args = ["--all", "--sample_rate", "16000", model_path, output_path]
+    args = [
+        "--all",
+        "--filetype",
+        "svg",
+        "--sample_rate",
+        "16000",
+        model_path,
+        output_path,
+    ]
     psf.main(args)
