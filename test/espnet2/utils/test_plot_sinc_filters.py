@@ -16,7 +16,7 @@ def test_plot_sinc_filters_help():
 
 def test_plot_sinc_filters_plot_filters():
     # switch showing of figures off to avoid testing issues
-    matplotlib.use('Agg')
+    matplotlib.use("Agg")
     # random path to avoid errors from existing files
     random_number = int(torch.rand(1) * 100000)
     output_path = f"./test_plot_sinc_filters_{random_number}"
