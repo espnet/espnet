@@ -35,6 +35,7 @@ from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
@@ -81,7 +82,7 @@ preencoder_choices = ClassChoices(
     classes=dict(
         sinc=LightweightSincConvs,
     ),
-    type_check=AbsFrontend,
+    type_check=AbsPreEncoder,
     default=None,
     optional=True,
 )
