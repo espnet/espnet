@@ -344,7 +344,6 @@ def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_t
 def build_conformer_block(
     block_arch,
     self_attn_class,
-    pos_enc_class,
     pw_layer_type,
     pw_activation_type,
     conv_mod_activation_type,
@@ -354,7 +353,6 @@ def build_conformer_block(
     Args:
         block_arch (dict): conformer block parameters
         self_attn_type (str): self-attention module type
-        pos_enc_class (str): positional encoding class
         pw_layer_type (str): positionwise layer type
         pw_activation_type (str): positionwise activation type
         conv_mod_activation_type (str): convolutional module activation type
@@ -527,7 +525,6 @@ def build_blocks(
             module = build_conformer_block(
                 blocks_arch[i],
                 self_attn_class,
-                pos_enc_class,
                 positionwise_layer_type,
                 positionwise_activation_type,
                 conv_mod_activation_type,

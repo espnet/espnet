@@ -50,7 +50,7 @@ class TDNN(torch.nn.Module):
         )
 
         if self.relu:
-            self.rel = torch.nn.ReLU()
+            self.relu_func = torch.nn.ReLU()
 
         if self.batch_norm:
             self.bn = torch.nn.BatchNorm1d(odim)
@@ -83,7 +83,7 @@ class TDNN(torch.nn.Module):
         xs = self.tdnn(xs)
 
         if self.relu:
-            xs = self.rel(xs)
+            xs = self.relu_func(xs)
 
         xs = self.dropout(xs)
 
