@@ -4,6 +4,7 @@
 
 """Sinc convolutions."""
 import torch
+from typeguard import check_argument_types
 from typing import Union
 
 CONSTANT_PI = 3.141592653589793
@@ -17,7 +18,7 @@ class LogCompression(torch.nn.Module):
 
     def __init__(self):
         """Initialize."""
-        super(LogCompression, self).__init__()
+        super().__init__()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward.
@@ -70,7 +71,8 @@ class SincConv(torch.nn.Module):
             window_func: Window function on the filter, one of ["hamming", "none"].
             fs (str, int, float): Sample rate of the input data
         """
-        super(SincConv, self).__init__()
+        assert check_argument_types()
+        super().__init__()
         window_funcs = {
             "none": self.none_window,
             "hamming": self.hamming_window,
@@ -174,7 +176,7 @@ class SincConv(torch.nn.Module):
         )
         return xs
 
-    def get_odim(self, idim):
+    def get_odim(self, idim: int) -> int:
         """Obtain the output dimension of the filter."""
         D_out = idim + 2 * self.padding - self.dilation * (self.kernel_size - 1) - 1
         D_out = (D_out // self.stride) + 1

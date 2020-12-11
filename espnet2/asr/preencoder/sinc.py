@@ -5,17 +5,18 @@
 """Sinc convolutions for raw audio input."""
 
 from collections import OrderedDict
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.layers.sinc_conv import LogCompression
 from espnet2.layers.sinc_conv import SincConv
 import humanfriendly
 import torch
+from typeguard import check_argument_types
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
 
-class LightweightSincConvs(AbsFrontend):
+class LightweightSincConvs(AbsPreEncoder):
     """Lightweight Sinc Convolutions.
 
     Provide a frontend for raw audio input.
@@ -39,6 +40,7 @@ class LightweightSincConvs(AbsFrontend):
             activation_type: Choice of activation function.
             dropout_type: Choice of dropout function.
         """
+        assert check_argument_types()
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
@@ -229,6 +231,7 @@ class SpatialDropout(torch.nn.Module):
             dropout_probability: Dropout probability.
             shape (tuple, list): Shape of input tensors.
         """
+        assert check_argument_types()
         super().__init__()
         if shape is None:
             shape = (0, 2, 1)

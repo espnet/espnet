@@ -13,9 +13,10 @@ Plots are saved to the specified output directory.
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from pathlib import Path
 import sys
 import torch
+
 
 def get_parser():
     """Construct the parser."""
@@ -35,12 +36,39 @@ def get_parser():
     )
     parser.add_argument(
         "out_folder",
-        type=str,
+        type=Path,
         nargs="?",
-        default=os.getcwd(),
+        default=Path(__file__).absolute().parent / "plot_sinc_filters",
         help="Output folder to save the plots in",
     )
     return parser
+
+
+def convert_parameter_to_frequencies(f1, f2, sample_rate, sorted):
+    """Convert parameters to frequencies.
+
+    Parameters f1 and f2 denote frequencies normed to the sampling frequency.
+
+    Args:
+        f1: Lower frequency relative to sample rate.
+        f2: Higher frequency  relative to sample rate.
+        sample_rate: Sample rate.
+        sorted: Sort filters by their center frequency.
+
+    Returns:
+        f_mins: Absolute lower frequency.
+        f_maxs: Absolute higher frequency.
+        f_mins: Absolute center frequency.
+    """
+    f_mins = np.abs(f1) * sample_rate
+    f_maxs = (np.abs(f1) + np.abs(f2 - f1)) * sample_rate
+    f_mins = np.clip(f_mins, 0, sample_rate / 2)
+    f_maxs = np.clip(f_maxs, 0, sample_rate / 2)
+    f_mids = (f_maxs + f_mins) / 2
+    if sorted:
+        order = np.argsort(f_mids)
+        f_mins, f_mids, f_maxs = f_mins[order], f_mids[order], f_maxs[order]
+    return f_mins, f_maxs, f_mids
 
 
 def plot_filtergraph(
@@ -60,17 +88,6 @@ def plot_filtergraph(
         logscale: Set Y axis to logarithmic scale.
     """
 
-    def convert(f1, f2):
-        f_mins = np.abs(f1) * sample_rate
-        f_maxs = (np.abs(f1) + np.abs(f2 - f1)) * sample_rate
-        f_mins = np.clip(f_mins, 0, sample_rate / 2)
-        f_maxs = np.clip(f_maxs, 0, sample_rate / 2)
-        f_mids = (f_maxs + f_mins) / 2
-        if sorted:
-            order = np.argsort(f_mids)
-            f_mins, f_mids, f_maxs = f_mins[order], f_mids[order], f_maxs[order]
-        return f_mins, f_maxs, f_mids
-
     def mel(x):
         return 1125 * np.log(1 + x / 700)
 
@@ -82,8 +99,12 @@ def plot_filtergraph(
     fs = hz(fs) / sample_rate
     f1, f2 = fs[:-2], fs[2:]
 
-    f_mins, f_maxs, f_mids = convert(filters[:, 0], filters[:, 1])
-    mel_mins, mel_maxs, mel_mids = convert(f1, f2)
+    f_mins, f_maxs, f_mids = convert_parameter_to_frequencies(
+        filters[:, 0], filters[:, 1], sample_rate, sorted
+    )
+    mel_mins, mel_maxs, mel_mids = convert_parameter_to_frequencies(
+        f1, f2, sample_rate, sorted
+    )
 
     x = np.arange(len(f_mids))
     plt.clf()
@@ -154,7 +175,7 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
             plt.yticks([])
             plt.plot(x, pre_kernel)
             img_name = "filter_pre_kernel_%s.%s" % (str(i).zfill(2), args.filetype)
-            img_path = os.path.join(args.out_folder, img_name)
+            img_path = str(args.out_folder / img_name)
             plt.savefig(img_path, bbox_inches="tight")
             print("Plotted %s" % img_path)
 
@@ -164,7 +185,7 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
             plt.yticks([])
             plt.plot(x, kernel)
             img_name = "filter_kernel_%s.%s" % (str(i).zfill(2), args.filetype)
-            img_path = os.path.join(args.out_folder, img_name)
+            img_path = str(args.out_folder / img_name)
             plt.savefig(img_path, bbox_inches="tight")
             print("Plotted %s" % img_path)
 
@@ -173,7 +194,7 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
             plt.plot(x, kernel)
             plt.plot(x, pre_kernel, "--", alpha=0.5)
             img_name = "filter_kernel_both_%s.%s" % (str(i).zfill(2), args.filetype)
-            img_path = os.path.join(args.out_folder, img_name)
+            img_path = str(args.out_folder / img_name)
             plt.savefig(img_path, bbox_inches="tight")
             print("Plotted %s" % img_path)
 
@@ -182,7 +203,7 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
             plt.clf()
             plt.plot(x_f, y)
             img_name = "filter_freq_%s.%s" % (str(i).zfill(2), args.filetype)
-            img_path = os.path.join(args.out_folder, img_name)
+            img_path = str(args.out_folder / img_name)
             plt.savefig(img_path, bbox_inches="tight")
             print("Plotted %s" % img_path)
 
@@ -192,7 +213,7 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
             plt.plot(x_f, y)
             plt.plot(x_f, pre_y)
             img_name = "filter_freq_both_%s.%s" % (str(i).zfill(2), args.filetype)
-            img_path = os.path.join(args.out_folder, img_name)
+            img_path = args.out_folder / img_name
             plt.savefig(img_path, bbox_inches="tight")
             print("Plotted %s" % img_path)
 
@@ -210,7 +231,31 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
     axs[1, 1].plot(x, pre_kernels[filters[3]][0], "--", alpha=0.5)
 
     img_name = "filter_kernel_ensemble2.%s" % (args.filetype)
-    img_path = os.path.join(args.out_folder, img_name)
+    img_path = str(args.out_folder / img_name)
+    plt.savefig(img_path, bbox_inches="tight")
+    plt.close(fig)
+    print("Plotted %s" % img_path)
+
+
+def plot_filters(indices, filename, F_mins, F_maxs, output_folder):
+    """Plot filters bandwidths.
+
+    Args:
+        indices: Sorted indices of filters.
+        filename: Output filename (png or svg).
+        F_mins: Minimum frequencies.
+        F_maxs: Maximum frequencies.
+        output_folder: Output folder.
+    """
+    x = np.linspace(0, np.max(F_maxs), np.max(F_maxs) + 1)
+    plt.clf()
+    height = 1
+    for i in indices:
+        y = np.zeros_like(x)
+        y[F_mins[i] : F_maxs[i]] = height
+        height += 1
+        plt.plot(x, y)
+    img_path = str(output_folder / filename)
     plt.savefig(img_path, bbox_inches="tight")
     print("Plotted %s" % img_path)
 
@@ -225,7 +270,9 @@ def main(argv):
     model = torch.load(model_path, map_location="cpu")
     if "model" in model:  # snapshots vs. model.acc.best
         model = model["model"]
-    filters = model["preencoder.filters.f"].detach().cpu().numpy()
+    filters = model["preencoder.filters.f"]
+    assert filters.type() == "torch.FloatTensor"
+    filters = filters.detach().cpu().numpy()
     f_mins = np.abs(filters[:, 0])
     f_maxs = np.abs(filters[:, 0]) + np.abs(filters[:, 1] - filters[:, 0])
     F_mins, F_maxs = f_mins * sample_rate, f_maxs * sample_rate
@@ -233,26 +280,31 @@ def main(argv):
 
     plot_filter_kernels(filters, sample_rate, args)
 
-    def plot_filters(indices, filename):
-        x = np.linspace(0, np.max(F_maxs), np.max(F_maxs) + 1)
-        plt.clf()
-        height = 1
-        for i in indices:
-            y = np.zeros_like(x)
-            y[F_mins[i] : F_maxs[i]] = height
-            height += 1
-            plt.plot(x, y)
-        img_path = os.path.join(args.out_folder, filename)
-        plt.savefig(img_path, bbox_inches="tight")
-        print("Plotted %s" % img_path)
+    plot_filters(
+        range(len(F_mins)),
+        "filters.%s" % args.filetype,
+        F_mins,
+        F_maxs,
+        args.out_folder,
+    )
+    plot_filters(
+        np.argsort(F_maxs - F_mins),
+        "filters_len_sort.%s" % args.filetype,
+        F_mins,
+        F_maxs,
+        args.out_folder,
+    )
+    plot_filters(
+        np.argsort(F_mins),
+        "filters_min_sort.%s" % args.filetype,
+        F_mins,
+        F_maxs,
+        args.out_folder,
+    )
 
-    plot_filters(range(len(F_mins)), "filters.%s" % args.filetype)
-    plot_filters(np.argsort(F_maxs - F_mins), "filters_len_sort.%s" % args.filetype)
-    plot_filters(np.argsort(F_mins), "filters_min_sort.%s" % args.filetype)
-
-    img_path = os.path.join(args.out_folder, "filtergraph.%s" % args.filetype)
+    img_path = str(args.out_folder / f"filtergraph.{args.filetype}")
     plot_filtergraph(filters, sample_rate, img_path=img_path)
-    img_path = os.path.join(args.out_folder, "filtergraph_unsorted.%s" % args.filetype)
+    img_path = str(args.out_folder / f"filtergraph_unsorted.{args.filetype}")
     plot_filtergraph(filters, sample_rate, img_path=img_path, sorted=False)
 
 

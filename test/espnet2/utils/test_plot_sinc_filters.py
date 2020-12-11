@@ -1,7 +1,8 @@
+import matplotlib
 import torch
 import os
 
-import espnet2.utils.plot_sinc_filters as psf
+import egs2.TEMPLATE.asr1.pyscripts.utils.plot_sinc_filters as psf
 from espnet2.layers.sinc_conv import SincConv
 
 
@@ -14,6 +15,8 @@ def test_plot_sinc_filters_help():
 
 
 def test_plot_sinc_filters_plot_filters():
+    # switch showing of figures off to avoid testing issues
+    matplotlib.use('Agg')
     # random path to avoid errors from existing files
     random_number = int(torch.rand(1) * 100000)
     output_path = f"./test_plot_sinc_filters_{random_number}"
