@@ -32,6 +32,12 @@ def get_parser():
         "--filetype", type=str, default="png", help="Filetype (e.g. svg or png)"
     )
     parser.add_argument(
+        "--filter-key",
+        type=str,
+        default="preencoder.filters.f",
+        help="Name of the torch module the Sinc filter parameters are stored in.",
+    )
+    parser.add_argument(
         "model_path", type=str, help="Torch checkpoint of the trained ASR net"
     )
     parser.add_argument(
@@ -270,7 +276,7 @@ def main(argv):
     model = torch.load(model_path, map_location="cpu")
     if "model" in model:  # snapshots vs. model.acc.best
         model = model["model"]
-    filters = model["preencoder.filters.f"]
+    filters = model[args.filter_key]
     assert filters.type() == "torch.FloatTensor"
     filters = filters.detach().cpu().numpy()
     f_mins = np.abs(filters[:, 0])

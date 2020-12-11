@@ -1,6 +1,6 @@
 import matplotlib
-import torch
 import os
+import torch
 
 import egs2.TEMPLATE.asr1.pyscripts.utils.plot_sinc_filters as psf
 from espnet2.layers.sinc_conv import SincConv

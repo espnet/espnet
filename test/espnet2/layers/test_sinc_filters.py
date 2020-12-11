@@ -8,14 +8,23 @@ def test_log_compression():
     activation = LogCompression()
     x = torch.randn([5, 20, 1, 40], requires_grad=True)
     y = activation(x)
+    assert x.shape == y.shape
 
 
 def test_sinc_filters():
     filters = SincConv(
         in_channels=1, out_channels=128, kernel_size=101, stride=1, fs=16000
     )
-    x = torch.randn([2, 50, 1, 400], requires_grad=True)
+    x = torch.randn([50, 1, 400], requires_grad=True)
     y = filters(x)
+    assert y.shape == torch.Size([50, 128, 300])
+    # now test multichannel
+    filters = SincConv(
+        in_channels=2, out_channels=128, kernel_size=101, stride=1, fs=16000
+    )
+    x = torch.randn([50, 2, 400], requires_grad=True)
+    y = filters(x)
+    assert y.shape == torch.Size([50, 128, 300])
 
 
 def test_sinc_filter_static_functions():
