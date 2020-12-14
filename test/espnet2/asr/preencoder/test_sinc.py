@@ -12,7 +12,14 @@ def test_spatial_dropout():
 
 def test_lightweight_sinc_convolutions_output_size():
     frontend = LightweightSincConvs()
-    assert frontend.output_size() == frontend.get_odim()
+    idim = 400
+    # Get output dimension by making one inference.
+    # The test vector that is used has dimensions (1, T, 1, idim).
+    # T was set to idim without any special reason,
+    in_test = torch.zeros((1, idim, 1, idim))
+    out, _ = LightweightSincConvs.forward(in_test, [idim])
+    odim = out.size(2)
+    assert frontend.output_size() == odim
 
 
 def test_lightweight_sinc_convolutions_forward():

@@ -3,11 +3,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Sinc convolutions."""
+import math
 import torch
 from typeguard import check_argument_types
 from typing import Union
-
-CONSTANT_PI = 3.141592653589793
 
 
 class LogCompression(torch.nn.Module):
@@ -57,6 +56,7 @@ class SincConv(torch.nn.Module):
         padding: int = 0,
         dilation: int = 1,
         window_func: str = "hamming",
+        scale_type: str = "mel",
         fs: Union[int, float] = 16000,
     ):
         """Initialize Sinc convolutions.
@@ -82,6 +82,15 @@ class SincConv(torch.nn.Module):
                 f"Window function has to be one of {list(window_funcs.keys())}",
             )
         self.window_func = window_funcs[window_func]
+        scale_choices = {
+            "mel": MelScale,
+            "bark": BarkScale,
+        }
+        if scale_type not in scale_choices:
+            raise NotImplementedError(
+                f"Scale has to be one of {list(scale_choices.keys())}",
+            )
+        self.scale = scale_choices[scale_type]
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -93,7 +102,7 @@ class SincConv(torch.nn.Module):
             raise ValueError("SincConv: Kernel size must be odd.")
         self.f = None
         N = self.kernel_size // 2
-        self._x = 2 * CONSTANT_PI * torch.linspace(1, N, N)
+        self._x = 2 * math.pi * torch.linspace(1, N, N)
         self._window = self.window_func(torch.linspace(1, N, N))
         # init may get overwritten by E2E network,
         # but is still required to calculate output dim
@@ -115,22 +124,13 @@ class SincConv(torch.nn.Module):
         """Hamming Windowing function."""
         L = 2 * x.size(0) + 1
         x = x.flip(0)
-        return 0.54 - 0.46 * torch.cos(2.0 * CONSTANT_PI * x / L)
+        return 0.54 - 0.46 * torch.cos(2.0 * math.pi * x / L)
 
     def init_filters(self):
-        """Initialize filters with mel filterbank values."""
-
-        def mel(x):
-            return 1125.0 * torch.log(1.0 + torch.tensor(float(x)) / 700.0)
-
-        def hz(x):
-            return 700.0 * (torch.exp(x / 1125.0) - 1)
-
-        # mel filter bank
-        fs = torch.linspace(mel(30), mel(self.fs * 0.5), self.out_channels + 2)
-        fs = hz(fs) / self.fs
-        f1, f2 = fs[:-2], fs[2:]
-        self.f = torch.nn.Parameter(torch.stack([f1, f2], dim=1), requires_grad=True)
+        """Initialize filters with filterbank values."""
+        f = self.scale.bank(self.out_channels, self.fs)
+        f = torch.div(f, self.fs)
+        self.f = torch.nn.Parameter(f, requires_grad=True)
 
     def _create_filters(self, device: str):
         """Calculate coefficients.
@@ -181,3 +181,93 @@ class SincConv(torch.nn.Module):
         D_out = idim + 2 * self.padding - self.dilation * (self.kernel_size - 1) - 1
         D_out = (D_out // self.stride) + 1
         return D_out
+
+
+class MelScale:
+    """Mel frequency scale."""
+
+    @staticmethod
+    def convert(f):
+        """Convert Hz to mel."""
+        return 1125.0 * torch.log(torch.div(f, 700.0) + 1.0)
+
+    @staticmethod
+    def invert(x):
+        """Convert mel to Hz."""
+        return 700.0 * (torch.exp(torch.div(x, 1125.0)) - 1.0)
+
+    @classmethod
+    def bank(cls, channels: int, fs: float) -> torch.Tensor:
+        """Obtain initialization values for the mel scale.
+
+        Args:
+            channels: Number of channels.
+            fs: Sample rate.
+
+        Returns:
+            torch.Tensor: Filter start frequencíes.
+            torch.Tensor: Filter stop frequencies.
+        """
+        assert check_argument_types()
+        # min and max bandpass edge frequencies
+        min_frequency = torch.tensor(30.0)
+        max_frequency = torch.tensor(fs * 0.5)
+        frequencies = torch.linspace(
+            cls.convert(min_frequency), cls.convert(max_frequency), channels + 2
+        )
+        frequencies = cls.invert(frequencies)
+        f1, f2 = frequencies[:-2], frequencies[2:]
+        return torch.stack([f1, f2], dim=1)
+
+
+class BarkScale:
+    """Bark frequency scale.
+
+    Has wider bandwidths at lower frequencies, see:
+    Critical bandwidth: BARK
+    Zwicker and Terhardt, 1980
+    """
+
+    @staticmethod
+    def convert(f):
+        """Convert Hz to Bark."""
+        b = torch.div(f, 1000.0)
+        b = torch.square(b) * 1.4
+        b = torch.pow(b + 1.0, 0.69)
+        return b * 75.0 + 25.0
+
+    @staticmethod
+    def invert(x):
+        """Convert Bark to Hz."""
+        f = torch.div(x - 25.0, 75.0)
+        f = torch.pow(f, (1.0 / 0.69))
+        f = torch.div(f - 1.0, 1.4)
+        f = torch.pow(f, 0.5)
+        return f * 1000.0
+
+    @classmethod
+    def bank(cls, channels: int, fs: float) -> torch.Tensor:
+        """Obtain initialization values for the Bark scale.
+
+        Args:
+            channels: Number of channels.
+            fs: Sample rate.
+
+        Returns:
+            torch.Tensor: Filter start frequencíes.
+            torch.Tensor: Filter stop frequencíes.
+        """
+        assert check_argument_types()
+        # min and max BARK center frequencies by approximation
+        min_center_frequency = torch.tensor(70.0)
+        max_center_frequency = torch.tensor(fs * 0.25)
+        center_frequencies = torch.linspace(
+            cls.convert(min_center_frequency),
+            cls.convert(max_center_frequency),
+            channels,
+        )
+        center_frequencies = cls.invert(center_frequencies)
+
+        f1 = center_frequencies - torch.div(cls.convert(center_frequencies), 2)
+        f2 = center_frequencies + torch.div(cls.convert(center_frequencies), 2)
+        return torch.stack([f1, f2], dim=1)

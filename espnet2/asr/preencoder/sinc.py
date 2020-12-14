@@ -30,6 +30,8 @@ class LightweightSincConvs(AbsPreEncoder):
         out_channels: int = 256,
         activation_type: str = "leakyrelu",
         dropout_type: str = "dropout",
+        windowing_type: str = "hamming",
+        scale_type: str = "mel",
     ):
         """Initialize the module.
 
@@ -39,6 +41,8 @@ class LightweightSincConvs(AbsPreEncoder):
             out_channels: Number of output channels (for each input channel).
             activation_type: Choice of activation function.
             dropout_type: Choice of dropout function.
+            windowing_type: Choice of windowing function.
+            scale_type:  Choice of filter-bank initialization scale.
         """
         assert check_argument_types()
         super().__init__()
@@ -49,6 +53,8 @@ class LightweightSincConvs(AbsPreEncoder):
         self.out_channels = out_channels
         self.activation_type = activation_type
         self.dropout_type = dropout_type
+        self.windowing_type = windowing_type
+        self.scale_type = scale_type
 
         self.choices_dropout = {
             "none": torch.nn.Identity,
@@ -56,17 +62,26 @@ class LightweightSincConvs(AbsPreEncoder):
             "spatial": SpatialDropout,
             "dropout2d": torch.nn.Dropout2d,
         }
+        if dropout_type not in self.choices_dropout:
+            raise NotImplementedError(
+                f"Dropout type has to be one of "
+                f"{list(self.choices_dropout.keys())}",
+            )
 
         self.choices_activation = {
             "leakyrelu": torch.nn.LeakyReLU,
             "relu": torch.nn.ReLU,
         }
+        if activation_type not in self.choices_activation:
+            raise NotImplementedError(
+                f"Activation type has to be one of "
+                f"{list(self.choices_activation.keys())}",
+            )
 
         # initialization
         self._create_sinc_convs()
-        self.init_sinc_convs()
         # Sinc filters require custom initialization
-        self.espnet_initialization_fn = self.init_sinc_convs
+        self.espnet_initialization_fn()
 
     def _create_sinc_convs(self):
         blocks = OrderedDict()
@@ -74,7 +89,13 @@ class LightweightSincConvs(AbsPreEncoder):
         # SincConvBlock
         out_channels = 128
         self.filters = SincConv(
-            self.in_channels, out_channels, kernel_size=101, stride=1, fs=self.fs
+            self.in_channels,
+            out_channels,
+            kernel_size=101,
+            stride=1,
+            fs=self.fs,
+            window_func=self.windowing_type,
+            scale_type=self.scale_type,
         )
         block = OrderedDict(
             [
@@ -170,7 +191,7 @@ class LightweightSincConvs(AbsPreEncoder):
         block["dropout"] = self.choices_dropout[self.dropout_type](dropout_probability)
         return torch.nn.Sequential(block)
 
-    def init_sinc_convs(self):
+    def espnet_initialization_fn(self):
         """Initialize sinc filters with filterbank values."""
         self.filters.init_filters()
         for block in self.blocks:
@@ -193,21 +214,6 @@ class LightweightSincConvs(AbsPreEncoder):
         _, C_out, D_out = output_frames.size()
         output_frames = output_frames.view(B, T, C_out * D_out)
         return output_frames, input_lengths  # no state in this layer
-
-    def get_odim(self, idim=400):
-        """Get output dimension by making one inference.
-
-        The test vector that is used has dimensions (1, T, 1, idim).
-        T was set to idim without any special reason,
-        Args:
-            idim: Input dimension D (i.e., sample points within one frame).
-
-        Returns:
-            int: Output dimension D.
-        """
-        in_test = torch.zeros((1, idim, 1, idim))
-        out, _ = self.forward(in_test, [idim])
-        return out.size(2)
 
     def output_size(self) -> int:
         """Get the output size."""

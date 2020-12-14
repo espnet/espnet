@@ -38,6 +38,13 @@ def get_parser():
         help="Name of the torch module the Sinc filter parameters are stored in.",
     )
     parser.add_argument(
+        "--scale",
+        type=str,
+        default="mel",
+        choices=["mel", "bark"],
+        help="Filter bank initialization values.",
+    )
+    parser.add_argument(
         "model_path", type=str, help="Torch checkpoint of the trained ASR net"
     )
     parser.add_argument(
@@ -83,6 +90,7 @@ def plot_filtergraph(
     img_path: str,
     sorted: bool = True,
     logscale: bool = False,
+    scale: str = "mel",
 ):
     """Plot the Sinc filter bandpass frequencies.
 
@@ -94,17 +102,19 @@ def plot_filtergraph(
         logscale: Set Y axis to logarithmic scale.
     """
 
-    def mel(x):
-        return 1125 * np.log(1 + x / 700)
+    if scale == "mel":
+        from espnet2.layers.sinc_conv import MelScale
 
-    def hz(x):
-        return 700 * (np.exp(x / 1125) - 1)
+        f = MelScale.bank(128, sample_rate).detach().cpu().numpy()
+    elif scale == "bark":
+        from espnet2.layers.sinc_conv import BarkScale
 
-    # mel filters
-    fs = np.linspace(mel(30), mel(sample_rate * 0.5), len(filters) + 2)
-    fs = hz(fs) / sample_rate
-    f1, f2 = fs[:-2], fs[2:]
+        f = BarkScale.bank(128, sample_rate).detach().cpu().numpy()
+    else:
+        raise NotImplementedError
 
+    f = f / sample_rate
+    f1, f2 = f[:, 0], f[:, 1]
     f_mins, f_maxs, f_mids = convert_parameter_to_frequencies(
         filters[:, 0], filters[:, 1], sample_rate, sorted
     )
@@ -169,7 +179,9 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
     f_maxs = np.abs(filters[:, 0]) + np.abs(filters[:, 1] - filters[:, 0])
     F_mins, F_maxs = f_mins * sample_rate, f_maxs * sample_rate
     F_mins, F_maxs = np.round(F_mins).astype(np.int), np.round(F_maxs).astype(np.int)
-    F_mins, F_maxs = np.clip(F_mins, 0, 8000), np.clip(F_maxs, 0, 8000)
+    F_mins, F_maxs = np.clip(F_mins, 0, sample_rate / 2.0), np.clip(
+        F_maxs, 0, sample_rate / 2.0
+    )
 
     x_f = np.linspace(0, np.max(F_maxs), np.max(F_maxs) + 1)
     x = np.arange(kernels.shape[2])
@@ -276,8 +288,14 @@ def main(argv):
     model = torch.load(model_path, map_location="cpu")
     if "model" in model:  # snapshots vs. model.acc.best
         model = model["model"]
+    if args.filter_key not in model:
+        raise ValueError(
+            f"The loaded model file does not contain the learned"
+            f" filters in {args.filter_key}"
+        )
     filters = model[args.filter_key]
-    assert filters.type() == "torch.FloatTensor"
+    if not filters.type() == "torch.FloatTensor":
+        raise TypeError("The loaded filter values are not of type torch.FloatTensor")
     filters = filters.detach().cpu().numpy()
     f_mins = np.abs(filters[:, 0])
     f_maxs = np.abs(filters[:, 0]) + np.abs(filters[:, 1] - filters[:, 0])
@@ -309,9 +327,17 @@ def main(argv):
     )
 
     img_path = str(args.out_folder / f"filtergraph.{args.filetype}")
-    plot_filtergraph(filters, sample_rate, img_path=img_path)
+    plot_filtergraph(
+        filters, sample_rate=sample_rate, img_path=img_path, scale=args.scale
+    )
     img_path = str(args.out_folder / f"filtergraph_unsorted.{args.filetype}")
-    plot_filtergraph(filters, sample_rate, img_path=img_path, sorted=False)
+    plot_filtergraph(
+        filters,
+        sample_rate=sample_rate,
+        img_path=img_path,
+        sorted=False,
+        scale=args.scale,
+    )
 
 
 if __name__ == "__main__":
