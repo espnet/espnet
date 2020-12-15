@@ -232,7 +232,7 @@ class BarkScale:
     def convert(f):
         """Convert Hz to Bark."""
         b = torch.div(f, 1000.0)
-        b = torch.square(b) * 1.4
+        b = torch.pow(b, 2.0) * 1.4
         b = torch.pow(b + 1.0, 0.69)
         return b * 75.0 + 25.0
 

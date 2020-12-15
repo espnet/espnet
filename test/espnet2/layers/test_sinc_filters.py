@@ -46,7 +46,7 @@ def test_bark_scale():
     f = 16000.0
     x = BarkScale.convert(f)
     f_back = BarkScale.invert(x)
-    assert torch.abs(f_back - f) < 0.0001
+    assert torch.abs(f_back - f) < 0.1
     BarkScale.bank(128, 16000.0)
 
 
@@ -54,5 +54,5 @@ def test_mel_scale():
     f = 16000.0
     x = MelScale.convert(f)
     f_back = MelScale.invert(x)
-    assert torch.abs(f_back - f) < 0.0001
+    assert torch.abs(f_back - f) < 0.1
     MelScale.bank(128, 16000.0)
