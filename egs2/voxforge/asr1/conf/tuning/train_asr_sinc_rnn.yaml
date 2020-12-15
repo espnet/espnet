@@ -27,7 +27,7 @@ scheduler_conf:
 # lightweight sinc convolutions
 frontend: sliding_window
 frontend_conf:
-    hop_length: 200
+    hop_length: 240
 preencoder: sinc
 
 encoder: vgg_rnn

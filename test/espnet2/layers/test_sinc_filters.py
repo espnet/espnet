@@ -1,6 +1,8 @@
 import torch
 
+from espnet2.layers.sinc_conv import BarkScale
 from espnet2.layers.sinc_conv import LogCompression
+from espnet2.layers.sinc_conv import MelScale
 from espnet2.layers.sinc_conv import SincConv
 
 
@@ -38,3 +40,19 @@ def test_sinc_filter_static_functions():
 def test_sinc_filter_output_size():
     sinc_conv = SincConv(in_channels=1, out_channels=128, kernel_size=101)
     assert sinc_conv.get_odim(400) == 300
+
+
+def test_bark_scale():
+    f = 16000.0
+    x = BarkScale.convert(f)
+    f_back = BarkScale.invert(x)
+    assert torch.abs(f_back - f) < 0.0001
+    BarkScale.bank(128, 16000.0)
+
+
+def test_mel_scale():
+    f = 16000.0
+    x = MelScale.convert(f)
+    f_back = MelScale.invert(x)
+    assert torch.abs(f_back - f) < 0.0001
+    MelScale.bank(128, 16000.0)

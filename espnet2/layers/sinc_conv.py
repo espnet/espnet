@@ -260,7 +260,7 @@ class BarkScale:
         assert check_argument_types()
         # min and max BARK center frequencies by approximation
         min_center_frequency = torch.tensor(70.0)
-        max_center_frequency = torch.tensor(fs * 0.25)
+        max_center_frequency = torch.tensor(fs * 0.45)
         center_frequencies = torch.linspace(
             cls.convert(min_center_frequency),
             cls.convert(max_center_frequency),
