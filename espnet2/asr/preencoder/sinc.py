@@ -57,7 +57,6 @@ class LightweightSincConvs(AbsPreEncoder):
         self.scale_type = scale_type
 
         self.choices_dropout = {
-            "none": torch.nn.Identity,
             "dropout": torch.nn.Dropout,
             "spatial": SpatialDropout,
             "dropout2d": torch.nn.Dropout2d,
