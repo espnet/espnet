@@ -183,6 +183,14 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ ./setup_python.sh $(command -v python3)
         ```
+    - Option D) Without setting Python environment.
+    
+        `Option C` and `Option D` are almost same. This option might be suitable for Google colab.
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ rm -f activate_python.sh && touch activate_python.sh
+        ```
 1. Install ESPnet
 
     ```sh
@@ -196,6 +204,13 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     ```sh
     $ cd <espnet-root>/tools
     $ make TH_VERSION=1.3.1
+    ```
+    
+    Note that the CUDA version is derived from `nvcc` command. If you'd like to specify the other CUDA version, you need to give `CUDA_VERSION`.
+    
+    ```sh
+    $ cd <espnet-root>/tools
+    $ make TH_VERSION=1.3.1 CUDA_VERSION=10.1
     ```
 
     If you don't have `nvcc` command, packages are installed for CPU mode by default.
