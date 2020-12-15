@@ -13,7 +13,7 @@ import torch
 
 from espnet2.layers.sinc_conv import SincConv
 
-output_path=${tmpdir}
+output_path="${tmpdir}"
 model_path = output_path + "/test.model.pth"
 # We need a mock model. - One could also initialize a full E2E model.
 filters = SincConv(
@@ -31,7 +31,7 @@ EOF
         skip
     fi
 
-    python --filetype svg --sample_rate 16000 "${tmpdir}/test.model.pth" ${tmpdir}
+    python plot_sinc_filters.py --filetype svg --sample_rate 16000 "${tmpdir}/test.model.pth" ${tmpdir}
 }
 
 teardown() {
