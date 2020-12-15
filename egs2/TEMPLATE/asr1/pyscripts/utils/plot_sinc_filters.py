@@ -183,7 +183,7 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
         F_maxs, 0, sample_rate / 2.0
     )
 
-    x_f = np.linspace(0, int(np.max(F_maxs)), int(np.max(F_maxs)) + 1)
+    x_f = np.linspace(0.0, np.max(F_maxs), int(np.max(F_maxs)) + 1)
     x = np.arange(kernels.shape[2])
     if args.all:
         for i in range(len(kernels)):

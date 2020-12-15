@@ -17,7 +17,7 @@ def test_lightweight_sinc_convolutions_output_size():
     # The test vector that is used has dimensions (1, T, 1, idim).
     # T was set to idim without any special reason,
     in_test = torch.zeros((1, idim, 1, idim))
-    out, _ = LightweightSincConvs.forward(in_test, [idim])
+    out, _ = frontend.forward(in_test, [idim])
     odim = out.size(2)
     assert frontend.output_size() == odim
 
