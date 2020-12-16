@@ -19,8 +19,24 @@ from typing import Union
 class LightweightSincConvs(AbsPreEncoder):
     """Lightweight Sinc Convolutions.
 
-    Provide a frontend for raw audio input.
+    Instead of using precomputed features, end-to-end speech recognition
+    can also be done directly from raw audio using sinc convolutions, as
+    described in "Lightweight End-to-End Speech Recognition from Raw Audio
+    Data Using Sinc-Convolutions" by Kürzinger et al.
     https://arxiv.org/abs/2010.07597
+
+    To use Sinc convolutions in your model instead of the default f-bank
+    frontend, set this module as your pre-encoder with `preencoder: sinc`
+    and use the input of the sliding window frontend with
+    `frontend: sliding_window` in your yaml configuration file.
+    So that the process flow is:
+
+    Frontend (SlidingWindow) -> SpecAug -> Normalization ->
+    Pre-encoder (LightweightSincConvs) -> Encoder -> Decoder
+
+    Note that this method also performs data augmentation in time domain
+    (vs. in spectral domain in the default frontend).
+    Use `plot_sinc_filters.py` to visualize the learned Sinc filters.
     """
 
     def __init__(
@@ -151,7 +167,11 @@ class LightweightSincConvs(AbsPreEncoder):
         dropout_probability: float = 0.15,
         avgpool=False,
     ):
-        """Generate a block for lightweight Sinc convolutions.
+        """Generate a convolutional block for Lightweight Sinc convolutions.
+
+        Each block consists of either a depthwise or a depthwise-separable
+        convolutions together with dropout, (batch-)normalization layer, and
+        an optional average-pooling layer.
 
         Args:
             in_channels: Number of input channels.
@@ -202,7 +222,19 @@ class LightweightSincConvs(AbsPreEncoder):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward function."""
+        """Apply Lightweight Sinc Convolutions.
+
+        The input shall be formatted as (B, T, C_in, D_in)
+        with B as batch size, T as time dimension, C_in as channels,
+        and D_in as feature dimension.
+
+        The output will then be (B, T, C_out*D_out)
+        with C_out and D_out as output dimensions.
+
+        The current module structure only handles D_in=400, so that D_out=1.
+        Remark for the multichannel case: C_out is the number of out_channels
+        given at initialization multiplied with C_in.
+        """
         # Transform input data:
         #   (B, T, C_in, D_in) -> (B*T, C_in, D_in)
         B, T, C_in, D_in = input.size()

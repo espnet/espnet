@@ -1,8 +1,24 @@
 # Lightweight Sinc Convolutions
 ## About Lightweight Sinc Convolutions
 
-- [https://arxiv.org/abs/2010.07597](https://arxiv.org/abs/2010.07597)
-- Usage of pyscripts/utils/plot_sinc_filters.py. Would you write? @lumaku
+
+Instead of using precomputed features, end-to-end speech recognition can also be done directly from raw audio using sinc convolutions, as described in [https://arxiv.org/abs/2010.07597](https://arxiv.org/abs/2010.07597).
+To use sinc convolutions in your model instead of the default f-bank frontend, add the following lines to your yaml configuration file:
+
+```yaml
+frontend: sliding_window
+frontend_conf:
+    hop_length: 200
+preencoder: sinc
+```
+
+Note that this method also performs data augmentation in time domain (vs. in spectral domain in the default frontend).
+Learned filters that are stored in a model file (`*.pth`) can be plotted with `plot_sinc_filters.py`, for example:
+```sh
+cd egs2/voxforge/asr1/
+expdir=./exp/path-to-your-experiment/
+pyscripts/utils/plot_sinc_filters.py ${expdir}/valid.acc.best.pth ${expdir}/plot_sinc_filters
+```
 
 
 ## [Sinc-BLSTMP with hop_size=240](conf/tuning/train_asr_sinc_rnn.yaml)
