@@ -20,8 +20,6 @@ MANUALLY_INSTALLED_LIBRARIES = [
     ("kaldiio", None),
     ("matplotlib", None),
     ("chainer", ("6.0.0")),
-    # ("chainer_ctc", None),
-    # ("warprnnt_pytorch", ("0.1")),
 ]
 
 # NOTE: list all torch versions which are compatible with espnet
@@ -100,17 +98,6 @@ def main(args):
         except ImportError:
             logging.warning("--> %s is not installed.\n###### Raw Error ######\n%s#######################" % (name, traceback.format_exc()))
             is_correct_installed_list.append(False)
-
-    # warp-rnnt was only tested and successfull with CUDA_VERSION=10.0
-    # however the library installation is optional ("warp-transducer" is used by default)
-    try:
-        importlib.import_module("warp_rnnt")
-        is_correct_installed_list.append(True)
-        library_list.append(("warp_rnnt", ("0.4.0")))
-        logging.info("--> warp_rnnt is installed")
-    except ImportError:
-        logging.info("--> warp_rnnt is not installed (optional). Setup again with "
-                     "CUDA_VERSION=10.0 if you want to use it.")
 
     logging.info("library availableness check done.")
     logging.info(
