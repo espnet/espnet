@@ -51,11 +51,6 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         out_dim (int): output dim of last block
 
     """
-    if blocks_arch[0]["type"] in ("tdnn", "causal-conv1d"):
-        input_layer_odim = blocks_arch[0]["idim"]
-    else:
-        input_layer_odim = blocks_arch[0]["d_hidden"]
-
     input_dropout_rate = sorted(
         Counter(
             b["dropout-rate"] for b in blocks_arch if "dropout-rate" in b
@@ -132,9 +127,6 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
                     + ": 'use_conv_mod' is True but 'use_conv_kernel' is not specified"
                 )
 
-            if i == 0 and input_layer == "conv2d":
-                input_layer = "conformer-conv2d"
-
             has_conformer = True
             cmp_io.append((blocks_arch[i]["d_hidden"], blocks_arch[i]["d_hidden"]))
         elif block_type == "causal-conv1d":
@@ -166,9 +158,6 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
                     "'dilation': int, 'stride': int, [...]}"
                 )
 
-            if i == 0:
-                input_layer = "t-linear"
-
             cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
         else:
             raise NotImplementedError(
@@ -196,6 +185,11 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
                 + " in "
                 + net_part
             )
+
+    if blocks_arch[0]["type"] in ("tdnn", "causal-conv1d"):
+        input_layer_odim = blocks_arch[0]["idim"]
+    else:
+        input_layer_odim = blocks_arch[0]["d_hidden"]
 
     if blocks_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
         out_dim = blocks_arch[-1]["idim"]
@@ -271,6 +265,11 @@ def build_input_layer(
         (torch.nn.*): input layer module
 
     """
+    if pos_enc_class.__name__ == "RelPositionalEncoding":
+        pos_enc_class_subsampling = pos_enc_class(odim, pos_dropout_rate)
+    else:
+        pos_enc_class_subsampling = None
+
     if input_layer == "linear":
         return torch.nn.Sequential(
             torch.nn.Linear(idim, odim),
@@ -280,27 +279,19 @@ def build_input_layer(
             pos_enc_class(odim, pos_dropout_rate),
         )
     elif input_layer == "conv2d":
-        return Conv2dSubsampling(idim, odim, dropout_rate)
-    elif input_layer == "conformer-conv2d":
-        return Conv2dSubsampling(
-            idim, odim, dropout_rate, pos_enc_class(odim, pos_dropout_rate)
-        )
+        return Conv2dSubsampling(idim, odim, dropout_rate, pos_enc_class_subsampling)
     elif input_layer == "vgg2l":
-        return VGG2L(idim, odim)
+        return VGG2L(idim, odim, pos_enc_class_subsampling)
     elif input_layer == "embed":
         return torch.nn.Sequential(
             torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
             pos_enc_class(odim, pos_dropout_rate),
         )
-    elif input_layer == "t-linear":
-        return torch.nn.Linear(idim, odim)
     elif input_layer == "c-embed":
         return torch.nn.Sequential(
             torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
             torch.nn.Dropout(dropout_rate_embed),
         )
-    elif input_layer is None:
-        return pos_enc_class(odim, pos_dropout_rate)
     else:
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
 
@@ -353,7 +344,6 @@ def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_t
 def build_conformer_block(
     block_arch,
     self_attn_class,
-    pos_enc_class,
     pw_layer_type,
     pw_activation_type,
     conv_mod_activation_type,
@@ -363,7 +353,6 @@ def build_conformer_block(
     Args:
         block_arch (dict): conformer block parameters
         self_attn_type (str): self-attention module type
-        pos_enc_class (str): positional encoding class
         pw_layer_type (str): positionwise layer type
         pw_activation_type (str): positionwise activation type
         conv_mod_activation_type (str): convolutional module activation type
@@ -536,7 +525,6 @@ def build_blocks(
             module = build_conformer_block(
                 blocks_arch[i],
                 self_attn_class,
-                pos_enc_class,
                 positionwise_layer_type,
                 positionwise_activation_type,
                 conv_mod_activation_type,
