@@ -74,7 +74,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.frontend = frontend
         self.specaug = specaug
         self.normalize = normalize
-        self.adddiontal_utt_mvn = None
+        self.additional_utt_mvn = None
         self.preencoder = preencoder
         self.encoder = encoder
         self.decoder = decoder
