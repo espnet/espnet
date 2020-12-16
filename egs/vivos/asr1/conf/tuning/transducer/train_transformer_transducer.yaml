@@ -41,7 +41,7 @@ dec-block-arch:
           att-dropout-rate: 0.1
 dec-block-repeat: 2
 ## joint network related
-joint-dim: 300
+joint-dim: 128
 
 # transducer related
 rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention

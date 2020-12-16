@@ -1,12 +1,8 @@
 # Usage
 
-## Dataset preparation
+## Data split
 
-Please download the VCC2020 dataset following the instruction from the organizers. Then, correctly place the data. The default is `db_root=downloads/official_v1.0_training`
-
-In VCC2020, there are 70 training utterances for each speaker. The list files that split train/dev sets are in `local/lists`. The default is 60/10 split. Feel free to adjust them.
-
-Note that since the release of the training data does not come with the actual evaluation set, and the training data of the source English speakers is not used, they are used as the development set by default.
+In VCC2020, there are 70 training utterances for each speaker. The list files that split train/dev sets are in `local/lists`. To get the results from the original baseline, the default is 60/10 split. Feel free to adjust them.
 
 ## Flow
 
@@ -85,6 +81,7 @@ With this main script, conversion is performed as follows:
 - Stage 11: Source speech recognition using the ASR model.
 - Stage 12: Decoding. This includes cleaning the recognition results, tokenization, and decoding mel filterbanks using the TTS model. Note that the average of all the x-vectors of each training utterance of the target speaker is used.
 - Stage 13: Synthesis. The Griffin-Lim phase recovery algorithm or the trained PWG model can be used to convert the generated mel filterbanks back to the waveform.
+- Stage 14: Objective evaluation. MCD as well as CER and WER from an ASR engine wil be calculated.
 
 ## Notes
 
@@ -99,3 +96,7 @@ However, in the output of the pretrained ASR, there is no punctuation:
 `IN REALITY THE EUROPEAN PARLIAMENT IS PRACTISING DIALECTICS (SEF1_E30001)`
 
 This will cause a small mismatch, but we think it should be acceptable.
+
+### MCD
+
+The MCD is calculated w.r.t. the speech of the bilingual target speakers. However, they can be accented, where the ultimate goal is to preserve the natural accent of the source speech. So, the MCD values should be regarded as a reference only and not a reliable performance measure of the model.
