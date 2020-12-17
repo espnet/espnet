@@ -3,6 +3,9 @@
 
 AISHELL=downloads
 AN4=downloads
+DIRHA_ENGLISH_PHDEV=
+DIRHA_WSJ=
+DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -23,6 +26,8 @@ CSJVER=dvd  ## Set your CSJ format (dvd or usb).
 CSMSC=downloads
 HKUST1=
 HKUST2=
+LABOROTV=
+TEDXJP=
 LIBRISPEECH=
 LJSPEECH=downloads
 JSSS=downloads
@@ -69,6 +74,9 @@ ZEROTH_KOREAN=downloads
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
     AN4=
+    DIRHA_ENGLISH_PHDEV=
+    DIRHA_WSJ=
+    DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
     WSJ0=
     WSJ1=
     WSJCAM0=/export/corpora3/LDC/LDC95S24/wsjcam0
@@ -89,6 +97,8 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     CSMSC=downloads
     HKUST1=
     HKUST2=
+    LABOROTV=
+    TEDXJP=
     LIBRISPEECH=
     LJSPEECH=downloads
     JSSS=downloads

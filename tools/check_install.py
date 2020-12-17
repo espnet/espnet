@@ -20,8 +20,8 @@ MANUALLY_INSTALLED_LIBRARIES = [
     ("kaldiio", None),
     ("matplotlib", None),
     ("chainer", ("6.0.0")),
-    ("chainer_ctc", None),
-    ("warprnnt_pytorch", ("0.1")),
+    # ("chainer_ctc", None),
+    # ("warprnnt_pytorch", ("0.1")),
 ]
 
 # NOTE: list all torch versions which are compatible with espnet
@@ -39,6 +39,7 @@ COMPATIBLE_TORCH_VERSIONS = (
     "1.5.1",
     "1.6.0",
     "1.7.0",
+    "1.7.1",
 )
 
 
@@ -82,8 +83,8 @@ def main(args):
         sys.exit(1)
 
     # warpctc can be installed only for pytorch < 1.7
-    if LooseVersion(torch.__version__) < LooseVersion("1.7.0"):
-        library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.2", "0.1.3", "0.2.1")))
+    # if LooseVersion(torch.__version__) < LooseVersion("1.7.0"):
+    #     library_list.append(("warpctc_pytorch", ("0.1.1", "0.1.2", "0.1.3", "0.2.1")))
 
     library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 

@@ -34,6 +34,9 @@ from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -53,7 +56,7 @@ from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(default=DefaultFrontend),
+    classes=dict(default=DefaultFrontend, sliding_window=SlidingWindow),
     type_check=AbsFrontend,
     default="default",
 )
@@ -72,6 +75,15 @@ normalize_choices = ClassChoices(
     ),
     type_check=AbsNormalize,
     default="utterance_mvn",
+    optional=True,
+)
+preencoder_choices = ClassChoices(
+    name="preencoder",
+    classes=dict(
+        sinc=LightweightSincConvs,
+    ),
+    type_check=AbsPreEncoder,
+    default=None,
     optional=True,
 )
 encoder_choices = ClassChoices(
@@ -112,6 +124,8 @@ class ASRTask(AbsTask):
         specaug_choices,
         # --normalize and --normalize_conf
         normalize_choices,
+        # --preencoder and --preencoder_conf
+        preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
         # --decoder and --decoder_conf
@@ -309,6 +323,14 @@ class ASRTask(AbsTask):
         else:
             normalize = None
 
+        # 4. Pre-encoder input block
+        if args.preencoder is not None:
+            preencoder_class = preencoder_choices.get_class(args.preencoder)
+            preencoder = preencoder_class(**args.preencoder_conf)
+            input_size = preencoder.output_size()
+        else:
+            preencoder = None
+
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
@@ -336,6 +358,7 @@ class ASRTask(AbsTask):
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
+            preencoder=preencoder,
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,

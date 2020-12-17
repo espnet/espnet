@@ -1245,10 +1245,6 @@ class AbsTask(ABC):
                 plot_attention_iter_factory = None
 
             # 9. Start training
-            # Don't give args to trainer.run() directly!!!
-            # Instead of it, define "Options" object and build here.
-            trainer_options = cls.trainer.build_options(args)
-
             if isinstance(args.keep_nbest_models, int):
                 keep_nbest_models = args.keep_nbest_models
             else:
@@ -1288,6 +1284,9 @@ class AbsTask(ABC):
                     # so it's enough to perform on rank0 node.
                     args.use_wandb = False
 
+            # Don't give args to trainer.run() directly!!!
+            # Instead of it, define "Options" object and build here.
+            trainer_options = cls.trainer.build_options(args)
             cls.trainer.run(
                 model=model,
                 optimizers=optimizers,

@@ -16,7 +16,7 @@ grad-clip: 5.0
 # network architecture
 ## encoder related
 etype: transformer
-transformer-enc-input-layer: conv2d
+transformer-enc-input-layer: vgg2l
 enc-block-arch:
         - type: conformer
           d_hidden: 320
@@ -25,7 +25,9 @@ enc-block-arch:
           macaron_style: True
           use_conv_mod: True
           conv_mod_kernel: 15
+          dropout-rate: 0.4
           att-dropout-rate: 0.4
+          pos-dropout-rate: 0.4
 enc-block-repeat: 8
 ## decoder related
 dtype: transformer
@@ -40,7 +42,7 @@ dec-block-arch:
           att-dropout-rate: 0.1
 dec-block-repeat: 2
 ## joint network related
-joint-dim: 300
+joint-dim: 128
 
 # transformer related
 transformer-lr: 10.0
