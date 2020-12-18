@@ -185,6 +185,7 @@ class TTSTask(AbsTask):
                 "g2p_en",
                 "g2p_en_no_space",
                 "pyopenjtalk",
+                "pyopenjtalk_accent",
                 "pyopenjtalk_kana",
                 "pypinyin_g2p",
                 "pypinyin_g2p_phone",
