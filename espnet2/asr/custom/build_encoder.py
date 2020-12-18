@@ -14,6 +14,7 @@ from espnet.nets.pytorch_backend.conformer.encoder_layer import (
 )
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transducer.tdnn import TDNN
+from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.encoder_layer import (
     EncoderLayer as TransformerEncoderLayer,  # noqa: H301
 )
@@ -28,7 +29,6 @@ from espnet2.asr.custom.utils import config_verification
 from espnet2.asr.custom.utils import get_positional_encoding_class
 from espnet2.asr.custom.utils import get_positionwise_class
 from espnet2.asr.custom.utils import get_self_attention_class
-from espnet2.asr.custom.vgg2l import VGG2L
 
 
 # layer type: mandatory parameters
@@ -213,7 +213,7 @@ def build_input_layer(
     elif layer_type == "conv2d8":
         embed = Conv2dSubsampling8(input_size, hidden_size, dropout_rate, pos_enc)
     elif layer_type == "vgg2l":
-        embed = VGG2L(input_size, hidden_size, dropout_rate, pos_enc)
+        embed = VGG2L(input_size, hidden_size, pos_enc)
     elif layer_type == "embed":
         embed = torch.nn.Sequential(
             torch.nn.Embedding(input_size, hidden_size, padding_idx=padding_idx),
