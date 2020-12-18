@@ -262,6 +262,9 @@ You can change via `--g2p` option in `tts.sh`.
     - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - e.g. `こんにちは` -> `[k, o, N, n, i, ch, i, w, a]`
+- `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
+    - Add accent information labels in addition to phoneme labels
+    - e.g. `こんにちは` -> `['k', '5', '-4', 'o', '5', '-4', 'N', '5', '-3', 'n', '5', '-2', 'i', '5', '-2', 'ch', '5', '-1', 'i', '5', '-1', 'w', '5', '0', 'a', '5', '0']`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Use kana instead of phoneme
     - e.g. `こんにちは` -> `[コ, ン, ニ, チ, ワ]`

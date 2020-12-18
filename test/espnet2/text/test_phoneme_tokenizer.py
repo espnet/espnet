@@ -6,7 +6,7 @@ params = [None, "g2p_en", "g2p_en_no_space"]
 try:
     import pyopenjtalk
 
-    params.extend(["pyopenjtalk", "pyopenjtalk_kana"])
+    params.extend(["pyopenjtalk", "pyopenjtalk_accent", "pyopenjtalk_kana"])
     del pyopenjtalk
 except ImportError:
     pass
@@ -65,6 +65,9 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "t",
             "a",
         ]
+    elif phoneme_tokenizer.g2p_type == "pyopenjtalk_accent":
+        input = "昔は俺も若かった"
+        output = ["m", "4", "-3", "u", "4", "-3", "k", "4", "-2", "a", "4", "-2", "sh", "4", "-1", "i", "4", "-1", "w", "4", "0", "a", "4", "0", "o", "3", "-2", "r", "3", "-1", "e", "3", "-1", "m", "3", "0", "o", "3", "0", "w", "2", "-1", "a", "2", "-1", "k", "2", "0", "a", "2", "0", "k", "2", "1", "a", "2", "1", "cl", "2", "2", "t", "2", "3", "a", "2", "3"]
     elif phoneme_tokenizer.g2p_type == "pyopenjtalk_kana":
         input = "昔は俺も若かった"
         output = ["ム", "カ", "シ", "ワ", "オ", "レ", "モ", "ワ", "カ", "カ", "ッ", "タ"]

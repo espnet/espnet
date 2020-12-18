@@ -28,7 +28,7 @@ def pyopenjtalk_g2p_accent(text) -> List[str]:
 
     phones = []
     for l in pyopenjtalk.run_frontend(text)[1]:
-        p = re.findall(r'\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])', l)
+        p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])", l)
         if len(p) == 1:
             phones += [p[0][0], p[0][2], p[0][1]]
     return phones
