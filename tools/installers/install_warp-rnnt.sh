@@ -27,5 +27,5 @@ git clone https://github.com/1ytic/warp-rnnt
 
 (
     set -euo pipefail
-    cd warp-rnnt/pytorch_binding && python3 setup.py install
+    cd warp-rnnt/pytorch_binding && python3 -m pip install -e .
 )

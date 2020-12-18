@@ -118,9 +118,12 @@ class Stft(torch.nn.Module, InversibleInterface):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Inverse STFT.
 
-        :param input: Tensor (batch, T, F, 2) or ComplexTensor (batch, T, F)
-        :param ilens:
-        :return:
+        Args:
+            input: Tensor(batch, T, F, 2) or ComplexTensor(batch, T, F)
+            ilens: (batch,)
+        Returns:
+            wavs: (batch, samples)
+            ilens: (batch,)
         """
         if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
             istft = torch.functional.istft

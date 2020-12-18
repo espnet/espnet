@@ -20,6 +20,8 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
+# preprocess_config=conf/no_preprocess.yaml
+preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -33,15 +35,10 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=10
 
 lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk 
-datadir=download/${lang}_data # original data directory to be stored
-
-# base url for downloads.
-# Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
-data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-5.1-2020-06-22/${lang}.tar.gz
 
 # bpemode (unigram or bpe)
 if [[ "zh" == *"${lang}"* ]]; then
-  nbpe=2500
+  nbpe=4500
 else
   nbpe=150
 fi
@@ -57,6 +54,18 @@ tag="" # tag for managing experiments.
 set -e
 set -u
 set -o pipefail
+
+datadir=download/${lang}_data # original data directory to be stored
+# base url for downloads.
+# Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
+data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-5.1-2020-06-22/${lang}.tar.gz
+if [ -z ${nbpe} ]; then
+  if [[ "zh" == *"${lang}"* ]]; then
+    nbpe=2500
+  else
+    nbpe=150
+  fi
+fi
 
 train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
@@ -82,6 +91,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     utils/filter_scp.pl --exclude data/${train_dev}/wav.scp data/${train_set}/wav.scp > data/${train_set}/temp_wav.scp
     utils/filter_scp.pl --exclude data/${test_set}/wav.scp data/${train_set}/temp_wav.scp > data/${train_set}/wav.scp
     utils/fix_data_dir.sh data/${train_set}
+
+    utils/perturb_data_dir_speed.sh 0.9 data/${train_set} data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${train_set} data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/${train_set} data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -176,7 +191,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_$(basename ${train_config%.*})
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})_$(basename ${preprocess_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -191,6 +206,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -209,7 +225,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=4
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
                     --snapshots ${expdir}/results/snapshot.ep.* \

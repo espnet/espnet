@@ -100,7 +100,7 @@ else
         python3 -m pip install cffi
         (
             set -euo pipefail
-            cd pytorch_binding && python3 setup.py installl
+            cd pytorch_binding && python3 -m pip install -e .
         )
     )
 
