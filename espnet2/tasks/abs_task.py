@@ -601,6 +601,13 @@ class AbsTask(ABC):
             "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n"
             "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n",
         )
+        group.add_argument(
+            "--freeze_param",
+            type=str,
+            default=[],
+            nargs="*",
+            help="Freeze parameters",
+        )
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
@@ -1092,6 +1099,11 @@ class AbsTask(ABC):
             dtype=getattr(torch, args.train_dtype),
             device="cuda" if args.ngpu > 0 else "cpu",
         )
+        for t in args.freeze_param:
+            for k, p in model.named_parameters():
+                if k.startswith(t + ".") or k == t:
+                    logging.info(f"Setting {k}.requires_grad = False")
+                    p.requires_grad = False
 
         # 3. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
