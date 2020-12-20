@@ -42,9 +42,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     # download the original corpus
     if [ ! -e "${db_root}"/LibriTTS/.complete ]; then
         for part in dev-clean dev-other test-clean test-other train-clean-100 train-clean-360 train-other-500; do
-            local/download_and_untar.sh ${db_root} ${data_url} ${part}
+            local/download_and_untar.sh "${db_root}" "${data_url}" "${part}"
         done
-        touch ${db_root}/LibriTTS/.complete
+        touch "${db_root}/LibriTTS/.complete"
     else
         log "Already done. Skiped."
     fi
@@ -56,7 +56,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
         cwd=$(pwd)
         cd "${db_root}/LibriTTS"
         for part in dev-clean dev-other test-clean test-other train-clean-100 train-clean-360 train-other-500; do
-            gunzip -c lab.tar.gz | tar xvf - lab/phone/${part} --strip-components=2
+            gunzip -c lab.tar.gz | tar xvf - "lab/phone/${part}" --strip-components=2
         done
         touch .lab_complete
         rm -rf lab.tar.gz
@@ -69,21 +69,17 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: local/data_prep.sh"
     for name in train-clean-100 train-clean-360 dev-clean test-clean; do
-        local/data_prep.sh \
-            "${db_root}"/LibriTTS/${name} \
-            data/${name}
-        local/prep_segments.py \
-            --use_phoneme_text ${use_phoneme_text} \
-            data/${name}/wav.scp
-        utils/fix_data_dir.sh data/${name}
+        local/data_prep.sh "${db_root}/LibriTTS/${name}" "data/${name}"
+        local/prep_segments.py --replace_text_with_phoneme ${use_phoneme_text} "data/${name}/wav.scp"
+        utils/fix_data_dir.sh "data/${name}"
     done
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 2: utils/combine_data.sh"
-    utils/combine_data.sh data/${train_set} data/train-clean-100 data/train-clean-360
-    utils/copy_data_dir.sh data/dev-clean data/${dev_set}
-    utils/copy_data_dir.sh data/test-clean data/${eval_set}
+    utils/combine_data.sh "data/${train_set}" data/train-clean-100 data/train-clean-360
+    utils/copy_data_dir.sh data/dev-clean "data/${dev_set}"
+    utils/copy_data_dir.sh data/test-clean "data/${eval_set}"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
