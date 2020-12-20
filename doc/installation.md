@@ -241,12 +241,6 @@ e.g.
     . activate_python.sh
     ./installers/install_warp-transducer.sh
     ```
-- To install Warp RNNT
-    ```sh
-    cd <espnet-root>/tools
-    . activate_python.sh
-    ./installers/install_warp-rnnt.sh
-    ```
 - To install PyOpenJTalk
     ```sh
     cd <espnet-root>/tools
