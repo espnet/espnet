@@ -32,5 +32,5 @@ def initializer(model, args):
         if "transformer" in args.etype:
             initialize(model, args.transformer_init)
         else:
-            lecun_normal_init_parameters(model.encoder)
+            lecun_normal_init_parameters(model.enc)
             initialize(model.decoder, args.transformer_init)

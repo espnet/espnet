@@ -69,7 +69,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # make text
     # TODO(kan-bayashi): Use the text cleaner during training
-    grep ^0 ${db_root}/CSMSC/ProsodyLabeling/000001-010000.txt \
+    nkf -Lu -w ${db_root}/CSMSC/ProsodyLabeling/000001-010000.txt \
+        | grep ^0 \
         | sed -e "s/\#[1-4]//g" -e "s/：/，/g" -e 's/“//g' -e 's/”//g' \
         | sed -e "s/（//g" -e "s/）//g"  -e "s/；/，/g" -e 's/…。/。/g' \
         | sed -e 's/——/，/g' -e 's/……/，/g' -e "s/、/，/g" \
@@ -80,8 +81,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # make segmente
     find ${db_root}/CSMSC/PhoneLabeling -name "*.interval" -follow | sort | while read -r filename; do
         id="$(basename ${filename} .interval)"
-        start_sec=$(tail -n +14 ${filename} | head -n 1)
-        end_sec=$(head -n -2 ${filename} | tail -n 1)
+        start_sec=$(nkf -Lu -w ${filename} | tail -n +14 | head -n 1)
+        end_sec=$(nkf -Lu -w ${filename} | head -n -2 | tail -n 1)
         echo "${id} ${id} ${start_sec} ${end_sec}" >> ${segments}
     done
 
