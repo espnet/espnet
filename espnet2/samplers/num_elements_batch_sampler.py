@@ -8,7 +8,6 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.samplers.read_category import get_category2utt
 
 
 class NumElementsBatchSampler(AbsSampler):
@@ -21,7 +20,6 @@ class NumElementsBatchSampler(AbsSampler):
         sort_batch: str = "ascending",
         drop_last: bool = False,
         padding: bool = True,
-        utt2category_file: str = None,
     ):
         assert check_argument_types()
         assert batch_bins > 0
@@ -60,106 +58,92 @@ class NumElementsBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
 
-        category2utt = get_category2utt(keys, utt2category_file)
-
-        self.batch_list = []
-        for ctg, v in category2utt.items():
-            category_keys = v
-
-            if padding:
-                for d, s in zip(utt2shapes, shape_files):
-                    # shape: (Length, dim1, dim2, ...)
-                    if not all(
-                        tuple(d[k][1:]) == tuple(d[category_keys[0]][1:])
-                        for k in category_keys
-                    ):
-                        raise RuntimeError(
-                            "If padding=True, the feature dimension must be "
-                            f"unified: {s}",
-                        )
-                # If padding case, the feat-dim must be same over whole corpus,
-                # therefore the first sample is referred
-                feat_dims = [np.prod(d[category_keys[0]][1:]) for d in utt2shapes]
-            else:
-                feat_dims = None
-
-            # Decide batch-sizes
-            start = 0
-            batch_sizes = []
-            bs = 1
-            while True:
+        if padding:
+            for d, s in zip(utt2shapes, shape_files):
                 # shape: (Length, dim1, dim2, ...)
-                if padding:
-                    max_lengths = [
-                        max(d[category_keys[i]][0] for i in range(start, start + bs))
-                        for d in utt2shapes
-                    ]
-                    bins = sum(bs * lg * d for lg, d in zip(max_lengths, feat_dims))
-                else:
-                    bins = sum(
-                        np.prod(d[category_keys[i]])
-                        for i in range(start, start + bs)
-                        for d in utt2shapes
+                if not all(tuple(d[k][1:]) == tuple(d[keys[0]][1:]) for k in keys):
+                    raise RuntimeError(
+                        "If padding=True, the feature dimension must be unified: {s}",
                     )
+            # If padding case, the feat-dim must be same over whole corpus,
+            # therefore the first sample is referred
+            feat_dims = [np.prod(d[keys[0]][1:]) for d in utt2shapes]
+        else:
+            feat_dims = None
 
-                if bins > batch_bins and bs >= min_batch_size:
-                    batch_sizes.append(bs)
-                    start += bs
-                    bs = 1
-                else:
-                    bs += 1
-                if start >= len(category_keys):
-                    break
+        # Decide batch-sizes
+        start = 0
+        batch_sizes = []
+        bs = 1
+        while True:
+            # shape: (Length, dim1, dim2, ...)
+            if padding:
+                max_lengths = [
+                    max(d[keys[i]][0] for i in range(start, start + bs))
+                    for d in utt2shapes
+                ]
+                bins = sum(bs * lg * d for lg, d in zip(max_lengths, feat_dims))
+            else:
+                bins = sum(
+                    np.prod(d[keys[i]])
+                    for i in range(start, start + bs)
+                    for d in utt2shapes
+                )
 
-                if start + bs > len(category_keys):
-                    if not self.drop_last or len(batch_sizes) == 0:
-                        batch_sizes.append(len(category_keys) - start)
-                    break
-
-            if len(batch_sizes) == 0:
-                # Maybe we can't reach here
-                raise RuntimeError("0 batches")
-
-            # If the last batch-size is smaller than minimum batch_size,
-            # the samples are redistributed to the other mini-batches
-            if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
-                for i in range(batch_sizes.pop(-1)):
-                    batch_sizes[-(i % len(batch_sizes)) - 1] += 1
-
-            if not self.drop_last:
-                # Bug check
-                assert sum(batch_sizes) == len(
-                    category_keys
-                ), f"{sum(batch_sizes)} != {len(category_keys)} in category {ctg}"
-
-            # Set mini-batch
-            cur_batch_list = []
-            start = 0
-            for bs in batch_sizes:
-                assert len(category_keys) >= start + bs, "Bug"
-                minibatch_keys = category_keys[start : start + bs]
+            if bins > batch_bins and bs >= min_batch_size:
+                batch_sizes.append(bs)
                 start += bs
-                if sort_in_batch == "descending":
-                    minibatch_keys.reverse()
-                elif sort_in_batch == "ascending":
-                    # Key are already sorted in ascending
-                    pass
-                else:
-                    raise ValueError(
-                        "sort_in_batch must be ascending or descending: "
-                        f"{sort_in_batch}"
-                    )
-                cur_batch_list.append(tuple(minibatch_keys))
+                bs = 1
+            else:
+                bs += 1
+            if start >= len(keys):
+                break
 
-            if sort_batch == "ascending":
+            if start + bs > len(keys):
+                if not self.drop_last or len(batch_sizes) == 0:
+                    batch_sizes.append(len(keys) - start)
+                break
+
+        if len(batch_sizes) == 0:
+            # Maybe we can't reach here
+            raise RuntimeError("0 batches")
+
+        # If the last batch-size is smaller than minimum batch_size,
+        # the samples are redistributed to the other mini-batches
+        if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
+            for i in range(batch_sizes.pop(-1)):
+                batch_sizes[-(i % len(batch_sizes)) - 1] += 1
+
+        if not self.drop_last:
+            # Bug check
+            assert sum(batch_sizes) == len(keys), f"{sum(batch_sizes)} != {len(keys)}"
+
+        # Set mini-batch
+        self.batch_list = []
+        start = 0
+        for bs in batch_sizes:
+            assert len(keys) >= start + bs, "Bug"
+            minibatch_keys = keys[start : start + bs]
+            start += bs
+            if sort_in_batch == "descending":
+                minibatch_keys.reverse()
+            elif sort_in_batch == "ascending":
+                # Key are already sorted in ascending
                 pass
-            elif sort_batch == "descending":
-                cur_batch_list.reverse()
             else:
                 raise ValueError(
-                    f"sort_batch must be ascending or descending: {sort_batch}"
+                    f"sort_in_batch must be ascending or descending: {sort_in_batch}"
                 )
-            self.batch_list.extend(cur_batch_list)
+            self.batch_list.append(tuple(minibatch_keys))
+
+        if sort_batch == "ascending":
+            pass
+        elif sort_batch == "descending":
+            self.batch_list.reverse()
+        else:
+            raise ValueError(
+                f"sort_batch must be ascending or descending: {sort_batch}"
+            )
 
     def __repr__(self):
         return (
