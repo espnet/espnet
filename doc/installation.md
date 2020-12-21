@@ -239,7 +239,7 @@ e.g.
     ```sh
     cd <espnet-root>/tools
     . activate_python.sh
-    . ./setup_cuda_env.sh <cuda-root>
+    . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
     ./installers/install_warp-transducer.sh
     ```
 - To install PyOpenJTalk
