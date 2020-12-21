@@ -28,7 +28,7 @@ scheduler_conf:
 enh: wpe_beamformer
 enh_conf:
     mask_type: PSM^2
-    n_fft: 256
+    n_fft: 512
     win_length: null
     hop_length: 128
     num_spk: 2

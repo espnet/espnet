@@ -31,12 +31,8 @@ nlsyms=data/nlsyms.txt
 min_or_max=min
 sample_rate=8k
 
-. utils/parse_options.sh
 
-if [ $# -ne 0 ]; then
-    echo "${help_message}"
-    exit 1;
-fi
+. utils/parse_options.sh
 
 
 if [ ! -e "${WSJ0}" ]; then
@@ -80,8 +76,6 @@ mkdir -p data/wsj
 log "mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj"
 mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj
 
-# TODO(Jing): for our single-spk, link a train_si281_1 to /data/train_si_284_1,
-# add need to reproduce the text_spk1 text_spk2 from text, and spk1.scp, spk2.scp from wav.scp
 
 
 
@@ -98,17 +92,3 @@ zcat ${WSJ1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | \
 log "Create non linguistic symbols: ${nlsyms}"
 cut -f 2- data/wsj/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
 cat ${nlsyms}
-
-
-# Prepare utt2category for wsj_mix
-for folder in ${train_set} ${train_dev} ${recog_set};
-do
-    awk '{print($1, "multi-speaker")}' ./data/${folder}/wav.scp > ./data/${folder}/utt2category
-done
-# Prepare utt2category, spk*.scp and text_spk* for train_si284
-awk '{print($1, "single-speaker")}' ./data/wsj/train_si284/wav.scp > ./data/wsj/train_si284/utt2category
-ln -s wav.scp ./data/wsj/train_si284/spk1.scp
-ln -s wav.scp ./data/wsj/train_si284/spk2.scp
-ln -s text ./data/wsj/train_si284/text_spk1
-ln -s text ./data/wsj/train_si284/text_spk2
-ln -s wsj/train_si284 ./data/

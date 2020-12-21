@@ -9,9 +9,9 @@ min_or_max=min # "min" or "max". This is to determine how the mixtures are gener
 sample_rate=8k
 
 
-train_set=tr_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
-valid_set=cv_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
-test_sets="tt_spatialized_anechoic_multich_${min_or_max}_${sample_rate}"
+train_set=tr_spatialized_anechoic_multich
+valid_set=cv_spatialized_anechoic_multich
+test_sets="tt_spatialized_anechoic_multich"
 
 ./enh.sh \
     --train_set "${train_set}" \
@@ -20,4 +20,8 @@ test_sets="tt_spatialized_anechoic_multich_${min_or_max}_${sample_rate}"
     --fs ${sample_rate} \
     --ngpu 2 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --srctexts "data/train_si284/text data/local/other_text/text" "$@"
+    --enh_config ./conf/tuning/train_enh_beamformer_no_wpe.yaml \
+    --use_dereverb_ref false \
+    --use_noise_ref false \
+    --inference_model "valid.loss.best.pth" \
+    "$@"
