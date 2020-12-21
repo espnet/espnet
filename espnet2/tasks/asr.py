@@ -324,7 +324,8 @@ class ASRTask(AbsTask):
             normalize = None
 
         # 4. Pre-encoder input block
-        if args.preencoder is not None:
+        # NOTE(kan-bayashi): Use getattr to keep the compatibility
+        if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
             preencoder = preencoder_class(**args.preencoder_conf)
             input_size = preencoder.output_size()
