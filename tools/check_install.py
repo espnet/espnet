@@ -118,14 +118,8 @@ def main(args):
     is_correct_version_list = []
     for idx, (name, version) in enumerate(library_list):
         if version is not None:
-            # Note: temp. fix for warprnnt_pytorch
-            # not found version with importlib
-            if name == "warprnnt_pytorch" or name == "warp_rnnt":
-                import pkg_resources
+            vers = importlib.import_module(name).__version__
 
-                vers = pkg_resources.get_distribution(name).version
-            else:
-                vers = importlib.import_module(name).__version__
             if vers is not None:
                 is_correct = vers in version
                 if is_correct:
