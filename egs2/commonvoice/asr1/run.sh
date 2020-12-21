@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-lang=es # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
+lang=cy # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
 
 train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
@@ -25,7 +25,7 @@ else
   nbpe=150
 fi
 
-local/asr.sh \
+./asr.sh \
     --ngpu 4 \
     --lang "${lang}" \
     --local_data_opts "--lang ${lang}" \
