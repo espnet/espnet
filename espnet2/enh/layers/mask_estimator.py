@@ -89,4 +89,3 @@ class MaskEstimator(torch.nn.Module):
             masks.append(mask)
 
         return tuple(masks), ilens
-
