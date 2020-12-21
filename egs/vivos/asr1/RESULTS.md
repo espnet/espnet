@@ -267,7 +267,7 @@
 
 - Model files (archived to tdnn_transformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
   - model link: https://drive.google.com/open?id=1N5W4Su5WYiAWIl2QPhcy8wsMnLY7SPQM
-  - training config file: `conf/tuning/transducer/train_custom_tt.yaml`
+  - training config file: `conf/tuning/transducer/train_tdnn_transformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
   - e2e file: `exp/train_nodev_pytorch_train_custom_tt/results/model.last5.avg.best`
@@ -459,7 +459,7 @@
 
 - Model files (archived to tdnn_conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
   - model link: https://drive.google.com/open?id=1qUz5UK3rdHRLWPQNuWLCQOmlyrbiUDA3
-  - training config file: `conf/tuning/transducer/train_custom_ct.yaml`
+  - training config file: `conf/tuning/transducer/train_tdnn_conformer-rnn_transducer.yaml`
   - decoding config file: `conf/tuning/transducer/decode_default.yaml`
   - cmvn file: `data/train_nodev/cmvn.ark`
   - e2e file: `exp/train_nodev_pytorch_train_custom_ct/results/model.last10.avg.best`
