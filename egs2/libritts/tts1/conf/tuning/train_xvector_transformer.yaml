@@ -1,7 +1,7 @@
-# This configuration is for ESPnet2 to train GST-Transformer-TTS.
-# This configuration additionally use the guided attention loss
-# to accelerate the learning of the diagonal attention. It requires
-# 4 GPUs with 32 GB memory and it will finish within 1 day
+# This configuration is for ESPnet2 to train Transformer-TTS with
+# GST. This configuration additionally use the guided attention
+# loss to accelerate the learning of the diagonal attention.
+# It requires 4 GPUs with 32 GB memory and it takes around 5 days
 # to finish the training on Tesla V100.
 
 ##########################################################
