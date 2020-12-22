@@ -273,7 +273,7 @@ Please run the training from stage 6.
 $ ./run.sh --stage 6 --train_config /path/to/your_xvector_config.yaml
 ```
 
-You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+You can find the example config in [`egs2/libritts/tts1/conf/tuning`](../../libritts/tts1/conf/tuning).
 
 ## Supported text frontend
 
@@ -343,7 +343,7 @@ You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tu
 
 X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
 GST and X-vector can be combined (Not tested well).
-You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning) and [`egs2/libritts/tts1/conf/tuning`](../../libritts/tts1/conf/tuning).
 
 ## FAQ
 
