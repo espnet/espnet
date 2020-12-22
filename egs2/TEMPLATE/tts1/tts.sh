@@ -395,6 +395,21 @@ if ! "${skip_data_prep}"; then
                     "${xvector_exp}" \
                     "${dumpdir}/mfcc/${dset}" \
                     "${dumpdir}/xvector/${dset}"
+
+                # 5. Filter scp
+                # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
+                #   the numbe utt_id will be different from the original features (raw or fbank).
+                #   To avoid this mismatch, perform filtering of the original feature scp here.
+                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                    _suf="/org"
+                else
+                    _suf=""
+                fi
+                cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
+                <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
+                    utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
+                    >"${data_feats}${_suf}/${dset}/wav.scp"
+                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
             done
         fi
     fi
@@ -456,6 +471,14 @@ if ! "${skip_data_prep}"; then
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
+
+            # Filter x-vector
+            if "${use_xvector}"; then
+                cp "${dumpdir}/xvector/${dset}"/xvector.{scp,scp.bak}
+                <"${dumpdir}/xvector/${dset}/xvector.scp.bak" \
+                    utils/filter_scp.pl "${data_feats}/${dset}/wav.scp"  \
+                    >"${dumpdir}/xvector/${dset}/xvector.scp"
+            fi
         done
 
         # shellcheck disable=SC2002
