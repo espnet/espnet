@@ -17,6 +17,7 @@ from typing import List
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
+from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
@@ -309,7 +310,11 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(**batch)
+            try:
+                results = speech2text(**batch)
+            except TooShortUttError:
+                logging.info(f"Utterance is too short for subsampling, return empty results")
+                results = [[" ", ["<space>"], [2], "nan"]] * nbest
 
             # Only supporting batch_size==1
             key = keys[0]
