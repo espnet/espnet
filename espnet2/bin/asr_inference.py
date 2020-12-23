@@ -79,9 +79,7 @@ class Speech2Text:
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
         token_list = asr_model.token_list
         scorers.update(
-            decoder=decoder,
-            ctc=ctc,
-            length_bonus=LengthBonus(len(token_list)),
+            decoder=decoder, ctc=ctc, length_bonus=LengthBonus(len(token_list)),
         )
 
         # 2. Build Language model
@@ -313,7 +311,9 @@ def inference(
             try:
                 results = speech2text(**batch)
             except TooShortUttError:
-                logging.info(f"Utterance is too short for subsampling, return empty results")
+                logging.info(
+                    f"Utterance is too short for subsampling, return empty results"
+                )
                 results = [[" ", ["<space>"], [2], "nan"]] * nbest
 
             # Only supporting batch_size==1
@@ -349,10 +349,7 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -388,10 +385,7 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
@@ -412,10 +406,7 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument(
-        "--ctc_weight",
-        type=float,
-        default=0.5,
-        help="CTC weight in joint decoding",
+        "--ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
 

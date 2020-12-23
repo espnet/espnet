@@ -13,6 +13,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 class TooShortUttError(Exception):
     """Raised when the utt is too short for subsampling"""
+
     pass
 
 
