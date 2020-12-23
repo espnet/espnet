@@ -12,6 +12,31 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# THIRD RESULTS
+
+- Use phoneme + accent as the inputs
+
+## Environments
+- date: `Mon Dec 21 11:44:18 JST 2020`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.6`
+- pytorch version: `pytorch 1.5.1`
+
+## Pretrained Models
+
+### jsut_tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_train.loss.ave
+- https://zenodo.org/record/4381098
+
+### jsut_tts_train_transformer_raw_phn_jaconv_pyopenjtalk_accent_train.loss.ave
+- https://zenodo.org/record/4381096
+
+### jsut_tts_train_fastspeech_tacotron2_teacher_raw_phn_jaconv_pyopenjtalk_accent_train.loss.ave
+- https://zenodo.org/record/4381100
+
+### jsut_tts_train_conformer_fastspeech_tacotron2_teacher_raw_phn_jaconv_pyopenjtalk_accent_train.loss.ave
+- https://zenodo.org/record/4381102
+
+
 # SECOND RESULTS
 
 ## Environments

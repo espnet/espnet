@@ -361,11 +361,12 @@ if ! "${skip_data_prep}"; then
         if "${use_xvector}"; then
             log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
             # Download X-vector pretrained model
-            xvector_exp=exp/xvector_nnet_1a
+            xvector_exp=${expdir}/xvector_nnet_1a
             if [ ! -e "${xvector_exp}" ]; then
-                echo "X-vector model does not exist. Download pre-trained model."
+                log "X-vector model does not exist. Download pre-trained model."
                 wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
                 tar xvf 0008_sitw_v2_1a.tar.gz
+                [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
                 mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
                 rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
             fi
@@ -398,7 +399,7 @@ if ! "${skip_data_prep}"; then
 
                 # 5. Filter scp
                 # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
-                #   the numbe utt_id will be different from the original features (raw or fbank).
+                #   the number of utts will be different from the original features (raw or fbank).
                 #   To avoid this mismatch, perform filtering of the original feature scp here.
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -809,7 +810,11 @@ if ! "${skip_train}"; then
             _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
+<<<<<<< HEAD
         # Check X-vector usage
+=======
+        # Add X-vector to the inputs if needed
+>>>>>>> b896ffcd363451f38579101f81e04eb791104d67
         if "${use_xvector}"; then
             _xvector_train_dir="${dumpdir}/xvector/${train_set}"
             _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
@@ -953,7 +958,11 @@ if ! "${skip_eval}"; then
                 fi
             fi
 
+<<<<<<< HEAD
             # Check X-vector usage
+=======
+            # Add X-vector to the inputs if needed
+>>>>>>> b896ffcd363451f38579101f81e04eb791104d67
             if "${use_xvector}"; then
                 _xvector_dir="${dumpdir}/xvector/${dset}"
                 _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "

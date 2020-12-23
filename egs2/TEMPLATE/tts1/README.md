@@ -273,7 +273,7 @@ Please run the training from stage 6.
 $ ./run.sh --stage 6 --train_config /path/to/your_xvector_config.yaml
 ```
 
-You can find the example config in [`egs2/libritts/tts1/conf/tuning`](../../libritts/tts1/conf/tuning).
+You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 
 ## Supported text frontend
 
@@ -289,8 +289,8 @@ You can change via `--g2p` option in `tts.sh`.
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - e.g. `こんにちは` -> `[k, o, N, n, i, ch, i, w, a]`
 - `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - Add accent information labels in addition to phoneme labels
-    - e.g. `こんにちは` -> `['k', '5', '-4', 'o', '5', '-4', 'N', '5', '-3', 'n', '5', '-2', 'i', '5', '-2', 'ch', '5', '-1', 'i', '5', '-1', 'w', '5', '0', 'a', '5', '0']`
+    - Add accent labels in addition to phoneme labels
+    - e.g. `こんにちは` -> `[k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Use kana instead of phoneme
     - e.g. `こんにちは` -> `[コ, ン, ニ, チ, ワ]`
@@ -343,7 +343,7 @@ You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tu
 
 X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
 GST and X-vector can be combined (Not tested well).
-You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning) and [`egs2/libritts/tts1/conf/tuning`](../../libritts/tts1/conf/tuning).
+You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 
 ## FAQ
 
