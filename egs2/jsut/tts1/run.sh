@@ -24,12 +24,10 @@ test_sets="dev eval1"
 
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
-# pyopenjtalk case: m i z u o m a r e e sh i a k a r a k a w a n a k U t e w a n a r a n a i n o d e s U
-# pyopenjtalk_kana case: ミズヲマレーシアカラカワナクテワナラナイノデス。
-g2p=pyopenjtalk
-# g2p=pyopenjtalk_kana
 
-# toke_type=char doesn't indicate kana, but mean kanji-kana-majiri-moji characters
+# g2p=pyopenjtalk      # Phoneme (e.g. k o N n i ch i w a)
+# g2p=pyopenjtalk_kana # Kana (e.g. コ ン ニ チ ワ)
+g2p=pyopenjtalk_accent # Phoneme + Accent (e.g. k 5 -4 o 5 -4 N 5 -3 n 5 -2 i 5 -2 ch 5 -1 i 5 -1 w 5 0 a 5 0)
 
 ./tts.sh \
     --lang jp \
