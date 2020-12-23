@@ -314,7 +314,7 @@ def inference(
                 results = speech2text(**batch)
             except TooShortUttError:
                 logging.info(
-                    f"Utterance is too short for subsampling, return empty results"
+                    "Utterance is too short for subsampling, return empty results"
                 )
                 results = [[" ", ["<space>"], [2], "nan"]] * nbest
 
