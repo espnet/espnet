@@ -361,11 +361,12 @@ if ! "${skip_data_prep}"; then
         if "${use_xvector}"; then
             log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
             # Download X-vector pretrained model
-            xvector_exp=exp/xvector_nnet_1a
+            xvector_exp=${expdir}/xvector_nnet_1a
             if [ ! -e "${xvector_exp}" ]; then
                 log "X-vector model does not exist. Download pre-trained model."
                 wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
                 tar xvf 0008_sitw_v2_1a.tar.gz
+                [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
                 mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
                 rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
             fi
