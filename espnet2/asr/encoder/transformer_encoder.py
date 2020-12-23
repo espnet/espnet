@@ -19,10 +19,10 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet.nets.pytorch_backend.transformer.subsampling import check_short_utt
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
-from espnet.nets.pytorch_backend.transformer.subsampling import check_short_utt
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
