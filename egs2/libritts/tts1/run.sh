@@ -37,6 +37,7 @@ cleaner=tacotron; g2p=g2p_en_no_space; use_phoneme_text=false # Include no word 
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
+    --use_xvector true \
     --token_type phn \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
