@@ -38,7 +38,6 @@ tts_conf:                        # keyword arguments for the selected model
     dropout_rate: 0.5            # dropout rate
     zoneout_rate: 0.1            # zoneout rate
     reduction_factor: 1          # reduction factor
-    spk_embed_dim: null          # speaker embedding dimension
     use_masking: true            # whether to apply masking for padded part in loss calculation
     bce_pos_weight: 10.0         # weight of positive sample in binary cross entropy calculation
     use_guided_attn_loss: true   # whether to use guided attention loss
