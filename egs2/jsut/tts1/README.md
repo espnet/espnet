@@ -36,6 +36,12 @@ See the following pages before asking the question:
 ### jsut_tts_train_conformer_fastspeech_tacotron2_teacher_raw_phn_jaconv_pyopenjtalk_accent_train.loss.ave
 - https://zenodo.org/record/4381102
 
+### jsut_tts_train_fastspeech_transformer_teacher_raw_phn_jaconv_pyopenjtalk_accent_train.loss.ave
+- https://zenodo.org/record/4391405
+
+### jsut_tts_train_conformer_fastspeech_transformer_teacher_raw_phn_jaconv_pyopenjtalk_accent_train.loss.ave
+- https://zenodo.org/record/4391409
+
 
 # SECOND RESULTS
 
