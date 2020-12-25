@@ -313,7 +313,6 @@ def inference(
             try:
                 results = speech2text(**batch)
             except TooShortUttError as e:
-                message = str(e)
                 logging.warning(f"Utterance {keys} {e}")
                 results = [[" ", ["<space>"], [2], "nan"]] * nbest
 
