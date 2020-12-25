@@ -169,7 +169,8 @@ class TransformerEncoder(AbsEncoder):
             short_status, limit_size = check_short_utt(self.embed, xs_pad.size(1))
             if short_status:
                 raise TooShortUttError(
-                    f"has {xs_pad.size(1)} frames and is too short for subsampling (it needs more than {limit_size} frames), return empty results",
+                    f"has {xs_pad.size(1)} frames and is too short for subsampling " +
+                    f"(it needs more than {limit_size} frames), return empty results",
                     xs_pad.size(1),
                     limit_size,
                 )
