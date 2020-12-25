@@ -20,6 +20,8 @@ SECONDS=0
 # ./run.sh --mic mdm8
 mic=ihm
 
+. utils/parse_options.sh
+
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
