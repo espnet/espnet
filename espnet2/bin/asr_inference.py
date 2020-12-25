@@ -312,10 +312,9 @@ def inference(
             # N-best list of (text, token, token_int, hyp_object)
             try:
                 results = speech2text(**batch)
-            except TooShortUttError:
-                logging.info(
-                    "Utterance is too short for subsampling, return empty results"
-                )
+            except TooShortUttError as e:
+                message = str(e)
+                logging.warning(f"Utterance {keys} {e}")
                 results = [[" ", ["<space>"], [2], "nan"]] * nbest
 
             # Only supporting batch_size==1
