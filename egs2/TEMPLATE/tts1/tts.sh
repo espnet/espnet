@@ -1042,6 +1042,12 @@ if ! "${skip_upload}"; then
         if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
             _opts+=" --option ${tts_stats_dir}/train/energy_stats.npz"
         fi
+        if "${use_xvector}"; then
+            for dset in "${train_set}" ${test_sets}; do
+                _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.scp"
+                _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.ark"
+            done
+        fi
         ${python} -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
             --model_file "${tts_exp}"/"${inference_model}" \
