@@ -1,7 +1,7 @@
 # This configuration is for ESPnet2 to train GST-Tacotron 2. Compared to the
 # original paper, this configuration additionally use the guided attention
 # loss to accelerate the learning of the diagonal attention. It takes around
-# 2 days to finish the training on RTX Titan.
+# 4 days to finish the training on RTX Titan.
 
 ##########################################################
 #                  TTS MODEL SETTING                     #
@@ -56,7 +56,7 @@ optim_conf:           # keyword arguments for selected optimizer
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 500    # number of iterations per epoch
-max_epoch: 200              # number of epochs
+max_epoch: 300              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
