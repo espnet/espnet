@@ -12,9 +12,17 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class TooShortUttError(Exception):
-    """Raised when the utt is too short for subsampling."""
+    """Raised when the utt is too short for subsampling.
+
+    Args:
+        message (str): Message for error catch
+        actual_size (int): the short size that cannot pass the subsampling
+        limit (int): the limit size for subsampling
+
+    """
 
     def __init__(self, message, actual_size, limit):
+        """Construct a TooShortUttError for error handler."""
         super().__init__(message)
         self.actual_size = actual_size
         self.limit = limit
