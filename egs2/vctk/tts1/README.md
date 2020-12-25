@@ -11,6 +11,27 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+# SECOND RESULTS
+
+- Use X-vector as the speaker embedding
+
+## Environments
+
+- date: `Fri Dec 25 15:32:06 JST 2020`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.8.0`
+- pytorch version: `pytorch 1.5.1`
+- Git hash: `c86bb088061641e9fba08310b4e6826e5e819f54`
+  - Commit date: `Fri Dec 25 14:45:38 2020 +0900`
+
+## Pretrained Models
+
+### vctk_tts_train_xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+- https://zenodo.org/record/4393279
+
+### vctk_tts_train_gst+xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+- https://zenodo.org/record/4393277
+
 
 # INITIAL RESULTS
 
