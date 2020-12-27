@@ -14,7 +14,8 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-from huggingface_hub import cached_download, hf_hub_url
+from huggingface_hub import cached_download
+from huggingface_hub import hf_hub_url
 import matplotlib
 import numpy as np
 import soundfile as sf
@@ -25,7 +26,8 @@ import yaml
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2 import __version__
 from espnet2.fileio.npy_scp import NpyScpWriter
-from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME, unpack
+from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME
+from espnet2.main_funcs.pack_funcs import unpack
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -130,15 +132,15 @@ class Text2Speech:
 
     def from_pretrained(filename_or_model_id: str, **kwargs) -> "Text2Speech":
         """Instantiate a Text2Speech model from a local packed archive or a model id
-        from the huggingface.co model hub.
 
         Args:
             filename_or_model_id (str): Path to a local packed archive, or model id from
-                the Hugging Face model hub
+                the huggingface.co model hub
                 (e.g. ``"julien-c/ljspeech_tts_train_tacotron2_raw_phn_tacotron_g2p_en_no_space_train"``)
 
         Returns:
             instance of Text2Speech
+
         """
         if os.path.isfile(filename_or_model_id):
             outpath = os.path.dirname(filename_or_model_id)

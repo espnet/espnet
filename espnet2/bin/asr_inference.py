@@ -9,7 +9,8 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-from huggingface_hub import cached_download, hf_hub_url
+from huggingface_hub import cached_download
+from huggingface_hub import hf_hub_url
 import numpy as np
 import torch
 from typeguard import check_argument_types
@@ -27,7 +28,8 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2 import __version__
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME, unpack
+from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME
+from espnet2.main_funcs.pack_funcs import unpack
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -166,15 +168,15 @@ class Speech2Text:
 
     def from_pretrained(filename_or_model_id: str, **kwargs) -> "Speech2Text":
         """Instantiate a Speech2Text model from a local packed archive or a model id
-        from the huggingface.co model hub.
 
         Args:
             filename_or_model_id (str): Path to a local packed archive, or model id from
-                the Hugging Face model hub
+                the huggingface.co model hub
                 (e.g. ``"julien-c/mini_an4_asr_train_raw_bpe_valid"``)
 
         Returns:
             instance of Speech2Text
+
         """
         if os.path.isfile(filename_or_model_id):
             outpath = os.path.dirname(filename_or_model_id)

@@ -89,4 +89,4 @@ def test_Speech2Text(asr_config_file, lm_config_file):
 def test_from_pretrained():
     speech2text = Speech2Text.from_pretrained(EXAMPLE_ASR_EN_MODEL_ID)
     speech = np.random.randn(100000)
-    results = speech2text(speech)
+    _ = speech2text(speech)
