@@ -32,6 +32,18 @@ See the following pages before asking the question:
 ### vctk_tts_train_gst+xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4393277
 
+### vctk_tts_train_xvector_tacotron2_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+- https://zenodo.org/record/4394600
+
+### vctk_tts_train_gst+xvector_tacotron2_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+- https://zenodo.org/record/4394598
+
+### vctk_tts_train_xvector_conformer_fastspeech2_transformer_teacher_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+- https://zenodo.org/record/4394602
+
+### vctk_tts_train_gst+xvector_conformer_fastspeech2_transformer_teacher_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+- https://zenodo.org/record/4394608
+
 
 # INITIAL RESULTS
 
