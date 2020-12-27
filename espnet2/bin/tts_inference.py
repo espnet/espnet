@@ -136,7 +136,7 @@ class Text2Speech:
         Args:
             filename_or_model_id (str): Path to a local packed archive, or model id from
                 the huggingface.co model hub
-                (e.g. ``"julien-c/ljspeech_tts_train_tacotron2_raw_phn_tacotron_g2p_en_no_space_train"``)
+                (e.g. ``"julien-c/kan-bayashi-jsut_tts_train_tacotron2_ja"``)
 
         Returns:
             instance of Text2Speech
