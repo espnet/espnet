@@ -15,12 +15,15 @@ gt_spk_wavdir=$4
 
 spk=$(basename $out_spk_wavdir)
 
-for i in $(seq 316 1 320); do
-    out_wav_file=${out_wavdir}/${spk}_${i}_gen.wav
+for out_wav_file in $(find -L ${out_wavdir} -iname "${spk}_*" | sort ); do
+
+    wav_basename=$(basename $out_wav_file .wav)
+    echo "${wav_basename}"
+
     cp ${out_wav_file} ${out_spk_wavdir} || exit 1
-    mv ${out_spk_wavdir}/${spk}_${i}_gen.wav ${out_spk_wavdir}/${spk}_${i}.wav
-    gt_wav_file=${gt_wavdir}/${spk}_${i}.wav
-    cp ${gt_wav_file} ${gt_spk_wavdir} || exit 1
+    #mv ${out_spk_wavdir}/${wav_basename}_gen.wav ${out_spk_wavdir}/${wav_basename}.wav
+    cp ${gt_wavdir}/${wav_basename}.wav ${gt_spk_wavdir}
+
 done
 
 echo "Succeessfully create ${spk}'s directories for mcd evaluation"

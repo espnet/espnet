@@ -1,0 +1,1 @@
+../../tts1/local/make_spk_dir_for_mcd_eval.sh

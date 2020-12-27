@@ -69,6 +69,7 @@ if __name__ == "__main__":
     for k, v in src_json.items():
         _ = k.split("_")
         number = "_".join(_[1:])
+        print(number)
 
         entry = {"input": src_json[srcspk + "_" + number]["input"]}
 

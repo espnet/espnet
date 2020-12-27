@@ -29,7 +29,7 @@ fi
 
 set -euo pipefail
 
-wavdir=${outdir}_denorm/${set_name}/pwg_wav
+wavdir=${outdir}_denorm/${set_name}/wav
 
 
 echo "step 0: Model preparation"

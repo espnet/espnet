@@ -33,7 +33,7 @@ done
 
 
 #sed "s/^/pwg_&/g" data/${set_name}/text > ${data_dir}/text
-# due to we use different dictionary (phone-based) with the aishell (character based, btw its use simple cymbol), now we 
+# due to we use different dictionary (phone-based) with the aishell (character based, btw its use simple symbol), now we 
 # generate the text file by the most stupid way: our hand.
 sed "s/^/pwg_&/g" data/${set_name}/utt2spk > ${utt2spk}
 

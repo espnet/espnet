@@ -18,17 +18,23 @@ N=0          # number of minibatches to be used (mainly for debugging). "0" uses
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
-# feature extraction related
+# fbank feature extraction related
 fs=16000      # sampling frequency
-fmax=7600     # maximum frequency
-fmin=80       # minimum frequency
+fmax=""       # maximum frequency
+fmin=""       # minimum frequency
 n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
 
+# face feature extraction related
+fps=50
+lip_width=128
+lip_height=64
+shape_predictor_path=downloads/shape_predictor_68_face_landmarks.dat
+
 # config files
-train_config=
+train_config=conf/train_pytorch_tacotron2+spkemb.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
@@ -38,7 +44,9 @@ voc=PWG                     # vocoder used (GL or PWG)
 griffin_lim_iters=64        # The number of iterations of Griffin-Lim
 
 # pretrained model related
-pretrained_model=           # available pretrained models: m_ailabs.judy.vtn_tts_pt
+pretrained_model=          
+pretrained_tts_model_path=
+#pretrained_tts_model_path=downloads/snapshot.ep.290      t
 
 # dataset configuration
 db_root=downloads
@@ -46,7 +54,7 @@ norm_name=                  # used to specify normalized data.
                             # Ex: `judy` for normalization with pretrained model, `self` for self-normalization
 
 # exp tag
-tag=""  # tag for managing experiments.
+tag="tmsv_tts_dec_unfreezed"  # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -69,20 +77,6 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     local/data_prep.sh ${db_root}/TMSV data/all
-fi
-
-#if [ -z ${norm_name} ]; then
-#    echo "Please specify --norm_name ."
-#    exit 1
-#fi
-feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
-feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    echo "stage 1: Feature Generation"
-   
-    # Generate the fbank features; by default 80-dimensional on each frame
-    fbankdir=fbank
     # make train, dev and eval sets
     utils/subset_data_dir.sh --utt-list data/all/train_utt_list data/all data/${train_set}
     utils/fix_data_dir.sh data/${train_set}
@@ -90,15 +84,26 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/fix_data_dir.sh data/${dev_set}
     utils/subset_data_dir.sh --utt-list data/all/eval_utt_list data/all data/${eval_set}
     utils/fix_data_dir.sh data/${eval_set}
-
     # the utils/subset_data_dir.sh do not split the video.scp file for us, so we need to do this seperately
     utils/filter_scp.pl data/${train_set}/utt2spk <data/all/video.scp >data/${train_set}/video.scp
     utils/filter_scp.pl data/${dev_set}/utt2spk <data/all/video.scp >data/${dev_set}/video.scp
     utils/filter_scp.pl data/${eval_set}/utt2spk <data/all/video.scp >data/${eval_set}/video.scp
+fi
 
-    exit 0
+#if [ -z ${norm_name} ]; then
+#    echo "Please specify --norm_name ."
+#    exit 1
+#fi
+feat_tr_dir=${dumpdir}/${train_set}_fbank; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${dev_set}_fbank; mkdir -p ${feat_dt_dir}
+feat_ev_dir=${dumpdir}/${eval_set}_fbank; mkdir -p ${feat_ev_dir}
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    echo "stage 1: Fbank Feature Generation"
+   
+    # Generate the fbank features; by default 80-dimensional on each frame
+    fbankdir=fbank
 
-    for x in ${train_set} ${dev_set} ${eval_set}; do
+    for x in ${dev_set} ${eval_set} ${train_set}; do
         
         make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
             --fs ${fs} \
@@ -127,72 +132,130 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/${eval_set}/feats.scp ${fbank_cmvn} exp/dump_feats/${eval_set} ${feat_ev_dir}
     echo "fbank generation and normalization succeed."
 
+fi
+
+face_feat_tr_dir=${dumpdir}/${train_set}_face; mkdir -p ${feat_tr_dir}
+face_feat_dt_dir=${dumpdir}/${dev_set}_face; mkdir -p ${feat_dt_dir}
+face_feat_ev_dir=${dumpdir}/${eval_set}_face; mkdir -p ${feat_ev_dir}
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    echo "stage 2: Face Feature Generation"
+
     face_feature_dir=face_feature
+    for x in ${dev_set} ${eval_set} ${train_set}; do
 
-    for x in ${train_set} ${dev_set} ${eval_set}; do
-
-        make_face_feature.sh --cmd "${train_cmd}" --nj ${nj} \
-
-
+        make_face.sh --cmd "${train_cmd}" --nj ${nj} \
+            --fps ${fps} \
+            --lip_width ${lip_width} \
+            --lip_height ${lip_height} \
+            --shape_predictor_path ${shape_predictor_path} \
             data/${x} \
-            exp/make_face_feature/${x} \
+            exp/make_face/${x} \
             ${face_feature_dir}
 
     done
             
+    # compute statistics for global mean-variance normalization for fbank
+    compute-cmvn-stats scp:data/${train_set}/face_feats.scp data/${train_set}/face_cmvn.ark
+    face_cmvn=data/${train_set}/face_cmvn.ark
+    
+    # dump features
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${train_set}/face_feats.scp ${face_cmvn} exp/dump_face_feats/${train_set} ${face_feat_tr_dir}
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${dev_set}/face_feats.scp ${face_cmvn} exp/dump_face_feats/${dev_set} ${face_feat_dt_dir}
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${eval_set}/face_feats.scp ${face_cmvn} exp/dump_face_feats/${eval_set} ${face_feat_ev_dir}
+    echo "face-feature generation and normalization succeed."
 
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    echo "stage 2: Dictionary and Json Data Preparation"
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: Dictionary and Json Data Preparation"
 
     # make dummy dict
     dict="data/dummy_dict/X.txt"
-    if [ -e ${dict} ]; then
+    if [ ! -e ${dict} ]; then
         mkdir -p ${dict%/*}
         echo "<unk> 1" > ${dict}
     fi
     
     # make json labels
-    data2json.sh --feat ${src_feat_tr_dir}/feats.scp \
-         data/${src_train_set} ${dict} > ${src_feat_tr_dir}/data.json
-    data2json.sh --feat ${src_feat_dt_dir}/feats.scp \
-         data/${src_dev_set} ${dict} > ${src_feat_dt_dir}/data.json
-    data2json.sh --feat ${src_feat_ev_dir}/feats.scp \
-         data/${src_eval_set} ${dict} > ${src_feat_ev_dir}/data.json
-    data2json.sh --feat ${trg_feat_tr_dir}/feats.scp \
-         data/${trg_train_set} ${dict} > ${trg_feat_tr_dir}/data.json
-    data2json.sh --feat ${trg_feat_dt_dir}/feats.scp \
-         data/${trg_dev_set} ${dict} > ${trg_feat_dt_dir}/data.json
-    data2json.sh --feat ${trg_feat_ev_dir}/feats.scp \
-         data/${trg_eval_set} ${dict} > ${trg_feat_ev_dir}/data.json
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+    data2json.sh --feat ${face_feat_tr_dir}/feats.scp \
+         data/${train_set} ${dict} > ${face_feat_tr_dir}/data.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+         data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat ${face_feat_dt_dir}/feats.scp \
+         data/${dev_set} ${dict} > ${face_feat_dt_dir}/data.json
+    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+         data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
+    data2json.sh --feat ${face_feat_ev_dir}/feats.scp \
+         data/${eval_set} ${dict} > ${face_feat_ev_dir}/data.json
 fi
+pair_tr_dir=dump/${train_set}; mkdir -p ${pair_tr_dir}
+pair_dt_dir=dump/${dev_set}; mkdir -p ${pair_dt_dir}
+pair_ev_dir=dump/${eval_set}; mkdir -p ${pair_ev_dir}
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Pair Json Data Preparation"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: Pair Json Data Preparation"
 
     # make pair json
-    if [ ${num_train_utts} -ge 0 ]; then
-        make_pair_json.py \
-            --src-json ${src_feat_tr_dir}/data.json \
-            --trg-json ${trg_feat_tr_dir}/data.json \
-            -O ${pair_tr_dir}/data_n${num_train_utts}.json \
-            --num_utts ${num_train_utts}
-    else
-        make_pair_json.py \
-            --src-json ${src_feat_tr_dir}/data.json \
-            --trg-json ${trg_feat_tr_dir}/data.json \
-            -O ${pair_tr_dir}/data.json
-    fi
-    make_pair_json.py \
-        --src-json ${src_feat_dt_dir}/data.json \
-        --trg-json ${trg_feat_dt_dir}/data.json \
+    pair_face_and_fbank_json.py \
+        --face-json ${face_feat_tr_dir}/data.json \
+        --fbank-json ${feat_tr_dir}/data.json \
+        -O ${pair_tr_dir}/data.json
+    pair_face_and_fbank_json.py \
+        --face-json ${face_feat_dt_dir}/data.json \
+        --fbank-json ${feat_dt_dir}/data.json \
         -O ${pair_dt_dir}/data.json
-    make_pair_json.py \
-        --src-json ${src_feat_ev_dir}/data.json \
-        --trg-json ${trg_feat_ev_dir}/data.json \
+    pair_face_and_fbank_json.py \
+        --face-json ${face_feat_ev_dir}/data.json \
+        --fbank-json ${feat_ev_dir}/data.json \
         -O ${pair_ev_dir}/data.json
 fi
+
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: x-vector extraction"
+    # Make MFCCs and compute the energy-based VAD for each dataset
+    mfccdir=mfcc
+    vaddir=mfcc
+    for name in ${train_set} ${dev_set} ${eval_set}; do
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
+        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
+        steps/make_mfcc.sh \
+            --write-utt2num-frames true \
+            --mfcc-config conf/mfcc.conf \
+            --nj ${nj} --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_mfcc_16k ${mfccdir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+        sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+    done
+
+    # Check pretrained model existence
+    nnet_dir=exp/xvector_nnet_1a
+    if [ ! -e ${nnet_dir} ]; then
+        echo "X-vector model does not exist. Download pre-trained model."
+        wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+        tar xvf 0008_sitw_v2_1a.tar.gz
+        mv 0008_sitw_v2_1a/exp/xvector_nnet_1a exp
+        rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
+    fi
+    # Extract x-vector
+    for name in ${train_set} ${dev_set} ${eval_set}; do
+        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
+            ${nnet_dir} data/${name}_mfcc_16k \
+            ${nnet_dir}/xvectors_${name}
+    done
+    # Update json
+    for name in ${train_set} ${dev_set} ${eval_set}; do
+        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
+    done
+fi
+
 
 if [[ -z ${train_config} ]]; then
     echo "Please specify --train_config."
@@ -200,32 +263,30 @@ if [[ -z ${train_config} ]]; then
 fi
 
 # If pretrained model specified, add pretrained model info in config
-if [ -n "${pretrained_model}" ]; then
-    pretrained_model_path=$(find ${db_root}/${pretrained_model} -name "snapshot*" | head -n 1)
+if [ -n "${pretrained_tts_model_path}" ]; then
     train_config="$(change_yaml.py \
-        -a enc-init="${pretrained_model_path}" \
-        -a dec-init="${pretrained_model_path}" \
+        -a pretrained-tts-model="${pretrained_tts_model_path}" \
+        -a encoder-reduction-factor=2 \
         -o "conf/$(basename "${train_config}" .yaml).${tag}.yaml" "${train_config}")"
 fi
+
 if [ -z ${tag} ]; then
-    expname=${srcspk}_${trgspk}_${backend}_$(basename ${train_config%.*})
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
 else
-    expname=${srcspk}_${trgspk}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+
+
 expdir=exp/${expname}
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: VC model training"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: LTS model training"
 
     mkdir -p ${expdir}
-    if [ ${num_train_utts} -ge 0 ]; then
-        tr_json=${pair_tr_dir}/data_n${num_train_utts}.json
-    else
-        tr_json=${pair_tr_dir}/data.json
-    fi
+    tr_json=${pair_tr_dir}/data.json
     dt_json=${pair_dt_dir}/data.json
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        vc_train.py \
+        lts_train.py \
            --backend ${backend} \
            --ngpu ${ngpu} \
            --minibatches ${N} \
@@ -244,19 +305,19 @@ if [ -z "${model}" ]; then
     model=$(basename ${model})
 fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Decoding and synthesis"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: Decoding"
 
     echo "Decoding..."
     pids=() # initialize pids
-    for name in ${pair_dev_set} ${pair_eval_set}; do
+    for name in ${dev_set} ${eval_set}; do
     (
         [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
-        cp ${dumpdir}/${name}_${norm_name}/data.json ${outdir}/${name}
+        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
-            vc_decode.py \
+            lts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
@@ -273,22 +334,25 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+
+fi
     
-    echo "Synthesis..."
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    echo "Stage 8: Synthesis"
 
     pids=() # initialize pids
-    for name in ${pair_dev_set} ${pair_eval_set}; do
+    for name in ${dev_set} ${eval_set}; do
     (
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         
         # Normalization
         # If not using pretrained models statistics, use statistics of target speaker
         if [ -n "${pretrained_model}" ]; then
-            trg_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
+            fbank_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
         else
-            trg_cmvn=data/${trg_train_set}/cmvn.ark
+            fbank_cmvn=data/${train_set}/fbank_cmvn.ark
         fi
-        apply-cmvn --norm-vars=true --reverse=true ${trg_cmvn} \
+        apply-cmvn --norm-vars=true --reverse=true ${fbank_cmvn} \
             scp:${outdir}/${name}/feats.scp \
             ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
 
@@ -312,7 +376,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             echo "Using Parallel WaveGAN vocoder."
 
             # check existence
-            voc_expdir=${db_root}/pwg_${trgspk}
+            voc_expdir=${db_root}/pwg
             if [ ! -d ${voc_expdir} ]; then
                 echo "${voc_expdir} does not exist. Please download the pretrained model."
                 exit 1
@@ -348,8 +412,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                     --outdir ${wav_dir} \
                     --verbose "${verbose}"
 
-            # renaming
-            rename -f "s/_gen//g" ${wav_dir}/*.wav
 
             echo "successfully finished decoding."
         else
@@ -363,13 +425,42 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "stage 6: Objective Evaluation"
 
-    for name in ${pair_dev_set} ${pair_eval_set}; do
-        local/ob_eval/evaluate.sh --nj ${nj} \
-            --db_root ${db_root} \
-            --vocoder ${voc} \
-            ${outdir} ${name}
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    echo "Stage 9 MCD evaluation for output"
+    mcep_dim=24
+    shift_ms=5
+    num_of_spks=18
+    for count_of_spk in $(seq 1 1 $num_of_spks); do
+        spk=SP$(printf "%02d" $count_of_spk)
+
+        out_wavdir=${outdir}_denorm/${eval_set}/pwg_wav
+        gt_wavdir=${db_root}/TMSV/${spk}/audio
+        minf0=$(awk '{print $1}' ${db_root}/TMSV/conf/${spk}.f0)
+        echo "$minf0"
+        maxf0=$(awk '{print $2}' ${db_root}/TMSV/conf/${spk}.f0)
+        echo "$maxf0"
+        out_spk_wavdir=${outdir}_denorm.ob_eval/mcd_eval/pwg_out/${spk}
+        gt_spk_wavdir=${outdir}_denorm.ob_eval/mcd_eval/gt/${spk}
+        mcd_file=${outdir}_denorm.ob_eval/mcd_eval/${spk}_pwg_mcd.log
+        mkdir -p ${out_spk_wavdir}
+        mkdir -p ${gt_spk_wavdir}
+        
+        local/make_spk_dir_for_mcd_eval.sh ${out_wavdir} ${gt_wavdir} \
+            ${out_spk_wavdir} ${gt_spk_wavdir}
+        ${decode_cmd} ${mcd_file} \
+            mcd_calculate.py \
+                --wavdir ${out_spk_wavdir} \
+                --gtwavdir ${gt_spk_wavdir} \
+                --mcep_dim ${mcep_dim} \
+                --shiftms ${shift_ms} \
+                --f0min ${minf0} \
+                --f0max ${maxf0}
+           
     done
+fi
+
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    echo "Stage 10: objective evaluation on ASR"
+    local/ob_eval/evaluate.sh ${outdir} ${eval_set}
 fi

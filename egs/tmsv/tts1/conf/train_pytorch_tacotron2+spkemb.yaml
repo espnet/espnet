@@ -1,5 +1,7 @@
 # This is the basic tactron2 training settting
 
+model-module: espnet.nets.pytorch_backend.e2e_tts_tacotron2:Tacotron2
+
 # encoder related
 embed-dim: 512
 elayers: 1
@@ -26,14 +28,15 @@ aconv-filts: 15      # resulting in filter-size = aconv-filts * 2 + 1
 cumulate-att-w: true # whether to cumulate attetion weight
 use-batch-norm: true # whether to use batch normalization in conv layer
 use-concate: true    # whether to concatenate encoder embedding with decoder lstm outputs
-use-residual: false  # whether to use residual connection in encoder convolution
+use-residual: true  # whether to use residual connection in encoder convolution
 use-masking: true    # whether to mask the padded part in loss calculation
+use-guided-attn-loss: true
 bce-pos-weight: 1.0  # weight for positive samples of stop token in cross-entropy calculation
 reduction-factor: 2
 
 # minibatch related
 batch-size: 64
-batch-sort-key: output # shuffle or input or output
+batch-sort-key: input # shuffle or input or output
 maxlen-in: 150         # if input length  > maxlen-in, batchsize is reduced (if use "shuffle", not effect)
 maxlen-out: 400        # if output length > maxlen-out, batchsize is reduced (if use "shuffle", not effect)
 
@@ -45,3 +48,5 @@ dropout-rate: 0.5
 zoneout-rate: 0.1
 epochs: 500
 patience: 0
+
+

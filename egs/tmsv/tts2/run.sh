@@ -31,7 +31,7 @@ train_config=conf/train_pytorch_tacotron2+spkemb.finetune.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
-model=model.loss.best
+model=model.best.loss
 n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
@@ -44,7 +44,7 @@ pretrained_model='CH_TG.tacotron2+spkemb'
 db_root=downloads
 
 # exp tag
-tag="" # tag for managing experiments.
+tag="SP18" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -201,11 +201,30 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --config ${train_config}
 fi
 
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Text-to-speech model finetuneing"
+    tr_json=${dumpdir}/${train_set}_SP18/data.json
+    dt_json=${dumpdir}/${dev_set}_SP18/data.json
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+        tts_train.py \
+           --backend ${backend} \
+           --ngpu ${ngpu} \
+           --outdir ${expdir}/results \
+           --tensorboard-dir tensorboard/${expname} \
+           --verbose ${verbose} \
+           --seed ${seed} \
+           --resume ${resume} \
+           --train-json ${tr_json} \
+           --valid-json ${dt_json} \
+           --config ${train_config}
+fi
+
+
 if [ ${n_average} -gt 0 ]; then
     model=model.last${n_average}.avg.best
 fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 5: Decoding"
     if [ ${n_average} -gt 0 ]; then
         average_checkpoints.py --backend ${backend} \
