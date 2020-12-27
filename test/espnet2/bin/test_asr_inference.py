@@ -86,7 +86,7 @@ def test_Speech2Text(asr_config_file, lm_config_file):
         assert isinstance(hyp, Hypothesis)
 
 
-@pytest.mark.execution_timeout(30)
+@pytest.mark.execution_timeout(300)
 def test_from_pretrained():
     speech2text = Speech2Text.from_pretrained(EXAMPLE_ASR_EN_MODEL_ID)
     speech = np.random.randn(100000)

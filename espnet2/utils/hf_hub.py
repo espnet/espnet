@@ -37,7 +37,7 @@ def hf_rewrite_yaml(filepath: str, model_id: str, revision: Optional[str]):
         d = yaml.safe_load(f)
     for rewrite_key in REWRITE_KEYS:
         v = nested_dict_get(d, rewrite_key)
-        if v is not None:
+        if v is not None and any(v.startswith(prefix) for prefix in ["exp", "data"]):
             file_url = hf_hub_url(model_id=model_id, filename=v, revision=revision)
             file_path = cached_download(
                 file_url, library_name="espnet", library_version=__version__
