@@ -13,6 +13,9 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 
 
+EXAMPLE_ASR_EN_MODEL_ID = "julien-c/mini_an4_asr_train_raw_bpe_valid"
+
+
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 
@@ -81,3 +84,9 @@ def test_Speech2Text(asr_config_file, lm_config_file):
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+def test_from_pretrained():
+    speech2text = Speech2Text.from_pretrained(EXAMPLE_ASR_EN_MODEL_ID)
+    speech = np.random.randn(100000)
+    results = speech2text(speech)

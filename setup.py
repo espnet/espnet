@@ -17,6 +17,7 @@ requirements = {
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "ctc-segmentation>=1.4.0",
+        "huggingface_hub",
         "wandb",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'

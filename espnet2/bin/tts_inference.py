@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -13,14 +14,18 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+from huggingface_hub import cached_download, hf_hub_url
 import matplotlib
 import numpy as np
 import soundfile as sf
 import torch
 from typeguard import check_argument_types
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2 import __version__
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME, unpack
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -39,7 +44,7 @@ from espnet2.utils.types import str_or_none
 
 
 class Text2Speech:
-    """Speech2Text class
+    """Text2Speech class
 
     Examples:
         >>> import soundfile
@@ -122,6 +127,55 @@ class Text2Speech:
         else:
             self.spc2wav = None
             logging.info("Vocoder is not used because vocoder_conf is not sufficient")
+
+    def from_pretrained(filename_or_model_id: str, **kwargs) -> "Text2Speech":
+        """Instantiate a Text2Speech model from a local packed archive or a model id
+        from the huggingface.co model hub.
+
+        Args:
+            filename_or_model_id (str): Path to a local packed archive, or model id from
+                the Hugging Face model hub
+                (e.g. ``"julien-c/ljspeech_tts_train_tacotron2_raw_phn_tacotron_g2p_en_no_space_train"``)
+
+        Returns:
+            instance of Text2Speech
+        """
+        if os.path.isfile(filename_or_model_id):
+            outpath = os.path.dirname(filename_or_model_id)
+            inputs = unpack(input_archive=filename_or_model_id, outpath=outpath)
+        else:
+            # If not found locally, let's try to find it on Hugging Face model hub
+            # e.g. julien-c/model is a valid model id
+            # and  julien-c/model@main supports specifying a commit/branch/tag.
+            if "@" in filename_or_model_id:
+                model_id = filename_or_model_id.split("@")[0]
+                revision = filename_or_model_id.split("@")[1]
+            else:
+                model_id = filename_or_model_id
+                revision = None
+            meta_yaml_url = hf_hub_url(
+                model_id=model_id, filename=META_YAML_FILENAME, revision=revision
+            )
+            meta_yaml_path = cached_download(
+                meta_yaml_url, library_name="espnet", library_version=__version__
+            )
+            with open(meta_yaml_path, "r", encoding="utf-8") as f:
+                d = yaml.safe_load(f)
+            assert isinstance(d, dict), type(d)
+            yaml_files = d["yaml_files"]
+            files = d["files"]
+            assert isinstance(yaml_files, dict), type(yaml_files)
+            assert isinstance(files, dict), type(files)
+            inputs = {}
+            for key, value in list(yaml_files.items()) + list(files.items()):
+                file_url = hf_hub_url(
+                    model_id=model_id, filename=value, revision=revision
+                )
+                inputs[key] = cached_download(
+                    file_url, library_name="espnet", library_version=__version__
+                )
+
+        return Text2Speech(**inputs, **kwargs)
 
     @torch.no_grad()
     def __call__(
