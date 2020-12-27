@@ -67,6 +67,7 @@ def test_Text2Speech(config_file):
     text2speech(text)
 
 
+@pytest.mark.execution_timeout(30)
 def test_from_pretrained():
     text2speech = Text2Speech.from_pretrained(EXAMPLE_TTS_EN_MODEL_ID)
     text = "aiueo"
