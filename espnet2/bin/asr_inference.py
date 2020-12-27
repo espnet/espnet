@@ -37,6 +37,7 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.hf_hub import hf_rewrite_yaml
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -212,6 +213,9 @@ class Speech2Text:
                 inputs[key] = cached_download(
                     file_url, library_name="espnet", library_version=__version__
                 )
+                if key in yaml_files.keys():
+                    # Rewrite paths inside yaml
+                    hf_rewrite_yaml(inputs[key], model_id=model_id, revision=revision)
 
         return Speech2Text(**inputs, **kwargs)
 

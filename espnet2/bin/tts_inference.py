@@ -39,6 +39,7 @@ from espnet2.tts.transformer import Transformer
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
+from espnet2.utils.hf_hub import hf_rewrite_yaml
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -176,6 +177,9 @@ class Text2Speech:
                 inputs[key] = cached_download(
                     file_url, library_name="espnet", library_version=__version__
                 )
+                if key in yaml_files.keys():
+                    # Rewrite paths inside yaml
+                    hf_rewrite_yaml(inputs[key], model_id=model_id, revision=revision)
 
         return Text2Speech(**inputs, **kwargs)
 
