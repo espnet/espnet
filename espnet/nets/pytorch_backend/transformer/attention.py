@@ -123,13 +123,15 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         n_head (int): The number of heads.
         n_feat (int): The number of features.
         dropout_rate (float): Dropout rate.
+        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
 
     """
 
-    def __init__(self, n_head, n_feat, dropout_rate):
+    def __init__(self, n_head, n_feat, dropout_rate, zero_triu=False):
         """Construct an RelPositionMultiHeadedAttention object."""
         super().__init__(n_head, n_feat, dropout_rate)
-        # linear transformation for positional ecoding
+        self.zero_triu = zero_triu
+        # linear transformation for positional encoding
         self.linear_pos = nn.Linear(n_feat, n_feat, bias=False)
         # these two learnable bias are used in matrix c and matrix d
         # as described in https://arxiv.org/abs/1901.02860 Section 3.3
@@ -142,24 +144,32 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         """Compute relative positinal encoding.
 
         Args:
-            x (torch.Tensor): Input tensor (batch, time, size).
+            x (torch.Tensor): Input tensor (batch, head, time1, time2).
             zero_triu (bool): If true, return the lower triangular part of the matrix.
 
         Returns:
             torch.Tensor: Output tensor.
 
         """
-        zero_pad = torch.zeros((*x.size()[:3], 1), device=x.device, dtype=x.dtype)
-        x_padded = torch.cat([zero_pad, x], dim=-1)
-
-        x_padded = x_padded.view(*x.size()[:2], x.size(3) + 1, x.size(2))
-        x = x_padded[:, :, 1:].view_as(x)
+        idx = torch.arange(0, x.size(3), device=x.device)
+        k_idx, q_idx = idx.unsqueeze(0), idx.unsqueeze(1)
+        # for pos_idx[i, j], i means the postion of query, j means the position of key
+        # the range of i-j is from -(L-1) to L-1
+        # use the absolute value of i-j, so the range is from 0 to L-1
+        rel_pos_idx = torch.abs(k_idx - q_idx)
+        # original postional encodings are generated with reversed order
+        rel_pos_idx = x.size(3) - 1 - rel_pos_idx
+        rel_pos_idx = rel_pos_idx.repeat(x.size(0), x.size(1), 1, 1)
+        x_shift = torch.gather(x, dim=3, index=rel_pos_idx)
 
         if zero_triu:
-            ones = torch.ones((x.size(2), x.size(3)))
-            x = x * torch.tril(ones, x.size(3) - x.size(2))[None, None, :, :]
+            ones = torch.ones((x_shift.size(2), x_shift.size(3)), device=x_shift.device)
+            x_shift = (
+                x_shift
+                * torch.tril(ones, x_shift.size(3) - x_shift.size(2))[None, None, :, :]
+            )
 
-        return x
+        return x_shift
 
     def forward(self, query, key, value, pos_emb, mask):
         """Compute 'Scaled Dot Product Attention' with rel. positional encoding.
@@ -197,7 +207,7 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         # compute matrix b and matrix d
         # (batch, head, time1, time2)
         matrix_bd = torch.matmul(q_with_bias_v, p.transpose(-2, -1))
-        matrix_bd = self.rel_shift(matrix_bd)
+        matrix_bd = self.rel_shift(matrix_bd, self.zero_triu)
 
         scores = (matrix_ac + matrix_bd) / math.sqrt(
             self.d_k

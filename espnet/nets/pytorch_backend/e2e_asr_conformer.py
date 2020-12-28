@@ -65,6 +65,7 @@ class E2E(E2ETransformer):
             activation_type=args.transformer_encoder_activation_type,
             macaron_style=args.macaron_style,
             use_cnn_module=args.use_cnn_module,
+            zero_triu=args.zero_triu,
             cnn_module_kernel=args.cnn_module_kernel,
         )
         self.reset_parameters(args)

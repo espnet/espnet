@@ -29,6 +29,13 @@ def add_arguments_conformer_common(group):
         type=strtobool,
         help="Whether to use macaron style for positionwise layer",
     )
+    # Attention
+    group.add_argument(
+        "--zero-triu",
+        default=False,
+        type=strtobool,
+        help="If true, zero the uppper triangular part of attention matrix.",
+    )
     # CNN module
     group.add_argument(
         "--use-cnn-module",

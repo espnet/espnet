@@ -39,15 +39,13 @@ class PositionalEncoding(torch.nn.Module):
         d_model (int): Embedding dimension.
         dropout_rate (float): Dropout rate.
         max_len (int): Maximum input length.
-        reverse (bool): Whether to reverse the input position.
 
     """
 
-    def __init__(self, d_model, dropout_rate, max_len=5000, reverse=False):
+    def __init__(self, d_model, dropout_rate, max_len=5000):
         """Construct an PositionalEncoding object."""
         super(PositionalEncoding, self).__init__()
         self.d_model = d_model
-        self.reverse = reverse
         self.xscale = math.sqrt(self.d_model)
         self.dropout = torch.nn.Dropout(p=dropout_rate)
         self.pe = None
@@ -62,12 +60,7 @@ class PositionalEncoding(torch.nn.Module):
                     self.pe = self.pe.to(dtype=x.dtype, device=x.device)
                 return
         pe = torch.zeros(x.size(1), self.d_model)
-        if self.reverse:
-            position = torch.arange(
-                x.size(1) - 1, -1, -1.0, dtype=torch.float32
-            ).unsqueeze(1)
-        else:
-            position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
+        position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
             torch.arange(0, self.d_model, 2, dtype=torch.float32)
             * -(math.log(10000.0) / self.d_model)
@@ -142,7 +135,7 @@ class RelPositionalEncoding(PositionalEncoding):
 
     def __init__(self, d_model, dropout_rate, max_len=5000):
         """Initialize class."""
-        super().__init__(d_model, dropout_rate, max_len, reverse=True)
+        super().__init__(d_model, dropout_rate, max_len)
 
     def forward(self, x):
         """Compute positional encoding.
@@ -157,5 +150,7 @@ class RelPositionalEncoding(PositionalEncoding):
         """
         self.extend_pe(x)
         x = x * self.xscale
-        pos_emb = self.pe[:, : x.size(1)]
+        reverse_idx = torch.arange(x.size(1) - 1, -1, -1)
+        # use reversed positional embeddings
+        pos_emb = self.pe[:, reverse_idx]
         return self.dropout(x), self.dropout(pos_emb)

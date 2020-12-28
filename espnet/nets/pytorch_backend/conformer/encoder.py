@@ -58,6 +58,7 @@ class Encoder(torch.nn.Module):
         selfattention_layer_type (str): Encoder attention layer type.
         activation_type (str): Encoder activation function type.
         use_cnn_module (bool): Whether to use convolution module.
+        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
 
@@ -83,6 +84,7 @@ class Encoder(torch.nn.Module):
         selfattention_layer_type="selfattn",
         activation_type="swish",
         use_cnn_module=False,
+        zero_triu=False,
         cnn_module_kernel=31,
         padding_idx=-1,
     ):
@@ -150,6 +152,7 @@ class Encoder(torch.nn.Module):
                 attention_heads,
                 attention_dim,
                 attention_dropout_rate,
+                zero_triu,
             )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
