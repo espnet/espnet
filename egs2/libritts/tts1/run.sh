@@ -11,7 +11,7 @@ n_shift=300
 win_length=1200
 
 opts=
-if [ "${fs}" -eq 48000 ]; then
+if [ "${fs}" -eq 24000 ]; then
     # To suppress recreation, specify wav format
     opts="--audio_format wav "
 else
@@ -25,14 +25,14 @@ test_sets="dev eval1"
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
-# cleaner=tacotron; g2p=g2p_en; use_phoneme_text=false # Include word separator
-cleaner=tacotron; g2p=g2p_en_no_space; use_phoneme_text=false # Include no word separator
-# cleaner=none; g2p=none; use_phoneme_text=true # Use force aligned results directly
+cleaner=tacotron
+g2p=g2p_en_no_space # or g2p_en
+local_data_opts="--trim_all_silence true" # trim all silence in the audio
 
 ./tts.sh \
     --lang en \
     --feats_type raw \
-    --local_data_opts "--use_phoneme_text ${use_phoneme_text}" \
+    --local_data_opts "${local_data_opts}" \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
