@@ -12,7 +12,7 @@ SECONDS=0
 
 stage=-1
 stop_stage=1
-use_phoneme_text=false
+trim_all_silence=false
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -68,15 +68,33 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: local/data_prep.sh"
+    if "${trim_all_silence}"; then
+        [ ! -e data/local ] && mkdir -p data/local
+        cp ${db_root}/LibriTTS/SPEAKERS.txt data/local
+    fi
     for name in train-clean-100 train-clean-360 dev-clean test-clean; do
-        local/data_prep.sh "${db_root}/LibriTTS/${name}" "data/${name}"
-        local/prep_segments.py --replace_text_with_phoneme ${use_phoneme_text} "data/${name}/wav.scp"
+        if "${trim_all_silence}"; then
+            # Remove all silence and re-create wav file
+            local/trim_all_silence.py "${db_root}/LibriTTS/${name}" data/local/${name}
+            cwd=$(pwd)
+            cd "${db_root}/LibriTTS/${name}"
+            find . -name "*.normalized.txt" > files.txt
+            tar cvf txt.tar -T files.txt
+            tar xvf txt.tar -C "${cwd}/data/local/${name}"
+            rm files.txt txt.tar
+            cd "${cwd}"
+            local/data_prep.sh "data/local/${name}" "data/${name}"
+        else
+            # Use the original wav file with the trimming silence at the beginning and the end of audio
+            local/data_prep.sh "${db_root}/LibriTTS/${name}" "data/${name}"
+            local/prep_segments.py "data/${name}/wav.scp"
+        fi
         utils/fix_data_dir.sh "data/${name}"
     done
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage 2: utils/combine_data.sh"
+    log "stage 1: utils/combine_data.sh"
     utils/combine_data.sh "data/${train_set}" data/train-clean-100 data/train-clean-360
     utils/copy_data_dir.sh data/dev-clean "data/${dev_set}"
     utils/copy_data_dir.sh data/test-clean "data/${eval_set}"
