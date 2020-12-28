@@ -18,6 +18,7 @@ This is a template of TTS recipe for ESPnet2.
   * [How to run](#how-to-run)
     * [FastSpeech training](#fastspeech-training)
     * [FastSpeech2 training](#fastspeech2-training)
+    * [Multi speaker model with X-vector training](#multi-speaker-model-with-x-vector-training)
   * [Supported text frontend](#supported-text-frontend)
   * [Supported text cleaner](#supported-text-cleaner)
   * [Supported Models](#supported-models)
@@ -60,6 +61,10 @@ The processing in this stage is changed according to `--feats_type` option (Defa
 In the case of `feats_type=raw`, reformat `wav.scp` in date directories.
 In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with Librosa will be performed.
 Since the performance is almost the same, we recommend using `feats_type=raw`.
+
+Additionaly, we support X-vector extraction in this stage as you can use in ESPnet1.
+If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
+This processing requires the compiled kaldi, please be careful.
 
 ### 3. Removal of long / short data
 
@@ -249,6 +254,27 @@ $ ./run.sh --stage 5 \
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
 The use of `--write_collected_feats` is optional but it helps to accelerate the training.
 
+### Multi-speaker model with X-vector training
+
+First, you need to run from the stage 2 and 3 with `--use_xvector true` to extract X-vector.
+```sh
+$ ./run.sh --stage 2 --stop-stage 3 --use_xvector true
+```
+You can find the extracted X-vector in `dump/xvector/*/xvector.{ark,scp}`.
+Then, you can run the training with the config which has `spk_embed_dim: 512` in `tts_conf`.
+```yaml
+# e.g.
+tts_conf:
+    spk_embed_dim: 512               # dimension of speaker embedding
+    spk_embed_integration_type: add  # how to integrate speaker embedding
+```
+Please run the training from stage 6.
+```sh
+$ ./run.sh --stage 6 --train_config /path/to/your_xvector_config.yaml
+```
+
+You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+
 ## Supported text frontend
 
 You can change via `--g2p` option in `tts.sh`.
@@ -262,6 +288,9 @@ You can change via `--g2p` option in `tts.sh`.
     - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - e.g. `こんにちは` -> `[k, o, N, n, i, ch, i, w, a]`
+- `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
+    - Add accent labels in addition to phoneme labels
+    - e.g. `こんにちは` -> `[k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Use kana instead of phoneme
     - e.g. `こんにちは` -> `[コ, ン, ニ, チ, ワ]`
@@ -301,12 +330,19 @@ You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tu
 
 ### Multi speaker model
 
-- [GST + Tacotron2](https://arxiv.org/abs/1803.09017)
+- [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375) + Tacotron2
+- X-Vector + Transformer-TTS
+- X-Vector + FastSpeech
+- X-Vector + FastSpeech2
+- X-Vector + Conformer-based FastSpeech / FastSpeech2
+- [GST](https://arxiv.org/abs/1803.09017) + Tacotron2
 - GST + Transformer-TTS
 - GST + FastSpeech
 - GST + FastSpeech2
 - GST + Conformer-based FastSpeech / FastSpeech2
 
+X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
+GST and X-vector can be combined (Not tested well).
 You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 
 ## FAQ

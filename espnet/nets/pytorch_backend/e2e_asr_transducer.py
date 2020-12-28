@@ -353,7 +353,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         return PlotAttentionReport
 
-    def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0):
+    def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0, training=True):
         """Construct an E2E object for transducer model."""
         torch.nn.Module.__init__(self)
 
@@ -471,7 +471,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.reporter = Reporter()
 
-        self.criterion = TransLoss(args.trans_type, self.blank_id)
+        if training:
+            self.criterion = TransLoss(args.trans_type, self.blank_id)
 
         self.default_parameters(args)
 

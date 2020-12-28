@@ -1,6 +1,6 @@
 # CSMSC RECIPE
 
-This is the recipe of Mandarin single female speaker TTS model with [CSMSC](https://www.data-baker.com/open_source.html) corpus.
+This is the recipe of Mandarin single female speaker TTS model with [CSMSC](https://www.data-baker.com/#/data/index/source) corpus.
 
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)

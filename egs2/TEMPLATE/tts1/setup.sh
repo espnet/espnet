@@ -63,4 +63,9 @@ for f in steps utils; do
     targets+="${dir}/${target} "
 done
 
+# Symlinks to Kaldi SID
+target=../../../tools/kaldi/egs/sre08/v1/sid
+ln -sf "${target}" "${dir}"
+targets+="${dir}/${target} "
+
 log "Created: ${targets}"

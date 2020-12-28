@@ -158,7 +158,7 @@ class BeamSearchTransducer:
 
                 y, state, _ = self.decoder.score(hyp, cache, init_tensor)
 
-        return hyp
+        return [hyp]
 
     def default_beam_search(self, h: torch.Tensor) -> List[Hypothesis]:
         """Beam search implementation.

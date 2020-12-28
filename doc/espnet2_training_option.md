@@ -127,6 +127,12 @@ python -m espnet2.bin.asr_train --init_param model.pth:::decoder.embed
 python -m espnet2.bin.asr_train --init_param model.pth:::encoder,decoder.embed
 ```
 
+## Freeze parameters
+
+```sh
+python -m espnet2.bin.asr_train --freeze_param encoder.enc encoder.decoder
+```
+
 ## Change logging interval
 The result in the middle state of the training will be shown by the specified number:
 
