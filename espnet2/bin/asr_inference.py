@@ -314,7 +314,12 @@ def inference(
                 results = speech2text(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
-                results = [[" ", ["<space>"], [2], "nan"]] * nbest
+                hyp = Hypothesis(
+                    score=0.0,
+                    scores={},
+                    states={},
+                    yseq=[])
+                results = [[" ", ["<space>"], [2], hyp]] * nbest
 
             # Only supporting batch_size==1
             key = keys[0]
