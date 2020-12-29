@@ -3,7 +3,7 @@
 # Copyright 2020 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Trim the all of the silence."""
+"""Trim silence in the audio and re-create wav files."""
 
 import argparse
 import fnmatch
