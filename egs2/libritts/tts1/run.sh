@@ -18,9 +18,9 @@ else
     opts="--audio_format flac "
 fi
 
-train_set=tr_no_dev
-valid_set=dev
-test_sets="dev eval1"
+train_set=train-clean-460
+valid_set=dev-clean
+test_sets="dev-clean test-clean"
 
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
