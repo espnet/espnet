@@ -280,10 +280,7 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
         nbest = model.recognize(x[0, : ilens[0]].numpy(), beam_search)
 
         print(y[0])
-        if recog_args.beam_size == 1:
-            print(nbest["yseq"][1:-1])
-        else:
-            print(nbest[0]["yseq"][1:-1])
+        print(nbest[0]["yseq"][1:-1])
 
 
 def test_calculate_plot_attention():

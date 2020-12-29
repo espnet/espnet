@@ -1,7 +1,7 @@
-# This configuration is for ESPnet2 to train GST-Transformer-TTS.
-# This configuration additionally use the guided attention loss
-# to accelerate the learning of the diagonal attention. It requires
-# 4 GPUs with 32 GB memory and it will finish within 2 day
+# This configuration is for ESPnet2 to train Transformer-TTS with
+# GST + X-vector. This configuration additionally use the guided
+# attention loss to accelerate the learning of the diagonal attention.
+# It requires 4 GPUs with 32 GB memory and it takes around 3 days
 # to finish the training on Tesla V100.
 
 ##########################################################
@@ -27,9 +27,8 @@ tts_conf:                  # keyword arguments for the selected model
     postnet_layers: 5                # number of layers of postnset
     postnet_filts: 5                 # filter size of conv layers in postnet
     postnet_chans: 256               # number of channels of conv layers in postnet
-    use_gst: true                    # whether to use GST embedding
-    gst_heads: 8                     # number of heads in GST multi-head attention
-    gst_tokens: 256                  # number of global style tokens
+    spk_embed_dim: 512               # dimension of speaker embedding
+    spk_embed_integration_type: add  # how to integrate speaker embedding
     use_masking: True                # whether to apply masking for padded part in loss calculation
     bce_pos_weight: 5.0              # weight of positive sample in binary cross entropy calculation
     use_scaled_pos_enc: True         # whether to use scaled positional encoding
@@ -71,7 +70,7 @@ scheduler_conf:         # keyword arguments for selected scheduler
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000   # number of iterations per epoch
-max_epoch: 300              # number of epochs
+max_epoch: 500              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 2               # gradient accumulation
