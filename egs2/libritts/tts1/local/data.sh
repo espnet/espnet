@@ -77,7 +77,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             cwd=$(pwd)
             cd "${db_root}/LibriTTS/${name}"
             find . -follow -name "*.normalized.txt" -print0 \
-                | tar c -T - --null -f - | tar xf - -C "${cwd}/data/local/${name}"
+                | tar c --null -T - -f - | tar xf - -C "${cwd}/data/local/${name}"
             cd "${cwd}"
 
             # Create kaldi data directory with the trimed audio

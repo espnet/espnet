@@ -71,8 +71,7 @@ def main():
     wavfiles = sorted(find_files(db_root, include_root_dir=False))
     labfiles = [f.replace(".wav", ".lab") for f in wavfiles]
 
-    for wavfile, labfile in zip(wavfiles, labfiles):
-        logging.info(wavfile)
+    for idx, (wavfile, labfile) in enumerate(zip(wavfiles, labfiles)):
         if not os.path.exists(f"{db_root}/{labfile}"):
             logging.warning(f"{labfile} does not exist. skipped.")
             continue
@@ -105,6 +104,9 @@ def main():
         write_path = f"{target_dir}/{wavfile}"
         os.makedirs(os.path.dirname(write_path), exist_ok=True)
         sf.write(f"{target_dir}/{wavfile}", new_x, fs)
+
+        if (idx + 1) % 1000 == 0:
+            logging.info(f"Now processing... ({idx + 1}/{len(wavfiles)})")
 
 
 if __name__ == "__main__":
