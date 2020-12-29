@@ -270,7 +270,7 @@ tts_conf:
 ```
 Please run the training from stage 6.
 ```sh
-$ ./run.sh --stage 6 --train_config /path/to/your_xvector_config.yaml
+$ ./run.sh --stage 6 --use_xvector true --train_config /path/to/your_xvector_config.yaml
 ```
 
 You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
