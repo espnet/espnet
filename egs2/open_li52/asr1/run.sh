@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 langs="en_de_fr_cy_br_cv_ky_ga-IE_sl_cnh_et_mn_sah_dv_sv-SE_id_ar_ta_ia_lv_ja_rm-sursilv_hsb_ro_fy-NL_el_rm-vallader_as_mt_ka_or_vi_pa-IN_tt_kab_ca_zh-TW_it_fa_eu_es_ru_tr_nl_eo_zh-CN_rw_pt_zh-HK_cs_pl_uk"
-lid=true
+lid=true # whether to use language id as additional label
 
 train_set=train_li52_lid
 train_dev=dev_li52_lid
