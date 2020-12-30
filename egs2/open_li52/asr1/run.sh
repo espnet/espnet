@@ -20,9 +20,9 @@ ngpu=4
 
 ./asr.sh \
     --lang "${langs}" \
-    --local_data_opts "--langs ${langs} --stage 1 --lid ${lid} --nlsyms_txt ${nlsyms_txt}" \
-    --stage 10 \
-    --stop_stage 10 \
+    --local_data_opts "--langs ${langs} --stage 0 --lid ${lid} --nlsyms_txt ${nlsyms_txt}" \
+    --stage 1 \
+    --stop_stage 100 \
     --nj 40 \
     --ngpu ${ngpu} \
     --use_lm false \
