@@ -439,7 +439,7 @@ if ! "${skip_data_prep}"; then
                 else
                     _suf=""
                 fi
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -468,7 +468,7 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # 1. Copy datadir
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 # 2. Feature extract
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
@@ -504,7 +504,7 @@ if ! "${skip_data_prep}"; then
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
                 <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}${_suf}/${dset}/feats.scp |" - | \
                     awk '{ print $2 }' | cut -d, -f2 > "${data_feats}${_suf}/${dset}/feats_dim"
@@ -526,7 +526,7 @@ if ! "${skip_data_prep}"; then
         for dset in "${train_set}" "${valid_set}"; do
 
             # Copy data dir
-            utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
             # Remove short utterances
