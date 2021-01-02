@@ -44,6 +44,7 @@ from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.fill_missing_args import fill_missing_args
 from espnet.nets.pytorch_backend.nets_utils import to_device, to_torch_tensor, pad_list
 
+
 class E2E(ASRInterface, torch.nn.Module):
     """E2E module.
 
@@ -496,7 +497,7 @@ class E2E(ASRInterface, torch.nn.Module):
         xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
 
         xs_pad = pad_list(xs, 0.0)
-        
+
         src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
 
         # 1. Encoder
@@ -512,7 +513,7 @@ class E2E(ASRInterface, torch.nn.Module):
             normalize_score = True
 
         logging.info("max input length: " + str(hs_pad.size(1)))
-        
+
         # search params
         batch = len(hlens)
         beam = recog_args.beam_size
@@ -527,7 +528,9 @@ class E2E(ASRInterface, torch.nn.Module):
         if recog_args.maxlenratio == 0:
             maxlens = max_hlens
         else:
-            maxlens = [max(1, int(recog_args.maxlenratio * max_hlen)) for max_hlen in max_hlens]
+            maxlens = [
+                max(1, int(recog_args.maxlenratio * max_hlen)) for max_hlen in max_hlens
+            ]
         minlen = min([int(recog_args.minlenratio * max_hlen) for max_hlen in max_hlens])
         logging.info("max output lengths: " + str(maxlens))
         logging.info("min output length: " + str(minlen))
@@ -543,40 +546,38 @@ class E2E(ASRInterface, torch.nn.Module):
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
         ended_hyps = [[] for _ in six.moves.range(batch)]
-        
-        exp_hs_mask = hs_mask.unsqueeze(1).repeat(1, beam, 1, 1).contiguous() # (batch, beam, 1, T)
+
+        exp_hs_mask = (
+            hs_mask.unsqueeze(1).repeat(1, beam, 1, 1).contiguous()
+        )  # (batch, beam, 1, T)
         exp_hs_mask = exp_hs_mask.view(n_bb, hs_mask.size()[1], hs_mask.size()[2])
-        exp_h = hs_pad.unsqueeze(1).repeat(1, beam, 1, 1).contiguous() # (batch, beam, T, F)
+        exp_h = (
+            hs_pad.unsqueeze(1).repeat(1, beam, 1, 1).contiguous()
+        )  # (batch, beam, T, F)
         exp_h = exp_h.view(n_bb, hs_pad.size()[1], hs_pad.size()[2])
 
         ctc_scorer, ctc_state = None, None
         if lpz is not None:
             scoring_num = min(
-                int(beam * CTC_SCORING_RATIO)
-                if att_weight > 0.0
-                else 0,
+                int(beam * CTC_SCORING_RATIO) if att_weight > 0.0 else 0,
                 lpz.size(-1),
             )
-            ctc_scorer = CTCPrefixScoreTH(
-                lpz,
-                hlens,
-                0,
-                self.eos
-            )
+            ctc_scorer = CTCPrefixScoreTH(lpz, hlens, 0, self.eos)
 
         for i in six.moves.range(max(maxlens)):
             logging.debug("position " + str(i))
 
             # get nbest local scores and their ids
             ys_mask = subsequent_mask(i + 1).to(hs_pad.device).unsqueeze(0)
-            
+
             ys = torch.tensor(yseq).to(hs_pad.device)
             vy = to_device(hs_pad, torch.LongTensor(self._get_last_yseq(yseq)))
 
+            # local_att_scores (n_bb = beam * batch, vocab)
             local_att_scores = self.decoder.forward_one_step(
                 ys, ys_mask, exp_h, memory_mask=exp_hs_mask
-            )[0] # (n_bb = beam * batch, vocab)
-            
+            )[0]
+
             if rnnlm:
                 rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_state, vy, n_bb)
                 local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
@@ -594,12 +595,12 @@ class E2E(ASRInterface, torch.nn.Module):
                 )
                 local_ctc_scores, ctc_state = ctc_scorer(
                     yseq, ctc_state, part_ids
-                ) # local_ctc_scores (n_bb, odim)
-                
+                )  # local_ctc_scores (n_bb, odim)
+
                 local_scores = local_scores + ctc_weight * local_ctc_scores
                 if rnnlm:
                     local_scores = local_scores + recog_args.lm_weight * local_lm_scores
-                    
+
             local_scores = local_scores.view(batch, beam, self.odim)
             if i == 0:
                 local_scores[:, 1:, :] = self.logzero
@@ -608,8 +609,8 @@ class E2E(ASRInterface, torch.nn.Module):
             eos_vscores = local_scores[:, :, self.eos] + vscores
             vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
             vscores[:, :, self.eos] = self.logzero
-            vscores = (vscores + local_scores).view(batch, -1) # (batch, odim * beam)
-            
+            vscores = (vscores + local_scores).view(batch, -1)  # (batch, odim * beam)
+
             # global pruning
             accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
             accum_odim_ids = (
@@ -624,7 +625,7 @@ class E2E(ASRInterface, torch.nn.Module):
             yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
             vidx = to_device(hs_pad, torch.LongTensor(accum_padded_beam_ids))
-            
+
             # pick ended hyps
             if i >= minlen:
                 k = 0
@@ -657,21 +658,21 @@ class E2E(ASRInterface, torch.nn.Module):
                         k = k + 1
             # end detection
             stop_search = [
-                stop_search[samp_i] or end_detect(ended_hyps[samp_i], i) or i >= maxlens[samp_i]
+                stop_search[samp_i]
+                or end_detect(ended_hyps[samp_i], i)
+                or i >= maxlens[samp_i]
                 for samp_i in six.moves.range(batch)
             ]
             stop_search_summary = list(set(stop_search))
-            
+
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
 
             if rnnlm:
                 rnnlm_state = self._index_select_lm_state(rnnlm_state, 0, vidx)
             if ctc_scorer:
-                ctc_state = ctc_scorer.index_select_state(
-                    ctc_state, accum_best_ids
-                )
-        
+                ctc_state = ctc_scorer.index_select_state(ctc_state, accum_best_ids)
+
         torch.cuda.empty_cache()
 
         dummy_hyps = [
@@ -696,7 +697,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.train()
 
         return nbest_hyps
-        
+
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.
 
@@ -751,7 +752,7 @@ class E2E(ASRInterface, torch.nn.Module):
         for y_seq in exp_yseq:
             last.append(y_seq[-1])
         return last
-    
+
     @staticmethod
     def _index_select_list(yseq, lst):
         new_yseq = []
@@ -768,7 +769,7 @@ class E2E(ASRInterface, torch.nn.Module):
             for i in range(len(yseq)):
                 yseq[i].append(ids)
         return yseq
-    
+
     @staticmethod
     def _index_select_lm_state(rnnlm_state, dim, vidx):
         if isinstance(rnnlm_state, dict):
