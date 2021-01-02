@@ -10,10 +10,12 @@ fi
 # Install hts_engine_API
 if [ ! -e hts_engine_API.done ]; then
     rm -rf hts_engine_API
+    # NOTE(kan-bayashi): It is better to use fixed tag
     git clone https://github.com/r9y9/hts_engine_API.git
     (
         set -euo pipefail
-        cd hts_engine_API/src && ./waf configure --prefix=../../ && ./waf build install
+        mkdir hts_engine_API/src/build
+        cd hts_engine_API/src/build && cmake -DCMAKE_INSTALL_PREFIX=../../ .. && make -j && make install
     )
     touch hts_engine_API.done
 else
@@ -27,7 +29,7 @@ if [ ! -e open_jtalk.done ]; then
     mkdir -p open_jtalk/src/build
     (
         set -euo pipefail
-        cd open_jtalk/src/build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=../../../ .. && make install
+        cd open_jtalk/src/build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=../../../ -DHTS_ENGINE_LIB=../../../hts_engine_API/lib -DHTS_ENGINE_INCLUDE_DIR=../../../hts_engine_API/include .. && make install
     )
     touch open_jtalk.done
 else
