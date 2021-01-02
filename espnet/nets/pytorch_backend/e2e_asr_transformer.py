@@ -506,7 +506,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 1. Encoder
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
-        hlens = torch.tensor([sum(mask[0]) for mask in hs_mask])
+        hlens = torch.tensor([int(sum(mask[0])) for mask in hs_mask])
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
