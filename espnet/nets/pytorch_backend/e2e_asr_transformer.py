@@ -11,7 +11,8 @@ import numpy
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.ctc_prefix_score import CTCPrefixScore, CTCPrefixScoreTH
+from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.ctc_prefix_score import CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
@@ -42,7 +43,10 @@ from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.fill_missing_args import fill_missing_args
-from espnet.nets.pytorch_backend.nets_utils import to_device, to_torch_tensor, pad_list
+
+from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class E2E(ASRInterface, torch.nn.Module):
