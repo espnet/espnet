@@ -7,12 +7,13 @@ elif [ -n "${ZSH_VERSION:-}" ]; then
     TOOL_DIR="$( cd $( dirname ${(%):-%N} ) >/dev/null 2>&1 && pwd )"
 else
     # assume something else
-    echo "ERROR: Must be executed by bash or zsh."
-fi
-
-if [ -z "${TOOL_DIR}" ]; then
-    echo "ERROR: Cannot derive the directory path of espnet/tools. This might be a bug."
+    echo "ERROR: Must be executed by bash or zsh." >&2
     return 1
 fi
 
-echo "Warning! You haven't set Python environment yet. Go to ${TOOL_DIR} and generate 'activate_python.sh'"
+if [ -z "${TOOL_DIR}" ]; then
+    echo "ERROR: Cannot derive the directory path of espnet/tools. This might be a bug." >&2
+    return 1
+fi
+
+echo "Warning! You haven't set Python environment yet. Go to ${TOOL_DIR} and generate 'activate_python.sh'" >&2
