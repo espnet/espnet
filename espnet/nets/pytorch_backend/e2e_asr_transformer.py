@@ -583,7 +583,9 @@ class E2E(ASRInterface, torch.nn.Module):
                     ys, ys_mask, exp_h, memory_mask=exp_hs_mask
                 )[0]
             else:
-                local_att_scores = to_device(hs_pad, torch.zeros((n_bb, lpz.size(-1))))
+                local_att_scores = to_device(
+                    hs_pad, torch.zeros((n_bb, lpz.size(-1)), dtype=lpz.dtype)
+                )
 
             if rnnlm:
                 rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_state, vy, n_bb)
