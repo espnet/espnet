@@ -84,7 +84,7 @@ class Conv2dSubsampling(torch.nn.Module):
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is None:
             return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:2]
+        return x, x_mask[:, :, 2::2][:, :, 2::2]
 
     def __getitem__(self, key):
         """Get item.
@@ -143,7 +143,7 @@ class Conv2dSubsampling6(torch.nn.Module):
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is None:
             return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-4:3]
+        return x, x_mask[:, :, 2::2][:, :, 4::3]
 
 
 class Conv2dSubsampling8(torch.nn.Module):
@@ -193,4 +193,4 @@ class Conv2dSubsampling8(torch.nn.Module):
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
         if x_mask is None:
             return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:2][:, :, :-2:2]
+        return x, x_mask[:, :, 2::2][:, :, 2::2][:, :, 2::2]
