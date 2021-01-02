@@ -578,9 +578,12 @@ class E2E(ASRInterface, torch.nn.Module):
             vy = to_device(hs_pad, torch.LongTensor(self._get_last_yseq(yseq)))
 
             # local_att_scores (n_bb = beam * batch, vocab)
-            local_att_scores = self.decoder.forward_one_step(
-                ys, ys_mask, exp_h, memory_mask=exp_hs_mask
-            )[0]
+            if self.decoder is not None:
+                local_att_scores = self.decoder.forward_one_step(
+                    ys, ys_mask, exp_h, memory_mask=exp_hs_mask
+                )[0]
+            else:
+                local_att_scores = to_device(hs_pad, torch.zeros((n_bb, lpz.size(-1))))
 
             if rnnlm:
                 rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_state, vy, n_bb)
