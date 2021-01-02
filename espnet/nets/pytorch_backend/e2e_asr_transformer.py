@@ -483,7 +483,7 @@ class E2E(ASRInterface, torch.nn.Module):
         )
         return nbest_hyps
 
-    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
+    def recognize_batch(self, xs, recog_args, char_list=None, rnnlm=None):
         """E2E batch beam search for Transformer.
 
         :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
