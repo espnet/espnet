@@ -17,7 +17,7 @@ See the following pages before asking the question:
 ## Environments
 - date: `Sat Jan  2 21:07:44 JST 2021`
 - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
-- espnet version: `espnet 0.8.0`
+- espnet version: `espnet 0.9.6`
 - pytorch version: `pytorch 1.5.1`
 - Git hash: `8614318658a497b85dfe5e4aa7e5f6bb06f50a9e`
   - Commit date: `Sat Jan 2 13:23:16 2021 +0900`
