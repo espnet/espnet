@@ -209,23 +209,7 @@ beamformit.done:
 	touch beamformit.done
 
 check_install: python
-ifeq ($(strip $(CPU_ONLY)),)
-
-ifneq ($(strip $(NO_CUPY)),)
-	. ./activate_python.sh; python3 check_install.py --no-cupy
-else
-	. ./activate_python.sh; python3 check_install.py
-endif
-
-else
-
-ifneq ($(strip $(NO_CUPY)),)
-	. ./activate_python.sh; python3 check_install.py --no-cuda --no-cupy
-else
-	. ./activate_python.sh; python3 check_install.py --no-cuda
-endif
-
-endif
+	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 
 
 clean: clean_extra
