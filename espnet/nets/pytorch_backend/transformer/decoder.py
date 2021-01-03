@@ -289,7 +289,9 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
                 dtype=torch.uint8 in PyTorch 1.2- and dtype=torch.bool in PyTorch 1.2+
                 (include 1.2).
             memory (torch.Tensor): Encoded memory, float32 (#batch, maxlen_in, feat).
-            memory_mask (torch.Tensor): Encoded memory mask, float32 (#batch, maxlen_in).
+            memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
+                dtype=torch.uint8 in PyTorch 1.2- and dtype=torch.bool in PyTorch 1.2+
+                (include 1.2).
             cache (List[torch.Tensor]): List of cached tensors.
                 Each tensor shape should be (#batch, maxlen_out - 1, size).
 
