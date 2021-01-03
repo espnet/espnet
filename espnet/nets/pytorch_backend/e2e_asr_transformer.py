@@ -615,9 +615,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 local_scores[:, 1:, :] = self.logzero
 
             # accumulate scores
-            eos_vscores = local_scores[:, :, self.eos] + vscores
             vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
-            vscores[:, :, self.eos] = self.logzero
             vscores = (vscores + local_scores).view(batch, -1)  # (batch, odim * beam)
 
             # global pruning
@@ -629,7 +627,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 (accum_best_ids // self.odim + pad_b).view(-1).data.cpu().tolist()
             )
 
-            y_prev = yseq[:][:]
             yseq = self._index_select_list(yseq, accum_padded_beam_ids)
             yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
@@ -639,7 +636,6 @@ class E2E(ASRInterface, torch.nn.Module):
             if i >= minlen:
                 k = 0
                 penalty_i = (i + 1) * penalty
-                thr = accum_best_scores[:, -1]
                 for samp_i in six.moves.range(batch):
                     if stop_search[samp_i]:
                         k = k + beam
@@ -647,19 +643,16 @@ class E2E(ASRInterface, torch.nn.Module):
                     for beam_j in six.moves.range(beam):
                         _vscore = None
 
+                        yk = yseq[k][:]
                         if i == maxlens[samp_i] - 1:
-                            yk = yseq[k][:]
-                            _vscore = vscores[samp_i][beam_j] + penalty_i
-                        elif eos_vscores[samp_i, beam_j] > thr[samp_i]:
-                            yk = y_prev[k][:]
-                            if len(yk) <= hlens[samp_i]:
-                                _vscore = eos_vscores[samp_i][beam_j] + penalty_i
-
-                        if _vscore:
                             yk.append(self.eos)
+                            _vscore = vscores[samp_i][beam_j] + penalty_i
+                        elif yk[-1] == self.eos:
+                            _vscore = vscores[samp_i][beam_j] + penalty_i
+                        if _vscore:
                             if rnnlm:
                                 _vscore += recog_args.lm_weight * rnnlm.final(
-                                    rnnlm_state, index=k
+                                    rnnlm_state, index=accum_padded_beam_ids[k]
                                 )
                             ended_hyps[samp_i].append(
                                 {"yseq": yk, "score": _vscore.data.cpu().numpy()}
