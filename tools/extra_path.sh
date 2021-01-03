@@ -6,13 +6,11 @@ elif [ -n "${ZSH_VERSION:-}" ]; then
     # shellcheck disable=SC2046
     TOOL_DIR="$( cd $( dirname ${(%):-%N} ) >/dev/null 2>&1 && pwd )"
 else
-    # assume something else
-    echo "ERROR: Must be executed by bash or zsh."
-fi
-
-if [ -z "${TOOL_DIR}" ]; then
-    echo "ERROR: Cannot derive the directory path of espnet/tools. This might be a bug."
-    return 1
+    # If POSIX sh, there are no ways to get the script path if it is sourced,
+    # so you must source this script at espnet/tools/
+    #   cd tools
+    #   . ./extra_path.sh
+    TOOL_DIR="$(pwd)"
 fi
 
 export PATH="${TOOL_DIR}"/sph2pipe_v2.5:"${PATH:-}"
