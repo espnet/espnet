@@ -72,3 +72,5 @@ rir_scp: data/dirha_ir/wav.scp
 noise_scp: data/dirha_noise/wav.scp
 speech_volume_normalize: 1.
 noise_db_range: 10_17
+rir_apply_prob: 1.
+noise_apply_prob: 1.
