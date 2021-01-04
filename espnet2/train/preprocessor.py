@@ -78,7 +78,7 @@ def detect_non_silence(
     frame_shift: int = 512,
     window: str = "boxcar",
 ) -> np.ndarray:
-    """
+    """Power based voice activity detection.
 
     Args:
         x: (Channel, Time)
