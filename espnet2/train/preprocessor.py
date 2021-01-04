@@ -1,16 +1,16 @@
 from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
+from typing import Collection
 from typing import Dict
 from typing import Union
+from typing import Iterable
 
 import numpy as np
 import scipy.signal
 import soundfile
 from typeguard import check_argument_types
 from typeguard import check_return_type
-from typing import Collection
-from typing import Iterable
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
