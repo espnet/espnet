@@ -36,6 +36,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.specaug.response import Response
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -48,9 +49,17 @@ from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
+from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
+waveaug_choices = ClassChoices(
+    name="waveaug",
+    classes=dict(specaug=SpecAug, response=Response),
+    type_check=torch.nn.Module,
+    default=None,
+    optional=True,
+)
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(default=DefaultFrontend),
@@ -59,7 +68,7 @@ frontend_choices = ClassChoices(
 )
 specaug_choices = ClassChoices(
     name="specaug",
-    classes=dict(specaug=SpecAug),
+    classes=dict(specaug=SpecAug, response=Response),
     type_check=AbsSpecAug,
     default=None,
     optional=True,
@@ -106,6 +115,8 @@ class ASRTask(AbsTask):
 
     # Add variable objects configurations
     class_choices_list = [
+        # --waveaug and --waveaug_conf
+        waveaug_choices,
         # --frontend and --frontend_conf
         frontend_choices,
         # --specaug and --specaug_conf
@@ -210,6 +221,42 @@ class ASRTask(AbsTask):
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
+        parser.add_argument(
+            "--speech_volume_normalize",
+            type=float_or_none,
+            default=None,
+            help="Scale the maximum amplitude to the given value.",
+        )
+        parser.add_argument(
+            "--rir_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of rir scp file.",
+        )
+        parser.add_argument(
+            "--rir_apply_prob",
+            type=float,
+            default=1.0,
+            help="THe probability for applying RIR convolution.",
+        )
+        parser.add_argument(
+            "--noise_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of noise scp file.",
+        )
+        parser.add_argument(
+            "--noise_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability applying Noise adding.",
+        )
+        parser.add_argument(
+            "--noise_db_range",
+            type=str,
+            default="13_15",
+            help="The range of noise decibel level.",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -241,6 +288,21 @@ class ASRTask(AbsTask):
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
+                # NOTE(kamo): Check attribute existence for backward compatibility
+                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
+                rir_apply_prob=args.rir_apply_prob
+                if hasattr(args, "rir_apply_prob")
+                else 1.0,
+                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
+                noise_apply_prob=args.noise_apply_prob
+                if hasattr(args, "noise_apply_prob")
+                else 1.0,
+                noise_db_range=args.noise_db_range
+                if hasattr(args, "noise_db_range")
+                else "13_15",
+                speech_volume_normalize=args.speech_volume_normalize
+                if hasattr(args, "rir_scp")
+                else None,
             )
         else:
             retval = None
@@ -281,6 +343,13 @@ class ASRTask(AbsTask):
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
+
+        # 0. waveaug
+        if hasattr(args, "waveaug") and args.waveaug is not None:
+            waveaug_class = waveaug_choices.get_class(args.waveaug)
+            waveaug = waveaug_class(**args.waveaug_conf)
+        else:
+            waveaug = None
 
         # 1. frontend
         if args.input_size is None:
@@ -333,6 +402,7 @@ class ASRTask(AbsTask):
         # 8. Build model
         model = ESPnetASRModel(
             vocab_size=vocab_size,
+            waveaug=waveaug,
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
