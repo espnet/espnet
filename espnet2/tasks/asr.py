@@ -39,7 +39,6 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.asr.specaug.response import Response
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -56,13 +55,6 @@ from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
-waveaug_choices = ClassChoices(
-    name="waveaug",
-    classes=dict(specaug=SpecAug, response=Response),
-    type_check=torch.nn.Module,
-    default=None,
-    optional=True,
-)
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(default=DefaultFrontend, sliding_window=SlidingWindow),
@@ -71,7 +63,7 @@ frontend_choices = ClassChoices(
 )
 specaug_choices = ClassChoices(
     name="specaug",
-    classes=dict(specaug=SpecAug, response=Response),
+    classes=dict(specaug=SpecAug),
     type_check=AbsSpecAug,
     default=None,
     optional=True,
@@ -127,8 +119,6 @@ class ASRTask(AbsTask):
 
     # Add variable objects configurations
     class_choices_list = [
-        # --waveaug and --waveaug_conf
-        waveaug_choices,
         # --frontend and --frontend_conf
         frontend_choices,
         # --specaug and --specaug_conf
