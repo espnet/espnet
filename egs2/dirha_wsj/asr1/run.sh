@@ -5,8 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-mic=
-
 train_set=train_si284
 valid_set=dirha_sim_Livingroom_Circular_Array_Beam_Circular_Array
 test_sets=
