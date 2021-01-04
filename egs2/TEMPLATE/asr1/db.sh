@@ -30,6 +30,7 @@ LABOROTV=
 TEDXJP=
 LIBRISPEECH=
 LJSPEECH=downloads
+NSC=
 JSSS=downloads
 JSUT=downloads
 JVS=downloads
