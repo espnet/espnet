@@ -3,8 +3,8 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Collection
 from typing import Dict
-from typing import Union
 from typing import Iterable
+from typing import Union
 
 import numpy as np
 import scipy.signal
