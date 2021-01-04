@@ -348,13 +348,6 @@ class ASRTask(AbsTask):
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
 
-        # 0. waveaug
-        if hasattr(args, "waveaug") and args.waveaug is not None:
-            waveaug_class = waveaug_choices.get_class(args.waveaug)
-            waveaug = waveaug_class(**args.waveaug_conf)
-        else:
-            waveaug = None
-
         # 1. frontend
         if args.input_size is None:
             # Extract features in the model
@@ -415,7 +408,6 @@ class ASRTask(AbsTask):
         # 8. Build model
         model = ESPnetASRModel(
             vocab_size=vocab_size,
-            waveaug=waveaug,
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
