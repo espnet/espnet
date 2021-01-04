@@ -377,27 +377,3 @@ class CommonPreprocessor_multi(AbsPreprocessor):
                 data[text_n] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
-
-
-if __name__ == "__main__":
-    speech, rate = soundfile.read(
-        "/data/rigel2/corpora/LibriSpeech/LibriSpeech/test-clean/1089/134686/1089-134686-0000.flac"
-    )
-
-    p = CommonPreprocessor2(
-        True,
-        rir_scp="data/dirha_ir/Beam_Circular_Array.scp",
-        noise_scp="data/dirha_noise/wav.scp",
-        noise_db_range="13_13",
-    )
-    import time
-
-    t = time.perf_counter()
-    d = p("", {"speech": speech})
-    soundfile.write("/home/kamo/sync/out.wav", d["speech"], rate)
-    print(time.perf_counter() - t)
-
-    t = time.perf_counter()
-    d = p("", {"speech": speech})
-    soundfile.write("/home/kamo/sync/out2.wav", d["speech"], rate)
-    print(time.perf_counter() - t)
