@@ -65,6 +65,90 @@ def low_cut_filter(x, fs, cutoff=70):
     return lcf_x
 
 
+def spc2npow(spectrogram):
+    """Calculate normalized power sequence from spectrogram
+
+    Parameters
+    ----------
+    spectrogram : array, shape (T, `fftlen / 2 + 1`)
+        Array of spectrum envelope
+
+    Return
+    ------
+    npow : array, shape (`T`, `1`)
+        Normalized power sequence
+
+    """
+
+    # frame based processing
+    npow = np.apply_along_axis(_spvec2pow, 1, spectrogram)
+
+    meanpow = np.mean(npow)
+    npow = 10.0 * np.log10(npow / meanpow)
+
+    return npow
+
+
+def _spvec2pow(specvec):
+    """Convert a spectrum envelope into a power
+
+    Parameters
+    ----------
+    specvec : vector, shape (`fftlen / 2 + 1`)
+        Vector of specturm envelope |H(w)|^2
+
+    Return
+    ------
+    power : scala,
+        Power of a frame
+
+    """
+
+    # set FFT length
+    fftl2 = len(specvec) - 1
+    fftl = fftl2 * 2
+
+    # specvec is not amplitude spectral |H(w)| but power spectral |H(w)|^2
+    power = specvec[0] + specvec[fftl2]
+    for k in range(1, fftl2):
+        power += 2.0 * specvec[k]
+    power /= fftl
+
+    return power
+
+
+def extfrm(data, npow, power_threshold=-20):
+    """Extract frame over the power threshold
+
+    Parameters
+    ----------
+    data: array, shape (`T`, `dim`)
+        Array of input data
+    npow : array, shape (`T`)
+        Vector of normalized power sequence.
+    power_threshold : float, optional
+        Value of power threshold [dB]
+        Default set to -20
+
+    Returns
+    -------
+    data: array, shape (`T_ext`, `dim`)
+        Remaining data after extracting frame
+        `T_ext` <= `T`
+
+    """
+
+    T = data.shape[0]
+    if T != len(npow):
+        raise ("Length of two vectors is different.")
+
+    valid_index = np.where(npow > power_threshold)
+    extdata = data[valid_index]
+    assert extdata.shape[0] <= T
+
+    return extdata
+
+
 def world_extract(wav_path, args):
     fs, x = wavfile.read(wav_path)
     x = np.array(x, dtype=np.float64)
@@ -77,12 +161,14 @@ def world_extract(wav_path, args):
     sp = pw.cheaptrick(x, f0, time_axis, fs, fft_size=args.fftl)
     ap = pw.d4c(x, f0, time_axis, fs, fft_size=args.fftl)
     mcep = pysptk.sp2mc(sp, args.mcep_dim, args.mcep_alpha)
+    npow = spc2npow(sp)
 
     return {
         "sp": sp,
         "mcep": mcep,
         "ap": ap,
         "f0": f0,
+        "npow": npow,
     }
 
 
@@ -104,21 +190,22 @@ def calculate(file_list, gt_file_list, args, MCD):
         gt_feats = world_extract(gt_path, args)
         cvt_feats = world_extract(cvt_path, args)
 
-        # non-silence parts
-        gt_idx = np.where(gt_feats["f0"] > 0)[0]
-        gt_mcep = gt_feats["mcep"][gt_idx]
-        cvt_idx = np.where(cvt_feats["f0"] > 0)[0]
-        cvt_mcep = cvt_feats["mcep"][cvt_idx]
+        # VAD & DTW based on power
+        gt_mcep_nonsil_pow = extfrm(gt_feats["mcep"], gt_feats["npow"])
+        cvt_mcep_nonsil_pow = extfrm(cvt_feats["mcep"], cvt_feats["npow"])
+        _, path = fastdtw(
+            cvt_mcep_nonsil_pow,
+            gt_mcep_nonsil_pow,
+            dist=scipy.spatial.distance.euclidean,
+        )
+        twf_pow = np.array(path).T
 
-        # DTW
-        _, path = fastdtw(cvt_mcep, gt_mcep, dist=scipy.spatial.distance.euclidean)
-        twf = np.array(path).T
-        cvt_mcep_dtw = cvt_mcep[twf[0]]
-        gt_mcep_dtw = gt_mcep[twf[1]]
-
-        # MCD
-        diff2sum = np.sum((cvt_mcep_dtw - gt_mcep_dtw) ** 2, 1)
+        # MCD using power-based DTW
+        cvt_mcep_dtw_pow = cvt_mcep_nonsil_pow[twf_pow[0]]
+        gt_mcep_dtw_pow = gt_mcep_nonsil_pow[twf_pow[1]]
+        diff2sum = np.sum((cvt_mcep_dtw_pow - gt_mcep_dtw_pow) ** 2, 1)
         mcd = np.mean(10.0 / np.log(10.0) * np.sqrt(2 * diff2sum), 0)
+
         print("{} {}".format(gt_basename, mcd))
         MCD.append(mcd)
 

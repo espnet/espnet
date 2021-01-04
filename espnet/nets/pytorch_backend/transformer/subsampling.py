@@ -11,6 +11,34 @@ import torch
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
+class TooShortUttError(Exception):
+    """Raised when the utt is too short for subsampling.
+
+    Args:
+        message (str): Message for error catch
+        actual_size (int): the short size that cannot pass the subsampling
+        limit (int): the limit size for subsampling
+
+    """
+
+    def __init__(self, message, actual_size, limit):
+        """Construct a TooShortUttError for error handler."""
+        super().__init__(message)
+        self.actual_size = actual_size
+        self.limit = limit
+
+
+def check_short_utt(ins, size):
+    """Check if the utterance is too short for subsampling."""
+    if isinstance(ins, Conv2dSubsampling) and size < 7:
+        return True, 7
+    if isinstance(ins, Conv2dSubsampling6) and size < 11:
+        return True, 11
+    if isinstance(ins, Conv2dSubsampling8) and size < 15:
+        return True, 15
+    return False, -1
+
+
 class Conv2dSubsampling(torch.nn.Module):
     """Convolutional 2D subsampling (to 1/4 length).
 

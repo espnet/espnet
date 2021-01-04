@@ -16,9 +16,8 @@ requirements = {
         "matplotlib==3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
-        "gdown",
-        "espnet_model_zoo",
         "ctc-segmentation>=1.4.0",
+        "wandb",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
@@ -27,34 +26,35 @@ requirements = {
         "tensorboardX>=1.8",  # For pytorch<1.1.0
         # Signal processing related
         "librosa>=0.8.0",
-        "resampy",
-        "pysptk>=0.1.17",
         # Natural language processing related
         # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
         "sentencepiece<0.1.90,>=0.1.82",
         "nltk>=3.4.5",
-        "morfessor",
         # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.17.0",
         # TTS related
-        "inflect>=1.0.0",
-        "unidecode>=1.0.22",
         "pyworld>=0.2.10",
-        "nnmnkwii",
         "espnet_tts_frontend",
         # ASR frontend related
-        "museval>=0.2.1",
-        "pystoi>=0.2.2",
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
+    ],
+    "recipe": [
+        "espnet_model_zoo",
+        "gdown",
+        "resampy",
+        "pysptk>=0.1.17",
+        "morfessor",  # for zeroth-korean
+        "youtube_dl",  # for laborotv
+        "nnmnkwii",
+        "museval>=0.2.1",
+        "pystoi>=0.2.2",
         "mir-eval>=0.6",
-        # VC related
         "fastdtw",
-        "pyworld",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [
@@ -88,7 +88,9 @@ try:
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
         requirements["install"].append("torch_optimizer")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
+        requirements["install"].append("torchaudio==0.7.2")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
         requirements["install"].append("torchaudio==0.7.0")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         # Due to https://github.com/pytorch/pytorch/issues/42213,
@@ -121,7 +123,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.9.5",
+    version="0.9.6",
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",

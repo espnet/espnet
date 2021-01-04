@@ -7,6 +7,7 @@ from typing import Union
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import load_num_sequence_text
+from espnet2.fileio.read_text import read_2column_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -20,6 +21,7 @@ class FoldedBatchSampler(AbsSampler):
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
         drop_last: bool = False,
+        utt2category_file: str = None,
     ):
         assert check_argument_types()
         assert batch_size > 0
@@ -58,64 +60,84 @@ class FoldedBatchSampler(AbsSampler):
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
 
-        # Decide batch-sizes
-        start = 0
-        batch_sizes = []
-        while True:
-            k = keys[start]
-            factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, fold_lengths))
-            bs = max(min_batch_size, int(batch_size / (1 + factor)))
-            if self.drop_last and start + bs > len(keys):
-                # This if-block avoids 0-batches
-                if len(self.batch_list) > 0:
+        category2utt = {}
+        if utt2category_file is not None:
+            utt2category = read_2column_text(utt2category_file)
+            if set(utt2category) != set(first_utt2shape):
+                raise RuntimeError(
+                    "keys are mismatched between "
+                    f"{utt2category_file} != {shape_files[0]}"
+                )
+            for k in keys:
+                category2utt.setdefault(utt2category[k], []).append(k)
+        else:
+            category2utt["default_category"] = keys
+
+        self.batch_list = []
+        for d, v in category2utt.items():
+            category_keys = v
+            # Decide batch-sizes
+            start = 0
+            batch_sizes = []
+            while True:
+                k = category_keys[start]
+                factor = max(int(d[k][0] / m) for d, m in zip(utt2shapes, fold_lengths))
+                bs = max(min_batch_size, int(batch_size / (1 + factor)))
+                if self.drop_last and start + bs > len(category_keys):
+                    # This if-block avoids 0-batches
+                    if len(self.batch_list) > 0:
+                        break
+
+                bs = min(len(category_keys) - start, bs)
+                batch_sizes.append(bs)
+                start += bs
+                if start >= len(category_keys):
                     break
 
-            bs = min(len(keys) - start, bs)
-            batch_sizes.append(bs)
-            start += bs
-            if start >= len(keys):
-                break
+            if len(batch_sizes) == 0:
+                # Maybe we can't reach here
+                raise RuntimeError("0 batches")
 
-        if len(batch_sizes) == 0:
-            # Maybe we can't reach here
-            raise RuntimeError("0 batches")
+            # If the last batch-size is smaller than minimum batch_size,
+            # the samples are redistributed to the other mini-batches
+            if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
+                for i in range(batch_sizes.pop(-1)):
+                    batch_sizes[-(i % len(batch_sizes)) - 2] += 1
 
-        # If the last batch-size is smaller than minimum batch_size,
-        # the samples are redistributed to the other mini-batches
-        if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
-            for i in range(batch_sizes.pop(-1)):
-                batch_sizes[-(i % len(batch_sizes)) - 1] += 1
+            if not self.drop_last:
+                # Bug check
+                assert sum(batch_sizes) == len(
+                    category_keys
+                ), f"{sum(batch_sizes)} != {len(category_keys)}"
 
-        if not self.drop_last:
-            # Bug check
-            assert sum(batch_sizes) == len(keys), f"{sum(batch_sizes)} != {len(keys)}"
+            # Set mini-batch
+            cur_batch_list = []
+            start = 0
+            for bs in batch_sizes:
+                assert len(category_keys) >= start + bs, "Bug"
+                minibatch_keys = category_keys[start : start + bs]
+                start += bs
+                if sort_in_batch == "descending":
+                    minibatch_keys.reverse()
+                elif sort_in_batch == "ascending":
+                    # Key are already sorted in ascending
+                    pass
+                else:
+                    raise ValueError(
+                        "sort_in_batch must be ascending or "
+                        f"descending: {sort_in_batch}"
+                    )
+                cur_batch_list.append(tuple(minibatch_keys))
 
-        # Set mini-batch
-        self.batch_list = []
-        start = 0
-        for bs in batch_sizes:
-            assert len(keys) >= start + bs, "Bug"
-            minibatch_keys = keys[start : start + bs]
-            start += bs
-            if sort_in_batch == "descending":
-                minibatch_keys.reverse()
-            elif sort_in_batch == "ascending":
-                # Key are already sorted in ascending
+            if sort_batch == "ascending":
                 pass
+            elif sort_batch == "descending":
+                cur_batch_list.reverse()
             else:
                 raise ValueError(
-                    f"sort_in_batch must be ascending or descending: {sort_in_batch}"
+                    f"sort_batch must be ascending or descending: {sort_batch}"
                 )
-            self.batch_list.append(tuple(minibatch_keys))
-
-        if sort_batch == "ascending":
-            pass
-        elif sort_batch == "descending":
-            self.batch_list.reverse()
-        else:
-            raise ValueError(
-                f"sort_batch must be ascending or descending: {sort_batch}"
-            )
+            self.batch_list.extend(cur_batch_list)
 
     def __repr__(self):
         return (

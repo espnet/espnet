@@ -309,7 +309,7 @@ class ErrorCalculatorTransducer(object):
 
         for b in six.moves.range(batchsize):
             nbest_hyps = self.beam_search(hs_pad[b])
-            batch_nbest.append(nbest_hyps)
+            batch_nbest.append(nbest_hyps[-1])
 
         ys_hat = [nbest_hyp.yseq[1:] for nbest_hyp in batch_nbest]
 

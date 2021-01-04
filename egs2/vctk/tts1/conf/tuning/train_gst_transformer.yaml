@@ -1,7 +1,7 @@
 # This configuration is for ESPnet2 to train GST-Transformer-TTS.
 # This configuration additionally use the guided attention loss
 # to accelerate the learning of the diagonal attention. It requires
-# 4 GPUs with 32 GB memory and it will finish within 1 day
+# 4 GPUs with 32 GB memory and it will finish within 2 day
 # to finish the training on Tesla V100.
 
 ##########################################################
@@ -71,7 +71,7 @@ scheduler_conf:         # keyword arguments for selected scheduler
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000   # number of iterations per epoch
-max_epoch: 200              # number of epochs
+max_epoch: 300              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 2               # gradient accumulation
