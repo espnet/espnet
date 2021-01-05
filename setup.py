@@ -139,6 +139,7 @@ setup(
     long_description_content_type="text/markdown",
     license="Apache Software License",
     packages=find_packages(include=["espnet*"]),
+    package_data={"espnet": ["version.txt"]},
     # #448: "scripts" is inconvenient for developping because they are copied
     # scripts=get_all_scripts('espnet/bin'),
     install_requires=install_requires,
