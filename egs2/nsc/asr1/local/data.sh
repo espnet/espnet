@@ -8,7 +8,6 @@ set -o pipefail
 . ./db.sh || exit 1;
 
 stage=0
-stop_stage=10
 SECONDS=0
 
 . utils/parse_options.sh
@@ -37,8 +36,7 @@ if [ $stage -le 0 ]; then
     utils/utt2spk_to_spk2utt.pl data/nsc/utt2spk > data/nsc/spk2utt
     # "Poor man's text normalization"
     mv data/nsc/text data/nsc/text.bak
-    cat data/nsc/text.bak \
-        | sed 's/[#!~()*]\+//g' \
+    sed 's/[#!~()*]\+//g' data/nsc/text.bak \
         | sed 's/<UNK>/XPLACEHOLDERX/g' \
         | sed 's/<.\+>//g' \
         | sed 's/XPLACEHOLDERX/<UNK>/g' \
