@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-from distutils.version import LooseVersion
+
+"""ESPnet setup script."""
+
 import os
+
+from distutils.version import LooseVersion
 from setuptools import find_packages
 from setuptools import setup
+
+from espnet import __version__
 
 
 requirements = {
@@ -123,7 +129,7 @@ extras_require = {
 dirname = os.path.dirname(__file__)
 setup(
     name="espnet",
-    version="0.9.6",
+    version=__version__,
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",
