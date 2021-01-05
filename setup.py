@@ -55,6 +55,7 @@ requirements = {
         "pystoi>=0.2.2",
         "mir-eval>=0.6",
         "fastdtw",
+        "lhotse",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [

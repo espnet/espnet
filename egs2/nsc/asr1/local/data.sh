@@ -27,11 +27,10 @@ fi
 # copied from https://github.com/pzelasko/kaldi/blob/feature/nsc-recipe/egs/nsc/s5/local/nsc_data_prep.sh
 
 # Pre-requisites
-pip install lhotse
+# pip install lhotse (I moved to this to setup.py)
 pip install git+https://github.com/pzelasko/Praat-textgrids
 
 if [ $stage -le 0 ]; then
-    if false; then
     lhotse prepare nsc ${NSC} data/nsc
     lhotse kaldi export data/nsc/recordings_PART3_SameCloseMic.json data/nsc/supervisions_PART3_SameCloseMic.json data/nsc
     utils/fix_data_dir.sh data/nsc
@@ -44,8 +43,8 @@ if [ $stage -le 0 ]; then
         | sed 's/<.\+>//g' \
         | sed 's/XPLACEHOLDERX/<UNK>/g' \
         > data/nsc/text
-    fi
-    # Create a train, dev, and test split by following 
+
+    # Create a train and test splits by following 
     # https://github.com/pzelasko/kaldi/blob/feature/nsc-recipe/egs/nsc/s5/local/nsc_data_prep.sh#L30-L35
     n_spk=$(wc -l data/nsc/spk2utt | cut -f1 -d' ')
     tail -10 data/nsc/spk2utt | cut -f1 -d' ' > data/test.spk
@@ -60,6 +59,10 @@ if [ $stage -le 0 ]; then
 
     # Remove temp files
     rm -f data/*.spk
+
+    # FIXME(sw005320): reco2dur is not properly handled in the current script
+    # I just removed them
+    rm data/*/reco2dur
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
