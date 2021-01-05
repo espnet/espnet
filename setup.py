@@ -8,8 +8,6 @@ from distutils.version import LooseVersion
 from setuptools import find_packages
 from setuptools import setup
 
-from espnet import __version__
-
 
 requirements = {
     "install": [
@@ -127,9 +125,12 @@ extras_require = {
 }
 
 dirname = os.path.dirname(__file__)
+version_file = os.path.join(dirname, "espnet", "version.txt")
+with open(version_file, "r") as f:
+    version = f.read().strip()
 setup(
     name="espnet",
-    version=__version__,
+    version=version,
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",
