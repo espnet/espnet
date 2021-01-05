@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-from distutils.version import LooseVersion
+
+"""ESPnet setup script."""
+
 import os
+
+from distutils.version import LooseVersion
 from setuptools import find_packages
 from setuptools import setup
 
@@ -122,9 +126,12 @@ extras_require = {
 }
 
 dirname = os.path.dirname(__file__)
+version_file = os.path.join(dirname, "espnet", "version.txt")
+with open(version_file, "r") as f:
+    version = f.read().strip()
 setup(
     name="espnet",
-    version="0.9.6",
+    version=version,
     url="http://github.com/espnet/espnet",
     author="Shinji Watanabe",
     author_email="shinjiw@ieee.org",
@@ -133,6 +140,7 @@ setup(
     long_description_content_type="text/markdown",
     license="Apache Software License",
     packages=find_packages(include=["espnet*"]),
+    package_data={"espnet": ["version.txt"]},
     # #448: "scripts" is inconvenient for developping because they are copied
     # scripts=get_all_scripts('espnet/bin'),
     install_requires=install_requires,

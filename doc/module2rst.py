@@ -82,6 +82,8 @@ for root in args.root:
             continue
         if "__init__" in p:
             continue
+        if "version.txt" in p:
+            continue
         fname = to_module(p) + ".rst"
         dst = f"{gendir}/{fname}"
         modules_rst += f"   ./_gen/{fname}\n"
