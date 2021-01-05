@@ -1,1 +1,3 @@
-__version__ = "0.9.6"
+"""Initialize espnet2 package."""
+
+from espnet import __version__  # NOQA
