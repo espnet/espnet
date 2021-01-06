@@ -82,7 +82,7 @@ for lang in ${langs}; do
 
             if [ ! -e "${VOXFORGE}/${lang}/extracted" ]; then
                 log "sub-stage 1: Download data to ${VOXFORGE}"
-                # local/getdata.sh "${lang}" "${VOXFORGE}"
+                local/getdata.sh "${lang}" "${VOXFORGE}"
             else
                 log "sub-stage 1: ${VOXFORGE}/${lang}/extracted is already existing. Skip data downloading"
             fi
