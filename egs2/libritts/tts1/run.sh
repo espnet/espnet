@@ -30,6 +30,7 @@ g2p=g2p_en_no_space # or g2p_en
 local_data_opts="--trim_all_silence true" # trim all silence in the audio
 
 ./tts.sh \
+    --ngpu 4 \
     --lang en \
     --feats_type raw \
     --local_data_opts "${local_data_opts}" \

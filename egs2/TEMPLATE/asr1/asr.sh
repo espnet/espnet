@@ -315,7 +315,7 @@ if [ -z "${asr_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${asr_args}" ]; then
-        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
         asr_tag+="_sp"
@@ -337,7 +337,7 @@ if [ -z "${lm_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
-        lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+        lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
 fi
 
