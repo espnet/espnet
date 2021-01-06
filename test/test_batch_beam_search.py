@@ -192,7 +192,6 @@ def test_batch_beam_search_equal(
         )
 
 
-
 @pytest.mark.parametrize(
     "model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, \
         bonus, device, dtype",
@@ -257,14 +256,16 @@ def test_batch_recognize_equal(
 
     model.to(device, dtype=dtype)
     model.eval()
-    
+
     data = [("aaa", dict(feat=numpy.random.randn(1, 10, 8).astype(numpy.float32)))]
     x = data[0][1]["feat"]
 
     ls_nbest_hyps = []
     with torch.no_grad():
         for i in range(len(x)):
-            ls_nbest_hyps.append(model.recognize(x[i, :ilens[i]], args, char_list, rnnlm=lm))
+            ls_nbest_hyps.append(
+                model.recognize(x[i, : ilens[i]], args, char_list, rnnlm=lm)
+            )
         b_nbest_hyps = model.recognize_batch([s for s in x], args, char_list, rnnlm=lm)
     # print(ls_nbest_hyps)
     # print(b_nbest_hyps)
