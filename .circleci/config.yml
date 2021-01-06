@@ -9,8 +9,9 @@ workflows:
     jobs:
       - test-ubuntu18
       - test-ubuntu20
-      - test-centos7
-      - test-debian9
+      # NOTE: The following jobs will be done in Github Action
+      # - test-centos7
+      # - test-debian9
 
 jobs:
   test-ubuntu18:

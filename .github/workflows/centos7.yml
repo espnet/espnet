@@ -1,6 +1,12 @@
 name: centos7
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   check_skip:
@@ -25,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: check OS
-        run: cat /etc/os-release 
+        run: cat /etc/os-release
       - name: install dependencies
         run: |
           # NOTE(kamo): cmake sndfile will be download using anacond:
