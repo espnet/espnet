@@ -13,7 +13,6 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorers.ngram import NgramFullScorer
 
 from test.test_beam_search import prepare
-from test.test_beam_search import rnn_args
 from test.test_beam_search import transformer_args
 
 
@@ -198,10 +197,7 @@ def test_batch_beam_search_equal(
     [
         (nn, args, ctc, lm_nn, lm_args, lm, bonus, device, dtype)
         for device in ("cpu",)
-        for nn, args in (
-            # ("rnn", rnn_args),
-            ("transformer", transformer_args),
-        )
+        for nn, args in (("transformer", transformer_args),)
         for ctc in (0.001, 0.5, 0.999)
         for lm_nn, lm_args in (
             ("default", lstm_lm),
@@ -243,7 +239,7 @@ def test_batch_recognize_equal(
     lm = dynamic_import_lm(lm_nn, backend="pytorch")(len(char_list), lm_args)
     lm = lm.model
     lm.eval()
-    # test previous beam search
+
     args = Namespace(
         beam_size=3,
         penalty=bonus,
@@ -267,13 +263,8 @@ def test_batch_recognize_equal(
                 model.recognize(x[i, : ilens[i]], args, char_list, rnnlm=lm)
             )
         b_nbest_hyps = model.recognize_batch([s for s in x], args, char_list, rnnlm=lm)
-    # print(ls_nbest_hyps)
-    # print(b_nbest_hyps)
-    # print("-"*100)
+
     for i, (expected, actual) in enumerate(zip(ls_nbest_hyps, b_nbest_hyps)):
-        print(i)
-        print(expected)
-        print(actual)
         assert expected[0]["yseq"] == actual[0]["yseq"]
         numpy.testing.assert_allclose(
             expected[0]["score"], actual[0]["score"], rtol=1e-6
