@@ -440,7 +440,7 @@ class E2E(ASRInterface, torch.nn.Module):
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
-            
+
             # end detection
             if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
                 logging.info("end detected at %d", i)
@@ -622,7 +622,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
             # global pruning
             accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
-            
+
             accum_odim_ids = (
                 torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
             )
@@ -633,9 +633,9 @@ class E2E(ASRInterface, torch.nn.Module):
             yseq = self._index_select_list(yseq, accum_padded_beam_ids)
             yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
-            
+
             vidx = to_device(hs_pad, torch.LongTensor(accum_padded_beam_ids))
-            
+
             # pick ended hyps
             if i >= minlen:
                 k = 0
@@ -673,12 +673,12 @@ class E2E(ASRInterface, torch.nn.Module):
                 or i >= maxlens[samp_i]
                 for samp_i in six.moves.range(batch)
             ]
-            
+
             stop_search_summary = list(set(stop_search))
 
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
-            
+
             if rnnlm:
                 rnnlm_state = self._index_select_lm_state(rnnlm_state, 0, vidx)
             if ctc_scorer:

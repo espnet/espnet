@@ -197,9 +197,7 @@ def test_batch_beam_search_equal(
     [
         (nn, args, ctc, lm_nn, lm_args, lm, bonus, device, dtype)
         for device in ("cpu",)
-        for nn, args in (
-            ("transformer", transformer_args),
-        )
+        for nn, args in (("transformer", transformer_args),)
         for ctc in (0.001, 0.5, 0.999)
         for lm_nn, lm_args in (
             ("default", lstm_lm),
@@ -256,9 +254,7 @@ def test_batch_recognize_equal(
     with torch.no_grad():
         ls_nbest_hyps = []
         for i in range(len(x)):
-            ls_nbest_hyps.append(
-                model.recognize(xs[i], args, char_list, rnnlm=lm)
-            )
+            ls_nbest_hyps.append(model.recognize(xs[i], args, char_list, rnnlm=lm))
         b_nbest_hyps = model.recognize_batch(xs, args, char_list, rnnlm=lm)
 
     for i, (expected, actual) in enumerate(zip(ls_nbest_hyps, b_nbest_hyps)):
