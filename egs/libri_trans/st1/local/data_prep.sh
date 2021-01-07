@@ -130,7 +130,7 @@ for f in text.tc.en text.tc.fr text.tc.fr.gtranslate; do
 done
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/${set}
 for f in spk2utt utt2spk wav.scp; do
     cp ${dst}/${f} data/${set}/${f}

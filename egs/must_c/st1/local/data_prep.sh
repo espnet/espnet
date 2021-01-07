@@ -135,7 +135,7 @@ for set in train dev tst-COMMON tst-HE; do
     n_tgt=$(cat ${dst}/text.tc.${tgt_lang} | wc -l)
     [ ${n_en} -ne ${n_tgt} ] && echo "Warning: expected ${n_en} data data files, found ${n_tgt}" && exit 1;
 
-    # Copy stuff intoc its final locations [this has been moved from the format_data script]
+    # Copy stuff into its final locations [this has been moved from the format_data script]
     mkdir -p data/${set}.en-${tgt_lang}
 
     # remove duplicated utterances (the same offset)

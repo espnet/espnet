@@ -110,7 +110,7 @@ for set in train val dev5; do
         mv ${feat}.tmp ${feat}
     fi
 
-    # Copy stuff intoc its final locations [this has been moved from the format_data script]
+    # Copy stuff into its final locations [this has been moved from the format_data script]
     mkdir -p data/${set}
     for f in spk2utt utt2spk; do
         cp ${dst}/${f} data/${set}/${f}
