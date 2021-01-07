@@ -174,7 +174,7 @@ awk '{
 sort ${dst}/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > ${dst}/spk2utt
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/${set}
 for f in spk2utt utt2spk wav.scp segments; do
     cp ${dst}/${f} data/${set}/

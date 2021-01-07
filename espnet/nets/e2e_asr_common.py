@@ -21,7 +21,7 @@ from espnet.nets.beam_search_transducer import BeamSearchTransducer
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     """End detection.
 
-    desribed in Eq. (50) of S. Watanabe et al
+    described in Eq. (50) of S. Watanabe et al
     "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition"
 
     :param ended_hyps:
