@@ -440,7 +440,7 @@ class E2E(ASRInterface, torch.nn.Module):
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
-
+            
             # end detection
             if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
                 logging.info("end detected at %d", i)
@@ -615,44 +615,52 @@ class E2E(ASRInterface, torch.nn.Module):
                 local_scores[:, 1:, :] = self.logzero
 
             # accumulate scores
+            eos_vscores = local_scores[:, :, self.eos] + vscores
             vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
+            vscores[:, :, self.eos] = self.logzero
             vscores = (vscores + local_scores).view(batch, -1)  # (batch, odim * beam)
 
             # global pruning
             accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
+            
             accum_odim_ids = (
                 torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
             )
             accum_padded_beam_ids = (
                 (accum_best_ids // self.odim + pad_b).view(-1).data.cpu().tolist()
             )
-
+            y_prev = yseq[:][:]
             yseq = self._index_select_list(yseq, accum_padded_beam_ids)
             yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
+            
             vidx = to_device(hs_pad, torch.LongTensor(accum_padded_beam_ids))
-
+            
             # pick ended hyps
             if i >= minlen:
                 k = 0
                 penalty_i = (i + 1) * penalty
+                thr = accum_best_scores[:, -1]
                 for samp_i in six.moves.range(batch):
                     if stop_search[samp_i]:
                         k = k + beam
                         continue
                     for beam_j in six.moves.range(beam):
                         _vscore = None
-
-                        yk = yseq[k][:]
-                        if i == maxlens[samp_i] - 1:
-                            yk.append(self.eos)
+                        if eos_vscores[samp_i, beam_j] > thr[samp_i]:
+                            yk = y_prev[k][:]
+                            if len(yk) <= maxlens[samp_i]:
+                                _vscore = eos_vscores[samp_i][beam_j] + penalty_i
+                            rnnlm_idx = k
+                        elif i == maxlens[samp_i] - 1:
+                            yk = yseq[k][:]
                             _vscore = vscores[samp_i][beam_j] + penalty_i
-                        elif yk[-1] == self.eos:
-                            _vscore = vscores[samp_i][beam_j] + penalty_i
+                            rnnlm_idx = accum_padded_beam_ids[k]
                         if _vscore:
+                            yk.append(self.eos)
                             if rnnlm:
                                 _vscore += recog_args.lm_weight * rnnlm.final(
-                                    rnnlm_state, index=accum_padded_beam_ids[k]
+                                    rnnlm_state, index=rnnlm_idx
                                 )
                             ended_hyps[samp_i].append(
                                 {"yseq": yk, "score": _vscore.data.cpu().numpy()}
@@ -665,11 +673,12 @@ class E2E(ASRInterface, torch.nn.Module):
                 or i >= maxlens[samp_i]
                 for samp_i in six.moves.range(batch)
             ]
+            
             stop_search_summary = list(set(stop_search))
 
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
-
+            
             if rnnlm:
                 rnnlm_state = self._index_select_lm_state(rnnlm_state, 0, vidx)
             if ctc_scorer:

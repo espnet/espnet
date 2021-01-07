@@ -197,7 +197,9 @@ def test_batch_beam_search_equal(
     [
         (nn, args, ctc, lm_nn, lm_args, lm, bonus, device, dtype)
         for device in ("cpu",)
-        for nn, args in (("transformer", transformer_args),)
+        for nn, args in (
+            ("transformer", transformer_args),
+        )
         for ctc in (0.001, 0.5, 0.999)
         for lm_nn, lm_args in (
             ("default", lstm_lm),
@@ -219,11 +221,6 @@ def test_batch_recognize_equal(
     device,
     dtype,
 ):
-    if device == "cuda" and not torch.cuda.is_available():
-        pytest.skip("no cuda device is available")
-    if device == "cpu" and dtype == "float16":
-        pytest.skip("cpu float16 implementation is not available in pytorch yet")
-
     # seed setting
     torch.manual_seed(123)
     torch.backends.cudnn.deterministic = True
@@ -252,17 +249,17 @@ def test_batch_recognize_equal(
 
     model.to(device, dtype=dtype)
     model.eval()
+    xs = []
+    for i in range(len(x)):
+        xs.append(x[i, : ilens[i]].numpy())
 
-    data = [("aaa", dict(feat=numpy.random.randn(1, 10, 8).astype(numpy.float32)))]
-    x = data[0][1]["feat"]
-
-    ls_nbest_hyps = []
     with torch.no_grad():
+        ls_nbest_hyps = []
         for i in range(len(x)):
             ls_nbest_hyps.append(
-                model.recognize(x[i, : ilens[i]], args, char_list, rnnlm=lm)
+                model.recognize(xs[i], args, char_list, rnnlm=lm)
             )
-        b_nbest_hyps = model.recognize_batch([s for s in x], args, char_list, rnnlm=lm)
+        b_nbest_hyps = model.recognize_batch(xs, args, char_list, rnnlm=lm)
 
     for i, (expected, actual) in enumerate(zip(ls_nbest_hyps, b_nbest_hyps)):
         assert expected[0]["yseq"] == actual[0]["yseq"]
