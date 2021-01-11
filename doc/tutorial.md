@@ -5,14 +5,14 @@
 espnet/              # Python modules
 utils/               # Utility scripts of ESPnet
 test/                # Unit test
-test_utils/          #unit test for executable scripts
+test_utils/          # Unit test for executable scripts
 egs/                 # The complete recipe for each corpora
     an4/             # AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial
       asr1/          # ASR recipe
           - run.sh   # Executable script
           - cmd.sh   # To select the backend for job scheduler
           - path.sh  # Setup script for environment variables
-          - conf/    # Containing COnfiguration files
+          - conf/    # Containing Configuration files
           - steps/   # The steps scripts from Kaldi
           - utils/   # The utils scripts from Kaldi
       tts1/          # TTS recipe
