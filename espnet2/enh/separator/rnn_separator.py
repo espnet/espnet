@@ -19,10 +19,14 @@ class RNNSeparator(AbsSeparator):
         layer: int = 3,
         unit: int = 512,
         dropout: float = 0.0,
+        mask_type: str = "IRM",
+        loss_type: str = "mask_mse",
     ):
         super().__init__()
 
         self._num_spk = num_spk
+        self.mask_type = mask_type
+        self.loss_type = loss_type
 
         self.rnn = RNN(
             idim=input_dim,
@@ -34,7 +38,7 @@ class RNNSeparator(AbsSeparator):
         )
 
         self.linear = torch.nn.ModuleList(
-            [torch.nn.Linear(unit, self.num_bin) for _ in range(self.num_spk)]
+            [torch.nn.Linear(unit, input_dim) for _ in range(self.num_spk)]
         )
 
         if nonlinear not in ("sigmoid", "relu", "tanh"):
@@ -72,7 +76,8 @@ class RNNSeparator(AbsSeparator):
         )
 
         return maksed, ilens, others
-
+    
+    @property
     def num_spk(self):
         return self._num_spk
 

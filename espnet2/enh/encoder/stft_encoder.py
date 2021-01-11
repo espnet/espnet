@@ -35,6 +35,7 @@ class STFTEncoder(AbsEncoder):
 
         self._output_dim = n_fft // 2 + 1 if onesided else n_fft
 
+    @property
     def output_dim(self) -> int:
         return self._output_dim
 

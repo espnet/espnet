@@ -159,7 +159,7 @@ class EnhancementTask(AbsTask):
         assert check_argument_types()
 
         encoder = encoder_choices.get_class(args.encoder)(**args.encoder_conf)
-        separator = separator_choices.get_class(args.separator)(**args.separator_conf)
+        separator = separator_choices.get_class(args.separator)(encoder.output_dim, **args.separator_conf)
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
         # 1. Build model
