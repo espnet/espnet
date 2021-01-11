@@ -151,6 +151,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             n_fft=self.n_fft,
             hop_length=self.hop_length,
             win_length=self.win_length,
+            window=self.window,
             center=self.center,
             normalized=self.normalized,
             onesided=self.onesided,
