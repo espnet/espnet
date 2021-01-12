@@ -1,33 +1,21 @@
 from collections import OrderedDict
-from typing import Optional
+from typing import List
+from typing import Tuple
 
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.enh.layers.dnn_beamformer import DNN_Beamformer
 from espnet2.enh.layers.dnn_wpe import DNN_WPE
-from espnet2.layers.stft import Stft
+from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
-class BeamformerNet(AbsEnhancement):
-    """TF Masking based beamformer."""
-
+class NeuralBeamformer(AbsSeparator):
     def __init__(
         self,
+        input_dim: int,
         num_spk: int = 1,
-        normalize_input: bool = False,
-        train_mask_only: bool = True,
-        mask_type: str = "IPM^2",
         loss_type: str = "mask_mse",
-        # STFT options
-        n_fft: int = 512,
-        win_length: int = None,
-        hop_length: int = 128,
-        center: bool = True,
-        window: Optional[str] = "hann",
-        normalized: bool = False,
-        onesided: bool = True,
         # Dereverberation options
         use_wpe: bool = False,
         wnet_type: str = "blstmp",
@@ -64,27 +52,10 @@ class BeamformerNet(AbsEnhancement):
         flooring_thres_bf: float = 1e-6,
         use_torch_solver: bool = True,
     ):
-        super(BeamformerNet, self).__init__()
+        super().__init__()
 
-        self.normalize_input = normalize_input
-        self.train_mask_only = train_mask_only
-        self.mask_type = mask_type
+        self._num_spk = num_spk
         self.loss_type = loss_type
-        if loss_type not in ("mask_mse", "spectrum", "spectrum_log", "magnitude"):
-            raise ValueError("Unsupported loss type: %s" % loss_type)
-
-        self.num_spk = num_spk
-        self.num_bin = n_fft // 2 + 1
-
-        self.stft = Stft(
-            n_fft=n_fft,
-            win_length=win_length,
-            hop_length=hop_length,
-            center=center,
-            window=window,
-            normalized=normalized,
-            onesided=onesided,
-        )
 
         self.use_beamformer = use_beamformer
         self.use_wpe = use_wpe
@@ -99,7 +70,7 @@ class BeamformerNet(AbsEnhancement):
 
             self.wpe = DNN_WPE(
                 wtype=wnet_type,
-                widim=self.num_bin,
+                widim=input_dim,
                 wlayers=wlayers,
                 wunits=wunits,
                 wprojs=wprojs,
@@ -123,7 +94,7 @@ class BeamformerNet(AbsEnhancement):
         self.ref_channel = ref_channel
         if self.use_beamformer:
             self.beamformer = DNN_Beamformer(
-                bidim=self.num_bin,
+                bidim=input_dim,
                 btype=bnet_type,
                 blayers=blayers,
                 bunits=bunits,
@@ -150,80 +121,72 @@ class BeamformerNet(AbsEnhancement):
         # share speech powers between WPE and beamforming (wMPDR/WPD)
         self.shared_power = shared_power and use_wpe
 
-    def forward(self, input: torch.Tensor, ilens: torch.Tensor):
+    def forward(
+        self, input: ComplexTensor, ilens: torch.Tensor
+    ) -> Tuple[List[ComplexTensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
-            input (torch.Tensor): mixed speech [Batch, Nsample, Channel]
+            input (ComplexTensor): mixed speech [Batch, Frames, Channel, Freq]
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
-            enhanced speech  (single-channel):
-                torch.Tensor or List[torch.Tensor]
+            enhanced speech (single-channel): List[ComplexTensor]
             output lengths
-            predcited masks: OrderedDict[
-                'dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
-                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
+            other predcited data: OrderedDict[
+                'dereverb1': ComplexTensor(Batch, Frames, Channel, Freq),
+                'mask_dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'mask_noise1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'mask_spk1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'mask_spk2': torch.Tensor(Batch, Frames, Channel, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
-                'noise1': torch.Tensor(Batch, Frames, Channel, Freq),
+                'mask_spkn': torch.Tensor(Batch, Frames, Channel, Freq),
             ]
         """
-        # wave -> stft -> magnitude specturm
-        input_spectrum, flens = self.stft(input, ilens)
-        # (Batch, Frames, Freq) or (Batch, Frames, Channels, Freq)
-        input_spectrum = ComplexTensor(input_spectrum[..., 0], input_spectrum[..., 1])
-        if self.normalize_input:
-            input_spectrum = input_spectrum / abs(input_spectrum.detach()).max()
-
         # Shape of input spectrum must be (B, T, F) or (B, T, C, F)
-        assert input_spectrum.dim() in (3, 4), input_spectrum.dim()
-        enhanced = input_spectrum
-        masks = OrderedDict()
+        assert input.dim() in (3, 4), input.dim()
+        enhanced = input
+        others = OrderedDict()
 
         if (
             self.training
             and self.loss_type is not None
             and self.loss_type.startswith("mask")
-            and self.train_mask_only
         ):
-            # Only estimating masks for training
+            # Only estimating masks during training for saving memory
             if self.use_wpe:
-                if input_spectrum.dim() == 3:
-                    mask_w, flens = self.wpe.predict_mask(
-                        input_spectrum.unsqueeze(-2), flens
-                    )
+                if input.dim() == 3:
+                    mask_w, ilens = self.wpe.predict_mask(input.unsqueeze(-2), ilens)
                     mask_w = mask_w.squeeze(-2)
-                elif input_spectrum.dim() == 4:
-                    mask_w, flens = self.wpe.predict_mask(input_spectrum, flens)
+                elif input.dim() == 4:
+                    mask_w, ilens = self.wpe.predict_mask(input, ilens)
 
                 if mask_w is not None:
                     if isinstance(enhanced, list):
                         # single-source WPE
                         for spk in range(self.num_spk):
-                            masks["dereverb{}".format(spk + 1)] = mask_w[spk]
+                            others["mask_dereverb{}".format(spk + 1)] = mask_w[spk]
                     else:
                         # multi-source WPE
-                        masks["dereverb1"] = mask_w
+                        others["mask_dereverb1"] = mask_w
 
-            if self.use_beamformer and input_spectrum.dim() == 4:
-                masks_b, flens = self.beamformer.predict_mask(input_spectrum, flens)
+            if self.use_beamformer and input.dim() == 4:
+                others_b, ilens = self.beamformer.predict_mask(input, ilens)
                 for spk in range(self.num_spk):
-                    masks["spk{}".format(spk + 1)] = masks_b[spk]
-                if len(masks_b) > self.num_spk:
-                    masks["noise1"] = masks_b[self.num_spk]
+                    others["mask_spk{}".format(spk + 1)] = others_b[spk]
+                if len(others_b) > self.num_spk:
+                    others["mask_noise1"] = others_b[self.num_spk]
 
-            return None, flens, masks
+            return None, ilens, others
 
         else:
             powers = None
             # Performing both mask estimation and enhancement
-            if input_spectrum.dim() == 3:
+            if input.dim() == 3:
                 # single-channel input (B, T, F)
                 if self.use_wpe:
-                    enhanced, flens, mask_w, powers = self.wpe(
-                        input_spectrum.unsqueeze(-2), flens
+                    enhanced, ilens, mask_w, powers = self.wpe(
+                        input.unsqueeze(-2), ilens
                     )
                     if isinstance(enhanced, list):
                         # single-source WPE
@@ -231,25 +194,30 @@ class BeamformerNet(AbsEnhancement):
                         if mask_w is not None:
                             for spk in range(self.num_spk):
                                 key = "dereverb{}".format(spk + 1)
-                                masks[key] = mask_w[spk].squeeze(-2)
+                                others[key] = enhanced[spk]
+                                others["mask_" + key] = mask_w[spk].squeeze(-2)
                     else:
                         # multi-source WPE
                         enhanced = enhanced.squeeze(-2)
                         if mask_w is not None:
-                            masks["dereverb1"] = mask_w.squeeze(-2)
+                            others["dereverb1"] = enhanced
+                            others["mask_dereverb1"] = mask_w.squeeze(-2)
             else:
                 # multi-channel input (B, T, C, F)
                 # 1. WPE
                 if self.use_wpe:
-                    enhanced, flens, mask_w, powers = self.wpe(input_spectrum, flens)
+                    enhanced, ilens, mask_w, powers = self.wpe(input, ilens)
                     if mask_w is not None:
                         if isinstance(enhanced, list):
                             # single-source WPE
                             for spk in range(self.num_spk):
-                                masks["dereverb{}".format(spk + 1)] = mask_w[spk]
+                                key = "dereverb{}".format(spk + 1)
+                                others[key] = enhanced[spk]
+                                others["mask_" + key] = mask_w[spk]
                         else:
                             # multi-source WPE
-                            masks["dereverb1"] = mask_w.squeeze(-2)
+                            others["dereverb1"] = enhanced
+                            others["mask_dereverb1"] = mask_w.squeeze(-2)
 
                 # 2. Beamformer
                 if self.use_beamformer:
@@ -270,53 +238,19 @@ class BeamformerNet(AbsEnhancement):
                         )
                     else:
                         # output of multi-source WPE
-                        enhanced, flens, masks_b = self.beamformer(
-                            enhanced, flens, powers=powers
+                        enhanced, ilens, others_b = self.beamformer(
+                            enhanced, ilens, powers=powers
                         )
                     for spk in range(self.num_spk):
-                        masks["spk{}".format(spk + 1)] = masks_b[spk]
-                    if len(masks_b) > self.num_spk:
-                        masks["noise1"] = masks_b[self.num_spk]
+                        others["mask_spk{}".format(spk + 1)] = others_b[spk]
+                    if len(others_b) > self.num_spk:
+                        others["mask_noise1"] = others_b[self.num_spk]
 
-        # Convert ComplexTensor to torch.Tensor
-        # (B, T, F) -> (B, T, F, 2)
-        if isinstance(enhanced, list):
-            # multi-speaker output
-            enhanced = [torch.stack([enh.real, enh.imag], dim=-1) for enh in enhanced]
-        else:
-            # single-speaker output
-            enhanced = [torch.stack([enhanced.real, enhanced.imag], dim=-1)]
-        return enhanced, flens, masks
+        if not isinstance(enhanced, list):
+            enhanced = [enhanced]
 
-    def forward_rawwav(self, input: torch.Tensor, ilens: torch.Tensor):
-        """Output with wavformes.
+        return enhanced, ilens, others
 
-        Args:
-            input (torch.Tensor): mixed speech [Batch, Nsample, Channel]
-            ilens (torch.Tensor): input lengths [Batch]
-
-        Returns:
-            predcited speech wavs (single-channel):
-                torch.Tensor(Batch, Nsamples), or List[torch.Tensor(Batch, Nsamples)]
-            output lengths
-            predcited masks: OrderedDict[
-                'dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
-                'spk1': torch.Tensor(Batch, Frames, Channel, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Channel, Freq),
-                ...
-                'spkn': torch.Tensor(Batch, Frames, Channel, Freq),
-                'noise1': torch.Tensor(Batch, Frames, Channel, Freq),
-            ]
-        """
-        # predict spectrum for each speaker
-        predicted_spectrums, flens, masks = self.forward(input, ilens)
-
-        if predicted_spectrums is None:
-            predicted_wavs = None
-        elif isinstance(predicted_spectrums, list):
-            # multi-speaker input
-            predicted_wavs = [
-                self.stft.inverse(ps, ilens)[0] for ps in predicted_spectrums
-            ]
-
-        return predicted_wavs, ilens, masks
+    @property
+    def num_spk(self):
+        return self._num_spk
