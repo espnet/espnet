@@ -134,21 +134,35 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "$lid" = true ]
     then
         paste -d " " \
-      <(cut -f 1 -d" " data/train_temp/text) \
-      <(cut -f 1 -d" " data/train_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
-      <(cut -f 2- -d" " data/train_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
-      > data/${train_set}/text
+       <(cut -f 1 -d" " data/train_temp/text) \
+       <(cut -f 1 -d" " data/train_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+       <(cut -f 2- -d" " data/train_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+       > data/${train_set}/text
         paste -d " " \
-      <(cut -f 1 -d" " data/dev_temp/text) \
-      <(cut -f 1 -d" " data/dev_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
-      <(cut -f 2- -d" " data/dev_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
-      > data/${train_dev}/text
+       <(cut -f 1 -d" " data/dev_temp/text) \
+       <(cut -f 1 -d" " data/dev_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+       <(cut -f 2- -d" " data/dev_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+       > data/${train_dev}/text
+
+        new_test_set=""
+        for x in ${test_set}; do
+            cp -r data/${x} data/${x}_lid
+           paste -d " " \
+           <(cut -f 1 -d" " data/${x}/text) \
+           <(cut -f 1 -d" " data/${x}/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+           <(cut -f 2- -d" " data/${x}/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+           > data/${x}_lid/text
+           new_test_set="${new_test_set} ${x}_lid"
+        done
+        echo "test set are saved as ${new_test_set}"
+
     fi
 
     utils/fix_data_dir.sh data/${train_set}
     utils/fix_data_dir.sh data/${train_dev}
 
 fi
+
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Create Non-linguistic Symbols for Language ID"
