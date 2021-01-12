@@ -1,11 +1,10 @@
 from distutils.version import LooseVersion
 
-import numpy as np
 import pytest
 import torch
-from torch_complex import functional as FC
 
-from espnet2.enh.nets.beamformer_net import BeamformerNet
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from test.espnet2.enh.layers.test_enh_layers import random_speech
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
@@ -16,8 +15,6 @@ is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
     [(8, None, 2)],
 )
 @pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("normalize_input", [True])
-@pytest.mark.parametrize("mask_type", ["IPM^2"])
 @pytest.mark.parametrize("loss_type", ["mask_mse", "spectrum"])
 @pytest.mark.parametrize("use_wpe", [True])
 @pytest.mark.parametrize("wnet_type", ["lstm"])
@@ -50,13 +47,11 @@ is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
         "wpd",
     ],
 )
-def test_beamformer_net_forward_backward(
+def test_neural_beamformer_forward_backward(
     n_fft,
     win_length,
     hop_length,
     num_spk,
-    normalize_input,
-    mask_type,
     loss_type,
     use_wpe,
     wnet_type,
@@ -94,14 +89,9 @@ def test_beamformer_net_forward_backward(
 
     # ensures reproducibility and reversibility in the matrix inverse computation
     torch.random.manual_seed(0)
-    model = BeamformerNet(
-        n_fft=n_fft,
-        win_length=win_length,
-        hop_length=hop_length,
+    stft = STFTEncoder(n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+    model = NeuralBeamformer(
         num_spk=num_spk,
-        normalize_input=normalize_input,
-        train_mask_only=True,
-        mask_type=mask_type,
         loss_type=loss_type,
         use_wpe=use_wpe,
         wnet_type=wnet_type,
@@ -126,134 +116,30 @@ def test_beamformer_net_forward_backward(
 
     model.train()
     inputs = random_speech[..., :2].float()
-    est_speech, flens, masks = model(inputs, ilens=torch.LongTensor([16, 12]))
+    ilens = torch.LongTensor([16, 12])
+    input_spectrum, flens = stft(inputs, ilens)
+    est_speech, flens, others = model(input_spectrum, flens)
     if loss_type.startswith("mask"):
         assert est_speech is None
-        loss = sum([abs(m).mean() for m in masks.values()])
+        loss = sum([abs(m).mean() for m in others.values()])
     else:
         loss = sum([abs(est).mean() for est in est_speech])
     loss.backward()
-
-
-@pytest.mark.parametrize(
-    "n_fft, win_length, hop_length",
-    [(8, None, 2)],
-)
-@pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("normalize_input", [True])
-@pytest.mark.parametrize("mask_type", ["IPM^2"])
-@pytest.mark.parametrize("use_wpe", [False])
-@pytest.mark.parametrize("wnet_type", ["lstm"])
-@pytest.mark.parametrize("wlayers", [2])
-@pytest.mark.parametrize("wunits", [2])
-@pytest.mark.parametrize("wprojs", [2])
-@pytest.mark.parametrize("taps", [2])
-@pytest.mark.parametrize("delay", [3])
-@pytest.mark.parametrize("use_dnn_mask_for_wpe", [False])
-@pytest.mark.parametrize("use_beamformer", [True])
-@pytest.mark.parametrize("bnet_type", ["lstm"])
-@pytest.mark.parametrize("blayers", [2])
-@pytest.mark.parametrize("bunits", [2])
-@pytest.mark.parametrize("bprojs", [2])
-@pytest.mark.parametrize("badim", [2])
-@pytest.mark.parametrize("ref_channel", [-1, 0])
-@pytest.mark.parametrize("use_noise_mask", [True])
-@pytest.mark.parametrize("beamformer_type", ["mvdr_souden"])
-def test_beamformer_net_consistency(
-    n_fft,
-    win_length,
-    hop_length,
-    num_spk,
-    normalize_input,
-    mask_type,
-    use_wpe,
-    wnet_type,
-    wlayers,
-    wunits,
-    wprojs,
-    taps,
-    delay,
-    use_dnn_mask_for_wpe,
-    use_beamformer,
-    bnet_type,
-    blayers,
-    bunits,
-    bprojs,
-    badim,
-    ref_channel,
-    use_noise_mask,
-    beamformer_type,
-):
-    model = BeamformerNet(
-        n_fft=n_fft,
-        win_length=win_length,
-        hop_length=hop_length,
-        num_spk=num_spk,
-        normalize_input=normalize_input,
-        train_mask_only=True,
-        mask_type=mask_type,
-        use_wpe=use_wpe,
-        wnet_type=wnet_type,
-        wlayers=wlayers,
-        wunits=wunits,
-        wprojs=wprojs,
-        taps=taps,
-        delay=delay,
-        use_dnn_mask_for_wpe=use_dnn_mask_for_wpe,
-        use_beamformer=use_beamformer,
-        bnet_type=bnet_type,
-        blayers=blayers,
-        bunits=bunits,
-        bprojs=bprojs,
-        badim=badim,
-        ref_channel=ref_channel,
-        use_noise_mask=use_noise_mask,
-        beamformer_type=beamformer_type,
-    )
-
-    model.eval()
-
-    random_input_numpy = np.random.randn(2, 16, 2)  # np.float64
-    random_input_torch = torch.from_numpy(random_input_numpy).float()
-    random_input_numpy = torch.from_numpy(
-        random_input_numpy.astype("float32")
-    )  # np.float64-->np.float32-->torch.float32
-
-    # ensures reproducibility and reversibility in the matrix inverse computation
-    torch.random.manual_seed(0)
-    est_speech_numpy, *_ = model(random_input_numpy, ilens=torch.LongTensor([16, 12]))
-
-    torch.random.manual_seed(0)
-    est_speech_torch, *_ = model(random_input_torch, ilens=torch.LongTensor([16, 12]))
-    assert FC.allclose(est_speech_torch[0], est_speech_numpy[0])
-    assert FC.allclose(est_speech_torch[-1], est_speech_numpy[-1])
-    for est in est_speech_torch:
-        assert est.dtype == torch.float
-
-    if not is_torch_1_2_plus:
-        # torchaudio.functional.istft is only available with pytorch 1.2+
-        return
-    for ps in est_speech_torch:
-        enh_waveform = model.stft.inverse(ps, torch.LongTensor([16, 12]))[0]
-
-        assert enh_waveform.shape == random_input_torch.shape[:-1], (
-            enh_waveform.shape,
-            random_input_torch.shape,
-        )
 
 
 @pytest.mark.parametrize("ch", [1, 2])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("multi_source_wpe", [True, False])
 @pytest.mark.parametrize("use_dnn_mask_for_wpe", [True, False])
-def test_beamformer_net_wpe_output(ch, num_spk, multi_source_wpe, use_dnn_mask_for_wpe):
+def test_neural_beamformer_wpe_output(
+    ch, num_spk, multi_source_wpe, use_dnn_mask_for_wpe
+):
     torch.random.manual_seed(0)
     inputs = torch.randn(2, 16, ch) if ch > 1 else torch.randn(2, 16)
     inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
-    model = BeamformerNet(
-        n_fft=8,
-        hop_length=2,
+    stft = STFTEncoder(n_fft=8, hop_length=2)
+    model = NeuralBeamformer(
         num_spk=num_spk,
         use_wpe=True,
         use_dnn_mask_for_wpe=use_dnn_mask_for_wpe,
@@ -266,16 +152,19 @@ def test_beamformer_net_wpe_output(ch, num_spk, multi_source_wpe, use_dnn_mask_f
         use_beamformer=False,
     )
     model.eval()
-    specs, _, masks = model(inputs, ilens)
+    input_spectrum, flens = stft(inputs, ilens)
+    specs, _, others = model(input_spectrum, flens)
     assert isinstance(specs, list)
-    assert len(specs) == 1 if multi_source_wpe else num_spk
-    assert specs[0].shape[0] == 2  # batch size
-    assert specs[0].shape[-1] == 2  # real and imaginary parts
+    assert len(specs) == (1 if multi_source_wpe else num_spk)
+    if ch > 1:
+        assert specs[0].shape == input_spectrum[..., 0, :].shape
+    else:
+        assert specs[0].shape == input_spectrum.shape
     assert specs[0].dtype == torch.float
-    assert isinstance(masks, dict)
+    assert isinstance(others, dict)
     if use_dnn_mask_for_wpe:
-        assert "dereverb1" in masks, masks.keys()
-        assert masks["dereverb1"].shape == specs[0].shape[:-1]
+        assert "mask_dereverb1" in others, others.keys()
+        assert others["mask_dereverb1"].shape == specs[0].shape
 
 
 @pytest.mark.parametrize("num_spk", [1, 2])
@@ -293,15 +182,14 @@ def test_beamformer_net_wpe_output(ch, num_spk, multi_source_wpe, use_dnn_mask_f
         "wpd",
     ],
 )
-def test_beamformer_net_bf_output(num_spk, use_noise_mask, beamformer_type):
+def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
     ch = 2
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
 
     torch.random.manual_seed(0)
-    model = BeamformerNet(
-        n_fft=8,
-        hop_length=2,
+    stft = STFTEncoder(n_fft=8, hop_length=2)
+    model = NeuralBeamformer(
         num_spk=num_spk,
         use_wpe=False,
         taps=2,
@@ -315,26 +203,27 @@ def test_beamformer_net_bf_output(num_spk, use_noise_mask, beamformer_type):
         beamformer_type=beamformer_type,
     )
     model.eval()
-    specs, _, masks = model(inputs, ilens)
-    assert isinstance(masks, dict)
+    input_spectrum, flens = stft(inputs, ilens)
+    specs, _, others = model(input_spectrum, flens)
+    assert isinstance(others, dict)
     if use_noise_mask:
-        assert "noise1" in masks
-        assert masks["noise1"].shape == masks["spk1"].shape
+        assert "mask_noise1" in others
+        assert others["mask_noise1"].shape == others["mask_spk1"].shape
     assert isinstance(specs, list)
     assert len(specs) == num_spk
     for n in range(1, num_spk + 1):
-        assert "spk{}".format(n) in masks, masks.keys()
-        assert masks["spk{}".format(n)].shape[-2] == ch
-        assert specs[n - 1].shape[:-1] == masks["spk{}".format(n)][..., 0, :].shape
-        assert specs[n - 1].shape[-1] == 2
+        assert "mask_spk{}".format(n) in others, others.keys()
+        assert others["mask_spk{}".format(n)].shape[-2] == ch
+        assert specs[n - 1].shape == others["mask_spk{}".format(n)][..., 0, :].shape
+        assert specs[n - 1].shape == input_spectrum[..., 0, :].shape
         assert specs[n - 1].dtype == torch.float
 
 
 def test_beamformer_net_invalid_bf_type():
     with pytest.raises(ValueError):
-        BeamformerNet(use_beamformer=True, beamformer_type="fff")
+        NeuralBeamformer(use_beamformer=True, beamformer_type="fff")
 
 
 def test_beamformer_net_invalid_loss_type():
     with pytest.raises(ValueError):
-        BeamformerNet(loss_type="fff")
+        NeuralBeamformer(loss_type="fff")

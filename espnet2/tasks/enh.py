@@ -11,19 +11,19 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.enh.abs_enh import AbsEnhancement
-from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.encoder.abs_encoder import AbsEncoder
-from espnet2.enh.encoder.stft_encoder import STFTEncoder
-from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
-from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
+from espnet2.enh.decoder.stft_decoder import STFTDecoder
+from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.encoder.conv_encoder import ConvEncoder
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
+from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
-from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
-from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -48,6 +48,7 @@ separator_choices = ClassChoices(
         tcn=TCNSeparator,
         dprnn=DPRNNSeparator,
         transformer=TransformerSeparator,
+        wpe_beamformer=NeuralBeamformer,
     ),
     type_check=AbsSeparator,
     default="rnn",
