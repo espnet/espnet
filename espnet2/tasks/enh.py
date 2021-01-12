@@ -23,6 +23,7 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -42,7 +43,12 @@ encoder_choices = ClassChoices(
 
 separator_choices = ClassChoices(
     name="separator",
-    classes=dict(rnn=RNNSeparator, tcn=TCNSeparator, dprnn=DPRNNSeparator),
+    classes=dict(
+        rnn=RNNSeparator,
+        tcn=TCNSeparator,
+        dprnn=DPRNNSeparator,
+        transformer=TransformerSeparator,
+    ),
     type_check=AbsSeparator,
     default="rnn",
 )

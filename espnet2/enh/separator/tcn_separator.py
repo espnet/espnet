@@ -1,8 +1,7 @@
 from collections import OrderedDict
 from math import frexp
 from espnet2.enh.layers.mask_estimator import MaskEstimator
-from typing import Tuple
-
+from typing import Tuple, Union, List
 import torch
 from torch_complex.tensor import ComplexTensor
 
@@ -43,9 +42,24 @@ class TCNSeparator(AbsSeparator):
         )
 
     def forward(
-        self, input: torch.Tensor, ilens: torch.Tensor
-    ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
+        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+        """Forward.
 
+        Args:
+            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            ilens (torch.Tensor): input lengths [Batch]
+
+        Returns:
+            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            ilens (torch.Tensor): (B,)
+            others predicted data, e.g. masks: OrderedDict[
+                'spk1': torch.Tensor(Batch, Frames, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Freq),
+                ...
+                'spkn': torch.Tensor(Batch, Frames, Freq),
+            ]
+        """
         # if complex spectrum
         if isinstance(input, ComplexTensor):
             feature = abs(input)

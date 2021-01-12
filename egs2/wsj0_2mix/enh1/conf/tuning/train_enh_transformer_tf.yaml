@@ -1,6 +1,6 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 100
+max_epoch: 5
 batch_type: folded
 batch_size:  8
 num_workers: 4
@@ -36,11 +36,22 @@ decoder: stft
 decoder_conf:
     n_fft: 512
     hop_length: 128
-separator: rnn
+separator: transformer
 separator_conf:
-    rnn_type: blstm
     num_spk: 2
+    adim: 384
+    aheads: 4
+    layers: 6
+    linear_units: 1536
     nonlinear: relu
-    layer: 3
-    unit: 512
-    dropout: 0.2
+    positionwise_layer_type: linear
+    input_layer: linear
+    positionwise_conv_kernel_size: 1
+    normalize_before: False
+    concat_after: False
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+
+
+

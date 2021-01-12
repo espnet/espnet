@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Tuple
+from typing import List, Tuple, Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
@@ -47,8 +47,24 @@ class RNNSeparator(AbsSeparator):
         }[nonlinear]
 
     def forward(
-        self, input: torch.Tensor, ilens: torch.Tensor
-    ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
+        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+        """Forward.
+
+        Args:
+            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            ilens (torch.Tensor): input lengths [Batch]
+
+        Returns:
+            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            ilens (torch.Tensor): (B,)
+            others predicted data, e.g. masks: OrderedDict[
+                'spk1': torch.Tensor(Batch, Frames, Freq),
+                'spk2': torch.Tensor(Batch, Frames, Freq),
+                ...
+                'spkn': torch.Tensor(Batch, Frames, Freq),
+            ]
+        """
 
         # if complex spectrum,
         if isinstance(input, ComplexTensor):
@@ -72,7 +88,7 @@ class RNNSeparator(AbsSeparator):
         )
 
         return maksed, ilens, others
-    
+
     @property
     def num_spk(self):
         return self._num_spk
