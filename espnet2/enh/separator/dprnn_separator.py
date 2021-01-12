@@ -6,35 +6,37 @@ from torch_complex.tensor import ComplexTensor
 
 
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
+from espnet2.enh.layers.dprnn import DPRNN, split_feature, merge_feature
 
 
-class RNNSeparator(AbsSeparator):
+class DPRNNSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
         rnn_type: str = "blstm",
+        bidirectional: bool = True,
         num_spk: int = 2,
-        nonlinear: str = "sigmoid",
+        nonlinear: str = "relu",
         layer: int = 3,
         unit: int = 512,
+        segment_size: int = 20,
         dropout: float = 0.0,
     ):
         super().__init__()
 
         self._num_spk = num_spk
 
-        self.rnn = RNN(
-            idim=input_dim,
-            elayers=layer,
-            cdim=unit,
-            hdim=unit,
-            dropout=dropout,
-            typ=rnn_type,
-        )
 
-        self.linear = torch.nn.ModuleList(
-            [torch.nn.Linear(unit, input_dim) for _ in range(self.num_spk)]
+        self.segment_size = segment_size
+
+        self.dprnn = DPRNN(
+            rnn_type=rnn_type,
+            input_size=input_dim,
+            hidden_size=unit,
+            output_size=input_dim * num_spk,
+            dropout=dropout,
+            num_layers=layer,
+            bidirectional=bidirectional,
         )
 
         if nonlinear not in ("sigmoid", "relu", "tanh"):
@@ -56,14 +58,18 @@ class RNNSeparator(AbsSeparator):
         else:
             feature = input
 
-        x, ilens, _ = self.rnn(feature, ilens)
+        B, T, N = feature.shape
 
-        masks = []
+        feature = feature.transpose(1, 2)  # B, N, T
+        segmented, rest = split_feature(feature, segment_size=self.segment_size) # B, N, L, K
 
-        for linear in self.linear:
-            y = linear(x)
-            y = self.nonlinear(y)
-            masks.append(y)
+        processed = self.dprnn(segmented) # B, N*num_spk, L, K
+
+        processed = merge_feature(processed, rest) # B, N*num_spk, T
+
+        processed = processed.transpose(1,2) # B, T, N*num_spk
+        processed = processed.view(B, T, N, self.num_spk)
+        masks = self.nonlinear(processed).unbind(dim=3)
 
         maksed = [input * m for m in masks]
 
@@ -72,7 +78,7 @@ class RNNSeparator(AbsSeparator):
         )
 
         return maksed, ilens, others
-    
+
     @property
     def num_spk(self):
         return self._num_spk

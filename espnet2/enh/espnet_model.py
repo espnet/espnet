@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 from functools import reduce
 from itertools import permutations
-from typing import Dict
+from typing import Dict, Union
 from typing import Optional
 from typing import Tuple
 
@@ -42,6 +42,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         separator: AbsSeparator,
         decoder: AbsDecoder,
         stft_consistency: bool = False,
+        loss_type: str = "mask_mse",
+        mask_type: Optional[str] = None,
     ):
         assert check_argument_types()
 
@@ -54,9 +56,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
         # get mask type for TF-domain models (only used when loss_type="mask_*")
-        self.mask_type = getattr(self.separator, "mask_type", None)
+        self.mask_type = mask_type.upper() if mask_type else None
         # get loss type for model training
-        self.loss_type = getattr(self.separator, "loss_type", None)
+        self.loss_type = loss_type
         # whether to compute the TF-domain loss while enforcing STFT consistency
         self.stft_consistency = stft_consistency
 
@@ -76,6 +78,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             labels: List[Tensor(B, T, F), ...] or List[ComplexTensor(B, T, F), ...]
         """
 
+        # Must be upper case
         assert mask_type in [
             "IBM",
             "IRM",
@@ -210,10 +213,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if self.training:
                 si_snr = None
             else:
-                speech_pre = [
-                    self.decoder(ps, speech_lengths)[0]
-                    for ps in speech_pre
-                ]
+                speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in speech_pre]
                 speech_ref = torch.unbind(speech_ref, dim=1)
                 if speech_ref[0].dim() == 3:
                     # For si_snr loss, only select one channel as the reference
@@ -409,10 +409,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 # only select one channel as the reference
                 speech_ref = speech_ref[..., self.ref_channel]
 
-            speech_pre = [
-                    self.decoder(ps, speech_lengths)[0]
-                    for ps in feature_pre
-                ]
+            speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
             if not cal_loss:
                 loss, perm = None, None
                 return loss, speech_pre, None, speech_lengths, perm

@@ -100,9 +100,14 @@ def inference(
             # a. To device
             batch = to_device(batch, device)
             # b. Forward Enhancement Frontend
-            waves, _, _ = enh_model.enh_model.forward_rawwav(
+            feats, f_lens = enh_model.encoder(
                 batch["speech_mix"], batch["speech_mix_lengths"]
             )
+            feats, _, _ = enh_model.separator(feats, f_lens)
+            waves = [
+                enh_model.decoder(f, batch["speech_mix_lengths"])[0] for f in feats
+            ]
+
             assert len(waves[0]) == batch_size, len(waves[0])
 
         # FIXME(Chenda): will be incorrect when
@@ -139,10 +144,7 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -185,10 +187,7 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
 
     return parser

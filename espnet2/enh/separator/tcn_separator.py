@@ -1,4 +1,6 @@
 from collections import OrderedDict
+from math import frexp
+from espnet2.enh.layers.mask_estimator import MaskEstimator
 from typing import Tuple
 
 import torch
@@ -6,7 +8,7 @@ from torch_complex.tensor import ComplexTensor
 
 
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet2.enh.layers.tcn import TCN
+from espnet2.enh.layers.tcn import TemporalConvNet
 
 
 class TCNSeparator(AbsSeparator):
@@ -20,54 +22,44 @@ class TCNSeparator(AbsSeparator):
         hidden_dim: int = 512,
         kernel: int = 3,
         causal: bool = False,
-        loss_type: str = "si_snr",
-        nonlinear: str = "sigmoid",
+        norm_type: str = "gLN",
+        nonlinear: str = "relu",
     ):
         super().__init__()
 
         self._num_spk = num_spk
-        self.loss_type = loss_type
 
-        self.tcn = TCN(
-            input_dim=input_dim,
-            output_dim=input_dim * num_spk,
-            BN_dim=bottleneck_dim,
-            hidden_dim=hidden_dim,
-            layer=layer,
-            stack=stack,
-            kernel=kernel,
+        self.tcn = TemporalConvNet(
+            N=input_dim,
+            B=bottleneck_dim,
+            H=hidden_dim,
+            P=kernel,
+            X=layer,
+            R=stack,
+            C=num_spk,
+            norm_type=norm_type,
             causal=causal,
+            mask_nonlinear=nonlinear,
         )
-
-        if nonlinear not in ("sigmoid", "relu", "tanh"):
-            raise ValueError("Not supporting nonlinear={}".format(nonlinear))
-
-        self.nonlinear = {
-            "sigmoid": torch.nn.Sigmoid(),
-            "relu": torch.nn.ReLU(),
-            "tanh": torch.nn.Tanh(),
-        }[nonlinear]
 
     def forward(
         self, input: torch.Tensor, ilens: torch.Tensor
     ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
 
-        # if complex spectrum,
+        # if complex spectrum
         if isinstance(input, ComplexTensor):
             feature = abs(input)
         else:
             feature = input
+        B, L, N = feature.shape
 
-        feature_tcn = feature.transpose(1, 2)  # B, N, L
+        feature = feature.transpose(1, 2)  # B, N, L
 
-        B, N, L = feature_tcn.shape
+        masks = self.tcn(feature)  # B, num_spk, N, L
+        masks = masks.transpose(2, 3)  # B, num_spk, L, N
+        masks = masks.unbind(dim=1)  # List[B, L, N]
 
-        masks = self.nonlinear(self.tcn(feature_tcn))  # B, num_spk * N, L
-        masks = masks.transpose(1, 2)  # B, L, num_spk * N
-        masks = masks.view(B, L, self.num_spk, N)  # B, L, num_spk, N
-        masks = masks.unbind(dim=2)  # List[B, L, N]
-
-        maksed = [feature * m for m in masks]
+        maksed = [input * m for m in masks]
 
         others = OrderedDict(
             zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)

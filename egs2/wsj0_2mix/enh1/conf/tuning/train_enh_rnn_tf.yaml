@@ -1,6 +1,6 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 100
+max_epoch: 5
 batch_type: folded
 batch_size:  8
 num_workers: 4
@@ -25,6 +25,9 @@ scheduler_conf:
     mode: min
     factor: 0.7
     patience: 1
+model_conf:
+    loss_type: mask_mse
+    mask_type: psm
 encoder: stft
 encoder_conf:
     n_fft: 512
