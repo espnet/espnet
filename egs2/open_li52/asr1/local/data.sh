@@ -11,7 +11,10 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-langs="en de fr cy br cv ky ga-IE sl cnh et mn sah dv sv-SE id ar ta ia lv ja rm-sursilv hsb ro fy-NL el rm-vallader as mt ka or vi pa-IN tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk"
+langs="ar as br ca cnh cs cv cy de dv el eo es et eu\
+ fa fr fy-NL ga-IE hsb ia id it ja ka kab ky lv mn mt\
+ nl or pa-IN pl pt rm-sursilv rm-vallader ro ru rw sah\
+ sl sv-SE ta tr tt uk vi zh-CN zh-HK zh-TW"
 lid=true
 nlsyms_txt=data/local/nlsyms.txt
 
