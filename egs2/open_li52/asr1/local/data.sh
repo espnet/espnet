@@ -11,7 +11,10 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-langs="en de fr cy br cv ky ga-IE sl cnh et mn sah dv sv-SE id ar ta ia lv ja rm-sursilv hsb ro fy-NL el rm-vallader as mt ka or vi pa-IN tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk"
+langs="ar as br ca cnh cs cv cy de dv el eo es et eu\
+ fa fr fy-NL ga-IE hsb ia id it ja ka kab ky lv mn mt\
+ nl or pa-IN pl pt rm-sursilv rm-vallader ro ru rw sah\
+ sl sv-SE ta tr tt uk vi zh-CN zh-HK zh-TW"
 lid=true
 nlsyms_txt=data/local/nlsyms.txt
 
@@ -134,21 +137,35 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "$lid" = true ]
     then
         paste -d " " \
-      <(cut -f 1 -d" " data/train_temp/text) \
-      <(cut -f 1 -d" " data/train_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
-      <(cut -f 2- -d" " data/train_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
-      > data/${train_set}/text
+       <(cut -f 1 -d" " data/train_temp/text) \
+       <(cut -f 1 -d" " data/train_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+       <(cut -f 2- -d" " data/train_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+       > data/${train_set}/text
         paste -d " " \
-      <(cut -f 1 -d" " data/dev_temp/text) \
-      <(cut -f 1 -d" " data/dev_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
-      <(cut -f 2- -d" " data/dev_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
-      > data/${train_dev}/text
+       <(cut -f 1 -d" " data/dev_temp/text) \
+       <(cut -f 1 -d" " data/dev_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+       <(cut -f 2- -d" " data/dev_temp/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+       > data/${train_dev}/text
+
+        new_test_set=""
+        for x in ${test_set}; do
+            cp -r data/${x} data/${x}_lid
+           paste -d " " \
+           <(cut -f 1 -d" " data/${x}/text) \
+           <(cut -f 1 -d" " data/${x}/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \
+           <(cut -f 2- -d" " data/${x}/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
+           > data/${x}_lid/text
+           new_test_set="${new_test_set} ${x}_lid"
+        done
+        echo "test set are saved as ${new_test_set}"
+
     fi
 
     utils/fix_data_dir.sh data/${train_set}
     utils/fix_data_dir.sh data/${train_dev}
 
 fi
+
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Create Non-linguistic Symbols for Language ID"
