@@ -6,7 +6,7 @@
 . ./path.sh
 
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <set> <lang>>"
+    echo "Usage: $0 <set> <lang>"
     echo "e.g.: $0 dev"
     exit 1
 fi
@@ -14,7 +14,7 @@ fi
 set=$1
 lang=$2
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 # for En
 mkdir -p data/${set}.en
 for f in spk2utt utt2spk segments wav.scp feats.scp utt2num_frames; do
