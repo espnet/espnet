@@ -3,7 +3,6 @@
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
@@ -77,7 +76,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         self.ignore_id = -1
         self.blank = blank
 
-    def init_state(self, init_tensor):
+    def init_state(self, batch_size, device, dtype):
         """Initialize decoder states.
 
         Args:
@@ -90,15 +89,19 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         """
         z_list = [
-            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
-            for _ in range(self.dlayers)
-        ]
-        c_list = [
-            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
+            torch.zeros(batch_size, self.dunits, device=device, dtype=dtype)
             for _ in range(self.dlayers)
         ]
 
-        return ((z_list, c_list), None)
+        if self.dtype == "lstm":
+            c_list = [
+                torch.zeros(batch_size, self.dunits, device=device, dtype=dtype)
+                for _ in range(self.dlayers)
+            ]
+
+            return ((z_list, c_list), None)
+
+        return ((z_list, None), None)
 
     def rnn_forward(self, ey, state):
         """RNN forward.
@@ -114,7 +117,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         """
         z_prev, c_prev = state
-        (z_list, c_list), _ = self.init_state(ey)
+        (z_list, c_list), _ = self.init_state(ey.size(0), ey.device, ey.dtype)
 
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
@@ -146,13 +149,17 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             z (torch.Tensor): output (B, T, U, odim)
 
         """
+        batch = hs_pad.size(0)
+        device = hs_pad.device
+        dtype = hs_pad.dtype
+
         olength = ys_in_pad.size(1)
 
         hlens = list(map(int, hlens))
 
         self.att[0].reset()
 
-        state, att_w = self.init_state(hs_pad)
+        state, att_w = self.init_state(batch, device, dtype)
         eys = self.dropout_emb(self.embed(ys_in_pad))
 
         z_all = []
@@ -175,13 +182,13 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def score(self, hyp, cache, init_tensor):
+    def score(self, hyp, cache, hs):
         """Forward one step.
 
         Args:
             hyp (dataclass): hypothese
             cache (dict): states cache
-            init_tensor (torch.Tensor): initial tensor (1, max_len, dec_dim)
+            hs (torch.Tensor): initial tensor (1, max_len, dec_dim)
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
@@ -190,7 +197,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             lm_tokens (torch.Tensor): token id for LM (1)
 
         """
-        vy = to_device(self, torch.full((1, 1), hyp.yseq[-1], dtype=torch.long))
+        vy = torch.full((1, 1), hyp.yseq[-1], dtype=torch.long, device=hs.device)
 
         str_yseq = "".join([str(x) for x in hyp.yseq])
 
@@ -200,8 +207,8 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             ey = self.embed(vy)
 
             att_c, att_w = self.att[0](
-                init_tensor,
-                [init_tensor.size(1)],
+                hs,
+                [hs.size(1)],
                 hyp.dec_state[0][0][0],
                 hyp.dec_state[1],
             )
@@ -213,9 +220,9 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
             cache[str_yseq] = (y, state)
 
-        return y, state, vy[0]
+        return y[0], state, vy[0]
 
-    def batch_score(self, hyps, batch_states, cache, init_tensor):
+    def batch_score(self, hyps, batch_states, cache, hs=None):
         """Forward batch one step.
 
         Args:
@@ -223,7 +230,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             batch_states (tuple): batch of decoder and attention states
                 (([L x (B, dec_dim)], [L x (B, dec_dim)]), (B, max_len))
             cache (dict): states cache
-            init_tensor: encoder outputs for att. computation (1, max_enc_len)
+            hs: encoder outputs for att. computation (1, max_enc_len)
 
         Returns:
             batch_y (torch.Tensor): decoder output (B, dec_dim)
@@ -233,8 +240,9 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
         """
         final_batch = len(hyps)
+        device = batch_states[0][0][0].device
+        dtype = batch_states[0][0][0].dtype
 
-        tokens = []
         process = []
         done = [None for _ in range(final_batch)]
 
@@ -244,30 +252,29 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
             if str_yseq in cache:
                 done[i] = cache[str_yseq]
             else:
-                tokens.append(hyp.yseq[-1])
-                process.append((str_yseq, hyp.dec_state))
+                process.append((str_yseq, hyp.yseq[-1], hyp.dec_state))
 
         if process:
-            batch = len(tokens)
+            batch = len(process)
+            _tokens = [p[1] for p in process]
+            _states = [p[2] for p in process]
 
-            tokens = to_device(self, torch.LongTensor(tokens).view(batch))
+            tokens = torch.LongTensor(_tokens).view(batch).to(device=device)
 
-            state = self.init_state(init_tensor)
-            dec_state = self.create_batch_states(state, [p[1] for p in process])
+            state = self.init_state(batch, device, dtype)
+            state = self.create_batch_states(state, _states)
 
             ey = self.embed(tokens)
 
-            enc_hs = init_tensor.expand(batch, -1, -1)
-            enc_len = [init_tensor.squeeze(0).size(0)] * batch
+            enc_hs = hs.expand(batch, -1, -1)
+            enc_len = [hs.squeeze(0).size(0)] * batch
 
             att_c, att_w = self.att[0](enc_hs, enc_len, state[0][0][0], state[1])
-
             ey = torch.cat((ey, att_c), dim=1)
 
             y, dec_state = self.rnn_forward(ey, state[0])
 
         j = 0
-
         for i in range(final_batch):
             if done[i] is None:
                 new_state = self.select_state((dec_state, att_w), j)
@@ -277,12 +284,13 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
 
                 j += 1
 
+        batch_y = torch.stack([d[0] for d in done])
         batch_states = self.create_batch_states(batch_states, [d[1] for d in done])
 
-        batch_y = torch.stack([d[0] for d in done])
-
-        lm_tokens = to_device(
-            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch)
+        lm_tokens = (
+            torch.LongTensor([h.yseq[-1] for h in hyps])
+            .view(final_batch)
+            .to(device=device)
         )
 
         return batch_y, batch_states, lm_tokens
@@ -365,7 +373,7 @@ class DecoderRNNTAtt(TransducerDecoderInterface, torch.nn.Module):
         self.att[0].reset()
 
         eys = self.embed(ys_in_pad)
-        state, att_w = self.init_state(eys)
+        state, att_w = self.init_state(eys.size(0), eys.device, eys.dtype)
 
         for i in range(olength):
             att_c, att_w = self.att[0](

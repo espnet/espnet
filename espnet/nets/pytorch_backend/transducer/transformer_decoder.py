@@ -72,7 +72,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         self.blank = blank
 
-    def init_state(self, init_tensor=None):
+    def init_state(self, batch_size=None, device=None, dtype=None):
         """Initialize decoder states.
 
         Args:
@@ -116,7 +116,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         return z, tgt_mask
 
-    def score(self, hyp, cache, init_tensor=None):
+    def score(self, hyp, cache, hs):
         """Forward one step.
 
         Args:
@@ -130,7 +130,9 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             lm_tokens (torch.Tensor): token id for LM (1)
 
         """
-        tgt = to_device(self, torch.tensor(hyp.yseq).unsqueeze(0))
+        device = hs.device
+
+        tgt = torch.tensor(hyp.yseq).unsqueeze(0).to(device=device)
         lm_tokens = tgt[:, -1]
 
         str_yseq = "".join([str(x) for x in hyp.yseq])
@@ -138,7 +140,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         if str_yseq in cache:
             y, new_state = cache[str_yseq]
         else:
-            tgt_mask = to_device(self, subsequent_mask(len(hyp.yseq)).unsqueeze(0))
+            tgt_mask = subsequent_mask(len(hyp.yseq)).unsqueeze(0).to(device=device)
 
             state = check_state(hyp.dec_state, (tgt.size(1) - 1), self.blank)
 
@@ -153,9 +155,9 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
             cache[str_yseq] = (y, new_state)
 
-        return y, new_state, lm_tokens
+        return y[0], new_state, lm_tokens
 
-    def batch_score(self, hyps, batch_states, cache, init_tensor=None):
+    def batch_score(self, hyps, batch_states, cache, hs=None):
         """Forward batch one step.
 
         Args:
@@ -172,8 +174,9 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         """
         final_batch = len(hyps)
+        device = hs.device
+        dtype = hs.dtype
 
-        tokens = []
         process = []
         done = [None for _ in range(final_batch)]
 
@@ -183,29 +186,29 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             if str_yseq in cache:
                 done[i] = (*cache[str_yseq], hyp.yseq)
             else:
-                tokens.append(hyp.yseq)
-                process.append((str_yseq, hyp.dec_state, hyp.yseq))
+                process.append((str_yseq, hyp.yseq, hyp.dec_state))
 
         if process:
-            batch = len(tokens)
+            batch = len(process)
+            _tokens = pad_sequence([p[1] for p in process], self.blank)
+            _states = [p[2] for p in process]
 
-            tokens = pad_sequence(tokens, self.blank)
-            b_tokens = to_device(self, torch.LongTensor(tokens).view(batch, -1))
-
-            tgt_mask = to_device(
-                self,
-                subsequent_mask(b_tokens.size(-1)).unsqueeze(0).expand(batch, -1, -1),
+            batch_tokens = torch.LongTensor(_tokens).view(batch, -1).to(device=device)
+            tgt_mask = (
+                subsequent_mask(batch_tokens.size(-1))
+                .unsqueeze(0)
+                .expand(batch, -1, -1)
+                .to(device=device)
             )
 
             dec_state = self.init_state()
-
             dec_state = self.create_batch_states(
                 dec_state,
-                [p[1] for p in process],
-                tokens,
+                _states,
+                _tokens,
             )
 
-            tgt = self.embed(b_tokens)
+            tgt = self.embed(batch_tokens)
 
             next_state = []
             for s, decoder in zip(dec_state, self.decoders):
@@ -229,8 +232,10 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         )
         batch_y = torch.stack([d[0] for d in done])
 
-        lm_tokens = to_device(
-            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch)
+        lm_tokens = (
+            torch.LongTensor([hyp.yseq[-1] for hyp in hyps])
+            .view(final_batch)
+            .to(device=device)
         )
 
         return batch_y, batch_states, lm_tokens
