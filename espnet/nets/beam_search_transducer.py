@@ -108,7 +108,7 @@ class BeamSearchTransducer:
         if hasattr(self.decoder, "att"):
             self.decoder.att[0].reset()
 
-        nbest_hyps = self.search_algorithm(h)
+        nbest_hyps = self.search_algorithm(h, h.device, h.dtype)
 
         return nbest_hyps
 
@@ -127,7 +127,9 @@ class BeamSearchTransducer:
         else:
             return sorted(hyps, key=lambda x: x.score, reverse=True)
 
-    def greedy_search(self, h: torch.Tensor) -> List[Hypothesis]:
+    def greedy_search(
+        self, h: torch.Tensor, device: torch.device, dtype: torch.dtype
+    ) -> List[Hypothesis]:
         """Greedy search implementation for transformer-transducer.
 
         Args:
@@ -137,17 +139,17 @@ class BeamSearchTransducer:
             hyp: 1-best decoding results
 
         """
-        init_tensor = h.unsqueeze(0)
-        dec_state = self.decoder.init_state(init_tensor)
+        dec_state = self.decoder.init_state(1, device, dtype)
+        _hs = h.unsqueeze(0)
 
         hyp = Hypothesis(score=0.0, yseq=[self.blank], dec_state=dec_state)
 
         cache = {}
 
-        y, state, _ = self.decoder.score(hyp, cache, init_tensor)
+        y, state, _ = self.decoder.score(hyp, cache, _hs)
 
         for i, hi in enumerate(h):
-            ytu = torch.log_softmax(self.decoder.joint_network(hi, y[0]), dim=-1)
+            ytu = torch.log_softmax(self.decoder.joint_network(hi, y), dim=-1)
             logp, pred = torch.max(ytu, dim=-1)
 
             if pred != self.blank:
@@ -156,11 +158,13 @@ class BeamSearchTransducer:
 
                 hyp.dec_state = state
 
-                y, state, _ = self.decoder.score(hyp, cache, init_tensor)
+                y, state, _ = self.decoder.score(hyp, cache, h.unsqueeze(0))
 
         return [hyp]
 
-    def default_beam_search(self, h: torch.Tensor) -> List[Hypothesis]:
+    def default_beam_search(
+        self, h: torch.Tensor, device: torch.device, dtype: torch.dtype
+    ) -> List[Hypothesis]:
         """Beam search implementation.
 
         Args:
@@ -173,13 +177,11 @@ class BeamSearchTransducer:
         beam = min(self.beam_size, self.vocab_size)
         beam_k = min(beam, (self.vocab_size - 1))
 
-        init_tensor = h.unsqueeze(0)
-        blank_tensor = init_tensor.new_zeros(1, dtype=torch.long)
-
-        dec_state = self.decoder.init_state(init_tensor)
+        _blank = h.new_zeros(1, dtype=torch.long)
+        _hs = h.unsqueeze(0)
+        dec_state = self.decoder.init_state(1, device, dtype)
 
         kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank], dec_state=dec_state)]
-
         cache = {}
 
         for hi in h:
@@ -190,15 +192,14 @@ class BeamSearchTransducer:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
-                y, state, lm_tokens = self.decoder.score(max_hyp, cache, init_tensor)
+                y, state, lm_tokens = self.decoder.score(max_hyp, cache, hs=_hs)
 
-                ytu = torch.log_softmax(self.decoder.joint_network(hi, y[0]), dim=-1)
-
+                ytu = torch.log_softmax(self.decoder.joint_network(hi, y), dim=-1)
                 top_k = ytu[1:].topk(beam_k, dim=-1)
 
                 ytu = (
                     torch.cat((top_k[0], ytu[0:1])),
-                    torch.cat((top_k[1] + 1, blank_tensor)),
+                    torch.cat((top_k[1] + 1, _blank)),
                 )
 
                 if self.lm:
@@ -236,7 +237,9 @@ class BeamSearchTransducer:
 
         return self.sort_nbest(kept_hyps)
 
-    def time_sync_decoding(self, h: torch.Tensor) -> List[Hypothesis]:
+    def time_sync_decoding(
+        self, h: torch.Tensor, device: torch.device, dtype: torch.dtype
+    ) -> List[Hypothesis]:
         """Time synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
@@ -249,9 +252,7 @@ class BeamSearchTransducer:
 
         """
         beam = min(self.beam_size, self.vocab_size)
-
-        init_tensor = h.unsqueeze(0)
-        beam_state = self.decoder.init_state(torch.zeros((beam, self.hidden_size)))
+        beam_state = self.decoder.init_state(beam, device, dtype)
 
         B = [
             Hypothesis(
@@ -260,6 +261,8 @@ class BeamSearchTransducer:
                 dec_state=self.decoder.select_state(beam_state, 0),
             )
         ]
+
+        _hs = h.unsqueeze(0)
 
         if self.lm:
             if hasattr(self.lm.predictor, "wordlm"):
@@ -285,7 +288,7 @@ class BeamSearchTransducer:
                 D = []
 
                 beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    C, beam_state, cache, init_tensor
+                    C, beam_state, cache, hs=_hs
                 )
 
                 beam_logp = torch.log_softmax(
@@ -346,7 +349,9 @@ class BeamSearchTransducer:
 
         return self.sort_nbest(B)
 
-    def align_length_sync_decoding(self, h: torch.Tensor) -> List[Hypothesis]:
+    def align_length_sync_decoding(
+        self, h: torch.Tensor, device: torch.device, dtype: torch.dtype
+    ) -> List[Hypothesis]:
         """Alignment-length synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
@@ -363,8 +368,7 @@ class BeamSearchTransducer:
         h_length = int(h.size(0))
         u_max = min(self.u_max, (h_length - 1))
 
-        init_tensor = h.unsqueeze(0)
-        beam_state = self.decoder.init_state(torch.zeros((beam, self.hidden_size)))
+        beam_state = self.decoder.init_state(beam, device, dtype)
 
         B = [
             Hypothesis(
@@ -374,6 +378,8 @@ class BeamSearchTransducer:
             )
         ]
         final = []
+
+        _hs = h.unsqueeze(0)
 
         if self.lm:
             if hasattr(self.lm.predictor, "wordlm"):
@@ -406,7 +412,7 @@ class BeamSearchTransducer:
 
             if B_:
                 beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    B_, beam_state, cache, init_tensor
+                    B_, beam_state, cache, hs=_hs
                 )
 
                 h_enc = torch.stack([h[1] for h in h_states])
@@ -463,7 +469,9 @@ class BeamSearchTransducer:
         else:
             return B
 
-    def nsc_beam_search(self, h: torch.Tensor) -> List[Hypothesis]:
+    def nsc_beam_search(
+        self, h: torch.Tensor, device: torch.device, dtype: torch.dtype
+    ) -> List[Hypothesis]:
         """N-step constrained beam search implementation.
 
         Based and modified from https://arxiv.org/pdf/2002.03577.pdf.
@@ -483,10 +491,10 @@ class BeamSearchTransducer:
         beam = min(self.beam_size, self.vocab_size)
         beam_k = min(beam, (self.vocab_size - 1))
 
-        init_tensor = h.unsqueeze(0)
-        blank_tensor = init_tensor.new_zeros(1, dtype=torch.long)
+        _hs = h.unsqueeze(0)
+        _blank = h.new_zeros(1, dtype=torch.long)
 
-        beam_state = self.decoder.init_state(torch.zeros((beam, self.hidden_size)))
+        beam_state = self.decoder.init_state(beam, device, dtype)
 
         init_tokens = [
             Hypothesis(
@@ -499,7 +507,10 @@ class BeamSearchTransducer:
         cache = {}
 
         beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-            init_tokens, beam_state, cache, init_tensor
+            init_tokens,
+            beam_state,
+            cache,
+            hs=_hs,
         )
 
         state = self.decoder.select_state(beam_state, 0)
@@ -580,7 +591,7 @@ class BeamSearchTransducer:
                 for i, hyp in enumerate(hyps):
                     i_topk = (
                         torch.cat((beam_topk[0][i], beam_logp[i, 0:1])),
-                        torch.cat((beam_topk[1][i] + 1, blank_tensor)),
+                        torch.cat((beam_topk[1][i] + 1, _blank)),
                     )
 
                     for logp, k in zip(*i_topk):
@@ -615,7 +626,7 @@ class BeamSearchTransducer:
                     beam_state, l_state, l_tokens
                 )
                 beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    V, beam_state, cache, init_tensor
+                    V, beam_state, cache, hs=_hs
                 )
 
                 if self.lm:
