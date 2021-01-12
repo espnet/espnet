@@ -15,10 +15,13 @@ from espnet2.enh.abs_enh import AbsEnhancement
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
+from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.rnn_separator import RNNSeparator
+from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -31,21 +34,21 @@ from espnet2.utils.types import str_or_none
 
 encoder_choices = ClassChoices(
     name="encoder",
-    classes=dict(stft=STFTEncoder,),
+    classes=dict(stft=STFTEncoder, conv=ConvEncoder),
     type_check=AbsEncoder,
     default="stft",
 )
 
 separator_choices = ClassChoices(
     name="separator",
-    classes=dict(rnn=RNNSeparator,),
+    classes=dict(rnn=RNNSeparator, tcn=TCNSeparator),
     type_check=AbsSeparator,
     default="rnn",
 )
 
 decoder_choices = ClassChoices(
     name="decoder",
-    classes=dict(stft=STFTDecoder,),
+    classes=dict(stft=STFTDecoder, conv=ConvDecoder),
     type_check=AbsDecoder,
     default="stft",
 )
@@ -159,7 +162,9 @@ class EnhancementTask(AbsTask):
         assert check_argument_types()
 
         encoder = encoder_choices.get_class(args.encoder)(**args.encoder_conf)
-        separator = separator_choices.get_class(args.separator)(encoder.output_dim, **args.separator_conf)
+        separator = separator_choices.get_class(args.separator)(
+            encoder.output_dim, **args.separator_conf
+        )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
         # 1. Build model

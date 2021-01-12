@@ -409,7 +409,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 # only select one channel as the reference
                 speech_ref = speech_ref[..., self.ref_channel]
 
-            speech_pre, speech_lengths = self.decoder(feature_pre, speech_lengths)
+            speech_pre = [
+                    self.decoder(ps, speech_lengths)[0]
+                    for ps in feature_pre
+                ]
             if not cal_loss:
                 loss, perm = None, None
                 return loss, speech_pre, None, speech_lengths, perm
