@@ -2,7 +2,6 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.utils import check_state
@@ -175,7 +174,6 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """
         final_batch = len(hyps)
         device = hs.device
-        dtype = hs.dtype
 
         process = []
         done = [None for _ in range(final_batch)]

@@ -116,15 +116,20 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         h_prev, c_prev = state
         h_next, c_next = self.init_state(y.size(0), y.device, y.dtype)
 
-        for l in range(self.dlayers):
+        for layer in range(self.dlayers):
             if self.dtype == "lstm":
-                y, (h_next[l : l + 1], c_next[l : l + 1]) = self.decoder[l](
-                    y, hx=(h_prev[l : l + 1], c_prev[l : l + 1])
+                y, (
+                    h_next[layer : layer + 1],
+                    c_next[layer : layer + 1],
+                ) = self.decoder[layer](
+                    y, hx=(h_prev[layer : layer + 1], c_prev[layer : layer + 1])
                 )
             else:
-                y, h_next[l : l + 1] = self.decoder[l](y, hx=h_prev[l : l + 1])
+                y, h_next[layer : layer + 1] = self.decoder[layer](
+                    y, hx=h_prev[layer : layer + 1]
+                )
 
-            y = self.dropout_dec[l](y)
+            y = self.dropout_dec[layer](y)
 
         return y, (h_next, c_next)
 
@@ -144,8 +149,6 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         batch = hs_pad.size(0)
         device = hs_pad.device
         dtype = hs_pad.dtype
-
-        olength = ys_in_pad.size(1)
 
         state = self.init_state(batch, device, dtype)
         eys = self.dropout_embed(self.embed(ys_in_pad))
