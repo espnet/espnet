@@ -36,8 +36,8 @@ command -v wget >/dev/null 2>&1 ||\
     { echo "\"wget\" is needed but not found"'!'; exit 1; }
 
 # echo "--- Starting VoxForge data download (may take some time) ..."
-# wget -P ${DATA_TGZ} -l 1 -N -nd -c -e robots=off -A tgz -r -np ${DATA_SRC} || \
-#     { echo "WGET error"'!' ; exit 1 ; }
+wget -P ${DATA_TGZ} -l 1 -N -nd -c -e robots=off -A tgz -r -np ${DATA_SRC} || \
+    { echo "WGET error"'!' ; exit 1 ; }
 
 mkdir -p ${DATA_EXTRACT}
 
