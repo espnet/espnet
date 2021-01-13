@@ -1,7 +1,7 @@
 import pytest
 
 import torch
-from torch.functional import Tensor
+from torch import Tensor
 from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.tcn_separator import TCNSeparator
