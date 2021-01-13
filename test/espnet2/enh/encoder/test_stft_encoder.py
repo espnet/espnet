@@ -1,7 +1,11 @@
+from distutils.version import LooseVersion
+
 import pytest
 import torch
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
+
+is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -14,6 +18,9 @@ from espnet2.enh.encoder.stft_encoder import STFTEncoder
 def test_STFTEncoder_backward(
     n_fft, win_length, hop_length, window, center, normalized, onesided
 ):
+    if not is_torch_1_2_plus:
+        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
+
     encoder = STFTEncoder(
         n_fft=n_fft,
         win_length=win_length,

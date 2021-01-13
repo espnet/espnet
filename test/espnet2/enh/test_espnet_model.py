@@ -80,6 +80,9 @@ transformer_separator = TransformerSeparator(
 def test_single_channel_model(
     encoder, decoder, separator, stft_consistency, loss_type, mask_type, training
 ):
+    if not is_torch_1_2_plus:
+        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
+
     inputs = torch.randn(2, 100)
     ilens = torch.LongTensor([100, 80])
     speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]
@@ -183,6 +186,9 @@ random_speech = torch.tensor(
 def test_forward_with_beamformer_net(
     training, mask_type, loss_type, num_spk, use_noise_mask, stft_consistency
 ):
+    if not is_torch_1_2_plus:
+        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
+
     # Skip some testing cases
     if not loss_type.startswith("mask") and mask_type != "IBM":
         # `mask_type` has no effect when `loss_type` is not "mask..."
