@@ -224,7 +224,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 )
                 si_snr = -si_snr_loss.detach()
 
-            stats = dict(si_snr=si_snr, loss=loss.detach(),)
+            stats = dict(
+                si_snr=si_snr,
+                loss=loss.detach(),
+            )
         else:
             stats = dict(si_snr=-loss.detach(), loss=loss.detach())
 

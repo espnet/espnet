@@ -28,6 +28,9 @@ class TCNSeparator(AbsSeparator):
 
         self._num_spk = num_spk
 
+        if nonlinear not in ("sigmoid", "relu", "tanh"):
+            raise ValueError("Not supporting nonlinear={}".format(nonlinear))
+
         self.tcn = TemporalConvNet(
             N=input_dim,
             B=bottleneck_dim,
@@ -84,4 +87,3 @@ class TCNSeparator(AbsSeparator):
     @property
     def num_spk(self):
         return self._num_spk
-

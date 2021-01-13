@@ -26,7 +26,6 @@ class TransformerSeparator(AbsSeparator):
         layers: int = 6,
         linear_units: int = 1536,
         positionwise_layer_type: str = "linear",
-        input_layer: str = "linear",
         positionwise_conv_kernel_size: int = 1,
         normalize_before: bool = False,
         concat_after: bool = False,
@@ -49,7 +48,7 @@ class TransformerSeparator(AbsSeparator):
             attention_heads=aheads,
             linear_units=linear_units,
             num_blocks=layers,
-            input_layer=input_layer,
+            input_layer="linear",
             dropout_rate=dropout_rate,
             positional_dropout_rate=positional_dropout_rate,
             attention_dropout_rate=attention_dropout_rate,
@@ -121,4 +120,3 @@ class TransformerSeparator(AbsSeparator):
     @property
     def num_spk(self):
         return self._num_spk
-

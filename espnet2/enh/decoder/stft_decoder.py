@@ -33,14 +33,15 @@ class STFTDecoder(AbsDecoder):
             onesided=onesided,
         )
 
-    def forward(self, input: torch.Tensor, ilens: torch.Tensor):
+    def forward(self, input: ComplexTensor, ilens: torch.Tensor):
         """
         Args:
-            input (torch.Tensor or ComplexTensor): spectrum [Batch, T, F]
+            input (ComplexTensor): spectrum [Batch, T, F]
             ilens (torch.Tensor): input lengths [Batch]
         """
-        wav, wav_lens =  self.stft.inverse(input, ilens)
+        if not isinstance(input, ComplexTensor):
+            raise TypeError(f"Only support ComplexTensor for stft decoder")
+
+        wav, wav_lens = self.stft.inverse(input, ilens)
 
         return wav, wav_lens
-
-

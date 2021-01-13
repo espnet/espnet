@@ -7,7 +7,6 @@ import torch
 
 
 class AbsDecoder(torch.nn.Module, ABC):
-
     @abstractmethod
     def forward(
         self,

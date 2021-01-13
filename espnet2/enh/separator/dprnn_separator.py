@@ -28,7 +28,6 @@ class DPRNNSeparator(AbsSeparator):
 
         self._num_spk = num_spk
 
-
         self.segment_size = segment_size
 
         self.dprnn = DPRNN(
@@ -79,13 +78,15 @@ class DPRNNSeparator(AbsSeparator):
         B, T, N = feature.shape
 
         feature = feature.transpose(1, 2)  # B, N, T
-        segmented, rest = split_feature(feature, segment_size=self.segment_size) # B, N, L, K
+        segmented, rest = split_feature(
+            feature, segment_size=self.segment_size
+        )  # B, N, L, K
 
-        processed = self.dprnn(segmented) # B, N*num_spk, L, K
+        processed = self.dprnn(segmented)  # B, N*num_spk, L, K
 
-        processed = merge_feature(processed, rest) # B, N*num_spk, T
+        processed = merge_feature(processed, rest)  # B, N*num_spk, T
 
-        processed = processed.transpose(1,2) # B, T, N*num_spk
+        processed = processed.transpose(1, 2)  # B, T, N*num_spk
         processed = processed.view(B, T, N, self.num_spk)
         masks = self.nonlinear(processed).unbind(dim=3)
 
@@ -100,4 +101,3 @@ class DPRNNSeparator(AbsSeparator):
     @property
     def num_spk(self):
         return self._num_spk
-

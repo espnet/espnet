@@ -45,7 +45,6 @@ separator_conf:
     linear_units: 1536
     nonlinear: relu
     positionwise_layer_type: linear
-    input_layer: linear
     positionwise_conv_kernel_size: 1
     normalize_before: False
     concat_after: False

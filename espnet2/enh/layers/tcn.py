@@ -85,6 +85,10 @@ class TemporalConvNet(nn.Module):
             est_mask = F.softmax(score, dim=1)
         elif self.mask_nonlinear == "relu":
             est_mask = F.relu(score)
+        elif self.mask_nonlinear == "sigmoid":
+            est_mask = F.sigmoid(score)
+        elif self.mask_nonlinear == "tanh":
+            est_mask = F.tanh(score)
         else:
             raise ValueError("Unsupported mask non-linear function")
         return est_mask
@@ -283,4 +287,3 @@ class GlobalLayerNorm(nn.Module):
         )
         gLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
         return gLN_y
-

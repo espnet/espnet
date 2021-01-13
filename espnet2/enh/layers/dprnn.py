@@ -77,7 +77,7 @@ class SingleRNN(nn.Module):
 
 # dual-path RNN
 class DPRNN(nn.Module):
-    """ Deep dual-path RNN.
+    """Deep dual-path RNN.
 
     args:
         rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
@@ -244,4 +244,3 @@ def merge_feature(input, rest):
         output = output[:, :, :-rest]
 
     return output.contiguous()  # B, N, T
-

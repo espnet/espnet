@@ -7,7 +7,10 @@ class ConvEncoder(AbsEncoder):
     """ Convolutional encoder for speech enhancement and separation """
 
     def __init__(
-        self, channel: int, kernel_size: int, stride: int,
+        self,
+        channel: int,
+        kernel_size: int,
+        stride: int,
     ):
         super().__init__()
         self.conv1d = torch.nn.Conv1d(
@@ -39,4 +42,3 @@ class ConvEncoder(AbsEncoder):
         flens = (ilens - self.kernel_size) // self.stride + 1
 
         return feature, flens
-

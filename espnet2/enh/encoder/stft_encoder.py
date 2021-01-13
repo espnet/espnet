@@ -49,4 +49,3 @@ class STFTEncoder(AbsEncoder):
         spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
         return spectrum, flens
-

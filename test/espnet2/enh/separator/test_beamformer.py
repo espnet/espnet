@@ -5,9 +5,50 @@ import torch
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
-from test.espnet2.enh.layers.test_enh_layers import random_speech
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
+
+random_speech = torch.tensor(
+    [
+        [
+            [0.026, 0.031, 0.023, 0.029, 0.026, 0.029, 0.028, 0.027],
+            [0.027, 0.031, 0.023, 0.027, 0.026, 0.028, 0.027, 0.027],
+            [0.026, 0.030, 0.023, 0.026, 0.025, 0.028, 0.028, 0.028],
+            [0.024, 0.028, 0.024, 0.027, 0.024, 0.027, 0.030, 0.030],
+            [0.025, 0.027, 0.025, 0.028, 0.023, 0.026, 0.031, 0.031],
+            [0.027, 0.026, 0.025, 0.029, 0.022, 0.026, 0.032, 0.031],
+            [0.028, 0.026, 0.024, 0.031, 0.023, 0.025, 0.031, 0.029],
+            [0.029, 0.024, 0.023, 0.032, 0.023, 0.024, 0.030, 0.027],
+            [0.028, 0.024, 0.023, 0.030, 0.023, 0.023, 0.028, 0.027],
+            [0.029, 0.026, 0.023, 0.029, 0.025, 0.024, 0.027, 0.025],
+            [0.029, 0.027, 0.024, 0.026, 0.025, 0.027, 0.025, 0.025],
+            [0.029, 0.031, 0.026, 0.024, 0.028, 0.028, 0.024, 0.025],
+            [0.030, 0.038, 0.029, 0.023, 0.035, 0.032, 0.024, 0.026],
+            [0.029, 0.040, 0.030, 0.023, 0.039, 0.039, 0.025, 0.027],
+            [0.028, 0.040, 0.032, 0.025, 0.041, 0.039, 0.026, 0.028],
+            [0.028, 0.041, 0.039, 0.027, 0.044, 0.041, 0.029, 0.035],
+        ],
+        [
+            [0.015, 0.021, 0.012, 0.006, 0.028, 0.021, 0.024, 0.018],
+            [0.005, 0.034, 0.036, 0.017, 0.016, 0.037, 0.011, 0.029],
+            [0.011, 0.029, 0.060, 0.029, 0.045, 0.035, 0.034, 0.018],
+            [0.031, 0.036, 0.040, 0.037, 0.059, 0.032, 0.035, 0.029],
+            [0.031, 0.031, 0.036, 0.029, 0.058, 0.035, 0.039, 0.045],
+            [0.050, 0.038, 0.052, 0.052, 0.059, 0.044, 0.055, 0.045],
+            [0.025, 0.054, 0.054, 0.047, 0.043, 0.059, 0.045, 0.060],
+            [0.042, 0.056, 0.073, 0.029, 0.048, 0.063, 0.051, 0.049],
+            [0.053, 0.048, 0.045, 0.052, 0.039, 0.045, 0.031, 0.053],
+            [0.054, 0.044, 0.053, 0.031, 0.062, 0.050, 0.048, 0.046],
+            [0.053, 0.036, 0.075, 0.046, 0.073, 0.052, 0.045, 0.030],
+            [0.039, 0.025, 0.061, 0.046, 0.064, 0.032, 0.027, 0.033],
+            [0.053, 0.032, 0.052, 0.033, 0.052, 0.029, 0.026, 0.017],
+            [0.054, 0.034, 0.054, 0.033, 0.045, 0.043, 0.024, 0.018],
+            [0.031, 0.025, 0.043, 0.016, 0.051, 0.040, 0.023, 0.030],
+            [0.008, 0.023, 0.024, 0.019, 0.032, 0.024, 0.012, 0.027],
+        ],
+    ],
+    dtype=torch.double,
+)
 
 
 @pytest.mark.parametrize(
@@ -91,6 +132,7 @@ def test_neural_beamformer_forward_backward(
     torch.random.manual_seed(0)
     stft = STFTEncoder(n_fft=n_fft, win_length=win_length, hop_length=hop_length)
     model = NeuralBeamformer(
+        stft.output_dim,
         num_spk=num_spk,
         loss_type=loss_type,
         use_wpe=use_wpe,
@@ -140,6 +182,7 @@ def test_neural_beamformer_wpe_output(
     ilens = torch.LongTensor([16, 12])
     stft = STFTEncoder(n_fft=8, hop_length=2)
     model = NeuralBeamformer(
+        stft.output_dim,
         num_spk=num_spk,
         use_wpe=True,
         use_dnn_mask_for_wpe=use_dnn_mask_for_wpe,
@@ -155,11 +198,11 @@ def test_neural_beamformer_wpe_output(
     input_spectrum, flens = stft(inputs, ilens)
     specs, _, others = model(input_spectrum, flens)
     assert isinstance(specs, list)
-    assert len(specs) == (1 if multi_source_wpe else num_spk)
-    if ch > 1:
-        assert specs[0].shape == input_spectrum[..., 0, :].shape
+    if not use_dnn_mask_for_wpe or multi_source_wpe:
+        assert len(specs) == 1
     else:
-        assert specs[0].shape == input_spectrum.shape
+        assert len(specs) == num_spk
+    assert specs[0].shape == input_spectrum.shape
     assert specs[0].dtype == torch.float
     assert isinstance(others, dict)
     if use_dnn_mask_for_wpe:
@@ -190,6 +233,7 @@ def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
     torch.random.manual_seed(0)
     stft = STFTEncoder(n_fft=8, hop_length=2)
     model = NeuralBeamformer(
+        stft.output_dim,
         num_spk=num_spk,
         use_wpe=False,
         taps=2,
@@ -221,9 +265,9 @@ def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
 
 def test_beamformer_net_invalid_bf_type():
     with pytest.raises(ValueError):
-        NeuralBeamformer(use_beamformer=True, beamformer_type="fff")
+        NeuralBeamformer(10, use_beamformer=True, beamformer_type="fff")
 
 
 def test_beamformer_net_invalid_loss_type():
     with pytest.raises(ValueError):
-        NeuralBeamformer(loss_type="fff")
+        NeuralBeamformer(10, loss_type="fff")
