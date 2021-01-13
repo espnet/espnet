@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright  2020  University of Stuttgart (Author: Pavel Denisov)
+# Copyright  2020-2021  University of Stuttgart (Author: Pavel Denisov)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -20,6 +20,7 @@ do_delta=false
 # here we use models trained with the LibriSpeech Transformer recipe
 # https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--transformer-lm-4-gpus
 # they are downloaded by the local/download_asr.sh script
+asr_url="https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p"
 recog_model=model.val5.avg.best  # set a model to be used for decoding
 lang_model=rnnlm.model.best # set a language model to be used for decoding
 
@@ -64,7 +65,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data and Models Download"
     local/data_download.sh ${libricss_corpus}
     local/download_xvector.sh ${xvector_dir}
-    local/download_asr.sh ${asr_dir}
+    local/download_asr.sh ${asr_url} ${asr_dir}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then

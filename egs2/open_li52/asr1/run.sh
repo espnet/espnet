@@ -11,7 +11,7 @@ _ia_id_it_ja_ka_kab_ky_lv_mn_mt_nl_or\
 _pa-IN_pl_pt_rm-sursilv_rm-vallader_ro\
 _ru_rw_sah_sl_sv-SE_ta_tr_tt_uk_vi_\
 zh-CN_zh-HK_zh-TW"
-lid=false # whether to use language id as additional label
+lid=true # whether to use language id as additional label
 
 train_set=train_li52_lid
 train_dev=dev_li52_lid
