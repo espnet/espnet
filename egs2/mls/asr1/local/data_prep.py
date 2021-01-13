@@ -3,7 +3,9 @@ import os
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Process Raw data to Kaldi-like format")
+    parser = argparse.ArgumentParser(
+        description="Process Raw data to Kaldi-like format"
+    )
     parser.add_argument("--source", type=str, default="downloads/mls_spanish")
     parser.add_argument("--lang", type=str, default="es")
     parser.add_argument("--prefix", type=str, default="")
@@ -43,7 +45,9 @@ if __name__ == "__main__":
             [org_spk, book, seg] = org_header.split("_")
             spk = pad_zero(org_spk, 6)
             header = f"{spk}_{book}_{seg}"
-            wavdir = os.path.join(work_dir, "audio", org_spk, book, org_header) + ".flac"
+            wavdir = (
+                os.path.join(work_dir, "audio", org_spk, book, org_header) + ".flac"
+            )
             wavscp.write(f"{header} flac -c -d --silent {wavdir} |\n")
             text.write(f"{header} {trans}")
             utt2spk.write(f"{header} {spk}\n")
@@ -57,4 +61,3 @@ if __name__ == "__main__":
             spk2utt.write(f"{spk} {utts}\n")
 
     print("pre-processing finished")
-
