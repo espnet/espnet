@@ -1,12 +1,8 @@
-from collections import OrderedDict
-from typing import Tuple
-
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.layers.stft import Stft
-
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.layers.stft import Stft
 
 
 class STFTEncoder(AbsEncoder):

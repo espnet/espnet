@@ -15,7 +15,7 @@ class DPRNNSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
-        rnn_type: str = "blstm",
+        rnn_type: str = "lstm",
         bidirectional: bool = True,
         num_spk: int = 2,
         nonlinear: str = "relu",

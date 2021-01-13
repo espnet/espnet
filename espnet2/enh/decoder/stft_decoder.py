@@ -1,12 +1,8 @@
-from collections import OrderedDict
-from typing import Tuple
-
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.layers.stft import Stft
-
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
+from espnet2.layers.stft import Stft
 
 
 class STFTDecoder(AbsDecoder):
@@ -40,7 +36,7 @@ class STFTDecoder(AbsDecoder):
             ilens (torch.Tensor): input lengths [Batch]
         """
         if not isinstance(input, ComplexTensor):
-            raise TypeError(f"Only support ComplexTensor for stft decoder")
+            raise TypeError("Only support ComplexTensor for stft decoder")
 
         wav, wav_lens = self.stft.inverse(input, ilens)
 

@@ -1,16 +1,16 @@
 from distutils.version import LooseVersion
 from functools import reduce
 from itertools import permutations
-from typing import Dict, Union
+from typing import Dict
 from typing import Optional
 from typing import Tuple
 
 import torch
-from torch._C import set_flush_denormal
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -55,12 +55,19 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
+        if loss_type != 'si_snr' and isinstance(encoder, ConvEncoder):
+            raise TypeError(f"{loss_type} is not supported with {type(ConvEncoder)}")
+
         # get mask type for TF-domain models (only used when loss_type="mask_*")
         self.mask_type = mask_type.upper() if mask_type else None
         # get loss type for model training
         self.loss_type = loss_type
         # whether to compute the TF-domain loss while enforcing STFT consistency
         self.stft_consistency = stft_consistency
+
+        if stft_consistency and loss_type in ['mask_mse', 'si_snr']:
+            raise ValueError(f"stft_consistency will not work when '{loss_type}'' loss is used")
+            
 
         assert self.loss_type in ALL_LOSS_TYPES, self.loss_type
         # for multi-channel signal
@@ -277,7 +284,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # predict separated speech and masks
             if self.stft_consistency:
                 # pseudo STFT -> time-domain -> STFT (compute loss)
-                # TODO
+                tmp_t_domain = [self.decoder(sp, speech_lengths)[0] for sp in spectrum_pre] 
+                spectrum_pre = [self.encoder(sp, speech_lengths)[0] for sp in tmp_t_domain] 
                 pass
 
             if spectrum_pre is not None and not isinstance(
