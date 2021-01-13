@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from espnet2.enh.layers import beamformer
 
 import pytest
 import torch
@@ -95,7 +96,7 @@ def test_single_channel_model(
                 mask_type=mask_type,
             )
         return
-    if stft_consistency and loss_type in ['mask_mse', 'si_snr']:
+    if stft_consistency and loss_type in ["mask_mse", "si_snr"]:
         with pytest.raises(ValueError):
             enh_model = ESPnetEnhancementModel(
                 encoder=encoder,
@@ -127,7 +128,6 @@ def test_single_channel_model(
         **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
     }
     loss, stats, weight = enh_model(**kwargs)
-
 
 
 random_speech = torch.tensor(
@@ -173,67 +173,78 @@ random_speech = torch.tensor(
 )
 
 
-# @pytest.mark.parametrize("training", [True, False])
-# @pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "PSM^2"])
-# @pytest.mark.parametrize(
-#     "loss_type", ["mask_mse", "magnitude", "spectrum", "spectrum_log"]
-# )
-# @pytest.mark.parametrize("num_spk", [1, 2, 3])
-# @pytest.mark.parametrize("use_noise_mask", [True, False])
-# @pytest.mark.parametrize("stft_consistency", [True, False])
-# def test_forward_with_beamformer_net(
-#     training, mask_type, loss_type, num_spk, use_noise_mask, stft_consistency
-# ):
-#     # Skip some testing cases
-#     if not loss_type.startswith("mask") and mask_type != "IBM":
-#         # `mask_type` has no effect when `loss_type` is not "mask..."
-#         return
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "PSM^2"])
+@pytest.mark.parametrize(
+    "loss_type", ["mask_mse", "magnitude", "spectrum", "spectrum_log"]
+)
+@pytest.mark.parametrize("num_spk", [1, 2, 3])
+@pytest.mark.parametrize("use_noise_mask", [True, False])
+@pytest.mark.parametrize("stft_consistency", [True, False])
+def test_forward_with_beamformer_net(
+    training, mask_type, loss_type, num_spk, use_noise_mask, stft_consistency
+):
+    # Skip some testing cases
+    if not loss_type.startswith("mask") and mask_type != "IBM":
+        # `mask_type` has no effect when `loss_type` is not "mask..."
+        return
 
-#     ch = 2
-#     inputs = random_speech[..., :ch].float()
-#     ilens = torch.LongTensor([16, 12])
-#     speech_refs = [torch.randn(2, 16, ch).float() for spk in range(num_spk)]
-#     noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
-#     dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
-#     model = BeamformerNet(
-#         train_mask_only=True,
-#         mask_type=mask_type,
-#         loss_type=loss_type,
-#         n_fft=8,
-#         hop_length=2,
-#         num_spk=num_spk,
-#         use_wpe=True,
-#         wlayers=2,
-#         wunits=2,
-#         wprojs=2,
-#         use_dnn_mask_for_wpe=True,
-#         multi_source_wpe=True,
-#         use_beamformer=True,
-#         blayers=2,
-#         bunits=2,
-#         bprojs=2,
-#         badim=2,
-#         ref_channel=0,
-#         use_noise_mask=use_noise_mask,
-#         beamformer_type="mvdr_souden",
-#     )
-#     enh_model = ESPnetEnhancementModel(model, stft_consistency=stft_consistency)
-#     if training:
-#         enh_model.train()
-#         if stft_consistency and not is_torch_1_2_plus:
-#             # torchaudio.functional.istft is only available with pytorch 1.2+
-#             return
-#     else:
-#         enh_model.eval()
-#         if not is_torch_1_2_plus:
-#             # torchaudio.functional.istft is only available with pytorch 1.2+
-#             return
+    ch = 2
+    inputs = random_speech[..., :ch].float()
+    ilens = torch.LongTensor([16, 12])
+    speech_refs = [torch.randn(2, 16, ch).float() for spk in range(num_spk)]
+    noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
+    dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
+    encoder = STFTEncoder(n_fft=8, hop_length=2)
+    decoder = STFTDecoder(n_fft=8, hop_length=2)
 
-#     kwargs = {
-#         "speech_mix": inputs,
-#         "speech_mix_lengths": ilens,
-#         **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(num_spk)},
-#         "noise_ref1": noise_ref1,
-#         "dereverb_ref1": dereverb_ref1,
-#     }
-#     loss, stats, weight = enh_model(**kwargs)
+    if stft_consistency and loss_type in ["mask_mse", "si_snr"]:
+        # skip this condition
+        return
+
+    beamformer = NeuralBeamformer(
+        input_dim=5,
+        loss_type=loss_type,
+        num_spk=num_spk,
+        use_wpe=True,
+        wlayers=2,
+        wunits=2,
+        wprojs=2,
+        use_dnn_mask_for_wpe=True,
+        multi_source_wpe=True,
+        use_beamformer=True,
+        blayers=2,
+        bunits=2,
+        bprojs=2,
+        badim=2,
+        ref_channel=0,
+        use_noise_mask=use_noise_mask,
+        beamformer_type="mvdr_souden",
+    )
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        decoder=decoder,
+        separator=beamformer,
+        stft_consistency=stft_consistency,
+        loss_type=loss_type,
+        mask_type=mask_type,
+    )
+    if training:
+        enh_model.train()
+        if stft_consistency and not is_torch_1_2_plus:
+            # torchaudio.functional.istft is only available with pytorch 1.2+
+            return
+    else:
+        enh_model.eval()
+        if not is_torch_1_2_plus:
+            # torchaudio.functional.istft is only available with pytorch 1.2+
+            return
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(num_spk)},
+        "noise_ref1": noise_ref1,
+        "dereverb_ref1": dereverb_ref1,
+    }
+    loss, stats, weight = enh_model(**kwargs)
