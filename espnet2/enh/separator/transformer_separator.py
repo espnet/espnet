@@ -35,6 +35,31 @@ class TransformerSeparator(AbsSeparator):
         use_scaled_pos_enc: bool = True,
         nonlinear: str = "relu",
     ):
+        """Transformer separator.
+
+        Args:
+            input_dim: input feature dimension
+            num_spk: number of speakers
+            adim (int): Dimention of attention.
+            aheads (int): The number of heads of multi head attention.
+            linear_units (int): The number of units of position-wise feed forward.
+            layers (int): The number of transformer blocks.
+            dropout_rate (float): Dropout rate.
+            attention_dropout_rate (float): Dropout rate in attention.
+            positional_dropout_rate (float): Dropout rate after adding
+                                             positional encoding.
+            normalize_before (bool): Whether to use layer_norm before the first block.
+            concat_after (bool): Whether to concat attention layer's input and output.
+                if True, additional linear will be applied.
+                i.e. x -> x + linear(concat(x, att(x)))
+                if False, no additional linear will be applied. i.e. x -> x + att(x)
+            positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
+            positionwise_conv_kernel_size (int): Kernel size of
+                                                 positionwise conv1d layer.
+            use_scaled_pos_enc (bool) : use scaled positional encoding or not
+            nonlinear: the nonlinear function for mask estimation,
+                       select from 'relu', 'tanh', 'sigmoid'
+        """
         super().__init__()
 
         self._num_spk = num_spk
@@ -85,10 +110,10 @@ class TransformerSeparator(AbsSeparator):
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
-                'spk1': torch.Tensor(Batch, Frames, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk2': torch.Tensor(Batch, Frames, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Freq),
+                'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
 
@@ -112,7 +137,7 @@ class TransformerSeparator(AbsSeparator):
         maksed = [input * m for m in masks]
 
         others = OrderedDict(
-            zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
+            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
 
         return maksed, ilens, others

@@ -1,5 +1,4 @@
 from distutils.version import LooseVersion
-from espnet2.enh.layers import beamformer
 
 import pytest
 import torch

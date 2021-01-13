@@ -135,5 +135,5 @@ def test_tcn_separator_output():
         assert isinstance(specs, list)
         assert isinstance(others, dict)
         for n in range(num_spk):
-            assert "spk{}".format(n + 1) in others
-            assert specs[n].shape == others["spk{}".format(n + 1)].shape
+            assert "mask_spk{}".format(n + 1) in others
+            assert specs[n].shape == others["mask_spk{}".format(n + 1)].shape

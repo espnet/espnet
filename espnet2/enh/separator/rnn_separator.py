@@ -20,6 +20,19 @@ class RNNSeparator(AbsSeparator):
         unit: int = 512,
         dropout: float = 0.0,
     ):
+        """RNN Separator
+
+        Args:
+            input_dim: input feature dimension
+            rnn_type: string, select from 'blstm', 'lstm' etc.
+            bidirectional: bool, whether the inter-chunk RNN layers are bidirectional.
+            num_spk: number of speakers
+            nonlinear: the nonlinear function for mask estimation,
+                       select from 'relu', 'tanh', 'sigmoid'
+            layer: int, number of stacked RNN layers. Default is 3.
+            unit: int, dimension of the hidden state.
+            dropout: float, dropout ratio. Default is 0.
+        """
         super().__init__()
 
         self._num_spk = num_spk
@@ -59,10 +72,10 @@ class RNNSeparator(AbsSeparator):
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
-                'spk1': torch.Tensor(Batch, Frames, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk2': torch.Tensor(Batch, Frames, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Freq),
+                'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
 
@@ -84,7 +97,7 @@ class RNNSeparator(AbsSeparator):
         maksed = [input * m for m in masks]
 
         others = OrderedDict(
-            zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
+            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
 
         return maksed, ilens, others

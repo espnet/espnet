@@ -22,6 +22,21 @@ class TCNSeparator(AbsSeparator):
         norm_type: str = "gLN",
         nonlinear: str = "relu",
     ):
+        """Temporal Convolution Separator
+
+        Args:
+            input_dim: input feature dimension
+            num_spk: number of speakers
+            layer: int, number of layers in each stack.
+            stack: int, number of stacks
+            bottleneck_dim: bottleneck dimension
+            hidden_dim: number of convolution channel
+            kernel: int, kernel size.
+            causal: bool, defalut False.
+            norm_type: str, choose from 'BN', 'gLN', 'cLN'
+            nonlinear: the nonlinear function for mask estimation,
+                       select from 'relu', 'tanh', 'sigmoid'
+        """
         super().__init__()
 
         self._num_spk = num_spk
@@ -55,10 +70,10 @@ class TCNSeparator(AbsSeparator):
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
-                'spk1': torch.Tensor(Batch, Frames, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk2': torch.Tensor(Batch, Frames, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Freq),
+                'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
         # if complex spectrum
@@ -77,7 +92,7 @@ class TCNSeparator(AbsSeparator):
         maksed = [input * m for m in masks]
 
         others = OrderedDict(
-            zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
+            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
 
         return maksed, ilens, others

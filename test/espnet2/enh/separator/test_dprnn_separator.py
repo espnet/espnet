@@ -133,5 +133,5 @@ def test_dprnn_separator_output():
         assert isinstance(others, dict)
         assert x.shape == specs[0].shape
         for n in range(num_spk):
-            assert "spk{}".format(n + 1) in others
-            assert specs[n].shape == others["spk{}".format(n + 1)].shape
+            assert "mask_spk{}".format(n + 1) in others
+            assert specs[n].shape == others["mask_spk{}".format(n + 1)].shape

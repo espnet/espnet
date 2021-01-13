@@ -82,7 +82,7 @@ class DPRNN(nn.Module):
         output_size: int, dimension of the output size.
         dropout: float, dropout ratio. Default is 0.
         num_layers: int, number of stacked RNN layers. Default is 1.
-        bidirectional: bool, whether the RNN layers are bidirectional. Default is False.
+        bidirectional: bool, whether the RNN layers are bidirectional. Default is True.
     """
 
     def __init__(

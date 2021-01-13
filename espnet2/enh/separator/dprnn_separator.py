@@ -24,6 +24,20 @@ class DPRNNSeparator(AbsSeparator):
         segment_size: int = 20,
         dropout: float = 0.0,
     ):
+        """Dual-Path RNN (DPRNN) Separator
+
+        Args:
+            input_dim: input feature dimension
+            rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
+            bidirectional: bool, whether the inter-chunk RNN layers are bidirectional.
+            num_spk: number of speakers
+            nonlinear: the nonlinear function for mask estimation,
+                       select from 'relu', 'tanh', 'sigmoid'
+            layer: int, number of stacked RNN layers. Default is 3.
+            unit: int, dimension of the hidden state.
+            segment_size: dual-path segment size
+            dropout: float, dropout ratio. Default is 0.
+        """
         super().__init__()
 
         self._num_spk = num_spk
@@ -62,10 +76,10 @@ class DPRNNSeparator(AbsSeparator):
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
-                'spk1': torch.Tensor(Batch, Frames, Freq),
-                'spk2': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk2': torch.Tensor(Batch, Frames, Freq),
                 ...
-                'spkn': torch.Tensor(Batch, Frames, Freq),
+                'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
 
@@ -93,7 +107,7 @@ class DPRNNSeparator(AbsSeparator):
         maksed = [input * m for m in masks]
 
         others = OrderedDict(
-            zip(["spk{}".format(i + 1) for i in range(len(masks))], masks)
+            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
 
         return maksed, ilens, others
