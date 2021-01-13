@@ -1,5 +1,7 @@
 from collections import OrderedDict
-from typing import Tuple, Union, List
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import torch
 from torch_complex.tensor import ComplexTensor

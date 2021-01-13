@@ -4,7 +4,7 @@ from espnet2.enh.encoder.abs_encoder import AbsEncoder
 
 
 class ConvEncoder(AbsEncoder):
-    """ Convolutional encoder for speech enhancement and separation """
+    """Convolutional encoder for speech enhancement and separation """
 
     def __init__(
         self,
@@ -26,10 +26,11 @@ class ConvEncoder(AbsEncoder):
         return self._output_dim
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
-        """
+        """Forward.
+
         Args:
-            input (torch.Tensor): mixed speech [Batch, sample]
-            ilens (torch.Tensor): input lengths [Batch]
+        input (torch.Tensor): mixed speech [Batch, sample]
+        ilens (torch.Tensor): input lengths [Batch]
         """
         assert input.dim() == 2, "Currently only support single channle input"
 

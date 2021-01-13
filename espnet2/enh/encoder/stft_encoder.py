@@ -6,7 +6,7 @@ from espnet2.layers.stft import Stft
 
 
 class STFTEncoder(AbsEncoder):
-    """ STFT encoder for speech enhancement and separation """
+    """STFT encoder for speech enhancement and separation """
 
     def __init__(
         self,
@@ -36,7 +36,8 @@ class STFTEncoder(AbsEncoder):
         return self._output_dim
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
-        """
+        """Forward.
+
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]

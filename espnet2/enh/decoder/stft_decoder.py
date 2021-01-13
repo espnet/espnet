@@ -6,7 +6,7 @@ from espnet2.layers.stft import Stft
 
 
 class STFTDecoder(AbsDecoder):
-    """ STFT decoder for speech enhancement and separation """
+    """STFT decoder for speech enhancement and separation """
 
     def __init__(
         self,
@@ -30,7 +30,8 @@ class STFTDecoder(AbsDecoder):
         )
 
     def forward(self, input: ComplexTensor, ilens: torch.Tensor):
-        """
+        """Forward.
+
         Args:
             input (ComplexTensor): spectrum [Batch, T, F]
             ilens (torch.Tensor): input lengths [Batch]

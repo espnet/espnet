@@ -1,14 +1,15 @@
 from collections import OrderedDict
+from typing import List
 from typing import Tuple
 from typing import Union
-from typing import List
 
 import torch
 from torch_complex.tensor import ComplexTensor
 
-
+from espnet2.enh.layers.dprnn import DPRNN
+from espnet2.enh.layers.dprnn import merge_feature
+from espnet2.enh.layers.dprnn import split_feature
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet2.enh.layers.dprnn import DPRNN, split_feature, merge_feature
 
 
 class DPRNNSeparator(AbsSeparator):

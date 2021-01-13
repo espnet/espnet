@@ -21,9 +21,9 @@ from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
-from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
+from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices

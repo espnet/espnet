@@ -4,7 +4,7 @@ from espnet2.enh.decoder.abs_decoder import AbsDecoder
 
 
 class ConvDecoder(AbsDecoder):
-    """ Transposed Convolutional decoder for speech enhancement and separation """
+    """Transposed Convolutional decoder for speech enhancement and separation """
 
     def __init__(
         self,
@@ -18,10 +18,11 @@ class ConvDecoder(AbsDecoder):
         )
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
-        """
+        """Forward.
+
         Args:
-            input (torch.Tensor): spectrum [Batch, T, F]
-            ilens (torch.Tensor): input lengths [Batch]
+        input (torch.Tensor): spectrum [Batch, T, F]
+        ilens (torch.Tensor): input lengths [Batch]
         """
         input = input.transpose(1, 2)
         batch_size = input.shape[0]

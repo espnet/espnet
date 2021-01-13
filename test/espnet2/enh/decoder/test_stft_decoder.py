@@ -1,7 +1,8 @@
 import pytest
-import torch
 
+import torch
 from torch_complex import ComplexTensor
+
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 
 

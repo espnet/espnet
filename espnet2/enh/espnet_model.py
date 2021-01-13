@@ -9,10 +9,10 @@ import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
+from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 

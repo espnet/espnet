@@ -1,12 +1,13 @@
 from collections import OrderedDict
-from typing import List, Tuple, Union
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
 
-
-from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
+from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
 class RNNSeparator(AbsSeparator):
