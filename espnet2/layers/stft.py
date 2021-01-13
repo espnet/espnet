@@ -125,12 +125,11 @@ class Stft(torch.nn.Module, InversibleInterface):
             wavs: (batch, samples)
             ilens: (batch,)
         """
+        window_func = getattr(torch, f"{self.window}_window")
+        window = window_func(self.win_length, dtype=input.dtype, device=input.device)
+
         if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
             istft = torch.functional.istft
-            window_func = getattr(torch, f"{self.window}_window")
-            window = window_func(
-                self.win_length, dtype=input.dtype, device=input.device
-            )
         else:
             try:
                 import torchaudio
@@ -144,7 +143,6 @@ class Stft(torch.nn.Module, InversibleInterface):
                     "Please install torchaudio>=0.3.0 or use torch>=1.6.0"
                 )
             istft = torchaudio.functional.istft
-            window = self.window
 
         if isinstance(input, ComplexTensor):
             input = torch.stack([input.real, input.imag], dim=-1)
