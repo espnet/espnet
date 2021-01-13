@@ -20,7 +20,7 @@ ngpu=1
 
 ./asr.sh \
     --local_data_opts "--lang ${lang}" \
-    --stage 2 \
+    --stage 7 \
     --stop_stage 12 \
     --nj 40 \
     --ngpu ${ngpu} \

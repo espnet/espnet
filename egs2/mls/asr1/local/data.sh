@@ -77,7 +77,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/fix_data_dir.sh data/${lang}_test
 
     # add placeholder to align format with other corpora
-    sed 's/^/blank /g' ${MLS}/mls_lm_${download_id}/data.txt > data/${lang}_lm_train.txt
+    sed -r '/^\s*$/d' ${MLS}/mls_lm_${download_id}/data.txt | \
+         awk '{printf("%.8d %s\n"), NR-1, $0}'  > data/${lang}_lm_train.txt
 fi
 
 
