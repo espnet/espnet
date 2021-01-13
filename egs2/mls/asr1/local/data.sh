@@ -44,13 +44,13 @@ case ${lang} in
         download_id=english ;;
     "fr")
         download_id=french ;;
-    "")
+    "nl")
         download_id=dutch ;;
     "it")
         download_id=italian ;;
-    "")
+    "pt")
         download_id=portuguese ;;
-    "")
+    "pl")
         download_id=polish ;;
 esac
 
