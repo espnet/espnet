@@ -1,16 +1,19 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import gtn
 import torch
 
 
 class GTNCTCLossFunction(torch.autograd.Function):
-    """GTN CTC module"""
+    """GTN CTC module."""
 
     # Copied from FB's GTN example implementation:
     # https://github.com/facebookresearch/gtn_applications/blob/master/utils.py#L251
 
     @staticmethod
     def create_ctc_graph(target, blank_idx):
-        """Build gtn graph
+        """Build gtn graph.
 
         :param list target: single target sequence
         :param int blank_idx: index of blank token
@@ -34,7 +37,7 @@ class GTNCTCLossFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, log_probs, targets, blank_idx=0, reduction="none"):
-        """Forward computation
+        """Forward computation.
 
         :param torch.tensor log_probs: batched log softmax probabilities (B, Tmax, oDim)
         :param list targets: batched target sequences, list of lists
@@ -80,7 +83,7 @@ class GTNCTCLossFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        """Backward computation
+        """Backward computation.
 
         :param torch.tensor grad_output: backward passed gradient value
         :return: cumulative gradient output
