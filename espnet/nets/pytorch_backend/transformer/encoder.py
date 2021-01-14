@@ -73,6 +73,7 @@ class Encoder(torch.nn.Module):
         positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
         selfattention_layer_type (str): Encoder attention layer type.
         padding_idx (int): Padding idx for input_layer=embed.
+        stochastic_depth_rate (float): Maximum probability to skip the encoder layer.
 
     """
 
@@ -97,6 +98,7 @@ class Encoder(torch.nn.Module):
         positionwise_conv_kernel_size=1,
         selfattention_layer_type="selfattn",
         padding_idx=-1,
+        stochastic_depth_rate=0.,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
@@ -167,8 +169,12 @@ class Encoder(torch.nn.Module):
                     attention_heads,
                     attention_dim,
                     attention_dropout_rate,
+                    True,  # normalize_before
+                    False,  # concat_after
+                    stochastic_layer_drop_rate * float(1 + lnum) / num_blocks,
                 )
-            ] * num_blocks
+                for lnum in range(num_blocks)
+            ]
         elif selfattention_layer_type == "lightconv":
             logging.info("encoder self-attention layer type = lightweight convolution")
             encoder_selfattn_layer = LightweightConvolution
@@ -242,6 +248,7 @@ class Encoder(torch.nn.Module):
                 dropout_rate,
                 normalize_before,
                 concat_after,
+                stochastic_depth_rate * float(1 + lnum) / num_blocks,
             ),
         )
         if self.normalize_before:

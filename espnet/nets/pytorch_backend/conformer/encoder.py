@@ -60,6 +60,7 @@ class Encoder(torch.nn.Module):
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
+        stochastic_depth_rate (float): Maximum probability to skip the encoder layer.
 
     """
 
@@ -86,6 +87,7 @@ class Encoder(torch.nn.Module):
         zero_triu=False,
         cnn_module_kernel=31,
         padding_idx=-1,
+        stochastic_depth_rate=0.,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
@@ -214,6 +216,7 @@ class Encoder(torch.nn.Module):
                 dropout_rate,
                 normalize_before,
                 concat_after,
+                stochastic_depth_rate * float(1 + lnum) / num_blocks,
             ),
         )
         if self.normalize_before:

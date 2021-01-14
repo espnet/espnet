@@ -149,6 +149,12 @@ def add_arguments_transformer_common(group):
         type=int,
         help="Number of heads for multi head attention",
     )
+    group.add_argument(
+        "--stochastic-depth-rate",
+        default=0.0,
+        type=float,
+        help="Skip probability of stochastic layer regularization",
+    )
     # Decoder
     group.add_argument(
         "--dlayers", default=1, type=int, help="Number of decoder layers"
