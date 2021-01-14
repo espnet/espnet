@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
+
 class CTC(torch.nn.Module):
     """CTC module
 
@@ -109,7 +110,7 @@ class CTC(torch.nn.Module):
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
         dtype = ys_hat.dtype
-        if self.ctc_type != 'gtnctc':
+        if self.ctc_type != "gtnctc":
             ys_hat = ys_hat.transpose(0, 1)
         if self.ctc_type == "warpctc" or dtype == torch.float16:
             # warpctc only supports float32
@@ -118,7 +119,7 @@ class CTC(torch.nn.Module):
         if self.ctc_type == "builtin":
             # use GPU when using the cuDNN implementation
             ys_true = to_device(hs_pad, ys_true)
-        if self.ctc_type == 'gtnctc':
+        if self.ctc_type == "gtnctc":
             # keep as list for gtn
             ys_true = ys
         self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(

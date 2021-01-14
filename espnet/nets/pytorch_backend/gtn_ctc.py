@@ -1,8 +1,8 @@
 import torch
 import gtn
 
+# Copied from FB's GTN example implementation: https://github.com/facebookresearch/gtn_applications/blob/master/utils.py#L251
 class GTNCTCLossFunction(torch.autograd.Function):
-
     @staticmethod
     def create_ctc_graph(target, blank_idx):
         g_criterion = gtn.Graph(False)
