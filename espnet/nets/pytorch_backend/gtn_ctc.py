@@ -4,6 +4,7 @@ import torch
 
 class GTNCTCLossFunction(torch.autograd.Function):
     """GTN CTC module"""
+
     # Copied from FB's GTN example implementation:
     # https://github.com/facebookresearch/gtn_applications/blob/master/utils.py#L251
 
