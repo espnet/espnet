@@ -1,9 +1,8 @@
-"""Initialize main package."""
+"""Initialize espnet package."""
 
-import pkg_resources
+import os
 
-try:
-    __version__ = pkg_resources.get_distribution("espnet").version
-except Exception:
-    __version__ = "(Not installed from setup.py)"
-del pkg_resources
+dirname = os.path.dirname(__file__)
+version_file = os.path.join(dirname, "version.txt")
+with open(version_file, "r") as f:
+    __version__ = f.read().strip()

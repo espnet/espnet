@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2019 University of Stuttgart (Pavel Denisov)
+# Copyright 2019-2020 University of Stuttgart (Pavel Denisov)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import csv
@@ -48,21 +48,21 @@ for dataset in [
     "public_youtube1120_hq",
     "public_youtube700",
     "radio_2",
-    "ru_RU",
-    "russian_single",
+    "radio_pspeech_sample_manifest",
     "tts_russian_addresses_rhvoice_4voices",
 ]:
-    with open(idir + "/" + dataset + ".csv") as metafile:
+    with open(idir + "/manifests/" + dataset + ".csv") as metafile:
         meta = csv.reader(metafile)
 
         for row in meta:
-            wav = idir + row[1][19:][:-3] + "mp3"
-            uttid = get_uttid(wav)
+            wav = idir + "/" + row[0]
+            txt = idir + "/" + row[1]
+            uttid = get_uttid(txt)
 
             if uttid in bad_utts or not os.path.isfile(wav):
                 continue
 
-            with open(wav[:-3] + "txt", encoding="utf-8") as text_file:
+            with open(txt, encoding="utf-8") as text_file:
                 words = text_file.read().strip().lower()
 
                 subset = "train"

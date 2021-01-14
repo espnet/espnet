@@ -3,4 +3,4 @@ batch: 0
 beam-size: 10
 search-type: alsd
 u-max: 100
-score-norm: False
+score-norm: True

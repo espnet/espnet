@@ -30,6 +30,7 @@ from typeguard import check_return_type
 import wandb
 import yaml
 
+from espnet import __version__
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
@@ -601,6 +602,13 @@ class AbsTask(ABC):
             "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n"
             "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n",
         )
+        group.add_argument(
+            "--freeze_param",
+            type=str,
+            default=[],
+            nargs="*",
+            help="Freeze parameters",
+        )
 
         group = parser.add_argument_group("BatchSampler related")
         group.add_argument(
@@ -977,6 +985,7 @@ class AbsTask(ABC):
         if args is None:
             parser = cls.get_parser()
             args = parser.parse_args(cmd)
+        args.version = __version__
         if args.pretrain_path is not None:
             raise RuntimeError("--pretrain_path is deprecated. Use --init_param")
         if args.print_config:
@@ -1092,6 +1101,11 @@ class AbsTask(ABC):
             dtype=getattr(torch, args.train_dtype),
             device="cuda" if args.ngpu > 0 else "cpu",
         )
+        for t in args.freeze_param:
+            for k, p in model.named_parameters():
+                if k.startswith(t + ".") or k == t:
+                    logging.info(f"Setting {k}.requires_grad = False")
+                    p.requires_grad = False
 
         # 3. Build optimizer
         optimizers = cls.build_optimizers(args, model=model)
