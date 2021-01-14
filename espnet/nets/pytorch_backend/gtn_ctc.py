@@ -23,15 +23,15 @@ class GTNCTCLossFunction(torch.autograd.Function):
         g_criterion = gtn.Graph(False)
         L = len(target)
         S = 2 * L + 1
-        for l in range(S):
-            idx = (l - 1) // 2
-            g_criterion.add_node(l == 0, l == S - 1 or l == S - 2)
-            label = target[idx] if l % 2 else blank_idx
-            g_criterion.add_arc(l, l, label)
-            if l > 0:
-                g_criterion.add_arc(l - 1, l, label)
-            if l % 2 and l > 1 and label != target[idx - 1]:
-                g_criterion.add_arc(l - 2, l, label)
+        for s in range(S):
+            idx = (s - 1) // 2
+            g_criterion.add_node(s == 0, s == S - 1 or s == S - 2)
+            label = target[idx] if s % 2 else blank_idx
+            g_criterion.add_arc(s, s, label)
+            if s > 0:
+                g_criterion.add_arc(s - 1, s, label)
+            if s % 2 and s > 1 and label != target[idx - 1]:
+                g_criterion.add_arc(s - 2, s, label)
         g_criterion.arc_sort(False)
         return g_criterion
 
