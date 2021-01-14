@@ -22,6 +22,33 @@ def pyopenjtalk_g2p(text) -> List[str]:
     return phones
 
 
+def pyopenjtalk_g2p_accent(text) -> List[str]:
+    import pyopenjtalk
+    import re
+
+    phones = []
+    for labels in pyopenjtalk.run_frontend(text)[1]:
+        p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])", labels)
+        if len(p) == 1:
+            phones += [p[0][0], p[0][2], p[0][1]]
+    return phones
+
+
+def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
+    import pyopenjtalk
+    import re
+
+    phones = []
+    for labels in pyopenjtalk.run_frontend(text)[1]:
+        if labels.split("-")[1].split("+")[0] == "pau":
+            phones += ["pau"]
+            continue
+        p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])", labels)
+        if len(p) == 1:
+            phones += [p[0][0], p[0][2], p[0][1]]
+    return phones
+
+
 def pyopenjtalk_g2p_kana(text) -> List[str]:
     import pyopenjtalk
 
@@ -98,6 +125,10 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
             self.g2p = pyopenjtalk_g2p_kana
+        elif g2p_type == "pyopenjtalk_accent":
+            self.g2p = pyopenjtalk_g2p_accent
+        elif g2p_type == "pyopenjtalk_accent_with_pause":
+            self.g2p = pyopenjtalk_g2p_accent_with_pause
         elif g2p_type == "pypinyin_g2p":
             self.g2p = pypinyin_g2p
         elif g2p_type == "pypinyin_g2p_phone":

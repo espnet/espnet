@@ -13,7 +13,7 @@ fi
 
 set=$1
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 # for En
 mkdir -p data/${set}.en
 for f in spk2utt utt2spk segments wav.scp feats.scp utt2num_frames; do
