@@ -121,6 +121,18 @@ def add_arguments_transformer_common(group):
         type=float,
         help="Dropout rate for the encoder",
     )
+    group.add_argument(
+        "--intermediate-ctc-weight",
+        default=0.0,
+        type=float,
+        help="Weight of intermediate CTC weight",
+    )
+    group.add_argument(
+        "--intermediate-ctc-layer",
+        default='',
+        type=str,
+        help="Position of intermediate CTC layer. {int} or {int},{int},...,{int}",
+    )
     # Encoder
     group.add_argument(
         "--elayers",
