@@ -50,6 +50,7 @@ fi
 
 # data
 train_set=tr_simu_8ch_si284
+train_set2=tr_wsjcam0_si284
 train_dev=dt_mult_1ch
 other_text=data/local/other_text/text
 nlsyms=data/nlsyms.txt
@@ -146,6 +147,20 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Create non linguistic symbols: ${nlsyms}"
     mkdir -p "$(dirname ${nlsyms})"
     cut -f 2- data/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > "${nlsyms}"
+fi
+
+
+# NOTE(kamo): Stage5 and Stage6 creates clean data, RIR, Noise data.
+# RIR and Noise are applied in training process on-the fly
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    log "Stage 5: Prepare WSJCAM0 data"
+    local/prepare_wsjcam0.sh "${WSJCAM0}"
+    utils/combine_data.sh data/"${train_set2}" data/wsjcam0_si_tr data/train_si284
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    log "Stage 6: Prepare REVERB RIR and Noise data"
+    local/prepare_rir_noise_1ch.sh
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
