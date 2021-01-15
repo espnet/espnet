@@ -23,7 +23,7 @@ ${CXX:-g++} -v
     pip3 install pip==20.2.4
     make TH_VERSION="${TH_VERSION}"
 
-    make nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done
+    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done
     rm -rf kaldi
 )
 . tools/activate_python.sh

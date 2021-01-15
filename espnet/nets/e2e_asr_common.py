@@ -21,7 +21,7 @@ from espnet.nets.beam_search_transducer import BeamSearchTransducer
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     """End detection.
 
-    desribed in Eq. (50) of S. Watanabe et al
+    described in Eq. (50) of S. Watanabe et al
     "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition"
 
     :param ended_hyps:
@@ -309,7 +309,7 @@ class ErrorCalculatorTransducer(object):
 
         for b in six.moves.range(batchsize):
             nbest_hyps = self.beam_search(hs_pad[b])
-            batch_nbest.append(nbest_hyps)
+            batch_nbest.append(nbest_hyps[-1])
 
         ys_hat = [nbest_hyp.yseq[1:] for nbest_hyp in batch_nbest]
 

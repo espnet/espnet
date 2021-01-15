@@ -24,6 +24,9 @@ model_conf:
     lsm_weight: 0.1
     length_normalized_loss: false
 
+ctc_conf:
+    ignore_nan_grad: true
+
 # minibatch related
 batch_type: folded
 batch_size: 32
@@ -32,8 +35,8 @@ batch_size: 32
 optim: adam
 accum_grad: 2
 grad_clip: 5
-patience: 0
-max_epoch: 200
+patience: none
+max_epoch: 85
 optim_conf:
     lr: 10.0
 scheduler: noamlr
@@ -47,4 +50,4 @@ best_model_criterion:
     -   - valid
         - acc
         - max
-keep_nbest_models: 1
+keep_nbest_models: 10

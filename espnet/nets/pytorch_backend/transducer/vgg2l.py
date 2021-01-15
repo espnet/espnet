@@ -1,18 +1,22 @@
 """VGG2L module definition for transformer encoder."""
 
+from typing import Tuple
+from typing import Union
+
 import torch
 
 
 class VGG2L(torch.nn.Module):
-    """VGG2L module for transformer encoder.
+    """VGG2L module for custom encoder.
 
     Args:
-        idim (int): dimension of inputs
-        odim (int): dimension of outputs
+        idim: Dimension of inputs
+        odim: Dimension of outputs
+        pos_enc: Positional encoding class
 
     """
 
-    def __init__(self, idim, odim):
+    def __init__(self, idim: int, odim: int, pos_enc: torch.nn.Module = None):
         """Construct a VGG2L object."""
         super().__init__()
 
@@ -29,18 +33,29 @@ class VGG2L(torch.nn.Module):
             torch.nn.MaxPool2d((2, 2)),
         )
 
-        self.output = torch.nn.Linear(128 * ((idim // 2) // 2), odim)
+        if pos_enc is not None:
+            self.output = torch.nn.Sequential(
+                torch.nn.Linear(128 * ((idim // 2) // 2), odim), pos_enc
+            )
+        else:
+            self.output = torch.nn.Linear(128 * ((idim // 2) // 2), odim)
 
-    def forward(self, x, x_mask):
+    def forward(
+        self, x: torch.Tensor, x_mask: torch.Tensor
+    ) -> Union[
+        Tuple[torch.Tensor, torch.Tensor],
+        Tuple[Tuple[torch.Tensor, torch.Tensor], torch.Tensor],
+    ]:
         """VGG2L forward for x.
 
         Args:
-            x (torch.Tensor): input torch (B, T, idim)
-            x_mask (torch.Tensor): (B, 1, T)
+            x: Input tensor (B, T, idim)
+            x_mask: Input mask (B, 1, T)
 
         Returns:
-            x (torch.Tensor): input torch (B, sub(T), attention_dim)
-            x_mask (torch.Tensor): (B, 1, sub(T))
+            x: Output tensor (B, sub(T), odim)
+                   or ((B, sub(T), odim), (B, sub(T), att_dim))
+            x_mask: Output mask (B, 1, sub(T))
 
         """
         x = x.unsqueeze(1)
@@ -51,19 +66,18 @@ class VGG2L(torch.nn.Module):
         x = self.output(x.transpose(1, 2).contiguous().view(b, t, c * f))
 
         if x_mask is not None:
-            x_mask = self.create_new_mask(x_mask, x)
+            x_mask = self.create_new_mask(x_mask)
 
         return x, x_mask
 
-    def create_new_mask(self, x_mask, x):
+    def create_new_mask(self, x_mask: torch.Tensor) -> torch.Tensor:
         """Create a subsampled version of x_mask.
 
         Args:
-            x_mask (torch.Tensor): (B, 1, T)
-            x (torch.Tensor): (B, sub(T), attention_dim)
+            x_mask: Input mask (B, 1, T)
 
         Returns:
-            x_mask (torch.Tensor): (B, 1, sub(T))
+            x_mask: Output mask (B, 1, sub(T))
 
         """
         x_t1 = x_mask.size(2) - (x_mask.size(2) % 3)
