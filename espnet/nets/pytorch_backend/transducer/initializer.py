@@ -28,6 +28,7 @@ def initializer(model, args):
 
         for i in range(model.dec.dlayers):
             set_forget_bias_to_one(getattr(model.dec.decoder[i], "bias_ih_l0"))
+            set_forget_bias_to_one(getattr(model.dec.decoder[i], "bias_hh_l0"))
     else:
         if "transformer" in args.etype:
             initialize(model, args.transformer_init)
