@@ -36,7 +36,6 @@ def get_default_train_args(**kwargs):
         joint_dim=2,
         joint_activation_type="tanh",
         mtlalpha=1.0,
-        rnnt_mode="rnnt",
         use_frontend=False,
         trans_type="warp-transducer",
         char_list=["a", "b", "c", "d"],
@@ -143,90 +142,29 @@ def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
     [
         ({}, {}),
         ({"eprojs": 4}, {}),
-        ({"rnnt_mode": "rnnt-att", "eprojs": 4}, {}),
         ({"dlayers": 2}, {}),
-        ({"rnnt_mode": "rnnt-att", "dlayers": 2}, {}),
         ({"etype": "gru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "gru"}, {}),
         ({"etype": "blstm"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "blstm"}, {}),
         ({"etype": "blstmp", "elayers": 2, "eprojs": 4}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "blstmp", "elayers": 2, "eprojs": 4}, {}),
         ({"etype": "vgggru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "vgggru"}, {}),
         ({"etype": "vggbru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "vggbgru"}, {}),
         ({"etype": "vgggrup", "elayers": 2, "eprojs": 4}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "vgggrup", "elayers": 2, "eprojs": 4}, {}),
         ({"dtype": "gru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "dtype": "gru"}, {}),
         ({"dtype": "bgrup"}, {}),
         ({"dtype": "gru", "dlayers": 2}, {}),
-        ({"rnnt_mode": "rnnt-att", "dtype": "gru", "dlayers": 2}, {}),
-        ({"rnnt_mode": "rnnt-att", "dtype": "bgrup"}, {}),
         ({"joint-activation-type": "relu"}, {}),
-        ({"rnnt_mode": "rnnt-att", "joint-activation-type": "relu"}, {}),
         ({"joint-activation-type": "swish"}, {}),
-        ({"rnnt_mode": "rnnt-att", "joint-activation-type": "swish"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "noatt"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "dot"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "coverage"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "coverage"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "coverage_location"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "location2d"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "location_recurrent"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_dot"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_add"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_loc"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_multi_res_loc"}, {}),
         ({}, {"score_norm_transducer": False}),
-        ({"rnnt_mode": "rnnt-att"}, {"score_norm_transducer": False}),
         ({"report_cer": True, "report_wer": True}, {}),
-        (
-            {
-                "rnnt_mode": "rnnt-att",
-                "report_cer": True,
-                "report_wer": True,
-            },
-            {},
-        ),
         ({}, {"nbest": 2}),
-        ({"rnnt_mode": "rnnt-att"}, {"nbest": 2}),
         ({}, {"beam_size": 1}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 1}),
         ({}, {"beam_size": 2}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2}),
         ({}, {"beam_size": 2, "search_type": "nsc"}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "nsc"}),
         ({}, {"beam_size": 2, "search_type": "nsc", "nstep": 2, "prefix_alpha": 1}),
-        (
-            {"rnnt_mode": "rnnt-att"},
-            {"beam_size": 2, "search_type": "nsc", "nstep": 2, "prefix_alpha": 1},
-        ),
         ({}, {"beam_size": 2, "search_type": "tsd"}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "tsd"}),
         ({}, {"beam_size": 2, "search_type": "tsd", "max-sym-exp": 3}),
-        (
-            {"rnnt_mode": "rnnt-att"},
-            {"beam_size": 2, "search_type": "tsd", "max-sym-exp": 3},
-        ),
         ({}, {"beam_size": 2, "search_type": "alsd"}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "alsd"}),
         ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
-        (
-            {"rnnt_mode": "rnnt-att"},
-            {"beam_size": 2, "search_type": "alsd", "u_max": 10},
-        ),
-        ({"rnnt_mode": "rnnt-att"}, {}),
-        (
-            {},
-            {
-                "beam_size": 2,
-                "search_type": "default",
-                "rnnlm": get_lm(),
-                "lm_weight": 0.3,
-            },
-        ),
         (
             {},
             {
@@ -321,7 +259,6 @@ def test_pytorch_transducer_gpu_trainable(trans_type):
     "train_dic",
     [
         {"report_cer": True, "report_wer": True},
-        {"rnnt_mode": "rnnt-att", "report_cer": True, "report_wer": True},
     ],
 )
 def test_pytorch_multi_gpu_trainable(train_dic):
@@ -339,27 +276,3 @@ def test_pytorch_multi_gpu_trainable(train_dic):
 
     loss = 1.0 / ngpu * model(*batch)
     loss.backward(loss.new_ones(ngpu))
-
-
-@pytest.mark.parametrize(
-    "atype",
-    [
-        "noatt",
-        "add",
-        "location",
-        "location2d",
-        "multi_head_dot",
-        "multi_head_add",
-        "multi_head_loc",
-    ],
-)
-def test_pytorch_calculate_attentions(atype):
-    idim, odim, ilens, olens = get_default_scope_inputs()
-    train_args = get_default_train_args(rnnt_mode="rnnt-att", atype=atype)
-
-    model = E2E(idim, odim, train_args)
-
-    batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=False)
-
-    att_ws = model.calculate_all_attentions(*batch)[0]
-    print(att_ws.shape)
