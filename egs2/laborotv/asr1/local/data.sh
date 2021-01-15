@@ -10,7 +10,7 @@ log() {
 }
 SECONDS=0
 
-stage=2
+stage=1
 stop_stage=3
 
 log "$0 $*"
@@ -37,14 +37,14 @@ if [ ! -e "${TEDXJP}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -f "${TEDXJP}/segments" -o  ! -f "${TEDXJP}/spk2utt" ! -f "${TEDXJP}/text" \
-	   ! -f "${TEDXJP}/utt2spk" ! -f "${TEDXJP}/wavlist" ! -d "${TEDXJP}/wav" ]; then
+    if [ -f "${TEDXJP}/segments" -a -f "${TEDXJP}/spk2utt" -a -f "${TEDXJP}/text" \
+	    -a -f "${TEDXJP}/utt2spk"  -a -f "${TEDXJP}/wavlist.txt" -a -d "${TEDXJP}/wav" ]; then
+	log "stage 1: TEDxJP-10k found in ${TEDXJP}."
+    else
 	echo "Valid TEDxJP-10K data not found in ${TEDXJP}."
 	echo "Please follow the instruction in https://github.com/laboroai/TEDxJP-10K"
 	echo "and re-construct the data."
 	exit 1
-    else
-	log "stage 1: TEDxJP-10k found in ${TEDXJP}."
     fi
 fi
 
