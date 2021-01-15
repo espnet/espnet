@@ -48,9 +48,9 @@ class SeparateSpeech:
         segment_size: Optional[float] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
+        show_progressbar: bool = False,
         ref_channel: Optional[int] = None,
         normalize_output_wav: bool = False,
-        show_progressbar: bool = False,
         device: str = "cpu",
         dtype: str = "float32",
     ):
@@ -285,6 +285,7 @@ def inference(
     segment_size: Optional[float],
     hop_size: Optional[float],
     normalize_segment_scale: bool,
+    show_progressbar: bool,
     ref_channel: Optional[int],
     normalize_output_wav: bool,
 ):
@@ -314,6 +315,7 @@ def inference(
         segment_size=segment_size,
         hop_size=hop_size,
         normalize_segment_scale=normalize_segment_scale,
+        show_progressbar=show_progressbar,
         ref_channel=ref_channel,
         normalize_output_wav=normalize_output_wav,
         device=device,
@@ -421,12 +423,45 @@ def get_parser():
     group.add_argument("--enh_train_config", type=str, required=True)
     group.add_argument("--enh_model_file", type=str, required=True)
 
-    group = parser.add_argument_group("Beam-search related")
+    group = parser.add_argument_group("Data loading related")
     group.add_argument(
         "--batch_size",
         type=int,
         default=1,
         help="The batch size for inference",
+    )
+    group = parser.add_argument_group("SeparateSpeech related")
+    group.add_argument(
+        "--segment_size",
+        type=float,
+        default=None,
+        help="Segment length in seconds for segment-wise speech enhancement/separation",
+    )
+    group.add_argument(
+        "--hop_size",
+        type=float,
+        default=None,
+        help="Hop length in seconds for segment-wise speech enhancement/separation",
+    )
+    group.add_argument(
+        "--normalize_segment_scale",
+        type=str2bool,
+        default=False,
+        help="Whether to normalize the energy of the separated streams in each segment",
+    )
+    group.add_argument(
+        "--show_progressbar",
+        type=str2bool,
+        default=False,
+        help="Whether to show a process bar when performing segment-wise speech "
+        "enhancement/separation",
+    )
+    group.add_argument(
+        "--ref_channel",
+        type=int,
+        default=None,
+        help="If not None, this will overwrite the ref_channel defined in the "
+        "separator module (for multi-channel speech processing)",
     )
 
     return parser
