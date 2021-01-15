@@ -37,8 +37,8 @@ if [ ! -e "${TEDXJP}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ -f "${TEDXJP}/segments" -a -f "${TEDXJP}/spk2utt" -a -f "${TEDXJP}/text" \
-	    -a -f "${TEDXJP}/utt2spk"  -a -f "${TEDXJP}/wavlist.txt" -a -d "${TEDXJP}/wav" ]; then
+    if [ -f "${TEDXJP}/segments" ] && [ -f "${TEDXJP}/spk2utt" ] && [ -f "${TEDXJP}/text" ] \
+	    && [ -f "${TEDXJP}/utt2spk" ] && [ -f "${TEDXJP}/wavlist.txt" ] && [ -d "${TEDXJP}/wav" ]; then
 	log "stage 1: TEDxJP-10k found in ${TEDXJP}."
     else
 	echo "Valid TEDxJP-10K data not found in ${TEDXJP}."
