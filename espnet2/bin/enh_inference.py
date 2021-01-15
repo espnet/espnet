@@ -351,7 +351,7 @@ def inference(
         assert all(isinstance(s, str) for s in keys), keys
         _bs = len(next(iter(batch.values())))
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-        batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+        batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         waves = separate_speech(**batch)
         for (i, w) in enumerate(waves):
@@ -453,7 +453,7 @@ def get_parser():
         "--show_progressbar",
         type=str2bool,
         default=False,
-        help="Whether to show a process bar when performing segment-wise speech "
+        help="Whether to show a progress bar when performing segment-wise speech "
         "enhancement/separation",
     )
     group.add_argument(
