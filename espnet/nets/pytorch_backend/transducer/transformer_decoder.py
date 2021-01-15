@@ -71,7 +71,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         self.blank = blank
 
-    def init_state(self, batch_size=None, device=None, dtype=None):
+    def init_state(self, batch_size=None, device=None):
         """Initialize decoder states.
 
         Args:
@@ -115,7 +115,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         return z, tgt_mask
 
-    def score(self, hyp, cache, hs):
+    def score(self, hyp, cache):
         """Forward one step.
 
         Args:
@@ -124,12 +124,12 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
-            (list): decoder and attention states
+            (list): decoder states
                 [L x (1, max_len, dec_dim)]
             lm_tokens (torch.Tensor): token id for LM (1)
 
         """
-        device = hs.device
+        device = next(self.parameters()).device
 
         tgt = torch.tensor(hyp.yseq).unsqueeze(0).to(device=device)
         lm_tokens = tgt[:, -1]
@@ -156,7 +156,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         return y[0], new_state, lm_tokens
 
-    def batch_score(self, hyps, batch_states, cache, hs=None):
+    def batch_score(self, hyps, batch_states, cache):
         """Forward batch one step.
 
         Args:
@@ -173,7 +173,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         """
         final_batch = len(hyps)
-        device = hs.device
+        device = next(self.parameters()).device
 
         process = []
         done = [None for _ in range(final_batch)]
@@ -251,12 +251,10 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
                 [L x (1, max_len, dec_dim)]
 
         """
-        if batch_states[0] is not None:
-            state_idx = [
-                batch_states[layer][idx] for layer in range(len(self.decoders))
-            ]
-        else:
-            state_idx = batch_states
+        if batch_states[0] is None:
+            return batch_states
+
+        state_idx = [batch_states[layer][idx] for layer in range(len(self.decoders))]
 
         return state_idx
 
@@ -271,16 +269,18 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             l_tokens (list): list of token sequences for batch
 
         Returns:
-            batch_states (list): batch of decoder and attention states
+            batch_states (list): batch of decoder states
                 [L x (B, max_len, dec_dim)]
 
         """
-        if batch_states[0] is not None:
-            max_len = max([len(t) for t in l_tokens])
+        if batch_states[0] is None:
+            return batch_states
 
-            for layer in range(len(self.decoders)):
-                batch_states[layer] = pad_batch_state(
-                    [s[layer] for s in l_states], max_len, self.blank
-                )
+        max_len = max([len(t) for t in l_tokens])
+
+        for layer in range(len(self.decoders)):
+            batch_states[layer] = pad_batch_state(
+                [s[layer] for s in l_states], max_len, self.blank
+            )
 
         return batch_states
