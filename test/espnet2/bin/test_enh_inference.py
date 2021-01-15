@@ -37,10 +37,15 @@ def config_file(tmp_path: Path):
 
 
 @pytest.mark.execution_timeout(5)
-def test_SeparateSpeech(config_file):
+@pytest.mark.parametrize(
+    "input_size, segment_size, hop_size", [(16000, None, None), (35000, 2.4, 0.8)]
+)
+def test_SeparateSpeech(config_file, input_size, segment_size, hop_size):
     if not is_torch_1_2_plus:
         pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
 
-    separate_speech = SeparateSpeech(enh_train_config=config_file)
-    wav = torch.rand(1, 16000)
-    separate_speech(wav, fs=16000)
+    separate_speech = SeparateSpeech(
+        enh_train_config=config_file, segment_size=segment_size, hop_size=hop_size
+    )
+    wav = torch.rand(1, input_size)
+    separate_speech(wav, fs=8000)
