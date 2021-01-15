@@ -569,7 +569,7 @@ class E2E(ChainerASRInterface):
         """E2E attention calculation.
 
         Args:
-            xs_pad (List[tuple()]): List of padded input sequences.
+            xs (List[tuple()]): List of padded input sequences.
                 [(T1, idim), (T2, idim), ...]
             ilens (ndarray): Batch of lengths of input sequences. (B)
             ys (List): List of character id sequence tensor. [(L1), (L2), (L3), ...]

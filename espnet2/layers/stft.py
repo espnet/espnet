@@ -125,6 +125,9 @@ class Stft(torch.nn.Module, InversibleInterface):
             wavs: (batch, samples)
             ilens: (batch,)
         """
+        window_func = getattr(torch, f"{self.window}_window")
+        window = window_func(self.win_length, dtype=input.dtype, device=input.device)
+
         if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
             istft = torch.functional.istft
         else:
@@ -151,6 +154,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             n_fft=self.n_fft,
             hop_length=self.hop_length,
             win_length=self.win_length,
+            window=window,
             center=self.center,
             normalized=self.normalized,
             onesided=self.onesided,

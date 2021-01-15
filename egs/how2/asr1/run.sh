@@ -104,7 +104,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         done
 
         # Match the number of utterances between source and target languages
-        # extract commocn lines
+        # extract common lines
         cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.pt.tmp/reclist1
         cut -f 1 -d " " data/${x}.pt.tmp/text > data/${x}.pt.tmp/reclist2
         comm -12 data/${x}.pt.tmp/reclist1 data/${x}.pt.tmp/reclist2 > data/${x}.pt.tmp/reclist

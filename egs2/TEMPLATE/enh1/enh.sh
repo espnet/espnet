@@ -27,14 +27,14 @@ stage=1          # Processes starts from the specified stage.
 stop_stage=10000 # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
-skip_eval=false      # Skip decoding and evaluation stages
+skip_eval=false      # Skip inference and evaluation stages
 skip_upload=true     # Skip packing and uploading stages
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1      # The number of nodes
 nj=32            # The number of parallel jobs.
 dumpdir=dump     # Directory to dump features.
-inference_nj=32     # The number of parallel jobs in decoding.
-gpu_inference=false # Whether to perform gpu decoding.
+inference_nj=32     # The number of parallel jobs in inference.
+gpu_inference=false # Whether to perform gpu inference.
 expdir=exp       # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
 
@@ -52,16 +52,25 @@ min_wav_duration=0.1   # Minimum duration in second
 max_wav_duration=20    # Maximum duration in second
 
 # Enhancement model related
+enh_exp=    # Specify the direcotry path for enhancement experiment. If this option is specified, enh_tag is ignored.
 enh_tag=    # Suffix to the result dir for enhancement model training.
 enh_config= # Config for ehancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
-spk_num=2
+spk_num=2   # Number of speakers
 noise_type_num=1
+dereverb_ref_num=1
 
 # Training data related
 use_dereverb_ref=false
 use_noise_ref=false
+
+# Pretrained model related
+# The number of --pretrain_path and --pretrain_key must be same.
+pretrain_path=
+# if pretrain_key is None -> model
+# elif pretrain_key is str e.g. "encoder" -> model.encoder
+pretrain_key=
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
@@ -70,6 +79,9 @@ inference_model=valid.si_snr.ave.pth
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR"
 ref_channel=0
+score_with_asr=false
+asr_exp=""       # asr model for scoring WER
+lm_exp=""       # lm model for scoring WER
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -87,7 +99,7 @@ Options:
     --stop_stage    # Processes is stopped at the specified stage (default="${stop_stage}").
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_eval      # Skip inference and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
     --ngpu          # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes     # The number of nodes
@@ -118,7 +130,8 @@ Options:
     --enh_args   # Arguments for enhancement model training, e.g., "--max_epoch 10" (default="${enh_args}").
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
-    --noise_type_num  # Number of noise types in the input audio (default="${noise_type_num}")
+    --noise_type_num   # Number of noise types in the input audio (default="${noise_type_num}")
+    --dereverb_ref_num # Number of references for dereverberation (default="${dereverb_ref_num}")
 
     # Training data related
     --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
@@ -126,9 +139,13 @@ Options:
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
 
+    # Pretrained model related
+    --pretrain_path    # pretrained model path (default="${pretrain_path}")
+    --pretrain_key     # name of module to be initialized from the pretrained model (default="${pretrain_key}")
+
     # Enhancement related
-    --inference_args      # Arguments for enhancement in the inference stage (default="${inference_args}")
-    --inference_model # Enhancement model path for inference (default="${inference_model}").
+    --inference_args   # Arguments for enhancement in the inference stage (default="${inference_args}")
+    --inference_model  # Enhancement model path for inference (default="${inference_model}").
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -185,7 +202,9 @@ fi
 # The directory used for collect-stats mode
 enh_stats_dir="${expdir}/enh_stats_${fs}"
 # The directory used for training commands
+if [ -z "${enh_exp}" ]; then
 enh_exp="${expdir}/enh_${enh_tag}"
+fi
 
 if [ -n "${speed_perturb_factors}" ]; then
   enh_stats_dir="${enh_stats_dir}_sp"
@@ -264,13 +283,13 @@ if ! "${skip_data_prep}"; then
             for i in $(seq ${spk_num}); do
                 _spk_list+="spk${i} "
             done
-            if $use_noise_ref; then
-                # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
+            if $use_noise_ref && [ -n "${_suf}" ]; then
+                # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                 _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
             fi
-            if $use_dereverb_ref; then
-                # reference for dereverberation
-                _spk_list+="dereverb "
+            if $use_dereverb_ref && [ -n "${_suf}" ]; then
+                # references for dereverberation
+                _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
             fi
 
             for spk in ${_spk_list} "wav" ; do
@@ -295,16 +314,20 @@ if ! "${skip_data_prep}"; then
         # NOTE: Not applying to test_sets to keep original data
 
             _spk_list=" "
+            _scp_list=" "
             for i in $(seq ${spk_num}); do
                 _spk_list+="spk${i} "
+                _scp_list+="spk${i}.scp "
             done
             if $use_noise_ref; then
-                # reference for denoising ("noise1 noise2 ... niose${noise_type_num} ")
+                # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                 _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
+                _scp_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n.scp "; done)                
             fi
             if $use_dereverb_ref; then
-                # reference for dereverberation
-                _spk_list+="dereverb "
+                # references for dereverberation
+                _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
+                _scp_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n.scp "; done)
             fi
 
             # Copy data dir
@@ -330,7 +353,7 @@ if ! "${skip_data_prep}"; then
             done
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${_scp_list}" "${data_feats}/${dset}"
         done
     fi
 else
@@ -402,13 +425,15 @@ if ! "${skip_train}"; then
         done
 
         if $use_dereverb_ref; then
-            # reference for dereverberation
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
+            # references for dereverberation
+            _train_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
+            _valid_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
         fi
 
         if $use_noise_ref; then
-            # reference for denoising
+            # references for denoising
             _train_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
                 "--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "; done)
             _valid_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
@@ -475,16 +500,18 @@ if ! "${skip_train}"; then
         done
 
         if $use_dereverb_ref; then
-            # reference for dereverberation
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb.scp,dereverb_ref,sound "
-            _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref_shape "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb.scp,dereverb_ref,sound "
-            _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref_shape "
-            _fold_length_param+="--fold_length ${_fold_length} "
+            # references for dereverberation
+            for n in $(seq "${dereverb_ref_num}"); do
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
+                _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref${n}_shape "
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
+                _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref${n}_shape "
+                _fold_length_param+="--fold_length ${_fold_length} "
+            done
         fi
 
         if $use_noise_ref; then
-            # reference for denoising
+            # references for denoising
             for n in $(seq "${noise_type_num}"); do
                 _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "
                 _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/noise_ref${n}_shape "
@@ -563,7 +590,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Submit decoding jobs
+            # 2. Submit inference jobs
             log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
@@ -626,7 +653,7 @@ if ! "${skip_eval}"; then
                 _inf_scp+="--inf_scp ${_inf_dir}/spk${spk}.scp "
             done
 
-            # 2. Submit decoding jobs
+            # 2. Submit scoring jobs
             log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
@@ -638,12 +665,13 @@ if ! "${skip_eval}"; then
                     --ref_channel ${ref_channel}
 
             for spk in $(seq "${spk_num}"); do
-                for protocol in ${scoring_protocol}; do
+                for protocol in ${scoring_protocol} wav; do
                     for i in $(seq "${_nj}"); do
                         cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
                     done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
                 done
             done
+
 
             for protocol in ${scoring_protocol}; do
                 # shellcheck disable=SC2046
@@ -660,11 +688,196 @@ else
     log "Skip the evaluation stages"
 fi
 
+if "${score_with_asr}"; then
+
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Decode with pretrained ASR model: "
+        _cmd=${decode_cmd}
+        decode_asr_model=valid.acc.best.pth
+
+        decode_args="--lm_train_config ${lm_exp}/config.yaml "
+        decode_args+="--lm_file ${lm_exp}/valid.loss.best.pth "
+
+        if ${gpu_inference}; then
+            _cmd=${cuda_cmd}
+            _ngpu=1
+        else
+            _cmd=${decode_cmd}
+            _ngpu=0
+        fi
+
+
+        for dset in ${valid_set} ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _inf_dir="${enh_exp}/enhanced_${dset}"
+            _dir="${enh_exp}/enhanced_${dset}/scoring_asr"
+
+            for spk in $(seq "${spk_num}"); do
+                _ddir=${_dir}/spk_${spk}
+                _logdir="${_ddir}/logdir"
+                _decode_dir="${_ddir}/decode"
+                mkdir -p ${_ddir}
+                mkdir -p "${_logdir}"
+                mkdir -p "${_decode_dir}"
+
+
+                # cp ${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk} ${_ddir}/wav_ori.scp
+                # pick 100 utterences for debug
+                # head -100 ${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk} > ${_ddir}/wav.scp
+                cat ${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk} > ${_ddir}/wav.scp
+                cp data/${dset}/text_spk${spk} ${_ddir}/text
+                cp ${_data}/{spk2utt,utt2spk,utt2num_samples,feats_type} ${_ddir}
+                utils/fix_data_dir.sh "${_ddir}"
+                mv ${_ddir}/wav.scp ${_ddir}/wav_ori.scp
+
+                
+
+                scripts/audio/format_wav_scp.sh --nj "${inference_nj}" --cmd "${_cmd}" \
+                    --out-filename "wav.scp" \
+                    --audio-format "${audio_format}" --fs "${fs}" \
+                    "${_ddir}/wav_ori.scp" "${_ddir}" \
+                    "${_ddir}/formated/logs/" "${_ddir}/formated/"
+
+                # 1. Split the key file
+                key_file=${_ddir}/wav.scp
+                _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+
+                split_scps=""
+                for n in $(seq "${_nj}"); do
+                    split_scps+=" ${_logdir}/keys.${n}.scp"
+                done
+                # shellcheck disable=SC2086
+                utils/split_scp.pl "${key_file}" ${split_scps}
+
+                log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+                # shellcheck disable=SC2086
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
+                    python3 -m espnet2.bin.asr_inference \
+                        --ngpu "${_ngpu}" \
+                        --data_path_and_name_and_type "${_ddir}/wav.scp,speech,sound" \
+                        --key_file "${_logdir}"/keys.JOB.scp \
+                        --asr_train_config "${asr_exp}"/config.yaml \
+                        --asr_model_file "${asr_exp}"/"${decode_asr_model}" \
+                        --output_dir "${_logdir}"/output.JOB ${decode_args}
+
+                for f in token token_int score text; do
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/1best_recog/${f}"
+                    done | LC_ALL=C sort -k1 >"${_decode_dir}/${f}"
+                done
+            done
+
+        done
+    fi
+
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Scoring with pretrained ASR model: "
+
+        _cmd=${decode_cmd}
+        nlsyms_txt='./data/nlsyms.txt'
+        cleaner=none
+
+        if ${gpu_inference}; then
+            _cmd=${cuda_cmd}
+            _ngpu=1
+        else
+            _cmd=${decode_cmd}
+            _ngpu=0
+        fi
+
+
+        for dset in ${valid_set} ${test_sets}; do
+            _inf_dir="${enh_exp}/enhanced_${dset}"
+            _dir="${enh_exp}/enhanced_${dset}/scoring_asr"
+
+            for spk in $(seq "${spk_num}"); do
+                _ddir=${_dir}/spk_${spk}
+                _logdir="${_ddir}/logdir"
+                _decode_dir="${_ddir}/decode"
+
+                for _type in cer wer; do
+
+                    _scoredir="${_ddir}/score_${_type}"
+                    mkdir -p "${_scoredir}"
+
+                    if [ "${_type}" = wer ]; then
+                        # Tokenize text to word level
+                        paste \
+                            <(<"${_ddir}/text" \
+                                python3 -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type word \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    --cleaner "${cleaner}" \
+                                    ) \
+                            <(<"${_ddir}/text" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/ref.trn"
+
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_decode_dir}/text"  \
+                                python3 -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type word \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    ) \
+                            <(<"${_ddir}/text" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/hyp.trn"
+                    elif [ "${_type}" = cer ]; then
+                        # Tokenize text to char level
+                        paste \
+                            <(<"${_ddir}/text" \
+                                python3 -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type char \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    --cleaner "${cleaner}" \
+                                    ) \
+                            <(<"${_ddir}/text" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/ref.trn"
+
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_decode_dir}/text"  \
+                                python3 -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type char \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    ) \
+                            <(<"${_ddir}/text" awk '{ print "(" $1 ")" }') \
+                                >"${_scoredir}/hyp.trn"
+                    fi
+
+                    sclite \
+                        -r "${_scoredir}/ref.trn" trn \
+                        -h "${_scoredir}/hyp.trn" trn \
+                        -i rm -o all stdout > "${_scoredir}/result.txt"
+
+                    log "Write ${_type} result in ${_scoredir}/result.txt"
+                    grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+                done
+
+            done
+
+        done
+    fi
+
+else
+
+    log "Skip the stages for scoring with asr"
+
+fi
+
+
 
 packed_model="${enh_exp}/${enh_exp##*/}_${inference_model%.*}.zip"
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Pack model: ${packed_model}"
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 11: Pack model: ${packed_model}"
 
         ${python} -m espnet2.bin.pack enh \
             --train_config "${enh_exp}"/config.yaml \
@@ -676,8 +889,8 @@ if ! "${skip_upload}"; then
     fi
 
 
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-        log "Stage 10: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+        log "Stage 12: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
