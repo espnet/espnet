@@ -1,4 +1,4 @@
-"""Set of methods to create transformer-based block."""
+"""Set of methods to create custom architecture."""
 
 from collections import Counter
 
@@ -463,7 +463,7 @@ def build_blocks(
     dropout_rate_embed=0.0,
     padding_idx=-1,
 ):
-    """Build block for transformer-based models.
+    """Build block for customizable architecture.
 
     Args:
         net_part (str): either 'encoder' or 'decoder'
