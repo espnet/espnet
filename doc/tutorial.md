@@ -183,7 +183,6 @@ model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 
 Several transducer architectures are currently available:
 - RNN-Transducer (default)
-- RNN-Transducer with attention decoder (+ `rnnt-mode: 'rnnt-att'`)
 - Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
 - Mixed Transformer/RNN-Transducer (e.g: `etype: transformer` with `dtype: lstm`)
 
@@ -297,7 +296,6 @@ The algorithm references can be found in [methods documentation](https://github.
 Additional notes:
 - Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
 - There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
-- Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
 - RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
 - Transformer-decoder pre-initialization using a transformer LM is not supported yet.
 - Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.
