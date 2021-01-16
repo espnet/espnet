@@ -183,17 +183,16 @@ model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 
 Several transducer architectures are currently available:
 - RNN-Transducer (default)
-- Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
-- Mixed Transformer/RNN-Transducer (e.g: `etype: transformer` with `dtype: lstm`)
+- Custom-Transducer (`etype: custom` and `dtype: custom`)
+- Mixed Custom/RNN-Transducer (e.g: `etype: custom` with `dtype: lstm`)
 
-The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `transformer` is specified for either, a transformer-based architecture will be used for the corresponding part, otherwise a RNN architecture will be selected.
+The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `custom` is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.
 
-While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a transformer-based architecture definition for transducer is customizable:
+While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a customizable architecture definition for transducer is different:
 1) Each blocks (or layers) for both network part should be specified individually through `enc-block-arch` or/and `dec-block-arch`:
 
-
         # e.g: TDNN-Transformer encoder
-        etype: transformer
+        etype: custom
         enc-block-arch:
                 - type: tdnn
                   idim: 512
