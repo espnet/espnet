@@ -55,8 +55,7 @@ pretrained_model_name=          # If use provided pretrained models, only set to
 finetuned_model_name=           # Only set to `tts1_en_[de,fi,zh]_[trgspk]`
 
 # dataset configuration
-db_root=downloads/official_v1.0_training
-eval_db_root=downloads/official_v1.0_training    # Same as `db_root` in training
+db_root=../vc1_task1/downloads/vcc20
 list_dir=local/lists
 spk=TMF1 
 lang=Man
@@ -65,8 +64,8 @@ lang=Man
 srcspk=                                         # Ex. SEF1
 trgspk=                                         # Ex. TMF1
 asr_model="librispeech.transformer.ngpu4"
-test_list_file=local/lists/E_train_list.txt  # use source training set as development set
-test_name=dev_asr
+test_list_file=local/lists/eval_list.txt
+test_name=eval_asr
 tts_model_dir=                                  # If use downloaded model,
                                                 # set to, ex. `downloads/tts1_en_zh_TMF1/exp/TMF1_train_pytorch_train_pytorch_transformer+spkemb.tts1_en_zh`
                                                 # If use manually trained model,
@@ -93,7 +92,7 @@ dev_set=${spk}_dev
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data and Pretrained model download"
-    echo "Please download the dataset following the README."
+    local/data_download.sh ${db_root}
 
     if [ ! -d ${pretrained_model_dir}/${pretrained_model_name} ]; then
         echo "Downloading pretrained TTS model..."
@@ -404,7 +403,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         --api v1 \
         exp/${asr_model}_asr \
         ${expdir} \
-        ${eval_db_root}/${srcspk} \
+        ${db_root}/${srcspk} \
         ${srcspk} \
         ${test_list_file}
 
@@ -526,4 +525,43 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     else
         echo "Vocoder type not supported. Only GL and PWG are available."
     fi
+fi
+
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] ; then
+    echo "stage 14: Objective Evaluation: MCD"
+
+    minf0=$(awk '{print $1}' conf/${trgspk}.f0)
+    maxf0=$(awk '{print $2}' conf/${trgspk}.f0)
+    mcd_file=${outdir}_denorm/${pairname}/mcd.log
+
+    # Decide wavdir depending on vocoder
+    if [ -n "${voc}" ]; then
+        # select vocoder type (GL, PWG)
+        if [ ${voc} == "PWG" ]; then
+            wavdir=${outdir}_denorm/${pairname}/pwg_wav
+        elif [ ${voc} == "GL" ]; then
+            wavdir=${outdir}_denorm/${pairname}/wav
+        else
+            echo "Vocoder type other than GL, PWG is not supported!"
+            exit 1
+        fi
+    else
+        echo "Please specify vocoder."
+        exit 1
+    fi
+
+    ${decode_cmd} ${mcd_file} \
+        mcd_calculate.py \
+            --wavdir ${wavdir} \
+            --gtwavdir ${db_root}/${trgspk} \
+            --mcep_dim 34 \
+            --shiftms 5 \
+            --f0min ${minf0} \
+            --f0max ${maxf0}
+    grep 'Mean' ${mcd_file}
+
+    local/ob_eval/evaluate.sh --nj ${nj} \
+        --db_root ${db_root} \
+        --asr_model_dir exp/${asr_model}_asr \
+        ${outdir} ${pairname} ${srcspk} ${trgspk} ${wavdir}
 fi

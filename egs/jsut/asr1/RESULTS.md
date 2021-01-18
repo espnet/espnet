@@ -1,3 +1,32 @@
+# Conformer result with specaug, speed perturbation, and RNNLM
+## Environments
+- date: `Fri Oct  2 13:38:36 EDT 2020`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.2`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.4.0`
+- Git hash: `ac7510ea0ebf298c9bd6ff6754f6dba872eaad1f`
+  - Commit date: `Fri Sep 25 11:57:31 2020 +0000`
+
+## Model
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/file/d/1bacBj-kpR6N7dYnJnWrD22iBVZhaRfx-
+  - training config file: `conf/train.yaml`
+  - decoding config file: `conf/decode.yaml`
+  - cmvn file: `data/tr_no_dev_sp/cmvn.ark`
+  - e2e file: `exp/tr_no_dev_sp_pytorch_train_pytorch_conformer.lr10.ep50_specaug/results/model.last10.avg.best`
+  - e2e JSON file: `exp/tr_no_dev_sp_pytorch_train_pytorch_conformer.lr10.ep50_specaug/results/model.json`
+  - lm file: `exp/train_rnnlm_pytorch_lm/rnnlm.model.best`
+  - lm JSON file: `exp/train_rnnlm_pytorch_lm/model.json`
+
+## tr_no_dev_sp_pytorch_train_pytorch_conformer.lr10.ep50_specaug
+### CER (48k)
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_decode_pytorch_transformer|250|6349|88.2|9.6|2.1|1.2|13.0|86.0|
+|decode_eval1_decode_pytorch_transformer|250|5928|86.7|10.7|2.5|1.3|14.5|88.0|
+
 # RNN model(elayer=4, units=1024)
   - Environments (obtained by `$ get_sys_info.sh`)
     - date: `Fri Jun 14 12:35:38 JST 2019`

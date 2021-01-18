@@ -29,16 +29,14 @@ speed_perturb_factors="0.9 1.0 1.1"
 ./asr.sh \
     --lang en \
     --local_data_opts "--mic ${mic}" \
+    --nbpe 100 \
     --use_lm true \
     --lm_config "${lm_config}" \
-    --use_word_lm false \
-    --word_vocab_size 20000 \
-    --token_type char \
-    --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" \
+    --bpe_train_text "data/${train_set}/text" "$@"

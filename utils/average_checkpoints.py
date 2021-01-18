@@ -74,7 +74,10 @@ def main():
         # average
         for k in avg.keys():
             if avg[k] is not None:
-                avg[k] /= args.num
+                if avg[k].is_floating_point():
+                    avg[k] /= args.num
+                else:
+                    avg[k] //= args.num
 
         torch.save(avg, args.out)
 

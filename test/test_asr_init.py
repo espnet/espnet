@@ -2,16 +2,19 @@
 
 import argparse
 import json
-import numpy as np
 import os
-import pytest
 import tempfile
+
+import numpy as np
+import pytest
 import torch
+
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.pytorch_backend.asr_init import freeze_modules
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -229,9 +232,27 @@ def test_pytorch_trainable_and_transferable(model_type, finetune_dic):
     loss = model(*batch)
     loss.backward()
 
-    with torch.no_grad():
-        in_data = np.random.randn(10, idim)
-        model.recognize(in_data, args, args.char_list)
+    if model_type == "rnnt":
+        beam_search = BeamSearchTransducer(
+            decoder=model.dec,
+            beam_size=1,
+            lm=None,
+            lm_weight=0.0,
+            search_type="default",
+            max_sym_exp=2,
+            u_max=10,
+            nstep=1,
+            prefix_alpha=1,
+            score_norm=False,
+        )
+
+        with torch.no_grad():
+            in_data = np.random.randn(10, idim)
+            model.recognize(in_data, beam_search)
+    else:
+        with torch.no_grad():
+            in_data = np.random.randn(10, idim)
+            model.recognize(in_data, args, args.char_list)
 
 
 # todo (b-flo): add test for frozen layers

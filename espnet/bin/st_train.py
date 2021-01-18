@@ -17,6 +17,7 @@ import configargparse
 import numpy as np
 import torch
 
+from espnet import __version__
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
@@ -470,6 +471,9 @@ def main(cmd_args):
         args.backend = "chainer"
     if "pytorch_backend" in args.model_module:
         args.backend = "pytorch"
+
+    # add version info in args
+    args.version = __version__
 
     # logging info
     if args.verbose > 0:

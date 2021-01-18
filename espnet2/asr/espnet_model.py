@@ -19,6 +19,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -43,6 +44,7 @@ class ESPnetASRModel(AbsESPnetModel):
         frontend: Optional[AbsFrontend],
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
+        preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         ctc: CTC,
@@ -72,6 +74,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.frontend = frontend
         self.specaug = specaug
         self.normalize = normalize
+        self.preencoder = preencoder
         self.encoder = encoder
         self.decoder = decoder
         if ctc_weight == 0.0:
@@ -188,13 +191,17 @@ class ESPnetASRModel(AbsESPnetModel):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-            # 2. Data augmentation for spectrogram
+            # 2. Data augmentation
             if self.specaug is not None and self.training:
                 feats, feats_lengths = self.specaug(feats, feats_lengths)
 
             # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
+
+        # Pre-encoder, e.g. used for raw input data
+        if self.preencoder is not None:
+            feats, feats_lengths = self.preencoder(feats, feats_lengths)
 
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)

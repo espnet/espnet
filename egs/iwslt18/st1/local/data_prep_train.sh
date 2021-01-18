@@ -151,7 +151,7 @@ n_de=$(cat ${dst}/text.tc.de | wc -l)
 [ ${n_en} -ne ${n_de} ] && echo "Warning: expected ${n_en} data data files, found ${n_de}" && exit 1;
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/train
 for f in spk2utt utt2spk wav.scp segments; do
     cp ${dst}/${f} data/train/${f}

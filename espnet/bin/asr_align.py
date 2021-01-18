@@ -9,22 +9,36 @@
 This program performs CTC segmentation to align utterances within audio files.
 
 Inputs:
-    `--data-json`: A json containing list of utterances and audio files
-    `--model`: An already trained ASR model
+    `--data-json`:
+        A json containing list of utterances and audio files
+    `--model`:
+        An already trained ASR model
 
 Output:
-    `--output`: A plain `segments` file with utterance positions in the audio files.
+    `--output`:
+        A plain `segments` file with utterance positions in the audio files.
 
 Selected parameters:
-    `--min-window-size`: Minimum window size considered for a single utterance. The
-        current default value should be OK in most cases. Larger values might
-        give better results; too large values cause IndexErrors.
-    `--subsampling-factor`: If the encoder sub-samples its input, the number of
-        frames at the CTC layer is reduced by this factor.
-    `--frame-duration`: This is the non-overlapping duration of a single frame in
-        milliseconds (the inverse of frames per millisecond).
-    `--use-dict-blank`: Use the Blank character from the model. Useful if in the
-        model dictionary e.g. "<blank>" instead of the default "_" is used.
+    `--min-window-size`:
+        Minimum window size considered for a single utterance. The current default value
+        should be OK in most cases. Larger values might give better results; too large
+        values cause IndexErrors.
+    `--subsampling-factor`:
+        If the encoder sub-samples its input, the number of frames at the CTC layer is
+        reduced by this factor.
+    `--frame-duration`:
+        This is the non-overlapping duration of a single frame in milliseconds (the
+        inverse of frames per millisecond).
+    `--set-blank`:
+        In the rare case that the blank token has not the index 0 in the character
+        dictionary, this parameter sets the index of the blank token.
+    `--gratis-blank`:
+        Sets the transition cost for blank tokens to zero. Useful if there are longer
+        unrelated segments between segments.
+    `--replace-spaces-with-blanks`:
+        Spaces are replaced with blanks. Helps to model pauses between words. May
+        increase length of ground truth. May lead to misaligned segments when combined
+        with the option `--gratis-blank`.
 """
 
 import configargparse
@@ -102,8 +116,8 @@ def get_parser():
         type=int,
         default=None,
         help="Subsampling factor."
-        "If the encoder sub-samples its input, the number of frames at the CTC layer is"
-        " reduced by this factor. For example, a BLSTMP with subsampling 1_2_2_1_1"
+        " If the encoder sub-samples its input, the number of frames at the CTC layer"
+        " is reduced by this factor. For example, a BLSTMP with subsampling 1_2_2_1_1"
         " has a subsampling factor of 4.",
     )
     parser.add_argument(
@@ -128,7 +142,35 @@ def get_parser():
         "--use-dict-blank",
         type=int,
         default=None,
-        help="Use the Blank character of the model dictionary.",
+        help="DEPRECATED.",
+    )
+    parser.add_argument(
+        "--set-blank",
+        type=int,
+        default=None,
+        help="Index of model dictionary for blank token (default: 0).",
+    )
+    parser.add_argument(
+        "--gratis-blank",
+        type=int,
+        default=None,
+        help="Set the transition cost of the blank token to zero. Audio sections"
+        " labeled with blank tokens can then be skipped without penalty. Useful"
+        " if there are unrelated audio segments between utterances.",
+    )
+    parser.add_argument(
+        "--replace-spaces-with-blanks",
+        type=int,
+        default=None,
+        help="Fill blanks in between words to better model pauses between words."
+        " Segments can be misaligned if this option is combined with --gratis-blank."
+        " May increase length of ground truth.",
+    )
+    parser.add_argument(
+        "--scoring-length",
+        type=int,
+        default=None,
+        help="Changes partitioning length L for calculation of the confidence score.",
     )
     parser.add_argument(
         "--output",
@@ -206,11 +248,22 @@ def ctc_align(args, device):
         preprocess_args={"train": False},
     )
     logging.info(f"Decoding device={device}")
+    # Warn for nets with high memory consumption on long audio files
+    if hasattr(model, "enc"):
+        encoder_module = model.enc.__class__.__module__
+    elif hasattr(model, "encoder"):
+        encoder_module = model.encoder.__class__.__module__
+    else:
+        encoder_module = "Unknown"
+    logging.info(f"Encoder module: {encoder_module}")
+    logging.info(f"CTC module:     {model.ctc.__class__.__module__}")
+    if "rnn" not in encoder_module:
+        logging.warning("No BLSTM model detected; memory consumption may be high.")
     model.to(device=device).eval()
     # read audio and text json data
     with open(args.data_json, "rb") as f:
         js = json.load(f)["utts"]
-    with open(args.utt_text, "r") as f:
+    with open(args.utt_text, "r", encoding="utf-8") as f:
         lines = f.readlines()
         i = 0
         text = {}
@@ -234,10 +287,29 @@ def ctc_align(args, device):
         config.min_window_size = args.min_window_size
     if args.max_window_size is not None:
         config.max_window_size = args.max_window_size
-    char_list = train_args.char_list
-    if args.use_dict_blank:
-        config.blank = char_list[0]
-    logging.debug(
+    config.char_list = train_args.char_list
+    if args.use_dict_blank is not None:
+        logging.warning(
+            "The option --use-dict-blank is deprecated. If needed,"
+            " use --set-blank instead."
+        )
+    if args.set_blank is not None:
+        config.blank = args.set_blank
+    if args.replace_spaces_with_blanks is not None:
+        if args.replace_spaces_with_blanks:
+            config.replace_spaces_with_blanks = True
+        else:
+            config.replace_spaces_with_blanks = False
+    if args.gratis_blank:
+        config.blank_transition_cost_zero = True
+    if config.blank_transition_cost_zero and args.replace_spaces_with_blanks:
+        logging.error(
+            "Blanks are inserted between words, and also the transition cost of blank"
+            " is zero. This configuration may lead to misalignments!"
+        )
+    if args.scoring_length is not None:
+        config.score_min_mean_over_L = args.scoring_length
+    logging.info(
         f"Frame timings: {config.frame_duration_ms}ms * {config.subsampling_factor}"
     )
     # Iterate over audio files to decode and align
@@ -252,13 +324,12 @@ def ctc_align(args, device):
             # Apply ctc layer to obtain log character probabilities
             lpz = model.ctc.log_softmax(enc_output)[0].cpu().numpy()
         # Prepare the text for aligning
-        ground_truth_mat, utt_begin_indices = prepare_text(
-            config, text[name], char_list
-        )
+        ground_truth_mat, utt_begin_indices = prepare_text(config, text[name])
         # Align using CTC segmentation
         timings, char_probs, state_list = ctc_segmentation(
             config, lpz, ground_truth_mat
         )
+        logging.debug(f"state_list = {state_list}")
         # Obtain list of utterances with time intervals and confidence score
         segments = determine_utterance_segments(
             config, utt_begin_indices, char_probs, timings, text[name]

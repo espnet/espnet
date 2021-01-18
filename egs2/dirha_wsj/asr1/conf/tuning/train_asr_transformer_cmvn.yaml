@@ -1,0 +1,76 @@
+# Trained using GTX-1080ti x4. It takes about 2days.
+batch_type: numel
+batch_bins: 16000000
+accum_grad: 1
+max_epoch: 50
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+encoder: transformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d
+    normalize_before: true
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2028
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 30000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
+
+normalize: utterance_mvn
+normalize_conf:
+    norm_means: true
+    norm_vars: false
+    eps: 1.0e-20
+
+rir_scp: data/dirha_ir/wav.scp
+noise_scp: data/dirha_noise/wav.scp
+speech_volume_normalize: 1.
+noise_db_range: 10_17
+rir_apply_prob: 1.
+noise_apply_prob: 1.

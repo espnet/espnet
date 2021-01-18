@@ -49,14 +49,39 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         return iter(self.loader)
 
     def __getitem__(self, key: str) -> np.ndarray:
-        rate, array = self.loader[key]
-        if self.rate is not None and self.rate != rate:
-            raise RuntimeError(f"Sampling rates are mismatched: {self.rate} != {rate}")
-        self.rate = rate
-        # Multichannel wave fie
-        # array: (NSample, Channel) or (Nsample)
-        if self.dtype is not None:
-            array = array.astype(self.dtype)
+        retval = self.loader[key]
+
+        if isinstance(retval, tuple):
+            assert len(retval) == 2, len(retval)
+            if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
+                # sound scp case
+                rate, array = retval
+            elif isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
+                # Extended ark format case
+                array, rate = retval
+            else:
+                raise RuntimeError(
+                    f"Unexpected type: {type(retval[0])}, {type(retval[1])}"
+                )
+
+            if self.rate is not None and self.rate != rate:
+                raise RuntimeError(
+                    f"Sampling rates are mismatched: {self.rate} != {rate}"
+                )
+            self.rate = rate
+            # Multichannel wave fie
+            # array: (NSample, Channel) or (Nsample)
+            if self.dtype is not None:
+                array = array.astype(self.dtype)
+
+        else:
+            # Normal ark case
+            assert isinstance(retval, np.ndarray), type(retval)
+            array = retval
+            if self.dtype is not None:
+                array = array.astype(self.dtype)
+
+        assert isinstance(array, np.ndarray), type(array)
         return array
 
 
@@ -79,7 +104,7 @@ class H5FileWrapper:
         return value[()]
 
 
-def sound_loader(path, float_dtype):
+def sound_loader(path, float_dtype=None):
     # The file is as follows:
     #   utterance_id_A /some/where/a.wav
     #   utterance_id_B /some/where/a.flac
@@ -94,16 +119,8 @@ def sound_loader(path, float_dtype):
     return AdapterForSoundScpReader(loader, float_dtype)
 
 
-def pipe_wav_loader(path, float_dtype):
-    # The file is as follows:
-    #   utterance_id_A cat a.wav |
-    #   utterance_id_B cat b.wav |
-
-    # NOTE(kamo): I don't think this case is practical
-    # because subprocess takes much times due to fork().
-
-    # NOTE(kamo): kaldiio doesn't normalize the signal.
-    loader = kaldiio.load_scp(path)
+def kaldi_loader(path, float_dtype=None, max_cache_fd: int = 0):
+    loader = kaldiio.load_scp(path, max_cache_fd=max_cache_fd)
     return AdapterForSoundScpReader(loader, float_dtype)
 
 
@@ -126,19 +143,9 @@ DATA_TYPES = {
         "   utterance_id_b b.wav\n"
         "   ...",
     ),
-    "pipe_wav": dict(
-        func=pipe_wav_loader,
-        kwargs=["float_dtype"],
-        help="Kaldi wav.scp file. If the file doesn't include a pipe, '|' "
-        "for each line, use 'sound' instead."
-        ":\n\n"
-        "   utterance_id_a cat a.wav |\n"
-        "   utterance_id_b cat b.wav |\n"
-        "   ...",
-    ),
     "kaldi_ark": dict(
-        func=kaldiio.load_scp,
-        kwargs=[],
+        func=kaldi_loader,
+        kwargs=["max_cache_fd"],
         help="Kaldi-ark file type."
         "\n\n"
         "   utterance_id_A /some/where/a.ark:123\n"
@@ -271,6 +278,7 @@ class ESPnetDataset(AbsDataset):
         float_dtype: str = "float32",
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
+        max_cache_fd: int = 0,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -283,6 +291,7 @@ class ESPnetDataset(AbsDataset):
 
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
+        self.max_cache_fd = max_cache_fd
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -327,6 +336,8 @@ class ESPnetDataset(AbsDataset):
                         kwargs["float_dtype"] = self.float_dtype
                     elif key2 == "int_dtype":
                         kwargs["int_dtype"] = self.int_dtype
+                    elif key2 == "max_cache_fd":
+                        kwargs["max_cache_fd"] = self.max_cache_fd
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 

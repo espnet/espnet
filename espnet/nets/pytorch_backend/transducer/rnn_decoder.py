@@ -2,9 +2,8 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.nets_utils import to_device
-
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
@@ -58,11 +57,9 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             self.decoder += [dec_net(dunits, dunits)]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
 
-        self.lin_enc = torch.nn.Linear(eprojs, joint_dim)
-        self.lin_dec = torch.nn.Linear(dunits, joint_dim, bias=False)
-        self.lin_out = torch.nn.Linear(joint_dim, odim)
-
-        self.joint_activation = get_activation(joint_activation_type)
+        self.joint_network = JointNetwork(
+            odim, eprojs, dunits, joint_dim, joint_activation_type
+        )
 
         self.dlayers = dlayers
         self.dunits = dunits
@@ -86,12 +83,17 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 ([L x (B, dec_dim)], [L x (B, dec_dim)])
 
         """
+        dtype = init_tensor.dtype
         z_list = [
-            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
+            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits)).to(
+                dtype
+            )
             for _ in range(self.dlayers)
         ]
         c_list = [
-            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits))
+            to_device(init_tensor, torch.zeros(init_tensor.size(0), self.dunits)).to(
+                dtype
+            )
             for _ in range(self.dlayers)
         ]
 
@@ -132,22 +134,6 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         return y, (z_list, c_list)
 
-    def joint(self, h_enc, h_dec):
-        """Joint computation of z.
-
-        Args:
-            h_enc (torch.Tensor): batch of expanded hidden state (B, T, 1, enc_dim)
-            h_dec (torch.Tensor): batch of expanded hidden state (B, 1, U, dec_dim)
-
-        Returns:
-            z (torch.Tensor): output (B, T, U, odim)
-
-        """
-        z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
-        z = self.lin_out(z)
-
-        return z
-
     def forward(self, hs_pad, ys_in_pad, hlens=None):
         """Forward function for transducer.
 
@@ -176,7 +162,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         h_dec = torch.stack(z_all, dim=1)
         h_dec = h_dec.unsqueeze(1)
 
-        z = self.joint(h_enc, h_dec)
+        z = self.joint_network(h_enc, h_dec)
 
         return z
 

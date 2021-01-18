@@ -18,6 +18,7 @@ import configargparse
 import numpy as np
 import torch
 
+from espnet import __version__
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
@@ -139,7 +140,7 @@ def get_parser(parser=None, required=True):
         "--ctc_type",
         default="warpctc",
         type=str,
-        choices=["builtin", "warpctc"],
+        choices=["builtin", "warpctc", "gtnctc"],
         help="Type of CTC implementation to calculate loss.",
     )
     parser.add_argument(
@@ -547,6 +548,9 @@ def main(cmd_args):
     if "pytorch_backend" in args.model_module:
         args.backend = "pytorch"
 
+    # add version info in args
+    args.version = __version__
+
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
@@ -602,8 +606,8 @@ def main(cmd_args):
         char_list = [entry.decode("utf-8").split(" ")[0] for entry in dictionary]
         char_list.insert(0, "<blank>")
         char_list.append("<eos>")
-        # for non-autoregressive training using Transformer
-        if hasattr(args, "decoder_mode") and args.decoder_mode == "maskctc":
+        # for non-autoregressive maskctc model
+        if "maskctc" in args.model_module:
             char_list.append("<mask>")
         args.char_list = char_list
     else:

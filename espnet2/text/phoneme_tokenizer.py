@@ -9,12 +9,43 @@ from typeguard import check_argument_types
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
+def split_by_space(text) -> List[str]:
+    return text.split(" ")
+
+
 def pyopenjtalk_g2p(text) -> List[str]:
     import pyopenjtalk
 
     # phones is a str object separated by space
     phones = pyopenjtalk.g2p(text, kana=False)
     phones = phones.split(" ")
+    return phones
+
+
+def pyopenjtalk_g2p_accent(text) -> List[str]:
+    import pyopenjtalk
+    import re
+
+    phones = []
+    for labels in pyopenjtalk.run_frontend(text)[1]:
+        p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])", labels)
+        if len(p) == 1:
+            phones += [p[0][0], p[0][2], p[0][1]]
+    return phones
+
+
+def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
+    import pyopenjtalk
+    import re
+
+    phones = []
+    for labels in pyopenjtalk.run_frontend(text)[1]:
+        if labels.split("-")[1].split("+")[0] == "pau":
+            phones += ["pau"]
+            continue
+        p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])", labels)
+        if len(p) == 1:
+            phones += [p[0][0], p[0][2], p[0][1]]
     return phones
 
 
@@ -78,13 +109,15 @@ class G2p_en:
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
-        g2p_type: str,
+        g2p_type: Union[None, str],
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
     ):
         assert check_argument_types()
-        if g2p_type == "g2p_en":
+        if g2p_type is None:
+            self.g2p = split_by_space
+        elif g2p_type == "g2p_en":
             self.g2p = G2p_en(no_space=False)
         elif g2p_type == "g2p_en_no_space":
             self.g2p = G2p_en(no_space=True)
@@ -92,6 +125,10 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = pyopenjtalk_g2p
         elif g2p_type == "pyopenjtalk_kana":
             self.g2p = pyopenjtalk_g2p_kana
+        elif g2p_type == "pyopenjtalk_accent":
+            self.g2p = pyopenjtalk_g2p_accent
+        elif g2p_type == "pyopenjtalk_accent_with_pause":
+            self.g2p = pyopenjtalk_g2p_accent_with_pause
         elif g2p_type == "pypinyin_g2p":
             self.g2p = pypinyin_g2p
         elif g2p_type == "pypinyin_g2p_phone":

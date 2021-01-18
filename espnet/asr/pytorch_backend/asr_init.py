@@ -155,7 +155,7 @@ def filter_modules(model_state_dict, modules):
     return new_mods
 
 
-def load_trained_model(model_path):
+def load_trained_model(model_path, training=True):
     """Load the trained model for recognition.
 
     Args:
@@ -172,9 +172,16 @@ def load_trained_model(model_path):
         model_module = train_args.model_module
     else:
         model_module = "espnet.nets.pytorch_backend.e2e_asr:E2E"
-    model_class = dynamic_import(model_module)
-    model = model_class(idim, odim, train_args)
+    # CTC Loss is not needed, default to builtin to prevent import errors
+    if hasattr(train_args, "ctc_type"):
+        train_args.ctc_type = "builtin"
 
+    model_class = dynamic_import(model_module)
+
+    if "transducer" in model_module:
+        model = model_class(idim, odim, train_args, training)
+    else:
+        model = model_class(idim, odim, train_args)
     torch_load(model_path, model)
 
     return model, train_args

@@ -1,29 +1,19 @@
 """Transducer speech recognition model (pytorch)."""
 
 from collections import Counter
+from dataclasses import asdict
 from distutils.util import strtobool
 import logging
 import math
 
 import chainer
-from chainer import reporter
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.beam_search_transducer import search_interface
-
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
-
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
-
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.rnn_att_decoder import DecoderRNNTAtt
@@ -31,6 +21,11 @@ from espnet.nets.pytorch_backend.transducer.rnn_decoder import DecoderRNNT
 from espnet.nets.pytorch_backend.transducer.transformer_decoder import DecoderTT
 from espnet.nets.pytorch_backend.transducer.transformer_encoder import Encoder
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
+from espnet.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,  # noqa: H301
+    RelPositionMultiHeadedAttention,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.transformer.mask import target_mask
 
 
 class Reporter(chainer.Chain):
@@ -38,9 +33,9 @@ class Reporter(chainer.Chain):
 
     def report(self, loss, cer, wer):
         """Instantiate reporter attributes."""
-        reporter.report({"cer": cer}, self)
-        reporter.report({"wer": wer}, self)
-        reporter.report({"loss": loss}, self)
+        chainer.reporter.report({"cer": cer}, self)
+        chainer.reporter.report({"wer": wer}, self)
+        chainer.reporter.report({"loss": loss}, self)
 
         logging.info("loss:" + str(loss))
 
@@ -339,7 +334,7 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Joint network activation type",
         )
         group.add_argument(
-            "--score-norm-transducer",
+            "--score-norm",
             type=strtobool,
             nargs="?",
             default=True,
@@ -358,7 +353,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         return PlotAttentionReport
 
-    def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0):
+    def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0, training=True):
         """Construct an E2E object for transducer model."""
         torch.nn.Module.__init__(self)
 
@@ -476,17 +471,27 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.reporter = Reporter()
 
-        self.criterion = TransLoss(args.trans_type, self.blank_id)
+        if training:
+            self.criterion = TransLoss(args.trans_type, self.blank_id)
 
         self.default_parameters(args)
 
         if args.report_cer or args.report_wer:
-            from espnet.nets.e2e_asr_common import ErrorCalculatorTrans
+            from espnet.nets.e2e_asr_common import ErrorCalculatorTransducer
 
             if self.dtype == "transformer":
-                self.error_calculator = ErrorCalculatorTrans(self.decoder, args)
+                decoder = self.decoder
             else:
-                self.error_calculator = ErrorCalculatorTrans(self.dec, args)
+                decoder = self.dec
+
+            self.error_calculator = ErrorCalculatorTransducer(
+                decoder,
+                args.char_list,
+                args.sym_space,
+                args.sym_blank,
+                args.report_cer,
+                args.report_wer,
+            )
         else:
             self.error_calculator = None
 
@@ -599,34 +604,27 @@ class E2E(ASRInterface, torch.nn.Module):
 
         return hs.squeeze(0)
 
-    def recognize(self, x, recog_args, char_list=None, rnnlm=None):
+    def recognize(self, x, beam_search):
         """Recognize input features.
 
         Args:
             x (ndarray): input acoustic feature (T, D)
-            recog_args (namespace): argument Namespace containing options
-            char_list (list): list of characters
-            rnnlm (torch.nn.Module): language model module
+            beam_search (class): beam search class
 
         Returns:
             nbest_hyps (list): n-best decoding results
-
         """
         if "transformer" in self.etype:
             h = self.encode_transformer(x)
         else:
             h = self.encode_rnn(x)
 
-        if "transformer" in self.dtype:
-            decoder = self.decoder
+        nbest_hyps = beam_search(h)
+
+        if isinstance(nbest_hyps, list):
+            return [asdict(n) for n in nbest_hyps]
         else:
-            decoder = self.dec
-
-        params = [decoder, h, recog_args, rnnlm]
-
-        nbest_hyps = search_interface(*params)
-
-        return nbest_hyps
+            return asdict(nbest_hyps)
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.

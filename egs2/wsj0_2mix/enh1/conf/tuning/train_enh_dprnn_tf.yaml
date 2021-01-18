@@ -1,0 +1,50 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size:  8
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 4
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
+model_conf:
+    loss_type: mask_mse
+    mask_type: psm
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+separator: dprnn
+separator_conf:
+    num_spk: 2
+    layer: 4
+    rnn_type: lstm
+    bidirectional: True  # this is for the inter-block rnn
+    nonlinear: relu
+    unit: 256
+    segment_size: 16
+    dropout: 0.1
+    nonlinear: relu
+

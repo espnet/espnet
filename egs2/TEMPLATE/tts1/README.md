@@ -18,6 +18,7 @@ This is a template of TTS recipe for ESPnet2.
   * [How to run](#how-to-run)
     * [FastSpeech training](#fastspeech-training)
     * [FastSpeech2 training](#fastspeech2-training)
+    * [Multi speaker model with X-vector training](#multi-speaker-model-with-x-vector-training)
   * [Supported text frontend](#supported-text-frontend)
   * [Supported text cleaner](#supported-text-cleaner)
   * [Supported Models](#supported-models)
@@ -38,6 +39,8 @@ This is a template of TTS recipe for ESPnet2.
     * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
     * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
     * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
+    * [How is the duration for FastSpeech2 generated?](#how-is-the-duration-for-fastspeech2-generated)
+    * [Why the output of Tacotron2 or Transformer is non-deterministic?](#why-the-output-of-tacotron2-or-transformer-is-non-deterministic)
 
 ## Recipe flow
 
@@ -58,6 +61,10 @@ The processing in this stage is changed according to `--feats_type` option (Defa
 In the case of `feats_type=raw`, reformat `wav.scp` in date directories.
 In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with Librosa will be performed.
 Since the performance is almost the same, we recommend using `feats_type=raw`.
+
+Additionaly, we support X-vector extraction in this stage as you can use in ESPnet1.
+If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
+This processing requires the compiled kaldi, please be careful.
 
 ### 3. Removal of long / short data
 
@@ -151,10 +158,10 @@ Then, you can get the following directories in the recipe directory.
 └── exp/ # experiment directory
     ├── tts_stats_raw_phn_tacotron_g2p_en_no_space # statistics
     └── tts_train_raw_phn_tacotron_g2p_en_no_space # model
-        ├── att_ws/                 # attention plot during training
-        ├── tensorboard/            # tensorboard log
-        ├── images/                 # plot of training curves
-        ├── decode_train.loss.best/ # decoded results
+        ├── att_ws/                # attention plot during training
+        ├── tensorboard/           # tensorboard log
+        ├── images/                # plot of training curves
+        ├── decode_train.loss.ave/ # decoded results
         │    ├── dev/   # validation set
         │    └── eval1/ # evaluation set
         │        ├── att_ws/      # attention plot in decoding
@@ -199,13 +206,13 @@ $ ./run.sh --stage 7 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
     --test_sets "tr_no_dev dev eval1"
 ```
-This will generate `durations` for training, validation, and evaluation sets in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.best`.
+This will generate `durations` for training, validation, and evaluation sets in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.ave`.
 
 Then, you can train FastSpeech by specifying the directory including `durations` via `--teacher_dumpdir` option.
 ```sh
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech.yaml \
-    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.best
+    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.ave
 ```
 
 In the above example, we use generated mel-spectrogram as the target, which is known as knowledge distillation training.
@@ -216,13 +223,13 @@ $ ./run.sh --stage 7 \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "tr_no_dev dev eval1"
 ```
-You can get the groundtruth aligned durations in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best`.
+You can get the groundtruth aligned durations in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave`.
 
 Then, you can train FastSpeech without knowledge distillation.
 ```sh
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech.yaml \
-    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best
+    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave
 ```
 
 ### FastSpeech2 training
@@ -239,33 +246,64 @@ To train FastSpeech2, we use additional feature (F0 and energy).
 Therefore, we need to start from `stage 5` to calculate additional statistics.
 ```sh
 $ ./run.sh --stage 5 \
-    --train_config conf/tuning/train_fastspeech.yaml \
-    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best \
-    --tts_stats_dir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.best/stats \
+    --train_config conf/tuning/train_fastspeech2.yaml \
+    --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave \
+    --tts_stats_dir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave/stats \
     --write_collected_feats true
 ```
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
 The use of `--write_collected_feats` is optional but it helps to accelerate the training.
 
+### Multi-speaker model with X-vector training
+
+First, you need to run from the stage 2 and 3 with `--use_xvector true` to extract X-vector.
+```sh
+$ ./run.sh --stage 2 --stop-stage 3 --use_xvector true
+```
+You can find the extracted X-vector in `dump/xvector/*/xvector.{ark,scp}`.
+Then, you can run the training with the config which has `spk_embed_dim: 512` in `tts_conf`.
+```yaml
+# e.g.
+tts_conf:
+    spk_embed_dim: 512               # dimension of speaker embedding
+    spk_embed_integration_type: add  # how to integrate speaker embedding
+```
+Please run the training from stage 6.
+```sh
+$ ./run.sh --stage 6 --use_xvector true --train_config /path/to/your_xvector_config.yaml
+```
+
+You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+
 ## Supported text frontend
 
 You can change via `--g2p` option in `tts.sh`.
 
+- `none`: Just separate by space
+    - e.g.: `HH AH0 L OW1 <space> W ER1 L D` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
-    - e.g. `Hello World` -> `HH AH0 L OW1 <space> W ER1 L D`
+    - e.g. `Hello World` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en_no_space`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
     - Same G2P but do not use word separator
-    - e.g. `Hello World` -> `HH AH0 L OW1 W ER1 L D`
+    - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - e.g. `こんにちは` -> `k o N n i ch i w a`
+    - e.g. `こ、こんにちは` -> `[k, o, pau, k, o, N, n, i, ch, i, w, a]`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Use kana instead of phoneme
-    - e.g. `こんにちは` -> `コンニチワ`
+    - e.g. `こ、こんにちは` -> `[コ, 、, コ, ン, ニ, チ, ワ]`
+- `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
+    - Add accent labels in addition to phoneme labels
+    - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
+- `pyopenjtalk_accent_with_pause`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
+    - Add a pause label in addition to phoneme and accenet labels
+    - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, pau, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
 - `pypinyin`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `ka3 er3 pu3 pei2 wai4 sun1 wan2 hua2 ti1 。`
+    - e.g. `卡尔普陪外孙玩滑梯。` -> `[ka3, er3, pu3, pei2, wai4, sun1, wan2, hua2, ti1, 。]`
 - `pypinyin_phone`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
     - Separate into first and last parts
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `k a3 er3 p u3 p ei2 wai4 s un1 uan2 h ua2 t i1 。`
+    - e.g. `卡尔普陪外孙玩滑梯。` -> `[k, a3, er3, p, u3, p, ei2, wai4, s, un1, uan2, h, ua2, t, i1, 。]`
+
+You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 
 ## Supported text cleaner
 
@@ -276,6 +314,8 @@ You can change via `--cleaner` option in `tts.sh`.
     - e.g.`"(Hello-World);  & jr. & dr."` ->`HELLO WORLD, AND JUNIOR AND DOCTOR`
 - `jaconv`: [kazuhikoarase/jaconv](https://github.com/kazuhikoarase/jaconv)
     - e.g. `”あらゆる”　現実を　〜　’すべて’ 自分の　ほうへ　ねじ曲げたのだ。"` -> `"あらゆる" 現実を ー \'すべて\' 自分の ほうへ ねじ曲げたのだ。`
+
+You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_cleaner.py).
 
 ## Supported Models
 
@@ -293,12 +333,19 @@ You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tu
 
 ### Multi speaker model
 
-- [GST + Tacotron2](https://arxiv.org/abs/1803.09017)
+- [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375) + Tacotron2
+- X-Vector + Transformer-TTS
+- X-Vector + FastSpeech
+- X-Vector + FastSpeech2
+- X-Vector + Conformer-based FastSpeech / FastSpeech2
+- [GST](https://arxiv.org/abs/1803.09017) + Tacotron2
 - GST + Transformer-TTS
 - GST + FastSpeech
 - GST + FastSpeech2
 - GST + Conformer-based FastSpeech / FastSpeech2
 
+X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
+GST and X-vector can be combined (Not tested well).
 You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 
 ## FAQ
@@ -320,13 +367,13 @@ See [how to make/port new recipe](https://github.com/espnet/espnet/tree/master/e
 
 ### How to add a new `g2p` module?
 
-Update `espnet2/text/phoneme_tokenizer.py` to add new module.
-Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` and `espnet2/tasks/tts.py`.
+Update [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) to add new module.
+Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L226-L240) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L180-L194).
 
 ### How to add a new `cleaner` module?
 
-Update `espnet2/text/cleaner.py` to add new module.
-Then, add new choice in the argument parser of `espnet2/bin/tokenize_text.py` and `espnet2/tasks/tts.py`.
+Update [`espnet2/text/cleaner.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/cleaner.py) to add new module.
+Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L219-L225) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L173-L179).
 
 ### How to use trained model in python?
 
@@ -339,8 +386,30 @@ You can find the all of the pretrained model list from [here](https://github.com
 
 ### How to load the pretrained model?
 
-Please use `--pretrain_path` and `--pretrain_key` options in training config (`*.yaml`).
-See the usage in [abs_task.py](https://github.com/espnet/espnet/blob/3cc59a16c3655f3b39dc2ae19ffafa7bfac879bf/espnet2/tasks/abs_task.py#L1040-L1054).
+Please use `--init_param` option or add it in training config (`*.yaml`).
+
+```bash
+# Usage
+--init_param <file_path>:<src_key>:<dst_key>:<exclude_keys>
+
+# Load all parameters
+python -m espnet2.bin.tts_train --init_param model.pth
+
+# Load only the parameters starting with "decoder"
+python -m espnet2.bin.tts_train --init_param model.pth:tts.dec
+
+# Load only the parameters starting with "decoder" and set it to model.tts.dec
+python -m espnet2.bin.tts_train --init_param model.pth:decoder:tts.dec
+
+# Set parameters to model.tts.dec
+python -m espnet2.bin.tts_train --init_param decoder.pth::tts.dec
+
+# Load all parameters excluding "tts.enc.embed"
+python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed
+
+# Load all parameters excluding "tts.enc.embed" and "tts.dec"
+python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed,tts.dec
+```
 
 ### How to finetune the pretrained model?
 
@@ -356,15 +425,15 @@ See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.
 
 ### How to handle the errors in `validate_data_dir.sh`?
 
-> utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line
+> `utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line`
 
 This is caused by the recent change in kaldi.
 We recommend modifying the following part in `utils/validate_data_dir.sh` to be `non_print=true`.
 
 https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
 
-> utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces  
-> utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)
+> `utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces`  
+> `utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)`
 
 The use of zenkaku whitespace in `text` is not allowed.
 Please changes it to hankaku whitespace or the other symbol.
@@ -391,3 +460,13 @@ Please check the following items carefully:
 - If the dataset is small, please consider the use of adaptation with pretrained model.
 - If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
 - Check the attention plot during the training. Loss value is not so meaningfull in TTS.
+
+### How is the duration for FastSpeech2 generated?
+
+We use the teacher model attention weight to calculate the duration as the same as FastSpeech.
+See more info in [FastSpeech paper](https://arxiv.org/abs/1905.09263).
+
+### Why the output of Tacotron2 or Transformer is non-deterministic?
+
+This is because we use prenet in the decoder, which always applies dropout.
+See more info in [Tacotron2 paper](https://arxiv.org/abs/1712.05884).

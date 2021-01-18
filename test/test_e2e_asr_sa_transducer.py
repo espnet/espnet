@@ -1,10 +1,13 @@
 # coding: utf-8
 
 import argparse
+
 import pytest
 import torch
 
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
+from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 
 
 def make_train_args(**kwargs):
@@ -124,6 +127,9 @@ def prepare(args):
                         "conv_mod_kernel": 1,
                     }
                 ],
+                "transformer_enc_input_layer": "vgg2l",
+                "transformer_enc_self_attn_type": "rel_self_attn",
+                "transformer_enc_positional_encoding_type": "rel_pos",
             },
             {},
         ),
@@ -152,10 +158,12 @@ def prepare(args):
                         "type": "tdnn",
                         "idim": 2,
                         "odim": 2,
-                        "ctx_size": 3,
+                        "ctx_size": 2,
                         "dilation": 1,
                         "stride": 1,
                         "dropout-rate": 0.3,
+                        "use-relu": True,
+                        "use-batch-norm": True,
                     },
                     {
                         "type": "transformer",
@@ -172,6 +180,50 @@ def prepare(args):
         ),
         (
             {
+                "enc_block_arch": [
+                    {
+                        "type": "tdnn",
+                        "idim": 2,
+                        "odim": 2,
+                        "ctx_size": 2,
+                        "dilation": 1,
+                        "stride": 1,
+                        "dropout-rate": 0.3,
+                        "use-relu": True,
+                        "use-batch-norm": True,
+                    },
+                    {
+                        "type": "conformer",
+                        "d_hidden": 2,
+                        "d_ff": 2,
+                        "heads": 1,
+                        "macaron_style": False,
+                        "use_conv_mod": False,
+                    },
+                ],
+                "transformer_enc_input_layer": "linear",
+                "transformer_enc_self_attn_type": "rel_self_attn",
+                "transformer_enc_positional_encoding_type": "rel_pos",
+            },
+            {},
+        ),
+        (
+            {
+                "enc_block_arch": [
+                    {
+                        "type": "tdnn",
+                        "idim": 2,
+                        "odim": 2,
+                        "ctx_size": 2,
+                        "dilation": 1,
+                        "stride": 1,
+                    }
+                ]
+            },
+            {},
+        ),
+        (
+            {
                 "dec_block_arch": [
                     {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
                     {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
@@ -183,6 +235,7 @@ def prepare(args):
         ({"transformer_enc_pw_activation_type": "hardtanh"}, {}),
         ({"transformer_dec_pw_activation_type": "swish"}, {}),
         ({"transformer_dec_pw_activation_type": "hardtanh"}, {}),
+        ({"transformer_enc_positional_encoding_type": "scaled_abs_pos"}, {}),
         ({"joint_activation_type": "relu"}, {}),
         ({"joint_activation_type": "swish"}, {}),
         ({"transformer_enc_input_layer": "vgg2l"}, {}),
@@ -210,8 +263,21 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
     loss.backward()
     optim.step()
 
+    beam_search = BeamSearchTransducer(
+        decoder=model.decoder,
+        beam_size=recog_args.beam_size,
+        lm=None,
+        lm_weight=0.0,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+    )
+
     with torch.no_grad():
-        nbest = model.recognize(x[0, : ilens[0]].numpy(), recog_args)
+        nbest = model.recognize(x[0, : ilens[0]].numpy(), beam_search)
 
         print(y[0])
         print(nbest[0]["yseq"][1:-1])
@@ -226,3 +292,102 @@ def test_calculate_plot_attention():
 
     attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
     plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+
+
+def test_invalid_input_layer_type():
+    architecture = [
+        {
+            "type": "transformer",
+            "d_hidden": 2,
+            "d_ff": 2,
+            "heads": 1,
+        },
+    ]
+
+    with pytest.raises(NotImplementedError):
+        _, _, _ = build_blocks("encoder", 4, "foo", architecture)
+
+
+def test_invalid_architecture_layer_type():
+
+    with pytest.raises(NotImplementedError):
+        _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "foo"}])
+
+
+def test_invalid_block():
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks("encoder", 4, "linear", [{"foo": "foo"}])
+
+
+def test_invalid_block_arguments():
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "transformer"}])
+
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "conformer"}])
+
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks(
+            "encoder",
+            4,
+            "linear",
+            [
+                {
+                    "type": "conformer",
+                    "d_hidden": 4,
+                    "d_ff": 8,
+                    "heads": 1,
+                    "macaron_style": False,
+                    "use_conv_mod": True,
+                }
+            ],
+        )
+
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "conformer"}])
+
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "tdnn"}])
+
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "causal-conv1d"}])
+
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks(
+            "encoder",
+            4,
+            "embed",
+            [
+                {
+                    "type": "transformer",
+                    "d_hidden": 2,
+                    "d_ff": 8,
+                    "heads": 1,
+                },
+            ],
+            positional_encoding_type="rel_pos",
+            self_attn_type="self_attn",
+        )
+
+
+def test_invalid_block_io():
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks(
+            "encoder",
+            4,
+            "linear",
+            [
+                {
+                    "type": "transformer",
+                    "d_hidden": 2,
+                    "d_ff": 8,
+                    "heads": 1,
+                },
+                {
+                    "type": "transformer",
+                    "d_hidden": 4,
+                    "d_ff": 8,
+                    "heads": 1,
+                },
+            ],
+        )

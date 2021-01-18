@@ -141,7 +141,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         done
 
         # Match the number of utterances between source and target languages
-        # extract commocn lines
+        # extract common lines
         cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.fr.tmp/reclist1
         cut -f 1 -d " " data/${x}.fr.tmp/text > data/${x}.fr.tmp/reclist2
         cut -f 1 -d " " data/${x}.fr.gtranslate.tmp/text > data/${x}.fr.tmp/reclist3
@@ -284,7 +284,9 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best

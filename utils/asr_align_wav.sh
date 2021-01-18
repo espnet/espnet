@@ -17,8 +17,7 @@ backend=pytorch
 stage=-1       # start from -1 if you need to start from model download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
-debugmode=1
-verbose=2      # verbose option
+verbose=1      # verbose option
 
 # feature configuration
 do_delta=false
@@ -32,15 +31,17 @@ api=v1
 
 # Parameters for CTC alignment
 # The subsampling factor depends on whether the encoder uses subsampling
-subsampling_factor=1
+subsampling_factor=4
 # minium confidence score in log space - may need adjustment depending on data and model, e.g. -1.5 or -5.0
 min_confidence_score=-5.0
-# minimum length of one utterance
+# minimum length of one utterance (counted in frames)
 min_window_size=8000
+# partitioning length L for calculation of the confidence score
+scoring_length=30
 
 
 # download related
-models=tedlium2.transformer.v1
+models=tedlium2.rnn.v2
 dict=
 nlsyms=
 
@@ -83,6 +84,7 @@ Available models:
     - librispeech.transformer.v1.transformerlm.v1
     - commonvoice.transformer.v1
     - csj.transformer.v1
+    - csj.rnn.v1
     - wsj.transformer.v1
     - wsj.transformer_small.v1
 EOF
@@ -123,6 +125,14 @@ if [ -z $models ]; then
     fi
 fi
 
+# Check for transformer models because of their memory consumption
+if [[ $models == *"rnn"* ]]; then
+    echo "Using RNN model: "${models}
+else
+    echo "Using Transformer model: "${models}
+    echo "WARNING. For large audio files, use an RNN model."
+fi
+
 dir=${download_dir}/${models}
 mkdir -p ${dir}
 
@@ -141,6 +151,7 @@ function download_models () {
         "librispeech.transformer.v1.transformerlm.v1") share_url="https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p" ;;
         "commonvoice.transformer.v1") share_url="https://drive.google.com/open?id=1tWccl6aYU67kbtkm8jv5H6xayqg1rzjh" ;;
         "csj.transformer.v1") share_url="https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF" ;;
+        "csj.rnn.v1") share_url="https://drive.google.com/open?id=1ALvD4nHan9VDJlYJwNurVr7H7OV0j2X9" ;;
         "wsj.transformer.v1") share_url="https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp" ;;
         "wsj.transformer_small.v1") share_url="https://drive.google.com/open?id=1jdEKbgWhLTxN_qP4xwE7mTOPmp7Ga--T" ;;
         *) echo "No such models: ${models}"; exit 1 ;;
@@ -252,13 +263,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${python} -m espnet.bin.asr_align \
         --config ${align_config} \
         --ngpu ${ngpu} \
-        --debugmode ${debugmode} \
         --verbose ${verbose} \
         --data-json ${feat_align_dir}/data.json \
         --model ${align_model} \
         --subsampling-factor ${subsampling_factor} \
         --min-window-size ${min_window_size} \
-        --use-dict-blank 1 \
+        --scoring-length ${scoring_length} \
         --api ${api} \
         --utt-text ${align_dir}/utt_text \
         --output ${align_dir}/aligned_segments || exit 1;

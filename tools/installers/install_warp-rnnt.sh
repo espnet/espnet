@@ -2,16 +2,18 @@
 
 set -euo pipefail
 
-if [ $# != 1 ]; then
-    echo "Usage: $0 <cuda-version>"
-    echo "e.g.: $0 10.0"
-    exit 1;
-fi
+cuda_version=$(python3 <<EOF
+import torch
+if torch.cuda.is_available():
+   version=torch.version.cuda.split(".")
+   print(version[0] + version[1])
+else:
+   print("")
+EOF
+)
 
-cuda_ver=$1
-
-if [ $cuda_ver != "10.0" ]; then
-    echo "warp-rnnt was only tested with CUDA_VERSION=10.0. Skipping install."
+if ! [[ "$cuda_version" =~ ^(100|101|102)$ ]]; then
+    echo "warp-rnnt was not tested with CUDA_VERSION=$cuda_version. Skipping install."
     exit 0
 fi
 
@@ -27,5 +29,5 @@ git clone https://github.com/1ytic/warp-rnnt
 
 (
     set -euo pipefail
-    cd warp-rnnt/pytorch_binding && python3 setup.py install
+    cd warp-rnnt/pytorch_binding && python3 -m pip install -e .
 )
