@@ -20,7 +20,6 @@ from espnet.nets.chainer_backend.transformer.encoder import Encoder
 from espnet.nets.chainer_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
-from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.chainer_backend.transformer.training import CustomConverter
 from espnet.nets.chainer_backend.transformer.training import CustomUpdater
 from espnet.nets.chainer_backend.transformer.training import (
@@ -30,6 +29,8 @@ from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
+from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
