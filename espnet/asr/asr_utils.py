@@ -92,7 +92,7 @@ else:
                 (for ASR/ST okey="input", MT okay="output".)
             oaxis (int): Dimension to access output
                 (for ASR/ST oaxis=0, for MT oaxis=0.)
-            subsampling_factor (int): subsampling rate in encoder
+            subsampling_factor (int): subsampling factor in encoder
 
         """
 
@@ -347,7 +347,7 @@ else:
                 (for ASR/ST okey="input", MT okay="output".)
             oaxis (int): Dimension to access output
                 (for ASR/ST oaxis=0, for MT oaxis=0.)
-            subsampling_factor (int): subsampling rate in encoder
+            subsampling_factor (int): subsampling factor in encoder
 
         """
 
