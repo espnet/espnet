@@ -2,6 +2,7 @@
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import copy
 import json
 import logging
 import os
@@ -108,8 +109,9 @@ else:
             subsampling_factor=1,
         ):
             self.att_vis_fn = att_vis_fn
-            self.data = data
-            self.data_dict = {k: v for k, v in data}  # key is utterance ID
+            self.data = copy.deepcopy(data)
+            self.data_dict = {k: v for k, v in copy.deepcopy(data)}
+            # key is utterance ID
             self.outdir = outdir
             self.converter = converter
             self.transform = transform
@@ -359,8 +361,9 @@ else:
             subsampling_factor=1,
         ):
             self.ctc_vis_fn = ctc_vis_fn
-            self.data = data
-            self.data_dict = {k: v for k, v in data}  # key is utterance ID
+            self.data = copy.deepcopy(data)
+            self.data_dict = {k: v for k, v in copy.deepcopy(data)}
+            # key is utterance ID
             self.outdir = outdir
             self.converter = converter
             self.transform = transform
