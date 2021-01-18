@@ -86,9 +86,12 @@ else:
             reverse (bool): If True, input and output length are reversed.
             ikey (str): Key to access input
                 (for ASR/ST ikey="input", for MT ikey="output".)
-            iaxis (int): Dimension to access input (for ASR/ST iaxis=0, for MT iaxis=1.)
-            okey (str): Key to access output (for ASR/ST okey="input", MT okay="output".)
-            oaxis (int): Dimension to access output (for ASR/ST oaxis=0, for MT oaxis=0.)
+            iaxis (int): Dimension to access input
+                (for ASR/ST iaxis=0, for MT iaxis=1.)
+            okey (str): Key to access output
+                (for ASR/ST okey="input", MT okay="output".)
+            oaxis (int): Dimension to access output
+                (for ASR/ST oaxis=0, for MT oaxis=0.)
             subsampling_factor (int): subsampling rate in encoder
 
         """
@@ -338,9 +341,12 @@ else:
             reverse (bool): If True, input and output length are reversed.
             ikey (str): Key to access input
                 (for ASR/ST ikey="input", for MT ikey="output".)
-            iaxis (int): Dimension to access input (for ASR/ST iaxis=0, for MT iaxis=1.)
-            okey (str): Key to access output (for ASR/ST okey="input", MT okay="output".)
-            oaxis (int): Dimension to access output (for ASR/ST oaxis=0, for MT oaxis=0.)
+            iaxis (int): Dimension to access input
+                (for ASR/ST iaxis=0, for MT iaxis=1.)
+            okey (str): Key to access output
+                (for ASR/ST okey="input", MT okay="output".)
+            oaxis (int): Dimension to access output
+                (for ASR/ST oaxis=0, for MT oaxis=0.)
             subsampling_factor (int): subsampling rate in encoder
 
         """
