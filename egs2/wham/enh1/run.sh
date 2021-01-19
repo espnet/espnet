@@ -21,7 +21,7 @@ test_sets="tt_mix_both_min_8k"
     --ngpu 2 \
     --spk_num 2 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --enh_config ./conf/tuning/train_enh_beamformer_no_wpe.yaml \
+    --enh_config ./conf/train.yaml\
     --use_dereverb_ref false \
     --use_noise_ref true \
     --inference_model "valid.loss.best.pth" \

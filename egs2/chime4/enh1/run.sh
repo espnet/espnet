@@ -24,7 +24,7 @@ test_sets="et05_simu_isolated_1ch_track"
     --ngpu 2 \
     --spk_num 1 \
     --local_data_opts "--sample_rate ${sample_rate}" \
-    --enh_config ./conf/tuning/train_enh_PSM.yaml \
+    --enh_config conf/tuning/train_enh_blstm_tf.yaml \
     --use_dereverb_ref false \
     --use_noise_ref false \
     --inference_model "valid.loss.best.pth" \

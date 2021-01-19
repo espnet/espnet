@@ -18,6 +18,7 @@ test_sets="test "
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --fs "${sample_rate}" \
+    --audio_format wav \
     --lang en \
     --ngpu 4 \
     --enh_config ./conf/train.yaml \
