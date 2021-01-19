@@ -438,7 +438,7 @@ def train(args):
             idim_list[0] if args.num_encs == 1 else idim_list, odim, args
         )
     assert isinstance(model, ASRInterface)
-    total_subsampling_factor = model.total_subsampling_factor
+    total_subsampling_factor = model.get_total_subsampling_factor()
 
     logging.info(
         " Total parameter of the model = "
