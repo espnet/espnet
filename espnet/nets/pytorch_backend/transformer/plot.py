@@ -126,7 +126,7 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def __call__(self, trainer):
         attn_dict, uttid_list = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
-        self.plotfn(self.data, uttid_list, attn_dict, self.outdir, suffix, savefig)
+        self.plotfn(self.data_dict, uttid_list, attn_dict, self.outdir, suffix, savefig)
 
     def get_attention_weights(self):
         return_batch, uttid_list = self.transform(self.data, return_uttid=True)
@@ -135,13 +135,12 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
             att_ws = self.att_vis_fn(*batch)
         elif isinstance(batch, dict):
             att_ws = self.att_vis_fn(**batch)
-        return att_ws
+        return att_ws, uttid_list
 
     def log_attentions(self, logger, step):
         def log_fig(plot, filename):
-
             logger.add_figure(os.path.basename(filename), plot, step)
             plt.clf()
 
         attn_dict, uttid_list = self.get_attention_weights()
-        self.plotfn(self.data, uttid_list, attn_dict, self.outdir, "", log_fig)
+        self.plotfn(self.data_dict, uttid_list, attn_dict, self.outdir, "", log_fig)
