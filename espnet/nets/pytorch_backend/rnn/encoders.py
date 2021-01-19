@@ -290,7 +290,7 @@ class Encoder(torch.nn.Module):
                     ]
                 )
                 logging.info("Use CNN-VGG + " + typ.upper() + " for encoder")
-            self._subsampling_factor = 4
+            self.conv_subsampling_factor = 4
         else:
             if etype[-1] == "p":
                 self.enc = torch.nn.ModuleList(
@@ -302,7 +302,7 @@ class Encoder(torch.nn.Module):
                     [RNN(idim, elayers, eunits, eprojs, dropout, typ=typ)]
                 )
                 logging.info(typ.upper() + " without projection for encoder")
-            self._subsampling_factor = 1
+            self.conv_subsampling_factor = 1
 
     def forward(self, xs_pad, ilens, prev_states=None):
         """Encoder forward
