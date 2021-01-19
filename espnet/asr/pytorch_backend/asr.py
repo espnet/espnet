@@ -438,6 +438,7 @@ def train(args):
             idim_list[0] if args.num_encs == 1 else idim_list, odim, args
         )
     assert isinstance(model, ASRInterface)
+    total_subsampling_factor = model.total_subsampling_factor
 
     logging.info(
         " Total parameter of the model = "
@@ -700,6 +701,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
@@ -726,6 +728,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(ctc_reporter, trigger=(1, "epoch"))
     else:

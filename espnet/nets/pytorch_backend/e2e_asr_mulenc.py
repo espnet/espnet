@@ -310,6 +310,11 @@ class E2E(ASRInterface, torch.nn.Module):
         )
         return parser
 
+    @property
+    def total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        return self.enc.conv_subsampling_factor * np.prod(self.subsample)
+
     def __init__(self, idims, odim, args):
         """Initialize this class with python-level args.
 

@@ -112,6 +112,11 @@ class ASRInterface:
 
         return PlotCTCReport
 
+    @property
+    def total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        raise NotImplementedError("total_subsampling_factor method is not implemented")
+
     def encode(self, feat):
         """Encode feature in `beam_search` (optional).
 
@@ -139,6 +144,7 @@ predefined_asr = {
         "rnn": "espnet.nets.pytorch_backend.e2e_asr:E2E",
         "transducer": "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
         "transformer": "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E",
+        "conformer": "espnet.nets.pytorch_backend.e2e_asr_conformer:E2E",
     },
     "chainer": {
         "rnn": "espnet.nets.chainer_backend.e2e_asr:E2E",

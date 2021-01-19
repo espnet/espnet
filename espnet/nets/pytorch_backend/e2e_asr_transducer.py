@@ -5,6 +5,7 @@ from dataclasses import asdict
 from distutils.util import strtobool
 import logging
 import math
+import numpy
 
 import chainer
 import torch
@@ -352,6 +353,11 @@ class E2E(ASRInterface, torch.nn.Module):
             from espnet.asr.asr_utils import PlotAttentionReport
 
         return PlotAttentionReport
+
+    @property
+    def total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        return self.encoder.conv_subsampling_factor * numpy.prod(self.subsample)
 
     def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0, training=True):
         """Construct an E2E object for transducer model."""
