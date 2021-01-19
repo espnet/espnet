@@ -66,11 +66,8 @@ use_dereverb_ref=false
 use_noise_ref=false
 
 # Pretrained model related
-# The number of --pretrain_path and --pretrain_key must be same.
-pretrain_path=
-# if pretrain_key is None -> model
-# elif pretrain_key is str e.g. "encoder" -> model.encoder
-pretrain_key=
+# The number of --init_param must be same.
+init_param=
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
@@ -140,8 +137,7 @@ Options:
                          for training a denoising model (default="${use_noise_ref}")
 
     # Pretrained model related
-    --pretrain_path    # pretrained model path (default="${pretrain_path}")
-    --pretrain_key     # name of module to be initialized from the pretrained model (default="${pretrain_key}")
+    --init_param    # pretrained model path and module name (default="${init_param}")
 
     # Enhancement related
     --inference_args   # Arguments for enhancement in the inference stage (default="${inference_args}")
@@ -483,7 +479,6 @@ if ! "${skip_train}"; then
         # "sound" supports "wav", "flac", etc.
         _type=sound
         _fold_length="$((enh_speech_fold_length * 100))"
-        # _opts+="--frontend_conf fs=${fs} "
 
         # prepare train and valid data parameters
         _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
@@ -547,6 +542,7 @@ if ! "${skip_train}"; then
                 ${_fold_length_param} \
                 --resume true \
                 --output_dir "${enh_exp}" \
+                ${init_param:+--init_param $init_param} \
                 ${_opts} ${enh_args}
 
     fi
@@ -662,6 +658,8 @@ if ! "${skip_eval}"; then
                     --output_dir "${_logdir}"/output.JOB \
                     ${_ref_scp} \
                     ${_inf_scp} \
+                    --enh_train_config "${enh_exp}"/config.yaml \
+                    --enh_model_file "${enh_exp}"/"${inference_model}" \
                     --ref_channel ${ref_channel}
 
             for spk in $(seq "${spk_num}"); do
@@ -720,17 +718,11 @@ if "${score_with_asr}"; then
                 mkdir -p "${_logdir}"
                 mkdir -p "${_decode_dir}"
 
-
-                # cp ${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk} ${_ddir}/wav_ori.scp
-                # pick 100 utterences for debug
-                # head -100 ${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk} > ${_ddir}/wav.scp
                 cat ${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk} > ${_ddir}/wav.scp
                 cp data/${dset}/text_spk${spk} ${_ddir}/text
                 cp ${_data}/{spk2utt,utt2spk,utt2num_samples,feats_type} ${_ddir}
                 utils/fix_data_dir.sh "${_ddir}"
                 mv ${_ddir}/wav.scp ${_ddir}/wav_ori.scp
-
-                
 
                 scripts/audio/format_wav_scp.sh --nj "${inference_nj}" --cmd "${_cmd}" \
                     --out-filename "wav.scp" \
@@ -784,7 +776,6 @@ if "${score_with_asr}"; then
             _cmd=${decode_cmd}
             _ngpu=0
         fi
-
 
         for dset in ${valid_set} ${test_sets}; do
             _inf_dir="${enh_exp}/enhanced_${dset}"
@@ -860,16 +851,11 @@ if "${score_with_asr}"; then
                     log "Write ${_type} result in ${_scoredir}/result.txt"
                     grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
                 done
-
             done
-
         done
     fi
-
 else
-
     log "Skip the stages for scoring with asr"
-
 fi
 
 
