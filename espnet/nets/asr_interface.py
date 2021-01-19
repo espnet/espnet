@@ -113,9 +113,10 @@ class ASRInterface:
         return PlotCTCReport
 
     @property
-    def total_subsampling_factor(self):
+    def get_total_subsampling_factor(self):
         """Get total subsampling factor."""
-        raise NotImplementedError("total_subsampling_factor method is not implemented")
+        raise NotImplementedError(
+            "get_total_subsampling_factor method is not implemented")
 
     def encode(self, feat):
         """Encode feature in `beam_search` (optional).

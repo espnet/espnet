@@ -91,7 +91,7 @@ def train(args):
     model_class = dynamic_import(args.model_module)
     model = model_class(idim, odim, args, flag_return=False)
     assert isinstance(model, ASRInterface)
-    total_subsampling_factor = model.total_subsampling_factor
+    total_subsampling_factor = model.get_total_subsampling_factor()
 
     # write model config
     if not os.path.exists(args.outdir):
