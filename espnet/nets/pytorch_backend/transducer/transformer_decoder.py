@@ -71,7 +71,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         self.blank = blank
 
-    def init_state(self, batch_size=None, device=None):
+    def init_state(self, batch_size=None, device=None, dtype=None):
         """Initialize decoder states.
 
         Args:
