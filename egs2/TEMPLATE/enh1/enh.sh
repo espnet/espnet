@@ -658,8 +658,6 @@ if ! "${skip_eval}"; then
                     --output_dir "${_logdir}"/output.JOB \
                     ${_ref_scp} \
                     ${_inf_scp} \
-                    --enh_train_config "${enh_exp}"/config.yaml \
-                    --enh_model_file "${enh_exp}"/"${inference_model}" \
                     --ref_channel ${ref_channel}
 
             for spk in $(seq "${spk_num}"); do
