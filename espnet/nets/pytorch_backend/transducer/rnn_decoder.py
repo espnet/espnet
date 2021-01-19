@@ -70,12 +70,13 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         self.ignore_id = -1
         self.blank = blank
 
-    def init_state(self, batch_size, device):
+    def init_state(self, batch_size, device, dtype):
         """Initialize decoder states.
 
         Args:
             batch_size (int): Batch size
             device (torch.device): device id
+            dtype (torch.dtype): Tensor data type
 
         Returns:
             (tuple): batch of decoder states
@@ -87,6 +88,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             batch_size,
             self.dunits,
             device=device,
+            dtype=dtype,
         )
 
         if self.dtype == "lstm":
@@ -95,6 +97,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 batch_size,
                 self.dunits,
                 device=device,
+                dtype=dtype,
             )
 
             return (h_n, c_n)
@@ -116,7 +119,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         """
         h_prev, c_prev = state
-        h_next, c_next = self.init_state(y.size(0), y.device)
+        h_next, c_next = self.init_state(y.size(0), y.device, y.dtype)
 
         for layer in range(self.dlayers):
             if self.dtype == "lstm":
@@ -150,7 +153,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """
         batch = hs_pad.size(0)
 
-        state = self.init_state(batch, hs_pad.device)
+        state = self.init_state(batch, hs_pad.device, hs_pad.dtype)
         eys = self.dropout_embed(self.embed(ys_in_pad))
 
         h_dec, _ = self.rnn_forward(eys, state)
@@ -210,7 +213,8 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         """
         final_batch = len(hyps)
         device = next(self.parameters()).device
-
+        dtype = next(self.parameters()).dtype
+        
         process = []
         done = [None for _ in range(final_batch)]
 
@@ -229,7 +233,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
             tokens = torch.LongTensor(_tokens).view(batch, 1).to(device=device)
 
-            dec_state = self.init_state(batch, device)
+            dec_state = self.init_state(batch, device, dtype)
             dec_state = self.create_batch_states(dec_state, _states)
 
             ey = self.embed(tokens)
