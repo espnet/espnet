@@ -73,7 +73,7 @@ def plot_multi_head_attention(
     :param int iaxis: dimension to access input
     :param str okey: key to access output
     :param int oaxis: dimension to access output
-    :param subsampling_factor: subsampling rate in encoder
+    :param subsampling_factor: subsampling factor in encoder
 
     """
     for name, att_ws in attn_dict.items():
@@ -120,6 +120,7 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
         kwargs["iaxis"] = self.iaxis
         kwargs["okey"] = self.okey
         kwargs["oaxis"] = self.oaxis
+        kwargs["subsampling_factor"] = self.factor
         plot_multi_head_attention(*args, **kwargs)
 
     def __call__(self, trainer):
