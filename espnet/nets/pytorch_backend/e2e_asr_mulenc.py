@@ -314,9 +314,13 @@ class E2E(ASRInterface, torch.nn.Module):
     def get_total_subsampling_factor(self):
         """Get total subsampling factor."""
         if isinstance(self.enc, Encoder):
-            return self.enc[0].conv_subsampling_factor * int(np.prod(self.subsample))
+            return self.enc.conv_subsampling_factor * int(
+                np.prod(self.subsample_list[0])
+            )
         else:
-            return self.enc.conv_subsampling_factor * int(np.prod(self.subsample))
+            return self.enc[0].conv_subsampling_factor * int(
+                np.prod(self.subsample_list[0])
+            )
 
     def __init__(self, idims, odim, args):
         """Initialize this class with python-level args.
