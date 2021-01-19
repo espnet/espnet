@@ -215,11 +215,11 @@ class SeparateSpeech:
         assert len(waves[0]) == batch_size, (len(waves[0]), batch_size)
         if self.normalize_output_wav:
             waves = [
-                (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).squeeze().cpu().numpy()
+                (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).cpu().numpy()
                 for w in waves
-            ]  # list[(sample,batch)]
+            ]  # list[(batch, sample)]
         else:
-            waves = [w.squeeze().cpu().numpy() for w in waves]
+            waves = [w.cpu().numpy() for w in waves]
 
         return waves
 
@@ -354,8 +354,9 @@ def inference(
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         waves = separate_speech(**batch)
-        for (i, w) in enumerate(waves):
-            writers[i][keys[0]] = fs, w
+        for (spk, w) in enumerate(waves):
+            for b in range(batch_size):
+                writers[spk][keys[b]] = fs, w[b]
 
     for writer in writers:
         writer.close()
