@@ -152,7 +152,7 @@ class BeamSearchTransducer:
             hyp: 1-best decoding results
 
         """
-        dec_state = self.decoder.init_state(1, h.device)
+        dec_state = self.decoder.init_state(1, h.device, h.dtype)
 
         hyp = Hypothesis(score=0.0, yseq=[self.blank], dec_state=dec_state)
         cache = {}
@@ -187,7 +187,7 @@ class BeamSearchTransducer:
         beam_k = min(beam, (self.vocab_size - 1))
 
         _blank = h.new_zeros(1, dtype=torch.long)
-        dec_state = self.decoder.init_state(1, h.device)
+        dec_state = self.decoder.init_state(1, h.device, h.dtype)
 
         kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank], dec_state=dec_state)]
         cache = {}
@@ -259,7 +259,7 @@ class BeamSearchTransducer:
         """
         beam = min(self.beam_size, self.vocab_size)
 
-        beam_state = self.decoder.init_state(beam, h.device)
+        beam_state = self.decoder.init_state(beam, h.device, h.dtype)
 
         B = [
             Hypothesis(
@@ -372,7 +372,7 @@ class BeamSearchTransducer:
         h_length = int(h.size(0))
         u_max = min(self.u_max, (h_length - 1))
 
-        beam_state = self.decoder.init_state(beam, h.device)
+        beam_state = self.decoder.init_state(beam, h.device, h.dtype)
 
         B = [
             Hypothesis(
@@ -494,7 +494,7 @@ class BeamSearchTransducer:
 
         _blank = h.new_zeros(1, dtype=torch.long)
 
-        beam_state = self.decoder.init_state(beam, h.device)
+        beam_state = self.decoder.init_state(beam, h.device, h.dtype)
 
         init_tokens = [
             NSCHypothesis(
