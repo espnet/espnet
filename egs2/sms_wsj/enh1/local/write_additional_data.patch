@@ -1,0 +1,62 @@
+diff --git a/sms_wsj/database/create_json_for_written_files.py b/sms_wsj/database/create_json_for_written_files.py
+index 1e31bec..96df974 100644
+--- a/sms_wsj/database/create_json_for_written_files.py
++++ b/sms_wsj/database/create_json_for_written_files.py
+@@ -44,11 +44,12 @@ def create_json(db_dir, intermediate_json_path, write_all, snr_range=(20, 30)):
+                         for k in range(len(ex['speaker_id']))
+                     ]
+ 
+-            ex['audio_path']['speech_source'] = [
+-                # .../sms_wsj/cache/wsj_8k_zeromean/13-11.1/wsj1/si_tr_s/4ax/4axc0218.wav
+-                str(db_dir.joinpath(*Path(rir).parts[-6:]))
+-                for rir in ex['audio_path']['speech_source']
+-            ]
++            if 'speech_source' not in KEY_MAPPER:
++                ex['audio_path']['speech_source'] = [
++                    # .../sms_wsj/cache/wsj_8k_zeromean/13-11.1/wsj1/si_tr_s/4ax/4axc0218.wav
++                    str(db_dir.joinpath(*Path(rir).parts[-6:]))
++                    for rir in ex['audio_path']['speech_source']
++                ]
+ 
+             ex['audio_path']['rir'] = [
+                 # .../sms_wsj/cache/rirs/train_si284/0/h_0.wav
+@@ -101,7 +102,7 @@ def main(db_dir, intermed_json_path , write_all, json_path, snr_range):
+     message = f'Not all wav files seem to exists, you have {num_wav_files},' \
+         f' please check your db directory: {db_dir}'
+     if write_all:
+-        assert num_wav_files == (2 * 2 + 2) * 35875, message
++        assert num_wav_files == (4 * 2 + 2) * 35875, message
+     else:
+         assert num_wav_files == 35875, message
+     updated_json = create_json(db_dir, intermed_json_path , write_all,
+diff --git a/sms_wsj/database/write_files.py b/sms_wsj/database/write_files.py
+index 6fb7051..bf97419 100644
+--- a/sms_wsj/database/write_files.py
++++ b/sms_wsj/database/write_files.py
+@@ -25,6 +25,8 @@ KEY_MAPPER = {
+     'speech_reverberation_tail': 'tail',
+     'noise_image': 'noise',
+     'observation': 'observation',
++    'speech_image': 'reverb_source',
++    'speech_source': 'source_signal',
+ }
+ 
+ 
+@@ -135,7 +137,7 @@ def write_wavs(dst_dir, json_path, write_all=False, snr_range=(20, 30)):
+         print(f"Written {len(created_files)} wav files.")
+         if write_all:
+             # TODO Less, if you do a test run.
+-            expect = (2 * 2 + 2) * 35875
++            expect = (4 * 2 + 2) * 35875
+             assert len(created_files) == expect, (
+                 len(created_files), expect
+             )
+@@ -175,7 +177,7 @@ def main(dst_dir, json_path, write_all, snr_range):
+             write_files = False
+             num_wav_files = len(check_files(dst_dir))
+             # TODO Less, if you do a test run.
+-            if write_all and num_wav_files == (2 * 2 + 2) * 35875:
++            if write_all and num_wav_files == (4 * 2 + 2) * 35875:
+                 print('Wav files seem to exist. They are not overwritten.')
+             elif (
+                 not write_all and num_wav_files == 35875
