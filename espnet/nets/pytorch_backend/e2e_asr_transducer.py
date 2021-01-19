@@ -356,7 +356,12 @@ class E2E(ASRInterface, torch.nn.Module):
 
     def get_total_subsampling_factor(self):
         """Get total subsampling factor."""
-        return self.encoder.conv_subsampling_factor * int(numpy.prod(self.subsample))
+        if "transformer" in self.etype:
+            return self.encoder.conv_subsampling_factor * int(
+                numpy.prod(self.subsample)
+            )
+        else:
+            return self.enc.conv_subsampling_factor * int(numpy.prod(self.subsample))
 
     def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0, training=True):
         """Construct an E2E object for transducer model."""

@@ -44,7 +44,12 @@ class Encoder(torch.nn.Module):
         """Construct an Transformer encoder object."""
         super().__init__()
 
-        self.embed, self.encoders, self.enc_out = build_blocks(
+        (
+            self.embed,
+            self.encoders,
+            self.enc_out,
+            self.conv_subsampling_factor,
+        ) = build_blocks(
             "encoder",
             idim,
             input_layer,
