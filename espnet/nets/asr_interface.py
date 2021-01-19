@@ -112,7 +112,6 @@ class ASRInterface:
 
         return PlotCTCReport
 
-    @property
     def get_total_subsampling_factor(self):
         """Get total subsampling factor."""
         raise NotImplementedError(

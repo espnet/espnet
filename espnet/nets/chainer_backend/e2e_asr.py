@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -43,10 +40,9 @@ class E2E(ChainerASRInterface):
         """Add arguments."""
         return E2E_pytorch.add_arguments(parser)
 
-    @property
-    def total_subsampling_factor(self):
+    def get_total_subsampling_factor(self):
         """Get total subsampling factor."""
-        return self.enc.conv_subsampling_factor * np.prod(self.subsample)
+        return self.enc.conv_subsampling_factor * int(np.prod(self.subsample))
 
     def __init__(self, idim, odim, args, flag_return=True):
         """Construct an E2E object.
