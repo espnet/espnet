@@ -30,11 +30,11 @@ model_conf:
     mask_type: psm
 encoder: stft
 encoder_conf:
-    n_fft: 512
+    n_fft: 256
     hop_length: 128
 decoder: stft
 decoder_conf:
-    n_fft: 512
+    n_fft: 256
     hop_length: 128
 separator: rnn
 separator_conf:
@@ -42,5 +42,5 @@ separator_conf:
     num_spk: 2
     nonlinear: relu
     layer: 3
-    unit: 512
-    dropout: 0.2
+    unit: 896
+    dropout: 0.5
