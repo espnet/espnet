@@ -139,6 +139,11 @@ class E2E(ChainerASRInterface):
         )
         return parser
 
+    @property
+    def total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        return self.encoder.conv_subsampling_factor * np.prod(self.subsample)
+
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
         """Initialize the transformer."""
         chainer.Chain.__init__(self)
