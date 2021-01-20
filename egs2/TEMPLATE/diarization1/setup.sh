@@ -41,7 +41,7 @@ done
 
 
 # Symlinks to TEMPLATE/diarization1
-for f in enh.sh path.sh scripts; do
+for f in diarization.sh path.sh scripts; do
     target=../../TEMPLATE/diarization1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
