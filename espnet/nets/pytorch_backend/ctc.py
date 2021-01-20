@@ -41,6 +41,10 @@ class CTC(torch.nn.Module):
             import warpctc_pytorch as warp_ctc
 
             self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
+        elif self.ctc_type == "gtnctc":
+            from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
+
+            self.ctc_loss = GTNCTCLossFunction.apply
         else:
             raise ValueError(
                 'ctc_type must be "builtin" or "warpctc": {}'.format(self.ctc_type)
@@ -61,6 +65,10 @@ class CTC(torch.nn.Module):
             return loss
         elif self.ctc_type == "warpctc":
             return self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+        elif self.ctc_type == "gtnctc":
+            targets = [t.tolist() for t in th_target]
+            log_probs = torch.nn.functional.log_softmax(th_pred, dim=2)
+            return self.ctc_loss(log_probs, targets, 0, "none")
         else:
             raise NotImplementedError
 
@@ -102,7 +110,8 @@ class CTC(torch.nn.Module):
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
         dtype = ys_hat.dtype
-        ys_hat = ys_hat.transpose(0, 1)
+        if self.ctc_type != "gtnctc":
+            ys_hat = ys_hat.transpose(0, 1)
         if self.ctc_type == "warpctc" or dtype == torch.float16:
             # warpctc only supports float32
             # torch.ctc does not support float16 (#1751)
@@ -110,6 +119,9 @@ class CTC(torch.nn.Module):
         if self.ctc_type == "builtin":
             # use GPU when using the cuDNN implementation
             ys_true = to_device(hs_pad, ys_true)
+        if self.ctc_type == "gtnctc":
+            # keep as list for gtn
+            ys_true = ys
         self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
             dtype=dtype
         )

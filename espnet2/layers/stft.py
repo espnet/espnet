@@ -141,6 +141,14 @@ class Stft(torch.nn.Module, InversibleInterface):
                 )
             istft = torchaudio.functional.istft
 
+        if self.window is not None:
+            window_func = getattr(torch, f"{self.window}_window")
+            window = window_func(
+                self.win_length, dtype=input.dtype, device=input.device
+            )
+        else:
+            window = None
+
         if isinstance(input, ComplexTensor):
             input = torch.stack([input.real, input.imag], dim=-1)
         assert input.shape[-1] == 2
@@ -151,6 +159,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             n_fft=self.n_fft,
             hop_length=self.hop_length,
             win_length=self.win_length,
+            window=window,
             center=self.center,
             normalized=self.normalized,
             onesided=self.onesided,
