@@ -17,11 +17,13 @@ from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
+    LegacyRelPositionMultiHeadedAttention,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,  # noqa: H301
     ScaledPositionalEncoding,  # noqa: H301
     RelPositionalEncoding,  # noqa: H301
+    LegacyRelPositionalEncoding,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
@@ -99,6 +101,9 @@ class Encoder(torch.nn.Module):
         elif pos_enc_layer_type == "rel_pos":
             assert selfattention_layer_type == "rel_selfattn"
             pos_enc_class = RelPositionalEncoding
+        elif pos_enc_layer_type == "legacy_rel_pos":
+            pos_enc_class = LegacyRelPositionalEncoding
+            assert selfattention_layer_type == "legacy_rel_selfattn"
         else:
             raise ValueError("unknown pos_enc_layer: " + pos_enc_layer_type)
 
@@ -140,6 +145,14 @@ class Encoder(torch.nn.Module):
         if selfattention_layer_type == "selfattn":
             logging.info("encoder self-attention layer type = self-attention")
             encoder_selfattn_layer = MultiHeadedAttention
+            encoder_selfattn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
+        elif selfattention_layer_type == "legacy_rel_selfattn":
+            assert pos_enc_layer_type == "legacy_rel_pos"
+            encoder_selfattn_layer = LegacyRelPositionMultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
                 attention_dim,

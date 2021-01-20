@@ -10,6 +10,9 @@ Refer to: https://arxiv.org/abs/2005.08100
 
 """
 
+from distutils.version import LooseVersion
+import logging
+
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
 from espnet.nets.pytorch_backend.conformer.argument import (
@@ -50,6 +53,21 @@ class E2E(E2ETransformer):
         super().__init__(idim, odim, args, ignore_id)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
+
+        # check version
+        self.version = getattr(args, "version", None)
+        if self.version is None or LooseVersion(self.version) < LooseVersion("0.9.7"):
+            if args.transformer_encoder_pos_enc_layer_type == "rel_pos":
+                args.transformer_encoder_pos_enc_layer_type = "legacy_rel_pos"
+                logging.warning(
+                    "Using legacy_rel_pos and it will be deprecated in the future."
+                )
+            if args.transformer_encoder_selfattn_layer_type == "rel_selfattn":
+                args.transformer_encoder_selfattn_layer_type = "legacy_rel_selfattn"
+                logging.warning(
+                    "Using legacy_rel_selfattn and it will be deprecated in the future."
+                )
+
         self.encoder = Encoder(
             idim=idim,
             attention_dim=args.adim,
