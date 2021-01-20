@@ -283,9 +283,9 @@ def build_input_layer(
             1,
         )
     elif input_layer == "conv2d":
-        return Conv2dSubsampling(idim, odim, dropout_rate, pos_enc_class_subsampling), 1
+        return Conv2dSubsampling(idim, odim, dropout_rate, pos_enc_class_subsampling), 4
     elif input_layer == "vgg2l":
-        return VGG2L(idim, odim, pos_enc_class_subsampling), 1
+        return VGG2L(idim, odim, pos_enc_class_subsampling), 4
     elif input_layer == "embed":
         return (
             torch.nn.Sequential(
