@@ -11,6 +11,38 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+# FORTH RESULTS
+
+- Use phoneme + accent + pause as the inputs
+
+## Environments
+- date: `Wed Jan 13 22:49:20 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.6`
+- pytorch version: `pytorch 1.5.1`
+- Git hash: `3437dbbceacf5e83c25fe8b426c5d3cbe33333dc`
+  - Commit date: `Tue Jan 12 17:28:12 2021 -0500`
+
+## Pretrained Models
+
+### jsut_tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.loss.ave
+- https://zenodo.org/record/4433194
+
+### jsut_tts_train_transformer_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.loss.ave
+- https://zenodo.org/record/4433196
+
+### jsut_tts_train_fastspeech_tacotron2_teacher_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.loss.ave
+- https://zenodo.org/record/4436450
+
+### jsut_tts_train_conformer_fastspeech_tacotron2_teacher_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.loss.ave
+- https://zenodo.org/record/4436448
+
+### jsut_tts_train_fastspeech_transformer_teacher_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.loss.ave
+- https://zenodo.org/record/4433200
+
+### jsut_tts_train_conformer_fastspeech_transformer_teacher_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.loss.ave
+- https://zenodo.org/record/4433198
+
 
 # THIRD RESULTS
 
