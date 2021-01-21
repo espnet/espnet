@@ -7,7 +7,6 @@ set -o pipefail
 
 sample_rate=16k
 
-
 # train_set=tr05_simu_isolated_6ch_track
 # valid_set=dt05_simu_isolated_6ch_track
 # test_sets="et05_simuz_isolated_6ch_track"
@@ -23,7 +22,6 @@ test_sets="et05_simu_isolated_1ch_track"
     --fs ${sample_rate} \
     --ngpu 2 \
     --spk_num 1 \
-    --local_data_opts "--sample_rate ${sample_rate}" \
     --enh_config conf/tuning/train_enh_blstm_tf.yaml \
     --use_dereverb_ref false \
     --use_noise_ref false \

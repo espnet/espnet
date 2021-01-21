@@ -42,9 +42,14 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Simulation"
 
+    if ! command -v matlab &> /dev/null; then
+        log "You don't have matlab"
+        exit 2
+    fi
+
     # prepare simulation data for 6ch track:
     log "Generating simulation data and storing in local/nn-gev/data"
-    odir=local/nn-gev/data; mkdir $odir
+    odir=local/nn-gev/data; mkdir -p $odir
     ${train_cmd} $odir/simulation.log matlab -nodisplay -nosplash -r "addpath('local'); CHiME3_simulate_data_patched_parallel(1,$nj,'${CHIME4}','${CHIME3}');exit"
 fi
 

@@ -126,13 +126,13 @@ chmod +x $cmdfile
 # 2speakers_anechoic/wav16k/max/tt/s1 	  5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
 # 2speakers_anechoic/wav16k/max/tt/s2 	  5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
 # -----------------------------------------------------------------------------------------
-# 2speakers_anechoic/wav8k/min/tr/mix 	  27 GiB      30h 22m 49s   3000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/tr/s1 	    27 GiB      30h 22m 49s   3000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/tr/s2 	    27 GiB      30h 22m 49s   3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/mix 	  27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s1 	    27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s2 	    27 GiB      30h 22m 49s   20000 * 8 (8 channels)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# 2speakers_anechoic/wav8k/min/cv/mix 	  6.7 GiB     7h 40m 21s    3000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/cv/s1 	    6.7 GiB     7h 40m 21s    3000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/cv/s2 	    6.6 GiB     7h 40m 21s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/mix 	  6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s1 	    6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s2 	    6.6 GiB     7h 40m 21s    5000 * 8 (8 channels)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # 2speakers_anechoic/wav8k/min/tt/mix 	  4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
 # 2speakers_anechoic/wav8k/min/tt/s1 	    4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)

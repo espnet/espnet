@@ -22,6 +22,9 @@ EOF
 . ./db.sh
 
 wsj_full_wav=$PWD/data/wsj0/wsj0_wav
+# Path to the directory containing WHAM! noise
+# (will download from the official site if not specified)
+wham_noise=
 wham_wav=$PWD/data/wham/2speakers
 wham_scripts=$PWD/data/wham
 
@@ -48,6 +51,7 @@ fi
 ### This part is for WHAM!
 ### Download mixture scripts and create mixtures for 2 speakers
 local/wham_create_mixture.sh --min-or-max ${min_or_max} --sample-rate ${sample_rate} \
+    ${wham_noise:+--wham_noise $wham_noise} \
     ${wham_scripts} ${WSJ0} ${wsj_full_wav} \
     ${wham_wav} || exit 1;
 

@@ -21,6 +21,9 @@ EOF
 
 . ./db.sh
 
+# Path to the directory containing WHAM! noise
+# (will download from the official site if not specified)
+wham_noise=
 
 min_or_max=max
 sample_rate=16k
@@ -36,10 +39,6 @@ if [ ! -e "${LIBRISPEECH}" ]; then
     log "Fill the value of 'LIBRISPEECH' of db.sh"
     exit 1
 fi
-if [ ! -e "${WHAM}" ]; then
-    log "Fill the value of 'WHAM' of db.sh"
-    exit 1
-fi
 
 cdir=$PWD
 
@@ -47,8 +46,22 @@ cdir=$PWD
 git clone https://github.com/JorisCos/LibriMix ./data/LibriMix
 
 
-# the simulation program will write data to wham_noie, so copy it to user directory in case of permission issues
-rsync -r -P ${WHAM} ${cdir}/data/wham_noise
+# Download WHAM noise data
+if [ -z "${wham_noise}" ]; then
+  # 17.65 GB unzipping to 35 GB
+  wham_noise_url=https://storage.googleapis.com/whisper-public/wham_noise.zip
+  wget --continue -O "${cdir}/data/wham_noise.zip" ${wham_noise_url}
+  if [ $(ls "${cdir}/data/wham_noise" 2>/dev/null | wc -l) -eq 4 ]; then
+    echo "'${cdir}/data/wham_noise/' already exists. Skipping..."
+  else
+    unzip "${cdir}/data/wham_noise.zip" -d "${cdir}/data/"
+  fi
+  wham_noise="${cdir}/data/wham_noise"
+else
+  # The simulation program will write data to wham_noie,
+  # so copy it to user directory in case of permission issues.
+  rsync -r -P "${wham_noise}" "${cdir}/data/wham_noise"
+fi
 
 (
 cd ./data/LibriMix
