@@ -51,7 +51,8 @@ if [ -z "${wham_noise}" ]; then
   # 17.65 GB unzipping to 35 GB
   wham_noise_url=https://storage.googleapis.com/whisper-public/wham_noise.zip
   wget --continue -O "${cdir}/data/wham_noise.zip" ${wham_noise_url}
-  if [ $(ls "${cdir}/data/wham_noise" 2>/dev/null | wc -l) -eq 4 ]; then
+  num_wavs=$(find "${cdir}/data/wham_noise" -iname "*.wav" | wc -l)
+  if [ "${num_wavs}" = "4" ]; then
     echo "'${cdir}/data/wham_noise/' already exists. Skipping..."
   else
     unzip "${cdir}/data/wham_noise.zip" -d "${cdir}/data/"

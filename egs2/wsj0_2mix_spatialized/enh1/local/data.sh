@@ -25,6 +25,12 @@ sample_rate=8k
 . utils/parse_options.sh
 . ./db.sh
 
+if [ $# -ne 0 ]; then
+    echo "${help_message}"
+    exit 1;
+fi
+
+
 local/wsj0_2mix_data.sh --min_or_max ${min_or_max} --sample_rate ${sample_rate}
 
 # wsj_full_wav=$PWD/data/wsj0/wsj0_wav

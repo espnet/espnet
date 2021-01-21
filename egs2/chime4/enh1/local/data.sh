@@ -47,7 +47,21 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         exit 2
     fi
 
-    # prepare simulation data for 6ch track:
+    # prepare simulation data for 6ch track (This takes more than ? hours)
+    # Expected data directories to be generated:
+    #   - local/nn-gev/data/audio/16kHz/isolated_ext/{tr05_bus_simu,tr05_caf_simu,tr05_ped_simu}/*.CH?.{Clean,Noise}.wav
+    #   - local/nn-gev/data/audio/16kHz/isolated/{tr05_bus_simu,tr05_caf_simu,tr05_ped_simu}/*.CH?.wav
+    # ----------------------------------------------------------------------------------------------
+    # directory                     disk usage    duration    #samples
+    # ----------------------------------------------------------------------------------------------
+    # isolated_ext/tr05_bus_simu    ? GiB         ?h m s      ? * 6 * 2 (6 channels, Clean & Noise)
+    # isolated_ext/tr05_caf_simu    ? GiB         ?h m s      ? * 6 * 2 (6 channels, Clean & Noise)
+    # isolated_ext/tr05_ped_simu    ? GiB         ?h m s      ? * 6 * 2 (6 channels, Clean & Noise)
+    # isolated/tr05_bus_simu        ? GiB         ?h m s      ? * 6 (6 channels, Noisy)
+    # isolated/tr05_caf_simu        ? GiB         ?h m s      ? * 6 (6 channels, Noisy)
+    # isolated/tr05_ped_simu        ? GiB         ?h m s      ? * 6 (6 channels, Noisy)
+    # ----------------------------------------------------------------------------------------------
+
     log "Generating simulation data and storing in local/nn-gev/data"
     odir=local/nn-gev/data; mkdir -p $odir
     ${train_cmd} $odir/simulation.log matlab -nodisplay -nosplash -r "addpath('local'); CHiME3_simulate_data_patched_parallel(1,$nj,'${CHIME4}','${CHIME3}');exit"
