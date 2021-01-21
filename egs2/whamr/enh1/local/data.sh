@@ -23,9 +23,11 @@ EOF
 . ./db.sh
 
 wsj_full_wav=$PWD/data/wsj0/wsj0_wav
+# Path to the directory containing WHAM! noise
+# (will download from the official site if not specified)
+wham_noise=
 whamr_wav=$PWD/data/whamr/2speakers
 whamr_scripts=$PWD/data/whamr
-
 
 other_text=data/local/other_text/text
 nlsyms=data/nlsyms.txt
@@ -50,6 +52,7 @@ fi
 ### This part is for WHAMR!
 ### Download mixture scripts and create mixtures for 2 speakers
 local/whamr_create_mixture.sh --mono ${mono} --min-or-max ${min_or_max} --sample-rate ${sample_rate} \
+    ${wham_noise:+--wham_noise $wham_noise} \
     ${whamr_scripts} ${WSJ0} ${wsj_full_wav} \
     ${whamr_wav} || exit 1;
 

@@ -32,17 +32,17 @@ wsj_2mix_wav=$PWD/data/wsj0_mix
 wsj_2mix_spatialized_wav=$PWD/data/wsj0_mix_spatialized
 wsj_2mix_spatialized_scripts=$PWD/data/wsj0_mix_spatialized/scripts
 
-# train_set: tr_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
-#            tr_spatialized_reverb_multich_${min_or_max}_${sample_rate}
-# train_dev: cv_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
-#            cv_spatialized_reverb_multich_${min_or_max}_${sample_rate}
-# recog_set: tt_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
-#            tt_spatialized_reverb_multich_${min_or_max}_${sample_rate}
-
 ### This part is for spatializing WSJ0 mix
 ### Download spatialize_mixture scripts and spatialize mixtures for 2 speakers
 local/spatialize_wsj0_mix.sh --min_or_max ${min_or_max} --sample_rate ${sample_rate} \
     ${wsj_2mix_spatialized_scripts} ${wsj_2mix_wav} ${wsj_2mix_spatialized_wav} || exit 1;
+# Datasets to be generated:
+#   train_set: tr_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
+#              tr_spatialized_reverb_multich_${min_or_max}_${sample_rate}
+#   train_dev: cv_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
+#              cv_spatialized_reverb_multich_${min_or_max}_${sample_rate}
+#   recog_set: tt_spatialized_anechoic_multich_${min_or_max}_${sample_rate}
+#              tt_spatialized_reverb_multich_${min_or_max}_${sample_rate}
 local/wsj0_2mix_spatialized_data_prep.sh --min_or_max ${min_or_max} \
     --sample_rate ${sample_rate} data ${wsj_2mix_spatialized_wav} || exit 1;
 

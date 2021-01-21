@@ -45,7 +45,7 @@ if [ -z "$wham_noise" ]; then
   if [ $(ls ${dir}/wham_noise 2>/dev/null | wc -l) -eq 4 ]; then
     echo "'${dir}/wham_noise/' already exists. Skipping..."
   else
-    unzip ${wdir}/wham_noise.tar.gz -d ${dir}
+    unzip ${wdir}/wham_noise.zip -d ${dir}
   fi
   wham_noise=${dir}/wham_noise
 fi

@@ -32,9 +32,14 @@ if [ $# -ne 0 ]; then
     exit 1;
 fi
 
-# train_set="tr_"${min_or_max}_${sample_rate}
-# train_dev="cv_"${min_or_max}_${sample_rate}
-# recog_set="tt_"${min_or_max}_${sample_rate}
+if [ ! -e "${LIBRISPEECH}" ]; then
+    log "Fill the value of 'LIBRISPEECH' of db.sh"
+    exit 1
+fi
+if [ ! -e "${WHAM}" ]; then
+    log "Fill the value of 'WHAM' of db.sh"
+    exit 1
+fi
 
 cdir=$PWD
 
@@ -45,8 +50,7 @@ git clone https://github.com/JorisCos/LibriMix ./data/LibriMix
 # the simulation program will write data to wham_noie, so copy it to user directory in case of permission issues
 rsync -r -P ${WHAM} ${cdir}/data/wham_noise
 
-# false &&
-{
+(
 cd ./data/LibriMix
 librimix_outdir=./libri_mix_single
 
@@ -64,13 +68,8 @@ do
     --freqs 8k 16k \
     --modes min max \
     --types mix_clean mix_both mix_single
-    # --types mix_single
   done
-
-  cd ../..
-}
-
-exit
+)
 
 mkdir -p data/dev
 mkdir -p data/test

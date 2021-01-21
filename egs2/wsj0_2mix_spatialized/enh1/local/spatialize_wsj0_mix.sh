@@ -111,6 +111,33 @@ chmod +x $cmdfile
 #   - ${wsj0_2mix_spatialized_wav}/RIRs_16k/rir_*.mat
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_anechoic/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_reverb/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav
+# -----------------------------------------------------------------------------------------
+# directory (same for 2speakers_reverb)   disk usage  duration      #samples
+# -----------------------------------------------------------------------------------------
+# 2speakers_anechoic/wav16k/max/tr/mix 	  41  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tr/s1 	  34  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tr/s2 	  33  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav16k/max/cv/mix 	  11  GiB     11h 53m 36s   5000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/cv/s1 	  8.5 GiB     11h 53m 36s   5000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/cv/s2 	  8.4 GiB     11h 53m 36s   5000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav16k/max/tt/mix 	  6.2 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tt/s1 	  5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tt/s2 	  5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# -----------------------------------------------------------------------------------------
+# 2speakers_anechoic/wav8k/min/tr/mix 	   GiB        30h 22m 49s   3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s1 	     GiB        30h 22m 49s   3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s2 	     GiB        30h 22m 49s   3000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav8k/min/cv/mix 	   GiB     h m s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s1 	     GiB     h m s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s2 	     GiB     h m s    3000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav8k/min/tt/mix 	  4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tt/s1 	    4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tt/s2 	    4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# -----------------------------------------------------------------------------------------
 cd ${dir}
 echo "Log is in ${dir}/spatialize.log"
 $train_cmd ${dir}/spatialize.log $cmdfile
