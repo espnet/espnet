@@ -1,7 +1,9 @@
 # This configuration requires 4 GPUs with 32GB memory
-batch_type: numel
-batch_bins: 30000000
-accum_grad: 3
+# minibatch related
+batch_type: folded
+batch_size: 16
+
+accum_grad: 4
 max_epoch: 60
 patience: none
 init: xavier_uniform
