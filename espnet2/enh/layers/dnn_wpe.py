@@ -20,21 +20,35 @@ class DNN_WPE(torch.nn.Module):
         taps: int = 5,
         delay: int = 3,
         use_dnn_mask: bool = True,
+        nmask: int = 1,
         nonlinear: str = "sigmoid",
         iterations: int = 1,
         normalization: bool = False,
+        eps: float = 1e-6,
+        diagonal_loading: bool = True,
+        diag_eps: float = 1e-7,
+        mask_flooring: bool = False,
+        flooring_thres: float = 1e-6,
+        use_torch_solver: bool = True,
     ):
         super().__init__()
         self.iterations = iterations
         self.taps = taps
         self.delay = delay
+        self.eps = eps
 
         self.normalization = normalization
         self.use_dnn_mask = use_dnn_mask
 
         self.inverse_power = True
+        self.diagonal_loading = diagonal_loading
+        self.diag_eps = diag_eps
+        self.mask_flooring = mask_flooring
+        self.flooring_thres = flooring_thres
+        self.use_torch_solver = use_torch_solver
 
         if self.use_dnn_mask:
+            self.nmask = nmask
             self.mask_est = MaskEstimator(
                 wtype,
                 widim,
@@ -42,14 +56,16 @@ class DNN_WPE(torch.nn.Module):
                 wunits,
                 wprojs,
                 dropout_rate,
-                nmask=1,
+                nmask=nmask,
                 nonlinear=nonlinear,
             )
+        else:
+            self.nmask = 1
 
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
-        """The forward function
+        """DNN_WPE forward function.
 
         Notation:
             B: Batch
@@ -58,65 +74,86 @@ class DNN_WPE(torch.nn.Module):
             F: Freq or Some dimension of the feature vector
 
         Args:
-            data: (B, C, T, F), double precision
+            data: (B, T, C, F)
             ilens: (B,)
         Returns:
-            data: (B, C, T, F), double precision
+            enhanced (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             ilens: (B,)
+            masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
+            power (List[torch.Tensor]): (B, F, T)
         """
         # (B, T, C, F) -> (B, F, C, T)
-        enhanced = data = data.permute(0, 3, 2, 1)
-        mask = None
+        data = data.permute(0, 3, 2, 1)
+        enhanced = [data for i in range(self.nmask)]
+        masks = None
+        power = None
 
         for i in range(self.iterations):
             # Calculate power: (..., C, T)
-            power = enhanced.real ** 2 + enhanced.imag ** 2
+            power = [enh.real ** 2 + enh.imag ** 2 for enh in enhanced]
             if i == 0 and self.use_dnn_mask:
                 # mask: (B, F, C, T)
-                (mask,), _ = self.mask_est(enhanced, ilens)
+                masks, _ = self.mask_est(data, ilens)
+                # floor masks to increase numerical stability
+                if self.mask_flooring:
+                    masks = [m.clamp(min=self.flooring_thres) for m in masks]
                 if self.normalization:
                     # Normalize along T
-                    mask = mask / mask.sum(dim=-1)[..., None]
+                    masks = [m / m.sum(dim=-1, keepdim=True) for m in masks]
                 # (..., C, T) * (..., C, T) -> (..., C, T)
-                power = power * mask
+                power = [p * masks[i] for i, p in enumerate(power)]
 
             # Averaging along the channel axis: (..., C, T) -> (..., T)
-            power = power.mean(dim=-2)
+            power = [p.mean(dim=-2).clamp(min=self.eps) for p in power]
 
             # enhanced: (..., C, T) -> (..., C, T)
             # NOTE(kamo): Calculate in double precision
-            enhanced = wpe_one_iteration(
-                data.contiguous().double(),
-                power.double(),
-                taps=self.taps,
-                delay=self.delay,
-                inverse_power=self.inverse_power,
-            )
-            enhanced = enhanced.to(dtype=data.dtype)
-            enhanced.masked_fill_(make_pad_mask(ilens, enhanced.real), 0)
+            enhanced = [
+                wpe_one_iteration(
+                    data.contiguous().double(),
+                    p.double(),
+                    taps=self.taps,
+                    delay=self.delay,
+                    inverse_power=self.inverse_power,
+                )
+                for p in power
+            ]
+            enhanced = [
+                enh.to(dtype=data.dtype).masked_fill(make_pad_mask(ilens, enh.real), 0)
+                for enh in enhanced
+            ]
 
         # (B, F, C, T) -> (B, T, C, F)
-        enhanced = enhanced.permute(0, 3, 2, 1)
-        if mask is not None:
-            mask = mask.transpose(-1, -3)
-        return enhanced, ilens, mask
+        enhanced = [enh.permute(0, 3, 2, 1) for enh in enhanced]
+        if masks is not None:
+            masks = (
+                [m.transpose(-1, -3) for m in masks]
+                if self.nmask > 1
+                else masks[0].transpose(-1, -3)
+            )
+        if self.nmask == 1:
+            enhanced = enhanced[0]
+
+        return enhanced, ilens, masks, power
 
     def predict_mask(
         self, data: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
-        """Predict mask for WPE dereverberation
+        """Predict mask for WPE dereverberation.
 
         Args:
             data (ComplexTensor): (B, T, C, F), double precision
             ilens (torch.Tensor): (B,)
         Returns:
-            masks (torch.Tensor): (B, T, C, F)
+            masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             ilens (torch.Tensor): (B,)
         """
         if self.use_dnn_mask:
-            (mask,), ilens = self.mask_est(data.permute(0, 3, 2, 1).float(), ilens)
+            masks, ilens = self.mask_est(data.permute(0, 3, 2, 1).float(), ilens)
             # (B, F, C, T) -> (B, T, C, F)
-            mask = mask.transpose(-1, -3)
+            masks = [m.transpose(-1, -3) for m in masks]
+            if self.nmask == 1:
+                masks = masks[0]
         else:
-            mask = None
-        return mask, ilens
+            masks = None
+        return masks, ilens
