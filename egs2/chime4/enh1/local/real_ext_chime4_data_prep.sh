@@ -3,8 +3,9 @@ set -e
 
 
 # Config:
-eval_flag=true # make it true when the evaluation data are released
+eval_flag=true  # make it true when the evaluation data are released
 track=6
+isolated_6ch_dir=  # used for preparing tr05_real_isolated_1ch_track
 . utils/parse_options.sh || exit 1;
 
 if [ $# -ne 2 ]; then
@@ -39,7 +40,11 @@ cd $dir
 
 if [[ "$track" == "1" ]]; then
   # 1-ch track
-  find $audio_dir/ -name '*.wav' | grep 'tr05_bus_real\|tr05_caf_real\|tr05_ped_real\|tr05_str_real' | sort -u > tr05_real_$enhan.flist
+  if [ ! -d "${isolated_6ch_dir}" ]; then
+    echo "Error: No such directory: ${isolated_6ch_dir}"
+    exit 1;
+  fi
+  find $isolated_6ch_dir/ -name '*.wav' | grep 'tr05_bus_real\|tr05_caf_real\|tr05_ped_real\|tr05_str_real' | sort -u > tr05_real_$enhan.flist
   find $audio_dir/ -name '*.wav' | grep 'dt05_bus_real\|dt05_caf_real\|dt05_ped_real\|dt05_str_real' | sort -u > dt05_real_$enhan.flist
   if $eval_flag; then
     find $audio_dir/ -name '*.wav' | grep 'et05_bus_real\|et05_caf_real\|et05_ped_real\|et05_str_real' | sort -u > et05_real_$enhan.flist
@@ -78,6 +83,10 @@ fi
 cat tr05_real.dot | sed -e 's/(\(.*\))/\1/' | awk '{print $NF "_REAL"}'> tr05_real_$enhan.ids
 cat tr05_real.dot | sed -e 's/(.*)//' > tr05_real_$enhan.txt
 paste -d" " tr05_real_$enhan.ids tr05_real_$enhan.txt | sort -k 1 > tr05_real_$enhan.trans1
+if [[ "$track" != "6" ]]; then
+  mv tr05_real_$enhan.trans1 tr05_real_$enhan.trans1.6ch
+  awk 'FNR==NR{k=$1; $1=""; a[k]=$0; next}{split($0,lst,"."); print $1, a[lst[1] "_REAL"]}' tr05_real_$enhan.trans1.6ch tr05_real_${enhan}_wav.scp > tr05_real_$enhan.trans1
+fi
 cat dt05_real.dot | sed -e 's/(\(.*\))/\1/' | awk '{print $NF "_REAL"}'> dt05_real_$enhan.ids
 cat dt05_real.dot | sed -e 's/(.*)//' > dt05_real_$enhan.txt
 paste -d" " dt05_real_$enhan.ids dt05_real_$enhan.txt | sort -k 1 > dt05_real_$enhan.trans1

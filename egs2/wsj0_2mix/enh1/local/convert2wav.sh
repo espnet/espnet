@@ -9,8 +9,6 @@ if ! command -v "${sph2pipe}" &> /dev/null; then
   exit 1;
 fi
 
-set -x
-
 ndx2flist=$KALDI_ROOT/egs/wsj/s5/local/ndx2flist.pl
 flist2scp=$KALDI_ROOT/egs/wsj/s5/local/flist2scp.pl
 
@@ -18,7 +16,8 @@ WSJ0=$1
 dir=$2
 
 mkdir -p ${dir}
-cd ${dir}
+(
+cd ${dir} || exit 1
 
 rm -r links/ 2>/dev/null
 mkdir -p links
@@ -67,12 +66,13 @@ done
 
 rm -r log 2>/dev/null
 mkdir -p log
+)
 
 pid=()
 for script_name in si_tr_s_wav si_dt_05_wav si_et_05_wav; do
     (
-      $train_cmd log/${script_name}.log \
-        ./${script_name}.sh
+      $train_cmd "${dir}/log/${script_name}.log" \
+        "${dir}/${script_name}.sh"
     ) &
     pids+=($!)
 done

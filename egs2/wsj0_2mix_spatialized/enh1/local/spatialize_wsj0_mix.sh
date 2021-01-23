@@ -55,15 +55,12 @@ if ! command -v mex >/dev/null 2>&1; then
     exit 1
 fi
 
-rootdir=$PWD
 echo "Downloading spatialize_WSJ0_mixture scripts."
 
 url=https://www.merl.com/demos/deep-clustering/spatialize_wsj0-mix.zip
 wdir=data/local/downloads
-url2=https://raw.githubusercontent.com/ehabets/RIR-Generator/master/rir_generator.cpp
 
 mkdir -p ${dir}
-mkdir -p ${dir}/RIR-Generator-master
 mkdir -p ${wdir}/log
 
 # Download and modiy spatialize_wsj0 scripts
@@ -82,8 +79,9 @@ sed -i -e "s#MIN_OR_MAX=\"'min'\"#MIN_OR_MAX=\"'${min_or_max}'\"#" \
        ${dir}/launch_spatialize.sh
 
 # Download and compile rir_generator
-wget --continue -O ${dir}/RIR-Generator-master/rir_generator.cpp ${url2}
-(cd ${dir}/RIR-Generator-master && mex rir_generator.cpp)
+git clone https://github.com/ehabets/RIR-Generator "${dir}/RIR-Generator"
+(cd "${dir}/RIR-Generator" && mex rir_generator.cpp rir_generator_core.cpp)
+rir_generator=$(realpath ${dir}/RIR-Generator/rir_generator.mexa64)
 
 echo "Spatializing Mixtures."
 NUM_SPEAKERS=2
@@ -95,7 +93,9 @@ USEPARCLUSTER_WITH_IND=1  # 1 for using parallel processing toolbox
 GENERATE_RIRS=1           # 1 for generating RIRs
 
 NUM_WORKERS=${nj}         # maximum of 1 MATLAB worker per CPU core is recommended
-sed -i -e "s#c.NumWorkers = 22;#c.NumWorkers = ${NUM_WORKERS};#" ${dir}/spatialize_wsj0_mix.m
+sed -i -e "s#c.NumWorkers = 22;#c.NumWorkers = ${NUM_WORKERS};#" \
+    -e "/parpool(c, c.NumWorkers);/a addAttachedFiles(gcp, {'${rir_generator}'});" \
+    ${dir}/spatialize_wsj0_mix.m
 
 # Java must be initialized in order to use the Parallel Computing Toolbox.
 # Please launch MATLAB without the '-nojvm' flag.
@@ -103,6 +103,7 @@ matlab_cmd="matlab -nodesktop -nodisplay -nosplash -r \"spatialize_wsj0_mix(${NU
 
 cmdfile=${dir}/spatialize_matlab.sh
 echo "#!/bin/bash" > $cmdfile
+echo "cd ${dir}" >> $cmdfile
 echo $matlab_cmd >> $cmdfile
 chmod +x $cmdfile
 
@@ -138,8 +139,5 @@ chmod +x $cmdfile
 # 2speakers_anechoic/wav8k/min/tt/s1 	    4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)
 # 2speakers_anechoic/wav8k/min/tt/s2 	    4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
 # -----------------------------------------------------------------------------------------
-cd ${dir}
 echo "Log is in ${dir}/spatialize.log"
 $train_cmd ${dir}/spatialize.log $cmdfile
-
-cd ${rootdir}

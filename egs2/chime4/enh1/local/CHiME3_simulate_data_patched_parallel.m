@@ -216,7 +216,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
         [nbin,nfram] = size(O);
     
         % Localize and track the speaker
-        [~,TDOAx]=localize(X);
+        [~,TDOAx]=localize(X,[1:nchan]);
         
         % Interpolate the spatial position over the duration of clean speech
         TDOA=zeros(nchan,nfram);
@@ -328,7 +328,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             [nbin,nfram] = size(O);
             
             % Localize and track the speaker
-            [~,TDOAx]=localize(X);
+            [~,TDOAx]=localize(X,[1:nchan]);
             
             % Interpolate the spatial position over the duration of clean speech
             TDOA=zeros(nchan,nfram);

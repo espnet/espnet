@@ -6,6 +6,7 @@ set -e
 eval_flag=true # make it true when the evaluation data are released
 track=6
 annotations=
+extra_annotations=
 . utils/parse_options.sh || exit 1;
 
 if [ $# -ne 2 ]; then
@@ -41,14 +42,26 @@ cd $dir
 if [[ "$track" == "1" ]]; then
   # 1-ch track
   find ${audio_dir}/isolated/ -name '*.wav' | grep 'tr05_bus_simu\|tr05_caf_simu\|tr05_ped_simu\|tr05_str_simu' | sort -u > tr05_simu_$enhan.flist
+  if [ ! -f "${annotations}/dt05_simu_1ch_track.list" ]; then
+    echo "Error: No such file: ${annotations}/dt05_simu_1ch_track.list"
+    exit 1
+  fi
   awk -v dir="${audio_dir}/isolated" '{print(dir "/" $1)}' ${annotations}/dt05_simu_1ch_track.list | sort -u > dt05_simu_$enhan.flist
   if $eval_flag; then
-    awk -v dir="${audio_dir}/isolated" '{print(dir "/" $1)}' ${annotations}/et05_simu_1ch_track.list | sort -u > et05_simu_$enhan.flist
+    if [ ! -f "${extra_annotations}/et05_simu_1ch_track.list" ]; then
+      echo "Error: No such file: ${extra_annotations}/et05_simu_1ch_track.list"
+      exit 1
+    fi
+    awk -v dir="${audio_dir}/isolated" '{print(dir "/" $1)}' ${extra_annotations}/et05_simu_1ch_track.list | sort -u > et05_simu_$enhan.flist
   fi
 
   # make a scp file from file list
   for x in $list_set; do
-    cat $x.flist | awk -F'[/]' '{print $NF}'| sed -e 's/\.wav/_SIMU/' > ${x}_wav.ids
+    if [[ "$x" =~ tr05* ]]; then
+      cat $x.flist | awk -F'[/]' '{print $NF}'| sed -e 's/\.wav/_SIMU/' > ${x}_wav.ids
+    else
+      cat $x.flist | awk -F'[/]' '{print $NF}'| sed -e 's/\.CH[0-9]\.wav/_SIMU/' > ${x}_wav.ids
+    fi
     paste -d" " ${x}_wav.ids $x.flist | sort -k 1 > ${x}_wav.scp
     sed -E "s#${audio_dir}/isolated/(.*).wav#${audio_dir}/isolated_ext/\1.Clean.wav#g" ${x}_wav.scp > ${x}_spk1_wav.scp
     sed -E "s#\.Clean\.wav#\.Noise\.wav#g" ${x}_spk1_wav.scp > ${x}_noise_wav.scp
@@ -60,7 +73,7 @@ elif [[ "$track" == "6" ]]; then
     find ${audio_dir}/isolated/ -name "*.CH${ch}.wav" | grep 'tr05_bus_simu\|tr05_caf_simu\|tr05_ped_simu\|tr05_str_simu' | sort -u > tr05_simu_$enhan.CH${ch}.flist
     find ${audio_dir}/isolated/ -name "*.CH${ch}.wav" | grep 'dt05_bus_simu\|dt05_caf_simu\|dt05_ped_simu\|dt05_str_simu' | sort -u > dt05_simu_$enhan.CH${ch}.flist
     if $eval_flag; then
-    find ${audio_dir}/isolated/ -name "*.CH${ch}.wav" | grep 'et05_bus_simu\|et05_caf_simu\|et05_ped_simu\|et05_str_simu' | sort -u > et05_simu_$enhan.CH${ch}.flist
+      find ${audio_dir}/isolated/ -name "*.CH${ch}.wav" | grep 'et05_bus_simu\|et05_caf_simu\|et05_ped_simu\|et05_str_simu' | sort -u > et05_simu_$enhan.CH${ch}.flist
     fi
 
     # make a scp file from file list
