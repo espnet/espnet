@@ -214,7 +214,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         final_batch = len(hyps)
         device = next(self.parameters()).device
         dtype = next(self.parameters()).dtype
-        
+
         process = []
         done = [None for _ in range(final_batch)]
 
