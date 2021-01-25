@@ -35,5 +35,4 @@ dec-block-arch:
 joint-dim: 4
 
 # transducer related
-rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
