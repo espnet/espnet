@@ -49,7 +49,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """Construct a Decoder object for transformer-transducer models."""
         torch.nn.Module.__init__(self)
 
-        self.embed, self.decoders, ddim = build_blocks(
+        self.embed, self.decoders, ddim, _ = build_blocks(
             "decoder",
             odim,
             input_layer,

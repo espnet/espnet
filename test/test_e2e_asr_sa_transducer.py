@@ -93,19 +93,16 @@ def prepare(args):
         x[i, ilens[i] :] = -1
         y[i, olens[i] :] = model.ignore_id
 
-    data = []
+    data = {}
+    uttid_list = []
     for i in range(bs):
-        data.append(
-            (
-                "utt%d" % i,
-                {
-                    "input": [{"shape": [ilens[i], idim]}],
-                    "output": [{"shape": [olens[i]]}],
-                },
-            )
-        )
+        data["utt%d" % i] = {
+            "input": [{"shape": [ilens[i], idim]}],
+            "output": [{"shape": [olens[i]]}],
+        }
+        uttid_list.append("utt%d" % i)
 
-    return model, x, torch.tensor(ilens), y, data
+    return model, x, torch.tensor(ilens), y, data, uttid_list
 
 
 @pytest.mark.parametrize(
@@ -254,7 +251,7 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)
 
-    model, x, ilens, y, data = prepare(train_args)
+    model, x, ilens, y, data, uttid_list = prepare(train_args)
 
     optim = torch.optim.Adam(model.parameters(), 0.01)
     loss = model(x, ilens, y)
@@ -288,10 +285,10 @@ def test_calculate_plot_attention():
 
     train_args = make_train_args(report_cer=True)
 
-    model, x, ilens, y, data = prepare(train_args)
+    model, x, ilens, y, data, uttid_list = prepare(train_args)
 
     attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-    plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+    plot.plot_multi_head_attention(data, uttid_list, attn_dict, "/tmp/espnet-test")
 
 
 def test_invalid_input_layer_type():
