@@ -62,10 +62,9 @@ nlsyms_txt=data/local/nlsyms.txt
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
-ngpu=4
+ngpu=1
 
 ./asr.sh \
-    --lang "${langs}" \
     --local_data_opts "--langs ${langs} --stage 0 --lid ${lid} --nlsyms_txt ${nlsyms_txt}" \
     --stage 1 \
     --stop_stage 100 \
