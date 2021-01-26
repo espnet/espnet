@@ -260,7 +260,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        # Average NMT models
+        # Average MT models
         if ${use_valbest_average}; then
             trans_model=model.val${n_average}.avg.best
             opt="--log ${expdir}/results/log --metric ${metric}"
@@ -289,13 +289,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
-        #### use CPU for decoding
-        ngpu=0
-
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             mt_trans.py \
             --config ${decode_config} \
-            --ngpu ${ngpu} \
+            --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
             --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
@@ -322,7 +319,7 @@ fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ]; then
     echo "stage 6: Cascaded-ST decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        # Average NMT models
+        # Average MT models
         if ${use_valbest_average}; then
             trans_model=model.val${n_average}.avg.best
         else
@@ -346,6 +343,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         update_json.sh --text ${data_dir}/text_asr_hyp.wrd.${src_case} --bpecode ${bpemodel}.model \
             ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
     done
+
+    if [ ${dec_ngpu} = 1 ]; then
+        nj=1
+    fi
 
     pids=() # initialize pids
     for x in ${trans_set}; do
