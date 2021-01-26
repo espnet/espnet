@@ -298,7 +298,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
     def get_total_subsampling_factor(self):
         """Get total subsampling factor."""
-        if "transformer" in self.etype:
+
+        if "custom" in self.etype:
             return self.encoder.conv_subsampling_factor * int(
                 numpy.prod(self.subsample)
             )
