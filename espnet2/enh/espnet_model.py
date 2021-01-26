@@ -67,7 +67,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         if stft_consistency and loss_type in ["mask_mse", "si_snr"]:
             raise ValueError(
-                f"stft_consistency will not work when '{loss_type}'' loss is used"
+                f"stft_consistency will not work when '{loss_type}' loss is used"
             )
 
         assert self.loss_type in ALL_LOSS_TYPES, self.loss_type
@@ -604,8 +604,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             criterion (function): Loss function
             perm (torch.Tensor): specified permutation (batch, num_spk)
         Returns:
-            loss (torch.Tensor): (batch)
-            perm (torch.Tensor): (batch, num_spk)
+            loss (torch.Tensor): minimum loss with the best permutation (batch)
+            perm (torch.Tensor): permutation for inf (batch, num_spk)
                                  e.g. tensor([[1, 0, 2], [0, 1, 2]])
         """
         assert len(ref) == len(inf), (len(ref), len(inf))
