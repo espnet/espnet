@@ -116,6 +116,7 @@ class MultiHeadedAttention(nn.Module):
 
 class LegacyRelPositionMultiHeadedAttention(MultiHeadedAttention):
     """Multi-Head Attention layer with relative position encoding (old version).
+
     Details can be found in https://github.com/espnet/espnet/pull/2816.
 
     Paper: https://arxiv.org/abs/1901.02860
@@ -210,6 +211,7 @@ class LegacyRelPositionMultiHeadedAttention(MultiHeadedAttention):
 
 class RelPositionMultiHeadedAttention(MultiHeadedAttention):
     """Multi-Head Attention layer with relative position encoding (new implementation).
+
     Details can be found in https://github.com/espnet/espnet/pull/2816.
 
     Paper: https://arxiv.org/abs/1901.02860
@@ -267,7 +269,8 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
             query (torch.Tensor): Query tensor (#batch, time1, size).
             key (torch.Tensor): Key tensor (#batch, time2, size).
             value (torch.Tensor): Value tensor (#batch, time2, size).
-            pos_emb (torch.Tensor): Positional embedding tensor (#batch, 2*time1-1, size).
+            pos_emb (torch.Tensor): Positional embedding tensor
+                (#batch, 2*time1-1, size).
             mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
                 (#batch, time1, time2).
 

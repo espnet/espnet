@@ -132,6 +132,7 @@ class ScaledPositionalEncoding(PositionalEncoding):
 
 class LegacyRelPositionalEncoding(PositionalEncoding):
     """Relative positional encoding module (old version).
+
     Details can be found in https://github.com/espnet/espnet/pull/2816.
 
     See : Appendix B in https://arxiv.org/abs/1901.02860
@@ -146,7 +147,10 @@ class LegacyRelPositionalEncoding(PositionalEncoding):
     def __init__(self, d_model, dropout_rate, max_len=5000):
         """Initialize class."""
         super().__init__(
-            d_model=d_model, dropout_rate=dropout_rate, max_len=max_len, reverse=True
+            d_model=d_model,
+            dropout_rate=dropout_rate,
+            max_len=max_len,
+            reverse=True,
         )
 
     def forward(self, x):
@@ -168,6 +172,7 @@ class LegacyRelPositionalEncoding(PositionalEncoding):
 
 class RelPositionalEncoding(torch.nn.Module):
     """Relative positional encoding module (new implementation).
+
     Details can be found in https://github.com/espnet/espnet/pull/2816.
 
     See : Appendix B in https://arxiv.org/abs/1901.02860
@@ -197,9 +202,9 @@ class RelPositionalEncoding(torch.nn.Module):
                 if self.pe.dtype != x.dtype or self.pe.device != x.device:
                     self.pe = self.pe.to(dtype=x.dtype, device=x.device)
                 return
-        # Suppose `i` means to the position of query vecotr and `j` means the position
-        # of key vector. We use position relative positions when keys are to the left (i>j)
-        # and negative relative positions otherwise (i<j).
+        # Suppose `i` means to the position of query vecotr and `j` means the
+        # position of key vector. We use position relative positions when keys
+        # are to the left (i>j) and negative relative positions otherwise (i<j).
         pe_positive = torch.zeros(x.size(1), self.d_model)
         pe_negative = torch.zeros(x.size(1), self.d_model)
         position = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
@@ -212,8 +217,9 @@ class RelPositionalEncoding(torch.nn.Module):
         pe_negative[:, 0::2] = torch.sin(-1 * position * div_term)
         pe_negative[:, 1::2] = torch.cos(-1 * position * div_term)
 
-        # Reserve the order of positive indices and concat both positive and negative indices.
-        # This is used to support the shifting trick as in https://arxiv.org/abs/1901.02860
+        # Reserve the order of positive indices and concat both positive and
+        # negative indices. This is used to support the shifting trick
+        # as in https://arxiv.org/abs/1901.02860
         pe_positive = torch.flip(pe_positive, [0]).unsqueeze(0)
         pe_negative = pe_negative[1:].unsqueeze(0)
         pe = torch.cat([pe_positive, pe_negative], dim=1)
@@ -232,6 +238,7 @@ class RelPositionalEncoding(torch.nn.Module):
         self.extend_pe(x)
         x = x * self.xscale
         pos_emb = self.pe[
-            :, self.pe.size(1) // 2 - x.size(1) + 1 : self.pe.size(1) // 2 + x.size(1)
+            :,
+            self.pe.size(1) // 2 - x.size(1) + 1 : self.pe.size(1) // 2 + x.size(1),
         ]
         return self.dropout(x), self.dropout(pos_emb)
