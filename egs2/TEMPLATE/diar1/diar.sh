@@ -44,14 +44,13 @@ local_data_opts= # The options given to local/data.sh.
 # Feature extraction related
 feats_type=raw    # Feature type (raw or fbank_pitch).
 audio_format=flac # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
-fs=16k            # Sampling rate.
+fs=8k             # Sampling rate.
 min_wav_duration=0.1   # Minimum duration in second
-max_wav_duration=20    # Maximum duration in second
 
 # Diarization model related
-diarization_tag=    # Suffix to the result dir for diarization model training.
-diarization_config= # Config for diarization model training.
-diarization_args=   # Arguments for diarization model training, e.g., "--max_epoch 10".
+diar_tag=    # Suffix to the result dir for diarization model training.
+diar_config= # Config for diarization model training.
+diar_args=   # Arguments for diarization model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in diarization config.
 spk_num=2
 
@@ -64,7 +63,7 @@ inference_model=valid.acc.ave.pth
 train_set=       # Name of training set.
 valid_set=       # Name of development set.
 test_sets=       # Names of evaluation sets. Multiple items can be specified.
-diarization_speech_fold_length=800 # fold_length for speech data during diarization training
+diar_speech_fold_length=800 # fold_length for speech data during diarization training
 lang=noinfo      # The language type of corpus
 
 
@@ -91,21 +90,17 @@ Options:
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
 
-    # Speed perturbation related
-    --speed_perturb_factors   # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
-
     # Feature extraction related
     --feats_type   # Feature type (only support raw currently).
     --audio_format # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
-    --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
 
     # Diarization model related
-    --diarization_tag    # Suffix to the result dir for diarization model training (default="${diarization_tag}").
-    --diarization_config # Config for diarization model training (default="${diarization_config}").
-    --diarization_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diarization_args}").
+    --diar_tag    # Suffix to the result dir for diarization model training (default="${diarization_tag}").
+    --diar_config # Config for diarization model training (default="${diarization_config}").
+    --diar_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diarization_args}").
                  # Note that it will overwrite args in diarization config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
 
@@ -117,7 +112,7 @@ Options:
     --train_set     # Name of training set (required).
     --valid_set       # Name of development set (required).
     --test_sets     # Names of evaluation sets (required).
-    --diarization_speech_fold_length # fold_length for speech data during diarization training  (default="${diarization_speech_fold_length}").
+    --diar_speech_fold_length # fold_length for speech data during diarization training  (default="${diarization_speech_fold_length}").
     --lang         # The language type of corpus (default="${lang}")
 EOF
 )
@@ -162,11 +157,6 @@ diarization_stats_dir="${expdir}/diarization_stats_${fs}"
 # The directory used for training commands
 diarization_exp="${expdir}/diarization_${diarization_tag}"
 
-if [ -n "${speed_perturb_factors}" ]; then
-  diarization_stats_dir="${diarization_stats_dir}_sp"
-  diarization_exp="${diarization_exp}_sp"
-fi
-
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -187,42 +177,26 @@ if ! "${skip_data_prep}"; then
         # and also it can also change the audio-format and sampling rate.
         # If nothing is need, then format_wav_scp.sh does nothing:
         # i.e. the input file format and rate is same as the output.
-
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                 _suf="/org"
             else
                 _suf=""
             fi
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
-            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
-            _opts=
-            if [ -e data/"${dset}"/segments ]; then
-                # "segments" is used for splitting wav files which are written in "wav".scp
-                # into utterances. The file format of segments:
-                #   <segment_id> <record_id> <start_time> <end_time>
-                #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
-                # Where the time is written in seconds.
-                _opts+="--segments data/${dset}/segments "
-            fi
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+            rm -f ${data_feats}${_suf}/${dset}/{wav.scp,reco2file_and_channel}
 
-
-            _spk_list=" "
-            for i in $(seq ${spk_num}); do
-                _spk_list+="spk${i} "
-            done
-
-            for spk in ${_spk_list} "wav" ; do
-                # shellcheck disable=SC2086
-                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                    --out-filename "${spk}.scp" \
-                    --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                    "data/${dset}/${spk}.scp" "${data_feats}${_suf}/${dset}" \
-                    "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
-
-            done
+            # shellcheck disable=SC2086
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --audio-format "${audio_format}" --fs "${fs}"  \
+                "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
 
+            # specifics for diarization
+            steps/segmentation/convert_utt2spk_and_segments_to_rttm.py \
+                    "${data_feats}${_suf}/${dset}"/utt2spk \
+                    "${data_feats}${_suf}/${dset}"/segments \
+                    "${data_feats}${_suf}/${dset}"/rttm
         done
     fi
 
@@ -233,35 +207,32 @@ if ! "${skip_data_prep}"; then
         for dset in "${train_set}" "${valid_set}"; do
         # NOTE: Not applying to test_sets to keep original data
 
-            _spk_list=" "
-            for i in $(seq ${spk_num}); do
-                _spk_list+="spk${i} "
-            done
-
             # Copy data dir
             utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-            for spk in ${_spk_list};do
-                cp "${data_feats}/org/${dset}/${spk}.scp" "${data_feats}/${dset}/${spk}.scp"
-            done
 
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
-            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
+            # diarization typically accept long recordings, so does not has
+            # max length requirements
             <"${data_feats}/org/${dset}/utt2num_samples" \
-                awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
-                    '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                awk -v min_length="${_min_length}" \
+                    '{ if ($2 > min_length ) print $0; }' \
                     >"${data_feats}/${dset}/utt2num_samples"
-            for spk in ${_spk_list} "wav"; do
-                <"${data_feats}/org/${dset}/${spk}.scp" \
-                    utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
-                    >"${data_feats}/${dset}/${spk}.scp"
-            done
+            <"${data_feats}/org/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/wav.scp"
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
+
+            # specifics for diarization
+            steps/segmentation/convert_utt2spk_and_segments_to_rttm.py \
+                    "${data_feats}/${dset}"/utt2spk \
+                    "${data_feats}/${dset}"/segments \
+                    "${data_feats}/${dset}"/rttm
         done
     fi
 else
@@ -272,4 +243,7 @@ fi
 # ========================== Data preparation is done here. ==========================
 
 
-
+if ! "${skip_train}"; then
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        _diar_train_dir="${data_feats}/${train_set}"
+        _diar_valid_dir="${data_feats}/${valid_set}"
