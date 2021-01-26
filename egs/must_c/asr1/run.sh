@@ -10,7 +10,8 @@
 backend=pytorch # chainer or pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
+dec_ngpu=0      # number of gpus during decoding ("0" uses cpu, otherwise use gpu)
 nj=8            # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
@@ -311,6 +312,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --num ${n_average}
     fi
 
+    if [ ${dec_ngpu} = 1 ]; then
+        nj=1
+    fi
+
     pids=() # initialize pids
     for x in ${recog_set}; do
     (
@@ -326,7 +331,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --config ${decode_config} \
-            --ngpu ${ngpu} \
+            --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \

@@ -10,7 +10,8 @@
 backend=pytorch # chainer or pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
+dec_ngpu=0      # number of gpus during decoding ("0" uses cpu, otherwise use gpu)
 nj=4            # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
@@ -26,9 +27,9 @@ decode_config=conf/decode.yaml
 trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # model average realted (only for transformer)
-n_average=5                  # the number of NMT models to be averaged
-use_valbest_average=true     # if true, the validation `n_average`-best NMT models will be averaged.
-                             # if false, the last `n_average` NMT models will be averaged.
+n_average=5                  # the number of MT models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best MT models will be averaged.
+                             # if false, the last `n_average` MT models will be averaged.
 metric=bleu                  # loss/acc/bleu
 
 # cascaded-ST related
@@ -275,6 +276,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --num ${n_average}
     fi
 
+    if [ ${dec_ngpu} = 1 ]; then
+        nj=1
+    fi
+
     pids=() # initialize pids
     for x in ${trans_set}; do
     (
@@ -351,13 +356,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
-        #### use CPU for decoding
-        ngpu=0
-
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             mt_trans.py \
             --config ${decode_config} \
-            --ngpu ${ngpu} \
+            --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
             --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
