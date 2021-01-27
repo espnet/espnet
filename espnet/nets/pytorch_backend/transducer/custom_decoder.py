@@ -1,4 +1,4 @@
-"""Decoder definition for transformer-transducer models."""
+"""Custom decoder definition for transducer models."""
 
 import torch
 
@@ -12,8 +12,8 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
-class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
-    """Decoder module for transformer-transducer models.
+class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
+    """Custom decoder module for transducer models.
 
     Args:
         odim (int): dimension of outputs
@@ -46,7 +46,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         dropout_rate_embed=0.0,
         blank=0,
     ):
-        """Construct a Decoder object for transformer-transducer models."""
+        """Construct a CustomDecoder object."""
         torch.nn.Module.__init__(self)
 
         self.embed, self.decoders, ddim, _ = build_blocks(
@@ -86,7 +86,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         return state
 
     def forward(self, tgt, tgt_mask, memory):
-        """Forward transformer-transducer decoder.
+        """Forward custom decoder.
 
         Args:
             tgt (torch.Tensor): input token ids, int64 (batch, maxlen_out)

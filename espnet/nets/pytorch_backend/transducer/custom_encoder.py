@@ -1,4 +1,4 @@
-"""Encoder definition for transformer-transducer models."""
+"""Cutom encoder definition for transducer models."""
 
 import torch
 
@@ -9,8 +9,8 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
 
-class Encoder(torch.nn.Module):
-    """Transformer encoder module.
+class CustomEncoder(torch.nn.Module):
+    """Custom encoder module for transducer models.
 
     Args:
         idim (int): input dim
@@ -41,7 +41,7 @@ class Encoder(torch.nn.Module):
         normalize_before=True,
         padding_idx=-1,
     ):
-        """Construct an Transformer encoder object."""
+        """Construct an CustomEncoder object."""
         super().__init__()
 
         (
