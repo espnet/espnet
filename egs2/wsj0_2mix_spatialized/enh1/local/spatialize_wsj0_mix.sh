@@ -115,29 +115,29 @@ chmod +x $cmdfile
 # -----------------------------------------------------------------------------------------
 # directory (same for 2speakers_reverb)   disk usage  duration      #samples
 # -----------------------------------------------------------------------------------------
-# 2speakers_anechoic/wav16k/max/tr/mix 	  41  GiB     46h 56m 16s   20000 * 8 (8 channels)
-# 2speakers_anechoic/wav16k/max/tr/s1 	  34  GiB     46h 56m 16s   20000 * 8 (8 channels)
-# 2speakers_anechoic/wav16k/max/tr/s2 	  33  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tr/mix    41  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tr/s1     34  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tr/s2     33  GiB     46h 56m 16s   20000 * 8 (8 channels)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# 2speakers_anechoic/wav16k/max/cv/mix 	  11  GiB     11h 53m 36s   5000 * 8 (8 channels)
-# 2speakers_anechoic/wav16k/max/cv/s1 	  8.5 GiB     11h 53m 36s   5000 * 8 (8 channels)
-# 2speakers_anechoic/wav16k/max/cv/s2 	  8.4 GiB     11h 53m 36s   5000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/cv/mix    11  GiB     11h 53m 36s   5000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/cv/s1     8.5 GiB     11h 53m 36s   5000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/cv/s2     8.4 GiB     11h 53m 36s   5000 * 8 (8 channels)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# 2speakers_anechoic/wav16k/max/tt/mix 	  6.2 GiB     7h 20m 48s    3000 * 8 (8 channels)
-# 2speakers_anechoic/wav16k/max/tt/s1 	  5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
-# 2speakers_anechoic/wav16k/max/tt/s2 	  5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tt/mix    6.2 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tt/s1     5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tt/s2     5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
 # -----------------------------------------------------------------------------------------
-# 2speakers_anechoic/wav8k/min/tr/mix 	  27 GiB      30h 22m 49s   20000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/tr/s1 	    27 GiB      30h 22m 49s   20000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/tr/s2 	    27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/mix     27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s1      27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s2      27 GiB      30h 22m 49s   20000 * 8 (8 channels)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# 2speakers_anechoic/wav8k/min/cv/mix 	  6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/cv/s1 	    6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/cv/s2 	    6.6 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/mix     6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s1      6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s2      6.6 GiB     7h 40m 21s    5000 * 8 (8 channels)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# 2speakers_anechoic/wav8k/min/tt/mix 	  4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/tt/s1 	    4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)
-# 2speakers_anechoic/wav8k/min/tt/s2 	    4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tt/mix     4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tt/s1      4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tt/s2      4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
 # -----------------------------------------------------------------------------------------
 echo "Log is in ${dir}/spatialize.log"
 $train_cmd ${dir}/spatialize.log $cmdfile

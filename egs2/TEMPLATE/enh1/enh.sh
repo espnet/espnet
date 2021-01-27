@@ -677,7 +677,7 @@ if ! "${skip_eval}"; then
                     END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
             done
         done
-        ./scripts/utils/show_enh_score.sh ${enh_exp} > "${enh_exp}/RESULTS.TXT"
+        ./scripts/utils/show_enh_score.sh ${enh_exp} > "${enh_exp}/RESULTS.md"
 
     fi
 else
@@ -866,7 +866,7 @@ if ! "${skip_upload}"; then
         ${python} -m espnet2.bin.pack enh \
             --train_config "${enh_exp}"/config.yaml \
             --model_file "${enh_exp}"/"${inference_model}" \
-            --option "${enh_exp}"/RESULTS.TXT \
+            --option "${enh_exp}"/RESULTS.md \
             --option "${enh_stats_dir}"/train/feats_stats.npz  \
             --option "${enh_exp}"/images \
             --outpath "${packed_model}"

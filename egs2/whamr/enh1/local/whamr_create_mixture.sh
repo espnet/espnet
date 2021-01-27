@@ -32,7 +32,6 @@ wsj_full_wav=$3
 whamr_wav=$4
 
 
-rootdir=$PWD
 wdir=data/local/downloads
 mkdir -p ${dir}
 mkdir -p ${wdir}

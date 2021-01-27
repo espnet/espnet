@@ -19,8 +19,9 @@ def create_data_dir(args, exist_ok=False):
         [args.dist_dir]
           |-- train_si284/
           |-- cv_dev93/
-          |-- test_eval92/
+          `-- test_eval92/
 
+    (assume args.num_spk=2)
     In each subset directory, the following files will be created:
         [subset]
           |-- dereverb1.scp
@@ -34,7 +35,7 @@ def create_data_dir(args, exist_ok=False):
           |-- text_spk2
           |-- utt2dur
           |-- utt2spk
-          |-- wav.scp
+          `-- wav.scp
 
     Args:
         args.min_or_max: min or max version of speech mixture
@@ -101,7 +102,7 @@ def create_data_dir(args, exist_ok=False):
             for uid in sorted_keys:
                 info = datasets[subset][uid]
                 paths = info["audio_path"]
-                assert info["num_speakers"] == 2, (uid, info["num_speakers"])
+                assert info["num_speakers"] == args.num_spk, (uid, info["num_speakers"])
                 # uid: index_src1id_src2id
                 spkid = "_".join(info["speaker_id"])
                 # uttid: spk1id_spk2id_index_src1id_src2id
@@ -132,6 +133,7 @@ def get_parser():
     parser.add_argument(
         "sms_wsj_json", type=str, help="Path to the generated sms_wsj.json"
     )
+    parser.add_argument("--num-spk", type=int, default=2, choices=[2, 3, 4])
     parser.add_argument("--min-or-max", type=str, default="max", choices=["max"])
     parser.add_argument("--sample-rate", type=str, default="8k", choices=["8k", "16k"])
     parser.add_argument("--use-reverb-reference", type=str2bool, default=True)

@@ -9,6 +9,7 @@ set -o pipefail
 nj=16
 min_or_max=max
 sample_rate=8k
+num_spk=2
 download_rir=true
 write_all=true
 
@@ -27,6 +28,10 @@ elif [[ "$sample_rate" == "8k" ]]; then
   sample_rate2=8000
 else
   echo "Error: sample rate must be either 16k or 8k: ${sample_rate}"
+  exit 1
+fi
+if [[ $num_spk != [2-4] ]]; then
+  echo "Error: number of speakers must be 2, 3, or 4: ${num_spk}"
   exit 1
 fi
 if [[ "$download_rir" != "true" ]] && [[ "$download_rir" != "false" ]]; then
@@ -48,6 +53,7 @@ if [ $# -ne 4 ]; then
   echo "  --nj <nj>                     # number of parallel jobs (Default=${nj})"
   echo "  --min-or-max <min_or_max>     # min or max length for generating mixtures (Default=${min_or_max})"
   echo "  --sample-rate <sample_rate>   # sample rate (Default=${sample_rate})"
+  echo "  --num-spk <num_spk>           # number of speakers (Default=${num_spk})"
   echo "  --download-rir <download_rir> # whether to download or simulate RIRs (Default=${download_rir})"
   echo "  --write-all <download_rir>    # whether to store all intermediate audio data (Default=${write_all})"
   echo "Note: this script won't actually re-download things if called twice,"
@@ -126,11 +132,11 @@ if [[ ! -f ${json_dir}/intermediate_sms_wsj.json ]]; then
   echo "Creating ${json_dir}/intermediate_sms_wsj.json"
   python -m sms_wsj.database.create_intermediate_json \
     with json_path=${json_dir}/intermediate_sms_wsj.json rir_dir=${rir_dir} \
-    wsj_json_path=${json_dir}/wsj_${sample_rate}_zeromean.json debug=False
+    wsj_json_path=${json_dir}/wsj_${sample_rate}_zeromean.json debug=False num_speakers=${num_spk}
 fi
 
 
-# This takes about 25 minutes with nj=16.
+# This takes about 25 minutes with the default configuration.
 echo "Creating ${sms_wsj_wav} audio data in '${sms_wsj_wav}'"
 mpiexec -np ${nj} python -m sms_wsj.database.write_files \
   with dst_dir=${sms_wsj_wav} json_path=${json_dir}/intermediate_sms_wsj.json \
@@ -151,14 +157,14 @@ fi
 # --------------------------------------------------------------------------------
 # directory/file  disk usage  #channels   #samples
 # --------------------------------------------------------------------------------
-# tail	          120.1 GiB   6           35875 * 2 (only when write_all=True)
-# early	          120.1 GiB   6           35875 * 2 (only when write_all=True)
-# observation	    60.0 GiB    6           35875
-# noise	          60.0 GiB    6           35875
+# tail            120.1 GiB   6           35875 * 2 (only when write_all=True)
+# early           120.1 GiB   6           35875 * 2 (only when write_all=True)
+# observation     60.0 GiB    6           35875
+# noise           60.0 GiB    6           35875
 # --------------------------- [additional data] ----------------------------------
 # source_signal   120.1 GiB   6           35875 * 2
 # reverb_source   120.1 GiB   6           35875 * 2
 # --------------------------------------------------------------------------------
-# rirs	          52.6 GiB    6           143500=(33561+982+1332)*4 (up to 4 srcs)
-# wsj_8k_zeromean	29.2 GiB    1           131824
+# rirs            52.6 GiB    6           143500=(33561+982+1332)*4 (up to 4 srcs)
+# wsj_8k_zeromean 29.2 GiB    1           131824
 # --------------------------------------------------------------------------------

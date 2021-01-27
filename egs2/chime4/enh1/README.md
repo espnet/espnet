@@ -2,39 +2,17 @@
 <!-- These results are from the code before refactoring  -->
 # RESULTS
 ## Environments
-- date: `Mon Aug 24 22:13:07 CST 2020`
+- date: `Wed Jan 27 19:10:26 CST 2021`
 - python version: `3.6.3 |Anaconda, Inc.| (default, Nov 20 2017, 20:41:42)  [GCC 7.2.0]`
-- espnet version: `espnet 0.8.0`
-- pytorch version: `pytorch 1.5.0`
-- Git hash: `19ec497145aa4f07d33639cbdbcab201d6951514`
-  - Commit date: `Tue Aug 18 14:59:28 2020 +0800`
+- espnet version: `espnet 0.9.7`
+- pytorch version: `pytorch 1.6.0`
 
 
-## enh_train_enh_beamformer_mvdr_raw
+## enh_train_enh_conv_tasnet_raw
 
-config: ./conf/tuning/train_enh_beamformer_mvdr.yaml
+config: conf/tuning/train_enh_conv_tasnet.yaml
 
-|dataset|PESQ|STOI|SI_SNR|SAR|SDR|SIR|
+|dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
-|enhanced_dt05_simu_isolated_6ch_track|2.68497|0.953558|2.70764|13.3967|13.3967|inf|
-|enhanced_et05_simu_isolated_6ch_track|2.67769|0.947397|4.61752|14.0964|14.0964|inf|
-
-
-## enh_train_enh_PSM_raw
-
-config: ./conf/tuning/train_enh_PSM.yaml
-
-|dataset|PESQ|STOI|SI_SNR|SAR|SDR|SIR|
-|---|---|---|---|---|---|---|
-|enhanced_dt05_simu_isolated_1ch_track|2.54539|0.905824|9.80458|10.3607|10.3607|inf|
-|enhanced_et05_simu_isolated_1ch_track|2.455|0.888947|11.1737|11.6132|11.6132|inf|
-
-
-## enh_train_enh_tasnet_raw
-
-config: ./conf/tuning/train_enh_tasnet.yaml
-
-|dataset|PESQ|STOI|SI_SNR|SAR|SDR|SIR|
-|---|---|---|---|---|---|---|
-|enhanced_dt05_simu_isolated_1ch_track|2.45926|0.899309|10.0275|11.0219|11.0219|inf|
-|enhanced_et05_simu_isolated_1ch_track|2.39695|0.878431|11.2314|12.1553|12.1553|inf|
+|enhanced_dt05_simu_isolated_1ch_track|2.63359|0.909127|11.3937|11.3937|0|10.1792|
+|enhanced_et05_simu_isolated_1ch_track|2.58602|0.891826|12.5193|12.5193|0|11.5768|

@@ -7,6 +7,7 @@ set -o pipefail
 
 sample_rate=8k
 nj=16
+num_spk=2   # one of (2, 3, 4)
 
 
 train_set=train_si284
@@ -20,7 +21,7 @@ test_sets="test_eval92"
     --fs ${sample_rate} \
     --ngpu 2 \
     --spk_num 2 \
-    --local_data_opts "--sample_rate ${sample_rate} --nj ${nj}" \
+    --local_data_opts "--sample_rate ${sample_rate} --nj ${nj} --num_spk ${num_spk}" \
     --enh_config ./conf/tuning/train_enh_beamformer_no_wpe.yaml \
     --use_dereverb_ref false \
     --use_noise_ref true \

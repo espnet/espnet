@@ -21,6 +21,7 @@ log() {
 
 nj=16
 sample_rate=8k
+num_spk=2   # one of (2, 3, 4)
 
 # True to use reverberated sources in spk?.scp
 # False to use original source signals (padded) in spk?.scp
@@ -68,24 +69,29 @@ fi
 local/create_database.sh \
     --nj ${nj} \
     --sample-rate ${sample_rate} \
+    --num-spk ${num_spk} \
     --download-rir ${download_rir} \
     ${WSJ0} ${WSJ1} ${wsj_zeromean_wav} ${sms_wsj_wav} || exit 1;
 
-# The following datasets will be created:
+# The following datasets will be created using the default configuration:
 #  - train_si284: 33561 samples (87:22:26)
 #  - cv_dev93:    982 samples   (02:31:51)
 #  - test_eval92: 1332 samples  (03:21:23)
 # The data files are generated based on the sms_wsj.json file,
 # and the utterance ids are slightly modified based those in sms_wsj.json. 
 python local/sms_wsj_data_prep.py \
+    --num-spk ${num_spk} \
     --sample-rate ${sample_rate} \
     --use-reverb-reference ${use_reverb_reference} \
     --dist-dir data \
     ${sms_wsj_wav}/sms_wsj.json || exit 1;
 
 for subset in train_si284 cv_dev93 test_eval92; do
-    for f in dereverb1.scp dereverb2.scp noise1.scp rir1.scp rir2.scp \
-             spk1.scp spk2.scp text_spk1 text_spk2 utt2dur utt2spk wav.scp; do
+    files="noise1.scp utt2dur utt2spk wav.scp"
+    for i in $(seq ${num_spk}); do
+        files+=" dereverb${i}.scp rir${i}.scp spk${i}.scp text_spk${i}"
+    done
+    for f in ${files}; do
         mv data/${subset}/${f} data/${subset}/.${f}
         sort data/${subset}/.${f} > data/${subset}/${f}
         rm data/${subset}/.${f}
@@ -106,8 +112,9 @@ local/wsj_format_data.sh --data_dir data/wsj
 mv data/local data/wsj
 # only for multi-condition training in ASR
 ln -s wsj/train_si284 data/wsj_train_si284
-ln -s text data/wsj_train_si284/text_spk1
-ln -s text data/wsj_train_si284/text_spk2
+for i in $(seq ${num_spk}); do
+    ln -s text data/wsj_train_si284/text_spk$i
+done
 awk '{print($1, "single_channel")}' data/wsj_train_si284/utt2spk > data/wsj_train_si284/utt2category
 
 
