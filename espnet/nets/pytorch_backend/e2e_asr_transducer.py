@@ -5,6 +5,7 @@ from dataclasses import asdict
 from distutils.util import strtobool
 import logging
 import math
+import numpy
 
 import chainer
 import torch
@@ -12,11 +13,9 @@ import torch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
-from espnet.nets.pytorch_backend.transducer.rnn_att_decoder import DecoderRNNTAtt
 from espnet.nets.pytorch_backend.transducer.rnn_decoder import DecoderRNNT
 from espnet.nets.pytorch_backend.transducer.transformer_decoder import DecoderTT
 from espnet.nets.pytorch_backend.transducer.transformer_encoder import Encoder
@@ -26,6 +25,7 @@ from espnet.nets.pytorch_backend.transformer.attention import (
     RelPositionMultiHeadedAttention,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
+from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 
 
 class Reporter(chainer.Chain):
@@ -168,56 +168,6 @@ class E2E(ASRInterface, torch.nn.Module):
             choices=["relu", "hardtanh", "selu", "swish"],
             help="Transformer encoder convolutional module activation type",
         )
-        # Attention - RNN
-        group.add_argument(
-            "--adim",
-            default=320,
-            type=int,
-            help="Number of attention transformation dimensions",
-        )
-        group.add_argument(
-            "--aheads",
-            default=4,
-            type=int,
-            help="Number of heads for multi head attention",
-        )
-        group.add_argument(
-            "--atype",
-            default="location",
-            type=str,
-            choices=[
-                "noatt",
-                "dot",
-                "add",
-                "location",
-                "coverage",
-                "coverage_location",
-                "location2d",
-                "location_recurrent",
-                "multi_head_dot",
-                "multi_head_add",
-                "multi_head_loc",
-                "multi_head_multi_res_loc",
-            ],
-            help="Type of attention architecture",
-        )
-        group.add_argument(
-            "--awin", default=5, type=int, help="Window size for location2d attention"
-        )
-        group.add_argument(
-            "--aconv-chans",
-            default=10,
-            type=int,
-            help="Number of attention convolution channels "
-            "(negative value indicates no location-aware attention)",
-        )
-        group.add_argument(
-            "--aconv-filts",
-            default=100,
-            type=int,
-            help="Number of attention convolution filters "
-            "(negative value indicates no location-aware attention)",
-        )
         # Decoder - general
         group.add_argument(
             "--dtype",
@@ -314,13 +264,6 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Type of transducer implementation to calculate loss.",
         )
         group.add_argument(
-            "--rnnt-mode",
-            default="rnnt",
-            type=str,
-            choices=["rnnt", "rnnt-att"],
-            help="Transducer mode for RNN decoder",
-        )
-        group.add_argument(
             "--joint-dim",
             default=320,
             type=int,
@@ -346,16 +289,27 @@ class E2E(ASRInterface, torch.nn.Module):
     @property
     def attention_plot_class(self):
         """Get attention plot class."""
-        if self.etype == "transformer" or self.dtype == "transformer":
-            from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
-        else:
-            from espnet.asr.asr_utils import PlotAttentionReport
+        if self.etype != "transformer" and self.dtype != "transformer":
+            raise ValueError(
+                "Attention RNN decoder is not supported in ESPnet1 anymore."
+            )
 
         return PlotAttentionReport
+
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        if "transformer" in self.etype:
+            return self.encoder.conv_subsampling_factor * int(
+                numpy.prod(self.subsample)
+            )
+        else:
+            return self.enc.conv_subsampling_factor * int(numpy.prod(self.subsample))
 
     def __init__(self, idim, odim, args, ignore_id=-1, blank_id=0, training=True):
         """Construct an E2E object for transducer model."""
         torch.nn.Module.__init__(self)
+
+        self.is_rnnt = True
 
         if "transformer" in args.etype:
             if args.enc_block_arch is None:
@@ -414,37 +368,19 @@ class E2E(ASRInterface, torch.nn.Module):
             else:
                 self.most_dom_list = args.dec_block_arch[:]
         else:
-            if args.rnnt_mode == "rnnt-att":
-                self.att = att_for(args)
-
-                self.dec = DecoderRNNTAtt(
-                    args.eprojs,
-                    odim,
-                    args.dtype,
-                    args.dlayers,
-                    args.dunits,
-                    blank_id,
-                    self.att,
-                    args.dec_embed_dim,
-                    args.joint_dim,
-                    args.joint_activation_type,
-                    args.dropout_rate_decoder,
-                    args.dropout_rate_embed_decoder,
-                )
-            else:
-                self.dec = DecoderRNNT(
-                    args.eprojs,
-                    odim,
-                    args.dtype,
-                    args.dlayers,
-                    args.dunits,
-                    blank_id,
-                    args.dec_embed_dim,
-                    args.joint_dim,
-                    args.joint_activation_type,
-                    args.dropout_rate_decoder,
-                    args.dropout_rate_embed_decoder,
-                )
+            self.dec = DecoderRNNT(
+                args.eprojs,
+                odim,
+                args.dtype,
+                args.dlayers,
+                args.dunits,
+                blank_id,
+                args.dec_embed_dim,
+                args.joint_dim,
+                args.joint_activation_type,
+                args.dropout_rate_decoder,
+                args.dropout_rate_embed_decoder,
+            )
 
         if hasattr(self, "most_dom_list"):
             self.most_dom_dim = sorted(
@@ -457,7 +393,6 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.etype = args.etype
         self.dtype = args.dtype
-        self.rnnt_mode = args.rnnt_mode
 
         self.sos = odim - 1
         self.eos = odim - 1
@@ -538,10 +473,8 @@ class E2E(ASRInterface, torch.nn.Module):
             ys_mask = target_mask(ys_in_pad, self.blank_id)
             pred_pad, _ = self.decoder(ys_in_pad, ys_mask, hs_pad)
         else:
-            if self.rnnt_mode == "rnnt":
-                pred_pad = self.dec(hs_pad, ys_in_pad)
-            else:
-                pred_pad = self.dec(hs_pad, ys_in_pad, pred_len)
+            pred_pad = self.dec(hs_pad, ys_in_pad)
+
         self.pred_pad = pred_pad
 
         # 3. loss computation
@@ -570,7 +503,7 @@ class E2E(ASRInterface, torch.nn.Module):
             x (ndarray): input acoustic feature (T, D)
 
         Returns:
-            x (torch.Tensor): encoded features (T, attention_dim)
+            x (torch.Tensor): encoded features (T, D_enc)
 
         """
         self.eval()
@@ -587,7 +520,7 @@ class E2E(ASRInterface, torch.nn.Module):
             x (ndarray): input acoustic feature (T, D)
 
         Returns:
-            x (torch.Tensor): encoded features (T, attention_dim)
+            x (torch.Tensor): encoded features (T, D_enc)
 
         """
         self.eval()
@@ -643,23 +576,8 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         self.eval()
 
-        if (
-            "transformer" in self.etype
-            and "transformer" not in self.dtype
-            and self.rnnt_mode == "rnnt-att"
-        ):
-            raise NotImplementedError(
-                "Transformer encoder with rnn attention decoder" "is not supported yet."
-            )
-        elif "transformer" not in self.etype and "transformer" not in self.dtype:
-            if self.rnnt_mode == "rnnt":
-                return []
-            else:
-                with torch.no_grad():
-                    hs_pad, hlens = xs_pad, ilens
-                    hpad, hlens, _ = self.enc(hs_pad, hlens)
-
-                    ret = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
+        if "transformer" not in self.etype and "transformer" not in self.dtype:
+            return []
         else:
             with torch.no_grad():
                 self.forward(xs_pad, ilens, ys_pad)

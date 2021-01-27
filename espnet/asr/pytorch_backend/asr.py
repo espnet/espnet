@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -441,6 +438,7 @@ def train(args):
             idim_list[0] if args.num_encs == 1 else idim_list, odim, args
         )
     assert isinstance(model, ASRInterface)
+    total_subsampling_factor = model.get_total_subsampling_factor()
 
     logging.info(
         " Total parameter of the model = "
@@ -673,16 +671,10 @@ def train(args):
 
     # Save attention weight each epoch
     is_attn_plot = (
-        (
-            "transformer" in args.model_module
-            or "conformer" in args.model_module
-            or mtl_mode in ["att", "mtl"]
-        )
-        or (
-            mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
-        )
-        or mtl_mode == "transformer_transducer"
-    )
+        "transformer" in args.model_module
+        or "conformer" in args.model_module
+        or mtl_mode in ["att", "mtl"]
+    ) or mtl_mode == "transformer_transducer"
 
     if args.num_save_attention > 0 and is_attn_plot:
         data = sorted(
@@ -703,6 +695,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
@@ -729,8 +722,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
-            ikey="output",
-            iaxis=1,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(ctc_reporter, trigger=(1, "epoch"))
     else:
@@ -990,7 +982,7 @@ def recog(args):
     )
 
     # load transducer beam search
-    if hasattr(model, "rnnt_mode"):
+    if hasattr(model, "is_rnnt"):
         if hasattr(model, "dec"):
             trans_decoder = model.dec
         else:
@@ -999,6 +991,7 @@ def recog(args):
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
             beam_size=args.beam_size,
+            nbest=args.nbest,
             lm=rnnlm,
             lm_weight=args.lm_weight,
             search_type=args.search_type,
@@ -1064,7 +1057,7 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
-                elif hasattr(model, "rnnt_mode"):
+                elif hasattr(model, "is_rnnt"):
                     nbest_hyps = model.recognize(feat, beam_search_transducer)
                 else:
                     nbest_hyps = model.recognize(

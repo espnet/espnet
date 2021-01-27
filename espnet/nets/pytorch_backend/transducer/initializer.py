@@ -26,8 +26,9 @@ def initializer(model, args):
 
         model.dec.embed.weight.data.normal_(0, 1)
 
-        for i in range(len(model.dec.decoder)):
-            set_forget_bias_to_one(model.dec.decoder[i].bias_ih)
+        for i in range(model.dec.dlayers):
+            set_forget_bias_to_one(getattr(model.dec.decoder[i], "bias_ih_l0"))
+            set_forget_bias_to_one(getattr(model.dec.decoder[i], "bias_hh_l0"))
     else:
         if "transformer" in args.etype:
             initialize(model, args.transformer_init)
