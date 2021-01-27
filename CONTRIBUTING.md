@@ -1,42 +1,65 @@
 # How to contribute to ESPnet
 
-If you are interested in contributing to ESPnet, your contributions will fall into three categories:
+## 1. What to contribute
+If you are interested in contributing to ESPnet, your contributions will fall into three categories: major features, minor updates, and recipes. 
 
-1. If you want to propose a new feature and implement it, please post about your intended feature at the issues, 
-   or you can contact Shinji Watanabe <shinjiw@ieee.org> or other main developers. 
-   We shall discuss the design and implementation.
-   Once we agree that the plan looks good, go ahead and implement it.
-   You can find ongoing major development plans at https://github.com/espnet/espnet/milestones
+### 1.1 Major features
 
-2. If you want to implement a minor feature or bug-fix for an issue, please first take a look at 
-   the existing issues (https://github.com/espnet/espnet/pulls) and/or pull requests (https://github.com/espnet/espnet/pulls).
-   Pick an issue and comment on the task that you want to work on this feature.
-   If you need more context on a particular issue, please ask us and then we shall provide more information.
+If you want to propose a new feature and implement it, please post about your intended feature at the issues, 
+or you can contact Shinji Watanabe <shinjiw@ieee.org> or other main developers. 
+We shall discuss the design and implementation.
+Once we agree that the plan looks good, go ahead and implement it.
+You can find ongoing major development plans at https://github.com/espnet/espnet/milestones
+
+### 1.2 Minor Uupdates (minor feature, bug-fix for an issue)
+
+If you want to implement a minor feature or bug-fix for an issue, please first take a look at 
+the existing [issues](https://github.com/espnet/espnet/pulls) and/or [pull requests](https://github.com/espnet/espnet/pulls).
+Pick an issue and comment on the task that you want to work on this feature.
+If you need more context on a particular issue, please ask us and then we shall provide more information.
    
-   We also welcome if you find some bugs during your actual use of ESPnet and make a PR to fix them.
+We also welcome if you find some bugs during your actual use of ESPnet and make a PR to fix them.
 
-3. ESPnet provides and maintains a lot of reproducible examples similar to Kaldi (called `recipe`).
-   The recipe creation/update/bug-fix is one of our major development items, and we really encourage 
-   you to work on it.
-   When you port a Kaldi recipe to ESPnet, see https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F 
-   
-   We also encourage you to report your results with your detailed environmental info and upload the model for the reproducibility 
-   (e.g., see https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md).
-   
-   To make a report for `RESULTS.md`
-	 - execute `show_result.sh` at a recipe main directory (where `run.sh` is located), as follows. 
-	   You'll get environmental information and the evaluation result of each experiments in a markdown format.
-	   ```
-	   $ show_result.sh
-	   ```
-	 - execute `pack_model.sh` at a recipe main directory as follows. You'll get model information in a markdown format
-	   ```
-	   $ pack_model.sh --lm <language model> <tr_conf> <dec_conf> <cmvn> <e2e>
-	   ```
-	 - `pack_model.sh` also produces a packed espnet model (`model.tar.gz`). If you upload this model to somewhere with a download link,
-	   please put the link information to `RESULTS.md`.
-	 - please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your model files.
+### 1.3 Recipes
 
+ESPnet provides and maintains a lot of reproducible examples similar to Kaldi (called `recipe`).
+The recipe creation/update/bug-fix is one of our major development items, and we really encourage 
+you to work on it.
+
+ESPnet currently supports two versions of recipes: `egs` and `egs2` for espnet and espnet2, respectively.
+Each of them follows a different structure.
+
+#### 1.3.1 ESPnet1 recipes
+
+ESPnet1 follows convension from [Kaldi](https://github.com/kaldi-asr/kaldi) and it is also based on several utilities from Kaldi. ESPnet1's recipes
+corresponds to `egs`. This feature naturally makes it very simple to port a Kaldi recipe to ESPnet. If you port a Kaldi recipe to ESPnet, please see
+[port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F) for more detailed instructions.
+If there is no existing Kaldi's recipe, you could still refer to 
+[port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F) and the major task is to prepare
+a Kaldi-style directory (Please see [Prepare-Kaldi-Style-Directory](https://kaldi-asr.org/doc/data_prep.html) for details.)
+   
+For each recipe, we also encourage you to report your results with your detailed environmental info and upload the model for the reproducibility 
+(e.g., see [tedlium2-example](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md)).
+   
+To make a report for `RESULTS.md`
+ - execute `show_result.sh` at a recipe main directory (where `run.sh` is located), as follows. 
+   You'll get environmental information and the evaluation result of each experiments in a markdown format.
+   ```
+   $ show_result.sh
+   ```
+ - execute `pack_model.sh` at a recipe main directory as follows. You'll get model information in a markdown format
+   ```
+   $ pack_model.sh --lm <language model> <tr_conf> <dec_conf> <cmvn> <e2e>
+   ```
+ - `pack_model.sh` also produces a packed espnet model (`model.tar.gz`). If you upload this model to somewhere with a download link,
+   please put the link information to `RESULTS.md`.
+ - please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your model files.
+
+#### 1.3.2 ESPnet2 recipes
+
+#### 1.3.3 Typical issues in recipes
+
+## 2 Pull Request
 Once you finish implementing a feature or bugfix, please send a Pull Request to https://github.com/espnet/espnet
 
 If you are not familiar with creating a Pull Request, here are some guides:
@@ -44,7 +67,7 @@ If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
-## Version policy and development branches
+## 3 Version policy and development branches
 
 We basically develop in the `master` branch.
 
@@ -57,7 +80,7 @@ We basically develop in the `master` branch.
 3. The third version digit will be updated when we fix serious bugs or accumulate some minor changes including
    recipe related changes periodically (every two months or so).
 
-## Unit testing
+## 4 Unit testing
 
 ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
 ``` console
@@ -65,7 +88,7 @@ $ cd <espnet_root>
 $ pip install -e ".[test]"
 ```
 
-### Python
+### 4.1 Python
 
 Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8), [black](https://github.com/psf/black) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 ``` console
@@ -75,7 +98,7 @@ Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en
 To create new test file. write functions named like `def test_yyy(...)` in files like `test_xxx.py` under `test/`.
 [Pytest](https://docs.pytest.org/en/latest/) will automatically test them. Note that, [pytest-timeouts](https://pypi.org/project/pytest-timeouts/) raises **an error when any tests exceed 2.0 sec**. To keep unittests fast, please avoid large parameters, dynamic imports, and file access. If your unittest really needs more time, you can annotate your test function with `@pytest.mark.timeout(sec)`. You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
-### Bash scripts
+### 4.2 Bash scripts
 
 You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core) and [shellcheck](https://github.com/koalaman/shellcheck).
 
@@ -85,7 +108,7 @@ To test:
 ./ci/test_bash.sh
 ```
 
-## Integration testing
+## 5. Integration testing
 
 Write new integration tests in [ci/test_integration.sh](ci/test_integration.sh) when you add new features in [espnet/bin](espnet/bin). They use our smallest dataset [egs/mini_an4](egs/mini_an4) to test `run.sh`. To make the coverage take them into account, don't forget `--python ${python}` support in your `run.sh`
 
@@ -99,14 +122,14 @@ cd egs/mini_an4/your_task
 
 ```
 
-### Configuration files
+### 5.1 Configuration files
 
 - [setup.cfg](setup.cfg) configures pytest, black and flake8.
 - [.travis.yml](.travis.yml) configures Travis-CI (unittests, doc deploy).
 - [.circleci/config.yml](.circleci/config.yml) configures Circle-CI (unittests, integration tests).
 - [.github/workflows](.github/workflows/) configures Github Actions (unittests, integration tests).
 
-## Writing new tools
+## 6 Writing new tools
 
 You can place your new tools under
 - `espnet/bin`: heavy and large (e.g., neural network related) core tools.
@@ -114,7 +137,7 @@ You can place your new tools under
 
 For `utils` scripts, do not forget to add help messages, and test scripts under `test_utils`.
 
-### Python tools guideline
+### 8.1 Python tools guideline
 
 To generate doc, do not forget `def get_parser(): -> ArgumentParser` in the main file.
 
@@ -137,7 +160,7 @@ if __name__ == '__main__':
     ...
 ```
 
-### Bash tools guideline
+### 8.2 Bash tools guideline
 
 To generate doc, support `--help` to show its usage. If you use Kaldi's `utils/parse_option.sh`, define `help_message="Usage: $0 ..."`.
 
