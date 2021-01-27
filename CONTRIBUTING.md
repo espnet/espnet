@@ -49,7 +49,7 @@ To make a report for `RESULTS.md`
    ```
  - execute `pack_model.sh` at the main directory of a recipe as follows. You'll get model information in a markdown format
    ```
-   $ pack_model.sh --lm <language model> <tr_conf> <dec_conf> <cmvn> <e2e>
+   $ pack_model.sh --lm <language model> --dict <dict> <tr_conf> <dec_conf> <cmvn> <e2e>
    ```
  - `pack_model.sh` also produces a packed espnet model (`model.tar.gz`). If you upload this model to somewhere with a download link,
    please put the link information to `RESULTS.md`.
