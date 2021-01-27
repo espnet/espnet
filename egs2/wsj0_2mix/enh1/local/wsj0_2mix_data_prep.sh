@@ -50,8 +50,6 @@ done
 
 data=./data
 
-# rm -r ${data}/{${tr},${cv},${tt}} 2>/dev/null
-
 for x in tr cv tt; do
   target_folder=$(eval echo \$$x)
   mkdir -p ${data}/$target_folder
