@@ -54,7 +54,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Batch GPU decoding
 - **Transducer** based end-to-end ASR
   - Available: RNN-based encoder/decoder and Transformer-based encoder/decoder w/ customizable architecture.
-  - Also support: mixed RNN/Transformer architecture, attention mechanism (RNN decoder), VGG2L (RNN/Transformer encoder), Conformer (Transformer encoder), TDNN (Transformer encoder), Causal Conv1d (Transformer decoder) and various decoding algorithms.
+  - Also support: mixed RNN/Transformer architecture, VGG2L (RNN/Transformer encoder), Conformer (Transformer encoder), TDNN (Transformer encoder), Causal Conv1d (Transformer decoder) and various decoding algorithms.
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive based on Mask CTC

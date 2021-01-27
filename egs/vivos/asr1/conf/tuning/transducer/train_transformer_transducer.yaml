@@ -44,5 +44,4 @@ dec-block-repeat: 2
 joint-dim: 128
 
 # transducer related
-rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

@@ -2,7 +2,6 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.utils import check_state
@@ -50,7 +49,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         """Construct a Decoder object for transformer-transducer models."""
         torch.nn.Module.__init__(self)
 
-        self.embed, self.decoders, ddim = build_blocks(
+        self.embed, self.decoders, ddim, _ = build_blocks(
             "decoder",
             odim,
             input_layer,
@@ -72,7 +71,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         self.blank = blank
 
-    def init_state(self, init_tensor=None):
+    def init_state(self, batch_size=None, device=None, dtype=None):
         """Initialize decoder states.
 
         Args:
@@ -116,7 +115,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         return z, tgt_mask
 
-    def score(self, hyp, cache, init_tensor=None):
+    def score(self, hyp, cache):
         """Forward one step.
 
         Args:
@@ -125,12 +124,14 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
-            (list): decoder and attention states
+            (list): decoder states
                 [L x (1, max_len, dec_dim)]
             lm_tokens (torch.Tensor): token id for LM (1)
 
         """
-        tgt = to_device(self, torch.tensor(hyp.yseq).unsqueeze(0))
+        device = next(self.parameters()).device
+
+        tgt = torch.tensor(hyp.yseq).unsqueeze(0).to(device=device)
         lm_tokens = tgt[:, -1]
 
         str_yseq = "".join([str(x) for x in hyp.yseq])
@@ -138,7 +139,7 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         if str_yseq in cache:
             y, new_state = cache[str_yseq]
         else:
-            tgt_mask = to_device(self, subsequent_mask(len(hyp.yseq)).unsqueeze(0))
+            tgt_mask = subsequent_mask(len(hyp.yseq)).unsqueeze(0).to(device=device)
 
             state = check_state(hyp.dec_state, (tgt.size(1) - 1), self.blank)
 
@@ -153,9 +154,9 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
             cache[str_yseq] = (y, new_state)
 
-        return y, new_state, lm_tokens
+        return y[0], new_state, lm_tokens
 
-    def batch_score(self, hyps, batch_states, cache, init_tensor=None):
+    def batch_score(self, hyps, batch_states, cache):
         """Forward batch one step.
 
         Args:
@@ -172,8 +173,8 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
 
         """
         final_batch = len(hyps)
+        device = next(self.parameters()).device
 
-        tokens = []
         process = []
         done = [None for _ in range(final_batch)]
 
@@ -183,29 +184,29 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             if str_yseq in cache:
                 done[i] = (*cache[str_yseq], hyp.yseq)
             else:
-                tokens.append(hyp.yseq)
-                process.append((str_yseq, hyp.dec_state, hyp.yseq))
+                process.append((str_yseq, hyp.yseq, hyp.dec_state))
 
         if process:
-            batch = len(tokens)
+            batch = len(process)
+            _tokens = pad_sequence([p[1] for p in process], self.blank)
+            _states = [p[2] for p in process]
 
-            tokens = pad_sequence(tokens, self.blank)
-            b_tokens = to_device(self, torch.LongTensor(tokens).view(batch, -1))
-
-            tgt_mask = to_device(
-                self,
-                subsequent_mask(b_tokens.size(-1)).unsqueeze(0).expand(batch, -1, -1),
+            batch_tokens = torch.LongTensor(_tokens).view(batch, -1).to(device=device)
+            tgt_mask = (
+                subsequent_mask(batch_tokens.size(-1))
+                .unsqueeze(0)
+                .expand(batch, -1, -1)
+                .to(device=device)
             )
 
             dec_state = self.init_state()
-
             dec_state = self.create_batch_states(
                 dec_state,
-                [p[1] for p in process],
-                tokens,
+                _states,
+                _tokens,
             )
 
-            tgt = self.embed(b_tokens)
+            tgt = self.embed(batch_tokens)
 
             next_state = []
             for s, decoder in zip(dec_state, self.decoders):
@@ -229,8 +230,10 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
         )
         batch_y = torch.stack([d[0] for d in done])
 
-        lm_tokens = to_device(
-            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch)
+        lm_tokens = (
+            torch.LongTensor([hyp.yseq[-1] for hyp in hyps])
+            .view(final_batch)
+            .to(device=device)
         )
 
         return batch_y, batch_states, lm_tokens
@@ -248,12 +251,10 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
                 [L x (1, max_len, dec_dim)]
 
         """
-        if batch_states[0] is not None:
-            state_idx = [
-                batch_states[layer][idx] for layer in range(len(self.decoders))
-            ]
-        else:
-            state_idx = batch_states
+        if batch_states[0] is None:
+            return batch_states
+
+        state_idx = [batch_states[layer][idx] for layer in range(len(self.decoders))]
 
         return state_idx
 
@@ -268,16 +269,18 @@ class DecoderTT(TransducerDecoderInterface, torch.nn.Module):
             l_tokens (list): list of token sequences for batch
 
         Returns:
-            batch_states (list): batch of decoder and attention states
+            batch_states (list): batch of decoder states
                 [L x (B, max_len, dec_dim)]
 
         """
-        if batch_states[0] is not None:
-            max_len = max([len(t) for t in l_tokens])
+        if batch_states[0] is None:
+            return batch_states
 
-            for layer in range(len(self.decoders)):
-                batch_states[layer] = pad_batch_state(
-                    [s[layer] for s in l_states], max_len, self.blank
-                )
+        max_len = max([len(t) for t in l_tokens])
+
+        for layer in range(len(self.decoders)):
+            batch_states[layer] = pad_batch_state(
+                [s[layer] for s in l_states], max_len, self.blank
+            )
 
         return batch_states
