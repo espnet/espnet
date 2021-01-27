@@ -11,12 +11,12 @@ We shall discuss the design and implementation.
 Once we agree that the plan looks good, go ahead and implement it.
 You can find ongoing major development plans at https://github.com/espnet/espnet/milestones
 
-### 1.2 Minor Uupdates (minor feature, bug-fix for an issue)
+### 1.2 Minor Updates (minor feature, bug-fix for an issue)
 
 If you want to implement a minor feature or bug-fix for an issue, please first take a look at 
 the existing [issues](https://github.com/espnet/espnet/pulls) and/or [pull requests](https://github.com/espnet/espnet/pulls).
 Pick an issue and comment on the task that you want to work on this feature.
-If you need more context on a particular issue, please ask us and then we shall provide more information.
+If you need more context on a particular issue, please ask us, and then we shall provide more information.
    
 We also welcome if you find some bugs during your actual use of ESPnet and make a PR to fix them.
 
@@ -31,8 +31,8 @@ Each of them follows a different structure.
 
 #### 1.3.1 ESPnet1 recipes
 
-ESPnet1 follows convension from [Kaldi](https://github.com/kaldi-asr/kaldi) and it is also based on several utilities from Kaldi. ESPnet1's recipes
-corresponds to `egs`. This feature naturally makes it very simple to port a Kaldi recipe to ESPnet. If you port a Kaldi recipe to ESPnet, please see
+ESPnet1 follows convention from [Kaldi](https://github.com/kaldi-asr/kaldi), and it is also based on several utilities from Kaldi. ESPnet1's recipes
+correspond to `egs`. This feature naturally makes it very simple to port a Kaldi recipe to ESPnet. If you port a Kaldi recipe to ESPnet, please see
 [port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F) for more detailed instructions.
 If there is no existing Kaldi's recipe, you could still refer to 
 [port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F) and the major task is to prepare
@@ -43,24 +43,24 @@ For each recipe, we also encourage you to report your results with your detailed
    
 To make a report for `RESULTS.md`
  - execute `show_result.sh` at a recipe main directory (where `run.sh` is located), as follows. 
-   You'll get environmental information and the evaluation result of each experiments in a markdown format.
+   You'll get environmental information and the evaluation result of each experiment in a markdown format.
    ```
    $ show_result.sh
    ```
- - execute `pack_model.sh` at a recipe main directory as follows. You'll get model information in a markdown format
+ - execute `pack_model.sh` at the main directory of a recipe as follows. You'll get model information in a markdown format
    ```
    $ pack_model.sh --lm <language model> <tr_conf> <dec_conf> <cmvn> <e2e>
    ```
  - `pack_model.sh` also produces a packed espnet model (`model.tar.gz`). If you upload this model to somewhere with a download link,
    please put the link information to `RESULTS.md`.
- - please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your model files.
+ - please contact Shinji Watanabe <shinjiw@ieee.org> if you want web storage to put your model files.
 
 #### 1.3.2 ESPnet2 recipes
 
 #### 1.3.3 Typical issues in recipes
 
 ## 2 Pull Request
-Once you finish implementing a feature or bugfix, please send a Pull Request to https://github.com/espnet/espnet
+Once you finish implementing a feature or bug-fix, please send a Pull Request to https://github.com/espnet/espnet
 
 If you are not familiar with creating a Pull Request, here are some guides:
 
@@ -73,11 +73,11 @@ We basically develop in the `master` branch.
 
 1. We will keep the first version digit `0` until we have some super major changes in the project organization level.
 
-2. The second version digit will be updated when we have major updates including new functions and refactoring, and 
+2. The second version digit will be updated when we have major updates, including new functions and refactoring, and 
    their related bug fix and recipe changes.
-   This version update will be done roughly at every half year so far (but it depends on the development plan).
+   This version update will be done roughly every half year so far (but it depends on the development plan).
 
-3. The third version digit will be updated when we fix serious bugs or accumulate some minor changes including
+3. The third version digit will be updated when we fix serious bugs or accumulate some minor changes, including
    recipe related changes periodically (every two months or so).
 
 ## 4 Unit testing
@@ -95,8 +95,8 @@ Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en
 ./ci/test_python.sh
 ```
 
-To create new test file. write functions named like `def test_yyy(...)` in files like `test_xxx.py` under `test/`.
-[Pytest](https://docs.pytest.org/en/latest/) will automatically test them. Note that, [pytest-timeouts](https://pypi.org/project/pytest-timeouts/) raises **an error when any tests exceed 2.0 sec**. To keep unittests fast, please avoid large parameters, dynamic imports, and file access. If your unittest really needs more time, you can annotate your test function with `@pytest.mark.timeout(sec)`. You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
+To create a new test file. write functions named like `def test_yyy(...)` in files like `test_xxx.py` under `test/`.
+[Pytest](https://docs.pytest.org/en/latest/) will automatically test them. Note that, [pytest-timeouts](https://pypi.org/project/pytest-timeouts/) raises **an error when any tests exceed 2.0 sec**. To keep unit tests fast, please avoid large parameters, dynamic imports, and file access. If your unit test really needs more time, you can annotate your test function with `@pytest.mark.timeout(sec)`. You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
 ### 4.2 Bash scripts
 
@@ -135,7 +135,7 @@ You can place your new tools under
 - `espnet/bin`: heavy and large (e.g., neural network related) core tools.
 - `utils`: lightweight self-contained python/bash scripts.
 
-For `utils` scripts, do not forget to add help messages, and test scripts under `test_utils`.
+For `utils` scripts, do not forget to add help messages and test scripts under `test_utils`.
 
 ### 8.1 Python tools guideline
 
@@ -183,11 +183,11 @@ The model name is arbitrary for now.
 
 ### Travis CI and Github Actions
 
-1. read log from PR checks > details
+1. read the log from PR checks > details
 
 ### Circle CI
 
-1. read log from PR checks > details
+1. read the log from PR checks > details
 2. turn on Rerun workflow > Rerun job with SSH
 3. open your local terminal and `ssh -p xxx xxx` (check circle ci log for the exact address)
 4. try anything you can to pass the CI
