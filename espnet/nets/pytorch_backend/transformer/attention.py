@@ -297,7 +297,7 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         matrix_ac = torch.matmul(q_with_bias_u, k.transpose(-2, -1))
 
         # compute matrix b and matrix d
-        # (batch, head, time1, time1)
+        # (batch, head, time1, 2*time1-1)
         matrix_bd = torch.matmul(q_with_bias_v, p.transpose(-2, -1))
         matrix_bd = self.rel_shift(matrix_bd)
 
