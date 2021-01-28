@@ -49,7 +49,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         """Construct a CustomDecoder object."""
         torch.nn.Module.__init__(self)
 
-        self.embed, self.decoders, ddim = build_blocks(
+        self.embed, self.decoders, ddim, _ = build_blocks(
             "decoder",
             odim,
             input_layer,

@@ -67,7 +67,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         if stft_consistency and loss_type in ["mask_mse", "si_snr"]:
             raise ValueError(
-                f"stft_consistency will not work when '{loss_type}'' loss is used"
+                f"stft_consistency will not work when '{loss_type}' loss is used"
             )
 
         assert self.loss_type in ALL_LOSS_TYPES, self.loss_type
@@ -421,11 +421,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             return loss, spectrum_pre, others, flens, perm
 
         else:
-            if speech_ref.dim() == 4:
-                # For si_snr loss of multi-channel input,
-                # only select one channel as the reference
-                speech_ref = speech_ref[..., self.ref_channel]
-
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
             if not cal_loss:
                 loss, perm = None, None
@@ -433,6 +428,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
             # speech_pre: list[(batch, sample)]
             assert speech_pre[0].dim() == 2, speech_pre[0].dim()
+
+            if speech_ref.dim() == 4:
+                # For si_snr loss of multi-channel input,
+                # only select one channel as the reference
+                speech_ref = speech_ref[..., self.ref_channel]
             speech_ref = torch.unbind(speech_ref, dim=1)
 
             # compute si-snr loss
@@ -547,8 +547,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         s_target = (ref * inf).sum(dim=1, keepdims=True) * ref
         e_noise = inf - s_target
 
-        si_snr = 20 * torch.log10(
-            torch.norm(s_target, p=2, dim=1) / torch.norm(e_noise, p=2, dim=1)
+        si_snr = 20 * (
+            torch.log10(torch.norm(s_target, p=2, dim=1).clamp(min=EPS))
+            - torch.log10(torch.norm(e_noise, p=2, dim=1).clamp(min=EPS))
         )
         return -si_snr
 
@@ -603,8 +604,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             criterion (function): Loss function
             perm (torch.Tensor): specified permutation (batch, num_spk)
         Returns:
-            loss (torch.Tensor): (batch)
-            perm (torch.Tensor): (batch, num_spk)
+            loss (torch.Tensor): minimum loss with the best permutation (batch)
+            perm (torch.Tensor): permutation for inf (batch, num_spk)
                                  e.g. tensor([[1, 0, 2], [0, 1, 2]])
         """
         assert len(ref) == len(inf), (len(ref), len(inf))

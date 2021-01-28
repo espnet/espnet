@@ -34,6 +34,10 @@ sample_rate=8k
 
 . utils/parse_options.sh
 
+if [ $# -ne 0 ]; then
+    echo "${help_message}"
+    exit 1;
+fi
 
 if [ ! -e "${WSJ0}" ]; then
     log "Fill the value of 'WSJ0' of db.sh"
