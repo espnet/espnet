@@ -15,11 +15,13 @@ from typeguard import check_return_type
 from typing import List
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet.nets.scorers.ctc_extend import CTCPrefixExtendScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -65,6 +67,7 @@ class Speech2Text:
         lm_weight: float = 1.0,
         penalty: float = 0.0,
         nbest: int = 1,
+        streaming: bool = False,
     ):
         assert check_argument_types()
 
@@ -76,7 +79,10 @@ class Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = asr_model.decoder
-        ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
+        if streaming:
+            ctc = CTCPrefixExtendScorer(ctc=asr_model.ctc, eos=asr_model.eos)
+        else:
+            ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
         token_list = asr_model.token_list
         scorers.update(
             decoder=decoder,
@@ -116,8 +122,13 @@ class Speech2Text:
                 if not isinstance(v, BatchScorerInterface)
             ]
             if len(non_batch) == 0:
-                beam_search.__class__ = BatchBeamSearch
-                logging.info("BatchBeamSearch implementation is selected.")
+                if streaming:
+                    beam_search.__class__ = BatchBeamSearchOnlineSim
+                    beam_search.set_streaming_config( asr_train_config )
+                    logging.info("BatchBeamSearchOnlineSim implementation is selected.")
+                else:                    
+                    beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
             else:
                 logging.warning(
                     f"As non-batch scorers {non_batch} are found, "
@@ -245,6 +256,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    streaming: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -284,6 +296,7 @@ def inference(
         lm_weight=lm_weight,
         penalty=penalty,
         nbest=nbest,
+        streaming=streaming,
     )
 
     # 3. Build data-iterator
@@ -436,6 +449,7 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
+    group.add_argument("--streaming", type=str2bool, default=False)    
 
     return parser
 
