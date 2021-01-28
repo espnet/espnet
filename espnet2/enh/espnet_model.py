@@ -194,7 +194,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_lengths = (
             speech_mix_lengths
             if speech_mix_lengths is not None
-            else torch.ones(batch_size).int() * speech_mix.shape[1]
+            else torch.ones(batch_size).int().fill_(speech_mix.shape[1])
         )
         assert speech_lengths.dim() == 1, speech_lengths.shape
         # Check that batch_size is unified
