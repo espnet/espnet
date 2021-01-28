@@ -67,7 +67,7 @@ To upload your model, you need first:
 2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
 3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-#### 1.3.3 Additional Checklist when building recipes
+#### 1.3.3 Additional requirements for new recipe
 
 - [ ] common files are linked with symlink: we ask to use symlink to refer common scripts and utilities (e.g., `utils`, `steps`, `asr.sh`). Please use `ln -sf <source_path> <target path>` rather than a new copy.
 - [ ] configuration files are formated: major configuration file is named as `conf/train.yaml` and `conf/decode.yaml` while other options are kept in `conf/tuning`
