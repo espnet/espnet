@@ -13,7 +13,7 @@ or in https://github.com/espnet/espnet/issues (pinned issues)
 
 ### 1.2 Minor Updates (minor feature, bug-fix for an issue)
 
-If you want to propose a minor feature, update existing minor feature, or fix a bug,, please first take a look at 
+If you want to propose a minor feature, update an existing minor feature, or fix a bug, please first take a look at 
 the existing [issues](https://github.com/espnet/espnet/pulls) and/or [pull requests](https://github.com/espnet/espnet/pulls).
 Pick an issue and comment on the task that you want to work on this feature.
 
@@ -21,36 +21,36 @@ If you need help or additional information to propose the feature, you can open 
 
 ### 1.3 Recipes
 
-ESPnet provides and maintains a lot of example scripts, called `recipes`, that demonstrate how to 
-use the toolkit.  The recipes for ESPnet1 are put under `egs` directory while ESPnet2 ones are put under `egs2`.
-Similarly to Kaldi, each subdirectory of `egs` and `egs2` corresponds to a corpus that we have example scripts for.
+ESPnet provides and maintains many example scripts, called `recipes`, that demonstrate how to 
+use the toolkit.  The recipes for ESPnet1 are put under `egs` directory, while ESPnet2 ones are put under `egs2`.
+Similar to Kaldi, each subdirectory of `egs` and `egs2` corresponds to a corpus that we have example scripts for.
 
 #### 1.3.1 ESPnet1 recipes
 
-ESPnet1 recipes (`egs/X`) follows the convention from [Kaldi](https://github.com/kaldi-asr/kaldi) and may rely on 
-several utilities available in Kaldi. As such, porting a new recipe from Kaldi to ESPnet is natural and the user 
+ESPnet1 recipes (`egs/X`) follow the convention from [Kaldi](https://github.com/kaldi-asr/kaldi) and may rely on 
+several utilities available in Kaldi. As such, porting a new recipe from Kaldi to ESPnet is natural, and the user 
 may refer to [port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F)
 and other existing recipes for new additions. For the Kaldi-style recipe architecture, please refer to 
 [Prepare-Kaldi-Style-Directory](https://kaldi-asr.org/doc/data_prep.html).
    
 For each recipe, we ask you to report the following: experiments results and environnement, model information. 
-For reproducibility, a link to upload the pre-trained model may also be added. All these information should be written 
+For reproducibility, a link to upload the pre-trained model may also be added. All this information should be written 
 in a markdown file called `RESULTS.md` and put at the recipe root. You can refer to 
 [tedlium2-example](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md) for an example.
    
 To generate `RESULTS.md` for a recipe, please follow the following instructions:
 - Execute `~/espnet/utils/show_result.sh` at the recipe root (where `run.sh` is located). 
-You'll get your environment information and evaluation results for each experiments in a markdown format. 
+You'll get your environment information and evaluation results for each experiment in a markdown format. 
 From here, you can copy or redirect text output to `RESULTS.md`.
 - Execute `~/espnet/utils/pack_model.sh` at the recipe root to generate a packed ESPnet model called `model.tar.gz`
 and output model information. Executing the utility script without argument will give you the expected arguments.
 - Put the model information in `RESULTS.md` and model link if you're using a private web storage
-- If don't have a private web storage, please contact Shinji Watanabe <shinjiw@ieee.org> to give you access to ESPnet storage.
+- If you don't have private web storage, please contact Shinji Watanabe <shinjiw@ieee.org> to give you access to ESPnet storage.
 
 #### 1.3.2 ESPnet2 recipes
 
 ESPnet2's recipes correspond to `egs2`. ESPnet2 applies a new paradigm without dependencies of Kaldi's binaries, which makes it lighter and more generalized.
-For ESPnet2, we do not recommend preparing recipe's stages for each corpus but rather using the common pipelines we provided in `asr.sh`, `tts.sh`, and 
+For ESPnet2, we do not recommend preparing the recipe's stages for each corpus but using the common pipelines we provided in `asr.sh`, `tts.sh`, and 
 `enh.sh`. For details of creating ESPnet2 recipes, please refer to [egs2-readme](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/README.md).
 
 The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Zenodo.
@@ -59,7 +59,7 @@ To upload your model, you need first:
 2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
 3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-#### 1.3.3 Additional Checklist when building recipes
+#### 1.3.3 Additional requirements for new recipe
 
 - Common/shared files and directories such as `utils`, `steps`, `asr.sh`, etc, should be linked using
 a symbolic link (e.g.: `ln -s <source-path> <target-path>`). Please refer to existing recipes if you're 
@@ -105,14 +105,14 @@ Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en
 ./ci/test_python.sh
 ```
 Followings are some useful tips when you are using pytest:
-- New test file should be put under `test/` directory and named `test_xxx.py`. Each methods in test file should
+- New test file should be put under `test/` directory and named `test_xxx.py`. Each method in the test file should
 have the format `def test_yyy(...)`.  [Pytest](https://docs.pytest.org/en/latest/) will automatically find and test them.
-- We recommend adding several small test files instead of grouping them together in one big file (e.g.: `test_e2e_xxx.py`).
+- We recommend adding several small test files instead of grouping them in one big file (e.g.: `test_e2e_xxx.py`).
 Technically, a test file should only cover methods from one file (e.g.: `test_transformer_utils.py` to test `transformer_utils.py`).
-- To monitor test coverage and avoid overlapping test, we recommend using  `pytest --cov-report term-missing <test_file|dir>`
+- To monitor test coverage and avoid the overlapping test, we recommend using  `pytest --cov-report term-missing <test_file|dir>`
 to highlight covered and missed lines. For more details, please refer to [coverage-test](https://pytest-cov.readthedocs.io/en/latest/readme.html).
 - We limited test running time to 2.0 seconds (see: [pytest-timeouts](https://pypi.org/project/pytest-timeouts/)). As such, 
-we recommend using small model parameters and avoiding dynamic imports, file access and unnecessary loops. If a unit test needs
+we recommend using small model parameters and avoiding dynamic imports, file access, and unnecessary loops. If a unit test needs
 more running time, you can annotate your test with `@pytest.mark.timeout(sec)`.
 - For test initialization (parameters, modules, etc), you can use pytest fixtures. Refer to  [pytest fixtures](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects) for more information.
    
