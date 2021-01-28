@@ -64,7 +64,9 @@ To upload your model, you need first:
 - Common/shared files and directories such as `utils`, `steps`, `asr.sh`, etc, should be linked using
 a symbolic link (e.g.: `ln -s <source-path> <target-path>`). Please refer to existing recipes if you're 
 unaware which files/directories are shared.
-- Configuration files are formated: major configuration file is named as `conf/train.yaml` and `conf/decode.yaml` while other options are kept in `conf/tuning`
+- Default training and decoding configurations (i.e.: the default one in `run.sh`) should be named respectively `train.yaml` 
+and `decode.yaml` and put in `conf/`. Additional or variant configurations should be put in `conf/tuning/` and named accordingly
+to its differences. 
 - If a recipe for a new corpus is proposed, you should add its name and information to:
 https://github.com/espnet/espnet/blob/master/egs/README.md if it's a ESPnet1 recipe, 
 or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's a ESPnet2 recipe.
