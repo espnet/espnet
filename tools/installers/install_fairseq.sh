@@ -46,12 +46,11 @@ echo "cuda_version=${cuda_version}"
 if "${torch_15_plus}" && "${python_36_plus}"; then
 
     rm -rf fairseq
-    git clone https://github.com/simpleoier/fairseq.git
+    git clone https://github.com/pytorch/fairseq.git
     (
         set -euo pipefail
 
         cd fairseq
-        git checkout -b w2v_import remotes/origin/w2v_import
 
         pip uninstall typing
         pip install --editable ./

@@ -87,6 +87,6 @@ def initialize(model: torch.nn.Module, init: str):
 
         # TODO(xkc): Hacking wav2vec2 initialization
         if getattr(model, "encoder", None) and getattr(
-            model.encoder, "load_pretrained_parameters", None
+            model.encoder, "reload_pretrained_parameters", None
         ):
             model.encoder.reload_pretrained_parameters()

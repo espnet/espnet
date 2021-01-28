@@ -2,9 +2,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
+import contextlib
 import logging
 import os
-import subprocess
 from typing import Optional
 from typing import Tuple
 
@@ -14,6 +14,7 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.extract_features import patched_extract_features
 
 
 class FairSeqWav2Vec2Encoder(AbsEncoder):
@@ -27,6 +28,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         normalize_before: whether to use layer_norm before the first block
         freeze_w2v: whether to freeze the Wav2Vec2.0 model during training
         finetune_last_n_layers: last n layers to be finetuned in Wav2Vec2.0
+                                0 means to finetune every layer if freeze_w2v=False.
     """
 
     def __init__(
@@ -45,9 +47,10 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         if w2v_url != "":
             try:
                 import fairseq
-                from fairseq.models.wav2vec.wav2vec2_asr import Wav2VecCtc
+                from fairseq.models.wav2vec.wav2vec2 import TransformerEncoder
+                from fairseq.models.wav2vec.wav2vec2 import Wav2Vec2Model
             except Exception as e:
-                print("Error: FairSeq is not installed.")
+                print("Error: FairSeq is not properly installed.")
                 print(
                     "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done"
                 )
@@ -68,8 +71,23 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             arg_overrides={"data": w2v_dir_path},
         )
         model = models[0]
-        if isinstance(model, Wav2VecCtc):
-            model = model.w2v_encoder.w2v_model
+
+        if not isinstance(model, Wav2Vec2Model):
+            try:
+                model = model.w2v_encoder.w2v_model
+            except Exception as e:
+                print(
+                    "Error: pretrained models should be within: "
+                    "'Wav2Vec2Model, Wav2VecCTC' classes, etc."
+                )
+                raise e
+
+        assert getattr(model.encoder, "finetune_last_n_layers", None) is None
+        setattr(model.encoder, "finetune_last_n_layers", finetune_last_n_layers)
+
+        model.encoder.extract_features = patched_extract_features.__get__(
+            model.encoder, TransformerEncoder
+        )
 
         self.encoders = model
 
@@ -106,20 +124,16 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         """
         masks = make_pad_mask(ilens).to(xs_pad.device)
 
-        if self.finetune_last_n_layers > 0:
+        with torch.no_grad() if self.freeze_w2v else contextlib.nullcontext():
             enc_outputs = self.encoders(
                 xs_pad,
                 masks,
                 features_only=True,
-                finetune_last_n_layers=self.finetune_last_n_layers,
             )
-        else:
-            enc_outputs = self.encoders(xs_pad, masks)
+
         xs_pad = enc_outputs["x"]  # (B,T,C),
         masks = enc_outputs["padding_mask"]  # (B, T)
-        if self.freeze_w2v:
-            xs_pad = xs_pad.detach()
-            masks = masks.detach()
+
         olens = (~masks).sum(dim=1)
 
         if self.output_linear is not None:
@@ -140,21 +154,11 @@ def download_w2v(url, dir_path):
     model_name = url.split("/")[-1]
     model_path = os.path.join(dir_path, model_name)
 
-    if not os.path.exists(model_path):
-        logging.info(f"Downloading Wav2Vec model from {url}")
-        command = " ".join(["wget", "-P", dir_path, url])
-        _ = subprocess.Popen(command, shell=True, stdout=None).communicate()[0]
-        command = " ".join(
-            [
-                "wget",
-                "-P",
-                dir_path,
-                "https://dl.fbaipublicfiles.com/fairseq/wav2vec/dict.ltr.txt",
-            ]
-        )
-        _ = subprocess.Popen(command, shell=True, stdout=None).communicate()[0]
-        logging.info(f"Wav2Vec model downloaded {model_path}")
-    else:
-        logging.info(f"{model_path} exists, skipping download.")
+    torch.hub.download_url_to_file(url, model_path)
+    torch.hub.download_url_to_file(
+        "https://dl.fbaipublicfiles.com/fairseq/wav2vec/dict.ltr.txt",
+        os.path.join(dir_path, "dict.ltr.txt"),
+    )
+    logging.info(f"Wav2Vec model downloaded {model_path}")
 
     return model_path
