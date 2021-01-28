@@ -207,8 +207,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
            [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
                     --snapshots ${expdir}/results/snapshot.ep.* \
