@@ -31,8 +31,8 @@ Each of them follows a different structure.
 
 #### 1.3.1 ESPnet1 recipes
 
-ESPnet1 follows convention from [Kaldi](https://github.com/kaldi-asr/kaldi), and it is also based on several utilities from Kaldi. ESPnet1's recipes
-correspond to `egs`. This feature naturally makes it very simple to port a Kaldi recipe to ESPnet. If you port a Kaldi recipe to ESPnet, please see
+ESPnet1's recipes correspond to `egs`.ESPnet1 follows convention from [Kaldi](https://github.com/kaldi-asr/kaldi), and it is also based on several
+utilities from Kaldi. This feature naturally makes it very simple to port a Kaldi recipe to ESPnet. If you port a Kaldi recipe to ESPnet, please see
 [port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F) for more detailed instructions.
 If there is no existing Kaldi's recipe, you could still refer to 
 [port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F) and the major task is to prepare
@@ -57,7 +57,23 @@ To make a report for `RESULTS.md`
 
 #### 1.3.2 ESPnet2 recipes
 
-#### 1.3.3 Typical issues in recipes
+ESPnet2's recipes correspond to `egs2`. ESPnet2 applies a new paradigm without dependencies of Kaldi's binaries, which makes it lighter and more generalized.
+For ESPnet2, we do not recommend preparing recipe's stages for each corpus but rather using the common pipelines we provided in `asr.sh`, `tts.sh`, and 
+`enh.sh`. For details of creating ESPnet2 recipes, please refer to [egs2-readme](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/README.md).
+
+The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Zenodo.
+To upload your model, you need first:
+1. Sign up to Zenodo: https://zenodo.org/
+2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+#### 1.3.3 Additional Checklist when building recipes
+
+- [ ] common files are linked with symlink: we ask to use symlink to refer common scripts and utilities (e.g., `utils`, `steps`, `asr.sh`). Please use `ln -sf <source_path> <target path>` rather than a new copy.
+- [ ] configuration files are formated: major configuration file is named as `conf/train.yaml` and `conf/decode.yaml` while other options are kept in `conf/tuning`
+- [ ] RESULT.md prepare: results are updated and prepared follow 1.3.1 or 1.3.2
+- [ ] corpus registration: please register your target corpus in https://github.com/espnet/espnet/blob/master/egs2/README.md or https://github.com/espnet/espnet/blob/master/egs/README.md and `db.sh` (for ESPnet2 only)
+
 
 ## 2 Pull Request
 Once you finish implementing a feature or bug-fix, please send a Pull Request to https://github.com/espnet/espnet
@@ -85,6 +101,7 @@ We basically develop in the `master` branch.
 ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
 ``` console
 $ cd <espnet_root>
+$ . ./tools/activate_python.sh
 $ pip install -e ".[test]"
 ```
 
@@ -94,9 +111,14 @@ Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en
 ``` console
 ./ci/test_python.sh
 ```
-
-To create a new test file. write functions named like `def test_yyy(...)` in files like `test_xxx.py` under `test/`.
-[Pytest](https://docs.pytest.org/en/latest/) will automatically test them. Note that, [pytest-timeouts](https://pypi.org/project/pytest-timeouts/) raises **an error when any tests exceed 2.0 sec**. To keep unit tests fast, please avoid large parameters, dynamic imports, and file access. If your unit test really needs more time, you can annotate your test function with `@pytest.mark.timeout(sec)`. You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
+Followings are some useful tips when you are using pytest:
+- To create a new test file. write functions named like `def test_yyy(...)` in files like `test_xxx.py` under `test/`.
+[Pytest](https://docs.pytest.org/en/latest/) will automatically test them.
+- Note that, [pytest-timeouts](https://pypi.org/project/pytest-timeouts/) raises **an error when any tests exceed 2.0 sec**. To keep unit tests fast, please avoid large parameters, dynamic imports, and file access. If your unit test really needs more time, you can annotate your test function with `@pytest.mark.timeout(sec)`.
+- You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
+- As it is important to make sure that the unit test covers more codes, we recommend you to use `pytest --cov-report term-missing --cov=<target_dir> tests/` to check the status of test coverage. For more details, please refer to [coverage-test](https://pytest-cov.readthedocs.io/en/latest/readme.html).
+- For unit tests, we recommend you to separate large tests (e.g., `test_e2e_xxx.py`) into smaller ones, each one should test only methods/operations inside one file when it's possible. 
+   
 
 ### 4.2 Bash scripts
 
