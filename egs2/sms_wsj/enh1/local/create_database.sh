@@ -137,6 +137,8 @@ fi
 
 
 # This takes about 25 minutes with the default configuration.
+# NOTE (Wangyou): If you try to rerun this part, please make sure the directories under
+#   ${sms_wsj_wav}/ are deleted in advance.
 echo "Creating ${sms_wsj_wav} audio data in '${sms_wsj_wav}'"
 mpiexec -np ${nj} python -m sms_wsj.database.write_files \
   with dst_dir=${sms_wsj_wav} json_path=${json_dir}/intermediate_sms_wsj.json \
