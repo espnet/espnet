@@ -192,7 +192,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         input_layer_odim = blocks_arch[0]["d_hidden"]
 
     if blocks_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
-        out_dim = blocks_arch[-1]["idim"]
+        out_dim = blocks_arch[-1]["odim"]
     else:
         out_dim = blocks_arch[-1]["d_hidden"]
 
