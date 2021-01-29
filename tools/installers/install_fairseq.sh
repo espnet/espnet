@@ -46,6 +46,8 @@ echo "cuda_version=${cuda_version}"
 if "${torch_15_plus}" && "${python_36_plus}"; then
 
     rm -rf fairseq
+    
+    # FairSeq Commit id when making this PR: `commit 6225dccb989ebfb268274bad36a794b27e4dd43f`
     git clone https://github.com/pytorch/fairseq.git
     (
         set -euo pipefail
