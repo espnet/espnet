@@ -38,7 +38,7 @@ recog_all=false  # If false, decoding is performed on the subset (dev, test) onl
 n_average=5                  # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
                              # if false, the last `n_average` ASR models will be averaged.
-metric=cer_ctc               # loss/acc/cer/cer_ctc
+metric=acc                   # loss/acc/cer/cer_ctc
 
 # preprocessing related
 src_case=lc.rm

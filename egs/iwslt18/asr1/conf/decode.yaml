@@ -1,1 +1,1 @@
-tuning/decode_rnn_spm.yaml
+tuning/decode_pytorch_transformer_nolm.yaml
