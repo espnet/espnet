@@ -21,7 +21,6 @@ from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
-from espnet.nets.scorers.ctc_extend import CTCPrefixExtendScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -79,10 +78,7 @@ class Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = asr_model.decoder
-        if streaming:
-            ctc = CTCPrefixExtendScorer(ctc=asr_model.ctc, eos=asr_model.eos)
-        else:
-            ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
+        ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
         token_list = asr_model.token_list
         scorers.update(
             decoder=decoder,
@@ -124,9 +120,9 @@ class Speech2Text:
             if len(non_batch) == 0:
                 if streaming:
                     beam_search.__class__ = BatchBeamSearchOnlineSim
-                    beam_search.set_streaming_config( asr_train_config )
+                    beam_search.set_streaming_config(asr_train_config)
                     logging.info("BatchBeamSearchOnlineSim implementation is selected.")
-                else:                    
+                else:
                     beam_search.__class__ = BatchBeamSearch
                     logging.info("BatchBeamSearch implementation is selected.")
             else:
@@ -449,7 +445,7 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
-    group.add_argument("--streaming", type=str2bool, default=False)    
+    group.add_argument("--streaming", type=str2bool, default=False)
 
     return parser
 

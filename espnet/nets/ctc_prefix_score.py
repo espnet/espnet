@@ -220,6 +220,52 @@ class CTCPrefixScoreTH(object):
         )
         return r_new, s_new, f_min, f_max
 
+    def extend_prob(self, x):
+        """extend CTC prob"""
+
+        if self.x.shape[1] < x.shape[1]:  # self.x (2,T,B,O); x (B,T,O)
+            # Pad the rest of posteriors in the batch
+            # TODO(takaaki-hori): need a better way without for-loops
+            xlens = [x.size(1)]
+            for i, l in enumerate(xlens):
+                if l < self.input_length:
+                    x[i, l:, :] = self.logzero
+                    x[i, l:, self.blank] = 0
+            tmp_x = self.x
+            xn = x.transpose(0, 1)  # (B, T, O) -> (T, B, O)
+            xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)
+            self.x = torch.stack([xn, xb])  # (2, T, B, O)
+            self.x[:, : tmp_x.shape[1], :, :] = tmp_x
+            self.input_length = x.size(1)
+            self.end_frames = torch.as_tensor(xlens) - 1
+
+    def extend_state(self, state):
+        """Compute CTC prefix state
+
+        :param y    : label history
+        :state CTC state
+        :return ctc_state
+        """
+
+        if state is None:
+            # nothing to do
+            return state
+        else:
+            r_prev, s_prev, f_min_prev, f_max_prev = state
+
+            r_prev_new = torch.full(
+                (self.input_length, 2),
+                self.logzero,
+                dtype=self.dtype,
+                device=self.device,
+            )
+            start = max(r_prev.shape[0], 1)
+            r_prev_new[0:start] = r_prev
+            for t in six.moves.range(start, self.input_length):
+                r_prev_new[t, 1] = r_prev_new[t - 1, 1] + self.x[0, t, :, self.blank]
+
+            return (r_prev_new, s_prev, f_min_prev, f_max_prev)
+
 
 class CTCPrefixScore(object):
     """Compute CTC label sequence scores
@@ -308,3 +354,28 @@ class CTCPrefixScore(object):
         # return the log prefix probability and CTC states, where the label axis
         # of the CTC states is moved to the first axis to slice it easily
         return log_psi, self.xp.rollaxis(r, 2)
+
+    def extend_prob(self, x):
+        """extend CTC prob"""
+        if len(self.x) < len(x):
+            tmp_x = self.x
+            self.x = x
+            self.x[: len(tmp_x)] = tmp_x
+            self.input_length = len(self.x)
+
+    def extend_state(self, r_prev):
+        """Compute CTC prefix state
+
+        :param y    : label history
+        :param r_prev: previous CTC state
+        :return ctc_state
+        """
+
+        r = self.xp.full((self.input_length, 2), self.logzero, dtype=np.float32)
+        start = max(len(r_prev), 1)
+        r[0:start] = r_prev
+
+        for t in six.moves.range(start, self.input_length):
+            r[t, 1] = r[t - 1, 1] + self.x[t, self.blank]
+
+        return r

@@ -11,7 +11,9 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer import ContextualBlockEncoderLayer
+from espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer import (
+    ContextualBlockEncoderLayer,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
@@ -19,15 +21,24 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import Conv2dSubsamplingWOPosEnc
-from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import Conv2dSubsampling6WOPosEnc
-from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import Conv2dSubsampling8WOPosEnc
+from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
+    Conv2dSubsamplingWOPosEnc,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
+    Conv2dSubsampling6WOPosEnc,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
+    Conv2dSubsampling8WOPosEnc,  # noqa: H301
+)
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 import math
 
 
 class ContextualBlockTransformerEncoder(AbsEncoder):
     """Contextual Block Transformer encoder module.
+
+    Details in Tsunoo et al. "Transformer ASR with contextual block processing"
+    (https://arxiv.org/abs/1910.07204)
 
     Args:
         input_size: input dim
@@ -52,7 +63,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         block_size: block size for contextual block processing
         hop_Size: hop size for block processing
         look_ahead: look-ahead size for block_processing
-        init_average: whether to use average as an initialization of context vectors ( or max values instead )
+        init_average: whether to use average as initial context (otherwise max values)
         ctx_pos_enc: whether to use positional encoding to the context vectors
     """
 
@@ -77,7 +88,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         hop_size: int = 16,
         look_ahead: int = 16,
         init_average: bool = True,
-        ctx_pos_enc: bool = True
+        ctx_pos_enc: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -93,11 +104,17 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 torch.nn.ReLU(),
             )
         elif input_layer == "conv2d":
-            self.embed = Conv2dSubsamplingWOPosEnc(input_size, output_size, dropout_rate)
+            self.embed = Conv2dSubsamplingWOPosEnc(
+                input_size, output_size, dropout_rate
+            )
         elif input_layer == "conv2d6":
-            self.embed = Conv2dSubsampling6WOPosEnc(input_size, output_size, dropout_rate)
+            self.embed = Conv2dSubsampling6WOPosEnc(
+                input_size, output_size, dropout_rate
+            )
         elif input_layer == "conv2d8":
-            self.embed = Conv2dSubsampling8WOPosEnc(input_size, output_size, dropout_rate)
+            self.embed = Conv2dSubsampling8WOPosEnc(
+                input_size, output_size, dropout_rate
+            )
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
@@ -187,81 +204,106 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
         # create empty output container
         total_frame_num = xs_pad.size(1)
-        ys_pad = xs_pad.new_zeros( xs_pad.size() )
+        ys_pad = xs_pad.new_zeros(xs_pad.size())
 
         past_size = self.block_size - self.hop_size - self.look_ahead
 
         # block_size could be 0 meaning infinite
         # apply usual encoder for short sequence
         if self.block_size == 0 or total_frame_num <= self.block_size:
-            xs_pad, masks, _, _, _ = self.encoders( self.pos_enc(xs_pad), masks, None, None )
+            xs_pad, masks, _, _, _ = self.encoders(
+                self.pos_enc(xs_pad), masks, None, None
+            )
             if self.normalize_before:
                 xs_pad = self.after_norm(xs_pad)
 
             olens = masks.squeeze(1).sum(1)
             return xs_pad, olens, None
-            
 
         # start block processing
         cur_hop = 0
-        block_num = math.ceil( float( total_frame_num - past_size -self.look_ahead ) / float( self.hop_size ) )
+        block_num = math.ceil(
+            float(total_frame_num - past_size - self.look_ahead) / float(self.hop_size)
+        )
         bsize = xs_pad.size(0)
-        addin = xs_pad.new_zeros( bsize, block_num, xs_pad.size(-1) )  # additional context embedding vecctors
+        addin = xs_pad.new_zeros(
+            bsize, block_num, xs_pad.size(-1)
+        )  # additional context embedding vecctors
 
         # first step
-        if self.init_average: # initialize with average value
-            addin[:,0,:] = xs_pad.narrow( 1, cur_hop, self.block_size).mean(1)
-        else: # initialize with max value
-            addin[:,0,:] = xs_pad.narrow( 1, cur_hop, self.block_size).max(1)
+        if self.init_average:  # initialize with average value
+            addin[:, 0, :] = xs_pad.narrow(1, cur_hop, self.block_size).mean(1)
+        else:  # initialize with max value
+            addin[:, 0, :] = xs_pad.narrow(1, cur_hop, self.block_size).max(1)
         cur_hop += self.hop_size
         # following steps
         while cur_hop + self.block_size < total_frame_num:
-            if self.init_average: # initialize with average value
-                addin[:, cur_hop // self.hop_size, :] = xs_pad.narrow( 1, cur_hop, self.block_size ).mean(1)
-            else: # initialize with max value
-                addin[:, cur_hop // self.hop_size, :] = xs_pad.narrow( 1, cur_hop, self.block_size ).max(1)
+            if self.init_average:  # initialize with average value
+                addin[:, cur_hop // self.hop_size, :] = xs_pad.narrow(
+                    1, cur_hop, self.block_size
+                ).mean(1)
+            else:  # initialize with max value
+                addin[:, cur_hop // self.hop_size, :] = xs_pad.narrow(
+                    1, cur_hop, self.block_size
+                ).max(1)
             cur_hop += self.hop_size
         # last step
-        if cur_hop < total_frame_num and cur_hop//self.hop_size < block_num:
-            if self.init_average: # initialize with average value            
-                addin[:, cur_hop//self.hop_size, :] = xs_pad.narrow( 1, cur_hop, total_frame_num - cur_hop ).mean(1)
-            else: # initialize with max value
-                addin[:, cur_hop//self.hop_size, :] = xs_pad.narrow( 1, cur_hop, total_frame_num - cur_hop ).max(1)
+        if cur_hop < total_frame_num and cur_hop // self.hop_size < block_num:
+            if self.init_average:  # initialize with average value
+                addin[:, cur_hop // self.hop_size, :] = xs_pad.narrow(
+                    1, cur_hop, total_frame_num - cur_hop
+                ).mean(1)
+            else:  # initialize with max value
+                addin[:, cur_hop // self.hop_size, :] = xs_pad.narrow(
+                    1, cur_hop, total_frame_num - cur_hop
+                ).max(1)
 
         if self.ctx_pos_enc:
-            addin = self.pos_enc( addin )
-            
-        xs_pad = self.pos_enc( xs_pad )
+            addin = self.pos_enc(addin)
+
+        xs_pad = self.pos_enc(xs_pad)
 
         # set up masks
-        mask_online = xs_pad.new_zeros( xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2 )
-        mask_online.narrow( 2, 1, self.block_size + 1 ).narrow( 3, 0, self.block_size + 1 ).fill_( 1 )
+        mask_online = xs_pad.new_zeros(
+            xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
+        )
+        mask_online.narrow(2, 1, self.block_size + 1).narrow(
+            3, 0, self.block_size + 1
+        ).fill_(1)
 
-        xs_chunk = xs_pad.new_zeros( bsize, block_num, self.block_size + 2, xs_pad.size(-1) )
+        xs_chunk = xs_pad.new_zeros(
+            bsize, block_num, self.block_size + 2, xs_pad.size(-1)
+        )
 
         # fill the input
         # first step
         left_idx = 0
         block_idx = 0
-        xs_chunk[:,block_idx,1:self.block_size+1] = xs_pad.narrow( -2, left_idx, self.block_size )
+        xs_chunk[:, block_idx, 1 : self.block_size + 1] = xs_pad.narrow(
+            -2, left_idx, self.block_size
+        )
         left_idx += self.hop_size
         block_idx += 1
         # following steps
         while left_idx + self.block_size < total_frame_num and block_idx < block_num:
-            xs_chunk[:, block_idx, 1:self.block_size+1] = xs_pad.narrow( -2, left_idx, self.block_size )
+            xs_chunk[:, block_idx, 1 : self.block_size + 1] = xs_pad.narrow(
+                -2, left_idx, self.block_size
+            )
             left_idx += self.hop_size
             block_idx += 1
         # last steps
         last_size = total_frame_num - left_idx
-        xs_chunk[:, block_idx, 1:last_size+1] = xs_pad.narrow( -2, left_idx, last_size )
+        xs_chunk[:, block_idx, 1 : last_size + 1] = xs_pad.narrow(
+            -2, left_idx, last_size
+        )
 
         # fill the initial context vector
-        xs_chunk[:,0,0] = addin[:,0]
-        xs_chunk[:,1:,0] = addin[:,0:block_num-1]
-        xs_chunk[:,:,self.block_size+1] = addin
+        xs_chunk[:, 0, 0] = addin[:, 0]
+        xs_chunk[:, 1:, 0] = addin[:, 0 : block_num - 1]
+        xs_chunk[:, :, self.block_size + 1] = addin
 
         # forward
-        ys_chunk, mask_online, _, _, _ = self.encoders( xs_chunk, mask_online, xs_chunk )
+        ys_chunk, mask_online, _, _, _ = self.encoders(xs_chunk, mask_online, xs_chunk)
 
         # copy output
         # first step
@@ -269,17 +311,21 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         left_idx = 0
         block_idx = 0
         cur_hop = self.block_size - self.look_ahead
-        ys_pad[:, left_idx:cur_hop] = ys_chunk[:, block_idx, 1:cur_hop+1]
+        ys_pad[:, left_idx:cur_hop] = ys_chunk[:, block_idx, 1 : cur_hop + 1]
         left_idx += self.hop_size
         block_idx += 1
         # following steps
         while left_idx + self.block_size < total_frame_num and block_idx < block_num:
-            ys_pad[:, cur_hop:cur_hop+self.hop_size] = ys_chunk[:, block_idx, offset:offset+self.hop_size]
+            ys_pad[:, cur_hop : cur_hop + self.hop_size] = ys_chunk[
+                :, block_idx, offset : offset + self.hop_size
+            ]
             cur_hop += self.hop_size
             left_idx += self.hop_size
             block_idx += 1
-        ys_pad[:, cur_hop:total_frame_num] = ys_chunk[:, block_idx, offset:last_size + 1, :]
-        
+        ys_pad[:, cur_hop:total_frame_num] = ys_chunk[
+            :, block_idx, offset : last_size + 1, :
+        ]
+
         if self.normalize_before:
             ys_pad = self.after_norm(ys_pad)
 

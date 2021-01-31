@@ -9,7 +9,6 @@
 import torch
 
 
-
 class Conv2dSubsamplingWOPosEnc(torch.nn.Module):
     """Convolutional 2D subsampling (to 1/4 length).
 

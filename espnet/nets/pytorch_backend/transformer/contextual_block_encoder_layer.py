@@ -76,23 +76,24 @@ class ContextualBlockEncoderLayer(nn.Module):
             layer_idx (int): layer index number
 
         """
-
         nbatch = x.size(0)
         nblock = x.size(1)
-        
+
         if past_ctx is not None:
             if next_ctx is None:
                 # store all context vectors in one tensor
-                next_ctx = past_ctx.new_zeros( nbatch, nblock, self.total_layer_num, x.size(-1) )
+                next_ctx = past_ctx.new_zeros(
+                    nbatch, nblock, self.total_layer_num, x.size(-1)
+                )
             else:
-                x[:,:,0] = past_ctx[:,:,layer_idx]
+                x[:, :, 0] = past_ctx[:, :, layer_idx]
 
-
-        # reshape ( nbatch, nblock, block_size + 2, dim ) -> ( nbatch * nblock, block_size + 2, dim )
-        x = x.view( -1, x.size(-2), x.size(-1) )
+        # reshape ( nbatch, nblock, block_size + 2, dim )
+        #     -> ( nbatch * nblock, block_size + 2, dim )
+        x = x.view(-1, x.size(-2), x.size(-1))
         if mask is not None:
-            mask = mask.view( -1, mask.size(-2), mask.size(-1) )
-        
+            mask = mask.view(-1, mask.size(-2), mask.size(-1))
+
         residual = x
         if self.normalize_before:
             x = self.norm1(x)
@@ -124,13 +125,14 @@ class ContextualBlockEncoderLayer(nn.Module):
             x = torch.cat([cache, x], dim=1)
 
         layer_idx += 1
-        # reshape ( nbatch * nblock, block_size + 2, dim ) -> ( nbatch, nblock, block_size + 2, dim )
-        x = x.view( nbatch, -1, x.size(-2), x.size(-1) ).squeeze(1)
+        # reshape ( nbatch * nblock, block_size + 2, dim )
+        #       -> ( nbatch, nblock, block_size + 2, dim )
+        x = x.view(nbatch, -1, x.size(-2), x.size(-1)).squeeze(1)
         if mask is not None:
-            mask = mask.view( nbatch, -1, mask.size(-2), mask.size(-1) ).squeeze(1)
+            mask = mask.view(nbatch, -1, mask.size(-2), mask.size(-1)).squeeze(1)
 
         if next_ctx is not None and layer_idx < self.total_layer_num:
-            next_ctx[:,0,layer_idx,:] = x[:,0,-1,:]
-            next_ctx[:,1:,layer_idx,:] = x[:,0:-1,-1,:]
+            next_ctx[:, 0, layer_idx, :] = x[:, 0, -1, :]
+            next_ctx[:, 1:, layer_idx, :] = x[:, 0:-1, -1, :]
 
         return x, mask, next_ctx, next_ctx, layer_idx
