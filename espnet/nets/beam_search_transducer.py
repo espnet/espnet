@@ -73,8 +73,6 @@ class BeamSearchTransducer:
             score_norm: normalize final scores by length ("default")
             nbest: number of returned final hypothesis
         """
-        assert check_argument_types()
-
         self.decoder = decoder
         self.beam_size = beam_size
 
@@ -152,12 +150,15 @@ class BeamSearchTransducer:
             hyp: 1-best decoding results
 
         """
-        dec_state = self.decoder.init_state(1, h.device, h.dtype)
+        device = h.device
+        dtype = h.dtype
+
+        dec_state = self.decoder.init_state(1, device, dtype)
 
         hyp = Hypothesis(score=0.0, yseq=[self.blank], dec_state=dec_state)
         cache = {}
 
-        y, state, _ = self.decoder.score(hyp, cache)
+        y, state, _ = self.decoder.score(hyp, cache, device)
 
         for i, hi in enumerate(h):
             ytu = torch.log_softmax(self.decoder.joint_network(hi, y), dim=-1)
@@ -169,7 +170,7 @@ class BeamSearchTransducer:
 
                 hyp.dec_state = state
 
-                y, state, _ = self.decoder.score(hyp, cache)
+                y, state, _ = self.decoder.score(hyp, cache, device)
 
         return [hyp]
 
@@ -183,11 +184,13 @@ class BeamSearchTransducer:
             nbest_hyps: N-best decoding results
 
         """
+        device = h.device
+        dtype = h.dtype
+
         beam = min(self.beam_size, self.vocab_size)
         beam_k = min(beam, (self.vocab_size - 1))
 
-        _blank = h.new_zeros(1, dtype=torch.long)
-        dec_state = self.decoder.init_state(1, h.device, h.dtype)
+        dec_state = self.decoder.init_state(1, device, dtype)
 
         kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank], dec_state=dec_state)]
         cache = {}
@@ -200,39 +203,39 @@ class BeamSearchTransducer:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
-                y, state, lm_tokens = self.decoder.score(max_hyp, cache)
+                y, state, lm_tokens = self.decoder.score(max_hyp, cache, device)
 
                 ytu = torch.log_softmax(self.decoder.joint_network(hi, y), dim=-1)
                 top_k = ytu[1:].topk(beam_k, dim=-1)
 
-                ytu = (
-                    torch.cat((top_k[0], ytu[0:1])),
-                    torch.cat((top_k[1] + 1, _blank)),
-                )
-
-                if self.lm:
-                    lm_state, lm_scores = self.lm.predict(max_hyp.lm_state, lm_tokens)
-
-                for logp, k in zip(*ytu):
-                    new_hyp = Hypothesis(
-                        score=(max_hyp.score + float(logp)),
+                kept_hyps.append(
+                    Hypothesis(
+                        score=(max_hyp.score + float(ytu[0:1])),
                         yseq=max_hyp.yseq[:],
                         dec_state=max_hyp.dec_state,
                         lm_state=max_hyp.lm_state,
                     )
+                )
 
-                    if k == self.blank:
-                        kept_hyps.append(new_hyp)
-                    else:
-                        new_hyp.dec_state = state
+                if self.lm:
+                    lm_state, lm_scores = self.lm.predict(max_hyp.lm_state, lm_tokens)
+                else:
+                    lm_state = max_hyp.lm_state
 
-                        new_hyp.yseq.append(int(k))
+                for logp, k in zip(*top_k):
+                    score = max_hyp.score + float(logp)
 
-                        if self.lm:
-                            new_hyp.lm_state = lm_state
-                            new_hyp.score += self.lm_weight * lm_scores[0][k]
+                    if self.lm:
+                        score += self.lm_weight * lm_scores[0][k + 1]
 
-                        hyps.append(new_hyp)
+                    hyps.append(
+                        Hypothesis(
+                            score=score,
+                            yseq=max_hyp.yseq[:] + [int(k + 1)],
+                            dec_state=state,
+                            lm_state=lm_state,
+                        )
+                    )
 
                 hyps_max = float(max(hyps, key=lambda x: x.score).score)
                 kept_most_prob = sorted(
@@ -257,9 +260,12 @@ class BeamSearchTransducer:
             nbest_hyps: N-best decoding results
 
         """
+        device = h.device
+        dtype = h.dtype
+
         beam = min(self.beam_size, self.vocab_size)
 
-        beam_state = self.decoder.init_state(beam, h.device, h.dtype)
+        beam_state = self.decoder.init_state(beam, device, dtype)
 
         B = [
             Hypothesis(
@@ -295,6 +301,8 @@ class BeamSearchTransducer:
                     C,
                     beam_state,
                     cache,
+                    device,
+                    dtype,
                 )
 
                 beam_logp = torch.log_softmax(
@@ -367,12 +375,15 @@ class BeamSearchTransducer:
             nbest_hyps: N-best decoding results
 
         """
+        device = h.device
+        dtype = h.dtype
+
         beam = min(self.beam_size, self.vocab_size)
 
         h_length = int(h.size(0))
         u_max = min(self.u_max, (h_length - 1))
 
-        beam_state = self.decoder.init_state(beam, h.device, h.dtype)
+        beam_state = self.decoder.init_state(beam, device, dtype)
 
         B = [
             Hypothesis(
@@ -416,6 +427,8 @@ class BeamSearchTransducer:
                     B_,
                     beam_state,
                     cache,
+                    device,
+                    dtype,
                 )
 
                 h_enc = torch.stack([h[1] for h in h_states])
@@ -489,12 +502,13 @@ class BeamSearchTransducer:
             nbest_hyps: N-best decoding results
 
         """
+        device = h.device
+        dtype = h.dtype
+
         beam = min(self.beam_size, self.vocab_size)
         beam_k = min(beam, (self.vocab_size - 1))
 
-        _blank = h.new_zeros(1, dtype=torch.long)
-
-        beam_state = self.decoder.init_state(beam, h.device, h.dtype)
+        beam_state = self.decoder.init_state(beam, device, dtype)
 
         init_tokens = [
             NSCHypothesis(
@@ -510,6 +524,8 @@ class BeamSearchTransducer:
             init_tokens,
             beam_state,
             cache,
+            device,
+            dtype,
         )
 
         state = self.decoder.select_state(beam_state, 0)
@@ -551,28 +567,28 @@ class BeamSearchTransducer:
 
             h_enc = hi.unsqueeze(0)
 
-            for j in range(len(hyps) - 1):
-                for i in range((j + 1), len(hyps)):
+            for j, hyp_j in enumerate(hyps[:-1]):
+                for hyp_i in hyps[(j + 1) :]:
                     if (
-                        is_prefix(hyps[j].yseq, hyps[i].yseq)
-                        and (len(hyps[j].yseq) - len(hyps[i].yseq)) <= self.prefix_alpha
+                        is_prefix(hyp_j.yseq, hyp_i.yseq)
+                        and (len(hyp_j.yseq) - len(hyp_i.yseq)) <= self.prefix_alpha
                     ):
-                        next_id = len(hyps[i].yseq)
+                        next_id = len(hyp_i.yseq)
 
                         ytu = torch.log_softmax(
-                            self.decoder.joint_network(hi, hyps[i].y[-1]), dim=0
+                            self.decoder.joint_network(hi, hyp_i.y[-1]), dim=-1
                         )
 
-                        curr_score = hyps[i].score + float(ytu[hyps[j].yseq[next_id]])
+                        curr_score = hyp_i.score + float(ytu[hyp_j.yseq[next_id]])
 
-                        for k in range(next_id, (len(hyps[j].yseq) - 1)):
+                        for k in range(next_id, (len(hyp_j.yseq) - 1)):
                             ytu = torch.log_softmax(
-                                self.decoder.joint_network(hi, hyps[j].y[k]), dim=0
+                                self.decoder.joint_network(hi, hyp_j.y[k]), dim=-1
                             )
 
-                            curr_score += float(ytu[hyps[j].yseq[k + 1]])
+                            curr_score += float(ytu[hyp_j.yseq[k + 1]])
 
-                        hyps[j].score = np.logaddexp(hyps[j].score, curr_score)
+                        hyp_j.score = np.logaddexp(hyp_j.score, curr_score)
 
             S = []
             V = []
@@ -588,32 +604,34 @@ class BeamSearchTransducer:
                     beam_lm_scores = torch.stack([hyp.lm_scores for hyp in hyps])
 
                 for i, hyp in enumerate(hyps):
-                    i_topk = (
-                        torch.cat((beam_topk[0][i], beam_logp[i, 0:1])),
-                        torch.cat((beam_topk[1][i] + 1, _blank)),
-                    )
-
-                    for logp, k in zip(*i_topk):
-                        new_hyp = NSCHypothesis(
+                    S.append(
+                        NSCHypothesis(
                             yseq=hyp.yseq[:],
-                            score=(hyp.score + float(logp)),
+                            score=hyp.score + float(beam_logp[i, 0:1]),
                             y=hyp.y[:],
                             dec_state=hyp.dec_state,
                             lm_state=hyp.lm_state,
                             lm_scores=hyp.lm_scores,
                         )
+                    )
+                    V.append(S[-1])
 
-                        if k == self.blank:
-                            S.append(new_hyp)
-                        else:
-                            new_hyp.yseq.append(int(k))
+                    for logp, k in zip(beam_topk[0][i], beam_topk[1][i] + 1):
+                        score = hyp.score + float(logp)
 
-                            if self.lm:
-                                new_hyp.score += self.lm_weight * float(
-                                    beam_lm_scores[i, k]
-                                )
+                        if self.lm:
+                            score += self.lm_weight * float(beam_lm_scores[i, k])
 
-                        V.append(new_hyp)
+                        V.append(
+                            NSCHypothesis(
+                                yseq=hyp.yseq[:] + [int(k)],
+                                score=score,
+                                y=hyp.y[:],
+                                dec_state=hyp.dec_state,
+                                lm_state=hyp.lm_state,
+                                lm_scores=hyp.lm_scores,
+                            )
+                        )
 
                 V = sorted(V, key=lambda x: x.score, reverse=True)
                 V = substract(V, hyps)[:beam]
@@ -628,6 +646,8 @@ class BeamSearchTransducer:
                     V,
                     beam_state,
                     cache,
+                    device,
+                    dtype,
                 )
 
                 if self.lm:

@@ -411,16 +411,11 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.default_parameters(args)
 
-        if args.report_cer or args.report_wer:
+        if self.training and (args.report_cer or args.report_wer):
             from espnet.nets.e2e_asr_common import ErrorCalculatorTransducer
 
-            if self.dtype == "custom":
-                decoder = self.decoder
-            else:
-                decoder = self.dec
-
             self.error_calculator = ErrorCalculatorTransducer(
-                decoder,
+                self.decoder if self.dtype == "custom" else self.dec,
                 args.char_list,
                 args.sym_space,
                 args.sym_blank,
@@ -463,7 +458,6 @@ class E2E(ASRInterface, torch.nn.Module):
             hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         else:
             hs_pad, hs_mask, _ = self.enc(xs_pad, ilens)
-        self.hs_pad = hs_pad
 
         # 1.5. transducer preparation related
         ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(ys_pad, hs_mask)
@@ -475,16 +469,14 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             pred_pad = self.dec(hs_pad, ys_in_pad)
 
-        self.pred_pad = pred_pad
-
         # 3. loss computation
         loss = self.criterion(pred_pad, target, pred_len, target_len)
 
         self.loss = loss
-        loss_data = float(self.loss)
+        loss_data = float(loss)
 
         # 4. compute cer/wer
-        if self.training or self.error_calculator is None:
+        if self.error_calculator is None:
             cer, wer = None, None
         else:
             cer, wer = self.error_calculator(hs_pad, ys_pad)

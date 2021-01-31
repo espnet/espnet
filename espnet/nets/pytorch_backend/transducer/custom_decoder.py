@@ -66,6 +66,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
         self.joint_network = JointNetwork(odim, edim, ddim, jdim, joint_activation_type)
 
+        self.dlayers = len(self.decoders)
         self.dunits = ddim
         self.odim = odim
 
@@ -75,13 +76,13 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         """Initialize decoder states.
 
         Args:
-            init_tensor (torch.Tensor): batch of input features (B, dec_dim)
+            None
 
         Returns:
             state (list): batch of decoder decoder states [L x None]
 
         """
-        state = [None] * len(self.decoders)
+        state = [None] * self.dlayers
 
         return state
 
@@ -115,12 +116,13 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
         return z, tgt_mask
 
-    def score(self, hyp, cache):
+    def score(self, hyp, cache, device):
         """Forward one step.
 
         Args:
             hyp (dataclass): hypothesis
             cache (dict): states cache
+            device (torch.device): device id
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
@@ -129,7 +131,6 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
             lm_tokens (torch.Tensor): token id for LM (1)
 
         """
-        device = next(self.parameters()).device
 
         tgt = torch.tensor(hyp.yseq).unsqueeze(0).to(device=device)
         lm_tokens = tgt[:, -1]
@@ -156,7 +157,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
         return y[0], new_state, lm_tokens
 
-    def batch_score(self, hyps, batch_states, cache):
+    def batch_score(self, hyps, batch_states, cache, device, dtype=None):
         """Forward batch one step.
 
         Args:
@@ -164,6 +165,8 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
             batch_states (list): decoder states
                 [L x (B, max_len, dec_dim)]
             cache (dict): states cache
+            device (torch.device): device id
+            dtype (torch.dtype): Tensor data type
 
         Returns:
             batch_y (torch.Tensor): decoder output (B, dec_dim)
@@ -173,7 +176,6 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
         """
         final_batch = len(hyps)
-        device = next(self.parameters()).device
 
         process = []
         done = [None for _ in range(final_batch)]
@@ -254,7 +256,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         if batch_states[0] is None:
             return batch_states
 
-        state_idx = [batch_states[layer][idx] for layer in range(len(self.decoders))]
+        state_idx = [batch_states[layer][idx] for layer in range(self.dlayers)]
 
         return state_idx
 
@@ -278,7 +280,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
         max_len = max([len(t) for t in l_tokens])
 
-        for layer in range(len(self.decoders)):
+        for layer in range(self.dlayers):
             batch_states[layer] = pad_batch_state(
                 [s[layer] for s in l_states], max_len, self.blank
             )

@@ -151,9 +151,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             z (torch.Tensor): output (B, T, U, odim)
 
         """
-        batch = hs_pad.size(0)
-
-        state = self.init_state(batch, hs_pad.device, hs_pad.dtype)
+        state = self.init_state(hs_pad.size(0), hs_pad.device, hs_pad.dtype)
         eys = self.dropout_embed(self.embed(ys_in_pad))
 
         h_dec, _ = self.rnn_forward(eys, state)
@@ -165,12 +163,13 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def score(self, hyp, cache):
+    def score(self, hyp, cache, device):
         """Forward one step.
 
         Args:
             hyp (dataclass): hypothesis
             cache (dict): states cache
+            device (torch.device): device id
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
@@ -179,8 +178,6 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             (torch.Tensor): token id for LM (1,)
 
         """
-        device = next(self.parameters()).device
-
         vy = torch.full((1, 1), hyp.yseq[-1], dtype=torch.long, device=device)
 
         str_yseq = "".join([str(x) for x in hyp.yseq])
@@ -195,7 +192,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         return y[0][0], state, vy[0]
 
-    def batch_score(self, hyps, batch_states, cache):
+    def batch_score(self, hyps, batch_states, cache, device, dtype):
         """Forward batch one step.
 
         Args:
@@ -203,6 +200,8 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             batch_states (tuple): batch of decoder states
                 ((L, B, dec_dim), (L, B, dec_dim))
             cache (dict): states cache
+            device (torch.device): device id
+            dtype (torch.dtype): Tensor data type
 
         Returns:
             batch_y (torch.Tensor): decoder output (B, dec_dim)
@@ -212,8 +211,6 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         """
         final_batch = len(hyps)
-        device = next(self.parameters()).device
-        dtype = next(self.parameters()).dtype
 
         process = []
         done = [None for _ in range(final_batch)]
