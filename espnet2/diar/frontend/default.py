@@ -56,6 +56,8 @@ class DefaultFrontend(AbsFrontend):
             self.stft = None
         self.apply_stft = apply_stft
 
+        self.n_fft = n_fft
+
         if frontend_conf is not None:
             self.frontend = Frontend(idim=n_fft // 2 + 1, **frontend_conf)
         else:
@@ -63,7 +65,7 @@ class DefaultFrontend(AbsFrontend):
 
 
     def output_size(self) -> int:
-        return self.n_mels
+        return self.n_fft // 2 + 1
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor

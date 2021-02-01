@@ -1,5 +1,8 @@
 import collections.abc
 from pathlib import Path
+from typing import Dict
+from typing import List
+from typing import Mapping
 from typing import Union
 
 import numpy as np
@@ -22,10 +25,10 @@ def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Union[str, int, flo
     data = {}
     with Path(path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):
-            sps = re.split(" "+, line.rstrip())
+            sps = re.split(" +", line.rstrip())
 
             # RTTM format must have exactly 9 fields
-            assert(len(sps) == 9 && path)
+            assert(len(sps) == 9 and path)
             label_type, utt_id, channel, start, duration, _, _, spk_id, _ = sps
             
             # Only support speaker label now
@@ -38,7 +41,7 @@ def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Union[str, int, flo
 
 
 
-class RttmReader(collections,abs.Mapping):
+class RttmReader(collections.abc.Mapping):
     """Reader class for 'rttm.scp'.
 
     Examples: 

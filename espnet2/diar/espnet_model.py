@@ -12,6 +12,7 @@ from typeguard import check_argument_types
 
 from espnet2.diar.encoder.abs_encoder import AbsEncoder
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
+from espnet2.diar.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -31,7 +32,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
     def __init__(
         self,
-        frontend: Optional[AbsFrontEnd],
+        frontend: Optional[AbsFrontend],
         normalize: Optional[AbsNormalize],
         encoder: AbsEncoder,
         decoder: AbsDecoder,
@@ -52,8 +53,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor = None,
-        spk_labels: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]
+        spk_labels: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
@@ -69,7 +70,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         assert (
             speech.shape[0]
             == spk_labels.shape[0]
-        ), (speech.shape spk_labels.shape)
+        ), (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
 
         # 1. Encoder

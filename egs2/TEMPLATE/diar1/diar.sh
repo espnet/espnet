@@ -112,7 +112,7 @@ Options:
     --train_set     # Name of training set (required).
     --valid_set       # Name of development set (required).
     --test_sets     # Names of evaluation sets (required).
-    --diar_speech_fold_length # fold_length for speech data during diarization training  (default="${diarization_speech_fold_length}").
+    --diar_speech_fold_length # fold_length for speech data during diarization training  (default="${diar_speech_fold_length}").
     --lang         # The language type of corpus (default="${lang}")
 EOF
 )
@@ -224,7 +224,7 @@ if ! "${skip_data_prep}"; then
             <"${data_feats}/org/${dset}/wav.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                 >"${data_feats}/${dset}/wav.scp"
-
+            
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
 

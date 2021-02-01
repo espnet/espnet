@@ -12,12 +12,12 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
-from espnet2.diar.encoder.abs_encoder import AbsEncoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.diar.frontend.abs_frontend import AbsFrontend
 from espnet2.diar.frontend.default import DefaultFrontend
@@ -75,10 +75,10 @@ decoder_choices = ClassChoices(
 
 
 class DiarizationTask(AbsTask):
-	# If you need more than one optimizer, change this value
-	num_optimizers: int = 1
+    # If you need more than one optimizer, change this value
+    num_optimizers: int = 1
 
-	# Add variable objects configurations
+    # Add variable objects configurations
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
@@ -101,13 +101,12 @@ class DiarizationTask(AbsTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
-        required += ["token_list"]
 
         group.add_argument(
-            "--token_list",
-            type=str_or_none,
+            "--num_spks",
+            type=int_or_none,
             default=None,
-            help="A text mapping int-id to token",
+            help="The number fo speakers used in system training",
         )
         group.add_argument(
             "--init",

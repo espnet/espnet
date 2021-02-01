@@ -4,7 +4,7 @@
 
 """Sliding Window for raw audio input data."""
 
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.diar.frontend.abs_frontend import AbsFrontend
 import torch
 from typeguard import check_argument_types
 from typing import Tuple
