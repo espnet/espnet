@@ -70,13 +70,29 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         self.ignore_id = -1
         self.blank = blank
 
-    def init_state(self, batch_size, device, dtype):
+    def set_device(self, device):
+        """Set GPU device to use.
+
+        Args:
+            device (torch.device): device id
+
+        """
+        self.device = device
+
+    def set_data_type(self, data_type):
+        """Set GPU device to use.
+
+        Args:
+            data_type (torch.dtype): Tensor data type
+
+        """
+        self.data_type = data_type
+
+    def init_state(self, batch_size):
         """Initialize decoder states.
 
         Args:
             batch_size (int): Batch size
-            device (torch.device): device id
-            dtype (torch.dtype): Tensor data type
 
         Returns:
             (tuple): batch of decoder states
@@ -87,8 +103,8 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             self.dlayers,
             batch_size,
             self.dunits,
-            device=device,
-            dtype=dtype,
+            device=self.device,
+            dtype=self.data_type,
         )
 
         if self.dtype == "lstm":
@@ -96,8 +112,8 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 self.dlayers,
                 batch_size,
                 self.dunits,
-                device=device,
-                dtype=dtype,
+                device=self.device,
+                dtype=self.data_type,
             )
 
             return (h_n, c_n)
@@ -119,7 +135,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         """
         h_prev, c_prev = state
-        h_next, c_next = self.init_state(y.size(0), y.device, y.dtype)
+        h_next, c_next = self.init_state(y.size(0))
 
         for layer in range(self.dlayers):
             if self.dtype == "lstm":
@@ -151,7 +167,10 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             z (torch.Tensor): output (B, T, U, odim)
 
         """
-        state = self.init_state(hs_pad.size(0), hs_pad.device, hs_pad.dtype)
+        self.set_device(hs_pad.device)
+        self.set_data_type(hs_pad.dtype)
+
+        state = self.init_state(hs_pad.size(0))
         eys = self.dropout_embed(self.embed(ys_in_pad))
 
         h_dec, _ = self.rnn_forward(eys, state)
@@ -163,13 +182,12 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         return z
 
-    def score(self, hyp, cache, device):
+    def score(self, hyp, cache):
         """Forward one step.
 
         Args:
             hyp (dataclass): hypothesis
             cache (dict): states cache
-            device (torch.device): device id
 
         Returns:
             y (torch.Tensor): decoder outputs (1, dec_dim)
@@ -178,9 +196,9 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             (torch.Tensor): token id for LM (1,)
 
         """
-        vy = torch.full((1, 1), hyp.yseq[-1], dtype=torch.long, device=device)
+        vy = torch.full((1, 1), hyp.yseq[-1], dtype=torch.long, device=self.device)
 
-        str_yseq = "".join([str(x) for x in hyp.yseq])
+        str_yseq = "".join(list(map(str, hyp.yseq)))
 
         if str_yseq in cache:
             y, state = cache[str_yseq]
@@ -192,7 +210,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
         return y[0][0], state, vy[0]
 
-    def batch_score(self, hyps, batch_states, cache, device, dtype):
+    def batch_score(self, hyps, batch_states, cache, use_lm):
         """Forward batch one step.
 
         Args:
@@ -200,23 +218,22 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             batch_states (tuple): batch of decoder states
                 ((L, B, dec_dim), (L, B, dec_dim))
             cache (dict): states cache
-            device (torch.device): device id
-            dtype (torch.dtype): Tensor data type
+            use_lm (bool): whether a LM is used for decoding
 
         Returns:
             batch_y (torch.Tensor): decoder output (B, dec_dim)
             batch_states (tuple): batch of decoder states
                 ((L, B, dec_dim), (L, B, dec_dim))
-            lm_tokens (torch.Tensor): batch of token ids for LM (B)
+            lm_tokens (torch.Tensor): batch of token ids for LM (B) or None
 
         """
         final_batch = len(hyps)
 
         process = []
-        done = [None for _ in range(final_batch)]
+        done = [None] * final_batch
 
         for i, hyp in enumerate(hyps):
-            str_yseq = "".join([str(x) for x in hyp.yseq])
+            str_yseq = "".join(list(map(str, hyp.yseq)))
 
             if str_yseq in cache:
                 done[i] = cache[str_yseq]
@@ -224,14 +241,10 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 process.append((str_yseq, hyp.yseq[-1], hyp.dec_state))
 
         if process:
-            batch = len(process)
-            _tokens = [p[1] for p in process]
-            _states = [p[2] for p in process]
-
-            tokens = torch.LongTensor(_tokens).view(batch, 1).to(device=device)
-
-            dec_state = self.init_state(batch, device, dtype)
-            dec_state = self.create_batch_states(dec_state, _states)
+            tokens = torch.LongTensor([[p[1]] for p in process], device=self.device)
+            dec_state = self.create_batch_states(
+                self.init_state(tokens.size(0)), [p[2] for p in process]
+            )
 
             ey = self.embed(tokens)
             y, dec_state = self.rnn_forward(ey, dec_state)
@@ -249,13 +262,12 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         batch_y = torch.cat([d[0] for d in done], dim=0)
         batch_states = self.create_batch_states(batch_states, [d[1] for d in done])
 
-        lm_tokens = (
-            torch.LongTensor([h.yseq[-1] for h in hyps])
-            .view(final_batch)
-            .to(device=device)
-        )
+        if use_lm:
+            lm_tokens = torch.LongTensor([h.yseq[-1] for h in hyps], device=self.device)
 
-        return batch_y, batch_states, lm_tokens
+            return batch_y, batch_states, lm_tokens
+
+        return batch_y, batch_states, None
 
     def select_state(self, batch_states, idx):
         """Get decoder state from batch of states, for given id.
@@ -270,14 +282,10 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 ((L, 1, dec_dim), (L, 1, dec_dim))
 
         """
-        h_idx = batch_states[0][:, idx : idx + 1, :]
-
-        if self.dtype == "lstm":
-            c_idx = batch_states[1][:, idx : idx + 1, :]
-
-            return (h_idx, c_idx)
-
-        return (h_idx, None)
+        return (
+            batch_states[0][:, idx : idx + 1, :],
+            batch_states[1][:, idx : idx + 1, :] if self.dtype == "lstm" else None,
+        )
 
     def create_batch_states(self, batch_states, l_states, l_tokens=None):
         """Create batch of decoder states.
@@ -293,11 +301,9 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
                 ((L, B, dec_dim), (L, B, dec_dim))
 
         """
-        h_n = torch.cat([s[0] for s in l_states], dim=1)
-
-        if self.dtype == "lstm":
-            c_n = torch.cat([s[1] for s in l_states], dim=1)
-
-            return (h_n, c_n)
-
-        return (h_n, None)
+        return (
+            torch.cat([s[0] for s in l_states], dim=1),
+            torch.cat([s[1] for s in l_states], dim=1)
+            if self.dtype == "lstm"
+            else None,
+        )

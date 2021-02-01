@@ -93,20 +93,20 @@ def substract(x, subset):
     return final
 
 
-def select_lm_state(lm_states, idx, lm_type, lm_layers):
+def select_lm_state(lm_states, idx, lm_layers, is_wordlm):
     """Get LM state from batch for given id.
 
     Args:
         lm_states (list or dict): batch of LM states
         idx (int): index to extract state from batch state
-        lm_type (str): type of LM
         lm_layers (int): number of LM layers
+        is_wordlm (bool): whether provided LM is a word-LM
 
     Returns:
        idx_state (dict): LM state for given id
 
     """
-    if lm_type == "wordlm":
+    if is_wordlm:
         idx_state = lm_states[idx]
     else:
         idx_state = {}
@@ -117,19 +117,19 @@ def select_lm_state(lm_states, idx, lm_type, lm_layers):
     return idx_state
 
 
-def create_lm_batch_state(lm_states_list, lm_type, lm_layers):
+def create_lm_batch_state(lm_states_list, lm_layers, is_wordlm):
     """Create batch of LM states.
 
     Args:
         lm_states (list or dict): list of individual LM states
-        lm_type (str): type of LM
         lm_layers (int): number of LM layers
+        is_wordlm (bool): whether provided LM is a word-LM
 
     Returns:
        batch_states (list): batch of LM states
 
     """
-    if lm_type == "wordlm":
+    if is_wordlm:
         batch_states = lm_states_list
     else:
         batch_states = {}
