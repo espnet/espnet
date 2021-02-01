@@ -36,7 +36,7 @@ class CausalConv1d(torch.nn.Module):
             bias=bias,
         )
 
-    def forward(self, x, x_mask, cache=None):
+    def forward(self, x, x_mask, memory=None, memory_mask=None, cache=None):
         """CausalConv1d forward for x.
 
         Args:
@@ -55,5 +55,8 @@ class CausalConv1d(torch.nn.Module):
             x = x[:, :, : -self._pad]
 
         x = x.permute(0, 2, 1)
+
+        if memory is not None:
+            return x, x_mask, memory, memory_mask
 
         return x, x_mask

@@ -3,7 +3,9 @@
 
 """Decoder definition."""
 from typing import Any
+from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
@@ -25,6 +27,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet2.asr.custom.build_decoder import build_decoder
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
 
@@ -523,3 +526,50 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
                 concat_after,
             ),
         )
+
+
+class CustomDecoder(BaseTransformerDecoder):
+    def __init__(
+        self,
+        vocab_size: int,
+        encoder_output_size: int,
+        architecture: List[Dict[str, Any]] = None,
+        positional_encoding_type: str = "abs_pos",
+        positionwise_type: str = "linear",
+        self_attention_type: str = "self_attn",
+        repeat: int = 0,
+        normalize_before: bool = True,
+        use_output_layer: bool = True,
+        padding_idx: Optional[int] = None,
+    ):
+        assert check_argument_types()
+        super().__init__(
+            vocab_size,
+            encoder_output_size,
+            normalize_before=normalize_before,
+            use_output_layer=use_output_layer,
+        )
+
+        assert (
+            architecture is not None
+        ), f'{"Architecture configuration for custom model is mandatory."}'
+
+        assert (
+            positional_encoding_type != "rel_pos"
+        ), f'{"Relative positional encoding is not supported in custom decoder."}'
+
+        self.embed, self.decoders, output_size = build_decoder(
+            vocab_size,
+            architecture,
+            positional_encoding_type=positional_encoding_type,
+            positionwise_type=positionwise_type,
+            self_attention_type=self_attention_type,
+            repeat=repeat,
+            padding_idx=padding_idx,
+        )
+
+        if self.normalize_before:
+            self.after_norm = LayerNorm(output_size)
+
+        if use_output_layer:
+            self.output_layer = torch.nn.Linear(output_size, vocab_size)

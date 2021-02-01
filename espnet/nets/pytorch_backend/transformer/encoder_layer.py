@@ -68,6 +68,11 @@ class EncoderLayer(nn.Module):
             torch.Tensor: Mask tensor (#batch, time).
 
         """
+        if isinstance(x, tuple):
+            x, pos_emb = x[0], x[1]
+        else:
+            pos_emb = None
+
         residual = x
         if self.normalize_before:
             x = self.norm1(x)
@@ -80,11 +85,16 @@ class EncoderLayer(nn.Module):
             residual = residual[:, -1:, :]
             mask = None if mask is None else mask[:, -1:, :]
 
+        if pos_emb is not None:
+            x_att = self.self_attn(x_q, x, x, pos_emb, mask)
+        else:
+            x_att = self.self_attn(x_q, x, x, mask)
+
         if self.concat_after:
-            x_concat = torch.cat((x, self.self_attn(x_q, x, x, mask)), dim=-1)
+            x_concat = torch.cat((x, x_att), dim=-1)
             x = residual + self.concat_linear(x_concat)
         else:
-            x = residual + self.dropout(self.self_attn(x_q, x, x, mask))
+            x = residual + self.dropout(x_att)
         if not self.normalize_before:
             x = self.norm1(x)
 
@@ -97,5 +107,8 @@ class EncoderLayer(nn.Module):
 
         if cache is not None:
             x = torch.cat([cache, x], dim=1)
+
+        if pos_emb is not None:
+            return (x, pos_emb), mask
 
         return x, mask
