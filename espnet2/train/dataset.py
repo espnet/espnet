@@ -29,6 +29,7 @@ from espnet2.fileio.rand_gen_dataset import IntRandomGenerateDataset
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.fileio.read_text import read_2column_text
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.fileio.rttm import RttmReader
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -239,6 +240,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A 3,4\n"
         "   utterance_id_B 10,4\n"
+        "   ...",
+    ),
+    "rttm": dict(
+        func=RttmReader,
+        kwargs=[],
+        help="rttm file loader, currently support for speaker diarization"
+        "\n\n"
+        "   SPEAKER file1 1 0.00 1.23 <NA> <NA> spk1 <NA>"
+        "   SPEAKER file1 2 4.00 3.23 <NA> <NA> spk2 <NA>"
+        "   SPEAKER file1 3 5.00 4.23 <NA> <NA> spk1 <NA>"
         "   ...",
     ),
 }

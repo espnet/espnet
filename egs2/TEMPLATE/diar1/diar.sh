@@ -47,15 +47,15 @@ audio_format=flac # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_t
 fs=8k             # Sampling rate.
 min_wav_duration=0.1   # Minimum duration in second
 
-# Diarization model related
-diar_tag=    # Suffix to the result dir for diarization model training.
-diar_config= # Config for diarization model training.
-diar_args=   # Arguments for diarization model training, e.g., "--max_epoch 10".
-            # Note that it will overwrite args in diarization config.
+# diar model related
+diar_tag=    # Suffix to the result dir for diar model training.
+diar_config= # Config for diar model training.
+diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
+            # Note that it will overwrite args in diar config.
 spk_num=2
 
 
-# Diarization related
+# diar related
 inference_args="--normalize_output_wav true"
 inference_model=valid.acc.ave.pth
 
@@ -63,7 +63,7 @@ inference_model=valid.acc.ave.pth
 train_set=       # Name of training set.
 valid_set=       # Name of development set.
 test_sets=       # Names of evaluation sets. Multiple items can be specified.
-diar_speech_fold_length=800 # fold_length for speech data during diarization training
+diar_speech_fold_length=800 # fold_length for speech data during diar training
 lang=noinfo      # The language type of corpus
 
 
@@ -98,10 +98,10 @@ Options:
 
 
     # Diarization model related
-    --diar_tag    # Suffix to the result dir for diarization model training (default="${diarization_tag}").
-    --diar_config # Config for diarization model training (default="${diarization_config}").
-    --diar_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diarization_args}").
-                 # Note that it will overwrite args in diarization config.
+    --diar_tag    # Suffix to the result dir for diarization model training (default="${diar_tag}").
+    --diar_config # Config for diarization model training (default="${diar_config}").
+    --diar_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
+                 # Note that it will overwrite args in diar config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
 
     # diarization related
@@ -140,22 +140,22 @@ fi
 data_feats=${dumpdir}/raw
 
 # Set tag for naming of model directory
-if [ -z "${diarization_tag}" ]; then
-    if [ -n "${diarization_config}" ]; then
-        diarization_tag="$(basename "${diarization_config}" .yaml)_${feats_type}"
+if [ -z "${diar_tag}" ]; then
+    if [ -n "${diar_config}" ]; then
+        diar_tag="$(basename "${diar_config}" .yaml)_${feats_type}"
     else
-        diarization_tag="train_${feats_type}"
+        diar_tag="train_${feats_type}"
     fi
     # Add overwritten arg's info
-    if [ -n "${diarization_args}" ]; then
-        diarization_tag+="$(echo "${diarization_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    if [ -n "${diar_args}" ]; then
+        diar_tag+="$(echo "${diar_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
 fi
 
 # The directory used for collect-stats mode
-diarization_stats_dir="${expdir}/diarization_stats_${fs}"
+diar_stats_dir="${expdir}/diar_stats_${fs}"
 # The directory used for training commands
-diarization_exp="${expdir}/diarization_${diarization_tag}"
+diar_exp="${expdir}/diar_${diar_tag}"
 
 # ========================== Main stages start from here. ==========================
 
@@ -247,3 +247,163 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         _diar_train_dir="${data_feats}/${train_set}"
         _diar_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 4: Diarization collect stats: train_set=${_diar_train_dir}, valid_set=${_diar_valid_dir}"
+
+        _opts=
+        if [ -n "${diar_config}" ]; then
+            # To generate the config file: e.g.
+            #   % python3 -m espnet2.bin.diar_train --print_config --optim adam
+            _opts+="--config ${diar_config} "
+        fi
+
+        _feats_type="$(<${_diar_train_dir}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            _scp=wav.scp
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
+            _opts+="--frontend_conf fs=${fs} "
+        else
+            echo "does not support other feats_type (i.e., ${_feats_type}) now"
+        fi
+
+        # 1. Split the key file
+        _logdir="${diar_stats_dir}/logdir"
+        mkdir -p "${_logdir}"
+
+        # Get the minimum number among ${nj} and the number lines of input files
+        _nj=$(min "${nj}" "$(<${_diar_train_dir}/${_scp} wc -l)" "$(<${_diar_valid_dir}/${_scp} wc -l)")
+
+        key_file="${_diar_train_dir}/${_scp}"
+        split_scps=""
+        for n in $(seq "${_nj}"); do
+            split_scps+=" ${_logdir}/train.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
+        # 2. Generate run.sh
+        log "Generate '${diar_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
+        mkdir -p "${diar_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${diar_stats_dir}/run.sh"; chmod +x "${diar_stats_dir}/run.sh"
+
+        # 3. Submit jobs
+        log "Diarization collect-stats started... log: '${_logdir}/stats.*.log'"
+
+        # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
+        #       but it's used only for deciding the sample ids.
+
+        # shellcheck disable=SC2086
+        ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+            ${python} -m espnet2.bin.diar_train \
+                --collect_stats true \
+                --use_preprocessor true \
+                --train_data_path_and_name_and_type "${_diar_train_dir}/${_scp},speech,${_type}" \
+                --train_data_path_and_name_and_type "${_diar_train_dir}/rttm,spk_labels,rttm" \
+                --valid_data_path_and_name_and_type "${_diar_valid_dir}/${_scp},speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_diar_valid_dir}/rttm,spk_labels,rttm" \
+                --train_shape_file "${_logdir}/train.JOB.scp" \
+                --valid_shape_file "${_logdir}/valid.JOB.scp" \
+                --output_dir "${_logdir}/stats.JOB" \
+                ${_opts} ${diar_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+
+        # 4. Aggregate shape files
+        _opts=
+        for i in $(seq "${_nj}"); do
+            _opts+="--input_dir ${_logdir}/stats.${i} "
+        done
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${diar_stats_dir}"
+
+        # Append the num-tokens at the last dimensions. This is used for batch-bins count
+        <"${diar_stats_dir}/train/rttm_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${diar_stats_dir}/train/rttm_shape"
+
+        <"${diar_stats_dir}/valid/rttm_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${diar_stats_dir}/valid/rttm_shape"
+    fi
+
+
+
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        _diar_train_dir="${data_feats}/${train_set}"
+        _diar_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 10: Diarization Training: train_set=${_diar_train_dir}, valid_set=${_diar_valid_dir}"
+
+        _opts=
+        if [ -n "${diar_config}" ]; then
+            # To generate the config file: e.g.
+            #   % python3 -m espnet2.bin.diar_train --print_config --optim adam
+            _opts+="--config ${diar_config} "
+        fi
+
+        _feats_type="$(<${_diar_train_dir}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            _scp=wav.scp
+            # "sound" supports "wav", "flac", etc.
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                _type=sound
+            fi
+            _fold_length="$((diar_speech_fold_length * 100))"
+            _opts+="--frontend_conf fs=${fs} "
+        else
+            echo "does not support other feats_type (i.e., ${_feats_type}) now"
+        fi
+        if [ "${feats_normalize}" = global_mvn ]; then
+            # Default normalization is utterance_mvn and changes to global_mvn
+            _opts+="--normalize=global_mvn --normalize_conf stats_file=${diar_stats_dir}/train/feats_stats.npz "
+        fi
+
+        _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/${_scp},speech,${_type} "
+        _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/rttm,spk_labels,rttm "
+        _opts+="--train_shape_file ${diar_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${diar_stats_dir}/train/rttm_shape "
+
+        log "Generate '${diar_exp}/run.sh'. You can resume the process from stage 10 using this script"
+        mkdir -p "${diar_exp}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${diar_exp}/run.sh"; chmod +x "${diar_exp}/run.sh"
+
+        # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
+        log "Diarization training started... log: '${diar_exp}/train.log'"
+        if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
+            # SGE can't include "/" in a job name
+            jobname="$(basename ${diar_exp})"
+        else
+            jobname="${diar_exp}/train.log"
+        fi
+
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.launch \
+            --cmd "${cuda_cmd} --name ${jobname}" \
+            --log "${diar_exp}"/train.log \
+            --ngpu "${ngpu}" \
+            --num_nodes "${num_nodes}" \
+            --init_file_prefix "${diar_exp}"/.dist_init_ \
+            --multiprocessing_distributed true -- \
+            ${python} -m espnet2.bin.diar_train \
+                --use_preprocessor true \
+                --bpemodel "${bpemodel}" \
+                --token_type "${token_type}" \
+                --token_list "${token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --valid_data_path_and_name_and_type "${_diar_valid_dir}/${_scp},speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_diar_valid_dir}/text,text,text" \
+                --valid_shape_file "${diar_stats_dir}/valid/speech_shape" \
+                --valid_shape_file "${diar_stats_dir}/valid/text_shape.${token_type}" \
+                --resume true \
+                --fold_length "${_fold_length}" \
+                --fold_length "${diar_text_fold_length}" \
+                --output_dir "${diar_exp}" \
+                ${_opts} ${diar_args}
+
+    fi
+else
+    log "Skip the training stages"
+fi

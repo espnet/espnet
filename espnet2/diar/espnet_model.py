@@ -79,7 +79,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         pred = self.decoder(encoder_out, encoder_out_lens)
 
         if self.loss_type == "pit":
-            loss, perm_idx, perm_list, label_perm = pit_loss(pred, label, encoder_out_lens)
+            loss, perm_idx, perm_list, label_perm = pit_loss(pred, spk_labels, encoder_out_lens)
             (correct, num_frames, speech_scored, speech_miss, speech_falarm,
                 speaker_scored, speaker_miss, speaker_falarm,
                 speaker_error) = calc_diarization_error(pred, label_perm, length)

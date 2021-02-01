@@ -377,3 +377,39 @@ class CommonPreprocessor_multi(AbsPreprocessor):
                 data[text_n] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
+
+
+class DiarizationPreprocessor(AbsPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        speech_name: str = "speech",
+        spk_label: list = ["spk_labels"],
+        spk_list: list = [],
+        win_length: int = None,
+        hop_length: int = 128,
+        num_spks: int = None,
+    ):
+        # Convert rttm spk_label into frame-level speaker label
+        super().__init__(train)
+        self.train = train
+        self.spk_label = spk_label
+        self.spk_list = spk_list
+        self.win_length = win_length
+        self.hop_length = hop_length
+        if num_spks is None:
+            self.num_spks = len(spk_list)
+        else:
+            self.num_spks = num_spks
+
+
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        assert check_argument_types()
+
+        # data to frame
+        pass
+
+
+
