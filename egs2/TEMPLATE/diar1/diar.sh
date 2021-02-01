@@ -53,7 +53,7 @@ diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in diar config.
 spk_num=2
-
+total_spk_num=
 
 # diar related
 inference_args="--normalize_output_wav true"
@@ -103,6 +103,7 @@ Options:
     --diar_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
                  # Note that it will overwrite args in diar config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
+    --total_spk_num # Total number fo speakers, necessary for EEND loss (default="${total_spk_num})
 
     # diarization related
     --inference_args      # Arguments for diarization in the inference stage (default="${inference_args}")
@@ -270,6 +271,12 @@ if ! "${skip_train}"; then
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi
 
+        if [ -z "${total_spk_num}" ]; then
+            # Training speaker numbers
+            total_spk_num=$(wc -l <${_diar_train_dir}/spk2utt)
+        fi
+        _opts+="--total_spk_num ${total_spk_num} "
+
         # 1. Split the key file
         _logdir="${diar_stats_dir}/logdir"
         mkdir -p "${_logdir}"
@@ -317,16 +324,7 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${diar_stats_dir}"
 
-        # Append the num-tokens at the last dimensions. This is used for batch-bins count
-        <"${diar_stats_dir}/train/rttm_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${diar_stats_dir}/train/rttm_shape"
-
-        <"${diar_stats_dir}/valid/rttm_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${diar_stats_dir}/valid/rttm_shape"
     fi
-
 
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
@@ -387,12 +385,6 @@ if ! "${skip_train}"; then
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.diar_train \
                 --use_preprocessor true \
-                --bpemodel "${bpemodel}" \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
-                --non_linguistic_symbols "${nlsyms_txt}" \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
                 --valid_data_path_and_name_and_type "${_diar_valid_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_diar_valid_dir}/text,text,text" \
                 --valid_shape_file "${diar_stats_dir}/valid/speech_shape" \

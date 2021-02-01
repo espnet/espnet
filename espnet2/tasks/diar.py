@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+# Note(jiatong): ASR encoder can be used for diarization
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -29,7 +30,7 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor
+from espnet2.train.preprocessor import DiarizationPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -70,7 +71,7 @@ decoder_choices = ClassChoices(
         linear=LinearDecoder
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default="linear",
 )
 
 
@@ -103,7 +104,7 @@ class DiarizationTask(AbsTask):
         required = parser.get_default("required")
 
         group.add_argument(
-            "--num_spks",
+            "--total_spk_num",
             type=int_or_none,
             default=None,
             help="The number fo speakers used in system training",
@@ -221,13 +222,14 @@ class DiarizationTask(AbsTask):
 
         # 3. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
+        # Note(jiatong): Diarization may not use subsampling when processing
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
         # 4. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
-
+        logging.info(encoder.output_size())
         decoder = decoder_class(
-            output_size=args.num_spks,
+            output_size=args.total_spk_num,
             encoder_output_size=encoder.output_size(),
             **args.decoder_conf,
         )

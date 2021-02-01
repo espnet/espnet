@@ -64,7 +64,7 @@ class RttmReader(collections.abc.Mapping):
     ):
         assert check_argument_types()
         self.fname = fname
-        self.data = load_rttm_text(path=fname, loader_type="rttm_spk")
+        self.data = load_rttm_text(path=fname)
     
     def __getitem__(self, key):
         return self.data[key]

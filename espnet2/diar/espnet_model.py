@@ -10,7 +10,7 @@ import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
-from espnet2.diar.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.abs_normalize import AbsNormalize
