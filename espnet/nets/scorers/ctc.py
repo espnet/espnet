@@ -137,8 +137,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
 
         """
         logp = self.ctc.log_softmax(x.unsqueeze(0))
-        if hasattr(self.impl, "extend_prob"):
-            self.impl.extend_prob(logp)
+        self.impl.extend_prob(logp)
 
     def extend_state(self, state):
         """Extend state for decoding.

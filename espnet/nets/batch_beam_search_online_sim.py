@@ -44,6 +44,30 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
         if enc_args and "look_ahead" in enc_args:
             self.look_ahead = enc_args["look_ahead"]
 
+    def set_block_size(self, block_size: int):
+        """Set block size for streaming decoding.
+
+        Args:
+            block_size (int): The block size of encoder
+        """
+        self.block_size = block_size
+
+    def set_hop_size(self, hop_size: int):
+        """Set hop size for streaming decoding.
+
+        Args:
+            hop_size (int): The hop size of encoder
+        """
+        self.hop_size = hop_size
+
+    def set_look_ahead(self, look_ahead: int):
+        """Set look ahead size for streaming decoding.
+
+        Args:
+            look_ahead (int): The look ahead size of encoder
+        """
+        self.look_ahead = look_ahead
+
     def forward(
         self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0
     ) -> List[Hypothesis]:

@@ -24,12 +24,6 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
     Conv2dSubsamplingWOPosEnc,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
-    Conv2dSubsampling6WOPosEnc,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
-    Conv2dSubsampling8WOPosEnc,  # noqa: H301
-)
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 import math
 
@@ -105,15 +99,19 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsamplingWOPosEnc(
-                input_size, output_size, dropout_rate
+                input_size, output_size, dropout_rate, kernels=[3, 3], strides=[2, 2]
             )
         elif input_layer == "conv2d6":
-            self.embed = Conv2dSubsampling6WOPosEnc(
-                input_size, output_size, dropout_rate
+            self.embed = Conv2dSubsamplingWOPosEnc(
+                input_size, output_size, dropout_rate, kernels=[3, 5], strides=[2, 3]
             )
         elif input_layer == "conv2d8":
-            self.embed = Conv2dSubsampling8WOPosEnc(
-                input_size, output_size, dropout_rate
+            self.embed = Conv2dSubsamplingWOPosEnc(
+                input_size,
+                output_size,
+                dropout_rate,
+                kernels=[3, 3, 3],
+                strides=[2, 2, 2],
             )
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
@@ -193,13 +191,9 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
-        if (
-            isinstance(self.embed, Conv2dSubsamplingWOPosEnc)
-            or isinstance(self.embed, Conv2dSubsampling6WOPosEnc)
-            or isinstance(self.embed, Conv2dSubsampling8WOPosEnc)
-        ):
+        if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
             xs_pad, masks = self.embed(xs_pad, masks)
-        elif self.emed is not None:
+        elif self.embed is not None:
             xs_pad = self.embed(xs_pad)
 
         # create empty output container
