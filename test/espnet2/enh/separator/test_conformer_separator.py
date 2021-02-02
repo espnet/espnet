@@ -17,13 +17,12 @@ from espnet2.enh.separator.conformer_separator import ConformerSeparator
 @pytest.mark.parametrize("positionwise_conv_kernel_size", [3, 5])
 @pytest.mark.parametrize("normalize_before", [True])
 @pytest.mark.parametrize("concat_after", [True])
-@pytest.mark.parametrize("use_scaled_pos_enc", [True])
 @pytest.mark.parametrize("dropout_rate", [0.1])
 @pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed"])
 @pytest.mark.parametrize("positional_dropout_rate", [0.1])
 @pytest.mark.parametrize("attention_dropout_rate", [0.1])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
-@pytest.mark.parametrize("conformer_pos_enc_layer_type", ["res_pos"])
+@pytest.mark.parametrize("conformer_pos_enc_layer_type", ["rel_pos"])
 @pytest.mark.parametrize(
     "conformer_self_attn_layer_type",
     ["rel_selfattn"],
@@ -58,11 +57,11 @@ def test_conformer_separator_forward_backward_complex(
     padding_idx,
 ):
     model = ConformerSeparator(
-        idim=input_dim,
-        attention_dim=adim,
-        attention_heads=aheads,
+        input_dim=input_dim,
+        adim=adim,
+        aheads=aheads,
         linear_units=linear_units,
-        num_blocks=layers,
+        layers=layers,
         dropout_rate=dropout_rate,
         positional_dropout_rate=positional_dropout_rate,
         attention_dropout_rate=attention_dropout_rate,
@@ -71,12 +70,12 @@ def test_conformer_separator_forward_backward_complex(
         concat_after=concat_after,
         positionwise_layer_type=positionwise_layer_type,
         positionwise_conv_kernel_size=positionwise_conv_kernel_size,
-        macaron_style=use_macaron_style_in_conformer,
-        pos_enc_layer_type=conformer_pos_enc_layer_type,
-        selfattention_layer_type=conformer_self_attn_layer_type,
-        activation_type=conformer_activation_type,
-        use_cnn_module=use_cnn_in_conformer,
-        cnn_module_kernel=conformer_enc_kernel_size,
+        use_macaron_style_in_conformer=use_macaron_style_in_conformer,
+        conformer_pos_enc_layer_type=conformer_pos_enc_layer_type,
+        conformer_self_attn_layer_type=conformer_self_attn_layer_type,
+        conformer_activation_type=conformer_activation_type,
+        use_cnn_in_conformer=use_cnn_in_conformer,
+        conformer_enc_kernel_size=conformer_enc_kernel_size,
         padding_idx=padding_idx,
     )
     model.train()
@@ -104,7 +103,6 @@ def test_conformer_separator_forward_backward_complex(
 @pytest.mark.parametrize("positionwise_conv_kernel_size", [3, 5])
 @pytest.mark.parametrize("normalize_before", [True])
 @pytest.mark.parametrize("concat_after", [True])
-@pytest.mark.parametrize("use_scaled_pos_enc", [True])
 @pytest.mark.parametrize("dropout_rate", [0.1])
 @pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed"])
 @pytest.mark.parametrize("positional_dropout_rate", [0.1])
@@ -142,11 +140,11 @@ def test_conformer_separator_forward_backward_real(
     padding_idx,
 ):
     model = ConformerSeparator(
-        idim=input_dim,
-        attention_dim=adim,
-        attention_heads=aheads,
+        input_dim=input_dim,
+        adim=adim,
+        aheads=aheads,
         linear_units=linear_units,
-        num_blocks=layers,
+        layers=layers,
         dropout_rate=dropout_rate,
         positional_dropout_rate=positional_dropout_rate,
         attention_dropout_rate=attention_dropout_rate,
@@ -155,12 +153,12 @@ def test_conformer_separator_forward_backward_real(
         concat_after=concat_after,
         positionwise_layer_type=positionwise_layer_type,
         positionwise_conv_kernel_size=positionwise_conv_kernel_size,
-        macaron_style=use_macaron_style_in_conformer,
-        pos_enc_layer_type=conformer_pos_enc_layer_type,
-        selfattention_layer_type=conformer_self_attn_layer_type,
-        activation_type=conformer_activation_type,
-        use_cnn_module=use_cnn_in_conformer,
-        cnn_module_kernel=conformer_enc_kernel_size,
+        use_macaron_style_in_conformer=use_macaron_style_in_conformer,
+        conformer_pos_enc_layer_type=conformer_pos_enc_layer_type,
+        conformer_self_attn_layer_type=conformer_self_attn_layer_type,
+        conformer_activation_type=conformer_activation_type,
+        use_cnn_in_conformer=use_cnn_in_conformer,
+        conformer_enc_kernel_size=conformer_enc_kernel_size,
         padding_idx=padding_idx,
     )
     model.train()
