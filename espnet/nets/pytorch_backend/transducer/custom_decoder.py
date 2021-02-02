@@ -3,7 +3,6 @@
 import torch
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
-from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.utils import check_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_batch_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
@@ -17,12 +16,9 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
     Args:
         odim (int): dimension of outputs
-        edim (int): dimension of encoder outputs
-        jdim (int): dimension of joint-space
         dec_arch (list): list of layer definitions
         input_layer (str): input layer type
         repeat_block (int): repeat provided blocks N times if N > 1
-        joint_activation_type (str) joint network activation type
         positional_encoding_type (str): positional encoding type
         positionwise_layer_type (str): linear
         positionwise_activation_type (str): positionwise activation type
@@ -34,8 +30,6 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
     def __init__(
         self,
         odim,
-        edim,
-        jdim,
         dec_arch,
         input_layer="embed",
         repeat_block=0,
@@ -63,8 +57,6 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         )
 
         self.after_norm = LayerNorm(ddim)
-
-        self.joint_network = JointNetwork(odim, edim, ddim, jdim, joint_activation_type)
 
         self.dlayers = len(self.decoders)
         self.dunits = ddim
@@ -109,7 +101,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
             memory (torch.Tensor): encoded memory, float32  (batch, maxlen_in, feat)
 
         Return:
-            z (torch.Tensor): joint output (batch, maxlen_in, maxlen_out, odim)
+            tgt (torch.Tensor): decoder output (batch, maxlen_out, dim_dec)
             tgt_mask (torch.Tensor): score mask before softmax (batch, maxlen_out)
 
         """
@@ -118,12 +110,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         tgt, tgt_mask = self.decoders(tgt, tgt_mask)
         tgt = self.after_norm(tgt)
 
-        h_enc = memory.unsqueeze(2)
-        h_dec = tgt.unsqueeze(1)
-
-        z = self.joint_network(h_enc, h_dec)
-
-        return z, tgt_mask
+        return tgt, tgt_mask
 
     def score(self, hyp, cache):
         """Forward one step.

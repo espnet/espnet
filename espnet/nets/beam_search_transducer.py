@@ -46,6 +46,7 @@ class BeamSearchTransducer:
     def __init__(
         self,
         decoder: Union[AbsDecoder, torch.nn.Module],
+        joint_network: torch.nn.Module,
         beam_size: int,
         lm: torch.nn.Module = None,
         lm_weight: float = 0.1,
@@ -61,6 +62,7 @@ class BeamSearchTransducer:
 
         Args:
             decoder: Decoder class to use
+            joint_network: Joint Network class
             beam_size: Number of hypotheses kept during search
             lm: LM class to use
             lm_weight: lm weight for soft fusion
@@ -73,8 +75,9 @@ class BeamSearchTransducer:
             nbest: number of returned final hypothesis
         """
         self.decoder = decoder
-        self.beam_size = beam_size
+        self.joint_network = joint_network
 
+        self.beam_size = beam_size
         self.hidden_size = decoder.dunits
         self.vocab_size = decoder.odim
         self.blank = decoder.blank
@@ -167,7 +170,7 @@ class BeamSearchTransducer:
         y, state, _ = self.decoder.score(hyp, cache)
 
         for i, hi in enumerate(h):
-            ytu = torch.log_softmax(self.decoder.joint_network(hi, y), dim=-1)
+            ytu = torch.log_softmax(self.joint_network(hi, y), dim=-1)
             logp, pred = torch.max(ytu, dim=-1)
 
             if pred != self.blank:
@@ -208,7 +211,7 @@ class BeamSearchTransducer:
 
                 y, state, lm_tokens = self.decoder.score(max_hyp, cache)
 
-                ytu = torch.log_softmax(self.decoder.joint_network(hi, y), dim=-1)
+                ytu = torch.log_softmax(self.joint_network(hi, y), dim=-1)
                 top_k = ytu[1:].topk(beam_k, dim=-1)
 
                 kept_hyps.append(
@@ -295,9 +298,7 @@ class BeamSearchTransducer:
                     self.use_lm,
                 )
 
-                beam_logp = torch.log_softmax(
-                    self.decoder.joint_network(h_enc, beam_y), dim=-1
-                )
+                beam_logp = torch.log_softmax(self.joint_network(h_enc, beam_y), dim=-1)
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
                 seq_A = [h.yseq for h in A]
@@ -410,9 +411,7 @@ class BeamSearchTransducer:
 
                 h_enc = torch.stack([h[1] for h in h_states])
 
-                beam_logp = torch.log_softmax(
-                    self.decoder.joint_network(h_enc, beam_y), dim=-1
-                )
+                beam_logp = torch.log_softmax(self.joint_network(h_enc, beam_y), dim=-1)
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
                 if self.use_lm:
@@ -542,14 +541,14 @@ class BeamSearchTransducer:
                         and (curr_id - next_id) <= self.prefix_alpha
                     ):
                         ytu = torch.log_softmax(
-                            self.decoder.joint_network(hi, hyp_i.y[-1]), dim=-1
+                            self.joint_network(hi, hyp_i.y[-1]), dim=-1
                         )
 
                         curr_score = hyp_i.score + float(ytu[hyp_j.yseq[next_id]])
 
                         for k in range(next_id, (curr_id - 1)):
                             ytu = torch.log_softmax(
-                                self.decoder.joint_network(hi, hyp_j.y[k]), dim=-1
+                                self.joint_network(hi, hyp_j.y[k]), dim=-1
                             )
 
                             curr_score += float(ytu[hyp_j.yseq[k + 1]])
@@ -561,9 +560,7 @@ class BeamSearchTransducer:
             for n in range(self.nstep):
                 beam_y = torch.stack([hyp.y[-1] for hyp in hyps])
 
-                beam_logp = torch.log_softmax(
-                    self.decoder.joint_network(h_enc, beam_y), dim=-1
-                )
+                beam_logp = torch.log_softmax(self.joint_network(h_enc, beam_y), dim=-1)
                 beam_topk = beam_logp[:, 1:].topk(beam_k, dim=-1)
 
                 for i, hyp in enumerate(hyps):
@@ -634,7 +631,7 @@ class BeamSearchTransducer:
                     hyps = V[:]
                 else:
                     beam_logp = torch.log_softmax(
-                        self.decoder.joint_network(h_enc, beam_y), dim=-1
+                        self.joint_network(h_enc, beam_y), dim=-1
                     )
 
                     for i, v in enumerate(V):

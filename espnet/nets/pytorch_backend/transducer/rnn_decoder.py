@@ -1,8 +1,7 @@
-"""RNN-Transducer implementation for training and decoding."""
+"""RNN decoder for transducer-based models."""
 
 import torch
 
-from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
@@ -10,15 +9,12 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
     """RNN-T Decoder module.
 
     Args:
-        eprojs (int): # encoder projection units
         odim (int): dimension of outputs
         dtype (str): gru or lstm
         dlayers (int): # prediction layers
         dunits (int): # prediction units
         blank (int): blank symbol id
         embed_dim (int): dimension of embeddings
-        joint_dim (int): dimension of joint space
-        joint_activation_type (int): joint network activation
         dropout (float): dropout rate
         dropout_embed (float): embedding dropout rate
 
@@ -26,15 +22,12 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
 
     def __init__(
         self,
-        eprojs,
         odim,
         dtype,
         dlayers,
         dunits,
         blank,
         embed_dim,
-        joint_dim,
-        joint_activation_type="tanh",
         dropout=0.0,
         dropout_embed=0.0,
     ):
@@ -44,10 +37,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         self.embed = torch.nn.Embedding(odim, embed_dim, padding_idx=blank)
         self.dropout_embed = torch.nn.Dropout(p=dropout_embed)
 
-        if dtype == "lstm":
-            dec_net = torch.nn.LSTM
-        else:
-            dec_net = torch.nn.GRU
+        dec_net = torch.nn.LSTM if dtype == "lstm" else torch.nn.GRU
 
         self.decoder = torch.nn.ModuleList(
             [dec_net(embed_dim, dunits, 1, batch_first=True)]
@@ -57,18 +47,16 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         for _ in range(1, dlayers):
             self.decoder += [dec_net(dunits, dunits, 1, batch_first=True)]
 
-        self.joint_network = JointNetwork(
-            odim, eprojs, dunits, joint_dim, joint_activation_type
-        )
-
         self.dlayers = dlayers
         self.dunits = dunits
         self.dtype = dtype
-        self.joint_dim = joint_dim
+
         self.odim = odim
 
         self.ignore_id = -1
         self.blank = blank
+
+        self.multi_gpus = torch.cuda.device_count() > 1
 
     def set_device(self, device):
         """Set GPU device to use.
@@ -173,14 +161,14 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         state = self.init_state(hs_pad.size(0))
         eys = self.dropout_embed(self.embed(ys_in_pad))
 
+        # With LSTM/GRU we need to flatten parameters in multi-GPU mode (because of DP).
+        if self.multi_gpus:
+            for idx in range(self.dlayers):
+                self.decoder[idx].flatten_parameters()
+
         h_dec, _ = self.rnn_forward(eys, state)
 
-        h_enc = hs_pad.unsqueeze(2)
-        h_dec = h_dec.unsqueeze(1)
-
-        z = self.joint_network(h_enc, h_dec)
-
-        return z
+        return h_dec
 
     def score(self, hyp, cache):
         """Forward one step.
@@ -224,7 +212,7 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
             batch_y (torch.Tensor): decoder output (B, dec_dim)
             batch_states (tuple): batch of decoder states
                 ((L, B, dec_dim), (L, B, dec_dim))
-            lm_tokens (torch.Tensor): batch of token ids for LM (B) or None
+            lm_tokens (torch.Tensor): batch of token ids for LM (B)
 
         """
         final_batch = len(hyps)
