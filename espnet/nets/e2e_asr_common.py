@@ -262,6 +262,7 @@ class ErrorCalculatorTransducer(object):
     def __init__(
         self,
         decoder,
+        joint_network,
         token_list,
         sym_space,
         sym_blank,
@@ -273,6 +274,7 @@ class ErrorCalculatorTransducer(object):
 
         self.beam_search = BeamSearchTransducer(
             decoder=decoder,
+            joint_network=joint_network,
             beam_size=1,
         )
 
