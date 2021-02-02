@@ -27,7 +27,7 @@ class ConformerSeparator(AbsSeparator):
         normalize_before: bool = False,
         concat_after: bool = False,
         dropout_rate: float = 0.1,
-        input_layer: str = "conv2d",
+        input_layer: str = "linear",
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.1,
         nonlinear: str = "relu",
@@ -149,13 +149,13 @@ class ConformerSeparator(AbsSeparator):
             y = self.nonlinear(y)
             masks.append(y)
 
-        maksed = [input * m for m in masks]
+        masked = [input * m for m in masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
 
-        return maksed, ilens, others
+        return masked, ilens, others
 
     @property
     def num_spk(self):

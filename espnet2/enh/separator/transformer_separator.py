@@ -136,13 +136,13 @@ class TransformerSeparator(AbsSeparator):
             y = self.nonlinear(y)
             masks.append(y)
 
-        maksed = [input * m for m in masks]
+        masked = [input * m for m in masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
 
-        return maksed, ilens, others
+        return masked, ilens, others
 
     @property
     def num_spk(self):

@@ -2,32 +2,28 @@ import pytest
 
 import torch
 from torch import Tensor
-from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 
 
-@pytest.mark.parametrize("input_dim", [5])
-@pytest.mark.parametrize("num_spk", [1, 2])
+@pytest.mark.parametrize("input_dim", [15])
+@pytest.mark.parametrize("num_spk", [1,2])
 @pytest.mark.parametrize("adim", [8])
 @pytest.mark.parametrize("layers", [1, 3])
 @pytest.mark.parametrize("aheads", [2])
-@pytest.mark.parametrize("linear_units", [10])
-@pytest.mark.parametrize("positionwise_layer_type", ["linear", "conv1d"])
-@pytest.mark.parametrize("positionwise_conv_kernel_size", [3, 5])
+@pytest.mark.parametrize("linear_units", [100])
+@pytest.mark.parametrize("positionwise_layer_type", ["conv1d"])
+@pytest.mark.parametrize("positionwise_conv_kernel_size", [3])
 @pytest.mark.parametrize("normalize_before", [True])
 @pytest.mark.parametrize("concat_after", [True])
 @pytest.mark.parametrize("dropout_rate", [0.1])
-@pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed"])
+@pytest.mark.parametrize("input_layer", ["linear", "conv2d"])
 @pytest.mark.parametrize("positional_dropout_rate", [0.1])
 @pytest.mark.parametrize("attention_dropout_rate", [0.1])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("conformer_pos_enc_layer_type", ["rel_pos"])
-@pytest.mark.parametrize(
-    "conformer_self_attn_layer_type",
-    ["rel_selfattn"],
-)
-@pytest.mark.parametrize("conformer_activation_type", ["relu", "sigmoid", "tanh"])
+@pytest.mark.parametrize("conformer_self_attn_layer_type", ["rel_selfattn"])
+@pytest.mark.parametrize("conformer_activation_type", ["relu", "tanh"])
 @pytest.mark.parametrize("use_macaron_style_in_conformer", [True])
 @pytest.mark.parametrize("use_cnn_in_conformer", [True])
 @pytest.mark.parametrize("conformer_enc_kernel_size", [3, 5, 7])
@@ -92,25 +88,24 @@ def test_conformer_separator_forward_backward_complex(
 
     est_wavs[0].abs().mean().backward()
 
-
-@pytest.mark.parametrize("input_dim", [5])
-@pytest.mark.parametrize("num_spk", [1, 2])
+@pytest.mark.parametrize("input_dim", [15])
+@pytest.mark.parametrize("num_spk", [1,2])
 @pytest.mark.parametrize("adim", [8])
 @pytest.mark.parametrize("layers", [1, 3])
 @pytest.mark.parametrize("aheads", [2])
-@pytest.mark.parametrize("linear_units", [10])
-@pytest.mark.parametrize("positionwise_layer_type", ["linear", "conv1d"])
-@pytest.mark.parametrize("positionwise_conv_kernel_size", [3, 5])
+@pytest.mark.parametrize("linear_units", [100])
+@pytest.mark.parametrize("positionwise_layer_type", ["conv1d"])
+@pytest.mark.parametrize("positionwise_conv_kernel_size", [3])
 @pytest.mark.parametrize("normalize_before", [True])
 @pytest.mark.parametrize("concat_after", [True])
 @pytest.mark.parametrize("dropout_rate", [0.1])
-@pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed"])
+@pytest.mark.parametrize("input_layer", ["linear", "conv2d"])
 @pytest.mark.parametrize("positional_dropout_rate", [0.1])
 @pytest.mark.parametrize("attention_dropout_rate", [0.1])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
-@pytest.mark.parametrize("conformer_pos_enc_layer_type", ["res_pos"])
+@pytest.mark.parametrize("conformer_pos_enc_layer_type", ["rel_pos"])
 @pytest.mark.parametrize("conformer_self_attn_layer_type", ["rel_selfattn"])
-@pytest.mark.parametrize("conformer_activation_type", ["relu", "sigmoid", "tanh"])
+@pytest.mark.parametrize("conformer_activation_type", ["relu", "tanh"])
 @pytest.mark.parametrize("use_macaron_style_in_conformer", [True])
 @pytest.mark.parametrize("use_cnn_in_conformer", [True])
 @pytest.mark.parametrize("conformer_enc_kernel_size", [3, 5, 7])
@@ -141,10 +136,11 @@ def test_conformer_separator_forward_backward_real(
 ):
     model = ConformerSeparator(
         input_dim=input_dim,
+        num_spk=num_spk,
         adim=adim,
         aheads=aheads,
-        linear_units=linear_units,
         layers=layers,
+        linear_units=linear_units,
         dropout_rate=dropout_rate,
         positional_dropout_rate=positional_dropout_rate,
         attention_dropout_rate=attention_dropout_rate,
@@ -154,6 +150,7 @@ def test_conformer_separator_forward_backward_real(
         positionwise_layer_type=positionwise_layer_type,
         positionwise_conv_kernel_size=positionwise_conv_kernel_size,
         use_macaron_style_in_conformer=use_macaron_style_in_conformer,
+        nonlinear=nonlinear,
         conformer_pos_enc_layer_type=conformer_pos_enc_layer_type,
         conformer_self_attn_layer_type=conformer_self_attn_layer_type,
         conformer_activation_type=conformer_activation_type,
@@ -166,12 +163,12 @@ def test_conformer_separator_forward_backward_real(
     x = torch.rand(2, 10, input_dim)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
-    maksed, flens, others = model(x, ilens=x_lens)
+    masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(maksed[0], Tensor)
-    assert len(maksed) == num_spk
+    assert isinstance(masked[0], Tensor)
+    assert len(masked) == num_spk
 
-    maksed[0].abs().mean().backward()
+    masked[0].abs().mean().backward()
 
 
 def test_Conformer_separator_invalid_type():
