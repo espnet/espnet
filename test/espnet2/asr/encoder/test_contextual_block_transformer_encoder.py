@@ -14,6 +14,9 @@ def test_Encoder_forward_backward(input_layer, positionwise_layer_type):
         output_size=40,
         input_layer=input_layer,
         positionwise_layer_type=positionwise_layer_type,
+        block_size=4,
+        hop_size=2,
+        look_ahead=1,
     )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 10])
