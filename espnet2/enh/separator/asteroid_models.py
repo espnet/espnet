@@ -19,13 +19,15 @@ class AsteroidModel_Converter(AbsSeparator):
         """The class to convert the models from asteroid to AbsSeprator.
 
         Args:
-            encoder_output_dim: input feature dimension, deafult as 1 after the NullEncoder
+            encoder_output_dim: input feature dimension, deafult=1 after the NullEncoder
             num_spk: number of speakers
             loss_type: loss type of enhancement
             model_name: asteroind model names, e.g. ConvTasNet, DPTNet. Refers to
-                        https://github.com/asteroid-team/asteroid/blob/master/asteroid/models/__init__.py
-            pretrained_path: the name of pretrained model from Asteroid Community in Zenodo. Refers to
-                https://github.com/asteroid-team/asteroid/blob/master/docs/source/readmes/pretrained_models.md
+                        https://github.com/asteroid-team/asteroid/
+                        blob/master/asteroid/models/__init__.py
+            pretrained_path: the name of pretrained model from Asteroid in Zenodo.
+                             Refers to: https://github.com/asteroid-team/asteroid/
+                             blob/master/docs/source/readmes/pretrained_models.md
             model_related_kwargs: more args towards each specific asteroid model.
         """
         super(AsteroidModel_Converter, self).__init__()

@@ -24,7 +24,10 @@ from espnet2.enh.separator.conformer_separator import ConformerSeparator
 @pytest.mark.parametrize("attention_dropout_rate", [0.1])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("conformer_pos_enc_layer_type", ["res_pos"])
-@pytest.mark.parametrize("conformer_self_attn_layer_type", ["rel_selfattn"],)
+@pytest.mark.parametrize(
+    "conformer_self_attn_layer_type",
+    ["rel_selfattn"],
+)
 @pytest.mark.parametrize("conformer_activation_type", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("use_macaron_style_in_conformer", [True])
 @pytest.mark.parametrize("use_cnn_in_conformer", [True])
@@ -108,7 +111,7 @@ def test_conformer_separator_forward_backward_complex(
 @pytest.mark.parametrize("attention_dropout_rate", [0.1])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("conformer_pos_enc_layer_type", ["res_pos"])
-@pytest.mark.parametrize("conformer_self_attn_layer_type", [ "rel_selfattn"])
+@pytest.mark.parametrize("conformer_self_attn_layer_type", ["rel_selfattn"])
 @pytest.mark.parametrize("conformer_activation_type", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("use_macaron_style_in_conformer", [True])
 @pytest.mark.parametrize("use_cnn_in_conformer", [True])

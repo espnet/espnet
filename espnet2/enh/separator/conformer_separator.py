@@ -64,7 +64,8 @@ class ConformerSeparator(AbsSeparator):
             positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
             positionwise_conv_kernel_size (int): Kernel size of
                                                  positionwise conv1d layer.
-            use_macaron_style_in_conformer (bool): Whether to use macaron style for positionwise layer.
+            use_macaron_style_in_conformer (bool): Whether to use macaron style for
+                                                   positionwise layer.
             use_cnn_in_conformer (bool): Whether to use convolution module.
             conformer_enc_kernel_size(int): Kernerl size of convolution module.
             padding_idx (int): Padding idx for input_layer=embed.
