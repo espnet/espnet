@@ -260,6 +260,7 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
 
     beam_search = BeamSearchTransducer(
         decoder=model.decoder,
+        joint_network=model.joint_network,
         beam_size=recog_args.beam_size,
         lm=None,
         lm_weight=0.0,

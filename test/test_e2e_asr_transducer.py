@@ -215,6 +215,7 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
 
     beam_search = BeamSearchTransducer(
         decoder=model.dec,
+        joint_network=model.joint_network,
         beam_size=recog_args.beam_size,
         lm=recog_args.rnnlm,
         lm_weight=recog_args.lm_weight,
