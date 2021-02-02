@@ -1,5 +1,5 @@
 optim: adam
-init: xavier_uniform
+init: none
 max_epoch: 100
 batch_type: folded
 batch_size: 2 # batch_size 16 can be trained on 4 RTX 2080ti
@@ -35,10 +35,11 @@ separator: asteroid
 separator_conf:
     num_spk: 2
     model_name: ConvTasNet
-    fs: 8000
+    # Following the model related args
+    n_src: 2
     out_chan: None
     n_blocks: 8
-    n_repeats: 2
+    n_repeats: 3
     bn_chan: 128
     hid_chan: 512
     skip_chan: 128

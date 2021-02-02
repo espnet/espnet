@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from typing import List
 from typing import Tuple
 
 import torch
@@ -8,8 +7,6 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
 class AsteroidModel_Converter(AbsSeparator):
-    """The class to convert the models from asteroid to AbsEnhancement net."""
-
     def __init__(
         self,
         encoder_output_dim: int,
@@ -19,8 +16,23 @@ class AsteroidModel_Converter(AbsSeparator):
         loss_type: str = "si_snr",
         **model_related_kwargs,
     ):
+        """The class to convert the models from asteroid to AbsSeprator.
+
+        Args:
+            encoder_output_dim: input feature dimension, deafult as 1 after the NullEncoder
+            num_spk: number of speakers
+            loss_type: loss type of enhancement
+            model_name: asteroind model names, e.g. ConvTasNet, DPTNet. Refers to
+                        https://github.com/asteroid-team/asteroid/blob/master/asteroid/models/__init__.py
+            pretrained_path: the name of pretrained model from Asteroid Community in Zenodo. Refers to
+                https://github.com/asteroid-team/asteroid/blob/master/docs/source/readmes/pretrained_models.md
+            model_related_kwargs: more args towards each specific asteroid model.
+        """
         super(AsteroidModel_Converter, self).__init__()
-        assert encoder_output_dim == 1, encoder_output_dim # The input should in raw-wave domain.
+
+        assert (
+            encoder_output_dim == 1
+        ), encoder_output_dim  # The input should in raw-wave domain.
 
         # Please make sure the installation of Asteroid.
         # https://github.com/asteroid-team/asteroid
@@ -37,7 +49,7 @@ class AsteroidModel_Converter(AbsSeparator):
             )
         else:
             model_name = getattr(models, model_name)
-            model = model_name(n_src=num_spk, **model_related_kwargs)
+            model = model_name(**model_related_kwargs)
 
         self.model = model
         self._num_spk = num_spk
@@ -47,7 +59,25 @@ class AsteroidModel_Converter(AbsSeparator):
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor = None):
+        """Whole forward of asteroid models.
 
+        Args:
+            input (torch.Tensor): Raw Waveforms [B, T]
+            ilens (torch.Tensor): input lengths [B]
+
+        Returns:
+            estimated Waveforms(List[Union(torch.Tensor]): [(B, T), ...]
+            ilens (torch.Tensor): (B,)
+            others predicted data, e.g. masks: OrderedDict[
+                'mask_spk1': torch.Tensor(Batch, T),
+                'mask_spk2': torch.Tensor(Batch, T),
+                ...
+                'mask_spkn': torch.Tensor(Batch, T),
+            ]
+        """
+
+        # import soundfile as sf
+        # sf.write('test_mix.wav',input.data.cpu()[0],8000)
         est_source = self.model(input)  # B,nspk,T or nspk,T
         if input.dim() == 1:
             assert est_source.size(0) == self.num_spk, est_source.size(0)
@@ -56,46 +86,24 @@ class AsteroidModel_Converter(AbsSeparator):
 
         est_source = [es for es in est_source.transpose(0, 1)]  # List(M,T)
         masks = OrderedDict(
-            zip(["spk{}".format(i + 1) for i in range(self.num_spk)], est_source)
+            zip(["mask_spk{}".format(i + 1) for i in range(self.num_spk)], est_source)
         )
         return est_source, ilens, masks
 
     def forward_rawwav(
-        self, input: torch.Tensor, ilens: torch.Tensor
+        self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Output with waveforms.
-        Args:
-            input (torch.Tensor): mixed speech [Batch, sample]
-            ilens (torch.Tensor): input lengths [Batch]
-        Returns:
-            predcited speech [Batch, num_speaker, sample]
-            output lengths
-            predcited masks: OrderedDict[
-                'spk1': torch.Tensor(Batch, sample),
-                'spk2': torch.Tensor(Batch, sample),
-                ...
-                'spkn': torch.Tensor(Batch, sample),
-            ]
-        """
+        """Output with waveforms. """
         return self.forward(input, ilens)
 
     @property
     def num_spk(self):
         return self._num_spk
 
-    def process_targets(
-        self, input: torch.Tensor, target: List[torch.Tensor], ilens: torch.Tensor
-    ) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        return target, ilens
-
 
 if __name__ == "__main__":
     mixture = torch.randn(3, 16000)
     print("mixture shape", mixture.shape)
-    # net = ConvTasNet.from_pretrained('mpariente/ConvTasNet_WHAM!_sepclean')
-    # print("model", net)
-    # output = net(mixture)
-    # print("output shape",output.shape)
 
     net = AsteroidModel_Converter(
         model_name="ConvTasNet",
@@ -103,8 +111,8 @@ if __name__ == "__main__":
         loss_type="si_snr",
         pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean",
     )
-    # print("model", net)
-    # output, *__ = net(mixture)
+    print("model", net)
+    output, *__ = net(mixture)
     output, *__ = net.forward_rawwav(mixture, 111)
     print("output spk1 shape", output[0].shape)
 
