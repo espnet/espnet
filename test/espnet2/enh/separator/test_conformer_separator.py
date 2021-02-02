@@ -2,12 +2,13 @@ import pytest
 
 import torch
 from torch import Tensor
+from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 
 
 @pytest.mark.parametrize("input_dim", [15])
-@pytest.mark.parametrize("num_spk", [1,2])
+@pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("adim", [8])
 @pytest.mark.parametrize("layers", [1, 3])
 @pytest.mark.parametrize("aheads", [2])
@@ -88,8 +89,9 @@ def test_conformer_separator_forward_backward_complex(
 
     est_wavs[0].abs().mean().backward()
 
+
 @pytest.mark.parametrize("input_dim", [15])
-@pytest.mark.parametrize("num_spk", [1,2])
+@pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("adim", [8])
 @pytest.mark.parametrize("layers", [1, 3])
 @pytest.mark.parametrize("aheads", [2])
