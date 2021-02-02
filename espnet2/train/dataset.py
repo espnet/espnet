@@ -244,7 +244,7 @@ DATA_TYPES = {
     ),
     "rttm": dict(
         func=RttmReader,
-        kwargs=["hop_length", "sampling_rate"],
+        kwargs=["hop_length", "sample_rate"],
         help="rttm file loader, currently support for speaker diarization"
         "\n\n"
         "   SPEAKER file1 1 0.00 1.23 <NA> <NA> spk1 <NA>"

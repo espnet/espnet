@@ -126,7 +126,7 @@ def detect_non_silence(
 
 
 def convolve_rir(
-    speech: np.ndarrary, power: np.ndarray, rir_path: Union[Path, str]
+    speech: np.ndarray, power: np.ndarray, rir_path: Union[Path, str]
 ) -> np.ndarray:
     if rir_path is not None:
         rir, _ = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
@@ -402,6 +402,12 @@ class SpeechPreprocessor(AbsPreprocessor):
         speech_name: str = "speech",
     ):
         # Preprocessor for speech only
+        self.train = train
+        self.speech_name = speech_name
+        self.speech_volume_normalize = speech_volume_normalize
+        self.rir_apply_prob = rir_apply_prob
+        self.noise_apply_prob = noise_apply_prob
+
         if train and rir_scp is not None:
             self.rirs = []
             with open(rir_scp, "r", encoding="utf-8") as f:

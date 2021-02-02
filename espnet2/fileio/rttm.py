@@ -39,7 +39,7 @@ def load_rttm_text(
             # Only support speaker label now
             assert label_type == "SPEAKER"
 
-            if spk_id in spk_dict.keys():
+            if spk_id not in spk_dict.keys():
                 spk_dict[spk_id] = spk_index
                 spk_index += 1
             data[utt_id] = data.get(utt_id, []) + [
@@ -79,12 +79,14 @@ class RttmReader(collections.abc.Mapping):
         self.hop_length = hop_length
         if isinstance(sample_rate, str):
             self.sample_rate = humanfriendly.parse_size(sample_rate)
+        else:
+            self.sample_rate = sample_rate
         self.data, self.spk_dict = load_rttm_text(path=fname)
         self.total_spk_num = len(self.spk_dict)
 
     def _get_duration_spk(
         self, spk_event: List[Tuple[str, float, float]]
-    ) -> Tuple(float, Set[str]):
+    ) -> Tuple[float, Set[str]]:
         return max(map(lambda x: x[2], spk_event))
 
     def __getitem__(self, key):
