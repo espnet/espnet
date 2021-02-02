@@ -407,7 +407,6 @@ class DiarizationPreprocessor(AbsPreprocessor):
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
         assert check_argument_types()
-
         # data to frame
         pass
 
