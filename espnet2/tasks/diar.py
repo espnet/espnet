@@ -67,9 +67,7 @@ encoder_choices = ClassChoices(
 )
 decoder_choices = ClassChoices(
     "decoder",
-    classes=dict(
-        linear=LinearDecoder
-    ),
+    classes=dict(linear=LinearDecoder),
     type_check=AbsDecoder,
     default="linear",
 )
@@ -93,7 +91,6 @@ class DiarizationTask(AbsTask):
 
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
-
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):

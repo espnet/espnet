@@ -36,7 +36,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         encoder: AbsEncoder,
         decoder: AbsDecoder,
-        loss_type: str = "pit" # only support pit loss for now
+        loss_type: str = "pit",  # only support pit loss for now
     ):
         assert check_argument_types()
 
@@ -47,7 +47,6 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self.normalize = normalize
         self.frontend = frontend
         self.loss_type = loss_type
-
 
     def forward(
         self,
@@ -63,14 +62,11 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             speech_lengths: (Batch,) default None for chunk interator,
                                      because the chunk-iterator does not
                                      have the speech_lengths returned.
-                                     see in 
+                                     see in
                                      espnet2/iterators/chunk_iter_factory.py
             spk_labels: (Batch, )
         """
-        assert (
-            speech.shape[0]
-            == spk_labels.shape[0]
-        ), (speech.shape, spk_labels.shape)
+        assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
 
         # 1. Encoder
@@ -80,10 +76,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         pred = self.decoder(encoder_out, encoder_out_lens)
 
         if self.loss_type == "pit":
-            loss, perm_idx, perm_list, label_perm = pit_loss(pred, spk_labels, encoder_out_lens)
-            (correct, num_frames, speech_scored, speech_miss, speech_falarm,
-                speaker_scored, speaker_miss, speaker_falarm,
-                speaker_error) = calc_diarization_error(pred, label_perm, length)
+            loss, perm_idx, perm_list, label_perm = pit_loss(
+                pred, spk_labels, encoder_out_lens
+            )
+            (
+                correct,
+                num_frames,
+                speech_scored,
+                speech_miss,
+                speech_falarm,
+                speaker_scored,
+                speaker_miss,
+                speaker_falarm,
+                speaker_error,
+            ) = calc_diarization_error(pred, label_perm, length)
             sad_mr, sad_fr, mi, fa, cf, acc, der = (
                 speech_miss / speech_scored,
                 speech_falarm / speech_scored,
@@ -91,27 +97,23 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                 speaker_falarm / speaker_scored,
                 speaker_error / speaker_scored,
                 correct / num_frames,
-                (speaker_miss
-                 + speaker_falarm
-                 + speaker_error) / speaker_scored,
+                (speaker_miss + speaker_falarm + speaker_error) / speaker_scored,
             )
             stats = dict(
-            	loss=loss.detach(),
-            	sad_mr=sad_mr,
-            	sad_fr=sad_fr,
-            	mi=mi,
-            	fa=fa,
-            	cf=cf,
-            	acc=acc,
-            	der=der,
+                loss=loss.detach(),
+                sad_mr=sad_mr,
+                sad_fr=sad_fr,
+                mi=mi,
+                fa=fa,
+                cf=cf,
+                acc=acc,
+                der=der,
             )
         else:
             raise NotImplementedError
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
-
-
 
     def collect_feats(
         self,
@@ -123,9 +125,9 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
-    	self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """"Frontend + Encoder
+        """ "Frontend + Encoder
 
         Args:
             speech: (Batch, Length, ...)
@@ -198,8 +200,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         batch_size = len(min_idx)
         label_list = []
         for i in range(batch_size):
-        	label_list.append(
-        		label[i, :, permute_list[min_idx[i]]].data.cpu().numpy())
+            label_list.append(label[i, :, permute_list[min_idx[i]]].data.cpu().numpy())
         label_permute = torch.from_numpy(np.array(label_list)).float()
         return loss, min_idx, permute_list, label_permute
 
@@ -209,7 +210,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         # mask the padding part
         mask = np.zeros((batch_size, max_len, num_output))
         for i in range(batch_size):
-            mask[i, :length[i], :] = 1
+            mask[i, : length[i], :] = 1
 
         # pred and label have the shape (batch_size, max_len, num_output)
         label_np = label.data.cpu().numpy().astype(int)
@@ -222,21 +223,25 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         n_ref = np.sum(label_np, axis=2)
         n_sys = np.sum(pred_np, axis=2)
         speech_scored = float(np.sum(n_ref > 0))
-        speech_miss = float(np.sum(
-            np.logical_and(n_ref > 0, n_sys == 0)))
-        speech_falarm = float(np.sum(
-            np.logical_and(n_ref == 0, n_sys > 0)))
+        speech_miss = float(np.sum(np.logical_and(n_ref > 0, n_sys == 0)))
+        speech_falarm = float(np.sum(np.logical_and(n_ref == 0, n_sys > 0)))
 
         # compute speaker diarization error
         speaker_scored = float(np.sum(n_ref))
         speaker_miss = float(np.sum(np.maximum(n_ref - n_sys, 0)))
         speaker_falarm = float(np.sum(np.maximum(n_sys - n_ref, 0)))
-        n_map = np.sum(
-            np.logical_and(label_np == 1, pred_np == 1),
-            axis=2)
+        n_map = np.sum(np.logical_and(label_np == 1, pred_np == 1), axis=2)
         speaker_error = float(np.sum(np.minimum(n_ref, n_sys) - n_map))
         correct = float(1.0 * np.sum((label_np == pred_np) * mask) / num_output)
         num_frames = np.sum(length)
-        return (correct, num_frames, speech_scored, speech_miss, speech_falarm,
-                speaker_scored, speaker_miss, speaker_falarm,
-                speaker_error)
+        return (
+            correct,
+            num_frames,
+            speech_scored,
+            speech_miss,
+            speech_falarm,
+            speaker_scored,
+            speaker_miss,
+            speaker_falarm,
+            speaker_error,
+        )

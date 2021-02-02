@@ -125,64 +125,62 @@ def detect_non_silence(
     )
 
 
-def convolve_rir(speech: np.ndarrary, power: np.ndarray, rir_path: Union[Path, str]) -> np.ndarray:
+def convolve_rir(
+    speech: np.ndarrary, power: np.ndarray, rir_path: Union[Path, str]
+) -> np.ndarray:
     if rir_path is not None:
-        rir, _ = soundfile.read(
-            rir_path, dtype=np.float64, always_2d=True
-        )
+        rir, _ = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
 
         # rir: (Nmic, Time)
         rir = rir.T
 
         # speech: (Nmic, Time)
         # Note that this operation doesn't change the signal length
-        speech = scipy.signal.convolve(speech, rir, mode="full")[
-            :, : speech.shape[1]
-        ]
+        speech = scipy.signal.convolve(speech, rir, mode="full")[:, : speech.shape[1]]
         # Reverse mean power to the original power
         power2 = (speech[detect_non_silence(speech)] ** 2).mean()
         speech = np.sqrt(power / max(power2, 1e-10)) * speech
     return speech
 
 
-def add_noise(speech: np.ndarray, power: np.ndarray, noise_path: Union[Path, str], noise_db_low: float, noise_db_high: float
+def add_noise(
+    speech: np.ndarray,
+    power: np.ndarray,
+    noise_path: Union[Path, str],
+    noise_db_low: float,
+    noise_db_high: float,
 ) -> np.ndarray:
     if noise_path is not None:
-    noise_db = np.random.uniform(
-        noise_db_low, noise_db_high
-    )
-    with soundfile.SoundFile(noise_path) as f:
-        if f.frames == nsamples:
-            noise = f.read(dtype=np.float64, always_2d=True)
-        elif f.frames < nsamples:
-            offset = np.random.randint(0, nsamples - f.frames)
-            # noise: (Time, Nmic)
-            noise = f.read(dtype=np.float64, always_2d=True)
-            # Repeat noise
-            noise = np.pad(
-                noise,
-                [(offset, nsamples - f.frames - offset), (0, 0)],
-                mode="wrap",
-            )
-        else:
-            offset = np.random.randint(0, f.frames - nsamples)
-            f.seek(offset)
-            # noise: (Time, Nmic)
-            noise = f.read(
-                nsamples, dtype=np.float64, always_2d=True
-            )
-            if len(noise) != nsamples:
-                raise RuntimeError(f"Something wrong: {noise_path}")
-    # noise: (Nmic, Time)
-    noise = noise.T
+        noise_db = np.random.uniform(noise_db_low, noise_db_high)
+        with soundfile.SoundFile(noise_path) as f:
+            if f.frames == nsamples:
+                noise = f.read(dtype=np.float64, always_2d=True)
+            elif f.frames < nsamples:
+                offset = np.random.randint(0, nsamples - f.frames)
+                # noise: (Time, Nmic)
+                noise = f.read(dtype=np.float64, always_2d=True)
+                # Repeat noise
+                noise = np.pad(
+                    noise,
+                    [(offset, nsamples - f.frames - offset), (0, 0)],
+                    mode="wrap",
+                )
+            else:
+                offset = np.random.randint(0, f.frames - nsamples)
+                f.seek(offset)
+                # noise: (Time, Nmic)
+                noise = f.read(nsamples, dtype=np.float64, always_2d=True)
+                if len(noise) != nsamples:
+                    raise RuntimeError(f"Something wrong: {noise_path}")
+        # noise: (Nmic, Time)
+        noise = noise.T
 
-    noise_power = (noise ** 2).mean()
-    scale = (
-        10 ** (-noise_db / 20)
-        * np.sqrt(power)
-        / np.sqrt(max(noise_power, 1e-10))
-    )
-    return speech + scale * noise
+        noise_power = (noise ** 2).mean()
+        scale = (
+            10 ** (-noise_db / 20) * np.sqrt(power) / np.sqrt(max(noise_power, 1e-10))
+        )
+        speech = speech + scale * noise
+    return speech
 
 
 class CommonPreprocessor(AbsPreprocessor):
@@ -299,8 +297,9 @@ class CommonPreprocessor(AbsPreprocessor):
                     and self.rir_apply_prob >= np.random.random()
                 ):
                     noise_path = np.random.choice(self.noises)
-                    speech = add_noise(speech, power, noise_path, self.noise_db_low, self.noise_db_high)
-
+                    speech = add_noise(
+                        speech, power, noise_path, self.noise_db_low, self.noise_db_high
+                    )
 
                 speech = speech.T
                 ma = np.max(np.abs(speech))
@@ -465,8 +464,9 @@ class SpeechPreprocessor(AbsPreprocessor):
                     and self.rir_apply_prob >= np.random.random()
                 ):
                     noise_path = np.random.choice(self.noises)
-                    speech = add_noise(speech, power, noise_path, self.noise_db_low, self.noise_db_high)
-
+                    speech = add_noise(
+                        speech, power, noise_path, self.noise_db_low, self.noise_db_high
+                    )
 
                 speech = speech.T
                 ma = np.max(np.abs(speech))
@@ -481,5 +481,3 @@ class SpeechPreprocessor(AbsPreprocessor):
 
         assert check_return_type(data)
         return data
-
-

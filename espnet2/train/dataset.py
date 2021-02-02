@@ -360,7 +360,7 @@ class ESPnetDataset(AbsDataset):
                     elif key2 == "hop_length":
                         kwargs["hop_length"] = self.hop_length
                     elif key2 == "sample_rate":
-                        kwargs["sample_rate"]= self.sample_rate
+                        kwargs["sample_rate"] = self.sample_rate
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 

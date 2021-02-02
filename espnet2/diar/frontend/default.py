@@ -63,7 +63,6 @@ class DefaultFrontend(AbsFrontend):
         else:
             self.frontend = None
 
-
     def output_size(self) -> int:
         return self.n_fft // 2 + 1
 

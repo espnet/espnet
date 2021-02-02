@@ -27,40 +27,40 @@ from espnet2.utils.types import str_or_none
 
 
 class DiarizeSpeech:
-	"""DiarizeSpeech class
+    """DiarizeSpeech class
 
-	Examples:
-	    >>> import soundfile
-	    >>> diarization = DiarizeSpeech("diar_config.yaml", "diar.pth")
-	    >>> audio, rate = soundfile.read("speech.wav")
-	    >>> diarization(audio)
-	    [(spk_id, start, end), (spk_id2, start2, end2)]
+    Examples:
+        >>> import soundfile
+        >>> diarization = DiarizeSpeech("diar_config.yaml", "diar.pth")
+        >>> audio, rate = soundfile.read("speech.wav")
+        >>> diarization(audio)
+        [(spk_id, start, end), (spk_id2, start2, end2)]
 
-	"""
+    """
 
-	def __init__(
-		self,
-		diar_train_config: Union[Path, str],
-		diar_model_file: Union[Path, str] = None,
-		segment_size: Optional[float] = None,
-		hop_size: Optional[float] = None,
-		normalize_segment_scale: bool = False,
-		show_progressbar: bool = False,
-		device: str = "cpu",
-		dtype: str = "float32",
-	):
-	    assert check_argument_types()
+    def __init__(
+        self,
+        diar_train_config: Union[Path, str],
+        diar_model_file: Union[Path, str] = None,
+        segment_size: Optional[float] = None,
+        hop_size: Optional[float] = None,
+        normalize_segment_scale: bool = False,
+        show_progressbar: bool = False,
+        device: str = "cpu",
+        dtype: str = "float32",
+    ):
+        assert check_argument_types()
 
-	    # 1. Build Diar model
-	    diar_model, diar_train_args = DiarizationTask.build_model_from_file(
-	    	diar_train_config, diar_model_file, device
-	    )
-	    diar_model.to(dtype=getattr(torch, dtype)).eval()
+        # 1. Build Diar model
+        diar_model, diar_train_args = DiarizationTask.build_model_from_file(
+            diar_train_config, diar_model_file, device
+        )
+        diar_model.to(dtype=getattr(torch, dtype)).eval()
 
-	    self.device = device
-	    self.dtype = dtype
-	    self.diar_train_args = diar_train_args
-	    self.diar_model = diar_model
+        self.device = device
+        self.dtype = dtype
+        self.diar_train_args = diar_train_args
+        self.diar_model = diar_model
 
         # only used when processing long speech, i.e.
         # segment_size is not None and hop_size is not None
@@ -82,7 +82,6 @@ class DiarizeSpeech:
             )
         else:
             logging.info("Perform direct speech %s on the input" % task)
-
 
     @torch.no_grad()
     def __call__(

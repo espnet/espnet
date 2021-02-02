@@ -22,11 +22,9 @@ def load_segments(segments_file):
         return None
     return np.loadtxt(
         segments_file,
-        dtype=[('utt', 'object'),
-               ('rec', 'object'),
-               ('st', 'f'),
-               ('et', 'f')],
-        ndmin=1)
+        dtype=[("utt", "object"), ("rec", "object"), ("st", "f"), ("et", "f")],
+        ndmin=1,
+    )
 
 
 def load_segments_hash(segments_file):
@@ -49,7 +47,7 @@ def load_segments_rechash(segments_file):
         utt, rec, st, et = line.strip().split()
         if rec not in ret:
             ret[rec] = []
-        ret[rec].append({'utt': utt, 'st': float(st), 'et': float(et)})
+        ret[rec].append({"utt": utt, "st": float(st), "et": float(et)})
     return ret
 
 
@@ -67,7 +65,7 @@ def load_wav(wav_rxfilename, start=0, end=None):
     OPTIMIZE: controls lru_cache size for random access,
     considering memory size
     """
-    if wav_rxfilename.endswith('|'):
+    if wav_rxfilename.endswith("|"):
         # input piped command
         p = subprocess.Popen(
             wav_rxfilename[:-1],
@@ -76,13 +74,13 @@ def load_wav(wav_rxfilename, start=0, end=None):
         )
         data, samplerate = sf.read(
             io.BytesIO(p.stdout.read()),
-            dtype='float32',
+            dtype="float32",
         )
         # cannot seek
         data = data[start:end]
-    elif wav_rxfilename == '-':
+    elif wav_rxfilename == "-":
         # stdin
-        data, samplerate = sf.read(sys.stdin, dtype='float32')
+        data, samplerate = sf.read(sys.stdin, dtype="float32")
         # cannot seek
         data = data[start:end]
     else:
@@ -123,11 +121,11 @@ def process_wav(wav_rxfilename, process):
     Returns:
         wav_rxfilename: output piped command
     """
-    if wav_rxfilename.endswith('|'):
+    if wav_rxfilename.endswith("|"):
         # input piped command
-        return wav_rxfilename + process + '|'
+        return wav_rxfilename + process + "|"
     # stdin "-" or normal file
-    return 'cat {0} | {1} |'.format(wav_rxfilename, process)
+    return "cat {0} | {1} |".format(wav_rxfilename, process)
 
 
 def extract_segments(wavs, segments=None):
@@ -138,11 +136,11 @@ def extract_segments(wavs, segments=None):
     if segments is not None:
         # segments should be sorted by rec-id
         for seg in segments:
-            wav = wavs[seg['rec']]
+            wav = wavs[seg["rec"]]
             data, samplerate = load_wav(wav)
-            st_sample = np.rint(seg['st'] * samplerate).astype(int)
-            et_sample = np.rint(seg['et'] * samplerate).astype(int)
-            yield seg['utt'], data[st_sample:et_sample]
+            st_sample = np.rint(seg["st"] * samplerate).astype(int)
+            et_sample = np.rint(seg["et"] * samplerate).astype(int)
+            yield seg["utt"], data[st_sample:et_sample]
     else:
         # segments file not found,
         # wav.scp is used as segmented audio list
@@ -157,20 +155,13 @@ class KaldiData:
     def __init__(self, data_dir):
         """Load kaldi data directory."""
         self.data_dir = data_dir
-        self.segments = load_segments_rechash(
-            os.path.join(self.data_dir, 'segments'))
-        self.utt2spk = load_utt2spk(
-            os.path.join(self.data_dir, 'utt2spk'))
-        self.wavs = load_wav_scp(
-            os.path.join(self.data_dir, 'wav.scp'))
-        self.reco2dur = load_reco2dur(
-            os.path.join(self.data_dir, 'reco2dur'))
-        self.spk2utt = load_spk2utt(
-            os.path.join(self.data_dir, 'spk2utt'))
+        self.segments = load_segments_rechash(os.path.join(self.data_dir, "segments"))
+        self.utt2spk = load_utt2spk(os.path.join(self.data_dir, "utt2spk"))
+        self.wavs = load_wav_scp(os.path.join(self.data_dir, "wav.scp"))
+        self.reco2dur = load_reco2dur(os.path.join(self.data_dir, "reco2dur"))
+        self.spk2utt = load_spk2utt(os.path.join(self.data_dir, "spk2utt"))
 
     def load_wav(self, recid, start=0, end=None):
         """Load wavfile given recid, start time and end time."""
-        data, rate = load_wav(
-            self.wavs[recid], start, end)
+        data, rate = load_wav(self.wavs[recid], start, end)
         return data, rate
-
