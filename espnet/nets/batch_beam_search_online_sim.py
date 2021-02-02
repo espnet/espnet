@@ -145,6 +145,7 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
                     # NOTE(tsunoo): check repetitions here
                     # This is a implicit implementation of
                     # Eq (11) in https://arxiv.org/abs/2006.14941
+                    # A flag prev_repeat is used instead of using set
                     elif (
                         not prev_repeat
                         and best.yseq[i, -1] in best.yseq[i, :-1]
