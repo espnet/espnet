@@ -65,9 +65,6 @@ class ErrorCalculator(object):
         """
         cer, wer = None, None
 
-        if not self.report_cer and not self.report_wer:
-            return cer, wer
-
         batchsize = int(hs_pad.size(0))
         batch_nbest = []
 
