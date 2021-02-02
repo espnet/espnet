@@ -15,29 +15,29 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 
 class ConformerSeparator(AbsSeparator):
     def __init__(
-            self,
-            input_dim: int,
-            num_spk: int = 2,
-            adim: int = 384,
-            aheads: int = 4,
-            layers: int = 6,
-            linear_units: int = 1536,
-            positionwise_layer_type: str = "linear",
-            positionwise_conv_kernel_size: int = 1,
-            normalize_before: bool = False,
-            concat_after: bool = False,
-            dropout_rate: float = 0.1,
-            input_layer: str = "conv2d",
-            positional_dropout_rate: float = 0.1,
-            attention_dropout_rate: float = 0.1,
-            nonlinear: str = "relu",
-            conformer_pos_enc_layer_type: str = "rel_pos",
-            conformer_self_attn_layer_type: str = "rel_selfattn",
-            conformer_activation_type: str = "swish",
-            use_macaron_style_in_conformer: bool = True,
-            use_cnn_in_conformer: bool = True,
-            conformer_enc_kernel_size: int = 7,
-            padding_idx: int = -1,
+        self,
+        input_dim: int,
+        num_spk: int = 2,
+        adim: int = 384,
+        aheads: int = 4,
+        layers: int = 6,
+        linear_units: int = 1536,
+        positionwise_layer_type: str = "linear",
+        positionwise_conv_kernel_size: int = 1,
+        normalize_before: bool = False,
+        concat_after: bool = False,
+        dropout_rate: float = 0.1,
+        input_layer: str = "conv2d",
+        positional_dropout_rate: float = 0.1,
+        attention_dropout_rate: float = 0.1,
+        nonlinear: str = "relu",
+        conformer_pos_enc_layer_type: str = "rel_pos",
+        conformer_self_attn_layer_type: str = "rel_selfattn",
+        conformer_activation_type: str = "swish",
+        use_macaron_style_in_conformer: bool = True,
+        use_cnn_in_conformer: bool = True,
+        conformer_enc_kernel_size: int = 7,
+        padding_idx: int = -1,
     ):
         """Conformer separator.
 
@@ -95,7 +95,7 @@ class ConformerSeparator(AbsSeparator):
             activation_type=conformer_activation_type,
             use_cnn_module=use_cnn_in_conformer,
             cnn_module_kernel=conformer_enc_kernel_size,
-            padding_idx=padding_idx
+            padding_idx=padding_idx,
         )
 
         self.linear = torch.nn.ModuleList(
