@@ -55,10 +55,11 @@ def test_conformer_separator_forward_backward_complex(
 ):
     model = ConformerSeparator(
         input_dim=input_dim,
+        num_spk=num_spk,
         adim=adim,
         aheads=aheads,
-        linear_units=linear_units,
         layers=layers,
+        linear_units=linear_units,
         dropout_rate=dropout_rate,
         positional_dropout_rate=positional_dropout_rate,
         attention_dropout_rate=attention_dropout_rate,
@@ -68,6 +69,7 @@ def test_conformer_separator_forward_backward_complex(
         positionwise_layer_type=positionwise_layer_type,
         positionwise_conv_kernel_size=positionwise_conv_kernel_size,
         use_macaron_style_in_conformer=use_macaron_style_in_conformer,
+        nonlinear=nonlinear,
         conformer_pos_enc_layer_type=conformer_pos_enc_layer_type,
         conformer_self_attn_layer_type=conformer_self_attn_layer_type,
         conformer_activation_type=conformer_activation_type,
@@ -82,12 +84,12 @@ def test_conformer_separator_forward_backward_complex(
     x = ComplexTensor(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
-    est_wavs, flens, others = model(x, ilens=x_lens)
+    masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(est_wavs[0], ComplexTensor)
-    assert len(est_wavs) == num_spk
+    assert isinstance(masked[0], ComplexTensor)
+    assert len(masked) == num_spk
 
-    est_wavs[0].abs().mean().backward()
+    masked[0].abs().mean().backward()
 
 
 @pytest.mark.parametrize("input_dim", [15])
