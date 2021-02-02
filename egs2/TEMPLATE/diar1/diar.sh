@@ -308,9 +308,7 @@ if ! "${skip_train}"; then
                 --collect_stats true \
                 --use_preprocessor true \
                 --train_data_path_and_name_and_type "${_diar_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_diar_train_dir}/rttm,spk_labels,rttm" \
                 --valid_data_path_and_name_and_type "${_diar_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_diar_valid_dir}/rttm,spk_labels,rttm" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -325,7 +323,6 @@ if ! "${skip_train}"; then
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${diar_stats_dir}"
 
     fi
-
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _diar_train_dir="${data_feats}/${train_set}"

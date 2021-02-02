@@ -28,7 +28,7 @@ class DefaultFrontend(AbsFrontend):
         win_length: int = None,
         hop_length: int = 128,
         window: Optional[str] = "hann",
-        center: bool = True,
+        center: bool = False,
         normalized: bool = False,
         onesided: bool = True,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),

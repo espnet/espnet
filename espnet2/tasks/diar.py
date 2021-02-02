@@ -168,9 +168,8 @@ class DiarizationTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            retval = DiarizationPreprocessor(
-                train=train,
-            )
+            # FIXME (jiatong): add more arugment here
+            retval = SpeechPreprocessor(train=train)
         else:
             retval = None
         assert check_return_type(retval)

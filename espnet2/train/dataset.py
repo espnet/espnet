@@ -244,7 +244,7 @@ DATA_TYPES = {
     ),
     "rttm": dict(
         func=RttmReader,
-        kwargs=[],
+        kwargs=["hop_length", "sampling_rate"],
         help="rttm file loader, currently support for speaker diarization"
         "\n\n"
         "   SPEAKER file1 1 0.00 1.23 <NA> <NA> spk1 <NA>"
@@ -290,6 +290,9 @@ class ESPnetDataset(AbsDataset):
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
+        win_length: int = None,
+        hop_length: int = 128,
+        sample_rate: Union[str, int] = 16000,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -303,6 +306,11 @@ class ESPnetDataset(AbsDataset):
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
+
+        # Note (jiatong): win_length and hop_length are used for rttm-framelize
+        self.win_length = win_length
+        self.hop_length = hop_length
+        self.sample_rate = sample_rate
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -349,6 +357,10 @@ class ESPnetDataset(AbsDataset):
                         kwargs["int_dtype"] = self.int_dtype
                     elif key2 == "max_cache_fd":
                         kwargs["max_cache_fd"] = self.max_cache_fd
+                    elif key2 == "hop_length":
+                        kwargs["hop_length"] = self.hop_length
+                    elif key2 == "sample_rate":
+                        kwargs["sample_rate"]= self.sample_rate
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 
