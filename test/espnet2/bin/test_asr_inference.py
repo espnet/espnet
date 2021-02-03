@@ -98,14 +98,12 @@ def asr_config_file_streaming(tmp_path: Path, token_list):
             "char",
             "--decoder",
             "transformer",
-            "--encoder",
-            "contextual_block_transformer",
         ]
     )
     return tmp_path / "asr_streaming" / "config.yaml"
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(10)
 def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     speech2text = Speech2Text(
         asr_train_config=asr_config_file_streaming,
