@@ -410,3 +410,201 @@ if ! "${skip_train}"; then
 else
     log "Skip the training stages"
 fi
+
+
+if ! "${skip_eval}"; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+        log "Stage 6: Diarize Speaker: training_dir=${diar_exp}"
+
+        if ${gpu_inference}; then
+            _cmd=${cuda_cmd}
+            _ngpu=1
+        else
+            _cmd=${decode_cmd}
+            _ngpu=0
+        fi
+
+        log "Generate '${diar_exp}/run_diarize.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${diar_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${diar_exp}/run_diarize.sh"; chmod +x "${diar_exp}/run_diarize.sh"
+        _opts=
+
+        for dset in "${valid_set}" ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _dir="${diar_exp}/diarized_${dset}"
+            _logdir="${_dir}/logdir"
+            mkdir -p "${_logdir}"
+
+            _scp=wav.scp
+            _type=sound
+
+            # 1. Split the key file
+            key_file=${_data}/${_scp}
+            split_scps=""
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            for n in $(seq "${_nj}"); do
+                split_scps+=" ${_logdir}/keys.${n}.scp"
+            done
+            # shellcheck disable=SC2086
+            utils/split_scp.pl "${key_file}" ${split_scps}
+
+            # 2. Submit inference jobs
+            log "Ehancement started... log: '${_logdir}/diar_inference.*.log'"
+            # shellcheck disable=SC2086
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
+                ${python} -m espnet2.bin.diar_inference \
+                    --ngpu "${_ngpu}" \
+                    --fs "${fs}" \
+                    --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                    --key_file "${_logdir}"/keys.JOB.scp \
+                    --diar_train_config "${diar_exp}"/config.yaml \
+                    --diar_model_file "${diar_exp}"/"${inference_model}" \
+                    --output_dir "${_logdir}"/output.JOB \
+                    ${_opts} ${inference_args}
+
+            # 3. Concatenates the output files from each jobs
+            # TODO
+
+        done
+    fi
+
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+        log "Stage 7: Scoring"
+        _cmd=${decode_cmd}
+
+        for dset in "${valid_set}" ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _inf_dir="${diar_exp}/diarized_${dset}"
+            _dir="${diar_exp}/diarizedd_${dset}/scoring"
+            _logdir="${_dir}/logdir"
+            mkdir -p "${_logdir}"
+
+            # 1. Split the key file
+            key_file=${_data}/wav.scp
+            split_scps=""
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            for n in $(seq "${_nj}"); do
+                split_scps+=" ${_logdir}/keys.${n}.scp"
+            done
+            # shellcheck disable=SC2086
+            utils/split_scp.pl "${key_file}" ${split_scps}
+
+
+            _ref_scp=
+            for spk in $(seq "${spk_num}"); do
+                _ref_scp+="--ref_scp ${_data}/spk${spk}.scp "
+            done
+            _inf_scp=
+            for spk in $(seq "${spk_num}"); do
+                _inf_scp+="--inf_scp ${_inf_dir}/spk${spk}.scp "
+            done
+
+            # 2. Submit scoring jobs
+            log "Scoring started... log: '${_logdir}/diar_scoring.*.log'"
+            # shellcheck disable=SC2086
+            ${_cmd} JOB=1:"${_nj}" "${_logdir}"/diar_scoring.JOB.log \
+                ${python} -m espnet2.bin.diar_scoring \
+                    --key_file "${_logdir}"/keys.JOB.scp \
+                    --output_dir "${_logdir}"/output.JOB \
+                    ${_ref_scp} \
+                    ${_inf_scp} \
+                    --ref_channel ${ref_channel}
+
+            for spk in $(seq "${spk_num}"); do
+                for protocol in ${scoring_protocol} wav; do
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
+                    done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
+                done
+            done
+
+
+            for protocol in ${scoring_protocol}; do
+                # shellcheck disable=SC2046
+                paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
+                awk 'BEGIN{sum=0}
+                    {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
+                    END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
+            done
+        done
+        ./scripts/utils/show_diar_score.sh ${diar_exp} > "${diar_exp}/RESULTS.TXT"
+
+    fi
+else
+    log "Skip the evaluation stages"
+fi
+
+
+packed_model="${diar_exp}/${diar_exp##*/}_${inference_model%.*}.zip"
+if ! "${skip_upload}"; then
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 11: Pack model: ${packed_model}"
+
+        ${python} -m espnet2.bin.pack diar \
+            --train_config "${diar_exp}"/config.yaml \
+            --model_file "${diar_exp}"/"${inference_model}" \
+            --option "${diar_exp}"/RESULTS.TXT \
+            --option "${diar_stats_dir}"/train/feats_stats.npz  \
+            --option "${diar_exp}"/images \
+            --outpath "${packed_model}"
+    fi
+
+
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 12: Upload model to Zenodo: ${packed_model}"
+
+        # To upload your model, you need to do:
+        #   1. Sign up to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
+
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # Generate description file
+        cat << EOF > "${diar_exp}"/description
+This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
+<li><strong>Evaluate in the recipe</strong><pre>
+<code class="language-bash">git clone https://github.com/espnet/espnet
+cd espnet${_checkout}
+pip install -e .
+cd $(pwd | rev | cut -d/ -f1-3 | rev)
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
+</pre></li>
+<li><strong>Results</strong><pre><code>$(cat "${diar_exp}"/RESULTS.md)</code></pre></li>
+<li><strong>ASR config</strong><pre><code>$(cat "${diar_exp}"/config.yaml)</code></pre></li>
+</ul>
+EOF
+
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish it by yourself.
+
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${diar_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
+else
+    log "Skip the uploading stages"
+fi
+
+log "Successfully finished. [elapsed=${SECONDS}s]"
