@@ -94,6 +94,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train val dev5 test_set_iwslt2019; do
+        utils/data/get_utt2num_frames.sh data/${x}
         local/divide_lang.sh ${x}
     done
 
@@ -248,9 +249,9 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-       [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-       [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best

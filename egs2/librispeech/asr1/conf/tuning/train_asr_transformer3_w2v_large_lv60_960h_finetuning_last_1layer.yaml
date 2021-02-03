@@ -1,0 +1,68 @@
+# Note: run this config with "--feats_normalize null"
+batch_type: numel
+batch_bins: 6000000
+accum_grad: 8
+max_epoch: 100
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+input_size: 2048
+encoder: wav2vec2
+encoder_conf:
+    output_size: 512
+    normalize_before: true
+    freeze_w2v: false
+    w2v_url: https://dl.fbaipublicfiles.com/fairseq/wav2vec/wav2vec2_vox_960h_new.pt
+    w2v_dir_path: ./downloads/wav2vec_pretrained_models
+    finetune_last_n_layers: 1
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.002
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
+
+unused_parameters: true
+
+frontend: null
+
+normalize: null
+
+specaug: null
+# specaug: specaug
+# specaug_conf:
+#     apply_time_warp: true
+#     time_warp_window: 5
+#     time_warp_mode: bicubic
+#     apply_freq_mask: true
+#     freq_mask_width_range:
+#     - 0
+#     - 30
+#     num_freq_mask: 2
+#     apply_time_mask: true
+#     time_mask_width_range:
+#     - 0
+#     - 40
+#     num_time_mask: 2

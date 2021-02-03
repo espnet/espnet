@@ -46,7 +46,7 @@ json=$1
 dir=$2
 dic=$3
 json_dir=$(dirname ${json})
-tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
+tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
 trap 'rm -rf ${tmpdir}' EXIT
 
 if [ -z ${text} ]; then
@@ -65,13 +65,13 @@ else
     text2token.py -s 1 -n 1 ${text} > ${tmpdir}/output/token.scp
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
-cat ${tmpdir}/output/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/output/olen.scp
+awk '{print $1 " " NF-1}' ${tmpdir}/output/tokenid.scp > ${tmpdir}/output/olen.scp
 # +2 comes from CTC blank and EOS
 vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
 awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/output/odim.scp
 
-cp ${text} ${tmpdir}/output/text.scp
+cat ${text} > ${tmpdir}/output/text.scp
 
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
@@ -93,7 +93,7 @@ addjson.py --verbose ${verbose} -i false \
   ${json} ${tmpdir}/output/text.json ${tmpdir}/output/token.json ${tmpdir}/output/tokenid.json ${tmpdir}/output/olen.json ${tmpdir}/output/odim.json > ${tmpdir}/data.json
 mkdir -p ${json_dir}/.backup
 echo "json updated. original json is kept in ${json_dir}/.backup."
-cp ${json} ${json_dir}/.backup/$(basename ${json})
+cp ${json} ${json_dir}/.backup/"$(basename ${json})"
 cp ${tmpdir}/data.json ${json}
 
 rm -fr ${tmpdir}
