@@ -15,26 +15,6 @@ lid=true # whether to use language id as additional label
 
 train_set=train_li52_lid
 train_dev=dev_li52_lid
-full_test_set="test_ar_commonvoice_lid test_as_commonvoice_lid test_br_commonvoice_lid \
-test_ca_commonvoice_lid test_cnh_commonvoice_lid test_cs_commonvoice_lid \
-test_cv_commonvoice_lid test_cy_commonvoice_lid test_de_commonvoice_lid \
-test_de_voxforge_lid test_dv_commonvoice_lid test_el_commonvoice_lid \
-test_en_commonvoice_lid test_en_voxforge_lid test_eo_commonvoice_lid \
-test_es_commonvoice_lid test_es_voxforge_lid test_et_commonvoice_lid \
-test_eu_commonvoice_lid test_fa_commonvoice_lid test_fr_commonvoice_lid \
-test_fr_voxforge_lid test_fy_NL_commonvoice_lid test_ga_IE_commonvoice_lid \
-test_hsb_commonvoice_lid test_ia_commonvoice_lid test_id_commonvoice_lid \
-test_it_commonvoice_lid test_it_voxforge_lid test_ja_commonvoice_lid \
-test_ka_commonvoice_lid test_kab_commonvoice_lid test_ky_commonvoice_lid \
-test_lv_commonvoice_lid test_mn_commonvoice_lid test_mt_commonvoice_lid \
-test_nl_commonvoice_lid test_nl_voxforge_lid test_or_commonvoice_lid \
-test_pa_IN_commonvoice_lid test_pl_commonvoice_lid test_pt_commonvoice_lid \
-test_pt_voxforge_lid test_rm_sursilv_commonvoice_lid test_rm_vallader_commonvoice_lid \
-test_ro_commonvoice_lid test_ru_commonvoice_lid test_ru_voxforge_lid \
-test_rw_commonvoice_lid test_sah_commonvoice_lid test_sl_commonvoice_lid \
-test_sv_SE_commonvoice_lid test_ta_commonvoice_lid test_tr_commonvoice_lid \
-test_tt_commonvoice_lid test_uk_commonvoice_lid test_vi_commonvoice_lid \
-test_zh_CN_commonvoice_lid test_zh_HK_commonvoice_lid test_zh_TW_commonvoice_lid"
 # high_resource (>100h): ca, de, en, es, fa, fr, kab, it, rw, ru, pl (11)
 high_resource_test_set="test_ca_commonvoice_lid test_de_commonvoice_lid \
 test_de_voxforge_lid test_en_commonvoice_lid test_en_voxforge_lid \
@@ -64,6 +44,9 @@ test_or_commonvoice_lid test_pa_IN_commonvoice_lid test_rm_sursilv_commonvoice_l
 test_rm_vallader_commonvoice_lid test_ro_commonvoice_lid test_sah_commonvoice_lid \
 test_sl_commonvoice_lid test_vi_commonvoice_lid"
 
+full_set="${high_resource_test_set} ${mid_resource_test_set} ${low_resource_test_set} ${ext_low_resource_test_set}"
+test_set=${full_set}
+# use the middle resource test set to avoid too long evaluation time
 test_set=${mid_resource_test_set}
 
 nlsyms_txt=data/local/nlsyms.txt
@@ -76,8 +59,10 @@ inference_config=conf/decode_asr.yaml
     --stop_stage 100 \
     --ngpu 4 \
     --nj 80 \
+    --inference_nj 256 \
     --use_lm false \
     --token_type bpe \
+    --nbpe 7000 \
     --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
