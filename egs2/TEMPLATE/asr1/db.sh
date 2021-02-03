@@ -31,6 +31,7 @@ TEDXJP=
 LIBRISPEECH=
 LIBRITTS=
 LJSPEECH=downloads
+NSC=
 JSSS=downloads
 JSUT=downloads
 JVS=downloads
