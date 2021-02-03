@@ -337,7 +337,7 @@ if ! "${skip_train}"; then
 
     fi
 
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _diar_train_dir="${data_feats}/${train_set}"
         _diar_valid_dir="${data_feats}/${valid_set}"
         log "Stage 10: Diarization Training: train_set=${_diar_train_dir}, valid_set=${_diar_valid_dir}"
@@ -374,6 +374,11 @@ if ! "${skip_train}"; then
         _opts+="--train_shape_file ${diar_stats_dir}/train/speech_shape "
         _opts+="--train_shape_file ${diar_stats_dir}/train/rttm_shape "
 
+        _opts+="--valid_data_path_and_name_and_type ${_diar_valid_dir}/${_scp},speech,${_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_diar_valid_dir}/rttm,spk_labels,rttm "
+        _opts+="--valid_shape_file ${diar_stats_dir}/valid/speech_shape "
+        _opts+="--valid_shape_file ${diar_stats_dir}/valid/rttm_shape "
+
         log "Generate '${diar_exp}/run.sh'. You can resume the process from stage 10 using this script"
         mkdir -p "${diar_exp}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${diar_exp}/run.sh"; chmod +x "${diar_exp}/run.sh"
 
@@ -396,13 +401,8 @@ if ! "${skip_train}"; then
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.diar_train \
                 --use_preprocessor true \
-                --valid_data_path_and_name_and_type "${_diar_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_diar_valid_dir}/text,text,text" \
-                --valid_shape_file "${diar_stats_dir}/valid/speech_shape" \
-                --valid_shape_file "${diar_stats_dir}/valid/text_shape.${token_type}" \
                 --resume true \
                 --fold_length "${_fold_length}" \
-                --fold_length "${diar_text_fold_length}" \
                 --output_dir "${diar_exp}" \
                 ${_opts} ${diar_args}
 
