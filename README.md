@@ -53,8 +53,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
 - **Transducer** based end-to-end ASR
-  - Available: RNN-based encoder/decoder and Transformer-based encoder/decoder w/ customizable architecture.
-  - Also support: mixed RNN/Transformer architecture, attention mechanism (RNN decoder), VGG2L (RNN/Transformer encoder), Conformer (Transformer encoder), TDNN (Transformer encoder), Causal Conv1d (Transformer decoder) and various decoding algorithms.
+  - Available: RNN-based encoder/decoder or custom encoder/decoder w/ supports for Transformer, Conformer, TDNN (encoder) and causal conv1d (decoder) blocks.
+  - Also support: mixed RNN/Custom encoder-decoder, VGG2L (RNN/Cutom encoder) and various decoding algorithms.
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive based on Mask CTC
@@ -541,5 +541,13 @@ A full example recipe is in `egs/tedlium2/align1/`.
     publisher = "Association for Computational Linguistics",
     url = "https://www.aclweb.org/anthology/2020.acl-demos.34",
     pages = "302--311",
+}
+@inproceedings{li2020espnet,
+  title={{ESPnet-SE}: End-to-End Speech Enhancement and Separation Toolkit Designed for {ASR} Integration},
+  author={Chenda Li and Jing Shi and Wangyou Zhang and Aswin Shanmugam Subramanian and Xuankai Chang and Naoyuki Kamo and Moto Hira and Tomoki Hayashi and Christoph Boeddeker and Zhuo Chen and Shinji Watanabe},
+  booktitle={Proceedings of IEEE Spoken Language Technology Workshop (SLT)},
+  pages={785--792},
+  year={2021},
+  organization={IEEE},
 }
 ```

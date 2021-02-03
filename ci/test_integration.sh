@@ -60,15 +60,9 @@ echo "=== ASR (backend=pytorch num-encs 2, model=transformer) ==="
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
-echo "=== ASR (backend=pytorch, model=rnnt-att) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_attention.yaml \
-        --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
-echo "=== ASR (backend=pytorch, model=transformer-transducer-att) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer_transducer_attention.yaml \
-         --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer.yaml \
         --decode-config conf/decode_transducer.yaml

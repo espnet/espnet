@@ -28,8 +28,8 @@ fi
 
 echo "$0 $@"  # Print the command line for logging
 
-audio_dir=$1/data/audio/16kHz/isolated
-trans_dir=$1/data/transcriptions
+audio_dir=$(realpath $1/data/audio/16kHz/isolated)
+trans_dir=$(realpath $1/data/transcriptions)
 
 echo "extract all channels (CH1-6.wav) for noisy data"
 

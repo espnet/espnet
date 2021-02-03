@@ -11,7 +11,7 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-langs="ar as br ca cnh cs cv cy de dv el eo es et eu\
+langs="ar as br ca cnh cs cv cy de dv el en eo es et eu\
  fa fr fy-NL ga-IE hsb ia id it ja ka kab ky lv mn mt\
  nl or pa-IN pl pt rm-sursilv rm-vallader ro ru rw sah\
  sl sv-SE ta tr tt uk vi zh-CN zh-HK zh-TW"
