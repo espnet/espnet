@@ -26,7 +26,7 @@ fi
 # copied from https://github.com/pzelasko/kaldi/blob/feature/nsc-recipe/egs/nsc/s5/local/nsc_data_prep.sh
 
 # Pre-requisites
-# pip install lhotse (I moved to this to setup.py)
+pip install lhotse
 pip install git+https://github.com/pzelasko/Praat-textgrids
 
 if [ $stage -le 0 ]; then
