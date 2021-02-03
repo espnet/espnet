@@ -10,7 +10,7 @@ export LC_ALL=C
 download=data/local/download
 
 # download test data
-url=http://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
+url=https://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
 if [ -f ${download}/iwslt2019.tar.gz ]; then
     echo "${download}/iwslt2019.tar.gz exists and appears to be complete."
 else
