@@ -1772,7 +1772,7 @@ class AbsTask(ABC):
         ngpu: int = 0,
         inference: bool = False,
         hop_length: int = 128,
-        sample_rate: int = 16000,
+        sample_rate: Union[int, str] = 16000,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         assert check_argument_types()
@@ -1781,6 +1781,11 @@ class AbsTask(ABC):
             kwargs = dict(collate_fn=collate_fn)
         else:
             kwargs = {}
+
+        if isinstance(sample_rate, str):
+            sample_rate = humanfriendly.parse_size(sample_rate)
+        else:
+            sample_rate = sample_rate
 
         # IterableDataset is supported from pytorch=1.2
         if LooseVersion(torch.__version__) >= LooseVersion("1.2"):

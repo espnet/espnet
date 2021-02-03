@@ -45,6 +45,7 @@ local_data_opts= # The options given to local/data.sh.
 feats_type=raw    # Feature type (raw or fbank_pitch).
 audio_format=flac # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 fs=8k             # Sampling rate.
+hop_length=128    # Hop length in sample number
 min_wav_duration=0.1   # Minimum duration in second
 
 # diar model related
@@ -94,6 +95,7 @@ Options:
     --feats_type   # Feature type (only support raw currently).
     --audio_format # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --fs           # Sampling rate (default="${fs}").
+    --hop_length   # Hop length in sample number (default="${hop_length}")
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
 
 
@@ -267,6 +269,7 @@ if ! "${skip_train}"; then
                 _type=sound
             fi
             _opts+="--frontend_conf fs=${fs} "
+            _opts+="--frontend_conf hop_length=${hop_length} "
         else
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi
@@ -292,6 +295,14 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
+        key_file="${_diar_valid_dir}/${_scp}"
+        split_scps=""
+        for n in $(seq "${_nj}"); do
+            split_scps+=" ${_logdir}/valid.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
         # 2. Generate run.sh
         log "Generate '${diar_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
         mkdir -p "${diar_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${diar_stats_dir}/run.sh"; chmod +x "${diar_stats_dir}/run.sh"
@@ -310,7 +321,7 @@ if ! "${skip_train}"; then
                 --train_data_path_and_name_and_type "${_diar_train_dir}/${_scp},speech,${_type}" \
                 --train_data_path_and_name_and_type "${_diar_train_dir}/rttm,spk_labels,rttm" \
                 --valid_data_path_and_name_and_type "${_diar_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_diar_train_dir}/rttm,spk_labels,rttm" \
+                --valid_data_path_and_name_and_type "${_diar_valid_dir}/rttm,spk_labels,rttm" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -349,6 +360,7 @@ if ! "${skip_train}"; then
             fi
             _fold_length="$((diar_speech_fold_length * 100))"
             _opts+="--frontend_conf fs=${fs} "
+            _opts+="--frontend_conf hop_length=${hop_length} "
         else
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi

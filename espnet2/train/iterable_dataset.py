@@ -121,6 +121,8 @@ class IterableESPnetDataset(IterableDataset):
                 preprocess=preprocess,
                 float_dtype=float_dtype,
                 int_dtype=int_dtype,
+                hop_length=hop_length,
+                sample_rate=sample_rate,
             )
         else:
             self.non_iterable_dataset = None

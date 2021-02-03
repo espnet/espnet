@@ -308,7 +308,10 @@ class ESPnetDataset(AbsDataset):
 
         # Note (jiatong): hop_length and sample_rate are used for rttm-framelize
         self.hop_length = hop_length
-        self.sample_rate = sample_rate
+        if isinstance(sample_rate, str):
+            self.sample_rate = humanfriendly.parse_size(sample_rate)
+        else:
+            self.sample_rate = sample_rate
 
         self.loader_dict = {}
         self.debug_info = {}

@@ -120,6 +120,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spk_labels: torch.Tensor = None,
+        spk_labels_lengths: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
