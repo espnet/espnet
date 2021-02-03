@@ -32,6 +32,15 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
         with train_config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
             config = args["config"]
+        if config is None:
+            logging.info(
+                "Cannot find config file for streaming decoding: "
+                + "apply batch beam search instead."
+            )
+            self.block_size = None
+            self.hop_size = None
+            self.look_ahead = None
+            return
         config_file = Path(config)
         with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
@@ -86,8 +95,8 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
         """
         self.conservative = True  # always true
 
-        if self.block_size and self.hop_size:
-            cur_end_frame = int(self.block_size - self.hop_size / 2)
+        if self.block_size and self.hop_size and self.look_ahead:
+            cur_end_frame = int(self.block_size - self.look_ahead)
         else:
             cur_end_frame = x.shape[0]
         process_idx = 0
@@ -165,7 +174,7 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
                 if move_to_next_block:
                     if (
                         self.hop_size
-                        and cur_end_frame + int(self.hop_size) + int(self.hop_size / 2)
+                        and cur_end_frame + int(self.hop_size) + int(self.look_ahead)
                         < x.shape[0]
                     ):
                         cur_end_frame += int(self.hop_size)

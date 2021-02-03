@@ -28,6 +28,19 @@ def test_Encoder_forward_backward(input_layer, positionwise_layer_type):
     y, _, _ = encoder(x, x_lens)
     y.sum().backward()
 
+    # case of shorter than block size
+    encoder2 = ContextualBlockTransformerEncoder(
+        20,
+        output_size=40,
+        input_layer=input_layer,
+        positionwise_layer_type=positionwise_layer_type,
+        block_size=16,
+        hop_size=8,
+        look_ahead=4,
+    )
+    y2, _, _ = encoder2(x, x_lens)
+    y2.sum().backward()
+
 
 def test_Encoder_output_size():
     encoder = ContextualBlockTransformerEncoder(20, output_size=256)
