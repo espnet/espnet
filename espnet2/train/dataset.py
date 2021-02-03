@@ -290,7 +290,6 @@ class ESPnetDataset(AbsDataset):
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
-        win_length: int = None,
         hop_length: int = 128,
         sample_rate: Union[str, int] = 16000,
     ):
@@ -307,8 +306,7 @@ class ESPnetDataset(AbsDataset):
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
 
-        # Note (jiatong): win_length and hop_length are used for rttm-framelize
-        self.win_length = win_length
+        # Note (jiatong): hop_length and sample_rate are used for rttm-framelize
         self.hop_length = hop_length
         self.sample_rate = sample_rate
 

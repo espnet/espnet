@@ -85,6 +85,8 @@ class IterableESPnetDataset(IterableDataset):
         float_dtype: str = "float32",
         int_dtype: str = "long",
         key_file: str = None,
+        hop_length: int = 128,
+        sample_rate: Union[str, int] = 16000,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -102,8 +104,7 @@ class IterableESPnetDataset(IterableDataset):
         self.debug_info = {}
         non_iterable_list = []
         self.path_name_type_list = []
-        # DEBUG (jiatong)
-        # raise RuntimeError(f'{path_name_type_list} is here xxx')
+
         for path, name, _type in path_name_type_list:
             if name in self.debug_info:
                 raise RuntimeError(f'"{name}" is duplicated for data-key')
