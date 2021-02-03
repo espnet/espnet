@@ -94,6 +94,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train val dev5 test_set_iwslt2019; do
+        utils/data/get_utt2num_frames.sh data/${x}
         local/divide_lang.sh ${x}
     done
 
