@@ -106,6 +106,7 @@ class DiarizationTask(AbsTask):
             default=None,
             help="The number fo speakers used in system training",
         )
+
         group.add_argument(
             "--init",
             type=lambda x: str_or_none(x.lower()),
@@ -205,6 +206,7 @@ class DiarizationTask(AbsTask):
             input_size = frontend.output_size()
         else:
             # Give features from data-loader
+            # FIXME (jiatong): this is not support for diar now
             args.frontend = None
             args.frontend_conf = {}
             frontend = None
