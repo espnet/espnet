@@ -53,6 +53,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor = None,
         spk_labels: torch.Tensor = None,
+        spk_labels_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 

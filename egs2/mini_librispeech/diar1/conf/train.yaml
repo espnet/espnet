@@ -13,6 +13,10 @@ encoder_conf:
 # decoder related
 decoder: linear
 
+# chunk-based training
+iterator_type: chunk
+chunk_length: 32000
+
 # minibatch related
 batch_type: folded
 batch_size: 32

@@ -52,9 +52,10 @@ min_wav_duration=0.1   # Minimum duration in second
 diar_tag=    # Suffix to the result dir for diar model training.
 diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
-            # Note that it will overwrite args in diar config.
-spk_num=2
-total_spk_num=
+             # Note that it will overwrite args in diar config.
+feats_normalize=global_mvn # Normalizaton layer type.
+spk_num=2    # # Number of speakers in the input audio 
+total_spk_num=             # Total number of speaker in the training set
 
 # diar related
 inference_args="--normalize_output_wav true"
@@ -65,7 +66,7 @@ train_set=       # Name of training set.
 valid_set=       # Name of development set.
 test_sets=       # Names of evaluation sets. Multiple items can be specified.
 diar_speech_fold_length=800 # fold_length for speech data during diar training
-lang=noinfo      # The language type of corpus
+                            # Typically, the label also follow the same fold length
 
 
 help_message=$(cat << EOF
@@ -104,6 +105,7 @@ Options:
     --diar_config # Config for diarization model training (default="${diar_config}").
     --diar_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
                  # Note that it will overwrite args in diar config.
+    --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
     --total_spk_num # Total number fo speakers, necessary for EEND loss (default="${total_spk_num})
 
@@ -116,7 +118,6 @@ Options:
     --valid_set       # Name of development set (required).
     --test_sets     # Names of evaluation sets (required).
     --diar_speech_fold_length # fold_length for speech data during diarization training  (default="${diar_speech_fold_length}").
-    --lang         # The language type of corpus (default="${lang}")
 EOF
 )
 
@@ -340,7 +341,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _diar_train_dir="${data_feats}/${train_set}"
         _diar_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 10: Diarization Training: train_set=${_diar_train_dir}, valid_set=${_diar_valid_dir}"
+        log "Stage 5: Diarization Training: train_set=${_diar_train_dir}, valid_set=${_diar_valid_dir}"
 
         _opts=
         if [ -n "${diar_config}" ]; then
@@ -364,20 +365,27 @@ if ! "${skip_train}"; then
         else
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi
+
         if [ "${feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--normalize=global_mvn --normalize_conf stats_file=${diar_stats_dir}/train/feats_stats.npz "
         fi
 
+        if [ -z "${total_spk_num}" ]; then
+            # Training speaker numbers
+            total_spk_num=$(wc -l <${_diar_train_dir}/spk2utt)
+        fi
+        _opts+="--total_spk_num ${total_spk_num} "
+
         _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/${_scp},speech,${_type} "
         _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/rttm,spk_labels,rttm "
         _opts+="--train_shape_file ${diar_stats_dir}/train/speech_shape "
-        _opts+="--train_shape_file ${diar_stats_dir}/train/rttm_shape "
+        _opts+="--train_shape_file ${diar_stats_dir}/train/spk_labels_shape "
 
         _opts+="--valid_data_path_and_name_and_type ${_diar_valid_dir}/${_scp},speech,${_type} "
         _opts+="--valid_data_path_and_name_and_type ${_diar_valid_dir}/rttm,spk_labels,rttm "
         _opts+="--valid_shape_file ${diar_stats_dir}/valid/speech_shape "
-        _opts+="--valid_shape_file ${diar_stats_dir}/valid/rttm_shape "
+        _opts+="--valid_shape_file ${diar_stats_dir}/valid/spk_labels_shape "
 
         log "Generate '${diar_exp}/run.sh'. You can resume the process from stage 10 using this script"
         mkdir -p "${diar_exp}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${diar_exp}/run.sh"; chmod +x "${diar_exp}/run.sh"
@@ -403,6 +411,7 @@ if ! "${skip_train}"; then
                 --use_preprocessor true \
                 --resume true \
                 --fold_length "${_fold_length}" \
+                --fold_length "${diar_speech_fold_length}" \
                 --output_dir "${diar_exp}" \
                 ${_opts} ${diar_args}
 
@@ -537,7 +546,7 @@ fi
 packed_model="${diar_exp}/${diar_exp##*/}_${inference_model%.*}.zip"
 if ! "${skip_upload}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 11: Pack model: ${packed_model}"
+        log "Stage 8: Pack model: ${packed_model}"
 
         ${python} -m espnet2.bin.pack diar \
             --train_config "${diar_exp}"/config.yaml \
@@ -550,7 +559,7 @@ if ! "${skip_upload}"; then
 
 
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 12: Upload model to Zenodo: ${packed_model}"
+        log "Stage 9: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -596,7 +605,7 @@ EOF
         # shellcheck disable=SC2086
         espnet_model_zoo_upload \
             --file "${packed_model}" \
-            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}" \
             --description_file "${diar_exp}"/description \
             --creator_name "${_creator_name}" \
             --license "CC-BY-4.0" \
