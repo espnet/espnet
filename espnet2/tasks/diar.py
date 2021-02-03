@@ -200,6 +200,7 @@ class DiarizationTask(AbsTask):
         if args.input_size is None:
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
+            logging.info(args.frontend_conf)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
@@ -223,7 +224,6 @@ class DiarizationTask(AbsTask):
 
         # 4. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
-        logging.info(encoder.output_size())
         decoder = decoder_class(
             output_size=args.total_spk_num,
             encoder_output_size=encoder.output_size(),
