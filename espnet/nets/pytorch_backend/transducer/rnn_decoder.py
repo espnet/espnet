@@ -161,11 +161,6 @@ class DecoderRNNT(TransducerDecoderInterface, torch.nn.Module):
         state = self.init_state(hs_pad.size(0))
         eys = self.dropout_embed(self.embed(ys_in_pad))
 
-        # With LSTM/GRU we need to flatten parameters in multi-GPU mode (because of DP).
-        if self.multi_gpus:
-            for idx in range(self.dlayers):
-                self.decoder[idx].flatten_parameters()
-
         h_dec, _ = self.rnn_forward(eys, state)
 
         return h_dec
