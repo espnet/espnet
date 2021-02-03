@@ -221,7 +221,10 @@ class CTCPrefixScoreTH(object):
         return r_new, s_new, f_min, f_max
 
     def extend_prob(self, x):
-        """extend CTC prob"""
+        """Extend CTC prob.
+
+        :param torch.Tensor x: input label posterior sequences (B, T, O)
+        """
 
         if self.x.shape[1] < x.shape[1]:  # self.x (2,T,B,O); x (B,T,O)
             # Pad the rest of posteriors in the batch
@@ -240,10 +243,10 @@ class CTCPrefixScoreTH(object):
             self.end_frames = torch.as_tensor(xlens) - 1
 
     def extend_state(self, state):
-        """Compute CTC prefix state
+        """Compute CTC prefix state.
 
-        :param y    : label history
-        :state CTC state
+
+        :param state    : CTC state
         :return ctc_state
         """
 
@@ -354,28 +357,3 @@ class CTCPrefixScore(object):
         # return the log prefix probability and CTC states, where the label axis
         # of the CTC states is moved to the first axis to slice it easily
         return log_psi, self.xp.rollaxis(r, 2)
-
-    def extend_prob(self, x):
-        """extend CTC prob"""
-        if len(self.x) < len(x):
-            tmp_x = self.x
-            self.x = x
-            self.x[: len(tmp_x)] = tmp_x
-            self.input_length = len(self.x)
-
-    def extend_state(self, r_prev):
-        """Compute CTC prefix state
-
-        :param y    : label history
-        :param r_prev: previous CTC state
-        :return ctc_state
-        """
-
-        r = self.xp.full((self.input_length, 2), self.logzero, dtype=np.float32)
-        start = max(len(r_prev), 1)
-        r[0:start] = r_prev
-
-        for t in six.moves.range(start, self.input_length):
-            r[t, 1] = r[t - 1, 1] + self.x[t, self.blank]
-
-        return r

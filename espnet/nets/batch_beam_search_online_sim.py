@@ -16,6 +16,10 @@ from espnet.nets.e2e_asr_common import end_detect
 class BatchBeamSearchOnlineSim(BatchBeamSearch):
     """Online beam search implementation.
 
+    This simulates streaming decoding.
+    It requires encoded features of entire utterance and
+    extracts block by block from it as it shoud be done
+    in streaming processing.
     This is based on Tsunoo et al, "STREAMING TRANSFORMER ASR
     WITH BLOCKWISE SYNCHRONOUS BEAM SEARCH"
     (https://arxiv.org/abs/2006.14941).
