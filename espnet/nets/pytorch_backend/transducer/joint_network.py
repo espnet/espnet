@@ -18,15 +18,17 @@ class JointNetwork(torch.nn.Module):
         self,
         vocab_size: int,
         encoder_output_size: int,
-        hidden_size: int,
-        joint_space_size: int,
-        joint_activation_type: int,
+        decoder_output_size: int,
+        joint_space_size: int = 256,
+        joint_activation_type: str = "tanh",
     ):
         """Joint network initializer."""
         super().__init__()
 
         self.lin_enc = torch.nn.Linear(encoder_output_size, joint_space_size)
-        self.lin_dec = torch.nn.Linear(hidden_size, joint_space_size, bias=False)
+        self.lin_dec = torch.nn.Linear(
+            decoder_output_size, joint_space_size, bias=False
+        )
         self.lin_out = torch.nn.Linear(joint_space_size, vocab_size)
 
         self.joint_activation = get_activation(joint_activation_type)

@@ -79,6 +79,17 @@ class SequentialRNNLM(AbsLM):
         self.nhid = nhid
         self.nlayers = nlayers
 
+    def zero_state(self):
+        """Initialize LM state filled with zero values."""
+        if isinstance(self.rnn, torch.nn.LSTM):
+            h = torch.zeros((self.nlayers, self.nhid), dtype=torch.float)
+            c = torch.zeros((self.nlayers, self.nhid), dtype=torch.float)
+            state = h, c
+        else:
+            state = torch.zeros((self.nlayers, self.nhid), dtype=torch.float)
+
+        return state
+
     def forward(
         self, input: torch.Tensor, hidden: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:

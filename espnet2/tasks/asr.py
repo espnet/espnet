@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
@@ -180,6 +181,18 @@ class ASRTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
+        )
+        group.add_argument(
+            "--transducer_conf",
+            action=NestedDictAction,
+            default=None,
+            help="The keyword arguments for transducer decoder class.",
+        )
+        group.add_argument(
+            "--joint_net_conf",
+            action=NestedDictAction,
+            default=None,
+            help="The keyword arguments for joint network class.",
         )
         group.add_argument(
             "--model_conf",
@@ -404,8 +417,34 @@ class ASRTask(AbsTask):
             odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
         )
 
-        # 7. RNN-T Decoder (Not implemented)
-        rnnt_decoder = None
+        # 7. RNN-T Decoder
+        if args.transducer_conf:
+            if (
+                not isinstance(decoder_class, RNNDecoder)
+                and "use_attention" in args.transducer_conf
+                and args.transducer_conf["use_attention"] is True
+            ):
+                raise NotImplementedError(
+                    "Transformer class with use_attention=True"
+                    " is not supported for transducer yet."
+                )
+
+            transducer_decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder.output_size(),
+                embed_pad=0,
+                use_output_layer=False,
+                **args.transducer_conf,
+            )
+            joint_network = JointNetwork(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder.output_size(),
+                decoder_output_size=transducer_decoder.dunits,
+                **args.joint_net_conf,
+            )
+        else:
+            transducer_decoder = None
+            joint_network = None
 
         # 8. Build model
         model = ESPnetASRModel(
@@ -417,7 +456,8 @@ class ASRTask(AbsTask):
             encoder=encoder,
             decoder=decoder,
             ctc=ctc,
-            rnnt_decoder=rnnt_decoder,
+            transducer_decoder=transducer_decoder,
+            joint_network=joint_network,
             token_list=token_list,
             **args.model_conf,
         )
