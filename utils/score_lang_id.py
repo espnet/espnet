@@ -41,7 +41,7 @@ def scoring(ref, hyp, out):
 
         if not ref_utt or not hyp_utt:
             break
-        
+
         [rec_id, lid, utt_id] = ref_utt.strip().split()
         [hrec_id, hlid, hutt_id] = hyp_utt.strip().split()
 
@@ -50,7 +50,12 @@ def scoring(ref, hyp, out):
         if lid == hlid:
             correct += 1
         utt_num += 1
-    out.write("Language Identification Scoring: Accuracy {:.4f} ({}/{})".format((correct/float(utt_num)), correct, utt_num))
+    out.write(
+        "Language Identification Scoring: Accuracy {:.4f} ({}/{})".format(
+            (correct / float(utt_num)), correct, utt_num
+        )
+    )
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
