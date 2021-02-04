@@ -8,17 +8,21 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
+transformer-lr: 1.0
+transformer-warmup-steps: 28000
 epochs: 100
 patience: 0
 accum-grad: 2
 grad-clip: 5.0
-transformer-lr: 1.0
-transformer-warmup-steps: 28000
 
 # network architecture
+## general
+custom-enc-positional-encoding-type: rel_pos
+custom-enc-self-attn-type: rel_self_attn
+custom-enc-pw-activation-type: swish
 ## encoder related
-etype: transformer
-transformer-enc-input-layer: vgg2l
+etype: custom
+custom-enc-input-layer: vgg2l
 enc-block-arch:
         - type: conformer
           d_hidden: 256
@@ -39,11 +43,5 @@ dropout-rate-embed-decoder: 0.3
 ## joint network related
 joint-dim: 784
 
-# conformer related
-transformer-enc-positional-encoding-type: rel_pos
-transformer-enc-self-attn-type: rel_self_attn
-transformer-enc-pw-activation-type: swish
-
 # transducer related
-rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

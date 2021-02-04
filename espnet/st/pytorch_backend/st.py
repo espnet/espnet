@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -141,6 +138,7 @@ def train(args):
         model_class = dynamic_import(args.model_module)
         model = model_class(idim, odim, args)
     assert isinstance(model, STInterface)
+    total_subsampling_factor = model.get_total_subsampling_factor()
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -356,6 +354,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
@@ -382,8 +381,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
-            ikey="output",
-            iaxis=1,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(ctc_reporter, trigger=(1, "epoch"))
     else:

@@ -8,16 +8,16 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
+transformer-lr: 5.0
+transformer-warmup-steps: 10
 epochs: 1
 report-interval-iters: 1
 accum-grad: 1
 patience: 0
-transformer-lr: 5.0
-transformer-warmup-steps: 10
 
 # network architecture
 ## encoder related
-etype: transformer
+etype: custom
 enc-block-arch:
         - type: transformer
           d_hidden: 4
@@ -25,7 +25,7 @@ enc-block-arch:
           heads: 2
 enc-block-repeat: 2
 ## decoder related
-dtype: transformer
+dtype: custom
 dec-block-arch:
         - type: transformer
           d_hidden: 4
@@ -35,5 +35,4 @@ dec-block-arch:
 joint-dim: 4
 
 # transducer related
-rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
