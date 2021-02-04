@@ -222,7 +222,7 @@ def pad_sequence(seqlist, pad_token):
 
 
 def check_state(state, max_len, pad_token):
-    """Left pad or trim state according to max_len.
+    """Check state and left pad or trim if necessary.
 
     Args:
         state (list): list of of L decoder states (in_len, dec_dim)
@@ -258,28 +258,27 @@ def check_state(state, max_len, pad_token):
     return state
 
 
-def pad_batch_state(state, pred_length, pad_token):
-    """Left pad batch of states and trim if necessary.
+def check_batch_state(state, max_len, pad_token):
+    """Check batch of states and left pad or trim if necessary.
 
     Args:
         state (list): list of of L decoder states (B, ?, dec_dim)
-        pred_length (int): maximum length authorized (trimming)
+        max_len (int): maximum length authorized
         pad_token (int): padding token id
 
     Returns:
-        final (list): list of L padded decoder states (B, pred_length, dec_dim)
+        final (list): list of L decoder states (B, pred_len, dec_dim)
 
     """
-    batch = len(state)
-    maxlen = max([s.size(0) for s in state])
-    ddim = state[0].size(1)
-
-    final_dims = (batch, maxlen, ddim)
+    final_dims = (len(state), max_len, state[0].size(1))
     final = state[0].data.new(*final_dims).fill_(pad_token)
 
     for i, s in enumerate(state):
-        final[i, (maxlen - s.size(0)) : maxlen, :] = s
+        curr_len = s.size(0)
 
-    trim_val = final[0].size(0) - (pred_length - 1)
+        if curr_len < max_len:
+            final[i, (max_len - curr_len) : max_len, :] = s
+        else:
+            final[i, :, :] = s[(curr_len - max_len) :, :]
 
-    return final[:, trim_val:, :]
+    return final
