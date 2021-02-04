@@ -22,6 +22,7 @@ module_list = [
     ("kenlm", None, "installers/install_kenlm.sh"),
     ("mmseg", None, "installers/install_py3mmseg.sh"),
     ("espnet", None, None),
+    ("fairseq", None, "installers/install_fairseq.sh"),
 ]
 
 executable_list = [
