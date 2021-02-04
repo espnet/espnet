@@ -25,13 +25,14 @@ class CTC(torch.nn.Module):
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.probs = None  # for visualization
+        self.ctc_type = ctc_type
 
         # In case of Pytorch >= 1.7.0, CTC will be always builtin
-        self.ctc_type = (
-            ctc_type
-            if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
-            else "builtin"
-        )
+        # self.ctc_type = (
+        #     ctc_type
+        #     if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
+        #     else "builtin"
+        # )
         if ctc_type != self.ctc_type:
             logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")
         if self.ctc_type == "builtin":
@@ -45,6 +46,11 @@ class CTC(torch.nn.Module):
             from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
 
             self.ctc_loss = GTNCTCLossFunction.apply
+        elif self.ctc_type == "k2ctc":
+            logging.info(f"CTC type is {self.ctc_type}")
+            reduction_type = "sum" if reduce else "none"
+            from espnet.nets.pytorch_backend.k2_ctc import K2CTCLoss
+            self.ctc_loss = K2CTCLoss(odim, reduction=reduction_type)
         else:
             raise ValueError(
                 'ctc_type must be "builtin" or "warpctc": {}'.format(self.ctc_type)
@@ -69,6 +75,12 @@ class CTC(torch.nn.Module):
             targets = [t.tolist() for t in th_target]
             log_probs = torch.nn.functional.log_softmax(th_pred, dim=2)
             return self.ctc_loss(log_probs, targets, 0, "none")
+        elif self.ctc_type == 'k2ctc':
+            th_pred = th_pred.log_softmax(2)
+            loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+            # Batch-size average
+            loss = loss / th_pred.size(1)
+            return loss
         else:
             raise NotImplementedError
 
