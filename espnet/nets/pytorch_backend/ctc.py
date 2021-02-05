@@ -19,7 +19,12 @@ class CTC(torch.nn.Module):
     :param bool reduce: reduce the CTC loss into a scalar
     """
 
-    def __init__(self, odim, eprojs, dropout_rate, ctc_type="warpctc", reduce=True):
+    def __init__(self,
+                 odim,
+                 eprojs,
+                 dropout_rate,
+                 ctc_type="warpctc",
+                 reduce=True):
         super().__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
@@ -34,7 +39,8 @@ class CTC(torch.nn.Module):
         #     else "builtin"
         # )
         if ctc_type != self.ctc_type:
-            logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")
+            logging.warning(
+                f"CTC was set to {self.ctc_type} due to PyTorch version.")
         if self.ctc_type == "builtin":
             reduction_type = "sum" if reduce else "none"
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
@@ -50,11 +56,12 @@ class CTC(torch.nn.Module):
             logging.info(f"CTC type is {self.ctc_type}")
             reduction_type = "sum" if reduce else "none"
             from espnet.nets.pytorch_backend.k2_ctc import K2CTCLoss
-            self.ctc_loss = K2CTCLoss(odim, reduction=reduction_type)
+            self.ctc_loss = K2CTCLoss(odim,
+                                      reduction=reduction_type)
         else:
             raise ValueError(
-                'ctc_type must be "builtin" or "warpctc": {}'.format(self.ctc_type)
-            )
+                'ctc_type must be "builtin" or "warpctc": {}'.format(
+                    self.ctc_type))
 
         self.ignore_id = -1
         self.reduce = reduce
@@ -99,7 +106,8 @@ class CTC(torch.nn.Module):
 
         self.loss = None
         hlens = torch.from_numpy(np.fromiter(hlens, dtype=np.int32))
-        olens = torch.from_numpy(np.fromiter((x.size(0) for x in ys), dtype=np.int32))
+        olens = torch.from_numpy(
+            np.fromiter((x.size(0) for x in ys), dtype=np.int32))
 
         # zero padding for hs
         ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
@@ -108,16 +116,10 @@ class CTC(torch.nn.Module):
         ys_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        logging.info(
-            self.__class__.__name__
-            + " input lengths:  "
-            + "".join(str(hlens).split("\n"))
-        )
-        logging.info(
-            self.__class__.__name__
-            + " output lengths: "
-            + "".join(str(olens).split("\n"))
-        )
+        logging.info(self.__class__.__name__ + " input lengths:  " +
+                     "".join(str(hlens).split("\n")))
+        logging.info(self.__class__.__name__ + " output lengths: " +
+                     "".join(str(olens).split("\n")))
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
@@ -134,9 +136,8 @@ class CTC(torch.nn.Module):
         if self.ctc_type == "gtnctc":
             # keep as list for gtn
             ys_true = ys
-        self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
-            dtype=dtype
-        )
+        self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens,
+                                                   olens)).to(dtype=dtype)
         if self.reduce:
             # NOTE: sum() is needed to keep consistency
             # since warpctc return as tensor w/ shape (1,)
@@ -198,10 +199,10 @@ class CTC(torch.nn.Module):
 
         y_int = interpolate_blank(y, blank_id)
 
-        logdelta = np.zeros((lpz.size(0), len(y_int))) - 100000000000.0  # log of zero
-        state_path = (
-            np.zeros((lpz.size(0), len(y_int)), dtype=np.int16) - 1
-        )  # state path
+        logdelta = np.zeros(
+            (lpz.size(0), len(y_int))) - 100000000000.0  # log of zero
+        state_path = (np.zeros(
+            (lpz.size(0), len(y_int)), dtype=np.int16) - 1)  # state path
 
         logdelta[0, 0] = lpz[0][y_int[0]]
         logdelta[0, 1] = lpz[0][y_int[1]]
@@ -209,16 +210,15 @@ class CTC(torch.nn.Module):
         for t in six.moves.range(1, lpz.size(0)):
             for s in six.moves.range(len(y_int)):
                 if y_int[s] == blank_id or s < 2 or y_int[s] == y_int[s - 2]:
-                    candidates = np.array([logdelta[t - 1, s], logdelta[t - 1, s - 1]])
+                    candidates = np.array(
+                        [logdelta[t - 1, s], logdelta[t - 1, s - 1]])
                     prev_state = [s, s - 1]
                 else:
-                    candidates = np.array(
-                        [
-                            logdelta[t - 1, s],
-                            logdelta[t - 1, s - 1],
-                            logdelta[t - 1, s - 2],
-                        ]
-                    )
+                    candidates = np.array([
+                        logdelta[t - 1, s],
+                        logdelta[t - 1, s - 1],
+                        logdelta[t - 1, s - 2],
+                    ])
                     prev_state = [s, s - 1, s - 2]
                 logdelta[t, s] = np.max(candidates) + lpz[t][y_int[s]]
                 state_path[t, s] = prev_state[np.argmax(candidates)]
@@ -226,8 +226,7 @@ class CTC(torch.nn.Module):
         state_seq = -1 * np.ones((lpz.size(0), 1), dtype=np.int16)
 
         candidates = np.array(
-            [logdelta[-1, len(y_int) - 1], logdelta[-1, len(y_int) - 2]]
-        )
+            [logdelta[-1, len(y_int) - 1], logdelta[-1, len(y_int) - 2]])
         prev_state = [len(y_int) - 1, len(y_int) - 2]
         state_seq[-1] = prev_state[np.argmax(candidates)]
         for t in six.moves.range(lpz.size(0) - 2, -1, -1):
@@ -251,9 +250,11 @@ def ctc_for(args, odim, reduce=True):
     num_encs = getattr(args, "num_encs", 1)  # use getattr to keep compatibility
     if num_encs == 1:
         # compatible with single encoder asr mode
-        return CTC(
-            odim, args.eprojs, args.dropout_rate, ctc_type=args.ctc_type, reduce=reduce
-        )
+        return CTC(odim,
+                   args.eprojs,
+                   args.dropout_rate,
+                   ctc_type=args.ctc_type,
+                   reduce=reduce)
     elif num_encs >= 1:
         ctcs_list = torch.nn.ModuleList()
         if args.share_ctc:
@@ -279,5 +280,4 @@ def ctc_for(args, odim, reduce=True):
         return ctcs_list
     else:
         raise ValueError(
-            "Number of encoders needs to be more than one. {}".format(num_encs)
-        )
+            "Number of encoders needs to be more than one. {}".format(num_encs))

@@ -18,14 +18,23 @@ import logging
 
 class K2CTCLoss(torch.nn.Module):
 
-    def __init__(self, odim: int, reduction: str = 'sum') -> None:
+    def __init__(self,
+                 odim: int,
+                 reduction: str = "sum",
+                 device: torch.device = torch.device("cpu")) -> None:
         torch.nn.Module.__init__(self)
-        self.graph_compiler = CtcTrainingGraphCompiler(odim)
+        self.device = device
+        self.reduction = reduction
+        if reduction not in ["sum", "none"]:
+            logging.error(
+                f"k2 ctc loss reduction type: {reduction} is not supported yet,"
+                "change it to be 'sum'")
+            self.reduction = "sum"
+        self.graph_compiler = CtcTrainingGraphCompiler(odim, device=device)
 
     def forward(self, log_probs: torch.Tensor, targets: torch.Tensor,
                 input_lengths: torch.Tensor,
                 target_lengths: torch.Tensor) -> torch.Tensor:
-
         log_probs = log_probs.permute(
             1, 0, 2
         )  # now log_probs is [N, T, C]  batchSize x seqLength x alphabet_size
@@ -33,21 +42,18 @@ class K2CTCLoss(torch.nn.Module):
             (torch.tensor(range(input_lengths.shape[0])),
              torch.zeros(input_lengths.shape[0]), input_lengths),
             1).to(torch.int32)
-        #indices = torch.argsort(supervision_segments[:, 2], descending=True)
-        #supervision_segments = supervision_segments[indices]
 
         dense_fsa_vec = k2.DenseFsaVec(log_probs, supervision_segments)
 
-        decoding_graph = self.graph_compiler.compile(
-            targets, target_lengths).to(log_probs.device)
-        # decoding_graph = k2.index(decoding_graph,
-        #                          indices.to(torch.int32)).to(log_probs.device)
-        # assert decoding_graph.device == log_probs.device
+        decoding_graph = self.graph_compiler.compile(targets, target_lengths)
+        if self.device != log_probs.device:
+            decoding_graph = decoding_graph.to(log_probs.device)
 
         target_graph = k2.intersect_dense(decoding_graph, dense_fsa_vec, 10.0)
         tot_scores = target_graph.get_tot_scores(log_semiring=True,
                                                  use_double_scores=False)
-        # tot_scores = tot_scores / target_lengths.to(log_probs.device)
+        if self.reduction == "none":
+            tot_scores = tot_scores / target_lengths.to(log_probs.device)
         (tot_score, tot_frames,
          all_frames) = get_tot_objf_and_num_frames(tot_scores,
                                                    supervision_segments[:, 2])
@@ -88,7 +94,7 @@ def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
 
 class CtcTrainingGraphCompiler(object):
 
-    def __init__(self, odim: int):
+    def __init__(self, odim: int, device: torch.device):
         '''
         Args:
         odim:
@@ -96,8 +102,9 @@ class CtcTrainingGraphCompiler(object):
         '''
 
         self.dim = odim
+        self.device = device
         self.ctc_topo_inv = k2.arc_sort(
-            build_ctc_topo(list(range(self.dim))).invert_())
+            build_ctc_topo(list(range(self.dim))).invert_().to(self.device))
 
     def compile(self, texts: torch.Tensor,
                 texts_lengths: torch.Tensor) -> k2.Fsa:
@@ -116,10 +123,11 @@ class CtcTrainingGraphCompiler(object):
 
     @lru_cache(maxsize=100000)
     def compile_one_and_cache(self, text: torch.Tensor) -> k2.Fsa:
-        label_graph = k2.linear_fsa(text.tolist())
-        #label_graph.aux_labels = torch.cat(
-        #   (text, torch.tensor([-1], dtype=torch.int32)))
-        decoding_graph = k2.intersect(self.ctc_topo_inv, label_graph)
+        label_graph = k2.linear_fsa(text.tolist(), self.device)
+        label_graph = k2.add_epsilon_self_loops(label_graph)
+        decoding_graph = k2.intersect(self.ctc_topo_inv,
+                                      label_graph,
+                                      treat_epsilons_specially=False)
         decoding_graph = k2.connect(decoding_graph.invert_())
         return decoding_graph
 
