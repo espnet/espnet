@@ -26,14 +26,12 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
     device = ys_pad.device
 
     ys = [y[y != ignore_id] for y in ys_pad]
-
     blank = ys[0].new([blank_id])
 
-    ys_in = [torch.cat([blank, y], dim=0) for y in ys]
-    ys_in_pad = pad_list(ys_in, blank_id)
+    ys_in_pad = pad_list([torch.cat([blank, y], dim=0) for y in ys], blank_id)
 
-    target = pad_list(ys, blank_id).type(torch.int32)
-    target_len = torch.IntTensor([y.size(0) for y in ys])
+    target = pad_list(ys, blank_id).type(torch.int32).to(device)
+    target_len = torch.IntTensor([y.size(0) for y in ys]).to(device)
 
     if torch.is_tensor(hlens):
         if hlens.dim() > 1:
@@ -42,11 +40,7 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
         else:
             hlens = list(map(int, hlens))
 
-    pred_len = torch.IntTensor(hlens)
-
-    pred_len = pred_len.to(device)
-    target = target.to(device)
-    target_len = target_len.to(device)
+    pred_len = torch.IntTensor(hlens).to(device)
 
     return ys_in_pad, target, pred_len, target_len
 

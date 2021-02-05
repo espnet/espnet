@@ -410,7 +410,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.default_parameters(args)
 
-        if self.training and (args.report_cer or args.report_wer):
+        if training and (args.report_cer or args.report_wer):
             self.error_calculator = ErrorCalculator(
                 self.decoder if self.dtype == "custom" else self.dec,
                 self.joint_network,
@@ -476,7 +476,7 @@ class E2E(ASRInterface, torch.nn.Module):
         loss_data = float(loss)
 
         # 4. compute cer/wer
-        if self.error_calculator is None:
+        if self.training or self.error_calculator is None:
             cer, wer = None, None
         else:
             cer, wer = self.error_calculator(hs_pad, ys_pad)
@@ -498,8 +498,6 @@ class E2E(ASRInterface, torch.nn.Module):
             x (torch.Tensor): encoded features (T, D_enc)
 
         """
-        self.eval()
-
         x = torch.as_tensor(x).unsqueeze(0)
         enc_output, _ = self.encoder(x, None)
 
@@ -515,14 +513,12 @@ class E2E(ASRInterface, torch.nn.Module):
             x (torch.Tensor): encoded features (T, D_enc)
 
         """
-        self.eval()
+        p = next(self.parameters())
 
         ilens = [x.shape[0]]
-
         x = x[:: self.subsample[0], :]
-        p = next(self.parameters())
-        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
 
+        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
         hs = h.contiguous().unsqueeze(0)
 
         hs, _, _ = self.enc(hs, ilens)
@@ -538,7 +534,10 @@ class E2E(ASRInterface, torch.nn.Module):
 
         Returns:
             nbest_hyps (list): n-best decoding results
+
         """
+        self.eval()
+
         if "custom" in self.etype:
             h = self.encode_custom(x)
         else:

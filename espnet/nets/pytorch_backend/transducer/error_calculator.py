@@ -4,7 +4,6 @@
 """CER/WER monitoring for transducer models."""
 
 import editdistance
-import numpy as np
 
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 
@@ -103,10 +102,7 @@ class ErrorCalculator(object):
         for i, y_hat in enumerate(ys_hat):
             y_true = ys_pad[i]
 
-            eos_true = np.where(y_true == -1)[0]
-            eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-
-            seq_hat = [self.token_list[int(idx)] for idx in y_hat[:eos_true]]
+            seq_hat = [self.token_list[int(idx)] for idx in y_hat]
             seq_true = [self.token_list[int(idx)] for idx in y_true if int(idx) != -1]
 
             seq_hat_text = "".join(seq_hat).replace(self.space, " ")
@@ -133,6 +129,7 @@ class ErrorCalculator(object):
 
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
+
             hyp_chars = seq_hat_text.replace(" ", "")
             ref_chars = seq_true_text.replace(" ", "")
 
@@ -156,6 +153,7 @@ class ErrorCalculator(object):
 
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
+
             hyp_words = seq_hat_text.split()
             ref_words = seq_true_text.split()
 
