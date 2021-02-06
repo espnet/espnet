@@ -32,6 +32,8 @@ config: conf/tuning/train_enh_beamformer_no_wpe.yaml
 
 config: ./conf/tuning/train_enh_beamformer_no_wpe.yaml
 
+Model link: https://zenodo.org/record/4512933/files/enh_train_enh_beamformer_no_wpe_raw_valid.loss.best.zip?download=1
+
 |dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
 |enhanced_cv_spatialized_reverb_multich|2.89554|0.871864|11.9148|9.50443|16.7254|6.4575|
