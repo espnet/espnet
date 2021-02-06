@@ -210,6 +210,11 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
 
     batch = prepare_inputs(idim, odim, ilens, olens)
 
+    # to avoid huge training time, cer/wer report
+    # is only enabled at validation steps
+    if train_args.report_cer or train_args.report_wer:
+        model.training = False
+
     loss = model(*batch)
     loss.backward()
 

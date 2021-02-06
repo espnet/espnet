@@ -5,9 +5,11 @@ import argparse
 import pytest
 import torch
 
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 
 
 def make_train_args(**kwargs):
@@ -63,6 +65,7 @@ def make_recog_args(**kwargs):
         prefix_alpha=2,
         score_norm_transducer=True,
         rnnlm=None,
+        lm_weight=0.1,
     )
     recog_defaults.update(kwargs)
 
@@ -78,6 +81,39 @@ def get_default_scope_inputs():
     olens = [5, 4]
 
     return bs, idim, odim, ilens, olens
+
+
+def get_lm():
+    n_layers = 1
+    n_units = 4
+
+    char_list = ["<blank>", "<space>", "a", "b", "c", "d", "<eos>"]
+
+    rnnlm = lm_pytorch.ClassifierWithState(
+        lm_pytorch.RNNLM(len(char_list), n_layers, n_units, typ="lstm")
+    )
+
+    return rnnlm
+
+
+def get_wordlm():
+    n_layers = 1
+    n_units = 8
+
+    char_list = ["<blank>", "<space>", "a", "b", "c", "d", "<eos>"]
+    word_list = ["<blank>", "<unk>", "ab", "id", "ac", "bd", "<eos>"]
+
+    char_dict = {x: i for i, x in enumerate(char_list)}
+    word_dict = {x: i for i, x in enumerate(word_list)}
+
+    word_rnnlm = lm_pytorch.ClassifierWithState(
+        lm_pytorch.RNNLM(len(word_list), n_layers, n_units)
+    )
+    word_rnnlm = lm_pytorch.ClassifierWithState(
+        extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor, word_dict, char_dict)
+    )
+
+    return word_rnnlm
 
 
 def prepare(args):
@@ -243,6 +279,8 @@ def prepare(args):
         ({}, {"beam_size": 2, "search_type": "tsd", "max_sym_exp": 3}),
         ({}, {"beam_size": 2, "search_type": "alsd"}),
         ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
+        ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_lm()}),
+        ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
     ],
 )
 def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
@@ -262,8 +300,8 @@ def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
         decoder=model.decoder,
         joint_network=model.joint_network,
         beam_size=recog_args.beam_size,
-        lm=None,
-        lm_weight=0.0,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
         search_type=recog_args.search_type,
         max_sym_exp=recog_args.max_sym_exp,
         u_max=recog_args.u_max,
