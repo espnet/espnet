@@ -36,10 +36,36 @@ Model link: https://zenodo.org/record/4512933/files/enh_train_enh_beamformer_no_
 
 |dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
-|enhanced_cv_spatialized_reverb_multich|2.89554|0.871864|11.9148|9.50443|16.7254|6.4575|
-|enhanced_tt_spatialized_reverb_multich|2.88883|0.87636|11.8577|9.39594|16.5588|6.38265|
-|enhanced_cv_spatialized_anechoic_multich|3.09721|0.937657|12.6048|11.7628|25.09|9.49375|
-|enhanced_tt_spatialized_anechoic_multich|3.02394|0.943056|12.5872|11.7275|25.0255|9.42349|
-|enhanced_cv_spatialized_anechoic_2ch|3.63867|0.97273|25.386|22.2414|26.0157|20.7877|
-|enhanced_tt_spatialized_anechoic_2ch|3.59756|0.975745|25.3675|22.251|26.017|20.8179|
+|enhanced_cv_spatialized_anechoic_multich_min_8k|3.09721|0.937657|12.6048|11.7628|25.09|9.49375|
+|enhanced_tt_spatialized_anechoic_multich_min_8k|3.02394|0.943056|12.5872|11.7275|25.0255|9.42349|
+|enhanced_cv_spatialized_anechoic_2ch_min_8k|3.63867|0.97273|25.386|22.2414|26.0157|20.7877|
+|enhanced_tt_spatialized_anechoic_2ch_min_8k|3.59756|0.975745|25.3675|22.251|26.017|20.8179|
+
+## Environments
+- date: `Sat Feb  6 16:42:40 CST 2021`
+- python version: `3.6.3 |Anaconda, Inc.| (default, Nov 20 2017, 20:41:42)  [GCC 7.2.0]`
+- espnet version: `espnet 0.9.7`
+- pytorch version: `pytorch 1.6.0`
+- Git hash: `110eca55d633ccba2968ff56ff7bddfd7b3887cb`
+  - Commit date: `Thu Feb 4 01:25:24 2021 +0800`
+
+
+## enh_train_enh_beamformer_no_wpe_raw
+
+config: ./conf/tuning/train_enh_beamformer_no_wpe.yaml
+
+With the following configuration in `run.sh`,
+
+```bash
+train_set=tr_spatialized_reverb_multich_${min_or_max}_${sample_rate}
+valid_set=cv_spatialized_reverb_multich_${min_or_max}_${sample_rate}
+test_sets="tt_spatialized_reverb_multich_${min_or_max}_${sample_rate}"
+```
+
+Model link: https://zenodo.org/record/4513751/files/enh_train_enh_beamformer_no_wpe_raw_valid.loss.best.zip?download=1
+
+|dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
+|---|---|---|---|---|---|---|
+|enhanced_cv_spatialized_reverb_multich_min_8k|2.89554|0.871864|11.9148|9.50443|16.7254|6.4575|
+|enhanced_tt_spatialized_reverb_multich_min_8k|2.88883|0.87636|11.8577|9.39594|16.5588|6.38265|
 
