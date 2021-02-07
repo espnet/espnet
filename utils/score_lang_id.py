@@ -6,7 +6,6 @@
 
 import argparse
 import codecs
-import os
 import sys
 
 
