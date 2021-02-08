@@ -5,7 +5,7 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.k2_ctc import build_ctc_topo, K2CTCLoss
+from espnet.nets.pytorch_backend.k2_ctc import K2CTCLoss
 
 
 def test_k2_ctc():
@@ -17,20 +17,20 @@ def test_k2_ctc():
     input_lengths = torch.full(size=(N,), fill_value=T, dtype=torch.int32)
 
     target_lengths = torch.randint(low=1, high=S, size=(N,), dtype=torch.int32)
-    target = torch.randint(low=1,
-                           high=C,
-                           size=(sum(target_lengths),),
-                           dtype=torch.int32)
+    target = torch.randint(
+        low=1, high=C, size=(sum(target_lengths),), dtype=torch.int32
+    )
 
     pytorch_log_probs = input.log_softmax(2)
     pytroch_ctc_loss = torch.nn.CTCLoss(reduction="sum")
-    pytorch_loss = pytroch_ctc_loss(pytorch_log_probs, target, input_lengths,
-                                    target_lengths)
+    pytorch_loss = pytroch_ctc_loss(
+        pytorch_log_probs, target, input_lengths, target_lengths
+    )
     pytorch_loss.backward()
 
-    devices = [torch.device('cpu')]
+    devices = [torch.device("cpu")]
     if torch.cuda.is_available():
-        devices.append(torch.device('cuda'))
+        devices.append(torch.device("cuda"))
     for device in devices:
         k2_ctc_loss = K2CTCLoss(C)
         k2_input = input.detach().clone().to(device).requires_grad_(True)
@@ -43,5 +43,5 @@ def test_k2_ctc():
         assert torch.allclose(input.grad.to(device), k2_input.grad)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_k2_ctc()
