@@ -1,3 +1,5 @@
+# Licensed under the MIT license.
+
 import copy
 from typing import Optional
 from typing import Tuple

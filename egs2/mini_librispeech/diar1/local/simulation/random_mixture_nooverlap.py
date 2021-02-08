@@ -1,5 +1,6 @@
 # Copyright 2019 Hitachi, Ltd. (author: Yusuke Fujita)
 # Licensed under the MIT license.
+# Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
 
 """
 This script generates random multi-talker mixtures for diarization.

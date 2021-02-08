@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Licensed under the MIT license.
+
 from espnet2.tasks.diar import DiarizationTask
 
 

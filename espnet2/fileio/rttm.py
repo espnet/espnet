@@ -1,3 +1,5 @@
+# Licensed under the MIT license.
+
 import collections.abc
 import humanfriendly
 from pathlib import Path

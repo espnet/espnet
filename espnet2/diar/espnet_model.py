@@ -1,3 +1,5 @@
+# Licensed under the MIT license.
+
 from distutils.version import LooseVersion
 from functools import reduce
 from itertools import permutations
@@ -180,6 +182,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
     @staticmethod
     def pit_loss(pred, label, lengths):
+        # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
         num_output = label.size(2)
         permute_list = [np.array(p) for p in permutations(range(num_output))]
         loss_list = []
@@ -208,6 +211,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
     @staticmethod
     def calc_diarization_error(pred, label, length):
+        # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
+
         (batch_size, max_len, num_output) = label.size()
         # mask the padding part
         mask = np.zeros((batch_size, max_len, num_output))

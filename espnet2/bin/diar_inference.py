@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Licensed under the MIT license.
+
 import argparse
 import logging
 from pathlib import Path

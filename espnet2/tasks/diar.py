@@ -1,3 +1,5 @@
+# Licensed under the MIT license.
+
 import argparse
 import logging
 from typing import Callable

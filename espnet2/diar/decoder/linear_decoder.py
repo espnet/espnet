@@ -1,3 +1,5 @@
+# Licensed under the MIT license.
+
 import torch
 
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
