@@ -71,10 +71,11 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Preparing Data for MLS"
 
-    python local/data_prep.py --source ${MLS}/mls_${download_id} --lang ${lang} --prefix "mls_"
-    utils/fix_data_dir.sh data/${lang}_train
-    utils/fix_data_dir.sh data/${lang}_dev
-    utils/fix_data_dir.sh data/${lang}_test
+    python local/data_prep.py --source ${MLS}/mls_${download_id} --lang ${lang} --prefix "" \
+         --target ${MLS}/${download_id}
+    utils/fix_data_dir.sh ${MLS}/mls_${download_id}/${lang}_train
+    utils/fix_data_dir.sh ${MLS}/mls_${download_id}/${lang}_dev
+    utils/fix_data_dir.sh ${MLS}/mls_${download_id}/${lang}_test
 
     # add placeholder to align format with other corpora
     sed -r '/^\s*$/d' ${MLS}/mls_lm_${download_id}/data.txt | \
