@@ -48,6 +48,7 @@ full_set="${high_resource_test_set} ${mid_resource_test_set} ${low_resource_test
 test_set=${full_set}
 # use the middle resource test set to avoid too long evaluation time
 test_set=${mid_resource_test_set}
+test_set="test_ar_commonvoice_lid"
 
 nlsyms_txt=data/local/nlsyms.txt
 asr_config=conf/train_asr.yaml
@@ -55,14 +56,13 @@ inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --local_data_opts "--langs ${langs} --stage 0 --lid ${lid} --nlsyms_txt ${nlsyms_txt}" \
-    --stage 1 \
-    --stop_stage 100 \
+    --stage 12 \
+    --stop_stage 12 \
     --ngpu 4 \
     --nj 80 \
     --inference_nj 256 \
     --use_lm false \
-    --token_type bpe \
-    --nbpe 7000 \
+    --token_type char \
     --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
@@ -71,5 +71,5 @@ inference_config=conf/decode_asr.yaml
     --test_sets "${test_set}" \
     --nlsyms_txt "${nlsyms_txt}" \
     --lm_train_text "data/${train_set}/text" \
-    --score_lang_id "${lid}" "$@"
+    --local_score_opts "--score_lang_id ${lid}" "$@"
 
