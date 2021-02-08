@@ -49,7 +49,7 @@ class K2CTCLoss(torch.nn.Module):
         if self.device != log_probs.device:
             decoding_graph = decoding_graph.to(log_probs.device)
 
-        target_graph = k2.intersect_dense(decoding_graph, dense_fsa_vec, 10.0)
+        target_graph = k2.intersect_dense(decoding_graph, dense_fsa_vec, 100.0)
         tot_scores = target_graph.get_tot_scores(log_semiring=True,
                                                  use_double_scores=False)
         if self.reduction == "none":
