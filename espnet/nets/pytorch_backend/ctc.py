@@ -32,7 +32,7 @@ class CTC(torch.nn.Module):
             LooseVersion(torch.__version__) >= LooseVersion("1.7.0")
             and self.ctc_type == "warpctc"
         ):
-            logging.warning(f"warpctc does not support pytorch version 1.7.0 and above")
+            logging.warning("warpctc does not support pytorch version 1.7.0 and above")
             self.ctc_type = "builtin"
 
         if self.ctc_type == "builtin":
