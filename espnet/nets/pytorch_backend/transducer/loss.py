@@ -36,8 +36,6 @@ class TransLoss(torch.nn.Module):
                     )
             else:
                 raise ValueError("warp-rnnt is not supported in CPU mode")
-        else:
-            raise NotImplementedError
 
         self.trans_type = trans_type
         self.blank_id = blank_id
