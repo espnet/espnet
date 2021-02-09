@@ -17,6 +17,7 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
 train_dev="dev"
+test_only=false
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -36,12 +37,19 @@ if [ -z "${LIBRISPEECH}" ]; then
     exit 1
 fi
 
+if [ "${test_only}" == true ]; then
+    log "Train/dev data will be omitted. Run with /"--test_only false/" if it is needed."
+    parts="dev-clean test-clean dev-other test-other"
+else
+    parts="dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500"
+fi
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${LIBRISPEECH}/LibriSpeech/LICENSE.TXT" ]; then
-	echo "stage 1: Data Download to ${LIBRISPEECH}"
-	for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-            local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
-	done
+	    echo "stage 1: Data Download to ${LIBRISPEECH}"
+        for part in $parts; do
+                local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
+	    done
     else
         log "stage 1: ${LIBRISPEECH}/LibriSpeech/LICENSE.TXT is already existing. Skip data downloading"
     fi
@@ -49,7 +57,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+    for part in $parts; do
         # use underscore-separated names in data directories.
         local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
     done
