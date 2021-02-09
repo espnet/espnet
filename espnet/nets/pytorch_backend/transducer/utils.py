@@ -313,11 +313,11 @@ def check_batch_state(state, max_len, pad_token):
 
 
 def custom_torch_load(model_path, model, training=True):
-    """Custom torch loading for transducer-models modules and parameters.
+    """Load transducer model modules and parameters with training-only ones removed.
 
     Args:
-        model_path (str): Model path.
-        model (torch.nn.Module): The model with pretrained modules.
+        model_path (str): Model path
+        model (torch.nn.Module): The model with pretrained modules
 
     """
     if "snapshot" in os.path.basename(model_path):

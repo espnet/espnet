@@ -357,18 +357,18 @@ def test_invalid_aux_task_layer_list():
     train_args = get_default_train_args(aux_task_type="default")
 
     with pytest.raises(ValueError):
-        model = E2E(idim, odim, train_args)
+        E2E(idim, odim, train_args)
 
     train_args = get_default_train_args(
         aux_task_type="default", aux_task_layer_list="foo"
     )
 
     with pytest.raises(ValueError):
-        model = E2E(idim, odim, train_args)
+        E2E(idim, odim, train_args)
 
     train_args = get_default_train_args(
         aux_task_type="default", aux_task_layer_list=[0, 4]
     )
 
     with pytest.raises(ValueError):
-        model = E2E(idim, odim, train_args)
+        E2E(idim, odim, train_args)

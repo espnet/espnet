@@ -10,8 +10,8 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.mt_interface import MTInterface
-from espnet.nets.tts_interface import TTSInterface
 from espnet.nets.pytorch_backend.transducer.utils import custom_torch_load
+from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.dynamic_import import dynamic_import
 
 
