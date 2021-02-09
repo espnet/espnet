@@ -2,11 +2,13 @@
 
 # Copyright (c)  2021  Mobvoi Inc. (authors: Yaguang Hu)
 
+import pytest
 import torch
 
 from espnet.nets.pytorch_backend.k2_ctc import K2CTCLoss
 
 
+@pytest.mark.skip(reason='k2 install issues')
 def test_k2_ctc():
     T = 5  # Input sequence length
     C = 5  # Number of classes (including blank)
