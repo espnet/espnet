@@ -30,6 +30,7 @@ ${CXX:-g++} -v
 python3 --version
 
 pip3 install https://github.com/kpu/kenlm/archive/master.zip
+pip3 install --pre k2
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707

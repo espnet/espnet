@@ -1,25 +1,37 @@
 #!/usr/bin/env python3
-
 # Copyright (c)  2021  Mobvoi Inc. (authors: Yaguang Hu)
-# Apache 2.0
+
+"""k2 based ctc loss implementation."""
 
 from functools import lru_cache
-from typing import List
-
-import torch
-import k2
 import math
+from typing import List
 from typing import Tuple
+
+import k2
 import logging
+import torch
 
 
 class K2CTCLoss(torch.nn.Module):
+    """K2CTCLoss module."""
+
     def __init__(
         self,
         odim: int,
         reduction: str = "sum",
         device: torch.device = torch.device("cpu"),
     ) -> None:
+        """K2CTCLoss module.
+
+        Args:
+          odim:
+            Number of classes (including blank).
+          reduction:
+            Specifies the reduction to apply to the output. Default: 'sum'
+          device:
+            An instance of `torch.device`. Default: 'cpu'
+        """
         torch.nn.Module.__init__(self)
         self.device = device
         self.reduction = reduction
@@ -38,7 +50,8 @@ class K2CTCLoss(torch.nn.Module):
         input_lengths: torch.Tensor,
         target_lengths: torch.Tensor,
     ) -> torch.Tensor:
-        """
+        """k2 ctc forward function.
+
         Args:
           log_probs:
             Tensor of size (T, N, C), where T is input length, N is batch size,
@@ -84,12 +97,15 @@ class K2CTCLoss(torch.nn.Module):
 
 def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
     """Build CTC topology.
+
     A token which appears once on the right side (i.e. olabels) may
     appear multiple times on the left side (ilabels), possibly with
     epsilons in between.
+
     When 0 appears on the left side, it represents the blank symbol;
     when it appears on the right side, it indicates an epsilon. That
     is, 0 has two meanings here.
+
     Args:
       tokens:
         A list of tokens, e.g., phones, characters, etc.
@@ -115,14 +131,17 @@ def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
 
 
 class CtcTrainingGraphCompiler(object):
+    """CTC graph compiler."""
+
     def __init__(self, odim: int, device: torch.device):
-        """
+        """CTC training graph compiler Module.
+
         Args:
           odim:
             Output dimension of CTC linear layer,
             len(symbol_list) + 2 (<blank> and <eos>).
-        """
 
+        """
         self.dim = odim
         self.device = device
         self.ctc_topo_inv = k2.arc_sort(
@@ -130,12 +149,19 @@ class CtcTrainingGraphCompiler(object):
         )
 
     def compile(self, texts: torch.Tensor, texts_lengths: torch.Tensor) -> k2.Fsa:
+        """CTC graph compilation function.
+
+        Args:
+          texts: Labels of log_probs.
+          texts_lengths: Lengths of the targets.
+
+        """
         texts_lengths = torch.cat([torch.tensor([0]), texts_lengths])
         texts_end_index = torch.cumsum(texts_lengths, 0)
 
         decoding_graphs = k2.create_fsa_vec(
             [
-                self.compile_one_and_cache(
+                self._compile_one_and_cache(
                     texts[texts_end_index[i] : texts_end_index[i + 1]]
                 )
                 for i in range(texts_lengths.shape[0] - 1)
@@ -147,7 +173,7 @@ class CtcTrainingGraphCompiler(object):
         return decoding_graphs
 
     @lru_cache(maxsize=100000)
-    def compile_one_and_cache(self, text: torch.Tensor) -> k2.Fsa:
+    def _compile_one_and_cache(self, text: torch.Tensor) -> k2.Fsa:
         label_graph = k2.linear_fsa(text.tolist(), self.device)
         label_graph = k2.add_epsilon_self_loops(label_graph)
         decoding_graph = k2.intersect(
@@ -160,18 +186,19 @@ class CtcTrainingGraphCompiler(object):
 def get_tot_objf_and_num_frames(
     tot_scores: torch.Tensor, frames_per_seq: torch.Tensor
 ) -> Tuple[torch.Tensor, int, int]:
-    """Figures out the total score(log-prob) over all successful supervision segments
-    (i.e. those for which the total score wasn't -infinity), and the corresponding
-    number of frames of neural net output
-         Args:
-            tot_scores: a Torch tensor of shape (num_segments,) containing total scores
-                       from forward-backward
-        frames_per_seq: a Torch tensor of shape (num_segments,) containing the number of
-                       frames for each segment
-        Returns:
-             Returns a tuple of 3 scalar tensors:  (tot_score, ok_frames, all_frames)
+    """Filter all successful supervision segments.
+
+    Args:
+      tot_scores: A Torch tensor of shape (num_segments,) containing total scores
+                 from forward-backward.
+      frames_per_seq: A Torch tensor of shape (num_segments,) containing the
+                      number of frames for each segment.
+
+    Returns:
+      Returns a tuple of 3 scalar tensors:  (tot_score, ok_frames, all_frames).
         where ok_frames is the frames for successful (finite) segments, and
-       all_frames is the frames for all segments (finite or not).
+        all_frames is the frames for all segments (finite or not).
+
     """
     mask = torch.ne(tot_scores, -math.inf)
     # finite_indexes is a tensor containing successful segment indexes, e.g.

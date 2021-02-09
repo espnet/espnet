@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # Copyright (c)  2021  Mobvoi Inc. (authors: Yaguang Hu)
-# Apache 2.0
 
 import torch
 
