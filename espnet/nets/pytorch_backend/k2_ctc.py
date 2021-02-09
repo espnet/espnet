@@ -38,6 +38,20 @@ class K2CTCLoss(torch.nn.Module):
         input_lengths: torch.Tensor,
         target_lengths: torch.Tensor,
     ) -> torch.Tensor:
+        """
+        Args:
+          log_probs:
+            Tensor of size (T, N, C), where T is input length, N is batch size,
+            and C is number of classes (including blank). Note that it must be
+            log probabilities.
+          targets:
+            Tensor of size (sum(target_lengths)). It represent corresponding labels
+            of log_probs.
+          input_lengths:
+            Tuple or tensor of size (N). It represent the lengths of the inputs.
+          target_lengths:
+            Tuple or tensor of size (N). It represent lengths of the targets.
+        """
         log_probs = log_probs.permute(
             1, 0, 2
         )  # now log_probs is [N, T, C]  batchSize x seqLength x alphabet_size
@@ -146,7 +160,7 @@ class CtcTrainingGraphCompiler(object):
 def get_tot_objf_and_num_frames(
     tot_scores: torch.Tensor, frames_per_seq: torch.Tensor
 ) -> Tuple[torch.Tensor, int, int]:
-    """ Figures out the total score(log-prob) over all successful supervision segments
+    """Figures out the total score(log-prob) over all successful supervision segments
     (i.e. those for which the total score wasn't -infinity), and the corresponding
     number of frames of neural net output
          Args:
