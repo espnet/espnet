@@ -30,16 +30,14 @@ def test_k2_ctc():
 
     devices = [torch.device("cpu")]
     if torch.cuda.is_available():
-        devices.append(torch.device("cuda"))
+        devices.append(torch.device("cuda", 0))
     for device in devices:
-        k2_ctc_loss = K2CTCLoss(C)
+        k2_ctc_loss = K2CTCLoss(C, device=device)
         k2_input = input.detach().clone().to(device).requires_grad_(True)
         k2_log_probs = k2_input.log_softmax(2)
         k2_loss = k2_ctc_loss(k2_log_probs, target, input_lengths, target_lengths)
         k2_loss.backward()
-        print(f"k2 loss: {k2_loss}, pytorch loss: {pytorch_loss}")
-        assert torch.allclose(k2_loss, pytorch_loss)
-        print(f"k2 grad: {input.grad}, pytorch grad: {input.grad}")
+        assert torch.allclose(k2_loss.to(torch.float32), pytorch_loss)
         assert torch.allclose(input.grad.to(device), k2_input.grad)
 
 

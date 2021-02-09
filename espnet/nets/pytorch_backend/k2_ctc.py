@@ -58,11 +58,11 @@ class K2CTCLoss(torch.nn.Module):
 
         target_graph = k2.intersect_dense(decoding_graph, dense_fsa_vec, 100.0)
         tot_scores = target_graph.get_tot_scores(
-            log_semiring=True, use_double_scores=False
+            log_semiring=True, use_double_scores=True
         )
         if self.reduction == "none":
             tot_scores = tot_scores / target_lengths.to(log_probs.device)
-        (tot_score, tot_frames, all_frames) = get_tot_objf_and_num_frames(
+        (tot_score, _, _) = get_tot_objf_and_num_frames(
             tot_scores, supervision_segments[:, 2]
         )
         return -tot_score
@@ -104,8 +104,9 @@ class CtcTrainingGraphCompiler(object):
     def __init__(self, odim: int, device: torch.device):
         """
         Args:
-        odim:
-          Output dimension of CTC linear layer, len(symbol_list) + 2 (<blank> and <eos>).
+          odim:
+            Output dimension of CTC linear layer,
+            len(symbol_list) + 2 (<blank> and <eos>).
         """
 
         self.dim = odim
@@ -144,7 +145,7 @@ class CtcTrainingGraphCompiler(object):
 
 def get_tot_objf_and_num_frames(
     tot_scores: torch.Tensor, frames_per_seq: torch.Tensor
-) -> Tuple[float, int, int]:
+) -> Tuple[torch.Tensor, int, int]:
     """ Figures out the total score(log-prob) over all successful supervision segments
     (i.e. those for which the total score wasn't -infinity), and the corresponding
     number of frames of neural net output

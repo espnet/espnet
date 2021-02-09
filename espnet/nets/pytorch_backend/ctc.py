@@ -54,7 +54,8 @@ class CTC(torch.nn.Module):
             self.ctc_loss = K2CTCLoss(odim, reduction=reduction_type)
         else:
             raise ValueError(
-                'ctc_type must be "builtin" or "warpctc": {}'.format(self.ctc_type)
+                'ctc_type must be "builtin", "warpctc", "gtnctc" or "k2ctc", '
+                "but it is: {}".format(self.ctc_type)
             )
 
         self.ignore_id = -1
