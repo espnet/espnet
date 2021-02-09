@@ -1,5 +1,6 @@
 """Transducer speech recognition model (pytorch)."""
 
+import ast
 from collections import Counter
 from dataclasses import asdict
 from distutils.util import strtobool
@@ -13,7 +14,7 @@ import torch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet.nets.pytorch_backend.transducer.auxiliary_task import AuxiliaryTask
 from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
 from espnet.nets.pytorch_backend.transducer.custom_encoder import CustomEncoder
 from espnet.nets.pytorch_backend.transducer.error_calculator import ErrorCalculator
@@ -21,7 +22,9 @@ from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.rnn_decoder import DecoderRNNT
+from espnet.nets.pytorch_backend.transducer.rnn_encoder import encoder_for
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
+from espnet.nets.pytorch_backend.transducer.utils import valid_aux_task_layer_list
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
@@ -285,6 +288,26 @@ class E2E(ASRInterface, torch.nn.Module):
             default=True,
             help="Normalize transducer scores by length",
         )
+        # Auxiliary task
+        group.add_argument(
+            "--aux-task-type",
+            nargs="?",
+            default=None,
+            choices=["default", "jensen_shannon", "cross_entropy"],
+            help="Type of auxiliary task",
+        )
+        group.add_argument(
+            "--aux-task-layer-list",
+            default=None,
+            type=ast.literal_eval,
+            help="List of layers to use for auxiliary task.",
+        )
+        group.add_argument(
+            "--aux-task-weight",
+            default=0.1,
+            type=float,
+            help="Weight of auxiliary task loss.",
+        )
 
         return parser
 
@@ -312,6 +335,23 @@ class E2E(ASRInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         self.is_rnnt = True
+        self.use_aux_task = (
+            True if (args.aux_task_type is not None and training) else False
+        )
+
+        if self.use_aux_task:
+            self.n_layers = (
+                (len(args.enc_block_arch) * args.enc_block_repeat - 1)
+                if args.enc_block_arch is not None
+                else (args.elayers - 1)
+            )
+
+            aux_task_layer_list = valid_aux_task_layer_list(
+                args.aux_task_layer_list,
+                self.n_layers,
+            )
+        else:
+            aux_task_layer_list = []
 
         if "custom" in args.etype:
             if args.enc_block_arch is None:
@@ -332,6 +372,7 @@ class E2E(ASRInterface, torch.nn.Module):
                 positional_encoding_type=args.custom_enc_positional_encoding_type,
                 positionwise_activation_type=args.custom_enc_pw_activation_type,
                 conv_mod_activation_type=args.custom_enc_conv_mod_activation_type,
+                aux_task_layer_list=aux_task_layer_list,
             )
             encoder_out = self.encoder.enc_out
 
@@ -339,7 +380,12 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             self.subsample = get_subsample(args, mode="asr", arch="rnn-t")
 
-            self.enc = encoder_for(args, idim, self.subsample)
+            self.enc = encoder_for(
+                args,
+                idim,
+                self.subsample,
+                aux_task_layer_list=aux_task_layer_list,
+            )
             encoder_out = args.eprojs
 
         if "custom" in args.dtype:
@@ -404,24 +450,41 @@ class E2E(ASRInterface, torch.nn.Module):
         self.odim = odim
 
         self.reporter = Reporter()
+        self.error_calculator = None
+
+        self.default_parameters(args)
 
         if training:
             self.criterion = TransLoss(args.trans_type, self.blank_id)
 
-        self.default_parameters(args)
+            decoder = self.decoder if self.dtype == "custom" else self.dec
 
-        if training and (args.report_cer or args.report_wer):
-            self.error_calculator = ErrorCalculator(
-                self.decoder if self.dtype == "custom" else self.dec,
-                self.joint_network,
-                args.char_list,
-                args.sym_space,
-                args.sym_blank,
-                args.report_cer,
-                args.report_wer,
-            )
-        else:
-            self.error_calculator = None
+            if args.report_cer or args.report_wer:
+                self.error_calculator = ErrorCalculator(
+                    decoder,
+                    self.joint_network,
+                    args.char_list,
+                    args.sym_space,
+                    args.sym_blank,
+                    args.report_cer,
+                    args.report_wer,
+                )
+
+            if self.use_aux_task:
+                use_lin = True if aux_task_layer_list[-1] == self.n_layers else False
+
+                self.auxiliary_task = AuxiliaryTask(
+                    decoder,
+                    self.joint_network,
+                    self.criterion,
+                    args.aux_task_type,
+                    args.aux_task_weight,
+                    len(aux_task_layer_list),
+                    encoder_out,
+                    args.joint_dim,
+                    odim,
+                    use_linear=use_lin,
+                )
 
         self.loss = None
         self.rnnlm = None
@@ -453,9 +516,14 @@ class E2E(ASRInterface, torch.nn.Module):
         if "custom" in self.etype:
             src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
 
-            hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
+            _hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         else:
-            hs_pad, hs_mask, _ = self.enc(xs_pad, ilens)
+            _hs_pad, hs_mask, _ = self.enc(xs_pad, ilens)
+
+        if self.use_aux_task:
+            hs_pad, aux_hs_pad = _hs_pad[0], _hs_pad[1]
+        else:
+            hs_pad, aux_hs_pad = _hs_pad, None
 
         # 1.5. transducer preparation related
         ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(ys_pad, hs_mask)
@@ -471,6 +539,13 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 3. loss computation
         loss = self.criterion(z, target, pred_len, target_len)
+
+        if self.use_aux_task and aux_hs_pad is not None:
+            aux_main_loss = self.auxiliary_task(
+                aux_hs_pad, pred_pad, z, target, pred_len, target_len
+            )
+
+            loss += aux_main_loss
 
         self.loss = loss
         loss_data = float(loss)

@@ -34,7 +34,9 @@ class JointNetwork(torch.nn.Module):
 
         self.joint_activation = get_activation(joint_activation_type)
 
-    def forward(self, h_enc: torch.Tensor, h_dec: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, h_enc: torch.Tensor, h_dec: torch.Tensor, is_aux: bool = False
+    ) -> torch.Tensor:
         """Joint computation of z.
 
         Args:
@@ -45,7 +47,10 @@ class JointNetwork(torch.nn.Module):
             z: Output (B, T, U, vocab_size)
 
         """
-        z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
+        if is_aux:
+            z = self.joint_activation(h_enc + self.lin_dec(h_dec))
+        else:
+            z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
         z = self.lin_out(z)
 
         return z
