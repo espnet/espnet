@@ -305,6 +305,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    pretrained_huggingface_id: str = ""
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -328,23 +329,27 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    speech2text = Speech2Text(
-        asr_train_config=asr_train_config,
-        asr_model_file=asr_model_file,
-        lm_train_config=lm_train_config,
-        lm_file=lm_file,
-        token_type=token_type,
-        bpemodel=bpemodel,
-        device=device,
-        maxlenratio=maxlenratio,
-        minlenratio=minlenratio,
-        dtype=dtype,
-        beam_size=beam_size,
-        ctc_weight=ctc_weight,
-        lm_weight=lm_weight,
-        penalty=penalty,
-        nbest=nbest,
-    )
+    if len(pretrained_huggingface_id) > 0:
+        logging.info("Loading pretrained model from huggingface")
+        speech2text = Speech2Text.from_pretrained(pretrained_huggingface_id)
+    else:
+        speech2text = Speech2Text(
+            asr_train_config=asr_train_config,
+            asr_model_file=asr_model_file,
+            lm_train_config=lm_train_config,
+            lm_file=lm_file,
+            token_type=token_type,
+            bpemodel=bpemodel,
+            device=device,
+            maxlenratio=maxlenratio,
+            minlenratio=minlenratio,
+            dtype=dtype,
+            beam_size=beam_size,
+            ctc_weight=ctc_weight,
+            lm_weight=lm_weight,
+            penalty=penalty,
+            nbest=nbest,
+        )
 
     # 3. Build data-iterator
     loader = ASRTask.build_streaming_iterator(
@@ -442,6 +447,7 @@ def get_parser():
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--asr_train_config", type=str, required=True)
     group.add_argument("--asr_model_file", type=str, required=True)
+    group.add_argument("--pretrained_huggingface_id", type=str)
     group.add_argument("--lm_train_config", type=str)
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)
