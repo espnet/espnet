@@ -1,10 +1,13 @@
 # coding: utf-8
 
 import argparse
+import tempfile
 
+import json
 import pytest
 import torch
 
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
@@ -31,7 +34,9 @@ def make_train_args(**kwargs):
         dropout_rate_embed_decoder=0.0,
         joint_dim=2,
         joint_activation_type="tanh",
-        mtlalpha=1.0,
+        aux_task_type=None,
+        aux_task_weight=0.1,
+        aux_task_layer_list=[],
         trans_type="warp-transducer",
         rnnt_mode="rnnt_mode",
         char_list=["a", "e", "i", "o", "u"],
@@ -46,6 +51,7 @@ def make_train_args(**kwargs):
         verbose=0,
         outdir=None,
         rnnlm=None,
+        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
     )
     train_defaults.update(kwargs)
 
@@ -283,7 +289,7 @@ def prepare(args):
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
     ],
 )
-def test_sa_transducer_trainable_and_decodable(train_dic, recog_dic):
+def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)
 
@@ -328,6 +334,84 @@ def test_calculate_plot_attention():
     plot.plot_multi_head_attention(data, uttid_list, attn_dict, "/tmp/espnet-test")
 
 
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {
+            "enc_block_repeat": 2,
+            "aux_task_type": "default",
+            "aux_task_layer_list": [0],
+        },
+        {
+            "enc_block_arch": [
+                {
+                    "type": "conformer",
+                    "d_hidden": 2,
+                    "d_ff": 2,
+                    "heads": 1,
+                    "macaron_style": True,
+                    "use_conv_mod": True,
+                    "conv_mod_kernel": 1,
+                }
+            ],
+            "custom_enc_input_layer": "vgg2l",
+            "custom_enc_self_attn_type": "rel_self_attn",
+            "custom_enc_positional_encoding_type": "rel_pos",
+            "enc_block_repeat": 3,
+            "aux_task_type": "jensen_shannon",
+            "aux_task_layer_list": [0, 1],
+        },
+    ]
+)
+def test_auxiliary_task(train_dic):
+    train_args = make_train_args(**train_dic)
+    recog_args = make_recog_args()
+
+    model, x, ilens, y, data, uttid_list = prepare(train_args)
+
+    optim = torch.optim.Adam(model.parameters(), 0.01)
+    loss = model(x, ilens, y)
+
+    optim.zero_grad()
+    loss.backward()
+    optim.step()
+
+    beam_search = BeamSearchTransducer(
+        decoder=model.decoder,
+        joint_network=model.joint_network,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+    )
+
+    tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
+    torch.save(model.state_dict(), tmpdir + "/model.dummy.best")
+
+    with open(tmpdir + "/model.json", "wb") as f:
+        f.write(
+            json.dumps(
+                (12, 5, vars(train_args)),
+                indent=4,
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf_8")
+        )
+
+    with torch.no_grad():
+        model, _ = load_trained_model(tmpdir + "/model.dummy.best", training=False)
+        
+        nbest = model.recognize(x[0, : ilens[0]].numpy(), beam_search)
+
+        print(y[0])
+        print(nbest[0]["yseq"][1:-1])
+
+    
 def test_invalid_input_layer_type():
     architecture = [
         {
