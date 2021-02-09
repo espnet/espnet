@@ -5,11 +5,11 @@
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.k2_ctc import K2CTCLoss
-
 
 @pytest.mark.skip(reason="k2 install issues")
 def test_k2_ctc():
+    from espnet.nets.pytorch_backend.k2_ctc import K2CTCLoss
+
     T = 5  # Input sequence length
     C = 5  # Number of classes (including blank)
     N = 4  # Batch size
