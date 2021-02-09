@@ -114,8 +114,8 @@ log "Using test sets: ${test_set}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Combine Datadir"
 
-    utils/combine_data.sh --skip_fix true data/train_temp data/train_*
-    utils/combine_data.sh --skip_fix true data/dev_temp data/dev_*
+    utils/combine_data.sh --skip_fix true data/train_temp data/train_!(*temp|*li52_*)
+    utils/combine_data.sh --skip_fix true data/dev_temp data/dev_!(*temp|*li52_*)
 
     for x in data/train_temp data/dev_temp; do
         cp ${x}/text ${x}/text.org
@@ -126,6 +126,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         rm ${x}/text.org
     done
 
+    for x in ${test_set}; do
+        cp ${x}/text ${x}/text.org
+        paste -d " " \
+              <(cut -f 1 -d" " ${x}/text.org) \
+              <(cut -f 2- -d" " ${x}/text.org | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")') \
+              > ${x}/text
+        rm ${x}/text.org
+    done
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then

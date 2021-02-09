@@ -113,6 +113,7 @@ nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
+local_score_opts=          # The options given to local/score.sh.
 asr_speech_fold_length=800 # fold_length for speech data during ASR training.
 asr_text_fold_length=150   # fold_length for text data during ASR training.
 lm_fold_length=150         # fold_length for LM training.
@@ -209,6 +210,7 @@ Options:
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
     --lang          # The language type of corpus (default=${lang}).
+    --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
     --asr_speech_fold_length # fold_length for speech data during ASR training (default="${asr_speech_fold_length}").
     --asr_text_fold_length   # fold_length for text data during ASR training (default="${asr_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
@@ -1275,7 +1277,7 @@ if ! "${skip_eval}"; then
             done
         done
 
-        [ -f local/score.sh ] && local/score.sh "${asr_exp}"
+        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
 
         # Show results in Markdown syntax
         scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
