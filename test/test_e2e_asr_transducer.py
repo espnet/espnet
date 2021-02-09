@@ -55,7 +55,7 @@ def get_default_train_args(**kwargs):
         verbose=0,
         outdir=None,
         rnnlm=None,
-        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
+        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
     )
     train_defaults.update(kwargs)
 
@@ -291,6 +291,7 @@ def test_pytorch_multi_gpu_trainable(train_dic):
     loss = 1.0 / ngpu * model(*batch)
     loss.backward(loss.new_ones(ngpu))
 
+
 @pytest.mark.parametrize(
     "train_dic",
     [
@@ -342,7 +343,7 @@ def test_auxiliary_task(train_dic):
                 sort_keys=True,
             ).encode("utf_8")
         )
-    
+
     with torch.no_grad():
         in_data = np.random.randn(20, idim)
 
@@ -350,7 +351,7 @@ def test_auxiliary_task(train_dic):
 
         model.recognize(in_data, beam_search)
 
-    
+
 def test_invalid_aux_task_layer_list():
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(aux_task_type="default")

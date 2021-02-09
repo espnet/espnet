@@ -51,7 +51,7 @@ def make_train_args(**kwargs):
         verbose=0,
         outdir=None,
         rnnlm=None,
-        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
+        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
     )
     train_defaults.update(kwargs)
 
@@ -361,7 +361,7 @@ def test_calculate_plot_attention():
             "aux_task_type": "jensen_shannon",
             "aux_task_layer_list": [0, 1],
         },
-    ]
+    ],
 )
 def test_auxiliary_task(train_dic):
     train_args = make_train_args(**train_dic)
@@ -405,13 +405,13 @@ def test_auxiliary_task(train_dic):
 
     with torch.no_grad():
         model, _ = load_trained_model(tmpdir + "/model.dummy.best", training=False)
-        
+
         nbest = model.recognize(x[0, : ilens[0]].numpy(), beam_search)
 
         print(y[0])
         print(nbest[0]["yseq"][1:-1])
 
-    
+
 def test_invalid_input_layer_type():
     architecture = [
         {
