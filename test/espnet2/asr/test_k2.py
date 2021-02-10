@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-
 # Copyright (c)  2021  Mobvoi Inc. (authors: Yaguang Hu)
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import pytest
 import torch
