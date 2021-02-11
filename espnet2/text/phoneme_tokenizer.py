@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Iterable
 from typing import List
+from typing import Optional
 from typing import Union
 
 import g2p_en
@@ -168,6 +169,8 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = pypinyin_g2p
         elif g2p_type == "pypinyin_g2p_phone":
             self.g2p = pypinyin_g2p_phone
+        elif g2p_type == "espeak_ng_arabic":
+            self.g2p = Phonemizer(language="ar", backend="espeak", with_stress=True)
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 
