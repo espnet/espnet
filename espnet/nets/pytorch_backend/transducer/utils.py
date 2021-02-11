@@ -68,12 +68,12 @@ def valid_aux_task_layer_list(aux_layer_ids, enc_num_layers):
         raise ValueError("--aux-task-layer-list argument takes a list of layer ids.")
 
     sorted_list = sorted(aux_layer_ids, key=int, reverse=False)
-    valid = list(filter(lambda x: 0 <= x <= enc_num_layers, sorted_list))
+    valid = list(filter(lambda x: 0 <= x < enc_num_layers, sorted_list))
 
     if sorted_list != valid:
         raise ValueError(
             "Provided list of layer ids for auxiliary task is incorrect. "
-            "IDs should be between [0, %d]" % enc_num_layers
+            "IDs should be between [0, %d]" % (enc_num_layers - 1)
         )
 
     return valid
@@ -331,7 +331,7 @@ def custom_torch_load(model_path, model, training=True):
 
     if not training:
         model_state_dict = {
-            k: v for k, v in model_state_dict.items() if not k.startswith("auxiliary")
+            k: v for k, v in model_state_dict.items() if not k.startswith("aux")
         }
 
     model.load_state_dict(model_state_dict)

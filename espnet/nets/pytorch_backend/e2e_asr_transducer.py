@@ -1,5 +1,6 @@
 """Transducer speech recognition model (pytorch)."""
 
+from argparse import Namespace
 import ast
 from collections import Counter
 from dataclasses import asdict
@@ -12,6 +13,7 @@ import chainer
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.transducer.auxiliary_task import AuxiliaryTask
@@ -31,6 +33,7 @@ from espnet.nets.pytorch_backend.transformer.attention import (
 )
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class Reporter(chainer.Chain):
@@ -269,6 +272,12 @@ class E2E(ASRInterface, torch.nn.Module):
             help="Type of transducer implementation to calculate loss.",
         )
         group.add_argument(
+            "--transducer-weight",
+            default=1.0,
+            type=float,
+            help="Weight of transducer loss when auxiliary task is used.",
+        )
+        group.add_argument(
             "--joint-dim",
             default=320,
             type=int,
@@ -293,8 +302,8 @@ class E2E(ASRInterface, torch.nn.Module):
             "--aux-task-type",
             nargs="?",
             default=None,
-            choices=["default", "jensen_shannon", "cross_entropy"],
-            help="Type of auxiliary task",
+            choices=["default", "symm_kl_div", "both"],
+            help="Type of auxiliary task.",
         )
         group.add_argument(
             "--aux-task-layer-list",
@@ -304,9 +313,28 @@ class E2E(ASRInterface, torch.nn.Module):
         )
         group.add_argument(
             "--aux-task-weight",
-            default=0.1,
+            default=0.3,
             type=float,
             help="Weight of auxiliary task loss.",
+        )
+        group.add_argument(
+            "--aux-ctc",
+            type=strtobool,
+            nargs="?",
+            default=False,
+            help="Whether to use CTC as auxiliary task.",
+        )
+        group.add_argument(
+            "--aux-ctc-weight",
+            default=1.0,
+            type=float,
+            help="Weight of auxiliary task loss",
+        )
+        group.add_argument(
+            "--aux-ctc-dropout-rate",
+            default=0.0,
+            type=float,
+            help="Dropout rate for auxiliary CTC",
         )
 
         return parser
@@ -314,11 +342,6 @@ class E2E(ASRInterface, torch.nn.Module):
     @property
     def attention_plot_class(self):
         """Get attention plot class."""
-        if self.etype != "custom" and self.dtype != "custom":
-            raise ValueError(
-                "Attention RNN decoder is not supported in ESPnet1 anymore."
-            )
-
         return PlotAttentionReport
 
     def get_total_subsampling_factor(self):
@@ -334,13 +357,16 @@ class E2E(ASRInterface, torch.nn.Module):
         """Construct an E2E object for transducer model."""
         torch.nn.Module.__init__(self)
 
+        args = fill_missing_args(args, self.add_arguments)
+
         self.is_rnnt = True
         self.use_aux_task = (
             True if (args.aux_task_type is not None and training) else False
         )
+        self.use_aux_ctc = args.aux_ctc and training
 
         if self.use_aux_task:
-            self.n_layers = (
+            n_layers = (
                 (len(args.enc_block_arch) * args.enc_block_repeat - 1)
                 if args.enc_block_arch is not None
                 else (args.elayers - 1)
@@ -348,7 +374,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
             aux_task_layer_list = valid_aux_task_layer_list(
                 args.aux_task_layer_list,
-                self.n_layers,
+                n_layers,
             )
         else:
             aux_task_layer_list = []
@@ -471,8 +497,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 )
 
             if self.use_aux_task:
-                use_lin = True if aux_task_layer_list[-1] == self.n_layers else False
-
                 self.auxiliary_task = AuxiliaryTask(
                     decoder,
                     self.joint_network,
@@ -483,8 +507,19 @@ class E2E(ASRInterface, torch.nn.Module):
                     encoder_out,
                     args.joint_dim,
                     odim,
-                    use_linear=use_lin,
                 )
+
+            if self.use_aux_ctc:
+                self.aux_ctc = ctc_for(
+                    Namespace(
+                        num_encs=1,
+                        eprojs=encoder_out,
+                        dropout_rate=args.aux_ctc_dropout_rate,
+                        ctc_type="warpctc",
+                    ),
+                    odim,
+                )
+                self.aux_ctc_weight = args.aux_ctc_weight
 
         self.loss = None
         self.rnnlm = None
@@ -541,11 +576,14 @@ class E2E(ASRInterface, torch.nn.Module):
         loss = self.criterion(z, target, pred_len, target_len)
 
         if self.use_aux_task and aux_hs_pad is not None:
-            aux_main_loss = self.auxiliary_task(
+            loss += self.auxiliary_task(
                 aux_hs_pad, pred_pad, z, target, pred_len, target_len
             )
 
-            loss += aux_main_loss
+        if self.use_aux_ctc:
+            loss = 0.5 * loss + self.aux_ctc_weight * self.aux_ctc(
+                hs_pad, hs_mask, ys_pad
+            )
 
         self.loss = loss
         loss_data = float(loss)
@@ -620,10 +658,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
         nbest_hyps = beam_search(h)
 
-        if isinstance(nbest_hyps, list):
-            return [asdict(n) for n in nbest_hyps]
-        else:
-            return asdict(nbest_hyps)
+        return [asdict(n) for n in nbest_hyps]
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation.

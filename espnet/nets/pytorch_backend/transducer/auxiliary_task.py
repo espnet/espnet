@@ -1,4 +1,4 @@
-"""Auxiliary task implementation for X-transducer models."""
+"""Auxiliary task implementation for transducer models."""
 
 from itertools import chain
 from typing import List
@@ -24,7 +24,6 @@ class AuxiliaryTask(torch.nn.Module):
         encoder_out_dim: int,
         joint_dim: int,
         output_dim: int,
-        use_linear: bool = False,
     ):
         """Auxiliary task initialization.
 
@@ -37,28 +36,17 @@ class AuxiliaryTask(torch.nn.Module):
             encoder_out: Encoder output dimension
             joint_dim: Joint space dimension
             output_dim: Output dimension
-            use_linear: Whether last encoder layer is an
-                        auxiliary layer
 
         """
         super().__init__()
 
         self.rnnt_criterion = rnnt_criterion
 
-        if aux_task_type == "jensen_shannon":
-            self.kl_div = torch.nn.KLDivLoss(reduction="mean")
-        elif aux_task_type == "cross_entropy":
-            raise NotImplementedError
-
         self.mlp_net = torch.nn.Sequential(
             torch.nn.Linear(encoder_out_dim, joint_dim),
             torch.nn.ReLU(),
             torch.nn.Linear(joint_dim, joint_dim),
         )
-
-        if use_linear:
-            self.lin = torch.nn.Linear(encoder_out_dim, joint_dim)
-        self.use_linear = use_linear
 
         self.decoder = decoder
         self.joint_network = joint_network
@@ -70,7 +58,7 @@ class AuxiliaryTask(torch.nn.Module):
         self,
         enc_out_aux: List,
         dec_out: torch.Tensor,
-        joint_out: torch.Tensor,
+        main_joint: torch.Tensor,
         target: torch.Tensor,
         pred_len: torch.Tensor,
         target_len: torch.Tensor,
@@ -80,7 +68,7 @@ class AuxiliaryTask(torch.nn.Module):
         Args:
             enc_out_aux: List of encoder intermediate outputs
             dec_out: Decoder outputs
-            joint_out: Joint output for main task
+            main_joint: Joint output for main task
             target: Target labels
             pred_len: Prediction lengths
             target_len: Target lengths
@@ -89,44 +77,41 @@ class AuxiliaryTask(torch.nn.Module):
             : Weighted auxiliary loss
 
         """
-        aux_main_loss = 0
-        len_aux = len(enc_out_aux) - 1
+        aux_default = 0
+        aux_symm_kl = 0
 
         for p in chain(self.decoder.parameters(), self.joint_network.parameters()):
             p.requires_grad = False
 
         for i, enc_aux in enumerate(enc_out_aux):
-            if i == len_aux and self.use_linear:
-                aux_lin = self.lin(enc_aux)
-            else:
-                aux_lin = self.mlp_net(enc_aux)
+            aux_mlp = self.mlp_net(enc_aux)
 
             aux_joint = self.joint_network(
-                aux_lin.unsqueeze(2),
+                aux_mlp.unsqueeze(2),
                 dec_out.unsqueeze(1),
                 is_aux=True,
             )
 
-            aux_loss = self.rnnt_criterion(
-                aux_joint,
-                target,
-                pred_len,
-                target_len,
-            )
-
-            if self.aux_task_type == "jensen_shannon":
-                M = 0.5 * (
-                    torch.softmax(joint_out, dim=-1) + torch.softmax(aux_joint, dim=-1)
+            if self.aux_task_type != "symm_kl_div":
+                aux_default += self.rnnt_criterion(
+                    aux_joint,
+                    target,
+                    pred_len,
+                    target_len,
                 )
 
-                js_div_loss = 0.5 * (
-                    self.kl_div(F.log_softmax(joint_out, dim=-1), M)
-                    + self.kl_div(F.log_softmax(aux_joint, dim=-1), M)
+            if self.aux_task_type != "default":
+                aux_symm_kl += F.kl_div(
+                    F.log_softmax(main_joint, dim=-1),
+                    F.softmax(aux_joint, dim=-1),
+                    reduction="mean",
+                ) + F.kl_div(
+                    F.log_softmax(aux_joint, dim=-1),
+                    F.softmax(main_joint, dim=-1),
+                    reduction="mean",
                 )
 
-                aux_main_loss += aux_loss + js_div_loss
-            else:
-                aux_main_loss += aux_loss
+        aux_main_loss = aux_default + aux_symm_kl
 
         for p in chain(self.decoder.parameters(), self.joint_network.parameters()):
             p.requires_grad = True
