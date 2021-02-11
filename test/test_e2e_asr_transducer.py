@@ -42,6 +42,8 @@ def get_default_train_args(**kwargs):
         aux_task_type=None,
         aux_task_weight=0.1,
         aux_task_layer_list=[],
+        aux_ctc=False,
+        aux_ctc_dropout_rate=0.0,
         use_frontend=False,
         trans_type="warp-transducer",
         char_list=["a", "b", "c", "d"],
@@ -299,9 +301,16 @@ def test_pytorch_multi_gpu_trainable(train_dic):
         {
             "etype": "vggblstm",
             "elayers": 3,
-            "aux_task_type": "jensen_shannon",
-            "aux_task_layer_list": [0, 2],
+            "aux_task_type": "js_div",
+            "aux_task_layer_list": [0, 1],
         },
+        {
+            "etype": "blstm",
+            "elayers": 2,
+            "aux_task_type": "both",
+            "aux_task_layer_list": [0],
+        },
+        {"elayers": 2, "aux_ctc": True, "aux_ctc_weight": 0.5},
     ],
 )
 def test_auxiliary_task(train_dic):

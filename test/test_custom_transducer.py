@@ -37,6 +37,7 @@ def make_train_args(**kwargs):
         aux_task_type=None,
         aux_task_weight=0.1,
         aux_task_layer_list=[],
+        aux_ctc=False,
         trans_type="warp-transducer",
         rnnt_mode="rnnt_mode",
         char_list=["a", "e", "i", "o", "u"],
@@ -358,7 +359,7 @@ def test_calculate_plot_attention():
             "custom_enc_self_attn_type": "rel_self_attn",
             "custom_enc_positional_encoding_type": "rel_pos",
             "enc_block_repeat": 3,
-            "aux_task_type": "jensen_shannon",
+            "aux_task_type": "js_div",
             "aux_task_layer_list": [0, 1],
         },
     ],
@@ -410,6 +411,19 @@ def test_auxiliary_task(train_dic):
 
         print(y[0])
         print(nbest[0]["yseq"][1:-1])
+
+
+def test_no_block_arch():
+    _, idim, odim, _, _ = get_default_scope_inputs()
+    args = make_train_args(enc_block_arch=None)
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, args)
+
+    args = make_train_args(dec_block_arch=None)
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, args)
 
 
 def test_invalid_input_layer_type():
