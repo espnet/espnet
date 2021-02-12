@@ -193,7 +193,7 @@ class Speech2Text:
                 model_id = filename_or_model_id
                 revision = None
             meta_yaml_url = hf_hub_url(
-                model_id=model_id, filename=META_YAML_FILENAME, revision=revision
+                model_id, filename=META_YAML_FILENAME, revision=revision
             )
             meta_yaml_path = cached_download(
                 meta_yaml_url, library_name="espnet", library_version=__version__
@@ -207,9 +207,7 @@ class Speech2Text:
             assert isinstance(files, dict), type(files)
             inputs = {}
             for key, value in list(yaml_files.items()) + list(files.items()):
-                file_url = hf_hub_url(
-                    model_id=model_id, filename=value, revision=revision
-                )
+                file_url = hf_hub_url(model_id, filename=value, revision=revision)
                 inputs[key] = cached_download(
                     file_url, library_name="espnet", library_version=__version__
                 )
