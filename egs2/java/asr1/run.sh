@@ -7,9 +7,9 @@ set -o pipefail
 
 lid=false # whether to use language id as additional label
 
-train_set=train
-train_dev=dev
-test_set=test
+train_set="train"
+train_dev="dev"
+test_set="test"
 
 nlsyms_txt=data/local/nlsyms.txt
 asr_config=conf/train_asr.yaml

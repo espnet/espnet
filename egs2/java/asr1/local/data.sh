@@ -12,7 +12,6 @@ stage=0       # start from 0 if you need to start from data preparation
 stop_stage=2
 # inclusive, was 100
 SECONDS=0
-lid=true
 nlsyms_txt=data/local/nlsyms.txt
 
 

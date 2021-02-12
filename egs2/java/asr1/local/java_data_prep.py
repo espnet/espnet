@@ -30,15 +30,13 @@ if __name__ == "__main__":
 
     spks = sorted(list(spk2utt.keys()))
     random.Random(0).shuffle(spks)
-    num_train = int(len(spks)*0.8)
-    num_dev = int(len(spks)*0.1)
+    num_train = int(len(spks) * 0.8)
+    num_dev = int(len(spks) * 0.1)
     train_spks = spks[:num_train]
-    dev_spks = spks[num_train:num_train+num_dev]
-    test_spks = spks[num_train+num_dev:]
+    dev_spks = spks[num_train : num_train + num_dev]
+    test_spks = spks[num_train + num_dev :]
 
-    spks_by_phase = {"train": train_spks, 
-                     "dev": dev_spks, 
-                     "test": test_spks}
+    spks_by_phase = {"train": train_spks, "dev": dev_spks, "test": test_spks}
     for phase in spks_by_phase:
         spks = spks_by_phase[phase]
         text_strs = []
@@ -46,11 +44,14 @@ if __name__ == "__main__":
         spk2utt_strs = []
         for spk in spks:
             fids = sorted(list(set(spk2utt[spk])))
-            utts = [spk+'-'+f for f in fids]
+            utts = [spk + "-" + f for f in fids]
             utts_str = " ".join(utts)
             spk2utt_strs.append("%s %s" % (spk, utts_str))
             for fid, utt in zip(fids, utts):
-                cmd = "ffmpeg -i downloads/data/"+fid[:2]+"/"+fid+".flac -f wav -ar 16000 -ab 16 -ac 1 - |"
+                cmd = (
+                    "ffmpeg -i downloads/data/%s/%s.flac -f wav -ar 16000 -ab 16 -ac 1 - |"
+                    % (fid[:2], fid)
+                )
                 text_strs.append("%s %s" % (utt, utt2text[fid]))
                 wav_scp_strs.append("%s %s" % (utt, cmd))
         phase_dir = "data/%s" % phase
