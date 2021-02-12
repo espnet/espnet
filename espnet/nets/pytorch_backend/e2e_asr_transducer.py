@@ -360,10 +360,12 @@ class E2E(ASRInterface, torch.nn.Module):
         args = fill_missing_args(args, self.add_arguments)
 
         self.is_rnnt = True
+
         self.use_aux_task = (
             True if (args.aux_task_type is not None and training) else False
         )
         self.use_aux_ctc = args.aux_ctc and training
+        self.aux_ctc_weight = args.aux_ctc_weight
 
         if self.use_aux_task:
             n_layers = (
@@ -503,10 +505,8 @@ class E2E(ASRInterface, torch.nn.Module):
                     self.criterion,
                     args.aux_task_type,
                     args.aux_task_weight,
-                    len(aux_task_layer_list),
                     encoder_out,
                     args.joint_dim,
-                    odim,
                 )
 
             if self.use_aux_ctc:
@@ -519,6 +519,7 @@ class E2E(ASRInterface, torch.nn.Module):
                     ),
                     odim,
                 )
+                self.transducer_weight = args.transducer_weight
                 self.aux_ctc_weight = args.aux_ctc_weight
 
         self.loss = None
@@ -581,9 +582,9 @@ class E2E(ASRInterface, torch.nn.Module):
             )
 
         if self.use_aux_ctc:
-            loss = 0.5 * loss + self.aux_ctc_weight * self.aux_ctc(
-                hs_pad, hs_mask, ys_pad
-            )
+            loss_ctc = self.aux_ctc(hs_pad, hs_mask, ys_pad)
+
+            loss = self.transducer_weight * loss + self.aux_ctc_weight * loss_ctc
 
         self.loss = loss
         loss_data = float(loss)

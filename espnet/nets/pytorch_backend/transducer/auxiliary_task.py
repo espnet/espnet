@@ -20,10 +20,8 @@ class AuxiliaryTask(torch.nn.Module):
         rnnt_criterion: torch.nn.Module,
         aux_task_type: str,
         aux_task_weight: int,
-        num_mlps: int,
         encoder_out_dim: int,
         joint_dim: int,
-        output_dim: int,
     ):
         """Auxiliary task initialization.
 
@@ -32,10 +30,8 @@ class AuxiliaryTask(torch.nn.Module):
             joint_network: Joint network module
             aux_task_type: Auxiliary task type
             aux_task_weight: Auxiliary task weight
-            num_mlps: Number of auxiliary MLPs.
             encoder_out: Encoder output dimension
             joint_dim: Joint space dimension
-            output_dim: Output dimension
 
         """
         super().__init__()
