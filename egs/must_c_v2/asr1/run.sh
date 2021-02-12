@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Kyoto University (Hirofumi Inaguma)
+# Copyright 2021 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -24,45 +24,37 @@ do_delta=false
 
 preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
+lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
+# rnnlm related
+lm_resume=        # specify a snapshot file to resume LM training
+lmtag=            # tag for managing LMs
+
 # decoding parameter
-trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # model average realted (only for transformer)
-n_average=5                  # the number of ST models to be averaged
-use_valbest_average=true     # if true, the validation `n_average`-best ST models will be averaged.
-                             # if false, the last `n_average` ST models will be averaged.
-metric=bleu                  # loss/acc/bleu
-
-# pre-training related
-asr_model=
-mt_model=
+n_average=5                  # the number of ASR models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
+                             # if false, the last `n_average` ASR models will be averaged.
+metric=acc                   # loss/acc/cer/cer_ctc
 
 # preprocessing related
 src_case=lc.rm
-tgt_case=tc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 
-# postprocessing related
-remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
-# NOTE: IWSLT community accepts this setting and therefore we use this by default
-
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-must_c=/n/rd8/MUSTC_v1.0
+must_c=/n/rd8/MUSTC_v2.0
 
 # target language related
 tgt_lang=de
-# you can choose from de, es, fr, it, nl, pt, ro, ru
-# if you want to train the multilingual model, segment languages with _ as follows:
-# e.g., tgt_lang="de_es_fr"
-# if you want to use all languages, set tgt_lang="all"
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=5000
 bpemode=bpe
 
 # exp tag
@@ -76,12 +68,10 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_sp.en-${tgt_lang}.${tgt_lang}
-train_dev=dev.en-${tgt_lang}.${tgt_lang}
-trans_set=""
-for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-    trans_set="${trans_set} dev_org.en-${lang}.${lang} tst-COMMON.en-${lang}.${lang} tst-HE.en-${lang}.${lang}"
-done
+train_set=train_sp.en-${tgt_lang}.en
+train_set_prefix=train_sp
+train_dev=dev.en-${tgt_lang}.en
+recog_set="dev_org.en-${lang}.en tst-COMMON.en-${lang}.en tst-HE.en-${lang}.en"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -95,7 +85,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang} v1
+        local/data_prep.sh ${must_c} ${lang} v2
     done
 fi
 
@@ -139,14 +129,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # Divide into source and target languages
-    for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
+    for x in ${train_set_prefix}.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
         local/divide_lang.sh ${x} ${tgt_lang}
     done
     for lang in ${tgt_lang} en; do
         cp -rf data/dev.en-${tgt_lang}.${lang} data/dev_org.en-${tgt_lang}.${lang}
     done
 
-    for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang}; do
+    for x in ${train_set_prefix}.en-${tgt_lang} dev.en-${tgt_lang}; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
         for lang in ${tgt_lang} en; do
@@ -172,29 +162,29 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c_v2/asr1/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c_v2/asr1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for x in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
+    for x in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} \
-            ${feat_trans_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} \
+            ${feat_recog_dir}
     done
 fi
 
-dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${tgt_case}.txt
-nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${tgt_case}.txt
-bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${tgt_case}
+dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${src_case}.txt
+nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${src_case}.txt
+bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${src_case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -202,57 +192,72 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    grep sp1.0 data/train_sp.en-${tgt_lang}.*/text.${tgt_case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+    grep sp1.0 data/${train_set}/text.${src_case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a joint source and target dictionary"
+    echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
-    grep sp1.0 data/train_sp.en-${tgt_lang}.*/text.${tgt_case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input_${tgt_lang}_${src_case}_${tgt_case}.txt
-    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input_${tgt_lang}_${src_case}_${tgt_case}.txt \
+    grep sp1.0 data/${train_set}/text.${src_case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input_${tgt_lang}_${src_case}.txt
+    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input_${tgt_lang}_${src_case}.txt \
         --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input_${tgt_lang}_${src_case}_${tgt_case}.txt \
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input_${tgt_lang}_${src_case}.txt \
         | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
+    # NOTE: ASR vocab is created with a source language only
 
     echo "make json files"
-    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for x in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
-        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-            data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    done
-
-    # update json (add source references)
-    for x in ${train_set} ${train_dev} ${trans_set}; do
-        feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/$(echo ${x} | cut -f 1 -d ".").en-${tgt_lang}.en
-        update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
-            ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${src_case} --bpecode ${bpemodel}.model \
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${src_case} --bpecode ${bpemodel}.model \
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}.json
+    for x in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${x}/text.${src_case} --bpecode ${bpemodel}.model \
+            data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}.json
     done
 fi
 
-# NOTE: skip stage 3: LM Preparation
+# You can skip this and remove --rnnlm option in the recognition (stage 3)
+if [ -z ${lmtag} ]; then
+    lmtag=$(basename ${lm_config%.*})_${src_case}
+fi
+lmexpname=${train_set}_${src_case}_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+lmexpdir=exp/${lmexpname}
+mkdir -p ${lmexpdir}
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: LM Preparation"
+    lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
+    mkdir -p ${lmdatadir}
+    grep sp1.0 data/${train_set}/text.${src_case} | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
+        > ${lmdatadir}/train_${src_case}.txt
+    cut -f 2- -d " " data/${train_dev}/text.${src_case} | spm_encode --model=${bpemodel}.model --output_format=piece \
+        > ${lmdatadir}/valid_${src_case}.txt
+    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+        lm_train.py \
+        --config ${lm_config} \
+        --ngpu ${ngpu} \
+        --backend ${backend} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
+        --train-label ${lmdatadir}/train_${src_case}.txt \
+        --valid-label ${lmdatadir}/valid_${src_case}.txt \
+        --resume ${lm_resume} \
+        --dict ${dict}
+fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    expname=${train_set}_${src_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
     if [ -n "${preprocess_config}" ]; then
         expname=${expname}_$(basename ${preprocess_config%.*})
     fi
-    if [ -n "${asr_model}" ]; then
-        expname=${expname}_asrtrans
-    fi
-    if [ -n "${mt_model}" ]; then
-        expname=${expname}_mttrans
-    fi
 else
-    expname=${train_set}_${tgt_case}_${backend}_${tag}
+    expname=${train_set}_${src_case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -261,7 +266,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        st_train.py \
+        asr_train.py \
         --config ${train_config} \
         --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
@@ -275,29 +280,29 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
-        --enc-init ${asr_model} \
-        --dec-init ${mt_model}
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
-        # Average ST models
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        # Average ASR models
         if ${use_valbest_average}; then
-            trans_model=model.val${n_average}.avg.best
+            recog_model=model.val${n_average}.avg.best
             opt="--log ${expdir}/results/log --metric ${metric}"
         else
-            trans_model=model.last${n_average}.avg.best
+            recog_model=model.last${n_average}.avg.best
             opt="--log"
         fi
         average_checkpoints.py \
             ${opt} \
             --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
-            --out ${expdir}/results/${trans_model} \
+            --out ${expdir}/results/${recog_model} \
             --num ${n_average}
     fi
 
@@ -306,10 +311,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     pids=() # initialize pids
-    for x in ${trans_set}; do
+    for x in ${recog_set}; do
     (
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
-        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
 
         # reset log for RTF calculation
         if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
@@ -317,21 +322,21 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         fi
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}.json
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            st_trans.py \
+            asr_recog.py \
             --config ${decode_config} \
             --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${trans_model}
+            --model ${expdir}/results/${recog_model} \
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            --remove_nonverbal ${remove_nonverbal} \
-            ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+        local/score_sclite.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
+            ${expdir}/${decode_dir} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
