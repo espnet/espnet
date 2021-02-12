@@ -58,7 +58,7 @@ else
     echo "MBROLA is already installed"
 fi
 
-# Install pyopenjtalk
+# Install phonemizer
 if [ ! -e phonemizer.done ]; then
     rm -rf phonemizer
     # NOTE(kan-bayashi): It is better to use fixed tag
