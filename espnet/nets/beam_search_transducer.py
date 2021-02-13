@@ -320,7 +320,7 @@ class BeamSearchTransducer:
                             A[dict_pos].score, (hyp.score + float(beam_logp[i, 0]))
                         )
 
-                if v < self.max_sym_exp:
+                if v < (self.max_sym_exp - 1):
                     if self.use_lm:
                         beam_lm_states = create_lm_batch_state(
                             [c.lm_state for c in C], self.lm_layers, self.is_wordlm
