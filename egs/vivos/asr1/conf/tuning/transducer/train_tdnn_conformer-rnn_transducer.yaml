@@ -1,0 +1,115 @@
+# minibatch related
+batch-size: 28
+maxlen-in: 500
+maxlen-out: 150
+
+# optimization related
+criterion: loss
+early-stop-criterion: "validation/main/loss"
+sortagrad: 0
+opt: noam
+transformer-lr: 5.0
+transformer-warmup-steps: 8000
+epochs: 30
+patience: 0
+accum-grad: 2
+
+# network architecture
+## general
+custom-enc-positional-encoding-type: rel_pos
+custom-enc-self-attn-type: rel_self_attn
+## encoder related
+etype: custom
+custom-enc-input-layer: linear
+enc-block-arch:
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.3
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.3
+        - type: conformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 8
+          macaron_style: True
+          use_conv_mod: True
+          conv_mod_kernel: 31
+          att-dropout-rate: 0.3
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: conformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 8
+          macaron_style: True
+          use_conv_mod: True
+          conv_mod_kernel: 31
+          att-dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.1
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 3
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.1
+        - type: conformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 4
+          macaron_style: True
+          use_conv_mod: True
+          conv_mod_kernel: 17
+          att-dropout-rate: 0.1
+## decoder related
+dtype: lstm
+dlayers: 1
+dec-embed-dim: 512
+dunits: 512
+dropout-rate-decoder: 0.1
+dropout-rate-embed-decoder: 0.2
+
+## joint network related
+joint-dim: 128
+
+# transducer related
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

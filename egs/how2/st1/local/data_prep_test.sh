@@ -10,7 +10,7 @@ export LC_ALL=C
 download=data/local/download
 
 # download test data
-url=http://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
+url=https://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
 if [ -f ${download}/iwslt2019.tar.gz ]; then
     echo "${download}/iwslt2019.tar.gz exists and appears to be complete."
 else
@@ -91,7 +91,7 @@ fbank_path=$(echo ${fbank_path} | sed -e "s/\//@/g")
 sed -e "s/..\/fbank_pitch/${fbank_path}/" < ${feat} | sed -e "s/@/\//g" > ${feat}.tmp
 mv ${feat}.tmp ${feat}
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/test_set_iwslt2019
 for f in spk2utt utt2spk feats.scp; do
     cp ${dst}/${f} data/test_set_iwslt2019/${f}

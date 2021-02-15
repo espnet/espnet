@@ -5,14 +5,14 @@
 espnet/              # Python modules
 utils/               # Utility scripts of ESPnet
 test/                # Unit test
-test_utils/          #unit test for executable scripts
+test_utils/          # Unit test for executable scripts
 egs/                 # The complete recipe for each corpora
     an4/             # AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial
       asr1/          # ASR recipe
           - run.sh   # Executable script
           - cmd.sh   # To select the backend for job scheduler
           - path.sh  # Setup script for environment variables
-          - conf/    # Containing COnfiguration files
+          - conf/    # Containing Configuration files
           - steps/   # The steps scripts from Kaldi
           - utils/   # The utils scripts from Kaldi
       tts1/          # TTS recipe
@@ -183,18 +183,16 @@ model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 
 Several transducer architectures are currently available:
 - RNN-Transducer (default)
-- RNN-Transducer with attention decoder (+ `rnnt-mode: 'rnnt-att'`)
-- Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
-- Mixed Transformer/RNN-Transducer (e.g: `etype: transformer` with `dtype: lstm`)
+- Custom-Transducer (`etype: custom` and `dtype: custom`)
+- Mixed Custom/RNN-Transducer (e.g: `etype: custom` with `dtype: lstm`)
 
-The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `transformer` is specified for either, a transformer-based architecture will be used for the corresponding part, otherwise a RNN architecture will be selected.
+The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `custom` is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.
 
-While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a transformer-based architecture definition for transducer is customizable:
+While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a customizable architecture definition for transducer is different:
 1) Each blocks (or layers) for both network part should be specified individually through `enc-block-arch` or/and `dec-block-arch`:
 
-
         # e.g: TDNN-Transformer encoder
-        etype: transformer
+        etype: custom
         enc-block-arch:
                 - type: tdnn
                   idim: 512
@@ -297,7 +295,6 @@ The algorithm references can be found in [methods documentation](https://github.
 Additional notes:
 - Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
 - There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
-- Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
 - RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
 - Transformer-decoder pre-initialization using a transformer LM is not supported yet.
 - Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.

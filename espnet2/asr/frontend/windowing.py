@@ -14,7 +14,9 @@ class SlidingWindow(AbsFrontend):
     """Sliding Window.
 
     Provides a sliding window over a batched continuous raw audio tensor.
-    Optionally, provides padding. (Currently not implemented)
+    Optionally, provides padding (Currently not implemented).
+    Combine this module with a pre-encoder compatible with raw audio data,
+    for example Sinc convolutions.
 
     Known issues:
     Output length is calculated incorrectly if audio shorter than win_length.
@@ -50,10 +52,10 @@ class SlidingWindow(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward.
+        """Apply a sliding window on the input.
 
         Args:
-            input: Input (B, T, C*D) or (B, T*C*D), with D=1.
+            input: Input (B, T, C*D) or (B, T*C*D), with D=C=1.
             input_lengths: Input lengths within batch.
 
         Returns:

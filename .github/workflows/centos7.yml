@@ -1,6 +1,12 @@
 name: centos7
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   check_skip:
@@ -25,11 +31,11 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: check OS
-        run: cat /etc/os-release 
+        run: cat /etc/os-release
       - name: install dependencies
         run: |
           # NOTE(kamo): cmake sndfile will be download using anacond:
-          yum install -y git centos-release-scl make bzip2 wget which unzip bc
+          yum install -y git centos-release-scl make bzip2 wget which unzip bc patch
           yum-config-manager --enable rhel-server-rhscl-7-rpms
           yum install -y devtoolset-7-gcc-c++
           localedef -f UTF-8 -i en_US en_US

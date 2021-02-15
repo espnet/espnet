@@ -8,7 +8,7 @@ export LC_ALL=C
 . utils/parse_options.sh || exit 1;
 
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <src-dir>"
+    echo "Usage: $0 <src-dir> <tgt-lang>"
     echo "e.g.: $0 /n/rd11/corpora_8/MUSTC_v1.0 target_lang"
     exit 1;
 fi
@@ -46,8 +46,8 @@ for set in train dev tst-COMMON tst-HE; do
     n=$(cat ${yml} | grep duration | wc -l)
     n_en=$(cat ${en} | wc -l)
     n_tgt=$(cat ${tgt} | wc -l)
-    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data data files, found ${n_en}" && exit 1;
-    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data data files, found ${n_tgt}" && exit 1;
+    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data files, found ${n_en}" && exit 1;
+    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data files, found ${n_tgt}" && exit 1;
 
     # (1a) Transcriptions and translations preparation
     # make basic transcription file (add segments info)
@@ -104,8 +104,8 @@ for set in train dev tst-COMMON tst-HE; do
     n=$(cat ${dst}/.yaml2 | wc -l)
     n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
     n_tgt=$(cat ${dst}/${tgt_lang}.norm.tc.tok | wc -l)
-    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data data files, found ${n_en}" && exit 1;
-    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data data files, found ${n_tgt}" && exit 1;
+    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data files, found ${n_en}" && exit 1;
+    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data files, found ${n_tgt}" && exit 1;
 
 
     # (1c) Make segments files from transcript
@@ -133,9 +133,9 @@ for set in train dev tst-COMMON tst-HE; do
     # error check
     n_en=$(cat ${dst}/text.tc.en | wc -l)
     n_tgt=$(cat ${dst}/text.tc.${tgt_lang} | wc -l)
-    [ ${n_en} -ne ${n_tgt} ] && echo "Warning: expected ${n_en} data data files, found ${n_tgt}" && exit 1;
+    [ ${n_en} -ne ${n_tgt} ] && echo "Warning: expected ${n_en} data files, found ${n_tgt}" && exit 1;
 
-    # Copy stuff intoc its final locations [this has been moved from the format_data script]
+    # Copy stuff into its final locations [this has been moved from the format_data script]
     mkdir -p data/${set}.en-${tgt_lang}
 
     # remove duplicated utterances (the same offset)
@@ -157,7 +157,7 @@ for set in train dev tst-COMMON tst-HE; do
     # error check
     n_seg=$(cat data/${set}.en-${tgt_lang}/segments | wc -l)
     n_text=$(cat data/${set}.en-${tgt_lang}/text.tc.${tgt_lang} | wc -l)
-    [ ${n_seg} -ne ${n_text} ] && echo "Warning: expected ${n_seg} data data files, found ${n_text}" && exit 1;
+    [ ${n_seg} -ne ${n_text} ] && echo "Warning: expected ${n_seg} data files, found ${n_text}" && exit 1;
 
     echo "$0: successfully prepared data in ${dst}"
 done

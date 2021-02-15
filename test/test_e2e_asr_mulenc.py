@@ -577,10 +577,10 @@ def test_calculate_plot_attention_ctc(module, num_encs, model_dict):
     )
     for i in range(num_encs):
         # att-encoder
-        att_w = plot.get_attention_weight(0, att_ws[i][0])
+        att_w = plot.trim_attention_weight("utt_%d" % 0, att_ws[i][0])
         plot._plot_and_save_attention(att_w, "{}/att{}.png".format(tmpdir, i))
     # han
-    att_w = plot.get_attention_weight(0, att_ws[num_encs][0])
+    att_w = plot.trim_attention_weight("utt_%d" % 0, att_ws[num_encs][0])
     plot._plot_and_save_attention(att_w, "{}/han.png".format(tmpdir), han_mode=True)
 
     # test CTC plot

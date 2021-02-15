@@ -4,10 +4,11 @@
 
 """Visualize Sinc convolution filters.
 
-This program loads a pretrained Sinc convolution of an ESPnet2 ASR model and
-plots filters, as well as the bandpass frequencies.
-
-Plots are saved to the specified output directory.
+Description:
+    This program loads a pretrained Sinc convolution of an ESPnet2 ASR model and
+    plots filters, as well as the bandpass frequencies. The learned filter values
+    are automatically read out from a trained model file (`*.pth`). Plots are
+    saved to the specified output directory.
 """
 
 import argparse
@@ -21,21 +22,22 @@ import torch
 def get_parser():
     """Construct the parser."""
     parser = argparse.ArgumentParser(
-        description="create plots of the sinc filters from a trained network",
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--sample_rate", type=int, default=16000, help="Sampling rate")
+    parser.add_argument("--sample_rate", type=int, default=16000, help="Sampling rate.")
     parser.add_argument(
-        "--all", action="store_true", help="Plot every filter in its own plot"
+        "--all", action="store_true", help="Plot every filter in its own plot."
     )
     parser.add_argument(
-        "--filetype", type=str, default="png", help="Filetype (e.g. svg or png)"
+        "--filetype", type=str, default="png", help="Filetype (svg, png)."
     )
     parser.add_argument(
         "--filter-key",
         type=str,
         default="preencoder.filters.f",
-        help="Name of the torch module the Sinc filter parameters are stored in.",
+        help="Name of the torch module the Sinc filter parameters are stored"
+        " within the model file.",
     )
     parser.add_argument(
         "--scale",
@@ -45,14 +47,14 @@ def get_parser():
         help="Filter bank initialization values.",
     )
     parser.add_argument(
-        "model_path", type=str, help="Torch checkpoint of the trained ASR net"
+        "model_path", type=str, help="Path to the trained model file (*.pth)."
     )
     parser.add_argument(
         "out_folder",
         type=Path,
         nargs="?",
-        default=Path(__file__).absolute().parent / "plot_sinc_filters",
-        help="Output folder to save the plots in",
+        default=Path("plot_sinc_filters").absolute(),
+        help="Output folder to save the plots in.",
     )
     return parser
 
@@ -101,7 +103,6 @@ def plot_filtergraph(
         sorted: Sort bandpasses by center frequency.
         logscale: Set Y axis to logarithmic scale.
     """
-
     if scale == "mel":
         from espnet2.layers.sinc_conv import MelScale
 
@@ -301,6 +302,9 @@ def main(argv):
     f_maxs = np.abs(filters[:, 0]) + np.abs(filters[:, 1] - filters[:, 0])
     F_mins, F_maxs = f_mins * sample_rate, f_maxs * sample_rate
     F_mins, F_maxs = np.round(F_mins).astype(np.int), np.round(F_maxs).astype(np.int)
+
+    # Create output folder if it does not yet exist
+    args.out_folder.mkdir(parents=True, exist_ok=True)
 
     plot_filter_kernels(filters, sample_rate, args)
 

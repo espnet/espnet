@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2019 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -97,6 +94,7 @@ class Encoder(torch.nn.Module):
         super(Encoder, self).__init__()
         self._register_load_state_dict_pre_hook(_pre_hook)
 
+        self.conv_subsampling_factor = 1
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
                 torch.nn.Linear(idim, attention_dim),
@@ -107,6 +105,7 @@ class Encoder(torch.nn.Module):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+            self.conv_subsampling_factor = 4
         elif input_layer == "conv2d-scaled-pos-enc":
             self.embed = Conv2dSubsampling(
                 idim,
@@ -114,12 +113,16 @@ class Encoder(torch.nn.Module):
                 dropout_rate,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
+            self.conv_subsampling_factor = 4
         elif input_layer == "conv2d6":
             self.embed = Conv2dSubsampling6(idim, attention_dim, dropout_rate)
+            self.conv_subsampling_factor = 6
         elif input_layer == "conv2d8":
             self.embed = Conv2dSubsampling8(idim, attention_dim, dropout_rate)
+            self.conv_subsampling_factor = 8
         elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
+            self.conv_subsampling_factor = 4
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(idim, attention_dim, padding_idx=padding_idx),

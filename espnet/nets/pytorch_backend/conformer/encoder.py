@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2020 Johns Hopkins University (Shinji Watanabe)
 #                Northwestern Polytechnical University (Pengcheng Guo)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -100,6 +97,7 @@ class Encoder(torch.nn.Module):
         else:
             raise ValueError("unknown pos_enc_layer: " + pos_enc_layer_type)
 
+        self.conv_subsampling_factor = 1
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
                 torch.nn.Linear(idim, attention_dim),
@@ -114,8 +112,10 @@ class Encoder(torch.nn.Module):
                 dropout_rate,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
+            self.conv_subsampling_factor = 4
         elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
+            self.conv_subsampling_factor = 4
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(idim, attention_dim, padding_idx=padding_idx),
@@ -144,6 +144,7 @@ class Encoder(torch.nn.Module):
                 attention_dropout_rate,
             )
         elif selfattention_layer_type == "rel_selfattn":
+            logging.info("encoder self-attention layer type = relative self-attention")
             assert pos_enc_layer_type == "rel_pos"
             encoder_selfattn_layer = RelPositionMultiHeadedAttention
             encoder_selfattn_layer_args = (

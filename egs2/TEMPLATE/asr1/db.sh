@@ -29,7 +29,9 @@ HKUST2=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
+LIBRITTS=
 LJSPEECH=downloads
+NSC=
 JSSS=downloads
 JSUT=downloads
 JVS=downloads
@@ -100,6 +102,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
+    LIBRITTS=
     LJSPEECH=downloads
     JSSS=downloads
     JSUT=downloads
