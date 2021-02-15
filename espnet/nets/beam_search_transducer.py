@@ -17,7 +17,7 @@ from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
 from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import substract
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
 @dataclass
@@ -45,7 +45,7 @@ class BeamSearchTransducer:
 
     def __init__(
         self,
-        decoder: Union[AbsDecoder, torch.nn.Module],
+        decoder: Union[TransducerDecoderInterface, torch.nn.Module],
         joint_network: torch.nn.Module,
         beam_size: int,
         lm: torch.nn.Module = None,
