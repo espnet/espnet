@@ -362,7 +362,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev)
 
         # reset log for RTF calculation
-        if [ -d ${expdir}/${decode_dir}/log/ ]; then
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
             rm ${expdir}/${decode_dir}/log/decode.*.log
         fi
 
