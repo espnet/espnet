@@ -127,20 +127,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     for x in ${test_set}; do
-        cp ${x}/text ${x}/text.org
+        cp data/${x}/text data/${x}/text.org
         paste -d " " \
-              <(cut -f 1 -d" " ${x}/text.org) \
-              <(cut -f 2- -d" " ${x}/text.org | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")') \
-              > ${x}/text
-        rm ${x}/text.org
+              <(cut -f 1 -d" " data/${x}/text.org) \
+              <(cut -f 2- -d" " data/${x}/text.org | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")') \
+              > data/${x}/text
+        rm data/${x}/text.org
     done
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Add Language ID"
 
-    cp -r data/train_temp data/${train_set}
-    cp -r data/dev_temp data/${train_dev}
+    #cp -r data/train_temp data/${train_set}
+    #cp -r data/dev_temp data/${train_dev}
 
     if [ "$lid" = true ]
     then
