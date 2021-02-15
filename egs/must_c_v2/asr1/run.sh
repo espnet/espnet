@@ -75,14 +75,14 @@ recog_set="dev_org.en-${tgt_lang}.en tst-COMMON.en-${tgt_lang}.en tst-HE.en-${tg
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download_and_untar.sh ${must_c} ${tgt_lang}
+    local/download_and_untar.sh ${must_c} ${tgt_lang} "v2"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
-    local/data_prep.sh ${must_c} ${tgt_lang} v2
+    local/data_prep.sh ${must_c} ${tgt_lang} "v2"
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}

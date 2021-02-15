@@ -99,7 +99,7 @@ fi
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang}
+        local/download_and_untar.sh ${must_c} ${lang} "v1"
     done
 fi
 
@@ -108,7 +108,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang} v1
+        local/data_prep.sh ${must_c} ${lang} "v1"
     done
 fi
 
