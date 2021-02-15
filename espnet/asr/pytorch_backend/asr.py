@@ -35,6 +35,7 @@ from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
@@ -988,7 +989,6 @@ def recog(args):
             trans_decoder = model.decoder
         joint_network = model.joint_network
 
-        from espnet.nets.beam_search_transducer import BeamSearchTransducer
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
             joint_network=joint_network,
