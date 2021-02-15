@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Kyoto University (Hirofumi Inaguma)
+# Copyright 2021 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -52,14 +52,10 @@ remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-must_c=/n/rd8/MUSTC_v1.0
+must_c=/n/rd8/MUSTC_v2.0
 
 # target language related
 tgt_lang=de
-# you can choose from de, es, fr, it, nl, pt, ro, ru
-# if you want to train the multilingual model, segment languages with _ as follows:
-# e.g., tgt_lang="de_es_fr"
-# if you want to use all languages, set tgt_lang="all"
 
 # bpemode (unigram or bpe)
 nbpe=8000
@@ -78,15 +74,12 @@ set -o pipefail
 
 train_set=train_sp.en-${tgt_lang}.${tgt_lang}
 train_dev=dev.en-${tgt_lang}.${tgt_lang}
-trans_set=""
-for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-    trans_set="${trans_set} dev_org.en-${lang}.${lang} tst-COMMON.en-${lang}.${lang} tst-HE.en-${lang}.${lang}"
-done
+trans_set="dev_org.en-${tgt_lang}.${tgt_lang} tst-COMMON.en-${tgt_lang}.${tgt_lang} tst-HE.en-${tgt_lang}.${tgt_lang}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang} "v1"
+        local/download_and_untar.sh ${must_c} ${lang} "v2"
     done
 fi
 
@@ -95,7 +88,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang} "v1"
+        local/data_prep.sh ${must_c} ${lang} "v2"
     done
 fi
 
@@ -172,12 +165,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c_v2/st1/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/must_c_v2/st1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \

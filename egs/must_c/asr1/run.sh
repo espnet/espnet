@@ -38,6 +38,7 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
                              # if false, the last `n_average` ASR models will be averaged.
+metric=acc                   # loss/acc/cer/cer_ctc
 
 # preprocessing related
 src_case=lc.rm
@@ -82,7 +83,7 @@ done
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang}
+        local/download_and_untar.sh ${must_c} ${lang} "v1"
     done
 fi
 
@@ -91,7 +92,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang}
+        local/data_prep.sh ${must_c} ${lang} "v1"
     done
 fi
 
@@ -299,7 +300,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${expdir}/results/log --metric ${metric}"
         else
             recog_model=model.last${n_average}.avg.best
             opt="--log"
@@ -322,11 +323,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
 
+        # reset log for RTF calculation
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}.json
-
-        #### use CPU for decoding
-        ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
@@ -341,6 +344,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         local/score_sclite.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done
