@@ -379,7 +379,7 @@ def get_parser(parser=None, required=True):
     )
     parser.add_argument(
         "--dec-init-mods",
-        default="att., dec.",
+        default="att.,dec.",
         type=lambda s: [str(mod) for mod in s.split(",") if s != ""],
         help="List of decoder modules to initialize, separated by a comma.",
     )
