@@ -54,13 +54,16 @@ if [ ${version} = "v1" ]; then
         echo "${lang} is not supported now."
         exit 1;
     fi
-else
+elif [ ${version} = "v2" ]; then
     if [ ${lang} = "de" ]; then
         url=https://drive.google.com/file/d/1UBPNwFEVhIZCOEpu4hTqPji57XRg85UO
     else
         echo "${lang} is not supported now."
         exit 1;
     fi
+else
+    echo "${version} is not supported now."
+    exit 1;
 fi
 
 if [ -f ${data}/.complete_en_${lang} ]; then
