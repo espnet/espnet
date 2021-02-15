@@ -54,10 +54,6 @@ must_c=/n/rd8/MUSTC_v2.0
 
 # target language related
 tgt_lang=de
-# you can choose from de, es, fr, it, nl, pt, ro, ru
-# if you want to train the multilingual model, segment languages with _ as follows:
-# e.g., tgt_lang="de_es_fr"
-# if you want to use all languages, set tgt_lang="all"
 
 # if true, reverse source and target languages: **->English
 reverse_direction=false
@@ -83,33 +79,23 @@ set -o pipefail
 if [ ${reverse_direction} = true ]; then
     train_set=train.${tgt_lang}-en.en
     train_dev=dev.${tgt_lang}-en.en
-    trans_set=""
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        trans_set="${trans_set} dev_org.${lang}-en.en tst-COMMON.${lang}-en.en tst-HE.${lang}-en.en"
-    done
+    trans_set="dev_org.${tgt_lang}-en.en tst-COMMON.${tgt_lang}-en.en tst-HE.${tgt_lang}-en.en"
 else
     train_set=train.en-${tgt_lang}.${tgt_lang}
     train_dev=dev.en-${tgt_lang}.${tgt_lang}
-    trans_set=""
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        trans_set="${trans_set} dev_org.en-${lang}.${lang} tst-COMMON.en-${lang}.${lang} tst-HE.en-${lang}.${lang}"
-    done
+    trans_set="dev_org.en-${tgt_lang}.${tgt_lang} tst-COMMON.en-${tgt_lang}.${tgt_lang} tst-HE.en-${tgt_lang}.${tgt_lang}"
 fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang}
-    done
+    local/download_and_untar.sh ${must_c} ${tgt_lang}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang} v2
-    done
+    local/data_prep.sh ${must_c} ${tgt_lang} v2
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
