@@ -219,7 +219,7 @@ fi
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
-if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
+if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
         python3 -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
