@@ -34,7 +34,7 @@ jobs:
           command: |
             sudo apt-get update -qq
             # NOTE(kamo): cmake libsndfile1-dev will be download using anacond:
-            sudo apt-get install -qq -y bc
+            sudo apt-get install -qq -y bc sox
             sudo localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet
@@ -84,7 +84,7 @@ jobs:
           command: |
             sudo apt-get update -qq
             # NOTE(kamo): cmake libsndfile1-dev will be download using anacond:
-            sudo apt-get install -qq -y bc
+            sudo apt-get install -qq -y bc sox
             sudo localedef -f UTF-8 -i en_US en_US
       - run:
           name: install espnet
