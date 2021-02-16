@@ -133,7 +133,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x}  ${feat_recog_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} ${feat_recog_dir}
     done
 fi
 
@@ -288,7 +288,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${recog_model} \
             --rnnlm ${lmexpdir}/rnnlm.model.best
 
-        local/score_sclite.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
+        score_sclite_case.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
