@@ -242,6 +242,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
 
+        # reset log for RTF calculation
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
@@ -259,6 +264,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} en ${dict}
 
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done

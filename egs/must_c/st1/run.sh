@@ -86,7 +86,7 @@ done
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang}
+        local/download_and_untar.sh ${must_c} ${lang} "v1"
     done
 fi
 
@@ -95,7 +95,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang}
+        local/data_prep.sh ${must_c} ${lang} "v1"
     done
 fi
 
@@ -311,6 +311,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
 
+        # reset log for RTF calculation
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
@@ -327,6 +332,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done
