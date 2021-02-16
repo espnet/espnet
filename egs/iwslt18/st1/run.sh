@@ -112,13 +112,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    fbankdir=fbank
-    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodevtest data/train_nodevtest_sp ${fbankdir}
-    for x in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
 
     # make a dev set
     utils/subset_data_dir.sh --speakers data/train 2000 data/dev
@@ -139,6 +132,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.${case}.${lang} >data/test/text.${case}.${lang}
         done
     done
+
+    fbankdir=fbank
+    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+    for x in dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
+    done
+
+    # speed perturbation
+    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodevtest data/train_nodevtest_sp ${fbankdir}
 
     # Divide into source and target languages
     for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do

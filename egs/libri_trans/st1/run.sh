@@ -97,11 +97,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en fr fr.gtranslate" data/train data/train_sp ${fbankdir}
     for x in dev test; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
+
+    # speed perturbation
+    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en fr fr.gtranslate" data/train data/train_sp ${fbankdir}
 
     # Divide into En Fr, Fr (google trans)
     for x in ${train_set_prefix} dev test; do

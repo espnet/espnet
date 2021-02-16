@@ -33,7 +33,7 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-recog_all=false  # If false, decoding is performed on the subset (dev, test) only
+decode_all=false  # If false, decoding is performed on the subset (dev, test) only
 
 # model average realted (only for transformer)
 n_average=5                  # the number of ASR models to be averaged
@@ -112,13 +112,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    fbankdir=fbank
-    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodevtest data/train_nodevtest_sp ${fbankdir}
-    for x in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
 
     # make a dev set
     utils/subset_data_dir.sh --speakers data/train 2000 data/dev
@@ -139,6 +132,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.${case}.${lang} >data/test/text.${case}.${lang}
         done
     done
+
+    fbankdir=fbank
+    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+    for x in dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
+    done
+
+    # speed perturbation
+    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodevtest data/train_nodevtest_sp ${fbankdir}
 
     # Divide into source and target languages
     for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
@@ -313,7 +316,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         nj=1
     fi
 
-    if [ ${recog_all} = true ]; then
+    if [ ${decode_all} = true ]; then
         decode_set=${recog_set}
     else
         decode_set=${recog_subset}

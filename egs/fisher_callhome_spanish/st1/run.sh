@@ -103,8 +103,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/fisher_train/wav.scp
-    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "es en" data/fisher_train data/train_sp ${fbankdir}
     for x in fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         # upsample audio from 8k to 16k to make a recipe consistent with others
         sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
@@ -112,6 +110,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
+
+    # speed perturbation
+    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/fisher_train/wav.scp
+    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "es en" data/fisher_train data/train_sp ${fbankdir}
 
     # Divide into source and target languages
     for x in ${train_set_prefix} fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
