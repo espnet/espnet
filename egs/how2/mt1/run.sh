@@ -96,7 +96,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # remove long and short utterances
-    for x in train.en-${tgt_lang} dev.en-${tgt_lang}; do
+    for x in train val; do
         clean_corpus.sh --no_feat true --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en pt"
     done
 fi
