@@ -32,6 +32,7 @@ set -euo pipefail
 data_dir=$1
 langs=$2
 
+mkdir -p ${data_dir}
 tmpdir=$(mktemp -d ${data_dir}/tmp-XXXXX)
 trap 'rm -rf ${tmpdir}' EXIT
 
