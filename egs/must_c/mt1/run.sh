@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2021 Kyoto University (Hirofumi Inaguma)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -50,7 +50,7 @@ remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-must_c=/n/rd8/MUSTC_v2.0
+must_c=/n/rd8/MUSTC_v1.0
 
 # target language related
 tgt_lang=de
