@@ -117,26 +117,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         cp -rf data/dev.${lang} data/train_dev.${lang}
     done
 
+    # remove long and short utterances
     for x in train train_dev; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in en fr fr.gtranslate; do
-            remove_longshortdata.sh --no_feat true --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.fr.tmp/reclist1
-        cut -f 1 -d " " data/${x}.fr.tmp/text > data/${x}.fr.tmp/reclist2
-        cut -f 1 -d " " data/${x}.fr.gtranslate.tmp/text > data/${x}.fr.tmp/reclist3
-        comm -12 data/${x}.fr.tmp/reclist1 data/${x}.fr.tmp/reclist2 > data/${x}.fr.tmp/reclist4
-        comm -12 data/${x}.fr.tmp/reclist3 data/${x}.fr.tmp/reclist4 > data/${x}.fr.tmp/reclist
-
-        for lang in en fr fr.gtranslate; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.fr.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --no_feat true --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en fr fr.gtranslate"
     done
 fi
 
@@ -183,9 +166,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
             data/${train_set} ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
-            data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${trans_set}; do
+        for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
             data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
@@ -196,9 +177,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".fr ${dict}
         update_json.sh --text data/train.fr.gtranslate/text.${src_case} --bpecode ${bpemodel}.model \
             ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/train.fr.gtranslate ${dict}
-        update_json.sh --text data/"$(echo ${train_dev} | cut -f 1 -d ".")".fr/text.${src_case} --bpecode ${bpemodel}.model \
-            ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f 1 -d ".")".fr ${dict}
-        for x in ${trans_set}; do
+        for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}
             update_json.sh --text data/"$(echo ${x} | cut -f 1 -d ".")".fr/text.${src_case} --bpecode ${bpemodel}.model \
                 ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${x} | cut -f 1 -d ".")".fr ${dict}
@@ -208,9 +187,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         data2json.sh --nj 16 --text data/train.fr.gtranslate/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
             data/train.fr.gtranslate ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
-            data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${trans_set}; do
+        for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
             data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
@@ -221,9 +198,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
         update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
             ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_set} | cut -f 1 -d ".")".en ${dict}
-        update_json.sh --text data/"$(echo ${train_dev} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
-            ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${train_dev} | cut -f 1 -d ".")".en ${dict}
-        for x in ${trans_set}; do
+        for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}
             update_json.sh --text data/"$(echo ${x} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
                 ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${x} | cut -f 1 -d ".")".en ${dict}
@@ -231,7 +206,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 
     # concatenate Fr and Fr (Google translation) jsons
-    local/concat_json_multiref.py \
+    concat_json_multiref.py \
         ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json > ${feat_tr_dir}/data_2ref_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 fi
@@ -296,6 +271,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${x}
 
+        # reset log for RTF calculation
+        if [ -d ${expdir}/${decode_dir}/log/ ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
@@ -316,6 +296,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
                 ${expdir}/${decode_dir} fr ${dict}
         fi
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done
@@ -324,7 +306,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Finished"
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
     echo "stage 6: Cascaded-ST decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average MT models
@@ -362,6 +344,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         decode_dir=decode_${x}_$(basename ${decode_config%.*})_pipeline
         feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev)
 
+        # reset log for RTF calculation
+        if [ -d ${expdir}/${decode_dir}/log/ ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
@@ -377,6 +364,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} fr ${dict}
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done
