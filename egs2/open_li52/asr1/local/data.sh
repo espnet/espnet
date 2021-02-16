@@ -139,8 +139,8 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Add Language ID"
 
-    #cp -r data/train_temp data/${train_set}
-    #cp -r data/dev_temp data/${train_dev}
+    cp -r data/train_temp data/${train_set}
+    cp -r data/dev_temp data/${train_dev}
 
     if [ "$lid" = true ]
     then

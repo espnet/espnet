@@ -48,7 +48,6 @@ full_set="${high_resource_test_set} ${mid_resource_test_set} ${low_resource_test
 test_set=${full_set}
 # use the middle resource test set to avoid too long evaluation time
 test_set=${mid_resource_test_set}
-test_set=${low_resource_test_set}
 
 nlsyms_txt=data/local/nlsyms.txt
 asr_config=conf/train_asr.yaml
