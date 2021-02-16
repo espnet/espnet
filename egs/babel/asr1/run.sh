@@ -13,7 +13,7 @@ stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 seed=1
 debugmode=1
-dumpdir='mktemp -d /scratch/ml-asr-XXXX'   # directory to dump full features
+dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
@@ -36,8 +36,8 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # exp tag
 tag="" # tag for managing experiments.
 
-langs="105 106 107"
-recog="105 106 107"
+langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
+recog="107 201 307 404"
 
 . utils/parse_options.sh || exit 1;
 
@@ -144,7 +144,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
-exit 1;
+
 
 if ${use_lm}; then
   lm_train_set=data/local/train.txt

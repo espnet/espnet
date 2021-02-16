@@ -11,11 +11,19 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.enh.abs_enh import AbsEnhancement
+from espnet2.enh.decoder.abs_decoder import AbsDecoder
+from espnet2.enh.decoder.conv_decoder import ConvDecoder
+from espnet2.enh.decoder.stft_decoder import STFTDecoder
+from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.encoder.conv_encoder import ConvEncoder
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.nets.beamformer_net import BeamformerNet
-from espnet2.enh.nets.tasnet import TasNet
-from espnet2.enh.nets.tf_mask_net import TFMaskingNet
+from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
+from espnet2.enh.separator.rnn_separator import RNNSeparator
+from espnet2.enh.separator.tcn_separator import TCNSeparator
+from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -26,11 +34,31 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
-enh_choices = ClassChoices(
-    name="enh",
-    classes=dict(tf_masking=TFMaskingNet, tasnet=TasNet, wpe_beamformer=BeamformerNet),
-    type_check=AbsEnhancement,
-    default="tf_masking",
+encoder_choices = ClassChoices(
+    name="encoder",
+    classes=dict(stft=STFTEncoder, conv=ConvEncoder),
+    type_check=AbsEncoder,
+    default="stft",
+)
+
+separator_choices = ClassChoices(
+    name="separator",
+    classes=dict(
+        rnn=RNNSeparator,
+        tcn=TCNSeparator,
+        dprnn=DPRNNSeparator,
+        transformer=TransformerSeparator,
+        wpe_beamformer=NeuralBeamformer,
+    ),
+    type_check=AbsSeparator,
+    default="rnn",
+)
+
+decoder_choices = ClassChoices(
+    name="decoder",
+    classes=dict(stft=STFTDecoder, conv=ConvDecoder),
+    type_check=AbsDecoder,
+    default="stft",
 )
 
 MAX_REFERENCE_NUM = 100
@@ -41,8 +69,12 @@ class EnhancementTask(AbsTask):
     num_optimizers: int = 1
 
     class_choices_list = [
-        # --enh and --enh_conf
-        enh_choices,
+        # --encoder and --encoder_conf
+        encoder_choices,
+        # --separator and --separator_conf
+        separator_choices,
+        # --decoder and --decoder_conf
+        decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -126,7 +158,7 @@ class EnhancementTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ["dereverb_ref"]
+        retval = ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)
@@ -137,10 +169,16 @@ class EnhancementTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetEnhancementModel:
         assert check_argument_types()
 
-        enh_model = enh_choices.get_class(args.enh)(**args.enh_conf)
+        encoder = encoder_choices.get_class(args.encoder)(**args.encoder_conf)
+        separator = separator_choices.get_class(args.separator)(
+            encoder.output_dim, **args.separator_conf
+        )
+        decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
         # 1. Build model
-        model = ESPnetEnhancementModel(enh_model=enh_model)
+        model = ESPnetEnhancementModel(
+            encoder=encoder, separator=separator, decoder=decoder, **args.model_conf
+        )
 
         # FIXME(kamo): Should be done in model?
         # 2. Initialize

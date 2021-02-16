@@ -10,7 +10,8 @@
 backend=pytorch # chainer or pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
+dec_ngpu=0      # number of gpus during decoding ("0" uses cpu, otherwise use gpu)
 nj=16           # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
@@ -21,7 +22,7 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
-preprocess_config=
+preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
@@ -32,6 +33,7 @@ trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of ST models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ST models will be averaged.
                              # if false, the last `n_average` ST models will be averaged.
+metric=bleu                  # loss/acc/bleu
 
 # pre-training related
 asr_model=
@@ -46,7 +48,7 @@ tgt_case=lc
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-datadir=/n/rd11/corpora_8/libri_trans/
+datadir=/n/rd8/libri_trans/
 # libri_trans
 #  |_ train/
 #  |_ other/
@@ -110,17 +112,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/train_sp exp/make_fbank/train_sp ${fbankdir}
     for lang in en fr fr.gtranslate; do
         awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train/utt2spk > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.tc.${lang} >data/train_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.lc.${lang} >data/train_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.lc.rm.${lang} >data/train_sp/text.lc.rm.${lang}
+        for case in lc.rm lc tc; do
+            utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.${case}.${lang} >data/train_sp/text.${case}.${lang}
+        done
         awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train/utt2spk > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
+        for case in lc.rm lc tc; do
+            utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.${case}.${lang} >>data/train_sp/text.${case}.${lang}
+        done
         awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train/utt2spk > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
+        for case in lc.rm lc tc; do
+            utils/apply_map.pl -f 1 data/train_sp/utt_map <data/train/text.${case}.${lang} >>data/train_sp/text.${case}.${lang}
+        done
     done
 
     # Divide into En Fr, Fr (google trans)
@@ -175,10 +177,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for ttask in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}; mkdir -p ${feat_trans_dir}
+    for x in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${ttask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${ttask} \
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} \
             ${feat_trans_dir}
     done
 fi
@@ -199,9 +201,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make a joint source and target dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
-    grep sp1.0 data/${train_set_prefix}.*/text.${tgt_case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
+    grep sp1.0 data/${train_set_prefix}.*/text.${tgt_case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input_${src_case}_${tgt_case}.txt
+    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input_${src_case}_${tgt_case}.txt \
+        --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input_${src_case}_${tgt_case}.txt \
+        | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
@@ -211,10 +215,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set_prefix}.fr.gtranslate ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for ttask in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
-        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
-            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+    for x in ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
+        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang fr \
+            data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
     # update json (add source references)
@@ -279,11 +283,12 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
         # Average ST models
         if ${use_valbest_average}; then
             trans_model=model.val${n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${expdir}/results/log --metric ${metric}"
         else
             trans_model=model.last${n_average}.avg.best
             opt="--log"
@@ -296,22 +301,23 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --num ${n_average}
     fi
 
+    if [ ${dec_ngpu} = 1 ]; then
+        nj=1
+    fi
+
     pids=() # initialize pids
-    for ttask in ${trans_set}; do
+    for x in ${trans_set}; do
     (
-        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
-        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
+        decode_dir=decode_${x}_$(basename ${decode_config%.*})
+        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
 
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
-        #### use CPU for decoding
-        ngpu=0
-
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             st_trans.py \
             --config ${decode_config} \
-            --ngpu ${ngpu} \
+            --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
             --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
