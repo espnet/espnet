@@ -78,18 +78,14 @@ trans_set="dev_org.en-${tgt_lang}.${tgt_lang} tst-COMMON.en-${tgt_lang}.${tgt_la
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang} "v2"
-    done
+    local/download_and_untar.sh ${must_c} ${tgt_lang} "v2"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang} "v2"
-    done
+    local/data_prep.sh ${must_c} ${tgt_lang} "v2"
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -108,28 +104,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/train.en-${tgt_lang} data/temp1.${tgt_lang}
-    utils/perturb_data_dir_speed.sh 1.0 data/train.en-${tgt_lang} data/temp2.${tgt_lang}
-    utils/perturb_data_dir_speed.sh 1.1 data/train.en-${tgt_lang} data/temp3.${tgt_lang}
-    utils/combine_data.sh --extra-files utt2uniq data/train_sp.en-${tgt_lang} \
-        data/temp1.${tgt_lang} data/temp2.${tgt_lang} data/temp3.${tgt_lang}
-    rm -r data/temp1.${tgt_lang} data/temp2.${tgt_lang} data/temp3.${tgt_lang}
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_sp.en-${tgt_lang} exp/make_fbank/train_sp.en-${tgt_lang} ${fbankdir}
-    for lang in en ${tgt_lang}; do
-        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train.en-${tgt_lang}/utt2spk > data/train_sp.en-${tgt_lang}/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_sp.en-${tgt_lang}/utt_map <data/train.en-${tgt_lang}/text.${case}.${lang} >data/train_sp.en-${tgt_lang}/text.${case}.${lang}
-        done
-        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train.en-${tgt_lang}/utt2spk > data/train_sp.en-${tgt_lang}/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_sp.en-${tgt_lang}/utt_map <data/train.en-${tgt_lang}/text.${case}.${lang} >>data/train_sp.en-${tgt_lang}/text.${case}.${lang}
-        done
-        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train.en-${tgt_lang}/utt2spk > data/train_sp.en-${tgt_lang}/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_sp.en-${tgt_lang}/utt_map <data/train.en-${tgt_lang}/text.${case}.${lang} >>data/train_sp.en-${tgt_lang}/text.${case}.${lang}
-        done
-    done
+    speed_perturb.sh --cases "lc.rm lc tc" --langs "en ${tgt_lang}" data/train.en-${tgt_lang} data/train_sp.en-${tgt_lang} ${fbankdir}
 
     # Divide into source and target languages
     for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
@@ -139,24 +114,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         cp -rf data/dev.en-${tgt_lang}.${lang} data/dev_org.en-${tgt_lang}.${lang}
     done
 
+    # remove long and short utterances
     for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang}; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in ${tgt_lang} en; do
-            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
-        cut -f 1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
-        comm -12 data/${x}.${tgt_lang}.tmp/reclist1 data/${x}.${tgt_lang}.tmp/reclist2 > data/${x}.en.tmp/reclist
-
-        for lang in ${tgt_lang} en; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --maxframes 3000 --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en ${tgt_lang}"
     done
 
     # compute global CMVN
@@ -175,13 +135,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for x in ${trans_set}; do
+    for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} \
-            ${feat_trans_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_trans_dir}
     done
 fi
 
@@ -211,9 +168,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for x in ${trans_set}; do
+    for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
         data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
             data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json

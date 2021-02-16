@@ -97,51 +97,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/train_nodev data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/train_nodev data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/train_nodev data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/train_nodev_sp data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_nodev_sp exp/make_fbank/train_nodev_sp ${fbankdir}
-    for lang in mb fr; do
-        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodev/utt2spk > data/train_nodev_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_nodev_sp/utt_map <data/train_nodev/text.${case}.${lang} >data/train_nodev_sp/text.${case}.${lang}
-        done
-        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodev/utt2spk > data/train_nodev_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_nodev_sp/utt_map <data/train_nodev/text.${case}.${lang} >>data/train_nodev_sp/text.${case}.${lang}
-        done
-        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodev/utt2spk > data/train_nodev_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_nodev_sp/utt_map <data/train_nodev/text.${case}.${lang} >>data/train_nodev_sp/text.${case}.${lang}
-        done
-    done
+    speed_perturb.sh --cases "lc.rm lc tc" --langs "mb fr" data/train_nodev data/train_nodev_sp ${fbankdir}
 
     # Divide into source and target languages
     for x in ${train_set_prefix} dev100 dev; do
         local/divide_lang.sh ${x}
     done
 
+    # remove long and short utterances
     for x in ${train_set_prefix} dev100; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in mb fr; do
-            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.mb.tmp/text > data/${x}.fr.tmp/reclist1
-        cut -f 1 -d " " data/${x}.fr.tmp/text > data/${x}.fr.tmp/reclist2
-        comm -12 data/${x}.fr.tmp/reclist1 data/${x}.fr.tmp/reclist2 > data/${x}.fr.tmp/reclist
-
-        for lang in mb fr; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.fr.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --maxframes 3000 --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "mb fr"
     done
 
     # compute global CMVN
@@ -160,13 +125,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for x in ${trans_set}; do
+    for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} \
-            ${feat_trans_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_trans_dir}
     done
 fi
 
@@ -191,9 +153,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
-    for x in ${trans_set}; do
+    for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
         data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
             data/${x} ${dict} > ${feat_trans_dir}/data.${src_case}_${tgt_case}.json
@@ -295,7 +255,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} fr ${dict}
+        score_bleu.sh --case ${tgt_case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} "fr" ${dict}
     ) &
     pids+=($!) # store background pids
     done
