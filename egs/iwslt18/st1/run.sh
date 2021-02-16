@@ -74,7 +74,7 @@ set -o pipefail
 train_set=train_nodevtest_sp.de
 train_set_prefix=train_nodevtest_sp
 train_dev=train_dev.de
-trans_set_subset="dev.en test.en"
+trans_subset="dev.en test.en"
 trans_set="dev.de test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
@@ -299,9 +299,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     if [ ${decode_all} = true ]; then
-        decode_set=${recog_set}
+        decode_set=${trans_set}
     else
-        decode_set=${recog_subset}
+        decode_set=${trans_subset}
     fi
 
     pids=() # initialize pids
