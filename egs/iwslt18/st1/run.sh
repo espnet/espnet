@@ -308,7 +308,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     pids=() # initialize pids
-    for x in ${trans_set}; do
+    for x in ${decode_set}; do
     (
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
