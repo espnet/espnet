@@ -125,7 +125,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # speed-perturbed
-    speed_perturb.sh --nj 1 --cases "lc.rm lc tc" --langs "en de" data/train_nodev data/train_nodev_sp ${fbankdir}
+    speed_perturb.sh --nj 1 --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodev data/train_nodev_sp ${fbankdir}
 
     # divide into source and target languages
     for x in train_nodev_sp train_dev test; do

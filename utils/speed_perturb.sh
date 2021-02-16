@@ -8,6 +8,7 @@ speeds="0.9 1.0 1.1"
 langs=""
 write_utt2num_frames=true
 nj=32
+cmd=""
 
 help_message=$(cat <<EOF
 Usage: $0 [options] <data-dir> <destination-dir> <fbankdir>
@@ -18,6 +19,7 @@ Options:
   --langs                 # all languages (source + target)
   --write_utt2num_frames  # write utt2num_frames in steps/make_fbank_pitch.sh
   --nj                    # number of parallel jobs
+  --cmd                   # $train_cmd
 EOF
 )
 echo "$0 $*"  # Print the command line for logging
@@ -43,7 +45,7 @@ for speed in ${speeds}; do
 done
 utils/combine_data.sh --extra-files utt2uniq ${dst} ${tmpdir}/temp.*
 
-steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} --write_utt2num_frames ${write_utt2num_frames} \
+steps/make_fbank_pitch.sh --cmd ${cmd} --nj ${nj} --write_utt2num_frames ${write_utt2num_frames} \
     ${dst} exp/make_fbank/"$(basename ${dst})" ${fbankdir}
 utils/fix_data_dir.sh ${dst}
 utils/validate_data_dir.sh --no-text ${dst}

@@ -105,7 +105,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # speed-perturbed
-    speed_perturb.sh --cases "lc.rm lc tc" --langs "en ${tgt_lang}" data/train.en-${tgt_lang} data/train_sp.en-${tgt_lang} ${fbankdir}
+    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en ${tgt_lang}" data/train.en-${tgt_lang} data/train_sp.en-${tgt_lang} ${fbankdir}
 
     # Divide into source and target languages
     for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
