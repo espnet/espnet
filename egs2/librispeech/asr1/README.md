@@ -11,7 +11,7 @@
 ## n_fft=512, hop_length=256
 - ASR config: [conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml](conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml)
 - LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
-- Pretrained model: [https://zenodo.org/record/4541458](https://zenodo.org/record/4541458)
+- Pretrained model: [https://zenodo.org/record/4543018/](https://zenodo.org/record/4543018/)
 
 ### WER
 
@@ -44,7 +44,7 @@
 ## n_fft=400, hop_length=160
 - ASR config: [conf/tuning/train_asr_conformer6_n_fft400_hop_length160.yaml](conf/tuning/train_asr_conformer6_n_fft400_hop_length160.yaml)
 - LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
-- Pretrained model: [https://zenodo.org/record/4541465](https://zenodo.org/record/4541465)
+- Pretrained model: [https://zenodo.org/record/4543003](https://zenodo.org/record/4543003)
 
 ### WER
 
