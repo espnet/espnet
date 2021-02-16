@@ -14,12 +14,12 @@ help_message=$(cat <<EOF
 Usage: $0 [options] <data-dir> <destination-dir> <fbankdir>
 e.g.: $0 data/train en de
 Options:
-  --cases                 # target case information (e.g., lc.rm, lc, tc)
-  --speeds                # speed used in speed perturbation (e.g., 0.9. 1.0, 1.1)
-  --langs                 # all languages (source + target)
-  --write_utt2num_frames  # write utt2num_frames in steps/make_fbank_pitch.sh
-  --nj                    # number of parallel jobs
-  --cmd                   # $train_cmd
+  --cases                              # target case information (e.g., lc.rm, lc, tc)
+  --speeds                             # speed used in speed perturbation (e.g., 0.9. 1.0, 1.1)
+  --langs                              # all languages (source + target)
+  --write_utt2num_frames               # write utt2num_frames in steps/make_fbank_pitch.sh
+  --cmd <run.pl|queue.pl <queue opts>> # how to run jobs.
+  --nj <nj>                            # number of parallel jobs
 EOF
 )
 echo "$0 $*"  # Print the command line for logging
