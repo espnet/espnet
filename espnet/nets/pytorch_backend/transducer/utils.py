@@ -31,6 +31,7 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
     blank = ys[0].new([blank_id])
 
     ys_in_pad = pad_list([torch.cat([blank, y], dim=0) for y in ys], blank_id)
+    ys_out_pad = pad_list([torch.cat([y, blank], dim=0) for y in ys], ignore_id)
 
     target = pad_list(ys, blank_id).type(torch.int32).to(device)
     target_len = torch.IntTensor([y.size(0) for y in ys]).to(device)
@@ -44,7 +45,7 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
 
     pred_len = torch.IntTensor(hlens).to(device)
 
-    return ys_in_pad, target, pred_len, target_len
+    return ys_in_pad, ys_out_pad, target, pred_len, target_len
 
 
 def valid_aux_task_layer_list(aux_layer_ids, enc_num_layers):
