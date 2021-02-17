@@ -16,7 +16,9 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
 from espnet.nets.pytorch_backend.transducer.custom_encoder import CustomEncoder
+from espnet.nets.pytorch_backend.transducer.error_calculator import ErrorCalculator
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.loss import TransLoss
 from espnet.nets.pytorch_backend.transducer.rnn_decoder import DecoderRNNT
 from espnet.nets.pytorch_backend.transducer.utils import prepare_loss_inputs
@@ -331,16 +333,13 @@ class E2E(ASRInterface, torch.nn.Module):
                 positionwise_activation_type=args.custom_enc_pw_activation_type,
                 conv_mod_activation_type=args.custom_enc_conv_mod_activation_type,
             )
-
             encoder_out = self.encoder.enc_out
-            args.eprojs = self.encoder.enc_out
 
             self.most_dom_list = args.enc_block_arch[:]
         else:
             self.subsample = get_subsample(args, mode="asr", arch="rnn-t")
 
             self.enc = encoder_for(args, idim, self.subsample)
-
             encoder_out = args.eprojs
 
         if "custom" in args.dtype:
@@ -353,15 +352,13 @@ class E2E(ASRInterface, torch.nn.Module):
 
             self.decoder = CustomDecoder(
                 odim,
-                encoder_out,
-                args.joint_dim,
                 args.dec_block_arch,
                 input_layer=args.custom_dec_input_layer,
                 repeat_block=args.dec_block_repeat,
-                joint_activation_type=args.joint_activation_type,
                 positionwise_activation_type=args.custom_dec_pw_activation_type,
                 dropout_rate_embed=args.dropout_rate_embed_decoder,
             )
+            decoder_out = self.decoder.dunits
 
             if "custom" in args.etype:
                 self.most_dom_list += args.dec_block_arch[:]
@@ -369,18 +366,20 @@ class E2E(ASRInterface, torch.nn.Module):
                 self.most_dom_list = args.dec_block_arch[:]
         else:
             self.dec = DecoderRNNT(
-                args.eprojs,
                 odim,
                 args.dtype,
                 args.dlayers,
                 args.dunits,
                 blank_id,
                 args.dec_embed_dim,
-                args.joint_dim,
-                args.joint_activation_type,
                 args.dropout_rate_decoder,
                 args.dropout_rate_embed_decoder,
             )
+            decoder_out = args.dunits
+
+        self.joint_network = JointNetwork(
+            odim, encoder_out, decoder_out, args.joint_dim, args.joint_activation_type
+        )
 
         if hasattr(self, "most_dom_list"):
             self.most_dom_dim = sorted(
@@ -411,16 +410,10 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.default_parameters(args)
 
-        if args.report_cer or args.report_wer:
-            from espnet.nets.e2e_asr_common import ErrorCalculatorTransducer
-
-            if self.dtype == "custom":
-                decoder = self.decoder
-            else:
-                decoder = self.dec
-
-            self.error_calculator = ErrorCalculatorTransducer(
-                decoder,
+        if training and (args.report_cer or args.report_wer):
+            self.error_calculator = ErrorCalculator(
+                self.decoder if self.dtype == "custom" else self.dec,
+                self.joint_network,
                 args.char_list,
                 args.sym_space,
                 args.sym_blank,
@@ -463,7 +456,6 @@ class E2E(ASRInterface, torch.nn.Module):
             hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         else:
             hs_pad, hs_mask, _ = self.enc(xs_pad, ilens)
-        self.hs_pad = hs_pad
 
         # 1.5. transducer preparation related
         ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(ys_pad, hs_mask)
@@ -475,13 +467,13 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             pred_pad = self.dec(hs_pad, ys_in_pad)
 
-        self.pred_pad = pred_pad
+        z = self.joint_network(hs_pad.unsqueeze(2), pred_pad.unsqueeze(1))
 
         # 3. loss computation
-        loss = self.criterion(pred_pad, target, pred_len, target_len)
+        loss = self.criterion(z, target, pred_len, target_len)
 
         self.loss = loss
-        loss_data = float(self.loss)
+        loss_data = float(loss)
 
         # 4. compute cer/wer
         if self.training or self.error_calculator is None:
@@ -506,8 +498,6 @@ class E2E(ASRInterface, torch.nn.Module):
             x (torch.Tensor): encoded features (T, D_enc)
 
         """
-        self.eval()
-
         x = torch.as_tensor(x).unsqueeze(0)
         enc_output, _ = self.encoder(x, None)
 
@@ -523,14 +513,12 @@ class E2E(ASRInterface, torch.nn.Module):
             x (torch.Tensor): encoded features (T, D_enc)
 
         """
-        self.eval()
+        p = next(self.parameters())
 
         ilens = [x.shape[0]]
-
         x = x[:: self.subsample[0], :]
-        p = next(self.parameters())
-        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
 
+        h = torch.as_tensor(x, device=p.device, dtype=p.dtype)
         hs = h.contiguous().unsqueeze(0)
 
         hs, _, _ = self.enc(hs, ilens)
@@ -546,7 +534,10 @@ class E2E(ASRInterface, torch.nn.Module):
 
         Returns:
             nbest_hyps (list): n-best decoding results
+
         """
+        self.eval()
+
         if "custom" in self.etype:
             h = self.encode_custom(x)
         else:

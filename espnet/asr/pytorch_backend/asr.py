@@ -987,9 +987,11 @@ def recog(args):
             trans_decoder = model.dec
         else:
             trans_decoder = model.decoder
+        joint_network = model.joint_network
 
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
+            joint_network=joint_network,
             beam_size=args.beam_size,
             nbest=args.nbest,
             lm=rnnlm,

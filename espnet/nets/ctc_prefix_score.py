@@ -220,6 +220,55 @@ class CTCPrefixScoreTH(object):
         )
         return r_new, s_new, f_min, f_max
 
+    def extend_prob(self, x):
+        """Extend CTC prob.
+
+        :param torch.Tensor x: input label posterior sequences (B, T, O)
+        """
+
+        if self.x.shape[1] < x.shape[1]:  # self.x (2,T,B,O); x (B,T,O)
+            # Pad the rest of posteriors in the batch
+            # TODO(takaaki-hori): need a better way without for-loops
+            xlens = [x.size(1)]
+            for i, l in enumerate(xlens):
+                if l < self.input_length:
+                    x[i, l:, :] = self.logzero
+                    x[i, l:, self.blank] = 0
+            tmp_x = self.x
+            xn = x.transpose(0, 1)  # (B, T, O) -> (T, B, O)
+            xb = xn[:, :, self.blank].unsqueeze(2).expand(-1, -1, self.odim)
+            self.x = torch.stack([xn, xb])  # (2, T, B, O)
+            self.x[:, : tmp_x.shape[1], :, :] = tmp_x
+            self.input_length = x.size(1)
+            self.end_frames = torch.as_tensor(xlens) - 1
+
+    def extend_state(self, state):
+        """Compute CTC prefix state.
+
+
+        :param state    : CTC state
+        :return ctc_state
+        """
+
+        if state is None:
+            # nothing to do
+            return state
+        else:
+            r_prev, s_prev, f_min_prev, f_max_prev = state
+
+            r_prev_new = torch.full(
+                (self.input_length, 2),
+                self.logzero,
+                dtype=self.dtype,
+                device=self.device,
+            )
+            start = max(r_prev.shape[0], 1)
+            r_prev_new[0:start] = r_prev
+            for t in six.moves.range(start, self.input_length):
+                r_prev_new[t, 1] = r_prev_new[t - 1, 1] + self.x[0, t, :, self.blank]
+
+            return (r_prev_new, s_prev, f_min_prev, f_max_prev)
+
 
 class CTCPrefixScore(object):
     """Compute CTC label sequence scores

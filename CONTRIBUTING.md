@@ -116,7 +116,7 @@ Technically, a test file should only cover methods from one file (e.g.: `test_tr
 to highlight covered and missed lines. For more details, please refer to [coverage-test](https://pytest-cov.readthedocs.io/en/latest/readme.html).
 - We limited test running time to 2.0 seconds (see: [pytest-timeouts](https://pypi.org/project/pytest-timeouts/)). As such, 
 we recommend using small model parameters and avoiding dynamic imports, file access, and unnecessary loops. If a unit test needs
-more running time, you can annotate your test with `@pytest.mark.timeout(sec)`.
+more running time, you can annotate your test with `@pytest.mark.execution_timeout(sec)`.
 - For test initialization (parameters, modules, etc), you can use pytest fixtures. Refer to  [pytest fixtures](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects) for more information.
    
 

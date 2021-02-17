@@ -210,11 +210,17 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
 
     batch = prepare_inputs(idim, odim, ilens, olens)
 
+    # to avoid huge training time, cer/wer report
+    # is only enabled at validation steps
+    if train_args.report_cer or train_args.report_wer:
+        model.training = False
+
     loss = model(*batch)
     loss.backward()
 
     beam_search = BeamSearchTransducer(
         decoder=model.dec,
+        joint_network=model.joint_network,
         beam_size=recog_args.beam_size,
         lm=recog_args.rnnlm,
         lm_weight=recog_args.lm_weight,
@@ -261,6 +267,7 @@ def test_pytorch_transducer_gpu_trainable(trans_type):
         {"report_cer": True, "report_wer": True},
     ],
 )
+@pytest.mark.execution_timeout(2.8)
 def test_pytorch_multi_gpu_trainable(train_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(**train_dic)
