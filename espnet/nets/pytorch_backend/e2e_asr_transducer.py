@@ -1,10 +1,8 @@
 """Transducer speech recognition model (pytorch)."""
 
 from argparse import Namespace
-import ast
 from collections import Counter
 from dataclasses import asdict
-from distutils.util import strtobool
 import logging
 import math
 import numpy
@@ -16,6 +14,17 @@ from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet.nets.pytorch_backend.transducer.arguments import (
+    add_encoder_general_arguments,  # noqa: H301
+    add_rnn_encoder_arguments,  # noqa: H301
+    add_custom_encoder_arguments,  # noqa: H301
+    add_decoder_general_arguments,  # noqa: H301
+    add_rnn_decoder_arguments,  # noqa: H301
+    add_custom_decoder_arguments,  # noqa: H301
+    add_custom_training_arguments,  # noqa: H301
+    add_transducer_arguments,  # noqa: H301
+    add_auxiliary_task_arguments,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transducer.auxiliary_task import AuxiliaryTask
 from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
 from espnet.nets.pytorch_backend.transducer.custom_encoder import CustomEncoder
@@ -30,6 +39,9 @@ from espnet.nets.pytorch_backend.transducer.utils import valid_aux_task_layer_li
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
+)
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
+    LabelSmoothingLoss,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
@@ -62,280 +74,90 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def add_arguments(parser):
-        """Extend arguments for transducer models.
+        """Add arguments for transducer model."""
+        E2E.encoder_add_general_arguments(parser)
+        E2E.encoder_add_rnn_arguments(parser)
+        E2E.encoder_add_custom_arguments(parser)
 
-        Both RNN and custom modules are supported.
-        General options encapsulate both modules options.
+        E2E.decoder_add_general_arguments(parser)
+        E2E.decoder_add_rnn_arguments(parser)
+        E2E.decoder_add_custom_arguments(parser)
 
-        """
-        group = parser.add_argument_group("transducer model setting")
+        E2E.training_add_custom_arguments(parser)
+        E2E.transducer_add_arguments(parser)
+        E2E.auxiliary_task_add_arguments(parser)
 
-        # Encoder - general
-        group.add_argument(
-            "--etype",
-            default="blstmp",
-            type=str,
-            choices=[
-                "custom",
-                "lstm",
-                "blstm",
-                "lstmp",
-                "blstmp",
-                "vgglstmp",
-                "vggblstmp",
-                "vgglstm",
-                "vggblstm",
-                "gru",
-                "bgru",
-                "grup",
-                "bgrup",
-                "vgggrup",
-                "vggbgrup",
-                "vgggru",
-                "vggbgru",
-            ],
-            help="Type of encoder network architecture",
-        )
-        group.add_argument(
-            "--dropout-rate",
-            default=0.0,
-            type=float,
-            help="Dropout rate for the encoder",
-        )
-        # Encoder - RNN
-        group.add_argument(
-            "--elayers",
-            default=4,
-            type=int,
-            help="Number of encoder layers (for shared recognition part "
-            "in multi-speaker asr mode)",
-        )
-        group.add_argument(
-            "--eunits",
-            "-u",
-            default=300,
-            type=int,
-            help="Number of encoder hidden units",
-        )
-        group.add_argument(
-            "--eprojs", default=320, type=int, help="Number of encoder projection units"
-        )
-        group.add_argument(
-            "--subsample",
-            default="1",
-            type=str,
-            help="Subsample input frames x_y_z means subsample every x frame "
-            "at 1st layer, every y frame at 2nd layer etc.",
-        )
-        # Encoder - Custom
-        group.add_argument(
-            "--enc-block-arch",
-            type=eval,
-            action="append",
-            default=None,
-            help="Encoder architecture definition by blocks",
-        )
-        group.add_argument(
-            "--enc-block-repeat",
-            default=0,
-            type=int,
-            help="Repeat N times the provided encoder blocks if N > 1",
-        )
-        group.add_argument(
-            "--custom-enc-input-layer",
-            type=str,
-            default="conv2d",
-            choices=["conv2d", "vgg2l", "linear", "embed"],
-            help="Custom encoder input layer type",
-        )
-        group.add_argument(
-            "--custom-enc-positional-encoding-type",
-            type=str,
-            default="abs_pos",
-            choices=["abs_pos", "scaled_abs_pos", "rel_pos"],
-            help="Custom encoder positional encoding layer type",
-        )
-        group.add_argument(
-            "--custom-enc-self-attn-type",
-            type=str,
-            default="self_attn",
-            choices=["self_attn", "rel_self_attn"],
-            help="Custom encoder self-attention type",
-        )
-        group.add_argument(
-            "--custom-enc-pw-activation-type",
-            type=str,
-            default="relu",
-            choices=["relu", "hardtanh", "selu", "swish"],
-            help="Custom encoder pointwise activation type",
-        )
-        group.add_argument(
-            "--custom-enc-conv-mod-activation-type",
-            type=str,
-            default="swish",
-            choices=["relu", "hardtanh", "selu", "swish"],
-            help="Custom encoder convolutional module activation type",
-        )
-        # Decoder - general
-        group.add_argument(
-            "--dtype",
-            default="lstm",
-            type=str,
-            choices=["lstm", "gru", "custom"],
-            help="Type of decoder to use",
-        )
-        group.add_argument(
-            "--dropout-rate-decoder",
-            default=0.0,
-            type=float,
-            help="Dropout rate for the decoder",
-        )
-        group.add_argument(
-            "--dropout-rate-embed-decoder",
-            default=0.0,
-            type=float,
-            help="Dropout rate for the decoder embedding layer",
-        )
-        # Decoder - RNN
-        group.add_argument(
-            "--dec-embed-dim",
-            default=320,
-            type=int,
-            help="Number of decoder embeddings dimensions",
-        )
-        group.add_argument(
-            "--dlayers", default=1, type=int, help="Number of decoder layers"
-        )
-        group.add_argument(
-            "--dunits", default=320, type=int, help="Number of decoder hidden units"
-        )
-        # Decoder - Custom
-        group.add_argument(
-            "--dec-block-arch",
-            type=eval,
-            action="append",
-            default=None,
-            help="Custom decoder blocks definition",
-        )
-        group.add_argument(
-            "--dec-block-repeat",
-            default=1,
-            type=int,
-            help="Repeat N times the provided decoder blocks if N > 1",
-        )
-        group.add_argument(
-            "--custom-dec-input-layer",
-            type=str,
-            default="embed",
-            choices=["linear", "embed"],
-            help="Custom decoder input layer type",
-        )
-        group.add_argument(
-            "--custom-dec-pw-activation-type",
-            type=str,
-            default="relu",
-            choices=["relu", "hardtanh", "selu", "swish"],
-            help="Custom decoder pointwise activation type",
-        )
-        # Transformer - General
-        group.add_argument(
-            "--transformer-warmup-steps",
-            default=25000,
-            type=int,
-            help="Optimizer warmup steps",
-        )
-        group.add_argument(
-            "--transformer-init",
-            type=str,
-            default="pytorch",
-            choices=[
-                "pytorch",
-                "xavier_uniform",
-                "xavier_normal",
-                "kaiming_uniform",
-                "kaiming_normal",
-            ],
-            help="How to initialize transformer parameters",
-        )
-        group.add_argument(
-            "--transformer-lr",
-            default=10.0,
-            type=float,
-            help="Initial value of learning rate",
-        )
-        # Transducer
-        group.add_argument(
-            "--trans-type",
-            default="warp-transducer",
-            type=str,
-            choices=["warp-transducer", "warp-rnnt"],
-            help="Type of transducer implementation to calculate loss.",
-        )
-        group.add_argument(
-            "--transducer-weight",
-            default=1.0,
-            type=float,
-            help="Weight of transducer loss when auxiliary task is used.",
-        )
-        group.add_argument(
-            "--joint-dim",
-            default=320,
-            type=int,
-            help="Number of dimensions in joint space",
-        )
-        group.add_argument(
-            "--joint-activation-type",
-            type=str,
-            default="tanh",
-            choices=["relu", "tanh", "swish"],
-            help="Joint network activation type",
-        )
-        group.add_argument(
-            "--score-norm",
-            type=strtobool,
-            nargs="?",
-            default=True,
-            help="Normalize transducer scores by length",
-        )
-        # Auxiliary task
-        group.add_argument(
-            "--aux-task-type",
-            nargs="?",
-            default=None,
-            choices=["default", "symm_kl_div", "both"],
-            help="Type of auxiliary task.",
-        )
-        group.add_argument(
-            "--aux-task-layer-list",
-            default=None,
-            type=ast.literal_eval,
-            help="List of layers to use for auxiliary task.",
-        )
-        group.add_argument(
-            "--aux-task-weight",
-            default=0.3,
-            type=float,
-            help="Weight of auxiliary task loss.",
-        )
-        group.add_argument(
-            "--aux-ctc",
-            type=strtobool,
-            nargs="?",
-            default=False,
-            help="Whether to use CTC as auxiliary task.",
-        )
-        group.add_argument(
-            "--aux-ctc-weight",
-            default=1.0,
-            type=float,
-            help="Weight of auxiliary task loss",
-        )
-        group.add_argument(
-            "--aux-ctc-dropout-rate",
-            default=0.0,
-            type=float,
-            help="Dropout rate for auxiliary CTC",
-        )
+        return parser
+
+    @staticmethod
+    def encoder_add_general_arguments(parser):
+        """Add general arguments for encoder."""
+        group = parser.add_argument_group("Encoder general arguments")
+        group = add_encoder_general_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def encoder_add_rnn_arguments(parser):
+        """Add arguments for RNN encoder."""
+        group = parser.add_argument_group("RNN encoder arguments")
+        group = add_rnn_encoder_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def encoder_add_custom_arguments(parser):
+        """Add arguments for Custom encoder."""
+        group = parser.add_argument_group("Custom encoder arguments")
+        group = add_custom_encoder_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def decoder_add_general_arguments(parser):
+        """Add general arguments for decoder."""
+        group = parser.add_argument_group("Decoder general arguments")
+        group = add_decoder_general_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def decoder_add_rnn_arguments(parser):
+        """Add arguments for RNN decoder."""
+        group = parser.add_argument_group("RNN decoder arguments")
+        group = add_rnn_decoder_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def decoder_add_custom_arguments(parser):
+        """Add arguments for Custom decoder."""
+        group = parser.add_argument_group("Custom decoder arguments")
+        group = add_custom_decoder_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def training_add_custom_arguments(parser):
+        """Add arguments for Custom architecture training."""
+        group = parser.add_argument_group("Training arguments for custom archictecture")
+        group = add_custom_training_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def transducer_add_arguments(parser):
+        """Add arguments for transducer model."""
+        group = parser.add_argument_group("Transducer model arguments")
+        group = add_transducer_arguments(group)
+
+        return parser
+
+    @staticmethod
+    def auxiliary_task_add_arguments(parser):
+        """Add arguments for auxiliary task."""
+        group = parser.add_argument_group("Auxiliary task arguments")
+        group = add_auxiliary_task_arguments(group)
 
         return parser
 
@@ -360,12 +182,13 @@ class E2E(ASRInterface, torch.nn.Module):
         args = fill_missing_args(args, self.add_arguments)
 
         self.is_rnnt = True
+        self.transducer_weight = args.transducer_weight
 
         self.use_aux_task = (
             True if (args.aux_task_type is not None and training) else False
         )
         self.use_aux_ctc = args.aux_ctc and training
-        self.aux_ctc_weight = args.aux_ctc_weight
+        self.use_aux_cross_entropy = args.aux_cross_entropy and training
 
         if self.use_aux_task:
             n_layers = (
@@ -519,8 +342,15 @@ class E2E(ASRInterface, torch.nn.Module):
                     ),
                     odim,
                 )
-                self.transducer_weight = args.transducer_weight
                 self.aux_ctc_weight = args.aux_ctc_weight
+
+            if self.use_aux_cross_entropy:
+                self.aux_decoder_output = torch.nn.Linear(decoder_out, odim)
+
+                self.aux_cross_entropy = LabelSmoothingLoss(
+                    odim, ignore_id, args.aux_cross_entropy_smoothing
+                )
+                self.aux_cross_entropy_weight = args.aux_cross_entropy_weight
 
         self.loss = None
         self.rnnlm = None
@@ -562,7 +392,9 @@ class E2E(ASRInterface, torch.nn.Module):
             hs_pad, aux_hs_pad = _hs_pad, None
 
         # 1.5. transducer preparation related
-        ys_in_pad, target, pred_len, target_len = prepare_loss_inputs(ys_pad, hs_mask)
+        ys_in_pad, ys_out_pad, target, pred_len, target_len = prepare_loss_inputs(
+            ys_pad, hs_mask
+        )
 
         # 2. decoder
         if "custom" in self.dtype:
@@ -574,17 +406,30 @@ class E2E(ASRInterface, torch.nn.Module):
         z = self.joint_network(hs_pad.unsqueeze(2), pred_pad.unsqueeze(1))
 
         # 3. loss computation
-        loss = self.criterion(z, target, pred_len, target_len)
+        loss_trans = self.criterion(z, target, pred_len, target_len)
 
         if self.use_aux_task and aux_hs_pad is not None:
-            loss += self.auxiliary_task(
+            loss_trans += self.auxiliary_task(
                 aux_hs_pad, pred_pad, z, target, pred_len, target_len
             )
 
         if self.use_aux_ctc:
             loss_ctc = self.aux_ctc(hs_pad, hs_mask, ys_pad)
+        else:
+            loss_ctc = 0
 
-            loss = self.transducer_weight * loss + self.aux_ctc_weight * loss_ctc
+        if self.use_aux_cross_entropy:
+            loss_ce = self.aux_cross_entropy(
+                self.aux_decoder_output(pred_pad), ys_out_pad
+            )
+        else:
+            loss_ce = 0
+
+        loss = (
+            self.transducer_weight * loss_trans
+            + self.aux_ctc_weight * loss_ctc
+            + self.aux_cross_entropy_weight * loss_ce
+        )
 
         self.loss = loss
         loss_data = float(loss)
