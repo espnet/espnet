@@ -187,8 +187,12 @@ class E2E(ASRInterface, torch.nn.Module):
         self.use_aux_task = (
             True if (args.aux_task_type is not None and training) else False
         )
+
         self.use_aux_ctc = args.aux_ctc and training
+        self.aux_ctc_weight = args.aux_ctc_weight
+
         self.use_aux_cross_entropy = args.aux_cross_entropy and training
+        self.aux_cross_entropy_weight = args.aux_cross_entropy_weight
 
         if self.use_aux_task:
             n_layers = (
@@ -342,7 +346,6 @@ class E2E(ASRInterface, torch.nn.Module):
                     ),
                     odim,
                 )
-                self.aux_ctc_weight = args.aux_ctc_weight
 
             if self.use_aux_cross_entropy:
                 self.aux_decoder_output = torch.nn.Linear(decoder_out, odim)
@@ -350,7 +353,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 self.aux_cross_entropy = LabelSmoothingLoss(
                     odim, ignore_id, args.aux_cross_entropy_smoothing
                 )
-                self.aux_cross_entropy_weight = args.aux_cross_entropy_weight
 
         self.loss = None
         self.rnnlm = None
