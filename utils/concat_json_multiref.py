@@ -16,7 +16,7 @@ from espnet.utils.cli_utils import get_commandline_args
 def get_parser():
     parser = argparse.ArgumentParser(
         description="concatenate multiple json files for data augmentation",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("jsons", type=str, nargs="+", help="json files")
     return parser
