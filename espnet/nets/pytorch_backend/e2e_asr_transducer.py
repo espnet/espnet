@@ -414,6 +414,11 @@ class E2E(ASRInterface, torch.nn.Module):
             )
 
         if self.use_aux_ctc:
+            if "custom" in self.etype:
+                hs_mask = torch.IntTensor(
+                    [h.size(1) for h in hs_mask],
+                ).to(hs_mask.device)
+
             loss_ctc = self.aux_ctc(hs_pad, hs_mask, ys_pad)
         else:
             loss_ctc = 0
