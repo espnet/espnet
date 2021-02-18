@@ -114,7 +114,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # remove utt having > 2000 frames or < 10 frames or
     # remove utt having > 400 characters or 0 characters
-    remove_longshortdata.sh --maxchars 400 data/train data/train_nodup_trim
+    remove_longshortdata.sh --maxchars 400 data/train_nodup data/train_nodup_trim
     remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
 
     # speed-perturbed

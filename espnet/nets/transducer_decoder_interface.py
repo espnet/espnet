@@ -1,5 +1,6 @@
 """Transducer decoder interface module."""
 
+from dataclasses import dataclass
 from typing import Any
 from typing import Dict
 from typing import List
@@ -9,8 +10,25 @@ from typing import Union
 
 import torch
 
-from espnet.nets.beam_search_transducer import Hypothesis
-from espnet.nets.beam_search_transducer import NSCHypothesis
+
+@dataclass
+class Hypothesis:
+    """Default hypothesis definition for beam search."""
+
+    score: float
+    yseq: List[int]
+    dec_state: Union[
+        Tuple[torch.Tensor, Optional[torch.Tensor]], List[torch.Tensor], torch.Tensor
+    ]
+    lm_state: Union[Dict[str, Any], List[Any]] = None
+
+
+@dataclass
+class NSCHypothesis(Hypothesis):
+    """Extended hypothesis definition for NSC beam search."""
+
+    y: List[torch.Tensor] = None
+    lm_scores: torch.Tensor = None
 
 
 class TransducerDecoderInterface:

@@ -98,12 +98,14 @@ To train the neural vocoder, please check the following repositories:
 ### ESPnet2
 See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
-- Indepedent from Kaldi/Chainer
+- Indepedent from Kaldi/Chainer, unlike ESPnet1
 - On the fly feature extraction and text processing when training
-- Multi GPUs training on single/multi nodes (Distributed training)
+- Supporting DistributedDataParallel and DaraParallel both
+- Supporting multiple nodes training and integrated with [Slurm](https://slurm.schedmd.com/) or MPI
+- Supporting Sharded Training provided by [fairscale](https://github.com/facebookresearch/fairscale)
 - A template recipe which can be applied for all corpora
 - Possible to train any size of corpus without cpu memory error
-- (Under development) [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
+- [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 - Integrated with [wandb](https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration)
 
 ## Installation

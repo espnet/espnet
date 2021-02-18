@@ -1,11 +1,6 @@
 """Search algorithms for transducer models."""
 
-from dataclasses import dataclass
-from typing import Any
-from typing import Dict
 from typing import List
-from typing import Optional
-from typing import Tuple
 from typing import Union
 
 import numpy as np
@@ -17,27 +12,9 @@ from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
 from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import substract
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
-
-
-@dataclass
-class Hypothesis:
-    """Default hypothesis definition for beam search."""
-
-    score: float
-    yseq: List[int]
-    dec_state: Union[
-        Tuple[torch.Tensor, Optional[torch.Tensor]], List[torch.Tensor], torch.Tensor
-    ]
-    lm_state: Union[Dict[str, Any], List[Any]] = None
-
-
-@dataclass
-class NSCHypothesis(Hypothesis):
-    """Extended hypothesis definition for NSC beam search."""
-
-    y: List[torch.Tensor] = None
-    lm_scores: torch.Tensor = None
+from espnet.nets.transducer_decoder_interface import Hypothesis
+from espnet.nets.transducer_decoder_interface import NSCHypothesis
+from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
 class BeamSearchTransducer:
@@ -45,7 +22,7 @@ class BeamSearchTransducer:
 
     def __init__(
         self,
-        decoder: Union[AbsDecoder, torch.nn.Module],
+        decoder: Union[TransducerDecoderInterface, torch.nn.Module],
         joint_network: torch.nn.Module,
         beam_size: int,
         lm: torch.nn.Module = None,

@@ -67,6 +67,16 @@ echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
 
+# test finetuning
+## test transfer learning
+echo "=== ASR (backend=pytorch, model=rnnt, transfer_learning=enc) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_pre_init_enc.yaml \
+         --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=rnnt, transfer_learning=LM) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_pre_init_lm.yaml \
+         --decode-config conf/decode_transducer.yaml
+## to do: cover all tasks + freezing option
+
 echo "==== ASR (backend=pytorch num-encs 2) ==="
 ./run.sh --python "${python}" --stage 2 --train-config ./conf/train_mulenc2.yaml --decode-config ./conf/decode_mulenc2.yaml --mulenc true
 # Remove generated files in order to reduce the disk usage
