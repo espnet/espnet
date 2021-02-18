@@ -10,7 +10,8 @@
 backend=pytorch # chainer or pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
+dec_ngpu=0      # number of gpus during decoding ("0" uses cpu, otherwise use gpu)
 nj=4            # number of parallel jobs for decoding
 debugmode=1
 dumpdir=dump    # directory to dump full features
@@ -32,7 +33,7 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-recog_all=false  # If false, decoding is performed on the subset (dev, test) only
+decode_all=false  # If false, decoding is performed on the subset (dev, test) only
 
 # model average realted (only for transformer)
 n_average=5                  # the number of ASR models to be averaged
@@ -111,12 +112,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    fbankdir=fbank
-    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train dev2010 tst2010 tst2013 tst2014 tst2015; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
 
     # make a dev set
     utils/subset_data_dir.sh --speakers data/train 2000 data/dev
@@ -138,28 +133,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         done
     done
 
-    # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/train_nodevtest data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/train_nodevtest data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/train_nodevtest data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/train_nodevtest_sp data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_nodevtest_sp exp/make_fbank/train_nodevtest_sp ${fbankdir}
-    for lang in en de; do
-        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.${case}.${lang} >data/train_nodevtest_sp/text.${case}.${lang}
-        done
-        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.${case}.${lang} >>data/train_nodevtest_sp/text.${case}.${lang}
-        done
-        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.${case}.${lang} >>data/train_nodevtest_sp/text.${case}.${lang}
-        done
+    fbankdir=fbank
+    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+    for x in dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
     done
+
+    # speed perturbation
+    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodevtest data/train_nodevtest_sp ${fbankdir}
 
     # Divide into source and target languages
     for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
@@ -173,24 +155,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         cp -rf data/dev.${lang} data/train_dev.${lang}
     done
 
+    # remove long and short utterances
     for x in ${train_set_prefix} train_dev; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in en de; do
-            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.de.tmp/reclist1
-        cut -f 1 -d " " data/${x}.de.tmp/text > data/${x}.de.tmp/reclist2
-        comm -12 data/${x}.de.tmp/reclist1 data/${x}.de.tmp/reclist2 > data/${x}.de.tmp/reclist
-
-        for lang in en de; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.de.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --maxframes 3000 --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en de"
     done
 
     # compute global CMVN
@@ -209,13 +176,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for x in ${recog_set}; do
+    for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} \
-            ${feat_recog_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} ${feat_recog_dir}
     done
 fi
 
@@ -235,9 +199,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(wc -l < ${dict})
-    grep sp1.0 data/${train_set}/text.${src_case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
+    grep sp1.0 data/${train_set}/text.${src_case} | cut -f 2- -d' ' | grep -v -e '^\s*$' > data/lang_1spm/input_${src_case}.txt
+    spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input_${src_case}.txt \
+        --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input_${src_case}.txt \
+        | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
     # NOTE: ASR vocab is created with a source language only
 
@@ -346,7 +312,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --num ${n_average}
     fi
 
-    if [ ${recog_all} = true ]; then
+    if [ ${dec_ngpu} = 1 ]; then
+        nj=1
+    fi
+
+    if [ ${decode_all} = true ]; then
         decode_set=${recog_set}
     else
         decode_set=${recog_subset}
@@ -361,13 +331,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}.json
 
-        #### use CPU for decoding
-        ngpu=0
-
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --config ${decode_config} \
-            --ngpu ${ngpu} \
+            --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
@@ -376,13 +343,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --rnnlm ${lmexpdir}/rnnlm.model.best
 
         if [ ${x} = "dev.en" ] || [ ${x} = "test.en" ]; then
-            local/score_sclite.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
+            score_sclite_case.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
                 ${expdir}/${decode_dir} ${dict}
         else
             set=$(echo ${x} | cut -f 1 -d ".")
             local/score_sclite_reseg.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
                 ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
         fi
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done

@@ -95,24 +95,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         local/divide_lang.sh ${x}
     done
 
+    # remove long and short utterances
     for x in train val; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in en pt; do
-            remove_longshortdata.sh --no_feat true --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.pt.tmp/reclist1
-        cut -f 1 -d " " data/${x}.pt.tmp/text > data/${x}.pt.tmp/reclist2
-        comm -12 data/${x}.pt.tmp/reclist1 data/${x}.pt.tmp/reclist2 > data/${x}.pt.tmp/reclist
-
-        for lang in en pt; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.pt.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --no_feat true --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en pt"
     done
 fi
 
@@ -150,9 +135,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for x in ${trans_set}; do
+    for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
         data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
             data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
@@ -302,7 +285,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            ${expdir}/${decode_dir} pt ${dict}
+            ${expdir}/${decode_dir} "pt" ${dict}
     ) &
     pids+=($!) # store background pids
     done

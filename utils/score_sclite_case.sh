@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 export LC_ALL=C
@@ -79,8 +79,8 @@ lowercase.perl < ${dir}/hyp.trn > ${dir}/hyp.trn.lc
 lowercase.perl < ${dir}/ref.trn > ${dir}/ref.trn.lc
 
 # remove punctuation
-paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn.lc | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/hyp.trn.lc) > ${dir}/hyp.trn.lc.rm
-paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn.lc | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/ref.trn.lc) > ${dir}/ref.trn.lc.rm
+paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn.lc | remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/hyp.trn.lc) > ${dir}/hyp.trn.lc.rm
+paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn.lc | remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/ref.trn.lc) > ${dir}/ref.trn.lc.rm
 
 # detokenize
 detokenizer.perl -l en -q < ${dir}/ref.trn.lc.rm > ${dir}/ref.trn.lc.rm.detok
