@@ -21,7 +21,6 @@ test_sets="tt_${min_or_max}_${sample_rate}"
     --nlsyms_txt data/nlsyms.txt \
     --token_type char \
     --lm_config conf/tuning/train_lm.yaml \
-    --train_aux_set train_si284 \
     --joint_config conf/tuning/train_asr_transformer.yaml \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

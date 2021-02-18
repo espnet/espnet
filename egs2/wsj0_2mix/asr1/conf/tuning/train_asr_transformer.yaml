@@ -32,24 +32,28 @@ scheduler_conf:
 
 # Enhancement Related
 enh_model_conf:
-    loss_type: mask_mse
-    mask_type: psm
-enh_encoder: stft
+    loss_type: si_snr
+enh_encoder: conv
 enh_encoder_conf:
-    n_fft: 256
-    hop_length: 128
-enh_decoder: stft
+    channel: 256
+    kernel_size: 20
+    stride: 10
+enh_decoder: conv
 enh_decoder_conf:
-    n_fft: 256
-    hop_length: 128
-enh_separator: rnn
+    channel: 256
+    kernel_size: 20
+    stride: 10
+enh_separator: tcn
 enh_separator_conf:
-    rnn_type: blstm
     num_spk: 2
+    layer: 6
+    stack: 3
+    bottleneck_dim: 256
+    hidden_dim: 512
+    kernel: 3
+    causal: False
+    norm_type: "gLN"
     nonlinear: relu
-    layer: 3
-    unit: 896
-    dropout: 0.5
 
 # ASR Related
 frontend: default
@@ -93,5 +97,4 @@ asr_model_conf:
 joint_model_conf:
     enh_weight: 0.99
     end2end_train: true
-    enh_return_type: waveform # waveform or spectrum or none
     cal_enh_loss: true # whether to calculate enh_loss, need the reduce in ctc_conf
