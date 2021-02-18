@@ -46,7 +46,7 @@ use_lm_valbest_average=false # if true, the validation `lm_n_average`-best langu
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-datadir=/export/c05/yzhan/kensho
+datadir=/export/c05/
 
 # base url for downloads.
 data_url=
@@ -67,24 +67,25 @@ set -u
 set -o pipefail
 
 train_set=train
-train_dev=val
-#recog_set="dev"
+train_dev=tr_dev
+recog_set=val
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for part in dev train; do
-        local/download_and_untar.sh ${datadir} ${data_url} ${part}
-    done
+        local/download_and_untar.sh ${datadir}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for part in $train_dev; do
+    for part in $train_set $recog_set; do
         # use underscore-separated names in data directories.
         local/data_prep.sh ${part} ${datadir} data/${part}
     done
+    # split train_dev from train
+    local/train_split.sh data/$train_set data/$train_dev
+
 fi
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
