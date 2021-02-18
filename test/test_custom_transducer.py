@@ -38,6 +38,8 @@ def make_train_args(**kwargs):
         aux_task_weight=0.1,
         aux_task_layer_list=[],
         aux_ctc=False,
+        aux_ctc_weight=1.0,
+        aux_ctc_dropout_rate=0.0,
         trans_type="warp-transducer",
         rnnt_mode="rnnt_mode",
         char_list=["a", "e", "i", "o", "u"],
@@ -328,7 +330,6 @@ def test_calculate_plot_attention():
     from espnet.nets.pytorch_backend.transformer import plot
 
     train_args = make_train_args(report_cer=True)
-
     model, x, ilens, y, data, uttid_list = prepare(train_args)
 
     attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
@@ -359,9 +360,11 @@ def test_calculate_plot_attention():
             "custom_enc_self_attn_type": "rel_self_attn",
             "custom_enc_positional_encoding_type": "rel_pos",
             "enc_block_repeat": 3,
-            "aux_task_type": "js_div",
+            "aux_task_type": "symm_kl_div",
             "aux_task_layer_list": [0, 1],
         },
+        {"aux_ctc": True, "aux_ctc_weight": 0.5},
+        {"aux_cross_entropy": True, "aux_cross_entropy_weight": 0.5},
     ],
 )
 def test_auxiliary_task(train_dic):

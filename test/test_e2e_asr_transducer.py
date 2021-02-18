@@ -295,6 +295,17 @@ def test_pytorch_multi_gpu_trainable(train_dic):
     loss.backward(loss.new_ones(ngpu))
 
 
+def test_calculate_plot_attention():
+    idim, odim, ilens, olens = get_default_scope_inputs()
+    train_args = get_default_train_args()
+
+    model = E2E(idim, odim, train_args)
+
+    batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=False)
+
+    assert model.calculate_all_attentions(*batch) == []
+
+
 @pytest.mark.parametrize(
     "train_dic",
     [
@@ -302,7 +313,7 @@ def test_pytorch_multi_gpu_trainable(train_dic):
         {
             "etype": "vggblstm",
             "elayers": 3,
-            "aux_task_type": "js_div",
+            "aux_task_type": "symm_kl_div",
             "aux_task_layer_list": [0, 1],
         },
         {
@@ -312,6 +323,7 @@ def test_pytorch_multi_gpu_trainable(train_dic):
             "aux_task_layer_list": [0],
         },
         {"elayers": 2, "aux_ctc": True, "aux_ctc_weight": 0.5},
+        {"elayers": 2, "aux_cross_entropy": True, "aux_cross_entropy_weight": 0.5},
     ],
 )
 def test_auxiliary_task(train_dic):
