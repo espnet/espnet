@@ -348,7 +348,7 @@ Basically, this option makes training iteration faster than `--batch-count seq`.
 ### How to use finetuning
 
 ESPnet currently supports two finetuning operations: transfer learning and freezing.
-We expect the user to define the following options in its main training config (e.g.: conf/train*.yaml). If needed, they can be directly passed to `(asr|tts|vs)_train.py` by adding the prefix `--` to the options.
+We expect the user to define the following options in its main training config (e.g.: conf/train*.yaml). If needed, they can be directly passed to `(asr|tts|vc)_train.py` by adding the prefix `--` to the options.
 
 #### Transfer learning
 
@@ -357,17 +357,18 @@ We expect the user to define the following options in its main training config (
 - Additionally, a list of encoder and decoder modules (separated by a comma) can also be specified to control the modules to transfer with the options `enc-init-mods` and `dec-init-mods`.
 - For each specified module, we only expect a partial match with the start of the target model module name. Thus, multiple modules can be specified with the same key if they share a common prefix.
 
-    Mandatory: `enc-init: /home/usr/espnet/egs/vivos/asr1/exp/train_nodev_pytorch_train/results/model.loss.best` -> specify a pre-trained model on VIVOS for transfer learning.
-        Example 1: `enc-init-mods: 'enc.'` -> transfer all encoder parameters.
-        Example 2: `enc-init-mods: 'enc.embed.,enc.0.'` -> transfer encoder embedding layer and first layer parameters.
+    > Mandatory: `enc-init: /home/usr/espnet/egs/vivos/asr1/exp/train_nodev_pytorch_train/results/model.loss.best` -> specify a pre-trained model on VIVOS for transfer learning.  
+         > Example 1: `enc-init-mods: 'enc.'` -> transfer all encoder parameters.  
+         > Example 2: `enc-init-mods: 'enc.embed.,enc.0.'` -> transfer encoder embedding layer and first layer parameters.  
+
 
 #### Freezing
 
 - Freezing option can be enabled with `freeze-mods`.
 - The option take a list of model modules (separated by a comma) as argument. As previously, we do not expect a complete match for the specified modules.
 
-    Example 1: `freeze-mods: 'enc.embed.'` -> freeze encoder embedding layer parameters.
-    Example 2: `freeze-mods: 'dec.embed,dec.0.'` -> freeze decoder embedding layer and first layer parameters.
+    > Example 1: `freeze-mods: 'enc.embed.'` -> freeze encoder embedding layer parameters.  
+    > Example 2: `freeze-mods: 'dec.embed,dec.0.'` -> freeze decoder embedding layer and first layer parameters.
 
 ### Important notes
 
@@ -375,7 +376,7 @@ We expect the user to define the following options in its main training config (
 - We also support initialization with a pre-trained RNN LM for the RNN-transducer decoder.
 - RNN models use different key names for encoder and decoder parts compared to Transformer, Conformer or Custom models:
   - RNN model use `enc.` for encoder part and `dec.` for decoder part.
-  - Transformer/Conformer/Custom model use `encoder.` for encoder part and `decoder` for decoder part.
+  - Transformer/Conformer/Custom model use `encoder.` for encoder part and `decoder.` for decoder part.
 
 ### Known issues
 
