@@ -36,7 +36,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         enh_weight: float = 0.5,
         cal_enh_loss: bool = True,
         end2end_train: bool = True,
-        additional_utt_mvn: bool = False,
         total_loss_scale: float = 1,
     ):
         assert check_argument_types()
@@ -367,33 +366,34 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         )
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
-        loss, speech_pre, speech_ref, mask_pre, out_lengths, perm = self._compute_loss(
+        loss, speech_pre, others, out_lengths, perm  = self.enh_subclass._compute_loss(
             speech_mix,
             speech_lengths,
             speech_ref,
             dereverb_speech_ref=dereverb_speech_ref,
             noise_ref=noise_ref,
-            cal_loss=self.cal_enh_loss,  # whether to cal enh_loss
         )
+        if self.enh_subclass.loss_type != "si_snr":
+            speech_pre = [self.enh_subclass.decoder(ps, speech_lengths)[0] for ps in speech_pre]
 
 
-        if self.enh_return_type == "waveform":
-            if resort_pre and perm is not None:
-                # resort the prediction wav with the perm from enh_loss
-                # speech_pre : List[(BS, ...)] of spk
-                # perm : List[(num_spk)] of batch
-                speech_pre_list = []
-                for batch_idx, p in enumerate(perm):
-                    batch_list = []
-                    for spk_idx in p:
-                        batch_list.append(speech_pre[spk_idx][batch_idx])  # spk,...
-                    speech_pre_list.append(torch.stack(batch_list, dim=0))
 
-                speech_pre = torch.stack(speech_pre_list, dim=0)  # bs,num_spk,...
-                speech_pre = torch.unbind(speech_pre, dim=1)  # list[(bs,...)] of spk
-            else:
-                # speech_pre = torch.stack(speech_pre, dim=1)  # bs,num_spk,...
-                pass
+        if resort_pre and perm is not None:
+            # resort the prediction wav with the perm from enh_loss
+            # speech_pre : List[(BS, ...)] of spk
+            # perm : List[(num_spk)] of batch
+            speech_pre_list = []
+            for batch_idx, p in enumerate(perm):
+                batch_list = []
+                for spk_idx in p:
+                    batch_list.append(speech_pre[spk_idx][batch_idx])  # spk,...
+                speech_pre_list.append(torch.stack(batch_list, dim=0))
+
+            speech_pre = torch.stack(speech_pre_list, dim=0)  # bs,num_spk,...
+            speech_pre = torch.unbind(speech_pre, dim=1)  # list[(bs,...)] of spk
+        else:
+            # speech_pre = torch.stack(speech_pre, dim=1)  # bs,num_spk,...
+            pass
 
 
         return loss, perm, speech_pre, out_lengths
