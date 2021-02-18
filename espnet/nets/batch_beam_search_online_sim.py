@@ -33,29 +33,41 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
 
         """
         train_config_file = Path(asr_config)
+        self.block_size = None
+        self.hop_size = None
+        self.look_ahead = None
+        config = None
         with train_config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
-            config = args["config"]
-        if config is None:
-            logging.info(
-                "Cannot find config file for streaming decoding: "
-                + "apply batch beam search instead."
-            )
-            self.block_size = None
-            self.hop_size = None
-            self.look_ahead = None
-            return
-        config_file = Path(config)
-        with config_file.open("r", encoding="utf-8") as f:
-            args = yaml.safe_load(f)
-        if "encoder_conf" in args.keys():
-            enc_args = args["encoder_conf"]
-        if enc_args and "block_size" in enc_args:
-            self.block_size = enc_args["block_size"]
-        if enc_args and "hop_size" in enc_args:
-            self.hop_size = enc_args["hop_size"]
-        if enc_args and "look_ahead" in enc_args:
-            self.look_ahead = enc_args["look_ahead"]
+            if "encoder_conf" in args.keys():
+                if "block_size" in args["encoder_conf"].keys():
+                    self.block_size = args["encoder_conf"]["block_size"]
+                if "hop_size" in args["encoder_conf"].keys():
+                    self.hop_size = args["encoder_conf"]["hop_size"]
+                if "look_ahead" in args["encoder_conf"].keys():
+                    self.look_ahead = args["encoder_conf"]["look_ahead"]
+            elif "config" in args.keys():
+                config = args["config"]
+                if config is None:
+                    logging.info(
+                        "Cannot find config file for streaming decoding: "
+                        + "apply batch beam search instead."
+                    )
+                    return
+        if (
+            self.block_size is None or self.hop_size is None or self.look_ahead is None
+        ) and config is not None:
+            config_file = Path(config)
+            with config_file.open("r", encoding="utf-8") as f:
+                args = yaml.safe_load(f)
+            if "encoder_conf" in args.keys():
+                enc_args = args["encoder_conf"]
+            if enc_args and "block_size" in enc_args:
+                self.block_size = enc_args["block_size"]
+            if enc_args and "hop_size" in enc_args:
+                self.hop_size = enc_args["hop_size"]
+            if enc_args and "look_ahead" in enc_args:
+                self.look_ahead = enc_args["look_ahead"]
 
     def set_block_size(self, block_size: int):
         """Set block size for streaming decoding.
@@ -139,7 +151,7 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
 
             while process_idx < maxlen:
                 logging.debug("position " + str(process_idx))
-                best = self.search(running_hyps, x)
+                best = self.search(running_hyps, h)
 
                 if process_idx == maxlen - 1:
                     # end decoding
