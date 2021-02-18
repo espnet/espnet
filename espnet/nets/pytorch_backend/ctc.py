@@ -37,7 +37,9 @@ class CTC(torch.nn.Module):
 
         if self.ctc_type == "builtin":
             reduction_type = "sum" if reduce else "none"
-            self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type, zero_infinity=True)
+            self.ctc_loss = torch.nn.CTCLoss(
+                reduction=reduction_type, zero_infinity=True
+            )
         elif self.ctc_type == "cudnnctc":
             reduction_type = "sum" if reduce else "none"
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
@@ -95,13 +97,15 @@ class CTC(torch.nn.Module):
             ys_hat = ys_hat.transpose(0, 1)
 
         if self.ctc_type == "builtin":
-            olens = to_device(ys_hat,torch.LongTensor([len(s) for s in ys]))
+            olens = to_device(ys_hat, torch.LongTensor([len(s) for s in ys]))
             hlens = hlens.long()
             self.loss = self.loss_fn(ys_hat, ys_pad, hlens, olens)
         else:
             self.loss = None
             hlens = torch.from_numpy(np.fromiter(hlens, dtype=np.int32))
-            olens = torch.from_numpy(np.fromiter((x.size(0) for x in ys), dtype=np.int32))
+            olens = torch.from_numpy(
+                np.fromiter((x.size(0) for x in ys), dtype=np.int32)
+            )
             # zero padding for ys
             ys_true = torch.cat(ys).cpu().int()  # batch x olen
             # get ctc loss
@@ -117,9 +121,9 @@ class CTC(torch.nn.Module):
             if self.ctc_type == "gtnctc":
                 # keep as list for gtn
                 ys_true = ys
-            self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
-                dtype=dtype
-            )
+            self.loss = to_device(
+                hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)
+            ).to(dtype=dtype)
 
         # get length info
         logging.info(
