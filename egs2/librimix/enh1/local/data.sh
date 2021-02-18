@@ -49,6 +49,7 @@ git clone https://github.com/JorisCos/LibriMix ./data/LibriMix
 # Download WHAM noise data
 if [ -z "${wham_noise}" ]; then
   # 17.65 GB unzipping to 35 GB
+  mkdir -p ${cdir}/data/wham_noise
   wham_noise_url=https://storage.googleapis.com/whisper-public/wham_noise.zip
   wget --continue -O "${cdir}/data/wham_noise.zip" ${wham_noise_url}
   num_wavs=$(find "${cdir}/data/wham_noise" -iname "*.wav" | wc -l)
