@@ -11,12 +11,12 @@ if __name__ == "__main__":
 
     with open(tsv_path, "r") as inf:
         tsv_lines = inf.readlines()
-    tsv_lines = [l.strip() for l in tsv_lines]
+    tsv_lines = [line.strip() for line in tsv_lines]
 
     spk2utt = {}
     utt2text = {}
-    for l in tsv_lines:
-        l_list = l.split("\t")
+    for line in tsv_lines:
+        l_list = line.split("\t")
         fid = l_list[0]
         spk = l_list[1]
         text = l_list[2]
@@ -29,28 +29,44 @@ if __name__ == "__main__":
                 spk2utt[spk] = [fid]
 
     spks = sorted(list(spk2utt.keys()))
-    random.Random(0).shuffle(spks)
-    num_train = int(len(spks) * 0.8)
-    num_dev = int(len(spks) * 0.1)
-    train_spks = spks[:num_train]
-    dev_spks = spks[num_train : num_train + num_dev]
-    test_spks = spks[num_train + num_dev :]
+    num_fids = 0
+    num_test_spks = 0
+    for spk in spks:
+        num_test_spks += 1
+        fids = sorted(list(set(spk2utt[spk])))
+        num_fids += len(fids)
+        if num_fids >= 2000:
+            break
+    test_spks = spks[:num_test_spks]
+    train_dev_spks = spks[num_test_spks:]
+    random.Random(0).shuffle(train_dev_spks)
+    num_train = int(len(train_dev_spks) * 0.9)
+    train_spks = train_dev_spks[:num_train]
+    dev_spks = train_dev_spks[num_train:]
 
     spks_by_phase = {"train": train_spks, "dev": dev_spks, "test": test_spks}
+    flac_dir = 'downloads/data'
+    sr = 16000
     for phase in spks_by_phase:
         spks = spks_by_phase[phase]
         text_strs = []
         wav_scp_strs = []
         spk2utt_strs = []
+        num_fids = 0
         for spk in spks:
             fids = sorted(list(set(spk2utt[spk])))
+            num_fids += len(fids)
+            if phase == 'test' and num_fids > 2000:
+                curr_num_fids = num_fids-2000
+                random.Random(1).shuffle(fids)
+                fids = fids[:curr_num_fids]
             utts = [spk + "-" + f for f in fids]
             utts_str = " ".join(utts)
             spk2utt_strs.append("%s %s" % (spk, utts_str))
             for fid, utt in zip(fids, utts):
                 cmd = (
-                    "ffmpeg -i downloads/data/%s/%s.flac -f wav -ar 16000 -ab 16 -ac 1 - |"
-                    % (fid[:2], fid)
+                    "ffmpeg -i %s/%s/%s.flac -f wav -ar %d -ab 16 -ac 1 - |"
+                    % (flac_dir, fid[:2], fid, sr)
                 )
                 text_strs.append("%s %s" % (utt, utt2text[fid]))
                 wav_scp_strs.append("%s %s" % (utt, cmd))

@@ -11,7 +11,6 @@ train_set="train"
 train_dev="dev"
 test_set="test"
 
-nlsyms_txt=data/local/nlsyms.txt
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
@@ -32,7 +31,6 @@ ngpu=1
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
-    --nlsyms_txt "${nlsyms_txt}" \
     --lm_train_text "data/${train_set}/text" \
     --local_score_opts "--score_lang_id ${lid}" "$@"
 

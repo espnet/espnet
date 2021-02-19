@@ -9,10 +9,9 @@
 
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
-stop_stage=2
+stop_stage=1
 # inclusive, was 100
 SECONDS=0
-nlsyms_txt=data/local/nlsyms.txt
 
 
 log() {
@@ -31,7 +30,7 @@ set -o pipefail
 
 log "data preparation started"
 
-mkdir downloads
+mkdir -p ${JAVA}
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
@@ -51,13 +50,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/spk2utt_to_utt2spk.pl data/train/spk2utt > data/train/utt2spk
     utils/spk2utt_to_utt2spk.pl data/dev/spk2utt > data/dev/utt2spk
     utils/spk2utt_to_utt2spk.pl data/test/spk2utt > data/test/utt2spk
-fi
-
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Create Non-linguistic Symbols for Language ID"
-    mkdir -p data/local
-    touch ${nlsyms_txt}
-    log "save non-linguistic symbols in ${nlsyms_txt}"
+    utils/fix_data_dir.sh data/train
+    utils/fix_data_dir.sh data/dev
+    utils/fix_data_dir.sh data/test
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
