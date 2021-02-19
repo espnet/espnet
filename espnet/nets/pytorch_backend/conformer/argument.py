@@ -40,7 +40,7 @@ def add_arguments_conformer_common(group):
     group.add_argument(
         "--rel-pos-type",
         type=str,
-        default="latest",
+        default="legacy",
         choices=["legacy", "latest"],
         help="Whether to use the latest relative positional encoding or the legacy one."
         "The legacy relative positional encoding will be deprecated in the future."
