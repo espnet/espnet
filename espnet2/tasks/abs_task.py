@@ -400,7 +400,7 @@ class AbsTask(ABC):
             "torch.nn.parallel.DistributedDataParallel ",
         )
         group.add_argument(
-            "--ddp_sharded",
+            "--sharded_ddp",
             default=False,
             type=str2bool,
             help="Enable sharded training provided by fairscale",
@@ -817,7 +817,7 @@ class AbsTask(ABC):
         optim_class = optim_classes.get(args.optim)
         if optim_class is None:
             raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
-        if args.ddp_sharded:
+        if args.sharded_ddp:
             if fairscale is None:
                 raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             optim = fairscale.optim.oss.OSS(
