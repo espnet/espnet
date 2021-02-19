@@ -31,7 +31,7 @@ If you meet some errors with distributed mode, please try single gpu mode or mul
 We supports sharded training provided by [fairscale](https://github.com/facebookresearch/fairscale)
 
 ```bash
-% python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed true --sharded_ddp true
+% python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed true --ddp_sharded true
 ```
 
 Note that the other features of fairscale are not supported now.

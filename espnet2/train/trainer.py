@@ -84,7 +84,7 @@ class TrainerOptions:
     output_dir: Union[Path, str]
     max_epoch: int
     seed: int
-    sharded_ddp: bool
+    ddp_sharded: bool
     patience: Optional[int]
     keep_nbest_models: Union[int, List[int]]
     early_stopping_criterion: Sequence[str]
@@ -196,7 +196,10 @@ class Trainer:
                 raise RuntimeError(
                     "Require torch>=1.6.0 for  Automatic Mixed Precision"
                 )
-            scaler = GradScaler()
+            if trainer_options.ddp_sharded:
+                scaler = fairscale.optim.grad_scaler.ShardedGradScaler()
+            else:
+                scaler = GradScaler()
         else:
             scaler = None
 
@@ -218,7 +221,7 @@ class Trainer:
             )
 
         if distributed_option.distributed:
-            if trainer_options.sharded_ddp:
+            if trainer_options.ddp_sharded:
                 if fairscale is None:
                     raise RuntimeError(
                         "Requiring fairscale. Do 'pip install fairscale'"
