@@ -196,7 +196,12 @@ class Trainer:
                 raise RuntimeError(
                     "Require torch>=1.6.0 for  Automatic Mixed Precision"
                 )
-            scaler = GradScaler()
+            if fairscale is None:
+                raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
+            if trainer_options.sharded_ddp:
+                scaler = fairscale.optim.grad_scaler.ShardedGradScaler()
+            else:
+                scaler = GradScaler()
         else:
             scaler = None
 
@@ -219,10 +224,6 @@ class Trainer:
 
         if distributed_option.distributed:
             if trainer_options.sharded_ddp:
-                if fairscale is None:
-                    raise RuntimeError(
-                        "Requiring fairscale. Do 'pip install fairscale'"
-                    )
                 dp_model = fairscale.nn.data_parallel.ShardedDataParallel(
                     module=model,
                     sharded_optimizer=optimizers,
@@ -323,6 +324,10 @@ class Trainer:
                     )
                 elif isinstance(scheduler, AbsEpochStepScheduler):
                     scheduler.step()
+            if trainer_options.sharded_ddp:
+                for optimizer in optimizers:
+                    if isinstance(optimizer, fairscale.optim.oss.OSS):
+                        optimizer.consolidate_state_dict()
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results

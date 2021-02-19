@@ -394,12 +394,17 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--unused_parameters",
-            type=bool,
+            type=str2bool,
             default=False,
             help="Whether to use the find_unused_parameters in "
             "torch.nn.parallel.DistributedDataParallel ",
         )
-        group.add_argument("--sharded_ddp", default=False, type=str2bool, help="")
+        group.add_argument(
+            "--sharded_ddp",
+            default=False,
+            type=str2bool,
+            help="Enable sharded training provided by fairscale",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(

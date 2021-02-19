@@ -10,6 +10,8 @@ Refer to: https://arxiv.org/abs/2005.08100
 
 """
 
+import logging
+
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
 from espnet.nets.pytorch_backend.conformer.argument import (
@@ -50,6 +52,21 @@ class E2E(E2ETransformer):
         super().__init__(idim, odim, args, ignore_id)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
+
+        # Check the relative positional encoding type
+        self.rel_pos_type = getattr(args, "rel_pos_type", None)
+        if self.rel_pos_type is None or self.rel_pos_type == "legacy":
+            if args.transformer_encoder_pos_enc_layer_type == "rel_pos":
+                args.transformer_encoder_pos_enc_layer_type = "legacy_rel_pos"
+                logging.warning(
+                    "Using legacy_rel_pos and it will be deprecated in the future."
+                )
+            if args.transformer_encoder_selfattn_layer_type == "rel_selfattn":
+                args.transformer_encoder_selfattn_layer_type = "legacy_rel_selfattn"
+                logging.warning(
+                    "Using legacy_rel_selfattn and it will be deprecated in the future."
+                )
+
         self.encoder = Encoder(
             idim=idim,
             attention_dim=args.adim,
@@ -65,6 +82,7 @@ class E2E(E2ETransformer):
             activation_type=args.transformer_encoder_activation_type,
             macaron_style=args.macaron_style,
             use_cnn_module=args.use_cnn_module,
+            zero_triu=args.zero_triu,
             cnn_module_kernel=args.cnn_module_kernel,
         )
         self.reset_parameters(args)
