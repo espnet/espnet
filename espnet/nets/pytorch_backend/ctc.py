@@ -32,9 +32,14 @@ class CTC(torch.nn.Module):
             if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
             else "builtin"
         )
+
         if ctc_type != self.ctc_type:
             logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")
         if self.ctc_type == "builtin":
+            if LooseVersion(torch.__version__) < LooseVersion("1.1.0"):
+                raise ValueError(
+                    'ctc_type must be "cudnnctc" or "warpctc": {}'.format(self.ctc_type)
+                )
             reduction_type = "sum" if reduce else "none"
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
         elif self.ctc_type == "warpctc":
