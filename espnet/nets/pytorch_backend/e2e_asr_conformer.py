@@ -10,7 +10,6 @@ Refer to: https://arxiv.org/abs/2005.08100
 
 """
 
-from distutils.version import LooseVersion
 import logging
 
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
