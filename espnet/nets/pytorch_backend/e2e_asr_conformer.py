@@ -54,9 +54,9 @@ class E2E(E2ETransformer):
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
 
-        # check version
-        self.version = getattr(args, "version", None)
-        if self.version is None or LooseVersion(self.version) < LooseVersion("0.9.7"):
+        # Check the relative positional encoding type
+        self.rel_pos_type = getattr(args, "rel_pos_type", None)
+        if self.rel_pos_type is None or self.rel_pos_type == "legacy":
             if args.transformer_encoder_pos_enc_layer_type == "rel_pos":
                 args.transformer_encoder_pos_enc_layer_type = "legacy_rel_pos"
                 logging.warning(

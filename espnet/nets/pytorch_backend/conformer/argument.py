@@ -14,14 +14,14 @@ def add_arguments_conformer_common(group):
         type=str,
         default="abs_pos",
         choices=["abs_pos", "scaled_abs_pos", "rel_pos"],
-        help="transformer encoder positional encoding layer type",
+        help="Transformer encoder positional encoding layer type",
     )
     group.add_argument(
         "--transformer-encoder-activation-type",
         type=str,
         default="swish",
         choices=["relu", "hardtanh", "selu", "swish"],
-        help="transformer encoder activation function type",
+        help="Transformer encoder activation function type",
     )
     group.add_argument(
         "--macaron-style",
@@ -35,6 +35,16 @@ def add_arguments_conformer_common(group):
         default=False,
         type=strtobool,
         help="If true, zero the uppper triangular part of attention matrix.",
+    )
+    # Relative positional encoding
+    group.add_argument(
+        "--rel-pos-type",
+        type=str,
+        default="latest",
+        choices=["legacy", "latest"],
+        help="Whether to use the latest relative positional encoding or the legacy one."
+        "The legacy relative positional encoding will be deprecated in the future."
+        "More Details can be found in https://github.com/espnet/espnet/pull/2816.",
     )
     # CNN module
     group.add_argument(
