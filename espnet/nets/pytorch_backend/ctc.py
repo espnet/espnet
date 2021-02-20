@@ -106,6 +106,7 @@ class CTC(torch.nn.Module):
         if self.ctc_type == "builtin":
             olens = to_device(ys_hat, torch.LongTensor([len(s) for s in ys]))
             hlens = hlens.long()
+            ys_pad = torch.cat(ys)  # without this the code breaks for asr_mix
             self.loss = self.loss_fn(ys_hat, ys_pad, hlens, olens)
         else:
             self.loss = None
