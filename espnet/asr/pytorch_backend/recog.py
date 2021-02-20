@@ -2,7 +2,7 @@
 
 import json
 import logging
-
+import os
 import torch
 
 from espnet.asr.asr_utils import add_results_to_json
@@ -17,6 +17,8 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
+
+from espnet2.bin.asr_inference import plot_attentions
 
 
 def recog_v2(args):
@@ -128,6 +130,11 @@ def recog_v2(args):
     with open(args.recog_json, "rb") as f:
         js = json.load(f)["utts"]
     new_js = {}
+
+    ## Attention Plot Directory
+    att_dir = os.path.join(os.path.dirname(args.result_label), "att_wts")
+    if not os.path.isdir(att_dir):
+        os.mkdir(att_dir)
     with torch.no_grad():
         for idx, name in enumerate(js.keys(), 1):
             logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
@@ -143,6 +150,19 @@ def recog_v2(args):
             new_js[name] = add_results_to_json(
                 js[name], nbest_hyps, train_args.char_list
             )
+            ## Save Attention Plots
+            attentions = nbest_hyps[0]["att_wt"]
+            print([v.shape for k, v in attentions.items()])
+            print([v.shape for k, v in attentions.items()])
+
+            tokens = new_js[name]["output"][0]["rec_token"].split(" ")
+            if attentions != dict():
+                plot_attentions(
+                    name,
+                    attentions,
+                    att_dir,
+                    ytokens=tokens,
+                )
 
     with open(args.result_label, "wb") as f:
         f.write(

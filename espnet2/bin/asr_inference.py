@@ -3,11 +3,12 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+import os
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
-
+import matplotlib
 import numpy as np
 import torch
 from typeguard import check_argument_types
@@ -33,6 +34,53 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+from espnet2.utils.types import int_or_none
+
+
+def plot_attentions(utt_id, att_dict, output_dir, ytokens=None, xtokens=None):
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
+
+    # Plot attentions: This part is slow due to matplotlib
+    for k, att_w in att_dict.items():
+        if isinstance(att_w, torch.Tensor):
+            att_w = att_w.detach().cpu().numpy()
+
+        if att_w.ndim == 2:
+            att_w = att_w[None]
+        elif att_w.ndim == 4 and att_w.shape[0]==1:
+            att_w = att_w[0] 
+        elif att_w.ndim > 3 or att_w.ndim == 1:
+            raise RuntimeError(f"Must be 2 or 3 dimension: {att_w.ndim}")
+
+        w, h = plt.figaspect(1.0 / len(att_w))
+        fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
+        axes = fig.subplots(1, len(att_w))
+        if len(att_w) == 1:
+            axes = [axes]
+
+        for ax, aw in zip(axes, att_w):
+            ax.imshow(aw.astype(np.float32), aspect="auto")
+            ax.set_title(f"{k}_{utt_id}")
+            ax.set_xlabel("Input")
+            ax.set_ylabel("Output")
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            if xtokens is not None:
+                ax.set_xticks(np.linspace(0, len(xtokens) - 1, len(xtokens)))
+                ax.set_xticks(np.linspace(0, len(xtokens) - 1, 1), minor=True)
+                ax.set_xticklabels(xtokens + [""], rotation=40)
+            if ytokens is not None:
+                ax.set_yticks(np.linspace(0, len(ytokens) - 1, len(ytokens)))
+                ax.set_yticks(np.linspace(0, len(ytokens) - 1, 1), minor=True)
+                ax.set_yticklabels(ytokens + [""])
+
+        if output_dir is not None:
+            p = os.path.join(output_dir, f"{utt_id}-{k}.png")
+            fig.savefig(p)
+        fig.tight_layout()
+        plt.close()
 
 
 class Speech2Text:
@@ -65,6 +113,7 @@ class Speech2Text:
         lm_weight: float = 1.0,
         penalty: float = 0.0,
         nbest: int = 1,
+        maxlen: int = None,
     ):
         assert check_argument_types()
 
@@ -155,6 +204,7 @@ class Speech2Text:
         self.beam_search = beam_search
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
+        self.maxlen = maxlen
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
@@ -192,7 +242,10 @@ class Speech2Text:
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            x=enc[0],
+            maxlenratio=self.maxlenratio,
+            minlenratio=self.minlenratio,
+            maxlen=self.maxlen,
         )
         nbest_hyps = nbest_hyps[: self.nbest]
 
@@ -213,6 +266,7 @@ class Speech2Text:
                 text = self.tokenizer.tokens2text(token)
             else:
                 text = None
+
             results.append((text, token, token_int, hyp))
 
         assert check_return_type(results)
@@ -245,6 +299,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    maxlen: int = None,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -284,6 +339,7 @@ def inference(
         lm_weight=lm_weight,
         penalty=penalty,
         nbest=nbest,
+        maxlen=maxlen,
     )
 
     # 3. Build data-iterator
@@ -317,6 +373,11 @@ def inference(
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
 
+            ## Create directory for saving attention plots
+            att_dir = os.path.join(output_dir, "att_wts")
+            if not os.path.isdir(att_dir):
+                os.mkdir(att_dir)
+
             # Only supporting batch_size==1
             key = keys[0]
             for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
@@ -330,6 +391,10 @@ def inference(
 
                 if text is not None:
                     ibest_writer["text"][key] = text
+                ## Save Attention plots to att_dir
+                attentions = hyp.att_wt
+                if attentions != dict():
+                    plot_attentions(key, attentions, att_dir, ytokens=token)
 
 
 def get_parser():
@@ -405,6 +470,12 @@ def get_parser():
         "If maxlenratio=0.0 (default), it uses a end-detect "
         "function "
         "to automatically find maximum hypothesis lengths",
+    )
+    group.add_argument(
+        "--maxlen",
+        type=int_or_none,
+        default=None,
+        help="Max output length. ",
     )
     group.add_argument(
         "--minlenratio",

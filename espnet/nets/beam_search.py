@@ -23,6 +23,7 @@ class Hypothesis(NamedTuple):
     score: Union[float, torch.Tensor] = 0
     scores: Dict[str, Union[float, torch.Tensor]] = dict()
     states: Dict[str, Any] = dict()
+    att_wt: Dict[str, torch.Tensor] = dict()
 
     def asdict(self) -> dict:
         """Convert data to JSON-friendly dict."""
@@ -30,6 +31,7 @@ class Hypothesis(NamedTuple):
             yseq=self.yseq.tolist(),
             score=float(self.score),
             scores={k: float(v) for k, v in self.scores.items()},
+            att_wt=self.att_wt,
         )._asdict()
 
 
@@ -168,9 +170,13 @@ class BeamSearch(torch.nn.Module):
         """
         scores = dict()
         states = dict()
+        attentions = dict()
         for k, d in self.full_scorers.items():
-            scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
-        return scores, states
+            if "dec" in k:
+                scores[k], states[k], attentions = d.score(hyp.yseq, hyp.states[k], x)
+            else:
+                scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
+        return scores, states, attentions
 
     def score_partial(
         self, hyp: Hypothesis, ids: torch.Tensor, x: torch.Tensor
@@ -278,6 +284,25 @@ class BeamSearch(torch.nn.Module):
             new_states[k] = d.select_state(part_states[k], part_idx)
         return new_states
 
+    def merge_attentions(self, attentions: dict, part_attentions: dict) -> dict:
+        """Merge attention weights for new hypothesis.
+
+        Args:
+            attentions- (Dict[str, torch.Tensor]): attention weights for time-steps until the current step
+            part_attentions-(Dict[str, torch.Tensor]): partial attention weights for this timestep
+
+        Returns:
+            attentions-(Dict[str, torch.Tensor]): Dictionary of attention weights thus far
+
+        """
+
+        if attentions == dict():
+            attentions = part_attentions
+        else:
+            for k, v in part_attentions.items():
+                attentions[k] = torch.cat((v, part_attentions[k]), dim=2)
+        return attentions
+
     def search(
         self, running_hyps: List[Hypothesis], x: torch.Tensor
     ) -> List[Hypothesis]:
@@ -296,7 +321,7 @@ class BeamSearch(torch.nn.Module):
         for hyp in running_hyps:
             # scoring
             weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
-            scores, states = self.score_full(hyp, x)
+            scores, states, attentions = self.score_full(hyp, x)
             for k in self.full_scorers:
                 weighted_scores += self.weights[k] * scores[k]
             # partial scoring
@@ -324,6 +349,7 @@ class BeamSearch(torch.nn.Module):
                             hyp.scores, scores, j, part_scores, part_j
                         ),
                         states=self.merge_states(states, part_states, part_j),
+                        att_wt=self.merge_attentions(hyp.att_wt, attentions),
                     )
                 )
 
@@ -334,7 +360,11 @@ class BeamSearch(torch.nn.Module):
         return best_hyps
 
     def forward(
-        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0
+        self,
+        x: torch.Tensor,
+        maxlenratio: float = 0.0,
+        minlenratio: float = 0.0,
+        maxlen: int = None,
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -351,9 +381,10 @@ class BeamSearch(torch.nn.Module):
         """
         # set length bounds
         if maxlenratio == 0:
-            maxlen = x.shape[0]
+            mlen = x.shape[0]
         else:
-            maxlen = max(1, int(maxlenratio * x.size(0)))
+            mlen = max(1, int(maxlenratio * x.size(0)))
+        maxlen = maxlen if maxlen is not None else mlen
         minlen = int(minlenratio * x.size(0))
         logging.info("decoder input length: " + str(x.shape[0]))
         logging.info("max output length: " + str(maxlen))

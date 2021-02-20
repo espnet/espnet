@@ -22,6 +22,7 @@ class BatchHypothesis(NamedTuple):
     length: torch.Tensor = torch.tensor([])  # (batch,)
     scores: Dict[str, torch.Tensor] = dict()  # values: (batch,)
     states: Dict[str, Dict] = dict()
+    att_wt: Dict[str, torch.Tensor] = dict()
 
     def __len__(self) -> int:
         """Return a batch size."""
@@ -43,6 +44,9 @@ class BatchBeamSearch(BeamSearch):
             score=torch.tensor([h.score for h in hyps]),
             scores={k: torch.tensor([h.scores[k] for h in hyps]) for k in self.scorers},
             states={k: [h.states[k] for h in hyps] for k in self.scorers},
+            att_wt={
+                k: torch.stack([h.att_wt[k] for h in hyps]) for k in hyps[0].att_wt
+            },
         )
 
     def _batch_select(self, hyps: BatchHypothesis, ids: List[int]) -> BatchHypothesis:
@@ -55,6 +59,7 @@ class BatchBeamSearch(BeamSearch):
                 k: [self.scorers[k].select_state(v, i) for i in ids]
                 for k, v in hyps.states.items()
             },
+            att_wt={k: v[ids] for k, v in hyps.att_wt.items()},
         )
 
     def _select(self, hyps: BatchHypothesis, i: int) -> Hypothesis:
@@ -65,6 +70,7 @@ class BatchBeamSearch(BeamSearch):
             states={
                 k: self.scorers[k].select_state(v, i) for k, v in hyps.states.items()
             },
+            att_wt={k: v[i] for k, v in hyps.att_wt.items()},
         )
 
     def unbatchfy(self, batch_hyps: BatchHypothesis) -> List[Hypothesis]:
@@ -78,6 +84,7 @@ class BatchBeamSearch(BeamSearch):
                     k: v.select_state(batch_hyps.states[k], i)
                     for k, v in self.scorers.items()
                 },
+                att_wt={k: batch_hyps.att_wt[k][i] for k in batch_hyps.att_wt},
             )
             for i in range(len(batch_hyps.length))
         ]
@@ -120,6 +127,7 @@ class BatchBeamSearch(BeamSearch):
         """
         init_states = dict()
         init_scores = dict()
+        init_attwt = dict()
         for k, d in self.scorers.items():
             init_states[k] = d.batch_init_state(x)
             init_scores[k] = 0.0
@@ -130,13 +138,14 @@ class BatchBeamSearch(BeamSearch):
                     scores=init_scores,
                     states=init_states,
                     yseq=torch.tensor([self.sos], device=x.device),
+                    att_wt=init_attwt,
                 )
             ]
         )
 
     def score_full(
         self, hyp: BatchHypothesis, x: torch.Tensor
-    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any], Dict[str, torch.Tensor]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
@@ -153,9 +162,15 @@ class BatchBeamSearch(BeamSearch):
         """
         scores = dict()
         states = dict()
+        attentions = dict()
         for k, d in self.full_scorers.items():
-            scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
-        return scores, states
+            if "dec" in k:
+                scores[k], states[k], attentions = d.batch_score(
+                    hyp.yseq, hyp.states[k], x
+                )
+            else:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+        return scores, states, attentions
 
     def score_partial(
         self, hyp: BatchHypothesis, ids: torch.Tensor, x: torch.Tensor
@@ -221,7 +236,9 @@ class BatchBeamSearch(BeamSearch):
         weighted_scores = torch.zeros(
             n_batch, self.n_vocab, dtype=x.dtype, device=x.device
         )
-        scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape))
+        scores, states, attentions = self.score_full(
+            running_hyps, x.expand(n_batch, *x.shape)
+        )
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
         # partial scoring
@@ -278,6 +295,10 @@ class BatchBeamSearch(BeamSearch):
                             for k, v in part_states.items()
                         },
                         part_new_token_id,
+                    ),
+                    att_wt=self.merge_attentions(
+                        prev_hyp.att_wt,
+                        {k: v[part_prev_hyp_id] for k, v in attentions.items()},
                     ),
                 )
             )
@@ -336,7 +357,7 @@ class BatchBeamSearch(BeamSearch):
             running_hyps.length[:] = yseq_eos.shape[1]
 
         # add ended hypotheses to a final list, and removed them from current hypotheses
-        # (this will be a probmlem, number of hyps < beam)
+        # (this will be a problem, number of hyps < beam)
         is_eos = (
             running_hyps.yseq[torch.arange(n_batch), running_hyps.length - 1]
             == self.eos

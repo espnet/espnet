@@ -160,7 +160,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             y.shape` is (batch, maxlen_out, token)
         """
         x = self.embed(tgt)
-        if cache is None:
+        if cache is None or [None]:
             cache = [None] * len(self.decoders)
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
@@ -184,11 +184,14 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         logp, state = self.forward_one_step(
             ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state
         )
-        return logp.squeeze(0), state
+        ## Get Attention Weights
+        attentions = self.get_attention_weights()
+
+        return logp.squeeze(0), state, attentions
 
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
-    ) -> Tuple[torch.Tensor, List[Any]]:
+    ) -> Tuple[torch.Tensor, List[Any], dict]:
         """Score new token batch.
 
         Args:
@@ -221,7 +224,28 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
-        return logp, state_list
+
+        ## Get Attention Weights
+        attentions = self.get_attention_weights()
+
+        return logp, state_list, attentions
+
+    def get_attention_weights(self) -> dict():
+        """Returns Attention Weights at every timestep of Autoregressive Beam Decoding
+        Returns:
+            attention_weights- dict[str,torch.Tensor] :
+                A dictionary containing the attention weights of all the decoder layers
+        """
+        attention_weights = dict()
+        for name, m in self.named_modules():
+            if (
+                isinstance(m, MultiHeadedAttention) or isinstance(m, DynamicConvolution)
+            ) and "src_attn" in name:
+                attention_weights[name] = m.attn.cpu()
+            if isinstance(m, DynamicConvolution2D):
+                attention_weights[name + "_time"] = m.attn_t.cpu()
+                attention_weights[name + "_freq"] = m.attn_f.cpu()
+        return attention_weights
 
 
 class TransformerDecoder(BaseTransformerDecoder):
