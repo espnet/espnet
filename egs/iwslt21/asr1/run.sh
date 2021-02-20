@@ -64,8 +64,8 @@ librispeech_dir=../../librispeech
 train_set=train
 train_dev=dev
 recog_set_subset="et_mustc_tst-COMMON et_tedlium2_test et_librispeech_test_other"  # for quick decoding
-recog_set="et_mustc_tst-COMMON et_mustc_tst-HE \
-           et_mustcv2_tst-COMMON et_mustcv2_tst-HE \
+recog_set="et_mustc_dev_org et_mustc_tst-COMMON et_mustc_tst-HE \
+           et_mustcv2_dev_org et_mustcv2_tst-COMMON et_mustcv2_tst-HE \
            et_stted_dev et_stted_test \
            et_tedlium2_dev et_tedlium2_test \
            et_librispeech_dev_clean et_librispeech_dev_other et_librispeech_test_clean et_librispeech_test_other"
@@ -82,7 +82,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     fi
     data_code=mustc
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_dir}/asr1/data/train_sp.en-de.en   data/tr_${data_code}
-    local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_dir}/asr1/data/dev_org.en-de.en    data/dt_${data_code}
+    local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_dir}/asr1/data/dev.en-de.en        data/dt_${data_code}
+    local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_dir}/asr1/data/dev_org.en-de.en    data/et_${data_code}_dev_org
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_dir}/asr1/data/tst-COMMON.en-de.en data/et_${data_code}_tst-COMMON
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_dir}/asr1/data/tst-HE.en-de.en     data/et_${data_code}_tst-HE
 
@@ -93,7 +94,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     fi
     data_code=mustcv2
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_v2_dir}/asr1/data/train_sp.en-de.en   data/tr_${data_code}
-    local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_v2_dir}/asr1/data/dev_org.en-de.en    data/dt_${data_code}
+    local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_v2_dir}/asr1/data/dev.en-de.en        data/dt_${data_code}
+    local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_v2_dir}/asr1/data/dev_org.en-de.en    data/et_${data_code}_dev_org
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_v2_dir}/asr1/data/tst-COMMON.en-de.en data/et_${data_code}_tst-COMMON
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${mustc_v2_dir}/asr1/data/tst-HE.en-de.en     data/et_${data_code}_tst-HE
 
@@ -134,7 +136,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         exit 1
     fi
     data_code=librispeech
-    # local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${librispeech_dir}/asr1/data/train_sp   data/tr_${data_code}
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${librispeech_dir}/asr1/data/train_960  data/tr_${data_code}
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${librispeech_dir}/asr1/data/dev        data/dt_${data_code}
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${librispeech_dir}/asr1/data/dev_clean  data/et_${data_code}_dev_clean
@@ -151,9 +152,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     done
 
     # TODO: IWSLT21 test set
-
-    rm data/*/segments
-    rm data/*/wav.scp
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -169,6 +167,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}
     done
+    rm data/*/segments
+    rm data/*/wav.scp
 
     utils/combine_data.sh --extra_files "text.tc text.lc text.lc.rm" data/${train_set} data/tr_mustc data/tr_mustcv2 data/tr_librispeech data/tr_stted data/tr_tedlium2
     utils/combine_data.sh --extra_files "text.tc text.lc text.lc.rm" data/${train_dev} data/dt_mustc data/dt_mustcv2 data/dt_librispeech data/dt_stted data/dt_tedlium2
@@ -179,7 +179,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/filter_offlimit.py --offlimit_list local/offlimit_list --utt2spk data/${train_set}/utt2spk.org > data/${train_set}/utt2spk
     utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${train_set}
     rm -rf data/${train_set}.tmp
-    # NOTE: 5 speakers are expected to be removed
+    NOTE: 5 speakers are expected to be removed
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
