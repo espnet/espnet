@@ -179,7 +179,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/filter_offlimit.py --offlimit_list local/offlimit_list --utt2spk data/${train_set}/utt2spk.org > data/${train_set}/utt2spk
     utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${train_set}
     rm -rf data/${train_set}.tmp
-    NOTE: 5 speakers are expected to be removed
+    # NOTE: 5 speakers are expected to be removed
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
