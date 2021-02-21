@@ -19,7 +19,7 @@ class DynamicConvolution2D(nn.Module):
         wshare (int): the number of kernel of convolution
         n_feat (int): the number of features
         dropout_rate (float): dropout_rate
-        kernel_size (str): kernel size (length)
+        kernel_size (int): kernel size (length)
         use_kernel_mask (bool): Use causal mask or not for convolution kernel
         use_bias (bool): Use bias term or not.
 
