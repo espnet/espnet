@@ -5,6 +5,7 @@
 
 
 from distutils.util import strtobool
+import logging
 
 
 def add_arguments_conformer_common(group):
@@ -60,3 +61,27 @@ def add_arguments_conformer_common(group):
         help="Kernel size of convolution module.",
     )
     return group
+
+
+def verify_rel_pos_type(args):
+    """Verify the relative positional encoding type for compatibility.
+
+    Args:
+        args (Namespace): original arguments
+    Returns:
+        args (Namespace): modified arguments
+    """
+    rel_pos_type = getattr(args, "rel_pos_type", None)
+    if rel_pos_type is None or rel_pos_type == "legacy":
+        if args.transformer_encoder_pos_enc_layer_type == "rel_pos":
+            args.transformer_encoder_pos_enc_layer_type = "legacy_rel_pos"
+            logging.warning(
+                "Using legacy_rel_pos and it will be deprecated in the future."
+            )
+        if args.transformer_encoder_selfattn_layer_type == "rel_selfattn":
+            args.transformer_encoder_selfattn_layer_type = "legacy_rel_selfattn"
+            logging.warning(
+                "Using legacy_rel_selfattn and it will be deprecated in the future."
+            )
+
+    return args
