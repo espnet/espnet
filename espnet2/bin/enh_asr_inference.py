@@ -81,7 +81,7 @@ class Speech2Text:
         )
         joint_model.eval()
 
-        decoder = joint_model.decoder
+        decoder = joint_model.asr_subclass.decoder
         ctc = CTCPrefixScorer(ctc=joint_model.ctc, eos=joint_model.eos)
         token_list = joint_model.token_list
         scorers.update(
@@ -200,21 +200,22 @@ class Speech2Text:
 
         # a. To device
         batch = to_device(batch, device=self.device)
+        feats, f_lens = self.joint_model.enh_subclass.encoder(
+            batch["speech"], batch["speech_lengths"]
+        )
+        feats, _, _ = self.joint_model.enh_subclass.separator(feats, f_lens)
+        speech_pre_lengths = batch["speech_lengths"]
+        speech_pre = [
+            self.joint_model.enh_subclass.decoder(f, speech_pre_lengths)[0]
+            for f in feats
+        ]
         if self.joint_model.cal_enh_loss:
-            speech_pre, *__ = self.joint_model.enh_model.forward_rawwav(
-                batch["speech"], batch["speech_lengths"]
-            )
-            speech_pre_lengths = batch["speech_lengths"]
             ref = np.array(
                 torch.stack([speech_ref1, speech_ref2], dim=0).squeeze()
             )  # nspk,T
             inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
         else:
-            _, _, speech_pre, speech_pre_lengths = self.joint_model.forward_enh(
-                batch["speech"],
-                batch["speech_lengths"],
-            )
             sdr, perm = None, np.arange(0, len(speech_pre))
 
         # b. Forward Encoder
@@ -223,7 +224,7 @@ class Speech2Text:
         for idx, p in enumerate(perm):
             speech_spk = speech_pre[int(p)]
             # enc, _ = self.joint_model.encode(speech_spk, batch['speech_lengths'])
-            enc, _ = self.joint_model.encode(speech_spk, speech_pre_lengths)
+            enc, _ = self.joint_model.asr_subclass.encode(speech_spk, speech_pre_lengths)
             assert len(enc) == 1, len(enc)
 
             # c. Passed the encoder result and the beam search
