@@ -3,6 +3,7 @@
 
 """Encoder definition."""
 import contextlib
+import copy
 import logging
 import os
 from typing import Optional
@@ -40,6 +41,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         normalize_before: bool = True,
         freeze_w2v: bool = True,
         finetune_last_n_layers: int = 0,
+        freeze_finetune_updates: int = 0,
     ):
         assert check_argument_types()
         super().__init__()
@@ -91,18 +93,22 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
 
         self.encoders = model
 
-        self.pretrained_params = model.state_dict()
-
-        if model.cfg.encoder_embed_dim != output_size:
-            self.output_linear = torch.nn.Linear(
-                model.cfg.encoder_embed_dim, output_size
-            )
-        else:
-            self.output_linear = None
+        self.pretrained_params = copy.deepcopy(model.state_dict())
 
         self.normalize_before = normalize_before
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
+
+        if model.cfg.encoder_embed_dim != output_size:
+            # TODO(xkc09): try LSTM
+            self.output_layer = torch.nn.Sequential(
+                torch.nn.Linear(model.cfg.encoder_embed_dim, output_size),
+            )
+        else:
+            self.output_layer = None
+
+        self.freeze_finetune_updates = freeze_finetune_updates
+        self.register_buffer("num_updates", torch.LongTensor([0]))
 
     def output_size(self) -> int:
         return self._output_size
@@ -124,7 +130,14 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         """
         masks = make_pad_mask(ilens).to(xs_pad.device)
 
-        with torch.no_grad() if self.freeze_w2v else contextlib.nullcontext():
+        ft = not self.freeze_w2v and self.freeze_finetune_updates < self.num_updates
+        if not self.freeze_w2v and not ft:
+            self.num_updates += 1
+        elif ft and self.num_updates == self.freeze_finetune_updates + 1:
+            self.num_updates += 1
+            logging.info("Start fine-tuning wav2vec parameters!")
+
+        with torch.no_grad() if not ft else contextlib.nullcontext():
             enc_outputs = self.encoders(
                 xs_pad,
                 masks,
@@ -136,8 +149,8 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
 
         olens = (~masks).sum(dim=1)
 
-        if self.output_linear is not None:
-            xs_pad = self.output_linear(xs_pad)
+        if self.output_layer is not None:
+            xs_pad = self.output_layer(xs_pad)
 
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
@@ -154,11 +167,14 @@ def download_w2v(url, dir_path):
     model_name = url.split("/")[-1]
     model_path = os.path.join(dir_path, model_name)
 
-    torch.hub.download_url_to_file(url, model_path)
-    torch.hub.download_url_to_file(
-        "https://dl.fbaipublicfiles.com/fairseq/wav2vec/dict.ltr.txt",
-        os.path.join(dir_path, "dict.ltr.txt"),
-    )
-    logging.info(f"Wav2Vec model downloaded {model_path}")
+    if not os.path.exists(model_path):
+        torch.hub.download_url_to_file(url, model_path)
+        torch.hub.download_url_to_file(
+            "https://dl.fbaipublicfiles.com/fairseq/wav2vec/dict.ltr.txt",
+            os.path.join(dir_path, "dict.ltr.txt"),
+        )
+        logging.info(f"Wav2Vec model downloaded {model_path}")
+    else:
+        logging.info(f"Wav2Vec model {model_path} already exists.")
 
     return model_path
