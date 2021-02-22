@@ -535,7 +535,10 @@ def main(cmd_args):
     from espnet.utils.dynamic_import import dynamic_import
 
     if args.model_module is None:
-        model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+        if args.num_spkrs == 1:
+            model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+        else:
+            model_module = "espnet.nets." + args.backend + "_backend.e2e_asr_mix:E2E"
     else:
         model_module = args.model_module
     model_class = dynamic_import(model_module)
