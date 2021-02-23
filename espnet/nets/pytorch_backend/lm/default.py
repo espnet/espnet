@@ -53,10 +53,16 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
             "--dropout-rate", type=float, default=0.5, help="dropout probability"
         )
         parser.add_argument(
-            "--emb-dropout-rate", type=float, default=0.0, help="emb dropout probability"
+            "--emb-dropout-rate",
+            type=float,
+            default=0.0,
+            help="emb dropout probability",
         )
         parser.add_argument(
-            "--tie-weights", type=strtobool, default=False, help="Tie input and output embeddings"
+            "--tie-weights",
+            type=strtobool,
+            default=False,
+            help="Tie input and output embeddings",
         )
         return parser
 
@@ -79,7 +85,16 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         tie_weights = getattr(args, "tie_weights", False)
 
         self.model = ClassifierWithState(
-            RNNLM(n_vocab, args.layer, args.unit, embed_unit, args.type, dropout_rate, emb_dropout_rate, tie_weights)
+            RNNLM(
+                n_vocab,
+                args.layer,
+                args.unit,
+                embed_unit,
+                args.type,
+                dropout_rate,
+                emb_dropout_rate,
+                tie_weights,
+            )
         )
 
     def state_dict(self):
@@ -314,7 +329,16 @@ class RNNLM(nn.Module):
     """A pytorch RNNLM."""
 
     def __init__(
-        self, n_vocab, n_layers, n_units, n_embed=None, typ="lstm", dropout_rate=0.5, emb_dropout_rate=0.0, tie_weights=False):
+        self,
+        n_vocab,
+        n_layers,
+        n_units,
+        n_embed=None,
+        typ="lstm",
+        dropout_rate=0.5,
+        emb_dropout_rate=0.0,
+        tie_weights=False,
+    ):
         """Initialize class.
 
         :param int n_vocab: The size of the vocabulary
@@ -357,7 +381,9 @@ class RNNLM(nn.Module):
         logging.info("Emb Dropout set to {}".format(emb_dropout_rate))
 
         if tie_weights:
-            assert (n_embed == n_units), "Tie Weights is True but embedding and final layer dimensions don't match"
+            assert (
+                n_embed == n_units
+            ), "Tie Weights is True but embedding and final layer dimensions don't match"
             self.lo.weight = self.embed.weight
 
         # initialize parameters from uniform distribution

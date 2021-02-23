@@ -51,13 +51,22 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
             "--dropout-rate", type=float, default=0.5, help="dropout probability"
         )
         parser.add_argument(
-            "--att-dropout-rate", type=float, default=0.0, help="att dropout probability"
+            "--att-dropout-rate",
+            type=float,
+            default=0.0,
+            help="att dropout probability",
         )
         parser.add_argument(
-            "--emb-dropout-rate", type=float, default=0.0, help="emb dropout probability"
+            "--emb-dropout-rate",
+            type=float,
+            default=0.0,
+            help="emb dropout probability",
         )
         parser.add_argument(
-            "--tie-weights", type=strtobool, default=False, help="Tie input and output embeddings"
+            "--tie-weights",
+            type=strtobool,
+            default=False,
+            help="Tie input and output embeddings",
         )
         parser.add_argument(
             "--pos-enc",
@@ -120,7 +129,9 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
         logging.info("Att Dropout set to {}".format(att_dropout_rate))
 
         if tie_weights:
-            assert (args.att_unit == args.embed_unit), "Tie Weights is True but embedding and final layer dimensions don't match"
+            assert (
+                args.att_unit == args.embed_unit
+            ), "Tie Weights is True but embedding and final layer dimensions don't match"
             self.decoder.weight = self.embed.weight
 
     def _target_mask(self, ys_in_pad):
