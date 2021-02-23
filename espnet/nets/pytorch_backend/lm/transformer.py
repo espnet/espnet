@@ -131,7 +131,7 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
         if tie_weights:
             assert (
                 args.att_unit == args.embed_unit
-            ), "Tie Weights is True but embedding and final layer dimensions don't match"
+            ), "Tie Weights: True need embedding and final dimensions to match"
             self.decoder.weight = self.embed.weight
 
     def _target_mask(self, ys_in_pad):

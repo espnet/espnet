@@ -383,7 +383,7 @@ class RNNLM(nn.Module):
         if tie_weights:
             assert (
                 n_embed == n_units
-            ), "Tie Weights is True but embedding and final layer dimensions don't match"
+            ), "Tie Weights: True need embedding and final dimensions to match"
             self.lo.weight = self.embed.weight
 
         # initialize parameters from uniform distribution
