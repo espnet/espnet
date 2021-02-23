@@ -8,7 +8,7 @@
   - Commit date: `Tue Jan 12 23:00:11 2021 -0500`
 
 ## asr_transformer_es
-- https://zenodo.org/record/4276519
+- model link: https://zenodo.org/record/4458452
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
