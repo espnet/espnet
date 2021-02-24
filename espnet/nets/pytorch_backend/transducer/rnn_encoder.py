@@ -1,4 +1,13 @@
-"""RNN encoder implementation for transducer-based models."""
+"""RNN encoder implementation for transducer-based models.
+
+These classes are based on the ones in espnet.nets.pytorch_backend.rnn.encoders,
+and modified to output intermediate layers representation based on a list of
+layers given as input. These additional outputs are intended to be used with
+auxiliary tasks.
+It should be noted that, here, RNN class rely on a stack of 1-layer LSTM instead
+of a multi-layer LSTM for that purpose.
+
+"""
 
 import argparse
 import logging
