@@ -488,6 +488,27 @@ class Trainer:
                         stats = retval["stats"]
                         weight = retval["weight"]
                         optim_idx = retval.get("optim_idx")
+                        if optim_idx is not None and not isinstance(optim_idx, int):
+                            if not isinstance(optim_idx, torch.Tensor):
+                                raise RuntimeError(
+                                    "optim_idx must be int or 1dim torch.Tensor, "
+                                    f"but got {type(optim_idx)}"
+                                )
+                            if optim_idx.dim() >= 2:
+                                raise RuntimeError(
+                                    "optim_idx must be int or 1dim torch.Tensor, "
+                                    f"but got {optim_idx.dim()}dim tensor"
+                                )
+                            if optim_idx.dim() == 1:
+                                for v in optim_idx:
+                                    if v != optim_idx:
+                                        raise RuntimeError(
+                                            "optim_idx must be 1dim tensor "
+                                            "having same values for all entries"
+                                        )
+                                optim_idx = optim_idx[0].item()
+                            else:
+                                optim_idx = optim_idx.item()
 
                     #   b. tuple or list type
                     else:
@@ -651,7 +672,12 @@ class Trainer:
             if no_forward_run:
                 continue
 
-            _, stats, weight = model(**batch)
+            retval = model(**batch)
+            if isinstance(retval, dict):
+                stats = retval["stats"]
+                weight = retval["weight"]
+            else:
+                _, stats, weight = retval
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for stats.
                 # if distributed, this method can also apply all_reduce()
