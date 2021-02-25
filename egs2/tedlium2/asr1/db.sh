@@ -3,6 +3,9 @@
 
 AISHELL=downloads
 AN4=downloads
+DIRHA_ENGLISH_PHDEV=
+DIRHA_WSJ=
+DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -60,6 +63,7 @@ BABEL_402=
 BABEL_403=
 BABEL_404=
 TEDLIUM3=downloads
+TEDLIUM2=
 VCTK=downloads
 VIVOS=downloads
 YESNO=downloads
@@ -71,6 +75,9 @@ ZEROTH_KOREAN=downloads
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
     AN4=
+    DIRHA_ENGLISH_PHDEV=
+    DIRHA_WSJ=
+    DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
     WSJ0=
     WSJ1=
     WSJCAM0=/export/corpora3/LDC/LDC95S24/wsjcam0
@@ -128,6 +135,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     BABEL_403=/export/babel/data/403-dholuo/IARPA-babel403b-v1.0b-build/BABEL_OP3_403
     BABEL_404=/export/corpora/LDC/LDC2016S12/IARPA_BABEL_OP3_404
     TEDLIUM3=downloads
+    TEDLIUM2=/export/corpora5/TEDLIUM_release2
     VCTK=downloads
     VIVOS=
     YESNO=
