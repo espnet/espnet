@@ -11,6 +11,8 @@
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
 
+. utils/parse_options.sh || exit 1;
+
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     local/download_data.sh
