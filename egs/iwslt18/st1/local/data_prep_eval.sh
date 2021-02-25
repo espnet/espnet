@@ -90,7 +90,7 @@ if [ ${set} != tst2018 ]; then
         cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
         # remove punctuation (not used)
-        local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+        remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
         # tokenization
         tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok
@@ -174,7 +174,7 @@ awk '{
 sort ${dst}/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > ${dst}/spk2utt
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/${set}
 for f in spk2utt utt2spk wav.scp segments; do
     cp ${dst}/${f} data/${set}/

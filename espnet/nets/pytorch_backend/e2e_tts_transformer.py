@@ -77,11 +77,14 @@ else:
     class TTSPlot(PlotAttentionReport):
         """Attention plot module for TTS-Transformer."""
 
-        def plotfn(self, data, attn_dict, outdir, suffix="png", savefn=None):
+        def plotfn(
+            self, data_dict, uttid_list, attn_dict, outdir, suffix="png", savefn=None
+        ):
             """Plot multi head attentions.
 
             Args:
-                data (dict): Utts info from json file.
+                data_dict (dict): Utts info from json file.
+                uttid_list (list): List of utt_id.
                 attn_dict (dict): Multi head attention dict.
                     Values should be numpy.ndarray (H, L, T)
                 outdir (str): Directory name to save figures.
@@ -95,8 +98,8 @@ else:
             )
 
             for name, att_ws in attn_dict.items():
-                for idx, att_w in enumerate(att_ws):
-                    filename = "%s/%s.%s.%s" % (outdir, data[idx][0], name, suffix)
+                for utt_id, att_w in zip(uttid_list, att_ws):
+                    filename = "%s/%s.%s.%s" % (outdir, utt_id, name, suffix)
                     if "fbank" in name:
                         fig = plt.Figure()
                         ax = fig.subplots(1, 1)

@@ -24,14 +24,8 @@ dec-embed-dim: 256
 dunits: 256
 dropout-rate-decoder: 0.2
 dropout-rate-embed-decoder: 0.2
-## attention related
-atype: location
-adim: 256
-aconv-chans: 10
-aconv-filts: 100
 ## joint network related
 joint-dim: 256
 
 # transducer related
-rnnt-mode: 'rnnt' # switch to 'rnnt-att' to use transducer with attention
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

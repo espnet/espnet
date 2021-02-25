@@ -14,6 +14,9 @@ def main():
             logs = json.load(f)
         val_scores = []
         for log in logs:
+            if log["epoch"] > args.max_epoch:
+                continue
+
             if args.metric == "acc":
                 if "validation/main/acc" in log.keys():
                     val_scores += [[log["epoch"], log["validation/main/acc"]]]
@@ -26,6 +29,9 @@ def main():
             elif args.metric == "bleu":
                 if "validation/main/bleu" in log.keys():
                     val_scores += [[log["epoch"], log["validation/main/bleu"]]]
+            elif args.metric == "cer":
+                if "validation/main/cer" in log.keys():
+                    val_scores += [[log["epoch"], -log["validation/main/cer"]]]
             elif args.metric == "cer_ctc":
                 if "validation/main/cer_ctc" in log.keys():
                     val_scores += [[log["epoch"], -log["validation/main/cer_ctc"]]]
@@ -115,7 +121,13 @@ def get_parser():
         default="",
         type=str,
         nargs="?",
-        choices=["acc", "bleu", "cer_ctc", "loss", "perplexity"],
+        choices=["acc", "bleu", "cer", "cer_ctc", "loss", "perplexity"],
+    )
+    parser.add_argument(
+        "--max-epoch",
+        default=10000000,
+        type=int,
+        nargs="?",
     )
     return parser
 

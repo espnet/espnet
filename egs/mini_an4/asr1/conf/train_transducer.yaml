@@ -23,14 +23,8 @@ dtype: lstm
 dlayers: 1
 dec-embed-dim: 4
 dunits: 4
-## attention related
-atype: location
-adim: 4
-aconv-chans: 4
-aconv-filts: 3
 ## joint network related
 joint-dim: 4
 
 # transducer related
-rnnt-mode: 'rnnt'
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

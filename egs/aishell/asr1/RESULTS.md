@@ -3,7 +3,7 @@
 - training config file: `conf/tuning/train_pytorch_conformer_kernel15.yaml`
 - preprocess config file: `conf/specaug.yaml`
 - decoding config file: `conf/decode.yaml`, set `lm-weight = 0.0`
-- model link: https://drive.google.com/file/d/15_aEje6i0-LVUHm_ntA345ADx8HILAx9/view
+- model link: https://drive.google.com/file/d/1pOhwj6JFqVyt5quW7BKWfJ3vfPFRoxpQ/view?usp=sharing
 ```
 exp/train_sp_pytorch_train_pytorch_conformer_kernel15_specaug/decode_dev_decode_lm0.0/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
@@ -18,7 +18,6 @@ exp/train_sp_pytorch_train_pytorch_conformer_kernel15_specaug/decode_test_decode
 - training config file: `conf/tuning/train_pytorch_conformer_kernel31.yaml`
 - preprocess config file: `conf/specaug.yaml`
 - decoding config file: `conf/decode.yaml`, set `lm-weight = 0.0`
-- model link: https://drive.google.com/file/d/15_aEje6i0-LVUHm_ntA345ADx8HILAx9/view
 ```
 exp/train_sp_pytorch_train_pytorch_conformer_kernel31_specaug/decode_dev_decode_lm0.0/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
@@ -32,7 +31,6 @@ exp/train_sp_pytorch_train_pytorch_conformer_kernel31_specaug/decode_test_decode
 
 - training config file: `conf/tuning/train_pytorch_conformer_kernel31.yaml`
 - decoding config file: `conf/decode.yaml`
-- model link: https://drive.google.com/file/d/15_aEje6i0-LVUHm_ntA345ADx8HILAx9/view
 ```
 exp/train_sp_pytorch_train_pytorch_conformer_kernel31/decode_dev_decode/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |

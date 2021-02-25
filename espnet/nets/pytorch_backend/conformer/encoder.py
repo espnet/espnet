@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2020 Johns Hopkins University (Shinji Watanabe)
 #                Northwestern Polytechnical University (Pengcheng Guo)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -17,11 +14,13 @@ from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
+    LegacyRelPositionMultiHeadedAttention,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,  # noqa: H301
     ScaledPositionalEncoding,  # noqa: H301
     RelPositionalEncoding,  # noqa: H301
+    LegacyRelPositionalEncoding,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
@@ -58,6 +57,7 @@ class Encoder(torch.nn.Module):
         selfattention_layer_type (str): Encoder attention layer type.
         activation_type (str): Encoder activation function type.
         use_cnn_module (bool): Whether to use convolution module.
+        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
 
@@ -83,6 +83,7 @@ class Encoder(torch.nn.Module):
         selfattention_layer_type="selfattn",
         activation_type="swish",
         use_cnn_module=False,
+        zero_triu=False,
         cnn_module_kernel=31,
         padding_idx=-1,
     ):
@@ -97,9 +98,13 @@ class Encoder(torch.nn.Module):
         elif pos_enc_layer_type == "rel_pos":
             assert selfattention_layer_type == "rel_selfattn"
             pos_enc_class = RelPositionalEncoding
+        elif pos_enc_layer_type == "legacy_rel_pos":
+            pos_enc_class = LegacyRelPositionalEncoding
+            assert selfattention_layer_type == "legacy_rel_selfattn"
         else:
             raise ValueError("unknown pos_enc_layer: " + pos_enc_layer_type)
 
+        self.conv_subsampling_factor = 1
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
                 torch.nn.Linear(idim, attention_dim),
@@ -114,8 +119,10 @@ class Encoder(torch.nn.Module):
                 dropout_rate,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
+            self.conv_subsampling_factor = 4
         elif input_layer == "vgg2l":
             self.embed = VGG2L(idim, attention_dim)
+            self.conv_subsampling_factor = 4
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(idim, attention_dim, padding_idx=padding_idx),
@@ -143,13 +150,23 @@ class Encoder(torch.nn.Module):
                 attention_dim,
                 attention_dropout_rate,
             )
+        elif selfattention_layer_type == "legacy_rel_selfattn":
+            assert pos_enc_layer_type == "legacy_rel_pos"
+            encoder_selfattn_layer = LegacyRelPositionMultiHeadedAttention
+            encoder_selfattn_layer_args = (
+                attention_heads,
+                attention_dim,
+                attention_dropout_rate,
+            )
         elif selfattention_layer_type == "rel_selfattn":
+            logging.info("encoder self-attention layer type = relative self-attention")
             assert pos_enc_layer_type == "rel_pos"
             encoder_selfattn_layer = RelPositionMultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
                 attention_dim,
                 attention_dropout_rate,
+                zero_triu,
             )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)

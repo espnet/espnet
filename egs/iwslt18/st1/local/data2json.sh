@@ -77,7 +77,6 @@ if [ -n "${feat}" ]; then
     sort ${tmpdir}/input/shape.scp.tmp > ${tmpdir}/input/shape.scp
 fi
 
-
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
 if [ ${no_text} = false ]; then
@@ -95,6 +94,8 @@ if [ ${no_text} = false ]; then
     vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
     odim=$(echo "$vocsize + 2" | bc)
     < ${tmpdir}/output/tokenid.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape.scp
+
+    cat ${text} > ${tmpdir}/output/text.scp
 fi
 
 # 3. Create scp files for the others
