@@ -142,7 +142,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ ln -s <kaldi-root> .
     ```
     
-    If you don't have `espnet/toold/kaldi` when `make`, Kaldi repository is automatically put without compiling.
+    If you don't have `espnet/tools/kaldi` when `make`, Kaldi repository is automatically put without compiling.
 1. Setup Python environment
 
     You have to create `<espnet-root>/tools/activate_python.sh` to specify the Python interpreter used in espnet recipes.
