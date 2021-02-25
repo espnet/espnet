@@ -8,11 +8,10 @@ from collections import OrderedDict
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.mt_interface import MTInterface
+from espnet.nets.pytorch_backend.transducer.utils import custom_torch_load
 from espnet.nets.tts_interface import TTSInterface
-
 from espnet.utils.dynamic_import import dynamic_import
 
 
@@ -173,10 +172,11 @@ def load_trained_model(model_path, training=True):
     model_class = dynamic_import(model_module)
 
     if "transducer" in model_module:
-        model = model_class(idim, odim, train_args, training)
+        model = model_class(idim, odim, train_args, training=training)
+        custom_torch_load(model_path, model, training=training)
     else:
         model = model_class(idim, odim, train_args)
-    torch_load(model_path, model)
+        torch_load(model_path, model)
 
     return model, train_args
 
