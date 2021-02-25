@@ -573,7 +573,7 @@ class Trainer:
                 else:
                     all_steps_are_invalid = False
                     with reporter.measure_time("optim_step_time"):
-                        for iopt, optimizer, scheduler in enumerate(
+                        for iopt, (optimizer, scheduler) in enumerate(
                             zip(optimizers, schedulers)
                         ):
                             if optim_idx is not None and iopt != optim_idx:
