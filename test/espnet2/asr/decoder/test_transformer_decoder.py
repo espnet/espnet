@@ -239,6 +239,12 @@ def test_TransformerDecoder_batch_beam_search_online(
         f.write("    hop_size: 2\n")
         f.write("    look_ahead: 1\n")
     beam.set_streaming_config(cp)
+    with cp.open("w") as f:
+        f.write("encoder_conf:\n")
+        f.write("    block_size: 4\n")
+        f.write("    hop_size: 2\n")
+        f.write("    look_ahead: 1\n")
+    beam.set_streaming_config(cp)
     beam.set_block_size(4)
     beam.set_hop_size(2)
     beam.set_look_ahead(1)

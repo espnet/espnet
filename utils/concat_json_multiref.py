@@ -4,9 +4,6 @@
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# NOTE: this is made for machine translation
-
-
 import argparse
 import codecs
 import json
@@ -15,14 +12,18 @@ import sys
 
 from espnet.utils.cli_utils import get_commandline_args
 
-is_python2 = sys.version_info[0] == 2
 
-
-if __name__ == "__main__":
+def get_parser():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="concatenate multiple json files for data augmentation",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("jsons", type=str, nargs="+", help="json files")
+    return parser
+
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
 
     # logging info
@@ -58,7 +59,9 @@ if __name__ == "__main__":
         ensure_ascii=False,
         separators=(",", ": "),
     )
-    sys.stdout = codecs.getwriter("utf-8")(
-        sys.stdout if is_python2 else sys.stdout.buffer
-    )
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
     print(jsonstring)
+
+
+if __name__ == "__main__":
+    main()

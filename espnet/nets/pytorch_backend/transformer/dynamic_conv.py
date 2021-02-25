@@ -19,8 +19,7 @@ class DynamicConvolution(nn.Module):
         wshare (int): the number of kernel of convolution
         n_feat (int): the number of features
         dropout_rate (float): dropout_rate
-        kernel_size_str (str): kernel size (length)
-        lnum (inst): index of layer
+        kernel_size (int): kernel size (length)
         use_kernel_mask (bool): Use causal mask or not for convolution kernel
         use_bias (bool): Use bias term or not.
 
@@ -31,8 +30,7 @@ class DynamicConvolution(nn.Module):
         wshare,
         n_feat,
         dropout_rate,
-        kernel_size_str,
-        lnum,
+        kernel_size,
         use_kernel_mask=False,
         use_bias=False,
     ):
@@ -43,7 +41,7 @@ class DynamicConvolution(nn.Module):
         self.wshare = wshare
         self.use_kernel_mask = use_kernel_mask
         self.dropout_rate = dropout_rate
-        self.kernel_size = int(kernel_size_str.split("_")[lnum])
+        self.kernel_size = kernel_size
         self.attn = None
 
         # linear -> GLU -- -> lightconv -> linear
@@ -51,7 +49,7 @@ class DynamicConvolution(nn.Module):
         #                 Linear
         self.linear1 = nn.Linear(n_feat, n_feat * 2)
         self.linear2 = nn.Linear(n_feat, n_feat)
-        self.linear_weight = nn.Linear(n_feat, self.wshare * 1 * self.kernel_size)
+        self.linear_weight = nn.Linear(n_feat, self.wshare * 1 * kernel_size)
         nn.init.xavier_uniform(self.linear_weight.weight)
         self.act = nn.GLU()
 

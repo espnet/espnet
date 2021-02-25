@@ -76,7 +76,7 @@ for set in train val dev5; do
         cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
         # remove punctuation
-        local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+        remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
         # tokenization
         tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok

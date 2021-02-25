@@ -394,12 +394,17 @@ class AbsTask(ABC):
         )
         group.add_argument(
             "--unused_parameters",
-            type=bool,
+            type=str2bool,
             default=False,
             help="Whether to use the find_unused_parameters in "
             "torch.nn.parallel.DistributedDataParallel ",
         )
-        group.add_argument("--sharded_ddp", default=False, type=str2bool, help="")
+        group.add_argument(
+            "--sharded_ddp",
+            default=False,
+            type=str2bool,
+            help="Enable sharded training provided by fairscale",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -946,11 +951,6 @@ class AbsTask(ABC):
 
     @classmethod
     def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None):
-        if cls.num_optimizers != cls.trainer.num_optimizers:
-            raise RuntimeError(
-                f"Task.num_optimizers != Task.trainer.num_optimizers: "
-                f"{cls.num_optimizers} != {cls.trainer.num_optimizers}"
-            )
         assert check_argument_types()
         print(get_commandline_args(), file=sys.stderr)
         if args is None:

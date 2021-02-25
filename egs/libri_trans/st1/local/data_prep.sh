@@ -30,9 +30,9 @@ n_wav=$(find -L ${src}/audiofiles -iname "*.wav" | wc -l)
 n_en=$(cat ${src}/${set}.en | wc -l)
 n_fr1=$(cat ${src}/${set}.fr | wc -l)
 n_fr2=$(cat ${src}/${set}_gtranslate.fr | wc -l)
-[ ${n_wav} -ne ${n_en} ] && echo "Warning: expected ${n_wav} data data files, found ${n_en}" && exit 1;
-[ ${n_wav} -ne ${n_fr1} ] && echo "Warning: expected ${n_wav} data data files, found ${n_fr1}" && exit 1;
-[ ${n_wav} -ne ${n_fr2} ] && echo "Warning: expected ${n_wav} data data files, found ${n_fr2}" && exit 1;
+[ ${n_wav} -ne ${n_en} ] && echo "Warning: expected ${n_wav} data files, found ${n_en}" && exit 1;
+[ ${n_wav} -ne ${n_fr1} ] && echo "Warning: expected ${n_wav} data files, found ${n_fr1}" && exit 1;
+[ ${n_wav} -ne ${n_fr2} ] && echo "Warning: expected ${n_wav} data files, found ${n_fr2}" && exit 1;
 
 # extract meta data
 sed -e 's/\s\+/ /g' ${src}/alignments.meta | sed -e '1d' | while read line; do
@@ -85,7 +85,7 @@ for lang in en fr fr.gtranslate; do
     cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
     # remove punctuation (not used)
-    local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+    remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
     # tokenization
     if [ ${lang} = fr.gtranslate ]; then
