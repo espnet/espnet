@@ -100,8 +100,6 @@ class Trainer:
     and override the methods if necessary - at least "train_one_epoch()"
 
     >>> class TwoOptimizerTrainer(Trainer):
-    ...     num_optimizers: int = 1
-    ...
     ...     @classmethod
     ...     def add_arguments(cls, parser):
     ...         ...
@@ -117,9 +115,6 @@ class Trainer:
     ...         optimizers[1].step()
 
     """
-
-    # If you need more than one optimizers, change this value in inheritance
-    num_optimizers: int = 1
 
     def __init__(self):
         raise RuntimeError("This class can't be instantiated.")
@@ -180,6 +175,7 @@ class Trainer:
         assert check_argument_types()
         # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
+        assert len(optimizers) == len(schedulers), (len(optimizers), len(schedulers))
 
         if isinstance(trainer_options.keep_nbest_models, int):
             keep_nbest_models = trainer_options.keep_nbest_models
@@ -442,12 +438,6 @@ class Trainer:
     ) -> bool:
         assert check_argument_types()
 
-        # Note(kamo): assumes one optimizer
-        assert cls.num_optimizers == 1, cls.num_optimizers
-        assert len(optimizers) == 1, len(optimizers)
-        optimizer = optimizers[0]
-        scheduler = schedulers[0]
-
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
         grad_clip = options.grad_clip
@@ -488,7 +478,43 @@ class Trainer:
 
             with autocast(scaler is not None):
                 with reporter.measure_time("forward_time"):
-                    loss, stats, weight = model(**batch)
+                    retval = model(**batch)
+
+                    # Note(kamo):
+                    # Supporting two patterns for the returned value from the model
+                    #   a. dict type
+                    if isinstance(retval, dict):
+                        loss = retval["loss"]
+                        stats = retval["stats"]
+                        weight = retval["weight"]
+                        optim_idx = retval.get("optim_idx")
+                        if optim_idx is not None and not isinstance(optim_idx, int):
+                            if not isinstance(optim_idx, torch.Tensor):
+                                raise RuntimeError(
+                                    "optim_idx must be int or 1dim torch.Tensor, "
+                                    f"but got {type(optim_idx)}"
+                                )
+                            if optim_idx.dim() >= 2:
+                                raise RuntimeError(
+                                    "optim_idx must be int or 1dim torch.Tensor, "
+                                    f"but got {optim_idx.dim()}dim tensor"
+                                )
+                            if optim_idx.dim() == 1:
+                                for v in optim_idx:
+                                    if v != optim_idx:
+                                        raise RuntimeError(
+                                            "optim_idx must be 1dim tensor "
+                                            "having same values for all entries"
+                                        )
+                                optim_idx = optim_idx[0].item()
+                            else:
+                                optim_idx = optim_idx.item()
+
+                    #   b. tuple or list type
+                    else:
+                        loss, stats, weight = retval
+                        optim_idx = None
+
                 stats = {k: v for k, v in stats.items() if v is not None}
                 if ngpu > 1 or distributed:
                     # Apply weighted averaging for loss and stats
@@ -522,7 +548,10 @@ class Trainer:
             if iiter % accum_grad == 0:
                 if scaler is not None:
                     # Unscales the gradients of optimizer's assigned params in-place
-                    scaler.unscale_(optimizer)
+                    for iopt, optimizer in enumerate(optimizers):
+                        if optim_idx is not None and iopt != optim_idx:
+                            continue
+                        scaler.unscale_(optimizer)
 
                 # gradient noise injection
                 if grad_noise:
@@ -556,31 +585,40 @@ class Trainer:
                     # Note that if the gradient has inf/nan values,
                     # scaler.step skips optimizer.step().
                     if scaler is not None:
-                        scaler.step(optimizer)
-                        scaler.update()
+                        for iopt, optimizer in enumerate(optimizers):
+                            if optim_idx is not None and iopt != optim_idx:
+                                continue
+                            scaler.step(optimizer)
+                            scaler.update()
 
                 else:
                     all_steps_are_invalid = False
                     with reporter.measure_time("optim_step_time"):
-                        if scaler is not None:
-                            # scaler.step() first unscales the gradients of
-                            # the optimizer's assigned params.
-                            scaler.step(optimizer)
-                            # Updates the scale for next iteration.
-                            scaler.update()
-                        else:
-                            optimizer.step()
-                    if isinstance(scheduler, AbsBatchStepScheduler):
-                        scheduler.step()
-                optimizer.zero_grad()
+                        for iopt, (optimizer, scheduler) in enumerate(
+                            zip(optimizers, schedulers)
+                        ):
+                            if optim_idx is not None and iopt != optim_idx:
+                                continue
+                            if scaler is not None:
+                                # scaler.step() first unscales the gradients of
+                                # the optimizer's assigned params.
+                                scaler.step(optimizer)
+                                # Updates the scale for next iteration.
+                                scaler.update()
+                            else:
+                                optimizer.step()
+                            if isinstance(scheduler, AbsBatchStepScheduler):
+                                scheduler.step()
+                            optimizer.zero_grad()
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
                 reporter.register(
                     dict(
                         {
-                            f"lr_{i}": pg["lr"]
-                            for i, pg in enumerate(optimizer.param_groups)
+                            f"optim{i}_lr{j}": pg["lr"]
+                            for i, optimizer in enumerate(optimizers)
+                            for j, pg in enumerate(optimizer.param_groups)
                             if "lr" in pg
                         },
                         train_time=time.perf_counter() - start_time,
@@ -634,7 +672,12 @@ class Trainer:
             if no_forward_run:
                 continue
 
-            _, stats, weight = model(**batch)
+            retval = model(**batch)
+            if isinstance(retval, dict):
+                stats = retval["stats"]
+                weight = retval["weight"]
+            else:
+                _, stats, weight = retval
             if ngpu > 1 or distributed:
                 # Apply weighted averaging for stats.
                 # if distributed, this method can also apply all_reduce()
