@@ -487,11 +487,7 @@ class Trainer:
                         loss = retval["loss"]
                         stats = retval["stats"]
                         weight = retval["weight"]
-
-                        if "optim_idx" in retval:
-                            optim_idx = retval["optim_idx"]
-                        else:
-                            optim_idx = None
+                        optim_idx = retval.get("optim_idx")
 
                     #   b. tuple or list type
                     else:
