@@ -289,6 +289,7 @@ class Trainer:
                     scaler=scaler,
                     summary_writer=summary_writer,
                     options=trainer_options,
+                    distributed_option=distributed_option,
                 )
 
             with reporter.observe("valid") as sub_reporter:
@@ -297,6 +298,7 @@ class Trainer:
                     iterator=valid_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     options=trainer_options,
+                    distributed_option=distributed_option,
                 )
 
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
@@ -435,6 +437,7 @@ class Trainer:
         reporter: SubReporter,
         summary_writer: Optional[SummaryWriter],
         options: TrainerOptions,
+        distributed_option: DistributedOption,
     ) -> bool:
         assert check_argument_types()
 
@@ -446,7 +449,7 @@ class Trainer:
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
         use_wandb = options.use_wandb
-        distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
+        distributed = distributed_option.distributed
 
         if log_interval is None:
             try:
@@ -650,11 +653,12 @@ class Trainer:
         iterator: Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
         options: TrainerOptions,
+        distributed_option: DistributedOption,
     ) -> None:
         assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
-        distributed = isinstance(model, torch.nn.parallel.DistributedDataParallel)
+        distributed = distributed_option.distributed
 
         model.eval()
 
