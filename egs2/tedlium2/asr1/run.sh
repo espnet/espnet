@@ -20,7 +20,6 @@ stage=10
     --ngpu 8 \
     --nbpe 500 \
     --max_wav_duration 20 \
-    --feats_type fbank_pitch \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --lm_config "${lm_config}" \
@@ -28,4 +27,4 @@ stage=10
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" "$@"
