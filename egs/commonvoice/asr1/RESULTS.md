@@ -486,12 +486,12 @@
 ## train_de_pytorch_train_transformer
 
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/file/d/1IYqKPhaiQ0iy2kPxHej7Q0A3-_DOpC0U/view?usp=sharing
-    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - model link: https://drive.google.com/file/d/1m6Se64Mg5JTf5C5Bsh8y0IYwxIaHaaHd/view?usp=sharing
+    - training config file: `conf/tuning/train_transformer.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_de/cmvn.ark`
-    - e2e file: `exp/train_de_pytorch_train/results/model.last10.avg.best`
-    - e2e JSON file: `exp/train_de_pytorch_train/results/model.json`
+    - e2e file: `exp/train_de_pytorch_train_transformer_specaug/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_de_pytorch_train_transformer_specaug/results/model.json`
     - lm file: `exp/train_de_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
     - lm JSON file: `exp/train_de_rnnlm_pytorch_lm_unigram150/model.json`
     - dict file: `data/de_lang_char/`
@@ -500,15 +500,15 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_de_decode_lm|15341|562394|92.3|5.2|2.5|1.4|9.1|66.1|
-|decode_test_de_decode_lm|15341|545253|91.7|5.7|2.5|1.6|9.9|64.4|
+|decode_dev_de_decode_lm|15341|560719|95.2|3.0|1.8|0.8|5.6|49.3|
+|decode_test_de_decode_lm|15341|544386|95.1|3.2|1.8|0.8|5.7|44.8|
 
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_de_decode_lm|15341|140213|82.9|14.6|2.4|1.4|18.4|66.0|
-|decode_test_de_decode_lm|15341|137514|82.4|15.2|2.4|1.3|19.0|64.3|
+|decode_dev_de_decode_lm|15341|140213|89.9|9.1|0.9|1.1|11.1|49.1|
+|decode_test_de_decode_lm|15341|137514|90.2|8.9|1.0|1.0|10.8|44.7|
 
 ## train_ca_pytorch_train_transformer
 

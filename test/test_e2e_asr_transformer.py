@@ -91,26 +91,24 @@ def prepare(backend, args):
         x[i, ilens[i] :] = -1
         y[i, olens[i] :] = model.ignore_id
 
-    data = []
+    data = {}
+    uttid_list = []
     for i in range(batchsize):
-        data.append(
-            (
-                "utt%d" % i,
-                {
-                    "input": [{"shape": [ilens[i], idim]}],
-                    "output": [{"shape": [olens[i]]}],
-                },
-            )
-        )
+        data["utt%d" % i] = {
+            "input": [{"shape": [ilens[i], idim]}],
+            "output": [{"shape": [olens[i]]}],
+        }
+        uttid_list.append("utt%d" % i)
+
     if backend == "pytorch":
-        return model, x, torch.tensor(ilens), y, data
+        return model, x, torch.tensor(ilens), y, data, uttid_list
     else:
-        return model, x, ilens, y, data
+        return model, x, ilens, y, data, uttid_list
 
 
 def test_transformer_mask():
     args = make_arg()
-    model, x, ilens, y, data = prepare("pytorch", args)
+    model, x, ilens, y, data, uttid_list = prepare("pytorch", args)
     yi, yo = add_sos_eos(y, model.sos, model.eos, model.ignore_id)
     y_mask = target_mask(yi, model.ignore_id)
     y = model.decoder.embed(yi)
@@ -179,7 +177,7 @@ def _savefn(*args, **kwargs):
 )
 def test_transformer_trainable_and_decodable(module, model_dict):
     args = make_arg(**model_dict)
-    model, x, ilens, y, data = prepare(module, args)
+    model, x, ilens, y, data, uttid_list = prepare(module, args)
 
     # check for pure CTC and pure Attention
     if args.mtlalpha == 1:
@@ -207,7 +205,7 @@ def test_transformer_trainable_and_decodable(module, model_dict):
 
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-        plot.plot_multi_head_attention(data, attn_dict, "", savefn=_savefn)
+        plot.plot_multi_head_attention(data, uttid_list, attn_dict, "", savefn=_savefn)
 
         # test CTC plot
         ctc_probs = model.calculate_all_ctc_probs(x[0:1], ilens[0:1], y[0:1])
@@ -232,7 +230,7 @@ def test_transformer_trainable_and_decodable(module, model_dict):
 
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-        plot.plot_multi_head_attention(data, attn_dict, "", savefn=_savefn)
+        plot.plot_multi_head_attention(data, uttid_list, attn_dict, "", savefn=_savefn)
 
         # test decodable
         with chainer.no_backprop_mode():
@@ -244,7 +242,7 @@ def test_transformer_trainable_and_decodable(module, model_dict):
 # https://github.com/espnet/espnet/issues/1750
 def test_v0_3_transformer_input_compatibility():
     args = make_arg()
-    model, x, ilens, y, data = prepare("pytorch", args)
+    model, x, ilens, y, data, uttid_list = prepare("pytorch", args)
     # these old names are used in v.0.3.x
     state_dict = model.state_dict()
     prefix = "encoder."

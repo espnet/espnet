@@ -62,6 +62,7 @@ class Encoder(chainer.Chain):
         )
         self.do_history_mask = False
         with self.init_scope():
+            self.conv_subsampling_factor = 1
             channels = 64  # Based in paper
             if input_layer == "conv2d":
                 idim = int(np.ceil(np.ceil(idim / 2) / 2)) * channels
@@ -73,6 +74,7 @@ class Encoder(chainer.Chain):
                     initialW=initialW,
                     initial_bias=initial_bias,
                 )
+                self.conv_subsampling_factor = 4
             elif input_layer == "linear":
                 self.input_layer = LinearSampling(
                     idim, attention_dim, initialW=initialW, initial_bias=initial_bias

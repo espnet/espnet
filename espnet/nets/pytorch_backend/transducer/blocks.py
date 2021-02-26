@@ -1,4 +1,4 @@
-"""Set of methods to create transformer-based block."""
+"""Set of methods to create custom architecture."""
 
 from collections import Counter
 
@@ -192,7 +192,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         input_layer_odim = blocks_arch[0]["d_hidden"]
 
     if blocks_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
-        out_dim = blocks_arch[-1]["idim"]
+        out_dim = blocks_arch[-1]["odim"]
     else:
         out_dim = blocks_arch[-1]["d_hidden"]
 
@@ -263,6 +263,7 @@ def build_input_layer(
 
     Returns:
         (torch.nn.*): input layer module
+        subsampling_factor (int): subsampling factor
 
     """
     if pos_enc_class.__name__ == "RelPositionalEncoding":
@@ -271,26 +272,35 @@ def build_input_layer(
         pos_enc_class_subsampling = None
 
     if input_layer == "linear":
-        return torch.nn.Sequential(
-            torch.nn.Linear(idim, odim),
-            torch.nn.LayerNorm(odim),
-            torch.nn.Dropout(dropout_rate),
-            torch.nn.ReLU(),
-            pos_enc_class(odim, pos_dropout_rate),
+        return (
+            torch.nn.Sequential(
+                torch.nn.Linear(idim, odim),
+                torch.nn.LayerNorm(odim),
+                torch.nn.Dropout(dropout_rate),
+                torch.nn.ReLU(),
+                pos_enc_class(odim, pos_dropout_rate),
+            ),
+            1,
         )
     elif input_layer == "conv2d":
-        return Conv2dSubsampling(idim, odim, dropout_rate, pos_enc_class_subsampling)
+        return Conv2dSubsampling(idim, odim, dropout_rate, pos_enc_class_subsampling), 4
     elif input_layer == "vgg2l":
-        return VGG2L(idim, odim, pos_enc_class_subsampling)
+        return VGG2L(idim, odim, pos_enc_class_subsampling), 4
     elif input_layer == "embed":
-        return torch.nn.Sequential(
-            torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
-            pos_enc_class(odim, pos_dropout_rate),
+        return (
+            torch.nn.Sequential(
+                torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
+                pos_enc_class(odim, pos_dropout_rate),
+            ),
+            1,
         )
     elif input_layer == "c-embed":
-        return torch.nn.Sequential(
-            torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
-            torch.nn.Dropout(dropout_rate_embed),
+        return (
+            torch.nn.Sequential(
+                torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
+                torch.nn.Dropout(dropout_rate_embed),
+            ),
+            1,
         )
     else:
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
@@ -463,7 +473,7 @@ def build_blocks(
     dropout_rate_embed=0.0,
     padding_idx=-1,
 ):
-    """Build block for transformer-based models.
+    """Build block for customizable architecture.
 
     Args:
         net_part (str): either 'encoder' or 'decoder'
@@ -482,6 +492,7 @@ def build_blocks(
         in_layer (torch.nn.*): input layer
         all_blocks (MultiSequential): all blocks for network part
         out_dim (int): dimension of last block output
+        conv_subsampling_factor (int): subsampling factor in frontend CNN
 
     """
     fn_modules = []
@@ -498,7 +509,7 @@ def build_blocks(
         net_part, positional_encoding_type, self_attn_type
     )
 
-    in_layer = build_input_layer(
+    in_layer, conv_subsampling_factor = build_input_layer(
         input_layer,
         idim,
         input_layer_odim,
@@ -537,4 +548,9 @@ def build_blocks(
     if repeat_block > 1:
         fn_modules = fn_modules * repeat_block
 
-    return in_layer, MultiSequential(*[fn() for fn in fn_modules]), out_dim
+    return (
+        in_layer,
+        MultiSequential(*[fn() for fn in fn_modules]),
+        out_dim,
+        conv_subsampling_factor,
+    )
