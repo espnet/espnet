@@ -111,16 +111,14 @@ def main():
     ) as writer:
         for utt_id, (rate, array) in reader:
             array = array.astype(numpy.float32)
-            if args.fs is None:
-                args.fs = rate
-            elif rate != args.fs:
+            if args.fs is not None and rate != args.fs:
                 array = resampy.resample(array, rate, args.fs, axis=0)
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
 
             lmspc = logmelspectrogram(
                 x=array,
-                fs=args.fs,
+                fs=args.fs if args.fs is not None else rate,
                 n_mels=args.n_mels,
                 n_fft=args.n_fft,
                 n_shift=args.n_shift,
