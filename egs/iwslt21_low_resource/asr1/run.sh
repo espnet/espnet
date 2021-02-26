@@ -38,20 +38,12 @@ use_valbest_average=true     # if true, the validation `n_average`-best ST model
                              # if false, the last `n_average` ST models will be averaged.
 metric=acc                  # loss/acc/bleu
 
-# pre-training related
-asr_model=
-mt_model=
-
 # preprocessing related
 src_case=lc.rm
 tgt_case=tc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
-
-# postprocessing related
-remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
-# NOTE: IWSLT community accepts this setting and therefore we use this by default
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
