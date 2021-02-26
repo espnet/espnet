@@ -24,9 +24,9 @@ if __name__ == "__main__":
         wav_root = os.path.join(root, dataset, "wav")
         label_root = os.path.join(root, dataset, "txt")
         label_wav = open(os.path.join(label_root, f"{dataset}.yaml"), "r")
-        label_src= open(os.path.join(label_root, f"{dataset}.{args.src}"), "r")
+        label_src = open(os.path.join(label_root, f"{dataset}.{args.src}"), "r")
         label_tgt = open(os.path.join(label_root, f"{dataset}.{tgt_path}"), "r")
-        
+
         utt_id = open(os.path.join(target_path, "utt_id"), "w")
 
         wavscp = open(os.path.join(target_path, "wav.scp"), "w")
@@ -35,7 +35,6 @@ if __name__ == "__main__":
         text_src = open(os.path.join(target_path, args.src + ".org"), "w")
         text_tgt = open(os.path.join(target_path, args.tgt + ".org"), "w")
         reco2dur = open(os.path.join(target_path, "reco2dur"), "w")
-        
 
         while True:
             wav = label_wav.readline()
@@ -56,7 +55,11 @@ if __name__ == "__main__":
             if wav_id in id_checker:
                 continue
 
-            wavscp.write("{} sox -t wavpcm {} -c 1 -r 16000 -t wavpcm - |\n".format(wav_id, os.path.join(wav_root, wav_path)))
+            wavscp.write(
+                "{} sox -t wavpcm {} -c 1 -r 16000 -t wavpcm - |\n".format(
+                    wav_id, os.path.join(wav_root, wav_path)
+                )
+            )
             utt2spk.write("{} {}\n".format(wav_id, wav_id))
             spk2utt.write("{} {}\n".format(wav_id, wav_id))
             text_src.write("{}\n".format(src.strip()))
@@ -71,4 +74,3 @@ if __name__ == "__main__":
     text_src.close()
     text_tgt.close()
     utt_id.close()
-
