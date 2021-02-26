@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 
 
 if __name__ == "__main__":
