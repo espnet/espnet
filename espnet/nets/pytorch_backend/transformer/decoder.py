@@ -126,11 +126,13 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         if selfattention_layer_type == "selfattn":
             logging.info("decoder self-attention layer type = self-attention")
             decoder_selfattn_layer = MultiHeadedAttention
-            decoder_selfattn_layer_args = (
-                attention_heads,
-                attention_dim,
-                self_attention_dropout_rate,
-            )
+            decoder_selfattn_layer_args = [
+                (
+                    attention_heads,
+                    attention_dim,
+                    self_attention_dropout_rate,
+                )
+            ] * num_blocks
         elif selfattention_layer_type == "lightconv":
             logging.info("decoder self-attention layer type = lightweight convolution")
             decoder_selfattn_layer = LightweightConvolution
@@ -197,7 +199,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             num_blocks,
             lambda lnum: DecoderLayer(
                 attention_dim,
-                decoder_selfattn_layer(*decoder_selfattn_layer_args),
+                decoder_selfattn_layer(*decoder_selfattn_layer_args[lnum]),
                 MultiHeadedAttention(
                     attention_heads, attention_dim, src_attention_dropout_rate
                 ),
