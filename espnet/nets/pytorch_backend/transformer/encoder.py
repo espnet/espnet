@@ -155,7 +155,7 @@ class Encoder(torch.nn.Module):
             dropout_rate,
             positionwise_conv_kernel_size,
         )
-        if selfattention_layer_type == "selfattn":
+        if selfattention_layer_type in ["selfattn", "rel_selfattn"]:
             logging.info("encoder self-attention layer type = self-attention")
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = [
@@ -226,6 +226,8 @@ class Encoder(torch.nn.Module):
                 )
                 for lnum in range(num_blocks)
             ]
+        else:
+            raise NotImplementedError(selfattention_layer_type)
 
         self.encoders = repeat(
             num_blocks,
