@@ -42,7 +42,7 @@ def load_rttm_text(
             spk_list, spk_event = data.get(utt_id, ([], []))
             if spk_id not in spk_list:
                 spk_list.append(spk_id)
-            data[utt_id] = spk_list, spk_event  + [
+            data[utt_id] = spk_list, spk_event + [
                 (spk_id, float(start), float(start) + float(duration))
             ]
 
@@ -92,7 +92,7 @@ class RttmReader(collections.abc.Mapping):
         size = np.rint(max_duration * self.sample_rate).astype(int) + 1
         spk_label = np.zeros((size, len(spk_list)))
         for spk_id, start, end in spk_event:
-            start_sample = np.rint(start * self.sample_rate ).astype(int)
+            start_sample = np.rint(start * self.sample_rate).astype(int)
             end_sample = np.rint(end * self.sample_rate).astype(int)
             spk_label[spk_list.index(spk_id)][start_sample : end_sample + 1] = 1
         return spk_label

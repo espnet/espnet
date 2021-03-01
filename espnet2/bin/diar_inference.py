@@ -75,11 +75,7 @@ class DiarizeSpeech:
         self.segmenting = segment_size is not None
         if self.segmenting:
             logging.info("Perform segment-wise speaker diarization")
-            logging.info(
-                "Segment length = {} sec".format(
-                    segment_size
-                )
-            )
+            logging.info("Segment length = {} sec".format(segment_size))
         else:
             logging.info("Perform direct speaker diarization on the input")
 
@@ -116,9 +112,7 @@ class DiarizeSpeech:
 
         if self.segmenting and lengths[0] > self.segment_size * fs:
             # Segment-wise speaker diarization
-            num_segments = int(
-                np.ceil(speech.size(1) / (self.segment_size * fs))
-            )
+            num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
             t = T = int(self.segment_size * fs)
             pad_shape = speech[:, :T].shape
             diarized_wavs = []
@@ -140,7 +134,9 @@ class DiarizeSpeech:
                     [batch_size], dtype=torch.long, fill_value=T
                 )
                 # b. Diarization Forward
-                encoder_out, encoder_out_lens = self.diar_model.encode(speech_seg, lengths_seg)
+                encoder_out, encoder_out_lens = self.diar_model.encode(
+                    speech_seg, lengths_seg
+                )
                 spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
 
                 # List[torch.Tensor(B, T, num_spks)]
@@ -149,16 +145,20 @@ class DiarizeSpeech:
             spk_prediction = torch.cat(diarized_wavs, dim=1)
         else:
             # b. Enhancement/Separation Forward
-            encoder_out, encoder_out_lens = self.diar_model.encode(speech_seg, lengths_seg)
+            encoder_out, encoder_out_lens = self.diar_model.encode(
+                speech_seg, lengths_seg
+            )
             spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
 
-        assert spk_prediction.dim(2) == self.num_spk, (spk_prediction.dim(2), self.num_spk)
+        assert spk_prediction.dim(2) == self.num_spk, (
+            spk_prediction.dim(2),
+            self.num_spk,
+        )
         assert spk_prediction.dim(0) == batch_size, (spk_prediction.dim(0), batch_size)
         spk_prediction = spk_prediction.cpu.numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
         return spk_prediction
-
 
 
 def inference(
