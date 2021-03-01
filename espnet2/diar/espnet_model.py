@@ -81,7 +81,9 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         pred = self.decoder(encoder_out, encoder_out_lens)
 
         # 3. Aggregate time-domain labels
-        spk_labels, spk_labels_lengths = self.label_aggregator(spk_labels, spk_labels_lengths)
+        spk_labels, spk_labels_lengths = self.label_aggregator(
+            spk_labels, spk_labels_lengths
+        )
 
         if self.loss_type == "pit":
             loss, perm_idx, perm_list, label_perm = self.pit_loss(

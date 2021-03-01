@@ -47,7 +47,7 @@ class LabelAggregate(torch.nn.Module):
         label_dim = input.size(2)
 
         # NOTE(jiatong):
-        #   The default behaviour of label aggregation is compatible with 
+        #   The default behaviour of label aggregation is compatible with
         #   torch.stft about framing and padding.
 
         # Step1: center padding
@@ -56,11 +56,11 @@ class LabelAggregate(torch.nn.Module):
             max_length = max_length + 2 * pad
             input = torch.nn.functional.pad(input, (pad, pad), "constant", 0)
             nframe = (max_length - self.win_length) // self.hop_length + 1
-        
+
         # Step2: framing
         output = input.as_strided(
             (bs, nframe, self.win_length, label_dim),
-            (max_length, self.win_length * label_dim, label_dim, 1)
+            (max_length, self.win_length * label_dim, label_dim, 1),
         )
 
         # Step3: aggregate label
@@ -79,4 +79,3 @@ class LabelAggregate(torch.nn.Module):
             olens = None
 
         return output, olens
-

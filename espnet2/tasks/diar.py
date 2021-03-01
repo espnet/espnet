@@ -60,7 +60,7 @@ normalize_choices = ClassChoices(
 label_aggregator_choices = ClassChoices(
     "label_aggregator",
     classes=dict(label_aggregator=LabelAggregate),
-    default="label_aggregator"
+    default="label_aggregator",
 )
 encoder_choices = ClassChoices(
     "encoder",
@@ -223,9 +223,11 @@ class DiarizationTask(AbsTask):
             normalize = normalize_class(**args.normalize_conf)
         else:
             normalize = None
-        
+
         # 3. Label Aggregator layer
-        label_aggregator_class = label_aggregator_choices.get_class(args.label_aggregator)
+        label_aggregator_class = label_aggregator_choices.get_class(
+            args.label_aggregator
+        )
         label_aggregator = label_aggregator_class(**args.label_aggregator_conf)
 
         # 3. Encoder
