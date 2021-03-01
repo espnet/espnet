@@ -30,7 +30,7 @@ def _ToChar(text):
 def TextRefine(text):
     text = re.sub("<i>", "", text)
     text = re.sub("</i>", "", text)
-    text = re.sub("\.\.\.|\*|\[.*?\]", "", text.lower())
+    text = re.sub(r"\.\.\.|\*|\[.*?\]", "", text.lower())
     delset_specific = delset
     remove_clear = "()=-"
     for char in remove_clear:
