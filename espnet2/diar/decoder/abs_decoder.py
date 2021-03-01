@@ -17,3 +17,8 @@ class AbsDecoder(torch.nn.Module, ABC):
         ilens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def num_spk(self):
+        raise NotImplementedError

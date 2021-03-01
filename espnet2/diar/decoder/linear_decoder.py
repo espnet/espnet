@@ -11,7 +11,7 @@ class LinearDecoder(AbsDecoder):
     def __init__(
         self,
         encoder_output_size: int,
-        output_size: int,
+        num_spk: int = 2,
     ):
         super().__init__()
         self.linear_decoder = torch.nn.Linear(encoder_output_size, output_size)
@@ -26,3 +26,7 @@ class LinearDecoder(AbsDecoder):
         output = self.linear_decoder(input)
 
         return output
+
+    @property
+    def num_spk(self):
+        return self._num_spk
