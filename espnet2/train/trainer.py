@@ -506,7 +506,7 @@ class Trainer:
                                 )
                             if optim_idx.dim() == 1:
                                 for v in optim_idx:
-                                    if v != optim_idx:
+                                    if v != optim_idx[0]:
                                         raise RuntimeError(
                                             "optim_idx must be 1dim tensor "
                                             "having same values for all entries"
