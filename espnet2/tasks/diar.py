@@ -27,6 +27,7 @@ from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.layers.label_aggregation import LabelAggregate
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -55,6 +56,11 @@ normalize_choices = ClassChoices(
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
+)
+label_aggregator_choices = ClassChoices(
+    "label_aggregator",
+    classes=dict(label_aggregator=LabelAggregate),
+    default="label_aggregator"
 )
 encoder_choices = ClassChoices(
     "encoder",
@@ -102,10 +108,10 @@ class DiarizationTask(AbsTask):
         required = parser.get_default("required")
 
         group.add_argument(
-            "--total_spk_num",
+            "--num_spk",
             type=int_or_none,
             default=None,
-            help="The number fo speakers used in system training",
+            help="The number fo speakers (for each recording) used in system training",
         )
 
         group.add_argument(
@@ -217,6 +223,10 @@ class DiarizationTask(AbsTask):
             normalize = normalize_class(**args.normalize_conf)
         else:
             normalize = None
+        
+        # 3. Label Aggregator layer
+        label_aggregator_class = label_aggregator_choices.get_class(args.label_aggregator)
+        label_aggregator = label_aggregator_class(**args.label_aggregator_conf)
 
         # 3. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
@@ -226,7 +236,7 @@ class DiarizationTask(AbsTask):
         # 4. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
         decoder = decoder_class(
-            output_size=args.total_spk_num,
+            output_size=args.num_spk,
             encoder_output_size=encoder.output_size(),
             **args.decoder_conf,
         )
@@ -235,6 +245,7 @@ class DiarizationTask(AbsTask):
         model = ESPnetDiarizationModel(
             frontend=frontend,
             normalize=normalize,
+            label_aggregator=label_aggregator,
             encoder=encoder,
             decoder=decoder,
             **args.model_conf,

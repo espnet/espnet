@@ -36,6 +36,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self,
         frontend: Optional[AbsFrontend],
         normalize: Optional[AbsNormalize],
+        label_aggregator: torch.nn.Module,
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         loss_type: str = "pit",  # only support pit loss for now
@@ -46,8 +47,10 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
         self.encoder = encoder
         self.decoder = decoder
+        self.num_spk = decoder.num_spk
         self.normalize = normalize
         self.frontend = frontend
+        self.label_aggregator = label_aggregator
         self.loss_type = loss_type
 
     def forward(
@@ -61,7 +64,6 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
         Args:
             speech: (Batch, samples)
-            TODO (jiatong): not support lengths (utterance-based training)
             speech_lengths: (Batch,) default None for chunk interator,
                                      because the chunk-iterator does not
                                      have the speech_lengths returned.
@@ -77,6 +79,9 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
         # 2. Decoder (baiscally a predction layer after encoder_out)
         pred = self.decoder(encoder_out, encoder_out_lens)
+
+        # 3. Aggregate time-domain labels
+        spk_labels, spk_labels_lengths = self.label_aggregator(spk_labels, spk_labels_lengths)
 
         if self.loss_type == "pit":
             loss, perm_idx, perm_list, label_perm = self.pit_loss(
