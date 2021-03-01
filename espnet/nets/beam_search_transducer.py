@@ -551,7 +551,6 @@ class BeamSearchTransducer:
                             lm_scores=hyp.lm_scores,
                         )
                     )
-                    V.append(S[-1])
 
                     for logp, k in zip(beam_topk[0][i], beam_topk[1][i] + 1):
                         score = hyp.score + float(logp)
@@ -570,7 +569,7 @@ class BeamSearchTransducer:
                             )
                         )
 
-                V.sort(key=lambda x: x.score, reverse=True),
+                V.sort(key=lambda x: x.score, reverse=True)
                 V = substract(V, hyps)[:beam]
 
                 beam_state = self.decoder.create_batch_states(
