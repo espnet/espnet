@@ -79,7 +79,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         pred = self.decoder(encoder_out, encoder_out_lens)
 
         if self.loss_type == "pit":
-            loss, perm_idx, perm_list, label_perm = pit_loss(
+            loss, perm_idx, perm_list, label_perm = self.pit_loss(
                 pred, spk_labels, encoder_out_lens
             )
             (
@@ -164,6 +164,13 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def _extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        batch_size = speech.shape[0]
+        speech_lengths = (
+            speech_lengths
+            if speech_lengths is not None
+            else torch.ones(batch_size).int() * speech.shape[1]
+        )
+
         assert speech_lengths.dim() == 1, speech_lengths.shape
 
         # for data-parallel

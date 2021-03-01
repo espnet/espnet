@@ -14,7 +14,9 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-# Note(jiatong): ASR encoder can be used for diarization
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -22,9 +24,6 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
-from espnet2.diar.frontend.abs_frontend import AbsFrontend
-from espnet2.diar.frontend.default import DefaultFrontend
-from espnet2.diar.frontend.windowing import SlidingWindow
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -203,12 +202,10 @@ class DiarizationTask(AbsTask):
         if args.input_size is None:
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
-            logging.info(args.frontend_conf)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
             # Give features from data-loader
-            # FIXME (jiatong): this is not support for diar now
             args.frontend = None
             args.frontend_conf = {}
             frontend = None
