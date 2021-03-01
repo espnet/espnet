@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #  Copyright 2021 Johns Hopkins University (Jiatong Shi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -34,14 +36,9 @@ do_delta=false
 
 preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
-lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 # train_config=conf/tuning/train_rnn.yaml
 # decode_config=conf/tuning/decode_rnn.yaml
-
-# rnnlm related
-lm_resume=        # specify a snapshot file to resume LM training
-lmtag=${annotation_id}        # tag for managing LMs
 
 # decoding parameter
 n_average=5
@@ -95,7 +92,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
 fi
 
-train_org=${train_set}
 train_set=train_${annotation_id}_sp.${tgt_lang}
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
