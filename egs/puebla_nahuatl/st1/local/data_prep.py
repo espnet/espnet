@@ -1,12 +1,11 @@
 # -*- coding: UTF-8 -*-
 
-from xml.dom.minidom import parse
 from argparse import ArgumentParser
-import shutil
-import string
 import os
-import sys
 import re
+import string
+import sys
+from xml.dom.minidom import parse
 
 s = "".join(chr(c) for c in range(sys.maxunicode + 1))
 ws = "".join(re.findall(r"\s", s))
@@ -107,7 +106,7 @@ def TimeOrderProcess(time_order_dom):
 def ELANProcess(afile, spk_info, spk_details):
     try:
         elan_content = parse(afile).documentElement
-    except:
+    except Exception:
         print("encoding failed  %s" % afile)
         return None
     time_order = TimeOrderProcess(elan_content.getElementsByTagName("TIME_ORDER")[0])
@@ -128,7 +127,7 @@ def ELANProcess(afile, spk_info, spk_details):
         try:
             spk_name = " ".join(tier.getAttribute("PARTICIPANT").strip().split())
             code = spk_details[spk_name]
-        except:
+        except Exception:
             print("error speaker: %s" % tier.getAttribute("PARTICIPANT").strip())
             continue
         if code not in spk_info:
@@ -196,7 +195,6 @@ def TraverseData(
     utt2spk = open(os.path.join(target_dir, "utt2spk"), "w", encoding="utf-8")
     spk2utt = open(os.path.join(target_dir, "spk2utt"), "w", encoding="utf-8")
     text = open(os.path.join(target_dir, "text.na"), "w", encoding="utf-8")
-    name2spk = open(os.path.join(target_dir, "name2spk"), "w", encoding="utf-8")
     remix_script = open(
         os.path.join(target_dir, "remix_script.sh"), "w", encoding="utf-8"
     )
@@ -205,9 +203,7 @@ def TraverseData(
     # get relationship
     sound_files = {}
     annotation_files = {}
-    spk_id = 1
     spk2utt_prep = {}
-    name2spk_prep = {}
 
     wav_spk_info = LoadWavSpeakerInfo(speaker_info)
     spk_details = LoadSpeakerDetails(speaker_details)
@@ -326,7 +322,6 @@ if __name__ == "__main__":
         help="wav path",
         default="/export/c04/jiatong/data/Puebla-Nahuatl/Sound-files-Puebla-Nahuatl",
     )
-    # parser.add_argument('-a', dest="ann_path", type=str, help="annotation path", default="/export/c04/jiatong/data/Puebla-Nahuatl/Pueble-Nahuatl-Manifest/ELAN-files-Final-proofed-and-most-translated")
     parser.add_argument(
         "-a",
         dest="ann_path",
