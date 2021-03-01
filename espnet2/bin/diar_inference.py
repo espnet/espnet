@@ -198,30 +198,26 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build separate_speech
-    separate_speech = SeparateSpeech(
-        enh_train_config=enh_train_config,
-        enh_model_file=enh_model_file,
+    diarize_speech = DiarizeSpeech(
+        enh_train_config=diar_train_config,
+        enh_model_file=diar_model_file,
         segment_size=segment_size,
-        hop_size=hop_size,
-        normalize_segment_scale=normalize_segment_scale,
         show_progressbar=show_progressbar,
-        ref_channel=ref_channel,
-        normalize_output_wav=normalize_output_wav,
         device=device,
         dtype=dtype,
     )
 
     # 3. Build data-iterator
-    loader = EnhancementTask.build_streaming_iterator(
+    loader = DiarizationTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=EnhancementTask.build_preprocess_fn(
+        preprocess_fn=DiarizationTask.build_preprocess_fn(
             separate_speech.enh_train_args, False
         ),
-        collate_fn=EnhancementTask.build_collate_fn(
+        collate_fn=DiarizationTask.build_collate_fn(
             separate_speech.enh_train_args, False
         ),
         allow_variable_data_keys=allow_variable_data_keys,
@@ -230,7 +226,8 @@ def inference(
 
     # 4. Start for-loop
     writers = []
-    for i in range(separate_speech.num_spk):
+    for i in range(diarize_speech.num_spk):
+        # TODO(jiatong): add writer
         writers.append(
             SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
         )
@@ -242,7 +239,7 @@ def inference(
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
-        waves = separate_speech(**batch)
+        waves = diarize_speech(**batch)
         for (spk, w) in enumerate(waves):
             for b in range(batch_size):
                 writers[spk][keys[b]] = fs, w[b]
