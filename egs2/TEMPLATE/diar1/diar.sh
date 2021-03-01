@@ -201,6 +201,13 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}${_suf}/${dset}"/utt2spk \
                     "${data_feats}${_suf}/${dset}"/segments \
                     "${data_feats}${_suf}/${dset}"/rttm
+
+            # convert standard rttm file into espnet-format rttm (measure with samples)
+            pyscripts/utils/convert_rttm.py \
+                --rttm "${data_feats}${_suf}/${dset}"/rttm \
+                --wavscp "${data_feats}${_suf}/${dset}"/wav.scp \
+                --output_path "${data_feats}${_suf}/${dset}" \
+                --sampling_rate "${fs}"
         done
     fi
 
@@ -237,6 +244,13 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}/${dset}"/utt2spk \
                     "${data_feats}/${dset}"/segments \
                     "${data_feats}/${dset}"/rttm
+
+            # convert standard rttm file into espnet-format rttm (measure with samples)
+            pyscripts/utils/convert_rttm.py \
+                --rttm "${data_feats}/${dset}"/rttm \
+                --wavscp "${data_feats}/${dset}"/wav.scp \
+                --output_path "${data_feats}/${dset}" \
+                --sampling_rate "${fs}"
         done
     fi
 else
@@ -320,9 +334,9 @@ if ! "${skip_train}"; then
                 --collect_stats true \
                 --use_preprocessor true \
                 --train_data_path_and_name_and_type "${_diar_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_diar_train_dir}/rttm,spk_labels,rttm" \
+                --train_data_path_and_name_and_type "${_diar_train_dir}/espnet_rttm,spk_labels,rttm" \
                 --valid_data_path_and_name_and_type "${_diar_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_diar_valid_dir}/rttm,spk_labels,rttm" \
+                --valid_data_path_and_name_and_type "${_diar_valid_dir}/espnet_rttm,spk_labels,rttm" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -378,12 +392,12 @@ if ! "${skip_train}"; then
         _opts+="--total_spk_num ${total_spk_num} "
 
         _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/${_scp},speech,${_type} "
-        _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/rttm,spk_labels,rttm "
+        _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/espnet_rttm,spk_labels,rttm "
         _opts+="--train_shape_file ${diar_stats_dir}/train/speech_shape "
         _opts+="--train_shape_file ${diar_stats_dir}/train/spk_labels_shape "
 
         _opts+="--valid_data_path_and_name_and_type ${_diar_valid_dir}/${_scp},speech,${_type} "
-        _opts+="--valid_data_path_and_name_and_type ${_diar_valid_dir}/rttm,spk_labels,rttm "
+        _opts+="--valid_data_path_and_name_and_type ${_diar_valid_dir}/espnet_rttm,spk_labels,rttm "
         _opts+="--valid_shape_file ${diar_stats_dir}/valid/speech_shape "
         _opts+="--valid_shape_file ${diar_stats_dir}/valid/spk_labels_shape "
 
