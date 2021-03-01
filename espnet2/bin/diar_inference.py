@@ -23,6 +23,7 @@ from espnet2.tasks.diar import DiarizationTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.types import humanfriendly_parse_size_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -232,8 +233,3 @@ class DiarizeSpeech:
         _, perm = self.enh_model._permutation_loss(ref_wavs, enh_wavs, loss_func)
         return perm
 
-
-def humanfriendly_or_none(value: str):
-    if value in ("none", "None", "NONE"):
-        return None
-    return humanfriendly.parse_size(value)

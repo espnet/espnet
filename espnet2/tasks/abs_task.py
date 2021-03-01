@@ -1213,7 +1213,6 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
-                    hop_length=args.frontend_conf["hop_length"],
                     sample_rate=args.frontend_conf["fs"],
                 ),
                 valid_iter=cls.build_streaming_iterator(
@@ -1226,7 +1225,6 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
-                    hop_length=args.frontend_conf["hop_length"],
                     sample_rate=args.frontend_conf["fs"],
                 ),
                 output_dir=output_dir,
@@ -1496,7 +1494,6 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
-            hop_length=args.frontend_conf["hop_length"],
             sample_rate=args.frontend_conf["fs"],
         )
         cls.check_task_requirements(
@@ -1579,7 +1576,6 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
-            hop_length=args.frontend_conf["hop_length"],
             sample_rate=args.frontend_conf["fs"],
         )
         cls.check_task_requirements(
@@ -1771,7 +1767,6 @@ class AbsTask(ABC):
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
         inference: bool = False,
-        hop_length: int = 128,
         sample_rate: Union[int, str] = 16000,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
@@ -1804,7 +1799,6 @@ class AbsTask(ABC):
                 data_path_and_name_and_type,
                 float_dtype=dtype,
                 preprocess=preprocess_fn,
-                hop_length=hop_length,
                 sample_rate=sample_rate,
             )
             if key_file is None:

@@ -85,7 +85,6 @@ class IterableESPnetDataset(IterableDataset):
         float_dtype: str = "float32",
         int_dtype: str = "long",
         key_file: str = None,
-        hop_length: int = 128,
         sample_rate: Union[str, int] = 16000,
     ):
         assert check_argument_types()
@@ -121,7 +120,6 @@ class IterableESPnetDataset(IterableDataset):
                 preprocess=preprocess,
                 float_dtype=float_dtype,
                 int_dtype=int_dtype,
-                hop_length=hop_length,
                 sample_rate=sample_rate,
             )
         else:

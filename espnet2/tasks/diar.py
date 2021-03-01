@@ -32,7 +32,7 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import SpeechPreprocessor
+from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -169,7 +169,7 @@ class DiarizationTask(AbsTask):
         assert check_argument_types()
         if args.use_preprocessor:
             # FIXME (jiatong): add more arugment here
-            retval = SpeechPreprocessor(train=train)
+            retval = CommonPreprocessor(train=train)
         else:
             retval = None
         assert check_return_type(retval)

@@ -244,7 +244,7 @@ DATA_TYPES = {
     ),
     "rttm": dict(
         func=RttmReader,
-        kwargs=["hop_length", "sample_rate"],
+        kwargs=["sample_rate"],
         help="rttm file loader, currently support for speaker diarization"
         "\n\n"
         "   SPEAKER file1 1 0.00 1.23 <NA> <NA> spk1 <NA>"
@@ -290,7 +290,6 @@ class ESPnetDataset(AbsDataset):
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
-        hop_length: int = 128,
         sample_rate: Union[str, int] = 16000,
     ):
         assert check_argument_types()
@@ -306,8 +305,6 @@ class ESPnetDataset(AbsDataset):
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
 
-        # Note (jiatong): hop_length and sample_rate are used for rttm-framelize
-        self.hop_length = hop_length
         if isinstance(sample_rate, str):
             self.sample_rate = humanfriendly.parse_size(sample_rate)
         else:
@@ -358,8 +355,6 @@ class ESPnetDataset(AbsDataset):
                         kwargs["int_dtype"] = self.int_dtype
                     elif key2 == "max_cache_fd":
                         kwargs["max_cache_fd"] = self.max_cache_fd
-                    elif key2 == "hop_length":
-                        kwargs["hop_length"] = self.hop_length
                     elif key2 == "sample_rate":
                         kwargs["sample_rate"] = self.sample_rate
                     else:
