@@ -74,3 +74,14 @@
 |decode_asr_lm_lm_train_lm_adam_bpe500_valid.loss.ave_asr_model_valid.acc.ave/dev|466|28296|92.7|4.1|3.2|1.2|8.5|79.2|
 |decode_asr_lm_lm_train_lm_adam_bpe500_valid.loss.ave_asr_model_valid.acc.ave/test|1155|52113|92.9|3.7|3.4|1.1|8.2|73.1|
 
+train.log
+PR from @ftshijt and @kamo-naoyuki
+1. Please use soft link (e.g. ln -s) and refer files in TEMPLATE for both asr.sh and db.sh
+2. There are two conf file with same name in the tuning and conf. We could just keep them in the tuning and use soft-link in conf
+3. In data.sh please add . utils/parse_options.sh || exit 1; to allow argument parsing here.
+4. Please reflect the download data info in db.sh instead of data.sh
+5. In data.sh Don't forget set -euo pipefail. This is very dangerous.
+6. Don't use echo for logging purpose. Use log command.
+7. Remove some scripts becasue it requires Kaldi.
+8. Change this file to a symlink: ln -s ../../TEMPLATE/asr1/path.sh
+9. Please update espnet to latest before creating PR, in run.sh "srctexts" doesn't exist.
