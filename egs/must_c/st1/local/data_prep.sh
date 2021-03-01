@@ -7,13 +7,14 @@ export LC_ALL=C
 
 . utils/parse_options.sh || exit 1;
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <src-dir> <tgt-lang>"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <src-dir> <tgt-lang> <version>"
     echo "e.g.: $0 /n/rd11/corpora_8/MUSTC_v1.0 target_lang"
     exit 1;
 fi
 
 tgt_lang=$2
+version=$3
 
 for set in train dev tst-COMMON tst-HE; do
     src=$1/en-${tgt_lang}/data/${set}
@@ -53,20 +54,39 @@ for set in train dev tst-COMMON tst-HE; do
     # make basic transcription file (add segments info)
     cp ${yml} ${dst}/.yaml0
     grep duration ${dst}/.yaml0 > ${dst}/.yaml1
-    awk '{
-        duration=$3; offset=$5; spkid=$7;
-        gsub(",","",duration);
-        gsub(",","",offset);
-        gsub(",","",spkid);
-        gsub("spk.","",spkid);
-        duration=sprintf("%.7f", duration);
-        if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
-        else extendt=0;
-        offset=sprintf("%.7f", offset);
-        startt=offset-extendt;
-        endt=offset+duration+extendt;
-        printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
-    }' ${dst}/.yaml1 > ${dst}/.yaml2
+    if [ ${version} = "v1" ]; then
+        awk '{
+            duration=$3; offset=$5; spkid=$7;
+            gsub(",","",duration);
+            gsub(",","",offset);
+            gsub(",","",spkid);
+            gsub("spk.","",spkid);
+            duration=sprintf("%.7f", duration);
+            if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
+            else extendt=0;
+            offset=sprintf("%.7f", offset);
+            startt=offset-extendt;
+            endt=offset+duration+extendt;
+            printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
+        }' ${dst}/.yaml1 > ${dst}/.yaml2
+    elif [ ${version} = "v2" ]; then
+        awk '{
+            duration=$3; offset=$5; spkid=$11;
+            gsub(",","",duration);
+            gsub(",","",offset);
+            gsub(",","",spkid);
+            gsub("spk.","",spkid);
+            duration=sprintf("%.7f", duration);
+            if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
+            else extendt=0;
+            offset=sprintf("%.7f", offset);
+            startt=offset-extendt;
+            endt=offset+duration+extendt;
+            printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
+        }' ${dst}/.yaml1 > ${dst}/.yaml2
+    else
+        echo "${version} is not available. Select v1 or v2."
+    fi
     # NOTE: Extend the lengths of short utterances (< 0.2s) rather than exclude them
 
     cp ${en} ${dst}/en.org
@@ -81,7 +101,7 @@ for set in train dev tst-COMMON tst-HE; do
         cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
         # remove punctuation
-        local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+        remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
         # tokenization
         tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok

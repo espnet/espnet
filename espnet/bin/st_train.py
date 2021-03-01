@@ -135,7 +135,7 @@ def get_parser(parser=None, required=True):
         "--ctc_type",
         default="warpctc",
         type=str,
-        choices=["builtin", "warpctc"],
+        choices=["builtin", "warpctc", "gtnctc", "cudnnctc"],
         help="Type of CTC implementation to calculate loss.",
     )
     parser.add_argument(

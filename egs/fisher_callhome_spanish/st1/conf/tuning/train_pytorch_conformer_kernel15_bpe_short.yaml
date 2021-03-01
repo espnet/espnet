@@ -49,6 +49,7 @@ dec-init-mods: decoder.embed,decoder.decoders,decoder.after_norm,decoder.output_
 transformer-encoder-pos-enc-layer-type: rel_pos
 transformer-encoder-selfattn-layer-type: rel_selfattn
 transformer-encoder-activation-type: swish
+rel-pos-type: latest
 macaron-style: true
 use-cnn-module: true
 cnn-module-kernel: 15

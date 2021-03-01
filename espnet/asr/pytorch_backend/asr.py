@@ -499,6 +499,16 @@ def train(args):
     else:
         model_params = model.parameters()
 
+    logging.warning(
+        "num. model params: {:,} (num. trained: {:,} ({:.1f}%))".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+            sum(p.numel() for p in model.parameters() if p.requires_grad)
+            * 100.0
+            / sum(p.numel() for p in model.parameters()),
+        )
+    )
+
     # Setup an optimizer
     if args.opt == "adadelta":
         optimizer = torch.optim.Adadelta(
@@ -987,9 +997,11 @@ def recog(args):
             trans_decoder = model.dec
         else:
             trans_decoder = model.decoder
+        joint_network = model.joint_network
 
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
+            joint_network=joint_network,
             beam_size=args.beam_size,
             nbest=args.nbest,
             lm=rnnlm,

@@ -343,6 +343,16 @@ def train(args):
     else:
         model_params = model.parameters()
 
+    logging.warning(
+        "num. model params: {:,} (num. trained: {:,} ({:.1f}%))".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+            sum(p.numel() for p in model.parameters() if p.requires_grad)
+            * 100.0
+            / sum(p.numel() for p in model.parameters()),
+        )
+    )
+
     # Setup an optimizer
     if args.opt == "adam":
         optimizer = torch.optim.Adam(

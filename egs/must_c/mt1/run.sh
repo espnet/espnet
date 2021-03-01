@@ -54,10 +54,6 @@ must_c=/n/rd8/MUSTC_v1.0
 
 # target language related
 tgt_lang=de
-# you can choose from de, es, fr, it, nl, pt, ro, ru
-# if you want to train the multilingual model, segment languages with _ as follows:
-# e.g., tgt_lang="de_es_fr"
-# if you want to use all languages, set tgt_lang="all"
 
 # if true, reverse source and target languages: **->English
 reverse_direction=false
@@ -83,33 +79,23 @@ set -o pipefail
 if [ ${reverse_direction} = true ]; then
     train_set=train.${tgt_lang}-en.en
     train_dev=dev.${tgt_lang}-en.en
-    trans_set=""
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        trans_set="${trans_set} dev_org.${lang}-en.en tst-COMMON.${lang}-en.en tst-HE.${lang}-en.en"
-    done
+    trans_set="dev_org.${tgt_lang}-en.en tst-COMMON.${tgt_lang}-en.en tst-HE.${tgt_lang}-en.en"
 else
     train_set=train.en-${tgt_lang}.${tgt_lang}
     train_dev=dev.en-${tgt_lang}.${tgt_lang}
-    trans_set=""
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        trans_set="${trans_set} dev_org.en-${lang}.${lang} tst-COMMON.en-${lang}.${lang} tst-HE.en-${lang}.${lang}"
-    done
+    trans_set="dev_org.en-${tgt_lang}.${tgt_lang} tst-COMMON.en-${tgt_lang}.${tgt_lang} tst-HE.en-${tgt_lang}.${tgt_lang}"
 fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/download_and_untar.sh ${must_c} ${lang}
-    done
+    local/download_and_untar.sh ${must_c} ${tgt_lang} "v1"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
-    for lang in $(echo ${tgt_lang} | tr '_' ' '); do
-        local/data_prep.sh ${must_c} ${lang}
-    done
+    local/data_prep.sh ${must_c} ${tgt_lang} "v1"
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -127,24 +113,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         cp -rf data/dev.en-${tgt_lang}.${lang} data/dev_org.en-${tgt_lang}.${lang}
     done
 
+    # remove long and short utterances
     for x in train.en-${tgt_lang} dev.en-${tgt_lang}; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in ${tgt_lang} en; do
-            remove_longshortdata.sh --no_feat true --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.${tgt_lang}.tmp/reclist1
-        cut -f 1 -d " " data/${x}.${tgt_lang}.tmp/text > data/${x}.${tgt_lang}.tmp/reclist2
-        comm -12 data/${x}.${tgt_lang}.tmp/reclist1 data/${x}.${tgt_lang}.tmp/reclist2 > data/${x}.en.tmp/reclist
-
-        for lang in ${tgt_lang} en; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --no_feat true --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en ${tgt_lang}"
     done
 fi
 
@@ -189,9 +160,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ${reverse_direction} = true ]; then
         data2json.sh --nj 16 --text data/train.en-${tgt_lang}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
             data/train.en-${tgt_lang}.en ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        data2json.sh --text data/dev.en-${tgt_lang}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-            data/dev.en-${tgt_lang}.en ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${trans_set}; do
+        for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
             set=$(echo ${x} | cut -f 1 -d ".")
             data2json.sh --text data/${set}.en-${tgt_lang}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
@@ -208,9 +177,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     else
         data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
             data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        data2json.sh --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
-            data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${trans_set}; do
+        for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
             data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
@@ -286,6 +253,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${x}
 
+        # reset log for RTF calculation
+        if [ -d ${expdir}/${decode_dir}/log/ ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
@@ -302,12 +274,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         if [ ${reverse_direction} = true ]; then
             score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
-                ${expdir}/${decode_dir} en ${dict}
+                ${expdir}/${decode_dir} "en" ${dict}
         else
             score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
                 ${expdir}/${decode_dir} ${tgt_lang} ${dict}
         fi
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done
@@ -316,7 +290,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Finished"
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
     echo "stage 6: Cascaded-ST decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average MT models
@@ -354,6 +328,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         decode_dir=decode_${x}_$(basename ${decode_config%.*})_pipeline
         feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev)
 
+        # reset log for RTF calculation
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
@@ -370,6 +349,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done
