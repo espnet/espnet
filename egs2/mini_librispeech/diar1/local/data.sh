@@ -111,7 +111,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 mkdir -p $simudir/.work/data_$simuid.$n
                 actual=${simu_dirs[($n-1)%${#simu_dirs[@]}]}/$n
                 mkdir -p $actual
-                ln -nfs $(realpath $actual) $simudir/wav/$simuid/$n
+                ln -nfs "$(realpath $actual)" $simudir/wav/$simuid/$n
             done
             utils/split_scp.pl $simudir/.work/mixture_$simuid.scp $split_scps || exit 1
 
