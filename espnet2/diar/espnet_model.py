@@ -1,4 +1,7 @@
-# Licensed under the MIT license.
+#!/usr/bin/env python3
+
+# Copyright 2021 Jiatong Shi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from distutils.version import LooseVersion
 from functools import reduce

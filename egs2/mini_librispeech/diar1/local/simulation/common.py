@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
+
 # Copyright 2019 Hitachi, Ltd. (author: Yusuke Fujita)
-# Licensed under the MIT license.
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
 #
 # This library provides utilities for kaldi-style data directory.

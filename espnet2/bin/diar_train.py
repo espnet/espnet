@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# Licensed under the MIT license.
+
+# Copyright 2021 Jiatong Shi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from espnet2.tasks.diar import DiarizationTask
 
