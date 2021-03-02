@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import Tuple
+import warnings
 
 import torch
 
@@ -22,12 +23,13 @@ class AsteroidModel_Converter(AbsSeparator):
             encoder_output_dim: input feature dimension, deafult=1 after the NullEncoder
             num_spk: number of speakers
             loss_type: loss type of enhancement
-            model_name: asteroind model names, e.g. ConvTasNet, DPTNet. Refers to
+            model_name: Asteroid model names, e.g. ConvTasNet, DPTNet. Refers to
                         https://github.com/asteroid-team/asteroid/
                         blob/master/asteroid/models/__init__.py
-            pretrained_path: the name of pretrained model from Asteroid in Zenodo.
+            pretrained_path: the name of pretrained model from Asteroid in HF hub.
                              Refers to: https://github.com/asteroid-team/asteroid/
-                             blob/master/docs/source/readmes/pretrained_models.md
+                             blob/master/docs/source/readmes/pretrained_models.md and
+                             https://huggingface.co/models?filter=asteroid
             model_related_kwargs: more args towards each specific asteroid model.
         """
         super(AsteroidModel_Converter, self).__init__()
@@ -46,9 +48,13 @@ class AsteroidModel_Converter(AbsSeparator):
         # print('args:',model_related_kwargs)
 
         if pretrained_path:
-            model = eval(
-                "models.{}.from_pretrained('{}')".format(model_name, pretrained_path)
-            )
+            model = getattr(models, model_name).from_pretrained(pretrained_path)
+            print("model_kwargs:", model_related_kwargs)
+            if model_related_kwargs:
+                warnings.warn(
+                    "Pratrained model should get no args with %s" % model_related_kwargs
+                )
+
         else:
             model_name = getattr(models, model_name)
             model = model_name(**model_related_kwargs)
@@ -78,9 +84,11 @@ class AsteroidModel_Converter(AbsSeparator):
             ]
         """
 
-        # import soundfile as sf
-        # sf.write('test_mix.wav',input.data.cpu()[0],8000)
-        est_source = self.model(input)  # B,nspk,T or nspk,T
+        if hasattr(self.model, "forward_wav"):
+            est_source = self.model.forward_wav(input)  # B,nspk,T or nspk,T
+        else:
+            est_source = self.model(input)  # B,nspk,T or nspk,T
+
         if input.dim() == 1:
             assert est_source.size(0) == self.num_spk, est_source.size(0)
         else:
@@ -109,7 +117,8 @@ if __name__ == "__main__":
 
     net = AsteroidModel_Converter(
         model_name="ConvTasNet",
-        n_src=2,
+        encoder_output_dim=1,
+        num_spk=2,
         loss_type="si_snr",
         pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean",
     )
@@ -119,6 +128,8 @@ if __name__ == "__main__":
     print("output spk1 shape", output[0].shape)
 
     net = AsteroidModel_Converter(
+        encoder_output_dim=1,
+        num_spk=2,
         model_name="ConvTasNet",
         n_src=2,
         loss_type="si_snr",
@@ -142,3 +153,4 @@ if __name__ == "__main__":
     print("\n\nmodel", net)
     output, *__ = net(mixture)
     print("output spk1 shape", output[0].shape)
+    print("Finished", output[0].shape)
