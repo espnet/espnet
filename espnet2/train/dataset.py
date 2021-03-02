@@ -305,7 +305,6 @@ class ESPnetDataset(AbsDataset):
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
 
-
         self.loader_dict = {}
         self.debug_info = {}
         for path, name, _type in path_name_type_list:

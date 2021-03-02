@@ -22,9 +22,10 @@ class LabelProcessor(torch.nn.Module):
             ilens: (Batch)
         Returns:
             output: (Batch, Frames, Label_dim)
+            olens: (Batch)
 
         """
 
-        output = self.label_aggregator(input, ilens)
+        output, olens = self.label_aggregator(input, ilens)
 
-        return output, ilens
+        return output, olens

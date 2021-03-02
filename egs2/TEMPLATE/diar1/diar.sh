@@ -54,8 +54,7 @@ diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
 feats_normalize=global_mvn # Normalizaton layer type.
-spk_num=2    # # Number of speakers in the input audio 
-total_spk_num=             # Total number of speaker in the training set
+num_spk=2    # # Number of speakers in the input audio 
 
 # diar related
 inference_args="--normalize_output_wav true"
@@ -106,8 +105,7 @@ Options:
     --diar_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
                  # Note that it will overwrite args in diar config.
     --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
-    --spk_num    # Number of speakers in the input audio (default="${spk_num}")
-    --total_spk_num # Total number fo speakers, necessary for EEND loss (default="${total_spk_num})
+    --num_spk    # Number of speakers in the input audio (default="${num_spk}")
 
     # diarization related
     --inference_args      # Arguments for diarization in the inference stage (default="${inference_args}")
@@ -289,11 +287,7 @@ if ! "${skip_train}"; then
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi
 
-        if [ -z "${total_spk_num}" ]; then
-            # Training speaker numbers
-            total_spk_num=$(wc -l <${_diar_train_dir}/spk2utt)
-        fi
-        _opts+="--total_spk_num ${total_spk_num} "
+        _opts+="--num_spk ${num_spk} "
 
         # 1. Split the key file
         _logdir="${diar_stats_dir}/logdir"
@@ -385,11 +379,7 @@ if ! "${skip_train}"; then
             _opts+="--normalize=global_mvn --normalize_conf stats_file=${diar_stats_dir}/train/feats_stats.npz "
         fi
 
-        if [ -z "${total_spk_num}" ]; then
-            # Training speaker numbers
-            total_spk_num=$(wc -l <${_diar_train_dir}/spk2utt)
-        fi
-        _opts+="--total_spk_num ${total_spk_num} "
+        _opts+="--num_spk ${num_spk} "
 
         _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/${_scp},speech,${_type} "
         _opts+="--train_data_path_and_name_and_type ${_diar_train_dir}/espnet_rttm,spk_labels,rttm "
@@ -512,15 +502,6 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
 
-            _ref_scp=
-            for spk in $(seq "${spk_num}"); do
-                _ref_scp+="--ref_scp ${_data}/spk${spk}.scp "
-            done
-            _inf_scp=
-            for spk in $(seq "${spk_num}"); do
-                _inf_scp+="--inf_scp ${_inf_dir}/spk${spk}.scp "
-            done
-
             # 2. Submit scoring jobs
             log "Scoring started... log: '${_logdir}/diar_scoring.*.log'"
             # shellcheck disable=SC2086
@@ -528,26 +509,8 @@ if ! "${skip_eval}"; then
                 ${python} -m espnet2.bin.diar_scoring \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_ref_scp} \
-                    ${_inf_scp} \
                     --ref_channel ${ref_channel}
 
-            for spk in $(seq "${spk_num}"); do
-                for protocol in ${scoring_protocol} wav; do
-                    for i in $(seq "${_nj}"); do
-                        cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
-                    done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
-                done
-            done
-
-
-            for protocol in ${scoring_protocol}; do
-                # shellcheck disable=SC2046
-                paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
-                awk 'BEGIN{sum=0}
-                    {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
-                    END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
-            done
         done
         ./scripts/utils/show_diar_score.sh ${diar_exp} > "${diar_exp}/RESULTS.TXT"
 
@@ -589,9 +552,9 @@ git checkout $(git show -s --format=%H)"
             _creator_name="$(whoami)"
             _checkout=""
         fi
-        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        # /some/where/espnet/egs2/foo/diar1/ -> foo/diar1
         _task="$(pwd | rev | cut -d/ -f2 | rev)"
-        # foo/asr1 -> foo
+        # foo/diar1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 

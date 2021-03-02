@@ -10,15 +10,14 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+import logging
 import numpy as np
 import re
 from pathlib import Path
 from typeguard import check_argument_types
 
 
-def load_rttm_text(
-    path: Union[Path, str]
-) -> Dict[str, List[Tuple[str, float, float]]]:
+def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Tuple[str, float, float]]]:
     """Read a RTTM file
 
     Note: only support speaker information now
@@ -44,9 +43,11 @@ def load_rttm_text(
             if spk_id not in spk_list:
                 spk_list.append(spk_id)
 
-            data[utt_id] = spk_list, spk_event  + [
-                (spk_id, int(float(start)), int(float(end)))
-            ], max_duration
+            data[utt_id] = (
+                spk_list,
+                spk_event + [(spk_id, int(float(start)), int(float(end)))],
+                max_duration,
+            )
 
     return data
 
@@ -59,7 +60,7 @@ class RttmReader(collections.abc.Mapping):
         SPEAKER file1 2 4000 3023 <NA> <NA> spk2 <NA>
         SPEAKER file1 3 500 4023 <NA> <NA> spk1 <NA>
         END     file1 <NA> 4023 <NA> <NA> <NA> <NA>
-        
+
         This is an extend version of standard RTTM format for espnet.
         The difference including:
         1. Use sample number instead of absolute time
@@ -88,13 +89,7 @@ class RttmReader(collections.abc.Mapping):
         spk_list, spk_event, max_duration = self.data[key]
         spk_label = np.zeros((max_duration, len(spk_list)))
         for spk_id, start, end in spk_event:
-<<<<<<< HEAD
-            spk_label[spk_list.index(spk_id)][start : end + 1] = 1
-=======
-            start_sample = np.rint(start * self.sample_rate).astype(int)
-            end_sample = np.rint(end * self.sample_rate).astype(int)
-            spk_label[spk_list.index(spk_id)][start_sample : end_sample + 1] = 1
->>>>>>> a563b1743961dcc40cb8517c95b62a4a9e1a20e8
+            spk_label[start : end + 1, spk_list.index(spk_id)] = 1
         return spk_label
 
     def __contains__(self, item):

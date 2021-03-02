@@ -2,7 +2,6 @@ from distutils.version import LooseVersion
 from typing import Optional
 from typing import Tuple
 from typing import Union
-
 import torch
 from typeguard import check_argument_types
 
@@ -54,18 +53,18 @@ class LabelAggregate(torch.nn.Module):
         if self.center:
             pad = self.win_length // 2
             max_length = max_length + 2 * pad
-            input = torch.nn.functional.pad(input, (pad, pad), "constant", 0)
+            input = torch.nn.functional.pad(input, (0, 0, pad, pad), "constant", 0)
             nframe = (max_length - self.win_length) // self.hop_length + 1
 
         # Step2: framing
         output = input.as_strided(
             (bs, nframe, self.win_length, label_dim),
-            (max_length, self.win_length * label_dim, label_dim, 1),
+            (max_length * label_dim, self.hop_length * label_dim, label_dim, 1),
         )
 
         # Step3: aggregate label
         output = torch.gt(output.sum(dim=2, keepdim=False), self.win_length // 2)
-        output = output.int()
+        output = output.float()
 
         # Step4: process lengths
         if ilens is not None:

@@ -14,7 +14,8 @@ class LinearDecoder(AbsDecoder):
         num_spk: int = 2,
     ):
         super().__init__()
-        self.linear_decoder = torch.nn.Linear(encoder_output_size, output_size)
+        self._num_spk = num_spk
+        self.linear_decoder = torch.nn.Linear(encoder_output_size, num_spk)
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """Forward.

@@ -94,6 +94,8 @@ class DiarizationTask(AbsTask):
         encoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --label_aggregator and --label_aggregator_conf
+        label_aggregator_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -238,7 +240,7 @@ class DiarizationTask(AbsTask):
         # 4. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
         decoder = decoder_class(
-            output_size=args.num_spk,
+            num_spk=args.num_spk,
             encoder_output_size=encoder.output_size(),
             **args.decoder_conf,
         )
