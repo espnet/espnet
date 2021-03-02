@@ -16,6 +16,7 @@ N=0            # number of minibatches to be used (mainly for debugging). "0" us
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 seed=1         # seed to generate random number
+nj=32          # number of jobs for cpu processing
 download_dir=/export/c04/jiatong/data/Puebla-Nahuatl  # download file from openslr
 
 
@@ -97,7 +98,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in dev test; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} --write_utt2num_frames true \
             data/${x}_${annotation_id} exp/make_fbank/${x}_${annotation_id} ${fbankdir}
     done
 
@@ -113,11 +114,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     for x in ${train_dev} ${test_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta $do_delta \
             data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_trans_dir}
     done
 fi
@@ -134,7 +135,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # echo "make a non-linguistic symbol list for all languages"
     # grep sp1.0 data/${train_set}.*/text.${tgt_case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     echo "" > ${nlsyms}
-    # cat ${nlsyms}
+    cat ${nlsyms}
 
     echo "make a joint source and target dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
@@ -147,7 +148,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
+    data2json.sh --nj ${nj} --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for x in ${train_dev} ${test_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
@@ -240,7 +241,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
             rm ${expdir}/${decode_dir}/log/decode.*.log
         fi
-        nj=16
+
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
