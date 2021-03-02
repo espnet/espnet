@@ -1,0 +1,61 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 5
+batch_type: folded
+batch_size:  8
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.7
+    patience: 1
+model_conf:
+    loss_type: mask_mse
+    mask_type: psm
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+separator: conformer
+separator_conf:
+    num_spk: 2
+    adim:  1024
+    aheads: 8
+    layers: 3
+    linear_units: 896
+    positionwise_layer_type: conv1d
+    positionwise_conv_kernel_size: 1
+    normalize_before: False
+    concat_after: False
+    dropout_rate: 0.1                            # dropout rate for conformer encoder layer
+    input_layer: linear                          # encoder architecture type, should maintain length
+    positional_dropout_rate: 0.1                 # dropout rate for conformer encoder positional encoding
+    attention_dropout_rate: 0.1                  # dropout rate for conformer encoder attention layer
+    nonlinear: relu
+    conformer_pos_enc_layer_type: rel_pos        # conformer positional encoding type
+    conformer_self_attn_layer_type: rel_selfattn # conformer self-attention type
+    conformer_activation_type: swish             # conformer activation type
+    use_macaron_style_in_conformer: true         # whether to use macaron style in conformer
+    use_cnn_in_conformer: true                   # whether to use CNN in conformer
+    conformer_enc_kernel_size: 5                 # kernel size in CNN module of conformer-based encoder
+

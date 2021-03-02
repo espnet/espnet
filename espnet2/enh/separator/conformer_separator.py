@@ -6,19 +6,14 @@ from typing import Union
 import torch
 from torch_complex.tensor import ComplexTensor
 
-
+from espnet.nets.pytorch_backend.conformer.encoder import (
+    Encoder as ConformerEncoder,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,  # noqa: H301
-    ScaledPositionalEncoding,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.encoder import (
-    Encoder as TransformerEncoder,  # noqa: H301
-)
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
-class TransformerSeparator(AbsSeparator):
+class ConformerSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
@@ -32,12 +27,19 @@ class TransformerSeparator(AbsSeparator):
         normalize_before: bool = False,
         concat_after: bool = False,
         dropout_rate: float = 0.1,
+        input_layer: str = "linear",
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.1,
-        use_scaled_pos_enc: bool = True,
         nonlinear: str = "relu",
+        conformer_pos_enc_layer_type: str = "rel_pos",
+        conformer_self_attn_layer_type: str = "rel_selfattn",
+        conformer_activation_type: str = "swish",
+        use_macaron_style_in_conformer: bool = True,
+        use_cnn_in_conformer: bool = True,
+        conformer_enc_kernel_size: int = 7,
+        padding_idx: int = -1,
     ):
-        """Transformer separator.
+        """Conformer separator.
 
         Args:
             input_dim: input feature dimension
@@ -47,6 +49,7 @@ class TransformerSeparator(AbsSeparator):
             linear_units (int): The number of units of position-wise feed forward.
             layers (int): The number of transformer blocks.
             dropout_rate (float): Dropout rate.
+            input_layer (Union[str, torch.nn.Module]): Input layer type.
             attention_dropout_rate (float): Dropout rate in attention.
             positional_dropout_rate (float): Dropout rate after adding
                                              positional encoding.
@@ -55,10 +58,17 @@ class TransformerSeparator(AbsSeparator):
                 if True, additional linear will be applied.
                 i.e. x -> x + linear(concat(x, att(x)))
                 if False, no additional linear will be applied. i.e. x -> x + att(x)
+            conformer_pos_enc_layer_type(str): Encoder positional encoding layer type.
+            conformer_self_attn_layer_type (str): Encoder attention layer type.
+            conformer_activation_type(str): Encoder activation function type.
             positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
             positionwise_conv_kernel_size (int): Kernel size of
                                                  positionwise conv1d layer.
-            use_scaled_pos_enc (bool) : use scaled positional encoding or not
+            use_macaron_style_in_conformer (bool): Whether to use macaron style for
+                                                   positionwise layer.
+            use_cnn_in_conformer (bool): Whether to use convolution module.
+            conformer_enc_kernel_size(int): Kernerl size of convolution module.
+            padding_idx (int): Padding idx for input_layer=embed.
             nonlinear: the nonlinear function for mask estimation,
                        select from 'relu', 'tanh', 'sigmoid'
         """
@@ -66,24 +76,27 @@ class TransformerSeparator(AbsSeparator):
 
         self._num_spk = num_spk
 
-        pos_enc_class = (
-            ScaledPositionalEncoding if use_scaled_pos_enc else PositionalEncoding
-        )
-        self.transformer = TransformerEncoder(
+        self.conformer = ConformerEncoder(
             idim=input_dim,
             attention_dim=adim,
             attention_heads=aheads,
             linear_units=linear_units,
             num_blocks=layers,
-            input_layer="linear",
             dropout_rate=dropout_rate,
             positional_dropout_rate=positional_dropout_rate,
             attention_dropout_rate=attention_dropout_rate,
-            pos_enc_class=pos_enc_class,
+            input_layer=input_layer,
             normalize_before=normalize_before,
             concat_after=concat_after,
             positionwise_layer_type=positionwise_layer_type,
             positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+            macaron_style=use_macaron_style_in_conformer,
+            pos_enc_layer_type=conformer_pos_enc_layer_type,
+            selfattention_layer_type=conformer_self_attn_layer_type,
+            activation_type=conformer_activation_type,
+            use_cnn_module=use_cnn_in_conformer,
+            cnn_module_kernel=conformer_enc_kernel_size,
+            padding_idx=padding_idx,
         )
 
         self.linear = torch.nn.ModuleList(
@@ -128,7 +141,7 @@ class TransformerSeparator(AbsSeparator):
         # prepare pad_mask for transformer
         pad_mask = make_non_pad_mask(ilens).unsqueeze(1).to(feature.device)
 
-        x, ilens = self.transformer(feature, pad_mask)
+        x, ilens = self.conformer(feature, pad_mask)
 
         masks = []
         for linear in self.linear:
