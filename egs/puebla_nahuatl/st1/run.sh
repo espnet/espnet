@@ -37,8 +37,6 @@ do_delta=false
 preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
-# train_config=conf/tuning/train_rnn.yaml
-# decode_config=conf/tuning/decode_rnn.yaml
 
 # decoding parameter
 n_average=5
@@ -48,9 +46,6 @@ metric=bleu
 
 asr_model=
 mt_model=
-
-# postprocessing related
-remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
 
 dumpdir=dump   # directory to dump full features
 
@@ -108,7 +103,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # speed perturbation
     speed_perturb.sh --cmd "${train_cmd}" --cases "tc" --langs "${src_lang} es" data/train_${annotation_id} data/train_${annotation_id}_sp ${fbankdir}
-    # Divide into source and target languages
+
+    # divide into source and target languages
     for x in train_${annotation_id}_sp dev_${annotation_id} test_${annotation_id}; do
         local/divide_lang.sh ${x}
     done
@@ -259,7 +255,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
