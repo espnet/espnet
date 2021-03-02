@@ -14,8 +14,9 @@ test_sets=simu/data/dev_clean_2_ns2_beta2_500
 
 train_config=conf/train.yaml
 
+export CUDA_VISIBLE_DEVICES=0
 ./diar.sh \
-    --stage 4 \
+    --stage 5 \
     --stop_stage 5 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
