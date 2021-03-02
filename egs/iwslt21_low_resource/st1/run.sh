@@ -46,10 +46,6 @@ tgt_case=tc
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 
-# postprocessing related
-remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
-# NOTE: IWSLT community accepts this setting and therefore we use this by default
-
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
 iwslt_low_resource=
@@ -276,7 +272,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
