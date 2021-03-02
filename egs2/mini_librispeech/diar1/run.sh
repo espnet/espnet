@@ -1,5 +1,7 @@
 #!/bin/bash
-# Licensed under the MIT license.
+
+# Copyright 2021 Jiatong Shi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 #
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# Licensed under the MIT license.
+
+# Copyright 2021 Jiatong Shi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
 import logging
@@ -75,7 +77,11 @@ class DiarizeSpeech:
         self.segmenting = segment_size is not None
         if self.segmenting:
             logging.info("Perform segment-wise speaker diarization")
-            logging.info("Segment length = {} sec".format(segment_size))
+            logging.info(
+                "Segment length = {} sec".format(
+                    segment_size
+                )
+            )
         else:
             logging.info("Perform direct speaker diarization on the input")
 
@@ -112,7 +118,9 @@ class DiarizeSpeech:
 
         if self.segmenting and lengths[0] > self.segment_size * fs:
             # Segment-wise speaker diarization
-            num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
+            num_segments = int(
+                np.ceil(speech.size(1) / (self.segment_size * fs))
+            )
             t = T = int(self.segment_size * fs)
             pad_shape = speech[:, :T].shape
             diarized_wavs = []
@@ -134,9 +142,7 @@ class DiarizeSpeech:
                     [batch_size], dtype=torch.long, fill_value=T
                 )
                 # b. Diarization Forward
-                encoder_out, encoder_out_lens = self.diar_model.encode(
-                    speech_seg, lengths_seg
-                )
+                encoder_out, encoder_out_lens = self.diar_model.encode(speech_seg, lengths_seg)
                 spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
 
                 # List[torch.Tensor(B, T, num_spks)]
@@ -144,21 +150,17 @@ class DiarizeSpeech:
 
             spk_prediction = torch.cat(diarized_wavs, dim=1)
         else:
-            # b. Enhancement/Separation Forward
-            encoder_out, encoder_out_lens = self.diar_model.encode(
-                speech_seg, lengths_seg
-            )
+            # b. Diarization Forward
+            encoder_out, encoder_out_lens = self.diar_model.encode(speech_seg, lengths_seg)
             spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
 
-        assert spk_prediction.dim(2) == self.num_spk, (
-            spk_prediction.dim(2),
-            self.num_spk,
-        )
+        assert spk_prediction.dim(2) == self.num_spk, (spk_prediction.dim(2), self.num_spk)
         assert spk_prediction.dim(0) == batch_size, (spk_prediction.dim(0), batch_size)
         spk_prediction = spk_prediction.cpu.numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
         return spk_prediction
+
 
 
 def inference(
@@ -215,10 +217,10 @@ def inference(
         key_file=key_file,
         num_workers=num_workers,
         preprocess_fn=DiarizationTask.build_preprocess_fn(
-            separate_speech.enh_train_args, False
+            diarize_speech.diar_train_args, False
         ),
         collate_fn=DiarizationTask.build_collate_fn(
-            separate_speech.enh_train_args, False
+            diarize_speech.diar_train_args, False
         ),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
@@ -314,14 +316,14 @@ def get_parser():
         "--segment_size",
         type=float,
         default=None,
-        help="Segment length in seconds for segment-wise speech enhancement/separation",
+        help="Segment length in seconds for segment-wise speaker diarization",
     )
     group.add_argument(
         "--show_progressbar",
         type=str2bool,
         default=False,
-        help="Whether to show a progress bar when performing segment-wise speech "
-        "enhancement/separation",
+        help="Whether to show a progress bar when performing segment-wise speaker "
+        "diarization",
     )
 
     return parser
