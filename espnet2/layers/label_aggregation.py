@@ -1,7 +1,5 @@
-from distutils.version import LooseVersion
 from typing import Optional
 from typing import Tuple
-from typing import Union
 import torch
 from typeguard import check_argument_types
 

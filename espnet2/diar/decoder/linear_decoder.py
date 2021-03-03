@@ -22,6 +22,7 @@ class LinearDecoder(AbsDecoder):
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """Forward.
+
         Args:
             input (torch.Tensor): hidden_space [Batch, T, F]
             ilens (torch.Tensor): input lengths [Batch]

@@ -79,6 +79,7 @@ def detect_non_silence(
     window: str = "boxcar",
 ) -> np.ndarray:
     """Power based voice activity detection.
+
     Args:
         x: (Channel, Time)
     >>> x = np.random.randn(1000)

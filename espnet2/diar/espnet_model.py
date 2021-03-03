@@ -3,8 +3,8 @@
 # Copyright 2021 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from contextlib import contextmanager
 from distutils.version import LooseVersion
-from functools import reduce
 from itertools import permutations
 from typing import Dict
 from typing import Optional
@@ -12,7 +12,6 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -147,7 +146,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """ "Frontend + Encoder
+        """Frontend + Encoder
 
         Args:
             speech: (Batch, Length, ...)

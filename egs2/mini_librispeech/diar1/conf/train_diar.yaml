@@ -3,7 +3,7 @@
 encoder: transformer
 encoder_conf:
     input_layer: "linear"
-    num_blocks: 3
+    num_blocks: 2
     linear_units: 512
     dropout_rate: 0.1
     output_size: 256  # dimension of attention
@@ -15,11 +15,12 @@ decoder: linear
 
 # chunk-based training
 iterator_type: chunk
-chunk_length: 32000
+chunk_length: 200000
+num_cache_chunks: 64
 
 # minibatch related
 batch_type: folded
-batch_size: 32
+batch_size: 16
 
 # optimization related
 optim: adam
@@ -31,13 +32,13 @@ optim_conf:
     lr: 1.0
 scheduler: noamlr
 scheduler_conf:
-    warmup_steps: 25000
+    warmup_steps: 1000
 
 # others:
 best_model_criterion:
 -  - valid
    - acc
    - max
-keep_nbest_models: 10
+keep_nbest_models: 3
 
 init: chainer

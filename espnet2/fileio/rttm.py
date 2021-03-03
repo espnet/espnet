@@ -4,19 +4,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import collections.abc
-import humanfriendly
 from pathlib import Path
 from typing import Dict
 from typing import List
-from typing import Mapping
-from typing import Set
 from typing import Tuple
 from typing import Union
 
-import logging
 import numpy as np
 import re
-from pathlib import Path
 from typeguard import check_argument_types
 
 

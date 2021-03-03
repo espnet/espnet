@@ -5,10 +5,8 @@
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import h5py
 import logging
 import numpy as np
-import os
 from espnet2.fileio.npy_scp import NpyScpReader
 from scipy.signal import medfilt
 

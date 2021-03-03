@@ -13,7 +13,6 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import h5py
 import numpy as np
 import torch
 from tqdm import trange

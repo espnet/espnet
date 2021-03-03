@@ -9,8 +9,6 @@ from typing import Tuple
 
 import torch
 
-from espnet.nets.scorer_interface import ScorerInterface
-
 
 class AbsDecoder(torch.nn.Module, ABC):
     @abstractmethod
