@@ -15,15 +15,19 @@ valid_set=simu/data/dev_clean_2_ns2_beta2_500
 test_sets=simu/data/dev_clean_2_ns2_beta2_500
 
 train_config=conf/train.yaml
+decode_config=conf/decode.yaml
 
 export CUDA_VISIBLE_DEVICES=0
 ./diar.sh \
-    --stage 5 \
-    --stop_stage 5 \
+    --stage 6 \
+    --stop_stage 7 \
+    --collar 0.0 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --ngpu 1 \
     --diar_config "${train_config}" \
+    --inference_config "${decode_config}" \
+    --inference_nj 50 \
     --local_data_opts "--stage 1" \
     "$@"
