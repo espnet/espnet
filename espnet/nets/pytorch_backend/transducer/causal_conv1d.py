@@ -1,10 +1,10 @@
-"""CausalConv1d module definition for transformer decoder."""
+"""CausalConv1d module definition for custom decoder."""
 
 import torch
 
 
 class CausalConv1d(torch.nn.Module):
-    """CausalConv1d module for transformer decoder.
+    """CausalConv1d module for custom decoder.
 
     Args:
         idim (int): dimension of inputs

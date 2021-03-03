@@ -14,6 +14,7 @@ from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
 from espnet.nets.pytorch_backend.conformer.argument import (
     add_arguments_conformer_common,  # noqa: H301
+    verify_rel_pos_type,  # noqa: H301
 )
 
 
@@ -50,6 +51,10 @@ class E2E(E2ETransformer):
         super().__init__(idim, odim, args, ignore_id)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
+
+        # Check the relative positional encoding type
+        args = verify_rel_pos_type(args)
+
         self.encoder = Encoder(
             idim=idim,
             attention_dim=args.adim,
@@ -65,6 +70,7 @@ class E2E(E2ETransformer):
             activation_type=args.transformer_encoder_activation_type,
             macaron_style=args.macaron_style,
             use_cnn_module=args.use_cnn_module,
+            zero_triu=args.zero_triu,
             cnn_module_kernel=args.cnn_module_kernel,
         )
         self.reset_parameters(args)

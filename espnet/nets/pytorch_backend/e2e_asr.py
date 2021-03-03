@@ -96,6 +96,13 @@ class E2E(ASRInterface, torch.nn.Module):
         group = add_arguments_rnn_decoder_common(group)
         return parser
 
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        if isinstance(self.enc, torch.nn.ModuleList):
+            return self.enc[0].conv_subsampling_factor * int(np.prod(self.subsample))
+        else:
+            return self.enc.conv_subsampling_factor * int(np.prod(self.subsample))
+
     def __init__(self, idim, odim, args):
         """Construct an E2E object.
 

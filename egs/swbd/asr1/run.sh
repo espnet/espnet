@@ -114,7 +114,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # remove utt having > 2000 frames or < 10 frames or
     # remove utt having > 400 characters or 0 characters
-    remove_longshortdata.sh --maxchars 400 data/train data/train_nodup_trim
+    remove_longshortdata.sh --maxchars 400 data/train_nodup data/train_nodup_trim
     remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
 
     # speed-perturbed
@@ -284,8 +284,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
            [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
                     --snapshots ${expdir}/results/snapshot.ep.* \

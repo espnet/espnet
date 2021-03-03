@@ -33,8 +33,8 @@ utt2spk=${dst}/utt2spk; [[ -f "${utt2spk}" ]] && rm ${utt2spk}
 n_wav=$(find -L ${src} -iname "*.wav" | wc -l)
 n_mb=$(find -L ${src} -iname "*.mb.cleaned" | wc -l)
 n_fr=$(find -L ${src} -iname "*.fr.cleaned" | wc -l)
-[ ${n_wav} -ne ${n_mb} ] && echo "Warning: expected ${n_wav} data data files, found ${n_mb}" && exit 1;
-[ ${n_wav} -ne ${n_fr} ] && echo "Warning: expected ${n_wav} data data files, found ${n_fr}" && exit 1;
+[ ${n_wav} -ne ${n_mb} ] && echo "Warning: expected ${n_wav} data files, found ${n_mb}" && exit 1;
+[ ${n_wav} -ne ${n_fr} ] && echo "Warning: expected ${n_wav} data files, found ${n_fr}" && exit 1;
 
 # extract meta data
 find -L ${src} -iname "*.wav" | sort | while read line; do

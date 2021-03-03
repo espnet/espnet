@@ -125,3 +125,34 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
             else None
         )
         return self.impl(y, batch_state, ids)
+
+    def extend_prob(self, x: torch.Tensor):
+        """Extend probs for decoding.
+
+        This extention is for streaming decoding
+        as in Eq (14) in https://arxiv.org/abs/2006.14941
+
+        Args:
+            x (torch.Tensor): The encoded feature tensor
+
+        """
+        logp = self.ctc.log_softmax(x.unsqueeze(0))
+        self.impl.extend_prob(logp)
+
+    def extend_state(self, state):
+        """Extend state for decoding.
+
+        This extention is for streaming decoding
+        as in Eq (14) in https://arxiv.org/abs/2006.14941
+
+        Args:
+            state: The states of hyps
+
+        Returns: exteded state
+
+        """
+        new_state = []
+        for s in state:
+            new_state.append(self.impl.extend_state(s))
+
+        return new_state

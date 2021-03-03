@@ -1,11 +1,14 @@
 # coding: utf-8
 
 import argparse
+import tempfile
 
+import json
 import numpy as np
 import pytest
 import torch
 
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
@@ -35,8 +38,13 @@ def get_default_train_args(**kwargs):
         dropout_rate_embed_decoder=0.0,
         joint_dim=2,
         joint_activation_type="tanh",
-        mtlalpha=1.0,
-        rnnt_mode="rnnt",
+        transducer_weight=1.0,
+        aux_task_type=None,
+        aux_task_weight=0.1,
+        aux_task_layer_list=[],
+        aux_ctc=False,
+        aux_ctc_weight=1.0,
+        aux_ctc_dropout_rate=0.0,
         use_frontend=False,
         trans_type="warp-transducer",
         char_list=["a", "b", "c", "d"],
@@ -50,6 +58,7 @@ def get_default_train_args(**kwargs):
         verbose=0,
         outdir=None,
         rnnlm=None,
+        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
     )
     train_defaults.update(kwargs)
 
@@ -143,90 +152,29 @@ def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
     [
         ({}, {}),
         ({"eprojs": 4}, {}),
-        ({"rnnt_mode": "rnnt-att", "eprojs": 4}, {}),
         ({"dlayers": 2}, {}),
-        ({"rnnt_mode": "rnnt-att", "dlayers": 2}, {}),
         ({"etype": "gru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "gru"}, {}),
         ({"etype": "blstm"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "blstm"}, {}),
         ({"etype": "blstmp", "elayers": 2, "eprojs": 4}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "blstmp", "elayers": 2, "eprojs": 4}, {}),
         ({"etype": "vgggru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "vgggru"}, {}),
         ({"etype": "vggbru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "vggbgru"}, {}),
         ({"etype": "vgggrup", "elayers": 2, "eprojs": 4}, {}),
-        ({"rnnt_mode": "rnnt-att", "etype": "vgggrup", "elayers": 2, "eprojs": 4}, {}),
         ({"dtype": "gru"}, {}),
-        ({"rnnt_mode": "rnnt-att", "dtype": "gru"}, {}),
         ({"dtype": "bgrup"}, {}),
         ({"dtype": "gru", "dlayers": 2}, {}),
-        ({"rnnt_mode": "rnnt-att", "dtype": "gru", "dlayers": 2}, {}),
-        ({"rnnt_mode": "rnnt-att", "dtype": "bgrup"}, {}),
         ({"joint-activation-type": "relu"}, {}),
-        ({"rnnt_mode": "rnnt-att", "joint-activation-type": "relu"}, {}),
         ({"joint-activation-type": "swish"}, {}),
-        ({"rnnt_mode": "rnnt-att", "joint-activation-type": "swish"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "noatt"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "dot"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "coverage"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "coverage"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "coverage_location"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "location2d"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "location_recurrent"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_dot"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_add"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_loc"}, {}),
-        ({"rnnt_mode": "rnnt-att", "atype": "multi_head_multi_res_loc"}, {}),
         ({}, {"score_norm_transducer": False}),
-        ({"rnnt_mode": "rnnt-att"}, {"score_norm_transducer": False}),
         ({"report_cer": True, "report_wer": True}, {}),
-        (
-            {
-                "rnnt_mode": "rnnt-att",
-                "report_cer": True,
-                "report_wer": True,
-            },
-            {},
-        ),
         ({}, {"nbest": 2}),
-        ({"rnnt_mode": "rnnt-att"}, {"nbest": 2}),
         ({}, {"beam_size": 1}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 1}),
         ({}, {"beam_size": 2}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2}),
         ({}, {"beam_size": 2, "search_type": "nsc"}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "nsc"}),
         ({}, {"beam_size": 2, "search_type": "nsc", "nstep": 2, "prefix_alpha": 1}),
-        (
-            {"rnnt_mode": "rnnt-att"},
-            {"beam_size": 2, "search_type": "nsc", "nstep": 2, "prefix_alpha": 1},
-        ),
         ({}, {"beam_size": 2, "search_type": "tsd"}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "tsd"}),
         ({}, {"beam_size": 2, "search_type": "tsd", "max-sym-exp": 3}),
-        (
-            {"rnnt_mode": "rnnt-att"},
-            {"beam_size": 2, "search_type": "tsd", "max-sym-exp": 3},
-        ),
         ({}, {"beam_size": 2, "search_type": "alsd"}),
-        ({"rnnt_mode": "rnnt-att"}, {"beam_size": 2, "search_type": "alsd"}),
         ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
-        (
-            {"rnnt_mode": "rnnt-att"},
-            {"beam_size": 2, "search_type": "alsd", "u_max": 10},
-        ),
-        ({"rnnt_mode": "rnnt-att"}, {}),
-        (
-            {},
-            {
-                "beam_size": 2,
-                "search_type": "default",
-                "rnnlm": get_lm(),
-                "lm_weight": 0.3,
-            },
-        ),
         (
             {},
             {
@@ -272,11 +220,17 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
 
     batch = prepare_inputs(idim, odim, ilens, olens)
 
+    # to avoid huge training time, cer/wer report
+    # is only enabled at validation steps
+    if train_args.report_cer or train_args.report_wer:
+        model.training = False
+
     loss = model(*batch)
     loss.backward()
 
     beam_search = BeamSearchTransducer(
         decoder=model.dec,
+        joint_network=model.joint_network,
         beam_size=recog_args.beam_size,
         lm=recog_args.rnnlm,
         lm_weight=recog_args.lm_weight,
@@ -321,9 +275,9 @@ def test_pytorch_transducer_gpu_trainable(trans_type):
     "train_dic",
     [
         {"report_cer": True, "report_wer": True},
-        {"rnnt_mode": "rnnt-att", "report_cer": True, "report_wer": True},
     ],
 )
+@pytest.mark.execution_timeout(2.8)
 def test_pytorch_multi_gpu_trainable(train_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(**train_dic)
@@ -341,25 +295,102 @@ def test_pytorch_multi_gpu_trainable(train_dic):
     loss.backward(loss.new_ones(ngpu))
 
 
-@pytest.mark.parametrize(
-    "atype",
-    [
-        "noatt",
-        "add",
-        "location",
-        "location2d",
-        "multi_head_dot",
-        "multi_head_add",
-        "multi_head_loc",
-    ],
-)
-def test_pytorch_calculate_attentions(atype):
+def test_calculate_plot_attention():
     idim, odim, ilens, olens = get_default_scope_inputs()
-    train_args = get_default_train_args(rnnt_mode="rnnt-att", atype=atype)
+    train_args = get_default_train_args()
 
     model = E2E(idim, odim, train_args)
 
     batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=False)
 
-    att_ws = model.calculate_all_attentions(*batch)[0]
-    print(att_ws.shape)
+    assert model.calculate_all_attentions(*batch) == []
+
+
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {"elayers": 2, "aux_task_type": "default", "aux_task_layer_list": [0]},
+        {
+            "etype": "vggblstm",
+            "elayers": 3,
+            "aux_task_type": "symm_kl_div",
+            "aux_task_layer_list": [0, 1],
+        },
+        {
+            "etype": "blstm",
+            "elayers": 2,
+            "aux_task_type": "both",
+            "aux_task_layer_list": [0],
+        },
+        {"elayers": 2, "aux_ctc": True, "aux_ctc_weight": 0.5},
+        {"elayers": 2, "aux_cross_entropy": True, "aux_cross_entropy_weight": 0.5},
+    ],
+)
+def test_auxiliary_task(train_dic):
+    idim, odim, ilens, olens = get_default_scope_inputs()
+
+    train_args = get_default_train_args(**train_dic)
+    recog_args = get_default_recog_args()
+
+    model = E2E(idim, odim, train_args)
+
+    batch = prepare_inputs(idim, odim, ilens, olens)
+
+    loss = model(*batch)
+    loss.backward()
+
+    beam_search = BeamSearchTransducer(
+        decoder=model.dec,
+        joint_network=model.joint_network,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+    )
+
+    tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
+    torch.save(model.state_dict(), tmpdir + "/model.dummy.best")
+
+    with open(tmpdir + "/model.json", "wb") as f:
+        f.write(
+            json.dumps(
+                (idim, odim, vars(train_args)),
+                indent=4,
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf_8")
+        )
+
+    with torch.no_grad():
+        in_data = np.random.randn(20, idim)
+
+        model, _ = load_trained_model(tmpdir + "/model.dummy.best", training=False)
+
+        model.recognize(in_data, beam_search)
+
+
+def test_invalid_aux_task_layer_list():
+    idim, odim, ilens, olens = get_default_scope_inputs()
+    train_args = get_default_train_args(aux_task_type="default")
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)
+
+    train_args = get_default_train_args(
+        aux_task_type="default", aux_task_layer_list="foo"
+    )
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)
+
+    train_args = get_default_train_args(
+        aux_task_type="default", aux_task_layer_list=[0, 4]
+    )
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)

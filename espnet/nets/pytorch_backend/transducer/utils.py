@@ -1,5 +1,7 @@
 """Utility functions for transducer models."""
 
+import os
+
 import numpy as np
 import torch
 
@@ -26,14 +28,13 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
     device = ys_pad.device
 
     ys = [y[y != ignore_id] for y in ys_pad]
-
     blank = ys[0].new([blank_id])
 
-    ys_in = [torch.cat([blank, y], dim=0) for y in ys]
-    ys_in_pad = pad_list(ys_in, blank_id)
+    ys_in_pad = pad_list([torch.cat([blank, y], dim=0) for y in ys], blank_id)
+    ys_out_pad = pad_list([torch.cat([y, blank], dim=0) for y in ys], ignore_id)
 
-    target = pad_list(ys, blank_id).type(torch.int32)
-    target_len = torch.IntTensor([y.size(0) for y in ys])
+    target = pad_list(ys, blank_id).type(torch.int32).to(device)
+    target_len = torch.IntTensor([y.size(0) for y in ys]).to(device)
 
     if torch.is_tensor(hlens):
         if hlens.dim() > 1:
@@ -42,13 +43,41 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
         else:
             hlens = list(map(int, hlens))
 
-    pred_len = torch.IntTensor(hlens)
+    pred_len = torch.IntTensor(hlens).to(device)
 
-    pred_len = pred_len.to(device)
-    target = target.to(device)
-    target_len = target_len.to(device)
+    return ys_in_pad, ys_out_pad, target, pred_len, target_len
 
-    return ys_in_pad, target, pred_len, target_len
+
+def valid_aux_task_layer_list(aux_layer_ids, enc_num_layers):
+    """Check whether input list of auxiliary layer ids is valid.
+
+       Return the valid list sorted with duplicated removed.
+
+    Args:
+        aux_layer_ids (list): Auxiliary layers ids
+        enc_num_layers (int): Number of encoder layers
+
+    Returns:
+        valid (list): Validated list of layers for auxiliary task
+
+    """
+    if (
+        not isinstance(aux_layer_ids, list)
+        or not aux_layer_ids
+        or not all(isinstance(layer, int) for layer in aux_layer_ids)
+    ):
+        raise ValueError("--aux-task-layer-list argument takes a list of layer ids.")
+
+    sorted_list = sorted(aux_layer_ids, key=int, reverse=False)
+    valid = list(filter(lambda x: 0 <= x < enc_num_layers, sorted_list))
+
+    if sorted_list != valid:
+        raise ValueError(
+            "Provided list of layer ids for auxiliary task is incorrect. "
+            "IDs should be between [0, %d]" % (enc_num_layers - 1)
+        )
+
+    return valid
 
 
 def is_prefix(x, pref):
@@ -93,20 +122,20 @@ def substract(x, subset):
     return final
 
 
-def select_lm_state(lm_states, idx, lm_type, lm_layers):
+def select_lm_state(lm_states, idx, lm_layers, is_wordlm):
     """Get LM state from batch for given id.
 
     Args:
         lm_states (list or dict): batch of LM states
         idx (int): index to extract state from batch state
-        lm_type (str): type of LM
         lm_layers (int): number of LM layers
+        is_wordlm (bool): whether provided LM is a word-LM
 
     Returns:
        idx_state (dict): LM state for given id
 
     """
-    if lm_type == "wordlm":
+    if is_wordlm:
         idx_state = lm_states[idx]
     else:
         idx_state = {}
@@ -117,19 +146,19 @@ def select_lm_state(lm_states, idx, lm_type, lm_layers):
     return idx_state
 
 
-def create_lm_batch_state(lm_states_list, lm_type, lm_layers):
+def create_lm_batch_state(lm_states_list, lm_layers, is_wordlm):
     """Create batch of LM states.
 
     Args:
         lm_states (list or dict): list of individual LM states
-        lm_type (str): type of LM
         lm_layers (int): number of LM layers
+        is_wordlm (bool): whether provided LM is a word-LM
 
     Returns:
        batch_states (list): batch of LM states
 
     """
-    if lm_type == "wordlm":
+    if is_wordlm:
         batch_states = lm_states_list
     else:
         batch_states = {}
@@ -222,7 +251,7 @@ def pad_sequence(seqlist, pad_token):
 
 
 def check_state(state, max_len, pad_token):
-    """Left pad or trim state according to max_len.
+    """Check state and left pad or trim if necessary.
 
     Args:
         state (list): list of of L decoder states (in_len, dec_dim)
@@ -258,28 +287,54 @@ def check_state(state, max_len, pad_token):
     return state
 
 
-def pad_batch_state(state, pred_length, pad_token):
-    """Left pad batch of states and trim if necessary.
+def check_batch_state(state, max_len, pad_token):
+    """Check batch of states and left pad or trim if necessary.
 
     Args:
         state (list): list of of L decoder states (B, ?, dec_dim)
-        pred_length (int): maximum length authorized (trimming)
+        max_len (int): maximum length authorized
         pad_token (int): padding token id
 
     Returns:
-        final (list): list of L padded decoder states (B, pred_length, dec_dim)
+        final (list): list of L decoder states (B, pred_len, dec_dim)
 
     """
-    batch = len(state)
-    maxlen = max([s.size(0) for s in state])
-    ddim = state[0].size(1)
-
-    final_dims = (batch, maxlen, ddim)
+    final_dims = (len(state), max_len, state[0].size(1))
     final = state[0].data.new(*final_dims).fill_(pad_token)
 
     for i, s in enumerate(state):
-        final[i, (maxlen - s.size(0)) : maxlen, :] = s
+        curr_len = s.size(0)
 
-    trim_val = final[0].size(0) - (pred_length - 1)
+        if curr_len < max_len:
+            final[i, (max_len - curr_len) : max_len, :] = s
+        else:
+            final[i, :, :] = s[(curr_len - max_len) :, :]
 
-    return final[:, trim_val:, :]
+    return final
+
+
+def custom_torch_load(model_path, model, training=True):
+    """Load transducer model modules and parameters with training-only ones removed.
+
+    Args:
+        model_path (str): Model path
+        model (torch.nn.Module): The model with pretrained modules
+
+    """
+    if "snapshot" in os.path.basename(model_path):
+        model_state_dict = torch.load(
+            model_path, map_location=lambda storage, loc: storage
+        )["model"]
+    else:
+        model_state_dict = torch.load(
+            model_path, map_location=lambda storage, loc: storage
+        )
+
+    if not training:
+        model_state_dict = {
+            k: v for k, v in model_state_dict.items() if not k.startswith("aux")
+        }
+
+    model.load_state_dict(model_state_dict)
+
+    del model_state_dict

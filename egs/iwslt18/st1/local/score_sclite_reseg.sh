@@ -58,7 +58,7 @@ fi
 # local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
 grep "<seg id" ${xml_src} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
-if [ ! -z ${bpemodel} ]; then
+if [ -n "$bpe" ]; then
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
 else
     sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
@@ -79,7 +79,7 @@ detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 lowercase.perl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc
 lowercase.perl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc
 
-# remove punctuation (including apostrophe)
+# remove punctuation (keep apostrophe)
 local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/hyp.wrd.trn.detok.lc.rm
 local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/ref.wrd.trn.detok.lc.rm
 

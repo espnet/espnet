@@ -17,10 +17,7 @@ ${CXX:-g++} -v
     else
         ./setup_python.sh "$(command -v python3)" venv
     fi
-    # Temporary fix pip version to avoid PEP440
-    #   See: https://github.com/pypa/pip/issues/8745
     . ./activate_python.sh
-    pip3 install pip==20.2.4
     make TH_VERSION="${TH_VERSION}"
 
     make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done

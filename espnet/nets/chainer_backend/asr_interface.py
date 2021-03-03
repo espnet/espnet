@@ -21,3 +21,9 @@ class ChainerASRInterface(ASRInterface, chainer.Chain):
     def custom_parallel_updater(*args, **kw):
         """Get custom_parallel_updater of the model (Chainer only)."""
         raise NotImplementedError("custom parallel updater method is not implemented")
+
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        raise NotImplementedError(
+            "get_total_subsampling_factor method is not implemented"
+        )
