@@ -74,7 +74,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         python local/data_prep.py -w $wavdir -t data/${x}_${annotation_id} -m ${annotation_type} -i local/Pueble-Nahuatl-Manifest/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
         utils/fix_data_dir.sh data/${x}_${annotation_id}
     done
-    exit
+
     # add speed perturbation
     train_set_org=train_${annotation_id}
     utils/perturb_data_dir_speed.sh 0.9 data/${train_set_org} data/temp1

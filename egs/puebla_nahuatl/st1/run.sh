@@ -57,7 +57,7 @@ bpemode=unigram
 # exp tag
 tag=${annotation_id} # tag for managing experiments.
 
-# . utils/parse_options.sh || exit 1;
+. utils/parse_options.sh || exit 1;
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -85,7 +85,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cp data/${x}_${annotation_id}/text.${tgt_lang} data/${x}_${annotation_id}/text.tc.${tgt_lang}
         utils/fix_data_dir.sh --utt_extra_files "text.${src_lang} text.${tgt_lang} text.tc.${src_lang} text.tc.${tgt_lang}" data/${x}_${annotation_id}
     done
-exit
 
 fi
 
