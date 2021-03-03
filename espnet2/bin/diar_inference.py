@@ -13,14 +13,14 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import humanfriendly
+import h5py
 import numpy as np
 import torch
 from tqdm import trange
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.diar import DiarizationTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -77,11 +77,7 @@ class DiarizeSpeech:
         self.segmenting = segment_size is not None
         if self.segmenting:
             logging.info("Perform segment-wise speaker diarization")
-            logging.info(
-                "Segment length = {} sec".format(
-                    segment_size
-                )
-            )
+            logging.info("Segment length = {} sec".format(segment_size))
         else:
             logging.info("Perform direct speaker diarization on the input")
 
@@ -118,9 +114,7 @@ class DiarizeSpeech:
 
         if self.segmenting and lengths[0] > self.segment_size * fs:
             # Segment-wise speaker diarization
-            num_segments = int(
-                np.ceil(speech.size(1) / (self.segment_size * fs))
-            )
+            num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
             t = T = int(self.segment_size * fs)
             pad_shape = speech[:, :T].shape
             diarized_wavs = []
@@ -142,7 +136,9 @@ class DiarizeSpeech:
                     [batch_size], dtype=torch.long, fill_value=T
                 )
                 # b. Diarization Forward
-                encoder_out, encoder_out_lens = self.diar_model.encode(speech_seg, lengths_seg)
+                encoder_out, encoder_out_lens = self.diar_model.encode(
+                    speech_seg, lengths_seg
+                )
                 spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
 
                 # List[torch.Tensor(B, T, num_spks)]
@@ -151,16 +147,21 @@ class DiarizeSpeech:
             spk_prediction = torch.cat(diarized_wavs, dim=1)
         else:
             # b. Diarization Forward
-            encoder_out, encoder_out_lens = self.diar_model.encode(speech_seg, lengths_seg)
+            encoder_out, encoder_out_lens = self.diar_model.encode(speech, lengths)
             spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
 
-        assert spk_prediction.dim(2) == self.num_spk, (spk_prediction.dim(2), self.num_spk)
-        assert spk_prediction.dim(0) == batch_size, (spk_prediction.dim(0), batch_size)
-        spk_prediction = spk_prediction.cpu.numpy()
+        assert spk_prediction.size(2) == self.num_spk, (
+            spk_prediction.size(2),
+            self.num_spk,
+        )
+        assert spk_prediction.size(0) == batch_size, (
+            spk_prediction.size(0),
+            batch_size,
+        )
+        spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
         return spk_prediction
-
 
 
 def inference(
@@ -201,8 +202,8 @@ def inference(
 
     # 2. Build separate_speech
     diarize_speech = DiarizeSpeech(
-        enh_train_config=diar_train_config,
-        enh_model_file=diar_model_file,
+        diar_train_config=diar_train_config,
+        diar_model_file=diar_model_file,
         segment_size=segment_size,
         show_progressbar=show_progressbar,
         device=device,
@@ -227,12 +228,7 @@ def inference(
     )
 
     # 4. Start for-loop
-    writers = []
-    for i in range(diarize_speech.num_spk):
-        # TODO(jiatong): add writer
-        writers.append(
-            SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
-        )
+    writer = NpyScpWriter(f"{output_dir}/predictions", f"{output_dir}/diarize.scp")
 
     for keys, batch in loader:
         assert isinstance(batch, dict), type(batch)
@@ -241,13 +237,11 @@ def inference(
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
-        waves = diarize_speech(**batch)
-        for (spk, w) in enumerate(waves):
-            for b in range(batch_size):
-                writers[spk][keys[b]] = fs, w[b]
+        spk_predictions = diarize_speech(**batch)
+        for b in range(batch_size):
+            writer[keys[b]] = spk_predictions[b]
 
-    for writer in writers:
-        writer.close()
+    writer.close()
 
 
 def get_parser():
@@ -281,7 +275,10 @@ def get_parser():
         help="Data type",
     )
     parser.add_argument(
-        "--fs", type=humanfriendly_or_none, default=8000, help="Sampling rate"
+        "--fs",
+        type=humanfriendly_parse_size_or_none,
+        default=8000,
+        help="Sampling rate",
     )
     parser.add_argument(
         "--num_workers",

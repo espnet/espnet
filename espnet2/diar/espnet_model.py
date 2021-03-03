@@ -8,13 +8,12 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
-import logging
-
 import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
+from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
@@ -77,41 +76,22 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
 
-        logging.info(
-            "speech_shape: {}, sum_spk_label: {}, spk_labels_shape: {}".format(
-                speech.shape, torch.sum(spk_labels), spk_labels.shape
-            )
-        )  # debug(jiatong)
-
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
-        logging.info(
-            "encoder_out: {}, encoder_out_lens {}".format(
-                encoder_out.shape, encoder_out_lens
-            )
-        )  # debug(jiatong)
-
         # 2. Decoder (baiscally a predction layer after encoder_out)
         pred = self.decoder(encoder_out, encoder_out_lens)
-
-        logging.info("pred: {}".format(pred.shape))  # debug (jiatong)
 
         # 3. Aggregate time-domain labels
         spk_labels, spk_labels_lengths = self.label_aggregator(
             spk_labels, spk_labels_lengths
         )
 
-        logging.info(
-            "spk_label: {}, sum_spk_label: {}, spk_labels_lengths: {}".format(
-                spk_labels.shape, torch.sum(spk_labels), spk_labels_lengths
-            )
-        )  # debug(jiatong)
-
         if self.loss_type == "pit":
             loss, perm_idx, perm_list, label_perm = self.pit_loss(
                 pred, spk_labels, encoder_out_lens
             )
+
             (
                 correct,
                 num_frames,
@@ -123,19 +103,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                 speaker_falarm,
                 speaker_error,
             ) = self.calc_diarization_error(pred, label_perm, encoder_out_lens)
-            logging.info(
-                "correct: {}, num_frames: {}, speech_scored: {}, speech_miss: {}, speech_falarm: {}, speaker_scored: {}, speaker_miss: {}, speaker_falarm: {}, speaker_error: {}".format(
-                    correct,
-                    num_frames,
-                    speech_scored,
-                    speech_miss,
-                    speech_falarm,
-                    speaker_scored,
-                    speaker_miss,
-                    speaker_falarm,
-                    speaker_error,
-                )
-            )  # debug(jiatong)
+
             if speech_scored > 0 and num_frames > 0:
                 sad_mr, sad_fr, mi, fa, cf, acc, der = (
                     speech_miss / speech_scored,
@@ -160,8 +128,6 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             )
         else:
             raise NotImplementedError
-
-        logging.info("loss {}".format(loss))  # debug(jiatong)
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -235,34 +201,41 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
-    @staticmethod
-    def pit_loss(pred, label, lengths):
+    def pit_loss_single_permute(self, pred, label, length):
+        bce_loss = torch.nn.BCEWithLogitsLoss(reduction="none")
+        mask = self.create_length_mask(length, label.size(1), label.size(2))
+        loss = bce_loss(pred, label)
+        loss = loss * mask
+        loss = torch.sum(torch.mean(loss, dim=2), dim=1)
+        loss = torch.unsqueeze(loss, dim=1)
+        return loss
+
+    def pit_loss(self, pred, label, lengths):
         # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
         num_output = label.size(2)
         permute_list = [np.array(p) for p in permutations(range(num_output))]
         loss_list = []
         for p in permute_list:
             label_perm = label[:, :, p]
-
-            # calculate pit loss for a single permutation
-            bce_loss = torch.nn.BCEWithLogitsLoss(reduction="none")
-            loss_perm = bce_loss(pred, label)
-            # TODO (jiatong): add mask
-            # mask = create_length_mask(lengths, label.size(1), label.size(2))
-            # loss = loss * mask
-            loss_perm = torch.sum(torch.mean(loss_perm, dim=2), dim=1)
-            loss_perm = torch.unsqueeze(loss_perm, dim=1)
+            loss_perm = self.pit_loss_single_permute(pred, label_perm, lengths)
             loss_list.append(loss_perm)
         loss = torch.cat(loss_list, dim=1)
         min_loss, min_idx = torch.min(loss, dim=1)
         loss = torch.sum(min_loss) / torch.sum(lengths.float())
-
         batch_size = len(min_idx)
         label_list = []
         for i in range(batch_size):
             label_list.append(label[i, :, permute_list[min_idx[i]]].data.cpu().numpy())
         label_permute = torch.from_numpy(np.array(label_list)).float()
         return loss, min_idx, permute_list, label_permute
+
+    def create_length_mask(self, length, max_len, num_output):
+        batch_size = len(length)
+        mask = torch.zeros(batch_size, max_len, num_output)
+        for i in range(batch_size):
+            mask[i, : length[i], :] = 1
+        mask = to_device(self, mask)
+        return mask
 
     @staticmethod
     def calc_diarization_error(pred, label, length):
