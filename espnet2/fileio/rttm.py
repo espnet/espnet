@@ -1,6 +1,3 @@
-# Copyright 2021 Jiatong Shi
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 import collections.abc
 from pathlib import Path
 from typing import Dict

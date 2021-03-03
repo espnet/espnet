@@ -1,6 +1,3 @@
-# Copyright 2021 Jiatong Shi
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 import torch
 
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
