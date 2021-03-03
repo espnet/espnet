@@ -28,8 +28,8 @@ from espnet2.fileio.rand_gen_dataset import FloatRandomGenerateDataset
 from espnet2.fileio.rand_gen_dataset import IntRandomGenerateDataset
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.fileio.read_text import read_2column_text
-from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.fileio.rttm import RttmReader
+from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict
 
 

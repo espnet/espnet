@@ -14,20 +14,20 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
-from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.layers.label_aggregation import LabelAggregate
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices

@@ -5,9 +5,9 @@
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+from espnet2.fileio.npy_scp import NpyScpReader
 import logging
 import numpy as np
-from espnet2.fileio.npy_scp import NpyScpReader
 from scipy.signal import medfilt
 
 parser = argparse.ArgumentParser(description="make rttm from decoded result")
