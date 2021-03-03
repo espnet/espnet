@@ -24,7 +24,7 @@ do_delta=false
 
 num_spkrs=2
 
-train_config=conf/train.yaml
+train_config=conf/train_multispkr.yaml
 preprocess_config=conf/preprocess.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml

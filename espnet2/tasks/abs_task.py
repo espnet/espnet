@@ -1,7 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
 import argparse
-from contextlib import contextmanager
 from dataclasses import dataclass
 from distutils.version import LooseVersion
 import functools
@@ -36,13 +35,11 @@ from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
-from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
-from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
@@ -61,7 +58,6 @@ from espnet2.train.distributed_utils import get_node_rank
 from espnet2.train.distributed_utils import get_num_nodes
 from espnet2.train.distributed_utils import resolve_distributed_mode
 from espnet2.train.iterable_dataset import IterableESPnetDataset
-from espnet2.train.reporter import Reporter
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils import config_argparse
@@ -127,15 +123,10 @@ try:
     del apex
 except ImportError:
     pass
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import GradScaler
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
-    GradScaler = None
+try:
+    import fairscale
+except ImportError:
+    fairscale = None
 
 
 scheduler_classes = dict(
@@ -401,6 +392,19 @@ class AbsTask(ABC):
             "fastest way to use PyTorch for either single node or "
             "multi node data parallel training",
         )
+        group.add_argument(
+            "--unused_parameters",
+            type=str2bool,
+            default=False,
+            help="Whether to use the find_unused_parameters in "
+            "torch.nn.parallel.DistributedDataParallel ",
+        )
+        group.add_argument(
+            "--sharded_ddp",
+            default=False,
+            type=str2bool,
+            help="Enable sharded training provided by fairscale",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -547,13 +551,6 @@ class AbsTask(ABC):
             help="Show the logs every the number iterations in each epochs at the "
             "training phase. If None is given, it is decided according the number "
             "of training samples automatically .",
-        )
-        group.add_argument(
-            "--unused_parameters",
-            type=bool,
-            default=False,
-            help="Whether to use the find_unused_parameters in "
-            "torch.nn.parallel.DistributedDataParallel ",
         )
         group.add_argument(
             "--use_tensorboard",
@@ -820,7 +817,15 @@ class AbsTask(ABC):
         optim_class = optim_classes.get(args.optim)
         if optim_class is None:
             raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
-        optim = optim_class(model.parameters(), **args.optim_conf)
+        if args.sharded_ddp:
+            if fairscale is None:
+                raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
+            optim = fairscale.optim.oss.OSS(
+                params=model.parameters(), optim=optim_class, **args.optim_conf
+            )
+        else:
+            optim = optim_class(model.parameters(), **args.optim_conf)
+
         optimizers = [optim]
         return optimizers
 
@@ -937,35 +942,6 @@ class AbsTask(ABC):
                         f'for {cls.__name__}: "{k}" is not allowed.\n{mes}'
                     )
 
-    @staticmethod
-    def resume(
-        checkpoint: Union[str, Path],
-        model: torch.nn.Module,
-        reporter: Reporter,
-        optimizers: Sequence[torch.optim.Optimizer],
-        schedulers: Sequence[Optional[AbsScheduler]],
-        scaler: Optional[GradScaler],
-        ngpu: int = 0,
-    ):
-        states = torch.load(
-            checkpoint,
-            map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
-        )
-        model.load_state_dict(states["model"])
-        reporter.load_state_dict(states["reporter"])
-        for optimizer, state in zip(optimizers, states["optimizers"]):
-            optimizer.load_state_dict(state)
-        for scheduler, state in zip(schedulers, states["schedulers"]):
-            if scheduler is not None:
-                scheduler.load_state_dict(state)
-        if scaler is not None:
-            if states["scaler"] is None:
-                logging.warning("scaler state is not found")
-            else:
-                scaler.load_state_dict(states["scaler"])
-
-        logging.info(f"The training was resumed using {checkpoint}")
-
     @classmethod
     def print_config(cls, file=sys.stdout) -> None:
         assert check_argument_types()
@@ -975,11 +951,6 @@ class AbsTask(ABC):
 
     @classmethod
     def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None):
-        if cls.num_optimizers != cls.trainer.num_optimizers:
-            raise RuntimeError(
-                f"Task.num_optimizers != Task.trainer.num_optimizers: "
-                f"{cls.num_optimizers} != {cls.trainer.num_optimizers}"
-            )
         assert check_argument_types()
         print(get_commandline_args(), file=sys.stderr)
         if args is None:
@@ -1160,27 +1131,6 @@ class AbsTask(ABC):
                 else "cpu",
             )
 
-        # 7. Resume the training state from the previous epoch
-        reporter = Reporter()
-        if args.use_amp:
-            if LooseVersion(torch.__version__) < LooseVersion("1.6.0"):
-                raise RuntimeError(
-                    "Require torch>=1.6.0 for  Automatic Mixed Precision"
-                )
-            scaler = GradScaler()
-        else:
-            scaler = None
-        if args.resume and (output_dir / "checkpoint.pth").exists():
-            cls.resume(
-                checkpoint=output_dir / "checkpoint.pth",
-                model=model,
-                optimizers=optimizers,
-                schedulers=schedulers,
-                reporter=reporter,
-                scaler=scaler,
-                ngpu=args.ngpu,
-            )
-
         if args.dry_run:
             pass
         elif args.collect_stats:
@@ -1231,7 +1181,7 @@ class AbsTask(ABC):
             )
         else:
 
-            # 8. Build iterator factories
+            # 7. Build iterator factories
             if args.multiple_iterator:
                 train_iter_factory = cls.build_multiple_iter_factory(
                     args=args,
@@ -1258,15 +1208,7 @@ class AbsTask(ABC):
             else:
                 plot_attention_iter_factory = None
 
-            # 9. Start training
-            if isinstance(args.keep_nbest_models, int):
-                keep_nbest_models = args.keep_nbest_models
-            else:
-                if len(args.keep_nbest_models) == 0:
-                    logging.warning("No keep_nbest_models is given. Change to [1]")
-                    args.keep_nbest_models = [1]
-                keep_nbest_models = max(args.keep_nbest_models)
-
+            # 8. Start training
             if args.use_wandb:
                 if (
                     not distributed_option.distributed
@@ -1308,29 +1250,9 @@ class AbsTask(ABC):
                 train_iter_factory=train_iter_factory,
                 valid_iter_factory=valid_iter_factory,
                 plot_attention_iter_factory=plot_attention_iter_factory,
-                reporter=reporter,
-                scaler=scaler,
-                output_dir=output_dir,
-                max_epoch=args.max_epoch,
-                seed=args.seed,
-                patience=args.patience,
-                keep_nbest_models=keep_nbest_models,
-                early_stopping_criterion=args.early_stopping_criterion,
-                best_model_criterion=args.best_model_criterion,
-                val_scheduler_criterion=args.val_scheduler_criterion,
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
-                find_unused_parameters=args.unused_parameters,
             )
-
-            if not distributed_option.distributed or distributed_option.dist_rank == 0:
-                # Generated n-best averaged model
-                average_nbest_models(
-                    reporter=reporter,
-                    output_dir=output_dir,
-                    best_model_criterion=args.best_model_criterion,
-                    nbest=args.keep_nbest_models,
-                )
 
     @classmethod
     def build_iter_options(

@@ -8,11 +8,10 @@ from collections import OrderedDict
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.mt_interface import MTInterface
+from espnet.nets.pytorch_backend.transducer.utils import custom_torch_load
 from espnet.nets.tts_interface import TTSInterface
-
 from espnet.utils.dynamic_import import dynamic_import
 
 
@@ -92,34 +91,28 @@ def get_partial_state_dict(model_state_dict, modules):
     return new_state_dict
 
 
-def get_partial_lm_state_dict(model_state_dict, modules):
-    """Create compatible ASR state_dict from model_state_dict (LM).
-
-    The keys for specified modules are modified to match ASR decoder modules keys.
+def get_lm_state_dict(lm_state_dict):
+    """Create compatible ASR decoder state dict from LM state dict.
 
     Args:
-        model_state_dict (OrderedDict): trained model state_dict
-        modules (list): specified module list for transfer
+        lm_state_dict (OrderedDict): pre-trained LM state_dict
 
     Return:
-        new_state_dict (OrderedDict): the updated state_dict
-        new_mods (list): the updated module list
+        new_state_dict (OrderedDict): LM state_dict with updated keys
 
     """
     new_state_dict = OrderedDict()
-    new_modules = []
 
-    for key, value in list(model_state_dict.items()):
-        if key == "predictor.embed.weight" and "predictor.embed." in modules:
-            new_key = "dec.embed.weight"
-            new_state_dict[new_key] = value
-            new_modules += [new_key]
-        elif "predictor.rnn." in key and "predictor.rnn." in modules:
-            new_key = "dec.decoder." + key.split("predictor.rnn.", 1)[1]
-            new_state_dict[new_key] = value
-            new_modules += [new_key]
+    for key, value in list(lm_state_dict.items()):
+        if key == "predictor.embed.weight":
+            new_state_dict["dec.embed.weight"] = value
+        elif key.startswith("predictor.rnn."):
+            _split = key.split(".")
 
-    return new_state_dict, new_modules
+            new_key = "dec.decoder." + _split[2] + "." + _split[3] + "_l0"
+            new_state_dict[new_key] = value
+
+    return new_state_dict
 
 
 def filter_modules(model_state_dict, modules):
@@ -179,10 +172,11 @@ def load_trained_model(model_path, training=True):
     model_class = dynamic_import(model_module)
 
     if "transducer" in model_module:
-        model = model_class(idim, odim, train_args, training)
+        model = model_class(idim, odim, train_args, training=training)
+        custom_torch_load(model_path, model, training=training)
     else:
         model = model_class(idim, odim, train_args)
-    torch_load(model_path, model)
+        torch_load(model_path, model)
 
     return model, train_args
 
@@ -202,7 +196,7 @@ def get_trained_model_state_dict(model_path):
     if "rnnlm" in model_path:
         logging.warning("reading model parameters from %s", model_path)
 
-        return torch.load(model_path), True
+        return get_lm_state_dict(torch.load(model_path))
 
     idim, odim, args = get_model_conf(model_path, conf_path)
 
@@ -222,7 +216,7 @@ def get_trained_model_state_dict(model_path):
         or isinstance(model, TTSInterface)
     )
 
-    return model.state_dict(), False
+    return model.state_dict()
 
 
 def load_trained_modules(idim, odim, args, interface=ASRInterface):
@@ -263,30 +257,23 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
     ]:
         if model_path is not None:
             if os.path.isfile(model_path):
-                model_state_dict, is_lm = get_trained_model_state_dict(model_path)
+                model_state_dict = get_trained_model_state_dict(model_path)
 
                 modules = filter_modules(model_state_dict, modules)
-                if is_lm:
-                    partial_state_dict, modules = get_partial_lm_state_dict(
-                        model_state_dict, modules
-                    )
-                    print_new_keys(partial_state_dict, modules, model_path)
-                else:
-                    partial_state_dict = get_partial_state_dict(
-                        model_state_dict, modules
-                    )
 
-                    if partial_state_dict:
-                        if transfer_verification(
-                            main_state_dict, partial_state_dict, modules
-                        ):
-                            print_new_keys(partial_state_dict, modules, model_path)
-                            main_state_dict.update(partial_state_dict)
-                        else:
-                            logging.warning(
-                                f"modules {modules} in model {model_path} "
-                                f"don't match your training config",
-                            )
+                partial_state_dict = get_partial_state_dict(model_state_dict, modules)
+
+                if partial_state_dict:
+                    if transfer_verification(
+                        main_state_dict, partial_state_dict, modules
+                    ):
+                        print_new_keys(partial_state_dict, modules, model_path)
+                        main_state_dict.update(partial_state_dict)
+                    else:
+                        logging.warning(
+                            f"modules {modules} in model {model_path} "
+                            f"don't match your training config",
+                        )
             else:
                 logging.warning("model was not found : %s", model_path)
 

@@ -21,7 +21,7 @@ custom-enc-positional-encoding-type: rel_pos
 custom-enc-self-attn-type: rel_self_attn
 ## encoder related
 etype: custom
-transformer-enc-input-layer: vgg2l
+custom-enc-input-layer: vgg2l
 enc-block-arch:
         - type: conformer
           d_hidden: 320
@@ -36,7 +36,7 @@ enc-block-arch:
 enc-block-repeat: 8
 ## decoder related
 dtype: custom
-transformer-dec-input-layer: embed
+custom-dec-input-layer: embed
 dec-block-arch:
         - type: transformer
           d_hidden: 320
