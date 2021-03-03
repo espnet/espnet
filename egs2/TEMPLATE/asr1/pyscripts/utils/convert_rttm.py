@@ -19,14 +19,19 @@ from typeguard import check_argument_types
 
 
 def convert_rttm_text(
-    path: Union[Path, str], wavscp_path: Union[Path, str], sampling_rate: int, output_path: Union[Path, str],
+    path: Union[Path, str],
+    wavscp_path: Union[Path, str],
+    sampling_rate: int,
+    output_path: Union[Path, str],
 ) -> None:
     """Convert a RTTM file
 
     Note: only support speaker information now
     """
 
-    output_handler = Path(os.path.join(output_path, "espnet_rttm")).open("w", encoding="utf-8")
+    output_handler = Path(os.path.join(output_path, "espnet_rttm")).open(
+        "w", encoding="utf-8"
+    )
 
     assert check_argument_types()
     utt_ids = set()
@@ -45,31 +50,40 @@ def convert_rttm_text(
             start = int(np.rint(float(start) * sampling_rate))
             end = start + int(np.rint(float(duration) * sampling_rate))
 
-            output_handler.write("{} {} {} {} {} <NA> <NA> {} <NA>\n".format(label_type, utt_id, channel, start, end, spk_id))
+            output_handler.write(
+                "{} {} {} {} {} <NA> <NA> {} <NA>\n".format(
+                    label_type, utt_id, channel, start, end, spk_id
+                )
+            )
 
     with Path(wavscp_path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):
             sps = re.split("[ \t]+", line.rstrip())
             utt_id, wav_path = sps
-            assert utt_id in utt_ids, "{} is not in corresponding rttm {}".foramt(utt_id, path)
+            assert utt_id in utt_ids, "{} is not in corresponding rttm {}".foramt(
+                utt_id, path
+            )
 
             array, rate = soundfile.read(wav_path, always_2d=True)
             assert rate == sampling_rate
             shape = array.shape[0]
-            output_handler.write(("{} {} <NA> <NA> {} <NA> <NA> <NA> <NA>\n".format("END", utt_id, shape)))
+            output_handler.write(
+                (
+                    "{} {} <NA> <NA> {} <NA> <NA> <NA> <NA>\n".format(
+                        "END", utt_id, shape
+                    )
+                )
+            )
 
     output_handler.close()
 
 
 def get_parser() -> argparse.Namespace:
     """Get argument parser."""
-    parser = argparse.ArgumentParser(description="Convert standard rttm file to ESPnet format")
-    parser.add_argument(
-        "--rttm",
-        required=True,
-        type=str,
-        help="Path of rttm file"
+    parser = argparse.ArgumentParser(
+        description="Convert standard rttm file to ESPnet format"
     )
+    parser.add_argument("--rttm", required=True, type=str, help="Path of rttm file")
     parser.add_argument(
         "--wavscp",
         required=True,
@@ -80,12 +94,13 @@ def get_parser() -> argparse.Namespace:
         "--output_path",
         required=True,
         type=str,
-        help="Output directory to storry espnet_rttm")
+        help="Output directory to storry espnet_rttm",
+    )
     parser.add_argument(
         "--sampling_rate",
         type=str_or_int,
         default=16000,
-        help="Sampling rate of the audio"
+        help="Sampling rate of the audio",
     )
     parser.add_argument(
         "--verbose",

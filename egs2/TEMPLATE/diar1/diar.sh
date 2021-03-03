@@ -57,8 +57,14 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_spk=2    # # Number of speakers in the input audio 
 
 # diar related
-inference_args="--normalize_output_wav true"
-inference_model=valid.acc.ave.pth
+inference_config=    # Config for diar model inference
+inference_model=valid.acc.best.pth
+inference_tag=       # Suffix to the inference dir for diar model inference
+
+# scoring related
+collar=0         # collar for der scoring
+frame_shift=128  # frame shift to convert frame-level label into real time
+                 # this should be aligned with frontend feature extraction
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -107,9 +113,14 @@ Options:
     --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
     --num_spk    # Number of speakers in the input audio (default="${num_spk}")
 
-    # diarization related
-    --inference_args      # Arguments for diarization in the inference stage (default="${inference_args}")
-    --inference_model # diarization model path for inference (default="${inference_model}").
+    # Diarization related
+    --inference_config # Config for diar model inference 
+    --inference_model  # diarization model path for inference (default="${inference_model}").
+    --inference_tag    # Suffix to the inference dir for diar model inference
+
+    # Scoring related
+    --collar      # collar for der scoring
+    --frame_shift # frame shift to convert frame-level label into real time
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -151,6 +162,14 @@ if [ -z "${diar_tag}" ]; then
     # Add overwritten arg's info
     if [ -n "${diar_args}" ]; then
         diar_tag+="$(echo "${diar_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    fi
+fi
+
+if [ -z "${inference_tag}" ]; then
+    if [ -n "${inference_config}" ]; then
+        inference_tag="$(basename "${inference_config}" .yaml)"
+    else
+        inference_tag=inference
     fi
 fi
 
@@ -441,7 +460,12 @@ if ! "${skip_eval}"; then
         mkdir -p "${diar_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${diar_exp}/run_diarize.sh"; chmod +x "${diar_exp}/run_diarize.sh"
         _opts=
 
-        for dset in "${valid_set}" ${test_sets}; do
+        if [ -n "${inference_config}" ]; then
+            _opts+="--config ${inference_config} "
+        fi
+
+        # for dset in "${valid_set}" ${test_sets}; do
+        for dset in "${valid_set}"; do
             _data="${data_feats}/${dset}"
             _dir="${diar_exp}/diarized_${dset}"
             _logdir="${_dir}/logdir"
@@ -461,7 +485,7 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit inference jobs
-            log "Ehancement started... log: '${_logdir}/diar_inference.*.log'"
+            log "Diarization started... log: '${_logdir}/diar_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/diar_inference.JOB.log \
                 ${python} -m espnet2.bin.diar_inference \
@@ -472,10 +496,12 @@ if ! "${skip_eval}"; then
                     --diar_train_config "${diar_exp}"/config.yaml \
                     --diar_model_file "${diar_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts}
 
             # 3. Concatenates the output files from each jobs
-            # TODO
+            for i in $(seq "${_nj}"); do
+                cat "${_logdir}/output.${i}/diarize.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/diarize.scp"
 
         done
     fi
@@ -487,32 +513,13 @@ if ! "${skip_eval}"; then
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
             _inf_dir="${diar_exp}/diarized_${dset}"
-            _dir="${diar_exp}/diarizedd_${dset}/scoring"
-            _logdir="${_dir}/logdir"
-            mkdir -p "${_logdir}"
+            _dir="${diar_exp}/diarized_${dset}/scoring"
+            mkdir -p "${_dir}"
 
-            # 1. Split the key file
-            key_file=${_data}/wav.scp
-            split_scps=""
-            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            for n in $(seq "${_nj}"); do
-                split_scps+=" ${_logdir}/keys.${n}.scp"
-            done
-            # shellcheck disable=SC2086
-            utils/split_scp.pl "${key_file}" ${split_scps}
-
-
-            # 2. Submit scoring jobs
-            log "Scoring started... log: '${_logdir}/diar_scoring.*.log'"
-            # shellcheck disable=SC2086
-            ${_cmd} JOB=1:"${_nj}" "${_logdir}"/diar_scoring.JOB.log \
-                ${python} -m espnet2.bin.diar_scoring \
-                    --key_file "${_logdir}"/keys.JOB.scp \
-                    --output_dir "${_logdir}"/output.JOB \
-                    --ref_channel ${ref_channel}
-
+            score_der.sh ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
+                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift}
         done
-        ./scripts/utils/show_diar_score.sh ${diar_exp} > "${diar_exp}/RESULTS.TXT"
+        # ./scripts/utils/show_diar_score.sh ${diar_exp} > "${diar_exp}/RESULTS.TXT"
 
     fi
 else
@@ -572,7 +579,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
 <li><strong>Results</strong><pre><code>$(cat "${diar_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>ASR config</strong><pre><code>$(cat "${diar_exp}"/config.yaml)</code></pre></li>
+<li><strong>Diarization config</strong><pre><code>$(cat "${diar_exp}"/config.yaml)</code></pre></li>
 </ul>
 EOF
 
