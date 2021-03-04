@@ -34,23 +34,23 @@ targets=""
 
 # Copy
 for f in cmd.sh conf local; do
-    target="${dir}"/../../TEMPLATE/diarization1/"${f}"
+    target="${dir}"/../../TEMPLATE/diar1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
 
-# Symlinks to TEMPLATE/diarization1
-for f in diarization.sh path.sh scripts; do
-    target=../../TEMPLATE/diarization1/"${f}"
+# Symlinks to TEMPLATE/diar1
+for f in diar.sh path.sh scripts; do
+    target=../../TEMPLATE/diar1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
 
-# Symlinks to TEMPLATE/diarization1
+# Symlinks to TEMPLATE/diar1
 for f in db.sh pyscripts; do
-    target=../../TEMPLATE/diarization1/"${f}"
+    target=../../TEMPLATE/diar1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
