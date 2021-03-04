@@ -72,7 +72,7 @@ recog_set="${train_dev} ${test_set}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     # Download the Data
-   local/download_and_untar.sh local  https://www.openslr.org/resources/92/Puebla-Nahuatl-Manifest.tgz Pueble-Nahuatl-Manifest.tgz
+    local/download_and_untar.sh local  https://www.openslr.org/resources/92/Puebla-Nahuatl-Manifest.tgz Pueble-Nahuatl-Manifest.tgz
    local/download_and_untar.sh ${download_dir} https://www.openslr.org/resources/92/Sound-Files-Puebla-Nahuatl.tgz.part0 Sound-Files-Pueble-Nahuatl.tgz.part0 9
    local/download_and_untar.sh ${download_dir} https://www.openslr.org/resources/92/SpeechTranslation_Nahuatl_Manifest.tgz SpeechTranslation_Nahuatl_Manifest.tgz
 fi
