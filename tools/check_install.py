@@ -23,6 +23,7 @@ module_list = [
     ("mmseg", None, "installers/install_py3mmseg.sh"),
     ("espnet", None, None),
     ("fairseq", None, "installers/install_fairseq.sh"),
+    ("phonemizer", None, "installers/install_phonemizer.sh"),
 ]
 
 executable_list = [

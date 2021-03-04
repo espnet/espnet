@@ -36,8 +36,6 @@ class TransLoss(torch.nn.Module):
                     )
             else:
                 raise ValueError("warp-rnnt is not supported in CPU mode")
-        else:
-            raise NotImplementedError
 
         self.trans_type = trans_type
         self.blank_id = blank_id
@@ -60,6 +58,7 @@ class TransLoss(torch.nn.Module):
         if dtype != torch.float32:
             # warp-transducer and warp-rnnt only support float32
             pred_pad = pred_pad.to(dtype=torch.float32)
+
         if self.trans_type == "warp-rnnt":
             log_probs = torch.log_softmax(pred_pad, dim=-1)
 

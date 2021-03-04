@@ -1,3 +1,111 @@
+# Updated the result of conformer with transformer LM
+## Environments
+- date: `Mon Feb 15 13:39:43 UTC 2021`
+- python version: `3.8.5 (default, Sep  4 2020, 07:30:14)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.6`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `8eff1a983f6098111619328a7d8254974ae9dfca`
+  - Commit date: `Wed Dec 16 02:22:50 2020 +0000`
+
+
+## n_fft=512, hop_length=256
+- ASR config: [conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml](conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://zenodo.org/record/4543018/](https://zenodo.org/record/4543018/)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|26.3|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|95.6|3.9|0.5|0.5|4.9|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|98.1|1.7|0.2|0.2|2.1|26.3|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|95.7|3.9|0.5|0.5|4.8|43.8|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.7|26.3|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|98.2|1.0|0.8|0.5|2.3|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.3|0.3|0.2|0.7|26.3|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|98.4|0.8|0.8|0.5|2.1|43.8|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/test_other|2939|65101|93.3|4.8|1.8|1.0|7.6|52.5|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|68010|97.7|1.6|0.7|0.3|2.7|26.3|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|94.3|3.9|1.7|0.8|6.4|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.5|1.6|0.9|0.3|2.8|26.3|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.6|3.6|1.8|0.6|6.1|43.8|
+
+## n_fft=400, hop_length=160
+- ASR config: [conf/tuning/train_asr_conformer6_n_fft400_hop_length160.yaml](conf/tuning/train_asr_conformer6_n_fft400_hop_length160.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://zenodo.org/record/4543003](https://zenodo.org/record/4543003)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|25.5|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|95.6|3.9|0.5|0.5|4.9|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|98.1|1.7|0.2|0.3|2.1|26.4|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|95.5|4.0|0.5|0.6|5.1|44.1|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.7|25.5|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|98.3|1.0|0.8|0.5|2.3|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.3|0.3|0.2|0.7|26.4|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|98.4|0.9|0.8|0.5|2.2|44.1|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|68010|97.7|1.6|0.7|0.3|2.6|25.5|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|94.3|3.9|1.7|0.7|6.4|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.5|1.6|0.8|0.3|2.7|26.4|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.3|3.8|1.9|0.6|6.3|44.1|
+
+## n_fft=512, hop_length=128
+- ASR config: [conf/tuning/train_asr_conformer6_n_fft512_hop_length128.yaml](conf/tuning/train_asr_conformer6_n_fft512_hop_length128.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://zenodo.org/record/4541452](https://zenodo.org/record/4541452)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|26.0|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|95.6|3.9|0.5|0.5|4.9|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|98.1|1.7|0.2|0.3|2.1|26.1|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|95.5|4.0|0.6|0.6|5.1|44.4|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.7|26.0|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|98.2|1.0|0.8|0.5|2.3|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.3|0.2|0.2|0.7|26.1|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|98.3|0.9|0.8|0.6|2.2|44.4|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|68010|97.7|1.6|0.7|0.3|2.6|26.0|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|94.3|3.9|1.7|0.8|6.5|41.6|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.6|1.6|0.8|0.3|2.7|26.1|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.3|3.7|2.0|0.7|6.4|44.4|
+
+
 # The first conformer result
 ## Environments
 - date: `Mon Nov 16 18:59:34 EST 2020`
