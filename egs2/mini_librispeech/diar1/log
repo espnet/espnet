@@ -1,0 +1,20 @@
+2021-03-02T02:45:02 (diar.sh:122:main) ./diar.sh --stage 5 --stop_stage 5 --train_set simu/data/train_clean_5_ns2_beta2_500 --valid_set simu/data/dev_clean_2_ns2_beta2_500 --test_sets simu/data/dev_clean_2_ns2_beta2_500 --ngpu 1 --diar_config conf/train.yaml --local_data_opts --stage 1
+2021-03-02T02:45:08 (diar.sh:352:main) Stage 5: Diarization Training: train_set=dump/raw/simu/data/train_clean_5_ns2_beta2_500, valid_set=dump/raw/simu/data/dev_clean_2_ns2_beta2_500
+2021-03-02T02:45:08 (diar.sh:394:main) Generate 'exp/diar_train_raw/run.sh'. You can resume the process from stage 10 using this script
+2021-03-02T02:45:08 (diar.sh:398:main) Diarization training started... log: 'exp/diar_train_raw/train.log'
+2021-03-02 02:45:13,327 (launch:95) INFO: /export/c06/jiatong/dia_workspace/espnet/tools/venv/bin/python3 /export/c06/jiatong/dia_workspace/espnet/espnet2/bin/launch.py --cmd 'run.pl --name exp/diar_train_raw/train.log' --log exp/diar_train_raw/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/diar_train_raw/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.diar_train --use_preprocessor true --resume true --fold_length 80000 --fold_length 800 --output_dir exp/diar_train_raw --config conf/train.yaml --frontend_conf fs=8k --frontend_conf hop_length=128 --normalize=global_mvn --normalize_conf stats_file=exp/diar_stats_8k/train/feats_stats.npz --num_spk 2 --train_data_path_and_name_and_type dump/raw/simu/data/train_clean_5_ns2_beta2_500/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/simu/data/train_clean_5_ns2_beta2_500/espnet_rttm,spk_labels,rttm --train_shape_file exp/diar_stats_8k/train/speech_shape --train_shape_file exp/diar_stats_8k/train/spk_labels_shape --valid_data_path_and_name_and_type dump/raw/simu/data/dev_clean_2_ns2_beta2_500/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/simu/data/dev_clean_2_ns2_beta2_500/espnet_rttm,spk_labels,rttm --valid_shape_file exp/diar_stats_8k/valid/speech_shape --valid_shape_file exp/diar_stats_8k/valid/spk_labels_shape
+2021-03-02 02:45:13,514 (launch:349) INFO: log file: exp/diar_train_raw/train.log
+Traceback (most recent call last):
+  File "/export/c06/jiatong/dia_workspace/espnet/tools/venv/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/export/c06/jiatong/dia_workspace/espnet/tools/venv/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/bin/launch.py", line 385, in <module>
+    main()
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/bin/launch.py", line 359, in main
+    process.wait(0.5)
+  File "/export/c06/jiatong/dia_workspace/espnet/tools/venv/lib/python3.8/subprocess.py", line 1079, in wait
+    return self._wait(timeout=timeout)
+  File "/export/c06/jiatong/dia_workspace/espnet/tools/venv/lib/python3.8/subprocess.py", line 1798, in _wait
+    time.sleep(delay)
+KeyboardInterrupt

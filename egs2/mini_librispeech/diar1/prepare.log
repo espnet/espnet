@@ -1,0 +1,214 @@
+2021-03-01T00:29:23 (diar.sh:124:main) ./diar.sh --stage 1 --stop_stage 5 --train_set simu/data/train_clean_5_ns2_beta2_500 --valid_set simu/data/dev_clean_2_ns2_beta2_500 --test_sets simu/data/dev_clean_2_ns2_beta2_500 --ngpu 1 --diar_config conf/train.yaml --local_data_opts --stage 1
+2021-03-01T00:29:34 (diar.sh:168:main) Stage 1: Data preparation for data/simu/data/train_clean_5_ns2_beta2_500, data/simu/data/dev_clean_2_ns2_beta2_500, etc.
+simulation of mixture
+/export/c06/jiatong/dia_workspace/espnet/egs2/mini_librispeech/diar1/utils/validate_data_dir.sh: no such directory data/simu/data/train_clean_5_ns2_beta2_500
+generate random mixture
+utils/combine_data.sh data/simu/data/train_clean_5_ns2_beta2_500 data/simu/.work/data_train_clean_5_ns2_beta2_500.1 data/simu/.work/data_train_clean_5_ns2_beta2_500.10 data/simu/.work/data_train_clean_5_ns2_beta2_500.2 data/simu/.work/data_train_clean_5_ns2_beta2_500.3 data/simu/.work/data_train_clean_5_ns2_beta2_500.4 data/simu/.work/data_train_clean_5_ns2_beta2_500.5 data/simu/.work/data_train_clean_5_ns2_beta2_500.6 data/simu/.work/data_train_clean_5_ns2_beta2_500.7 data/simu/.work/data_train_clean_5_ns2_beta2_500.8 data/simu/.work/data_train_clean_5_ns2_beta2_500.9
+utils/combine_data.sh [info]: not combining utt2uniq as it does not exist
+utils/combine_data.sh: combined segments
+utils/combine_data.sh: combined utt2spk
+utils/combine_data.sh [info]: not combining utt2lang as it does not exist
+utils/combine_data.sh [info]: not combining utt2dur as it does not exist
+utils/combine_data.sh [info]: not combining utt2num_frames as it does not exist
+utils/combine_data.sh [info]: not combining reco2dur as it does not exist
+utils/combine_data.sh [info]: not combining feats.scp as it does not exist
+utils/combine_data.sh [info]: not combining text as it does not exist
+utils/combine_data.sh [info]: not combining cmvn.scp as it does not exist
+utils/combine_data.sh [info]: not combining vad.scp as it does not exist
+utils/combine_data.sh [info]: not combining reco2file_and_channel as it does not exist
+utils/combine_data.sh: combined wav.scp
+utils/combine_data.sh [info]: not combining spk2gender as it does not exist
+fix_data_dir.sh: kept all 15061 utterances.
+fix_data_dir.sh: old files are kept in data/simu/data/train_clean_5_ns2_beta2_500/.backup
+utils/data/get_reco2dur.sh: obtaining durations from recordings
+utils/data/get_reco2dur.sh: could not get recording lengths from sphere-file headers, using wav-to-duration
+utils/data/get_reco2dur.sh: computed data/simu/data/train_clean_5_ns2_beta2_500/reco2dur
+/export/c06/jiatong/dia_workspace/espnet/egs2/mini_librispeech/diar1/utils/validate_data_dir.sh: no such directory data/simu/data/dev_clean_2_ns2_beta2_500
+generate random mixture
+utils/combine_data.sh data/simu/data/dev_clean_2_ns2_beta2_500 data/simu/.work/data_dev_clean_2_ns2_beta2_500.1 data/simu/.work/data_dev_clean_2_ns2_beta2_500.10 data/simu/.work/data_dev_clean_2_ns2_beta2_500.2 data/simu/.work/data_dev_clean_2_ns2_beta2_500.3 data/simu/.work/data_dev_clean_2_ns2_beta2_500.4 data/simu/.work/data_dev_clean_2_ns2_beta2_500.5 data/simu/.work/data_dev_clean_2_ns2_beta2_500.6 data/simu/.work/data_dev_clean_2_ns2_beta2_500.7 data/simu/.work/data_dev_clean_2_ns2_beta2_500.8 data/simu/.work/data_dev_clean_2_ns2_beta2_500.9
+utils/combine_data.sh [info]: not combining utt2uniq as it does not exist
+utils/combine_data.sh: combined segments
+utils/combine_data.sh: combined utt2spk
+utils/combine_data.sh [info]: not combining utt2lang as it does not exist
+utils/combine_data.sh [info]: not combining utt2dur as it does not exist
+utils/combine_data.sh [info]: not combining utt2num_frames as it does not exist
+utils/combine_data.sh [info]: not combining reco2dur as it does not exist
+utils/combine_data.sh [info]: not combining feats.scp as it does not exist
+utils/combine_data.sh [info]: not combining text as it does not exist
+utils/combine_data.sh [info]: not combining cmvn.scp as it does not exist
+utils/combine_data.sh [info]: not combining vad.scp as it does not exist
+utils/combine_data.sh [info]: not combining reco2file_and_channel as it does not exist
+utils/combine_data.sh: combined wav.scp
+utils/combine_data.sh [info]: not combining spk2gender as it does not exist
+fix_data_dir.sh: kept all 14529 utterances.
+fix_data_dir.sh: old files are kept in data/simu/data/dev_clean_2_ns2_beta2_500/.backup
+utils/data/get_reco2dur.sh: obtaining durations from recordings
+utils/data/get_reco2dur.sh: could not get recording lengths from sphere-file headers, using wav-to-duration
+utils/data/get_reco2dur.sh: computed data/simu/data/dev_clean_2_ns2_beta2_500/reco2dur
+2021-03-01T00:35:26 (diar.sh:175:main) Stage 2: Format wav.scp: data/ -> dump/raw
+utils/copy_data_dir.sh: copied data from data/simu/data/train_clean_5_ns2_beta2_500 to dump/raw/org/simu/data/train_clean_5_ns2_beta2_500
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/simu/data/train_clean_5_ns2_beta2_500
+2021-03-01T00:35:28 (format_wav_scp.sh:42:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd queue.pl --mem 2G --audio-format flac --fs 8k data/simu/data/train_clean_5_ns2_beta2_500/wav.scp dump/raw/org/simu/data/train_clean_5_ns2_beta2_500
+2021-03-01T00:35:28 (format_wav_scp.sh:110:main) [info]: without segments
+2021-03-01T00:36:25 (format_wav_scp.sh:142:main) Successfully finished. [elapsed=57s]
+utils/copy_data_dir.sh: copied data from data/simu/data/dev_clean_2_ns2_beta2_500 to dump/raw/org/simu/data/dev_clean_2_ns2_beta2_500
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/simu/data/dev_clean_2_ns2_beta2_500
+2021-03-01T00:37:50 (format_wav_scp.sh:42:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd queue.pl --mem 2G --audio-format flac --fs 8k data/simu/data/dev_clean_2_ns2_beta2_500/wav.scp dump/raw/org/simu/data/dev_clean_2_ns2_beta2_500
+2021-03-01T00:37:54 (format_wav_scp.sh:110:main) [info]: without segments
+2021-03-01T00:38:23 (format_wav_scp.sh:142:main) Successfully finished. [elapsed=33s]
+utils/copy_data_dir.sh: copied data from data/simu/data/dev_clean_2_ns2_beta2_500 to dump/raw/org/simu/data/dev_clean_2_ns2_beta2_500
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/simu/data/dev_clean_2_ns2_beta2_500
+2021-03-01T00:38:44 (format_wav_scp.sh:42:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd queue.pl --mem 2G --audio-format flac --fs 8k data/simu/data/dev_clean_2_ns2_beta2_500/wav.scp dump/raw/org/simu/data/dev_clean_2_ns2_beta2_500
+2021-03-01T00:38:46 (format_wav_scp.sh:110:main) [info]: without segments
+2021-03-01T00:39:12 (format_wav_scp.sh:142:main) Successfully finished. [elapsed=28s]
+2021-03-01T00:39:45 (diar.sh:216:main) Stage 3: Remove short data: dump/raw/org -> dump/raw
+utils/copy_data_dir.sh: copied data from dump/raw/org/simu/data/train_clean_5_ns2_beta2_500 to dump/raw/simu/data/train_clean_5_ns2_beta2_500
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/simu/data/train_clean_5_ns2_beta2_500
+fix_data_dir.sh: kept all 15061 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/simu/data/train_clean_5_ns2_beta2_500/.backup
+utils/copy_data_dir.sh: copied data from dump/raw/org/simu/data/dev_clean_2_ns2_beta2_500 to dump/raw/simu/data/dev_clean_2_ns2_beta2_500
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/simu/data/dev_clean_2_ns2_beta2_500
+fix_data_dir.sh: kept all 14529 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/simu/data/dev_clean_2_ns2_beta2_500/.backup
+2021-03-01T00:41:59 (diar.sh:268:main) Stage 4: Diarization collect stats: train_set=dump/raw/simu/data/train_clean_5_ns2_beta2_500, valid_set=dump/raw/simu/data/dev_clean_2_ns2_beta2_500
+2021-03-01T00:41:59 (diar.sh:322:main) Generate 'exp/diar_stats_8k/run.sh'. You can resume the process from stage 9 using this script
+2021-03-01T00:42:00 (diar.sh:326:main) Diarization collect-stats started... log: 'exp/diar_stats_8k/logdir/stats.*.log'
+# Running on c12
+# Started at Mon Mar 1 00:42:03 EST 2021
+# python3 -m espnet2.bin.diar_train --collect_stats true --use_preprocessor true --train_data_path_and_name_and_type dump/raw/simu/data/train_clean_5_ns2_beta2_500/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/simu/data/train_clean_5_ns2_beta2_500/espnet_rttm,spk_labels,rttm --valid_data_path_and_name_and_type dump/raw/simu/data/dev_clean_2_ns2_beta2_500/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/simu/data/dev_clean_2_ns2_beta2_500/espnet_rttm,spk_labels,rttm --train_shape_file exp/diar_stats_8k/logdir/train.1.scp --valid_shape_file exp/diar_stats_8k/logdir/valid.1.scp --output_dir exp/diar_stats_8k/logdir/stats.1 --config conf/train.yaml --frontend_conf fs=8k --frontend_conf hop_length=128 --total_spk_num 29 
+/export/c06/jiatong/dia_workspace/espnet/tools/venv/bin/python3 /export/c06/jiatong/dia_workspace/espnet/espnet2/bin/diar_train.py --collect_stats true --use_preprocessor true --train_data_path_and_name_and_type dump/raw/simu/data/train_clean_5_ns2_beta2_500/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/simu/data/train_clean_5_ns2_beta2_500/espnet_rttm,spk_labels,rttm --valid_data_path_and_name_and_type dump/raw/simu/data/dev_clean_2_ns2_beta2_500/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/simu/data/dev_clean_2_ns2_beta2_500/espnet_rttm,spk_labels,rttm --train_shape_file exp/diar_stats_8k/logdir/train.1.scp --valid_shape_file exp/diar_stats_8k/logdir/valid.1.scp --output_dir exp/diar_stats_8k/logdir/stats.1 --config conf/train.yaml --frontend_conf fs=8k --frontend_conf hop_length=128 --total_spk_num 29
+[c12] 2021-03-01 00:43:04,877 (diar:205) INFO: {'fs': '8k', 'hop_length': 128}
+/export/c06/jiatong/dia_workspace/espnet/espnet2/schedulers/noam_lr.py:42: UserWarning: NoamLR is deprecated. Use WarmupLR(warmup_steps=25000) with Optimizer(lr=0.0003535533905932737)
+  warnings.warn(
+/export/c06/jiatong/dia_workspace/espnet/tools/venv/lib/python3.8/site-packages/torch/cuda/__init__.py:52: UserWarning: CUDA initialization: Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx (Triggered internally at  /opt/conda/conda-bld/pytorch_1603729062494/work/c10/cuda/CUDAFunctions.cpp:100.)
+  return torch._C._cuda_getDeviceCount() > 0
+[c12] 2021-03-01 00:43:05,983 (abs_task:1131) INFO: pytorch.version=1.7.0, cuda.available=False, cudnn.version=7605, cudnn.benchmark=False, cudnn.deterministic=True
+[c12] 2021-03-01 00:43:05,989 (abs_task:1132) INFO: Model structure:
+ESPnetDiarizationModel(
+  (encoder): TransformerEncoder(
+    (embed): Sequential(
+      (0): Linear(in_features=80, out_features=256, bias=True)
+      (1): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+      (2): Dropout(p=0.1, inplace=False)
+      (3): ReLU()
+      (4): PositionalEncoding(
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (encoders): MultiSequential(
+      (0): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=512, bias=True)
+          (w_2): Linear(in_features=512, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (1): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=512, bias=True)
+          (w_2): Linear(in_features=512, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (2): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=512, bias=True)
+          (w_2): Linear(in_features=512, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (after_norm): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+  )
+  (decoder): LinearDecoder(
+    (linear_decoder): Linear(in_features=256, out_features=29, bias=True)
+  )
+  (normalize): UtteranceMVN(norm_means=True, norm_vars=False)
+  (frontend): DefaultFrontend(
+    (stft): Stft(n_fft=512, win_length=512, hop_length=128, center=True, normalized=False, onesided=True)
+    (frontend): Frontend()
+    (logmel): LogMel(sr=8000, n_fft=512, n_mels=80, fmin=0, fmax=4000.0, htk=False)
+  )
+)
+
+Model summary:
+    Class Name: ESPnetDiarizationModel
+    Number of parameters: 1.61 M
+    Size: 6.44 MB
+    Type: torch.float32
+[c12] 2021-03-01 00:43:05,989 (abs_task:1135) INFO: Optimizer:
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    initial_lr: 1.0
+    lr: 1.414213562373095e-08
+    weight_decay: 0
+)
+[c12] 2021-03-01 00:43:05,989 (abs_task:1136) INFO: Scheduler: NoamLR(model_size=320, warmup_steps=25000)
+[c12] 2021-03-01 00:43:06,078 (abs_task:1145) INFO: Saving the configuration in exp/diar_stats_8k/logdir/stats.1/config.yaml
+[c12] 2021-03-01 00:43:06,111 (abs_task:1190) INFO: Namespace(accum_grad=2, allow_variable_data_keys=False, batch_bins=1000000, batch_size=32, batch_type='folded', best_model_criterion=[['valid', 'acc', 'max']], chunk_length=32000, chunk_shift_ratio=0.5, collect_stats=True, config='conf/train.yaml', cudnn_benchmark=False, cudnn_deterministic=True, cudnn_enabled=True, decoder='linear', decoder_conf={}, dist_backend='nccl', dist_init_method='env://', dist_launcher=None, dist_master_addr=None, dist_master_port=None, dist_rank=None, dist_world_size=None, distributed=False, dry_run=False, early_stopping_criterion=('valid', 'loss', 'min'), encoder='transformer', encoder_conf={'input_layer': 'linear', 'num_blocks': 3, 'linear_units': 512, 'dropout_rate': 0.1, 'output_size': 256, 'attention_heads': 4, 'attention_dropout_rate': 0.0}, fold_length=[], freeze_param=[], frontend='default', frontend_conf={'fs': '8k', 'hop_length': 128}, grad_clip=5, grad_clip_type=2.0, grad_noise=False, init='chainer', init_param=[], input_size=None, iterator_type='chunk', keep_nbest_models=10, local_rank=None, log_interval=None, log_level='INFO', max_cache_fd=32, max_cache_size=0.0, max_epoch=100, model_conf={'loss_type': 'pit'}, multiple_iterator=False, multiprocessing_distributed=False, ngpu=0, no_forward_run=False, normalize='utterance_mvn', normalize_conf={}, num_att_plot=3, num_cache_chunks=1024, num_iters_per_epoch=None, num_workers=1, optim='adam', optim_conf={'lr': 1.0}, output_dir='exp/diar_stats_8k/logdir/stats.1', patience=0, pretrain_path=None, print_config=False, required=['output_dir'], resume=False, scheduler='noamlr', scheduler_conf={'warmup_steps': 25000}, seed=0, sort_batch='descending', sort_in_batch='descending', total_spk_num=29, train_data_path_and_name_and_type=[('dump/raw/simu/data/train_clean_5_ns2_beta2_500/wav.scp', 'speech', 'sound'), ('dump/raw/simu/data/train_clean_5_ns2_beta2_500/espnet_rttm', 'spk_labels', 'rttm')], train_dtype='float32', train_shape_file=['exp/diar_stats_8k/logdir/train.1.scp'], unused_parameters=False, use_amp=False, use_preprocessor=True, use_tensorboard=True, use_wandb=False, val_scheduler_criterion=('valid', 'loss'), valid_batch_bins=None, valid_batch_size=None, valid_batch_type=None, valid_data_path_and_name_and_type=[('dump/raw/simu/data/dev_clean_2_ns2_beta2_500/wav.scp', 'speech', 'sound'), ('dump/raw/simu/data/dev_clean_2_ns2_beta2_500/espnet_rttm', 'spk_labels', 'rttm')], valid_max_cache_size=None, valid_shape_file=['exp/diar_stats_8k/logdir/valid.1.scp'], version='0.9.7', wandb_id=None, wandb_project=None, write_collected_feats=False)
+[c12] 2021-03-01 00:43:06,236 (dataset:365) ERROR: An error happend with RttmReader(dump/raw/simu/data/train_clean_5_ns2_beta2_500/espnet_rttm)
+Traceback (most recent call last):
+  File "/export/c06/jiatong/dia_workspace/espnet/tools/venv/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/export/c06/jiatong/dia_workspace/espnet/tools/venv/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/bin/diar_train.py", line 23, in <module>
+    main()
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/bin/diar_train.py", line 19, in main
+    DiarizationTask.main(cmd=cmd)
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/tasks/abs_task.py", line 999, in main
+    cls.main_worker(args)
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/tasks/abs_task.py", line 1206, in main_worker
+    train_iter=cls.build_streaming_iterator(
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/tasks/abs_task.py", line 1777, in build_streaming_iterator
+    dataset = IterableESPnetDataset(
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/train/iterable_dataset.py", line 117, in __init__
+    self.non_iterable_dataset = ESPnetDataset(
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/train/dataset.py", line 315, in __init__
+    loader = self._build_loader(path, _type)
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/train/dataset.py", line 359, in _build_loader
+    return func(path, **kwargs)
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/fileio/rttm.py", line 84, in __init__
+    self.data = load_rttm_text(path=fname)
+  File "/export/c06/jiatong/dia_workspace/espnet/espnet2/fileio/rttm.py", line 47, in load_rttm_text
+    (spk_id, int(start), int(end))
+ValueError: invalid literal for int() with base 10: '12240.0'
+[c12] 2021-03-01 00:43:06,240 (internal:139) INFO: Internal process exited
+# Accounting: time=66 threads=1
+# Finished at Mon Mar 1 00:43:09 EST 2021 with status 1
