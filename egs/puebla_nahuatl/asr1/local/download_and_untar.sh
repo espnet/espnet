@@ -14,7 +14,7 @@ if [ "$1" == --remove-archive ]; then
   shift
 fi
 
-if [ $# -ne 2 ]; then
+if [ $# -le 3 ]; then
   echo "Usage: $0 [--remove-archive] <data-base> <url> <filename> <part>>"
   echo "e.g.: $0 /export/data/ https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz cv_corpus_v1.tar.gz 0"
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
@@ -66,7 +66,7 @@ if [ ! -f $filepath ]; then
   cd $data
 
   if [ x$part != x ]; then
-      for x in {0..$part}; do
+      for x in $(seq 0 $part); do
           if ! wget --no-check-certificate ${url}${x}; then
             echo "$0: error executing wget ${url}${x}"
             exit 1;
@@ -74,7 +74,6 @@ if [ ! -f $filepath ]; then
       done
       cat ${filename}* > ${filename}
   else
-  then
       if ! wget --no-check-certificate $url; then
         echo "$0: error executing wget $url"
         exit 1;

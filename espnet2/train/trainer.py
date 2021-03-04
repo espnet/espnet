@@ -192,9 +192,11 @@ class Trainer:
                 raise RuntimeError(
                     "Require torch>=1.6.0 for  Automatic Mixed Precision"
                 )
-            if fairscale is None:
-                raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             if trainer_options.sharded_ddp:
+                if fairscale is None:
+                    raise RuntimeError(
+                        "Requiring fairscale. Do 'pip install fairscale'"
+                    )
                 scaler = fairscale.optim.grad_scaler.ShardedGradScaler()
             else:
                 scaler = GradScaler()
@@ -504,7 +506,7 @@ class Trainer:
                                 )
                             if optim_idx.dim() == 1:
                                 for v in optim_idx:
-                                    if v != optim_idx:
+                                    if v != optim_idx[0]:
                                         raise RuntimeError(
                                             "optim_idx must be 1dim tensor "
                                             "having same values for all entries"

@@ -1,6 +1,5 @@
-# Note: run this config with "--feats_normalize null"
 batch_type: numel
-batch_bins: 6000000
+batch_bins: 15000000
 accum_grad: 8
 max_epoch: 100
 patience: none
@@ -12,15 +11,29 @@ best_model_criterion:
     - max
 keep_nbest_models: 10
 
+freeze_param: [
+    "encoder.encoders.mask_emb", "encoder.encoders.feature_extractor",
+    "encoder.encoders.post_extract_proj", "encoder.encoders.quantizer",
+    "encoder.encoders.project_q", "encoder.encoders.encoder.pos_conv",
+    "encoder.encoders.encoder.layers.0", "encoder.encoders.encoder.layers.1", "encoder.encoders.encoder.layers.2",
+    "encoder.encoders.encoder.layers.3", "encoder.encoders.encoder.layers.4", "encoder.encoders.encoder.layers.5",
+    "encoder.encoders.encoder.layers.6", "encoder.encoders.encoder.layers.7", "encoder.encoders.encoder.layers.8",
+    "encoder.encoders.encoder.layers.9", "encoder.encoders.encoder.layers.10", "encoder.encoders.encoder.layers.11",
+    "encoder.encoders.encoder.layers.12", "encoder.encoders.encoder.layers.13", "encoder.encoders.encoder.layers.14",
+    "encoder.encoders.encoder.layers.15", "encoder.encoders.encoder.layers.16", "encoder.encoders.encoder.layers.17",
+    "encoder.encoders.encoder.layers.18", "encoder.encoders.encoder.layers.19", "encoder.encoders.encoder.layers.20",
+    "encoder.encoders.encoder.layers.21", "encoder.encoders.encoder.layers.22",
+    "encoder.encoders.encoder.layer_norm", "encoder.encoders.layer_norm",
+]
+
 input_size: 2048
 encoder: wav2vec2
 encoder_conf:
-    output_size: 512
-    normalize_before: true
-    freeze_w2v: false
+    output_size: 1024
+    normalize_before: false
+    freeze_finetune_updates: 100000
     w2v_url: https://dl.fbaipublicfiles.com/fairseq/wav2vec/wav2vec2_vox_960h_new.pt
     w2v_dir_path: ./downloads/wav2vec_pretrained_models
-    finetune_last_n_layers: 1
 
 decoder: transformer
 decoder_conf:
@@ -39,7 +52,7 @@ model_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.002
+    lr: 0.001
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 25000
@@ -51,18 +64,3 @@ frontend: null
 normalize: null
 
 specaug: null
-# specaug: specaug
-# specaug_conf:
-#     apply_time_warp: true
-#     time_warp_window: 5
-#     time_warp_mode: bicubic
-#     apply_freq_mask: true
-#     freq_mask_width_range:
-#     - 0
-#     - 30
-#     num_freq_mask: 2
-#     apply_time_mask: true
-#     time_mask_width_range:
-#     - 0
-#     - 40
-#     num_time_mask: 2
