@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0       # start from 0 if you need to start from data preparation
+stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -72,8 +72,8 @@ recog_set="${train_dev} ${test_set}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     # Download the Data
-   local/download_and_untar.sh local  http://www.openslr.org/resources/92/Pueble-Nahuatl-Manifest.tgz Pueble-Nahuatl-Manifest.tgz
-   local/download_and_untar.sh ${download_dir} http://www.openslr.org/resources/92/Sound-Files-Pueble-Nahuatl.tgz.part0 Sound-Files-Pueble-Nahuatl.tgz.part0 9
+   local/download_and_untar.sh local  https://www.openslr.org/resources/92/Puebla-Nahuatl-Manifest.tgz Pueble-Nahuatl-Manifest.tgz
+   local/download_and_untar.sh ${download_dir} https://www.openslr.org/resources/92/Sound-Files-Puebla-Nahuatl.tgz.part0 Sound-Files-Pueble-Nahuatl.tgz.part0 9
    local/download_and_untar.sh ${download_dir} https://www.openslr.org/resources/92/SpeechTranslation_Nahuatl_Manifest.tgz SpeechTranslation_Nahuatl_Manifest.tgz
 fi
 
@@ -133,7 +133,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     # echo "make a non-linguistic symbol list for all languages"
-    # grep sp1.0 data/${train_set}.*/text.${tgt_case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     echo "" > ${nlsyms}
     cat ${nlsyms}
 

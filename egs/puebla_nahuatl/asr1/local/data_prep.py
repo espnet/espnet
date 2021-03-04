@@ -411,6 +411,7 @@ def TraverseData(
                     annotation_files[ExtractAudioID(file, wav_spk_info)] = os.path.join(
                         root, file
                     )
+
         for afile in annotation_files.keys():
             afile_path = annotation_files[afile]
             if afile == "error":
