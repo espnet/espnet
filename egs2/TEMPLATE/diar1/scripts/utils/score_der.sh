@@ -24,7 +24,7 @@ mkdir -p $scoring_dir || exit 1;
 
 for med in 1 11; do
     for th in 0.3 0.4 0.5 0.6 0.7; do
-        make_rttm.py --median=$med --threshold=$th \
+        pyscripts/utils/make_rttm.py --median=$med --threshold=$th \
             --frame_shift=${frame_shift} --subsampling=${subsampling} --sampling_rate=${fs} \
             $infer_scp ${scoring_dir}/hyp_${th}_$med.rttm
 

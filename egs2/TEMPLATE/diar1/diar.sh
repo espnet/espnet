@@ -516,10 +516,9 @@ if ! "${skip_eval}"; then
             _dir="${diar_exp}/diarized_${dset}/scoring"
             mkdir -p "${_dir}"
 
-            score_der.sh ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
+            scripts/utils/score_der.sh ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
                 --collar ${collar} --fs ${fs} --frame_shift ${frame_shift}
         done
-        # ./scripts/utils/show_diar_score.sh ${diar_exp} > "${diar_exp}/RESULTS.TXT"
 
     fi
 else
