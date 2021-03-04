@@ -1,4 +1,0 @@
-2021-03-01T23:00:06 (diar.sh:122:main) ./diar.sh --stage 5 --stop_stage 5 --train_set simu/data/train_clean_5_ns2_beta2_500 --valid_set simu/data/dev_clean_2_ns2_beta2_500 --test_sets simu/data/dev_clean_2_ns2_beta2_500 --ngpu 1 --diar_config conf/train.yaml --local_data_opts --stage 1
-2021-03-01T23:00:09 (diar.sh:352:main) Stage 5: Diarization Training: train_set=dump/raw/simu/data/train_clean_5_ns2_beta2_500, valid_set=dump/raw/simu/data/dev_clean_2_ns2_beta2_500
-2021-03-01T23:00:09 (diar.sh:394:main) Generate 'exp/diar_train_raw/run.sh'. You can resume the process from stage 10 using this script
-2021-03-01T23:00:09 (diar.sh:398:main) Diarization training started... log: 'exp/diar_train_raw/train.log'
