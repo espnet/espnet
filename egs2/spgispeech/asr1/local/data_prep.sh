@@ -24,10 +24,13 @@ sed 1d $corpus/${dataset}.csv > $tmp/text.1
 awk -F\| '{$2="";print $0}' $tmp/text.1 > $tmp/text.2
 # change first column from wav path to wav name, same as wav.scp
 sed 's/\//-/1' $tmp/text.2 | sed -e 's/\.wav//' > $tmp/text.3
+
+### normalized case
 # remove all punctuation
 awk '{for(x=2;x<=NF;x++){gsub(/[[:punct:]]/,"",$x)}}1' $tmp/text.3 > $tmp/text.4
 # convert all upper letters to lower letters
 tr '[:upper:]' '[:lower:]' <$tmp/text.4>$tmp/tmp_text
+
 # wav.scp
 utils/filter_scp.pl -f 1 $tmp/utt.list $tmp/tmp_wav.scp | sort -k 1 | uniq > $tmp/wav.scp
 
@@ -40,9 +43,18 @@ utils/filter_scp.pl -f 1 $tmp/utt.list $tmp/tmp_utt2spk | sort -k 1 | uniq > $tm
 utils/utt2spk_to_spk2utt.pl $tmp/utt2spk | sort -k 1 | uniq > $tmp/spk2utt
 # copy prepared resources from tmp_dir to target dir
 
+
+### normalized case
 for f in wav.scp text spk2utt utt2spk; do
   cp $tmp/$f $dst/$f || exit 1;
 done
+### unnormalized case
+mkdir -p ${dst}_unnorm
+for f in wav.scp spk2utt utt2spk; do
+  cp $tmp/$f ${dst}_unnorm/$f || exit 1;
+done
+cp $tmp/text.3 ${dst}_unnorm/text
+
 rm -r $tmp
 echo "local/prepare_data.sh succeeded"
 exit 0;

@@ -5,11 +5,13 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodev
-valid_set=dev_4k
-test_sets="dev_4k val"
+norm="" # or "_unnorm"
+norm="_unnorm"
+train_set=train_nodev${norm}
+valid_set=dev_4k${norm}
+test_sets="dev_4k${norm} val${norm}"
 
-asr_config=conf/train_asr_conformer.yaml
+asr_config=conf/tuning/train_asr_conformer6_n_fft512_hop_length256.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
@@ -22,13 +24,16 @@ speed_perturb_factors=""
     --ngpu 4 \
     --nj 128 \
     --inference_nj 256 \
-    --lang en \
+    --dumpdir dump${norm} \
+    --expdir exp${norm} \
+    --lang en${norm} \
     --token_type bpe \
     --nbpe 5000 \
     --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --lm_config "${lm_config}" \
+    --score_opts "-s" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
