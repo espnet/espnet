@@ -215,7 +215,7 @@ class RNN(torch.nn.Module):
 
         Returns:
             : Batch of padded output sequences (B, Tmax, hdim)
-                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, cdim)])
+                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, hdim)])
             : Batch of lengths of output sequences (B)
             : Batch of hidden state sequences (B, Tmax, hdim)
 
