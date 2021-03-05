@@ -70,7 +70,7 @@ class CustomEncoder(torch.nn.Module):
         if self.normalize_before:
             self.after_norm = LayerNorm(self.enc_out)
 
-        self.n_blocks = repeat_block
+        self.n_blocks = len(enc_arch) * repeat_block
 
         self.aux_task_layer_list = aux_task_layer_list
 
@@ -101,9 +101,14 @@ class CustomEncoder(torch.nn.Module):
 
                 if b in self.aux_task_layer_list:
                     if isinstance(xs, tuple):
-                        aux_xs_list.append(xs[0])
+                        aux_xs = xs[0]
                     else:
-                        aux_xs_list.append(xs)
+                        aux_xs = xs
+
+                    if self.normalize_before:
+                        aux_xs_list.append(self.after_norm(aux_xs))
+                    else:
+                        aux_xs_list.append(aux_xs)
         else:
             xs, masks = self.encoders(xs, masks)
 

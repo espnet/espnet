@@ -576,6 +576,12 @@ class AbsTask(ABC):
             default=None,
             help="Specify wandb id",
         )
+        group.add_argument(
+            "--detect_anomaly",
+            type=str2bool,
+            default=False,
+            help="Set torch.autograd.set_detect_anomaly",
+        )
 
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", help="This option is obsoleted")
@@ -1061,6 +1067,9 @@ class AbsTask(ABC):
         torch.backends.cudnn.enabled = args.cudnn_enabled
         torch.backends.cudnn.benchmark = args.cudnn_benchmark
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
+        if args.detect_anomaly:
+            logging.info("Invoking torch.autograd.set_detect_anomaly(True)")
+            torch.autograd.set_detect_anomaly(args.detect_anomaly)
 
         # 2. Build model
         model = cls.build_model(args=args)
