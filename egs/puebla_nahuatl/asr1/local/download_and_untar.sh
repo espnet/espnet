@@ -57,10 +57,10 @@ if [ -f $filepath ]; then
 fi
 
 if [ ! -f $filepath ]; then
-  # if ! which wget >/dev/null; then
-  #   echo "$0: wget is not installed."
-  #   exit 1;
-  # fi
+  if ! which wget >/dev/null; then
+    echo "$0: wget is not installed."
+    exit 1;
+  fi
   echo "$0: downloading data from $url.  This may take some time, please be patient."
 
   cd $data
