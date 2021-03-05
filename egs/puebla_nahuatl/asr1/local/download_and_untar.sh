@@ -57,24 +57,29 @@ if [ -f $filepath ]; then
 fi
 
 if [ ! -f $filepath ]; then
-  if ! which wget >/dev/null; then
-    echo "$0: wget is not installed."
-    exit 1;
-  fi
+  # if ! which wget >/dev/null; then
+  #   echo "$0: wget is not installed."
+  #   exit 1;
+  # fi
   echo "$0: downloading data from $url.  This may take some time, please be patient."
 
   cd $data
 
+  file_list=""
+
   if [ x$part != x ]; then
       for x in $(seq 0 $part); do
-          if ! wget --no-check-certificate ${url}${x}; then
+          echo "downloading ${url}${x}"
+          if ! wget -N --no-check-certificate ${url}${x}; then
             echo "$0: error executing wget ${url}${x}"
             exit 1;
           fi
+          file_list=${file_list}" ${filename}${x}"
       done
-      cat ${filename}* > ${filename}
+      echo "start combining"
+      cat ${file_list} > ${filename}
   else
-      if ! wget --no-check-certificate $url; then
+      if ! wget -N --no-check-certificate $url; then
         echo "$0: error executing wget $url"
         exit 1;
       fi
