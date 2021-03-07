@@ -85,6 +85,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cp data/${x}_${annotation_id}/text.${src_lang} data/${x}_${annotation_id}/text.tc.${src_lang}
         cp data/${x}_${annotation_id}/text.${tgt_lang} data/${x}_${annotation_id}/text.tc.${tgt_lang}
         utils/fix_data_dir.sh --utt_extra_files "text.${src_lang} text.${tgt_lang} text.tc.${src_lang} text.tc.${tgt_lang}" data/${x}_${annotation_id}
+        # shellcheck disable=SC1090
         . ./data/${x}_st/remix_script.sh
     done
 
