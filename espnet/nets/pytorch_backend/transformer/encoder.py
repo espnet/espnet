@@ -155,7 +155,7 @@ class Encoder(torch.nn.Module):
             dropout_rate,
             positionwise_conv_kernel_size,
         )
-        if selfattention_layer_type in ["selfattn", "rel_selfattn"]:
+        if selfattention_layer_type in ["selfattn", "rel_selfattn", "legacy_rel_selfattn"]:
             logging.info("encoder self-attention layer type = self-attention")
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = [
