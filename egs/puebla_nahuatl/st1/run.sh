@@ -79,11 +79,14 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
+    mkdir -p remixed
     for x in train dev test; do
         python local/data_prep.py -w $wavdir -t data/${x}_${annotation_id} -m ${annotation_type} -i local/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
         cp data/${x}_${annotation_id}/text.${src_lang} data/${x}_${annotation_id}/text.tc.${src_lang}
         cp data/${x}_${annotation_id}/text.${tgt_lang} data/${x}_${annotation_id}/text.tc.${tgt_lang}
         utils/fix_data_dir.sh --utt_extra_files "text.${src_lang} text.${tgt_lang} text.tc.${src_lang} text.tc.${tgt_lang}" data/${x}_${annotation_id}
+        # shellcheck disable=SC1090
+        . ./data/${x}_st/remix_script.sh
     done
 
 fi
