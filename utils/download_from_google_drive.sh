@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Download zip, tar, or tar.gz file from google drive
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Nagoye University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
