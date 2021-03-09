@@ -86,7 +86,7 @@ We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/mast
 e.g. If the script has `ngpu` option
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # run.sh
 ngpu=1
 . utils/parse_options.sh
@@ -364,11 +364,12 @@ We expect the user to define the following options in its main training config (
 
 #### Freezing
 
-- Freezing option can be enabled with `freeze-mods`.
+- Freezing option can be enabled with `freeze-mods`, (`freeze_param` in espnet2).
 - The option take a list of model modules (separated by a comma) as argument. As previously, we do not expect a complete match for the specified modules.
 
     > Example 1: `freeze-mods: 'enc.embed.'` -> freeze encoder embedding layer parameters.  
     > Example 2: `freeze-mods: 'dec.embed,dec.0.'` -> freeze decoder embedding layer and first layer parameters.
+    > Example 3 (espnet2): `freeze_param: 'encoder.embed'` -> freeze encoder embedding layer parameters.
 
 ### Important notes
 

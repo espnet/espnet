@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Nagoya University (Takenori Yoshimura)
 #           2019 RevComm Inc. (Takekatsu Hiramura)

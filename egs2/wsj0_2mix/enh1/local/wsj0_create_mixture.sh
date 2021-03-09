@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright  2018  Johns Hopkins University (Author: Xuankai Chang)
 #            2020  Shanghai Jiao Tong University (Authors: Wangyou Zhang)
@@ -57,7 +57,7 @@ echo "Creating Mixtures."
 matlab_cmd="matlab -nojvm -nodesktop -nodisplay -nosplash -r create_wav_2speakers"
 
 mixfile=${dir}/mix_matlab.sh
-echo "#!/bin/bash" > $mixfile
+echo "#!/usr/bin/env bash" > $mixfile
 echo "cd ${dir}" >> $mixfile
 echo $matlab_cmd >> $mixfile
 chmod +x $mixfile

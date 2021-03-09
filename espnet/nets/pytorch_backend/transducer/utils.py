@@ -1,5 +1,7 @@
 """Utility functions for transducer models."""
 
+import os
+
 import numpy as np
 import torch
 
@@ -29,6 +31,7 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
     blank = ys[0].new([blank_id])
 
     ys_in_pad = pad_list([torch.cat([blank, y], dim=0) for y in ys], blank_id)
+    ys_out_pad = pad_list([torch.cat([y, blank], dim=0) for y in ys], ignore_id)
 
     target = pad_list(ys, blank_id).type(torch.int32).to(device)
     target_len = torch.IntTensor([y.size(0) for y in ys]).to(device)
@@ -42,7 +45,39 @@ def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
 
     pred_len = torch.IntTensor(hlens).to(device)
 
-    return ys_in_pad, target, pred_len, target_len
+    return ys_in_pad, ys_out_pad, target, pred_len, target_len
+
+
+def valid_aux_task_layer_list(aux_layer_ids, enc_num_layers):
+    """Check whether input list of auxiliary layer ids is valid.
+
+       Return the valid list sorted with duplicated removed.
+
+    Args:
+        aux_layer_ids (list): Auxiliary layers ids
+        enc_num_layers (int): Number of encoder layers
+
+    Returns:
+        valid (list): Validated list of layers for auxiliary task
+
+    """
+    if (
+        not isinstance(aux_layer_ids, list)
+        or not aux_layer_ids
+        or not all(isinstance(layer, int) for layer in aux_layer_ids)
+    ):
+        raise ValueError("--aux-task-layer-list argument takes a list of layer ids.")
+
+    sorted_list = sorted(aux_layer_ids, key=int, reverse=False)
+    valid = list(filter(lambda x: 0 <= x < enc_num_layers, sorted_list))
+
+    if sorted_list != valid:
+        raise ValueError(
+            "Provided list of layer ids for auxiliary task is incorrect. "
+            "IDs should be between [0, %d]" % (enc_num_layers - 1)
+        )
+
+    return valid
 
 
 def is_prefix(x, pref):
@@ -276,3 +311,30 @@ def check_batch_state(state, max_len, pad_token):
             final[i, :, :] = s[(curr_len - max_len) :, :]
 
     return final
+
+
+def custom_torch_load(model_path, model, training=True):
+    """Load transducer model modules and parameters with training-only ones removed.
+
+    Args:
+        model_path (str): Model path
+        model (torch.nn.Module): The model with pretrained modules
+
+    """
+    if "snapshot" in os.path.basename(model_path):
+        model_state_dict = torch.load(
+            model_path, map_location=lambda storage, loc: storage
+        )["model"]
+    else:
+        model_state_dict = torch.load(
+            model_path, map_location=lambda storage, loc: storage
+        )
+
+    if not training:
+        model_state_dict = {
+            k: v for k, v in model_state_dict.items() if not k.startswith("aux")
+        }
+
+    model.load_state_dict(model_state_dict)
+
+    del model_state_dict

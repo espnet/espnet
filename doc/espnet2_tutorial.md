@@ -135,7 +135,7 @@ All shell scripts in espnet/espnet2 depend on [utils/parse_options.sh](https://g
 e.g. If the script has `ngpu` option
 
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 # run.sh
 ngpu=1
 . utils/parse_options.sh

@@ -3,7 +3,7 @@
 CHAINER_VERSION := 6.0.0
 # Disable cupy installation
 NO_CUPY :=
-# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.6.0, 1.7.0, 1.7.1
+# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.6.0, 1.7.0, 1.7.1, 1.8.0
 TH_VERSION := 1.4.0
 WGET := wget --tries=3
 
@@ -31,13 +31,15 @@ CUDA_VERSION = $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" 
 CUDA_VERSION_WITHOUT_DOT = $(strip $(subst .,,$(CUDA_VERSION)))
 PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cu$(CUDA_VERSION_WITHOUT_DOT)/torch_stable.html
 ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),80)
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cuda$(CUDA_VERSION_WITHOUT_DOT)
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cuda$(CUDA_VERSION_WITHOUT_DOT) -c pytorch
+else ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),111)
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch -c conda-forge
 else
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch
 endif
 
 else
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cpuonly
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cpuonly -c pytorch
 PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cpu/torch_stable.html
 NO_CUPY := 0
 endif
@@ -127,7 +129,7 @@ pytorch.done: activate_python.sh
 	touch pytorch.done
 else
 pytorch.done: activate_python.sh
-	. ./activate_python.sh && conda install -y $(CONDA_PYTORCH) -c pytorch
+	. ./activate_python.sh && conda install -y $(CONDA_PYTORCH)
 	touch pytorch.done
 endif
 
@@ -151,7 +153,7 @@ endif
 	# chainer=6.0.0 depends on typing<=3.6.6, but this causes the following error when installing some modules. e.g. fairseq
 	# AttributeError: type object 'Callable' has no attribute '_abc_registry'
 	# "typing" modules is not required for python>=3.6, so uninstall here
-	python3 -m pip uninstall -y typing
+	. ./activate_python.sh && python3 -m pip uninstall -y typing
 	touch chainer.done
 
 # NOTE(kamo): Add conda_packages.done if cmake is used

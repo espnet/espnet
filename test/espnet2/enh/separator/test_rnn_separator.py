@@ -33,12 +33,12 @@ def test_rnn_separator_forward_backward_complex(
     x = ComplexTensor(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
-    maksed, flens, others = model(x, ilens=x_lens)
+    masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(maksed[0], ComplexTensor)
-    assert len(maksed) == num_spk
+    assert isinstance(masked[0], ComplexTensor)
+    assert len(masked) == num_spk
 
-    maksed[0].abs().mean().backward()
+    masked[0].abs().mean().backward()
 
 
 @pytest.mark.parametrize("input_dim", [5])
@@ -65,12 +65,12 @@ def test_rnn_separator_forward_backward_real(
     x = torch.rand(2, 10, input_dim)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
-    maksed, flens, others = model(x, ilens=x_lens)
+    masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(maksed[0], Tensor)
-    assert len(maksed) == num_spk
+    assert isinstance(masked[0], Tensor)
+    assert len(masked) == num_spk
 
-    maksed[0].abs().mean().backward()
+    masked[0].abs().mean().backward()
 
 
 def test_rnn_separator_invalid_type():

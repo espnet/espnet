@@ -4,6 +4,7 @@ from typing import Any
 from typing import List
 from typing import Tuple
 
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ import torch.nn.functional as F
 from espnet.nets.lm_interface import LMInterface
 from espnet.nets.pytorch_backend.e2e_asr import to_device
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.utils.cli_utils import strtobool
 
 
 class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
@@ -43,11 +45,24 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         parser.add_argument(
             "--embed-unit",
             default=None,
+            type=int,
             help="Number of hidden units in embedding layer, "
             "if it is not specified, it keeps the same number with hidden units.",
         )
         parser.add_argument(
             "--dropout-rate", type=float, default=0.5, help="dropout probability"
+        )
+        parser.add_argument(
+            "--emb-dropout-rate",
+            type=float,
+            default=0.0,
+            help="emb dropout probability",
+        )
+        parser.add_argument(
+            "--tie-weights",
+            type=strtobool,
+            default=False,
+            help="Tie input and output embeddings",
         )
         return parser
 
@@ -64,8 +79,22 @@ class DefaultRNNLM(BatchScorerInterface, LMInterface, nn.Module):
         dropout_rate = getattr(args, "dropout_rate", 0.0)
         # NOTE: for a compatibility with less than 0.6.1 version models
         embed_unit = getattr(args, "embed_unit", None)
+        # NOTE: for a compatibility with less than 0.9.7 version models
+        emb_dropout_rate = getattr(args, "emb_dropout_rate", 0.0)
+        # NOTE: for a compatibility with less than 0.9.7 version models
+        tie_weights = getattr(args, "tie_weights", False)
+
         self.model = ClassifierWithState(
-            RNNLM(n_vocab, args.layer, args.unit, embed_unit, args.type, dropout_rate)
+            RNNLM(
+                n_vocab,
+                args.layer,
+                args.unit,
+                embed_unit,
+                args.type,
+                dropout_rate,
+                emb_dropout_rate,
+                tie_weights,
+            )
         )
 
     def state_dict(self):
@@ -300,7 +329,15 @@ class RNNLM(nn.Module):
     """A pytorch RNNLM."""
 
     def __init__(
-        self, n_vocab, n_layers, n_units, n_embed=None, typ="lstm", dropout_rate=0.5
+        self,
+        n_vocab,
+        n_layers,
+        n_units,
+        n_embed=None,
+        typ="lstm",
+        dropout_rate=0.5,
+        emb_dropout_rate=0.0,
+        tie_weights=False,
     ):
         """Initialize class.
 
@@ -312,7 +349,14 @@ class RNNLM(nn.Module):
         super(RNNLM, self).__init__()
         if n_embed is None:
             n_embed = n_units
+
         self.embed = nn.Embedding(n_vocab, n_embed)
+
+        if emb_dropout_rate == 0.0:
+            self.embed_drop = None
+        else:
+            self.embed_drop = nn.Dropout(emb_dropout_rate)
+
         if typ == "lstm":
             self.rnn = nn.ModuleList(
                 [nn.LSTMCell(n_embed, n_units)]
@@ -331,6 +375,16 @@ class RNNLM(nn.Module):
         self.n_layers = n_layers
         self.n_units = n_units
         self.typ = typ
+
+        logging.info("Tie weights set to {}".format(tie_weights))
+        logging.info("Dropout set to {}".format(dropout_rate))
+        logging.info("Emb Dropout set to {}".format(emb_dropout_rate))
+
+        if tie_weights:
+            assert (
+                n_embed == n_units
+            ), "Tie Weights: True need embedding and final dimensions to match"
+            self.lo.weight = self.embed.weight
 
         # initialize parameters from uniform distribution
         for param in self.parameters():
@@ -354,7 +408,10 @@ class RNNLM(nn.Module):
                 state = {"c": c, "h": h}
 
         h = [None] * self.n_layers
-        emb = self.embed(x)
+        if self.embed_drop is not None:
+            emb = self.embed_drop(self.embed(x))
+        else:
+            emb = self.embed(x)
         if self.typ == "lstm":
             c = [None] * self.n_layers
             h[0], c[0] = self.rnn[0](

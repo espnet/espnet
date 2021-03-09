@@ -91,10 +91,12 @@ try:
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
         requirements["install"].append("torch_optimizer")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("fairscale")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+        requirements["install"].append("torchaudio==0.8.0")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
         requirements["install"].append("torchaudio==0.7.2")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
         requirements["install"].append("torchaudio==0.7.0")

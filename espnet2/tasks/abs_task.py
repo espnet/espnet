@@ -576,6 +576,12 @@ class AbsTask(ABC):
             default=None,
             help="Specify wandb id",
         )
+        group.add_argument(
+            "--detect_anomaly",
+            type=str2bool,
+            default=False,
+            help="Set torch.autograd.set_detect_anomaly",
+        )
 
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", help="This option is obsoleted")
@@ -951,11 +957,6 @@ class AbsTask(ABC):
 
     @classmethod
     def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None):
-        if cls.num_optimizers != cls.trainer.num_optimizers:
-            raise RuntimeError(
-                f"Task.num_optimizers != Task.trainer.num_optimizers: "
-                f"{cls.num_optimizers} != {cls.trainer.num_optimizers}"
-            )
         assert check_argument_types()
         print(get_commandline_args(), file=sys.stderr)
         if args is None:
@@ -1031,7 +1032,8 @@ class AbsTask(ABC):
 
         # 0. Init distributed process
         distributed_option = build_dataclass(DistributedOption, args)
-        distributed_option.init()
+        # Setting distributed_option.dist_rank, etc.
+        distributed_option.init_options()
 
         # NOTE(kamo): Don't use logging before invoking logging.basicConfig()
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
@@ -1060,12 +1062,17 @@ class AbsTask(ABC):
                 f":{distributed_option.dist_rank}/{distributed_option.dist_world_size}]"
                 f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
+        # Invoking torch.distributed.init_process_group
+        distributed_option.init_torch_distributed()
 
         # 1. Set random-seed
         set_all_random_seed(args.seed)
         torch.backends.cudnn.enabled = args.cudnn_enabled
         torch.backends.cudnn.benchmark = args.cudnn_benchmark
         torch.backends.cudnn.deterministic = args.cudnn_deterministic
+        if args.detect_anomaly:
+            logging.info("Invoking torch.autograd.set_detect_anomaly(True)")
+            torch.autograd.set_detect_anomaly(args.detect_anomaly)
 
         # 2. Build model
         model = cls.build_model(args=args)
@@ -1142,6 +1149,7 @@ class AbsTask(ABC):
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
+            logging.info(args)
 
             if args.valid_batch_size is None:
                 args.valid_batch_size = args.batch_size
