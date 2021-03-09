@@ -27,7 +27,7 @@ opt: noam
 accum-grad: 4  # worth tuning!
 grad-clip: 5
 patience: 0
-epochs: 120
+epochs: 30
 dropout-rate: 0.1
 
 # transformer specific setting

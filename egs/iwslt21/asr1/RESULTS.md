@@ -17,6 +17,7 @@
     - e2e file: `exp/train_pytorch_train_pytorch_conformer_large_mustc_like_bpe5000_specaug/results/model.val5.avg.best`
     - e2e JSON file: `exp/train_pytorch_train_pytorch_conformer_large_mustc_like_bpe5000_specaug/results/model.json`
     - dict file: `data/lang_1spm`
+  - No LM. 4 GPU training
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -42,6 +43,7 @@
     - e2e file: `exp/train_pytorch_train_pytorch_conformer_large_librispeech_like_bpe5000_specaug/results/model.val5.avg.best`
     - e2e JSON file: `exp/train_pytorch_train_pytorch_conformer_large_librispeech_like_bpe5000_specaug/results/model.json`
     - dict file: `data/lang_1spm`
+  - No LM. 4 GPU training
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
