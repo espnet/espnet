@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2021 Johns Hopkins University (Jiatong Shi)
 # Refactored from egs/must_c/st1/local

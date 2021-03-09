@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 score_lang_id=true
 dump_dir=dump
 . utils/parse_options.sh

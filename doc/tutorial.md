@@ -86,7 +86,7 @@ We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/mast
 e.g. If the script has `ngpu` option
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # run.sh
 ngpu=1
 . utils/parse_options.sh
