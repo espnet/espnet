@@ -114,7 +114,7 @@ class ConformerEncoder(AbsEncoder):
             assert pos_enc_layer_type == "rel_pos"
         else:
             raise ValueError("unknown rel_pos_type: " + rel_pos_type)
-        
+
         activation = get_activation(activation_type)
         if pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding

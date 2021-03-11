@@ -10,7 +10,11 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
 @pytest.mark.parametrize(
     "pos_enc_layer_type, selfattention_layer_type",
-    [("abs_pos", "selfattn"), ("rel_pos", "rel_selfattn"), ("legacy_rel_pos", "legacy_rel_selfattn")],
+    [
+        ("abs_pos", "selfattn"),
+        ("rel_pos", "rel_selfattn"),
+        ("legacy_rel_pos", "legacy_rel_selfattn"),
+    ],
 )
 def test_encoder_forward_backward(
     input_layer, positionwise_layer_type, pos_enc_layer_type, selfattention_layer_type
