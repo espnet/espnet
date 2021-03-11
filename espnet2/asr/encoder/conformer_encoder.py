@@ -61,9 +61,10 @@ class ConformerEncoder(AbsEncoder):
             If False, no additional linear will be applied. i.e. x -> x + att(x)
         positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
         positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
-        rel_pos_type (str): Whether to use the latest relative positional encoding or the legacy one.
-            The legacy relative positional encoding will be deprecated in the future.
-            More Details can be found in https://github.com/espnet/espnet/pull/2816.
+        rel_pos_type (str): Whether to use the latest relative positional encoding or
+            the legacy one. The legacy relative positional encoding will be deprecated
+            in the future. More Details can be found in
+            https://github.com/espnet/espnet/pull/2816.
         encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
         encoder_attn_layer_type (str): Encoder attention layer type.
         activation_type (str): Encoder activation function type.
