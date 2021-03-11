@@ -105,14 +105,13 @@ class ConformerEncoder(AbsEncoder):
         self._output_size = output_size
 
         if rel_pos_type == "legacy":
-            assert pos_enc_layer_type in ["rel_pos", "legacy_rel_pos"]
-            assert selfattention_layer_type in ["rel_selfattn", "legacy_rel_selfattn"]
             if pos_enc_layer_type == "rel_pos":
                 pos_enc_layer_type = "legacy_rel_pos"
             if selfattention_layer_type == "rel_selfattn":
                 selfattention_layer_type = "legacy_rel_selfattn"
         elif rel_pos_type == "latest":
-            pass
+            assert selfattention_layer_type == "rel_selfattn"
+            assert pos_enc_layer_type == "rel_pos"
         else:
             raise ValueError("unknown rel_pos_type: " + rel_pos_type)
         
