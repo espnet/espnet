@@ -233,7 +233,7 @@ def add_transducer_arguments(group):
         type=strtobool,
         nargs="?",
         default=False,
-        help="Whether to use efficient enc and dec output combination.",
+        help="Whether to use efficient enc and pred output combination.",
     )
     group.add_argument(
         "--transducer-weight",
