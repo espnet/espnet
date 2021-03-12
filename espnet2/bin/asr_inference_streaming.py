@@ -165,7 +165,55 @@ class Speech2TextStreaming:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        
+    def apply_frontend(self, speech: torch.Tensor, prev_states = None, is_final: bool = False):
+        # FFTの時のみ実装
+        if prev_states is not None:
+            buf = prev_states["waveform_buffer"]
+            speech = torch.cat([buf, speech], dim=0)
+            
+        if is_final:
+            speech_to_process = speech
+            waveform_buffer = None
+        else:
+            n_frames = (speech.size(0)-384)//128
+            n_residual = (speech.size(0)-384)%128
+            speech_to_process = speech.narrow(0, 0, 384+n_frames*128)
+            waveform_buffer = speech.narrow(0, speech.size(0)-384-n_residual, 384+n_residual).clone()
+            
+        # data: (Nsamples,) -> (1, Nsamples)
+        speech_to_process = speech_to_process.unsqueeze(0).to(getattr(torch, self.dtype))
+        lengths = speech_to_process.new_full([1], dtype=torch.long, fill_value=speech_to_process.size(1))
+        batch = {"speech": speech_to_process, "speech_lengths": lengths}
 
+        # lenghts: (1,)
+        # a. To device
+        batch = to_device(batch, device=self.device)
+        
+        feats, feats_lengths = self.asr_model._extract_feats(**batch)
+        if self.asr_model.normalize is not None:
+            feats, feats_lengths = self.asr_model.normalize(feats, feats_lengths)
+        
+        # Trimming
+        if is_final:
+            if prev_states is None:
+                pass
+            else:
+                feats = feats.narrow(1, 2, feats.size(1)-2)
+        else:
+            if prev_states is None:
+                feats = feats.narrow(1, 0, feats.size(1)-2)
+            else:
+                feats = feats.narrow(1, 2, feats.size(1)-4)
+                
+        feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
+            
+        if is_final:
+            next_states = None
+        else:
+            next_states = {"waveform_buffer": waveform_buffer}
+        return feats, feats_lengths, next_states
+        
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
@@ -184,17 +232,10 @@ class Speech2TextStreaming:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        # data: (Nsamples,) -> (1, Nsamples)
-        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lenghts: (1,)
-        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-        batch = {"speech": speech, "speech_lengths": lengths}
+        feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
 
-        # a. To device
-        batch = to_device(batch, device=self.device)
-
-        # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
+        enc, _, _ = self.asr_model.encoder(feats, feats_lengths)
+            
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
