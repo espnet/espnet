@@ -229,6 +229,13 @@ def add_transducer_arguments(group):
         help="Type of transducer implementation to calculate loss.",
     )
     group.add_argument(
+        "--joint-memory-reduction",
+        type=strtobool,
+        nargs="?",
+        default=False,
+        help="Whether to use efficient enc and dec output combination.",
+    )
+    group.add_argument(
         "--transducer-weight",
         default=1.0,
         type=float,

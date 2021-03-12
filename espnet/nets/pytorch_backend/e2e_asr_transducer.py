@@ -184,6 +184,9 @@ class E2E(ASRInterface, torch.nn.Module):
         self.is_rnnt = True
         self.transducer_weight = args.transducer_weight
 
+        self.joint_memory_reduction = (
+            True if (args.joint_memory_reduction and training) else False
+        )
         self.use_aux_task = (
             True if (args.aux_task_type is not None and training) else False
         )
@@ -279,7 +282,12 @@ class E2E(ASRInterface, torch.nn.Module):
             decoder_out = args.dunits
 
         self.joint_network = JointNetwork(
-            odim, encoder_out, decoder_out, args.joint_dim, args.joint_activation_type
+            odim,
+            encoder_out,
+            decoder_out,
+            args.joint_dim,
+            args.joint_activation_type,
+            self.joint_memory_reduction,
         )
 
         if hasattr(self, "most_dom_list"):
@@ -310,7 +318,9 @@ class E2E(ASRInterface, torch.nn.Module):
         self.default_parameters(args)
 
         if training:
-            self.criterion = TransLoss(args.trans_type, self.blank_id)
+            self.criterion = TransLoss(
+                args.trans_type, self.joint_memory_reduction, self.blank_id
+            )
 
             decoder = self.decoder if self.dtype == "custom" else self.dec
 
@@ -405,7 +415,12 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             pred_pad = self.dec(hs_pad, ys_in_pad)
 
-        z = self.joint_network(hs_pad.unsqueeze(2), pred_pad.unsqueeze(1))
+        z = self.joint_network(
+            hs_pad.unsqueeze(2),
+            pred_pad.unsqueeze(1),
+            pred_len=pred_len if self.joint_memory_reduction else None,
+            target_len=target_len if self.joint_memory_reduction else None,
+        )
 
         # 3. loss computation
         loss_trans = self.criterion(z, target, pred_len, target_len)

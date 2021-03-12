@@ -85,6 +85,12 @@ class AuxiliaryTask(torch.nn.Module):
             aux_joint = self.joint_network(
                 aux_mlp.unsqueeze(2),
                 dec_out.unsqueeze(1),
+                pred_len=pred_len
+                if self.joint_network.joint_memory_reduction
+                else None,
+                target_len=target_len
+                if self.joint_network.joint_memory_reduction
+                else None,
                 is_aux=True,
             )
 
