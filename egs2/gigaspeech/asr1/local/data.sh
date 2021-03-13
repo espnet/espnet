@@ -12,16 +12,13 @@ SECONDS=0
 
 stage=1
 stop_stage=5000
+data_dir="data"
 
 log "$0 $*"
 . utils/parse_options.sh
 
 # base url for downloads.
 giga_repo=https://github.com/SpeechColab/GigaSpeech.git
-
-# dirs
-data_dir=data
-meta_dir=data/meta
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
@@ -51,41 +48,21 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "creating meta data in ${meta_dir}"
-    python3 GigaSpeech/utils/analyze_meta.py --pipe-format ${GIGASPEECH}/GigaSpeech.json ${meta_dir}
+    log "data preparation"
+    mkdir -p ${data_dir}
+    abs_data_dir=$(readlink -f ${data_dir})
+    log "making Kaldi format data directory in ${abs_data_dir}"
+    pushd GigaSpeech
+    ./toolkits/kaldi/gigaspeech_data_prep.sh ${GIGASPEECH} ${abs_data_dir} true
+    popd
 fi
 
-declare -A dic_sets
-dic_sets=([train]="XL" [dev]="DEV" [test]="TEST")
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "making Kaldi data structure (all data)"
-    # all corpus
-    [ ! -d ${data_dir}/corpus ] && mkdir -p ${data_dir}/corpus
-
-    for f in utt2spk wav.scp text segments utt2dur reco2dur; do
-	[ -f ${meta_dir}/$f ] && cp ${meta_dir}/${f} ${data_dir}/corpus/
-    done
-
-    utt2spk=${data_dir}/corpus/utt2spk
-    spk2utt=${data_dir}/corpus/spk2utt
-    utt2spk_to_spk2utt.pl <${utt2spk} >${spk2utt} || (echo "Error: utt2spk to spk2utt" && exit 1)
-
-    # Delete <*> tag
-    sed -i '/<MUSIC>/d' ${data_dir}/corpus/text
-    sed -i '/<NOISE>/d' ${data_dir}/corpus/text
-    sed -i "s|<[^>]*>||g" ${data_dir}/corpus/text
-    sed -i 's/[ ][ ]*/ /g' ${data_dir}/corpus/text
-fi
-
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "splitting into train, dev, and test directories"
-    # train dev test
-    [ ! -f ${meta_dir}/utt2subsets ] && echo "Error: No such file ${meta_dir}/utt2subsets!" && exit 1
-    for sub in ${!dic_sets[*]}; do
-	[ ! -d ${data_dir}/${sub} ] && mkdir -p ${data_dir}/${sub}
-	tag=${dic_sets[${sub}]}
-	grep "{$tag}" ${meta_dir}/utt2subsets | subset_data_dir.sh --utt-list - ${data_dir}/corpus ${data_dir}/${sub}
+    log "fixing data directories"
+    for sub in train dev test; do
 	utils/fix_data_dir.sh ${data_dir}/${sub}
+	# reco2dur causes the error at stage 4 in asr.sh
+	rm -f ${data_dir}/${sub}/reco2dur
     done
 fi
 
