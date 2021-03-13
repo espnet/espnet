@@ -13,13 +13,17 @@ asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
+# speed perturbation related
+# (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
+speed_perturb_factors=""
+
 ./asr.sh \
     --audio_format flac.ark \
     --lang en \
     --ngpu 4 \
     --nbpe 5000 \
     --max_wav_duration 30 \
-    --speed_perturb_factors "0.9 1.0 1.1" \
+    --speed_perturb_factors "${speed_perturb_factors}" \
     --asr_config "${asr_config}" \
     --lm_config "${lm_config}" \
     --inference_config "${inference_config}" \

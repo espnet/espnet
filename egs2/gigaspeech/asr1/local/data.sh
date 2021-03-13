@@ -78,13 +78,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "splitting train, dev, and test directories"
+    log "splitting into train, dev, and test directories"
     # train dev test
     [ ! -f ${meta_dir}/utt2subsets ] && echo "Error: No such file ${meta_dir}/utt2subsets!" && exit 1
     for sub in ${!dic_sets[*]}; do
 	[ ! -d ${data_dir}/${sub} ] && mkdir -p ${data_dir}/${sub}
 	tag=${dic_sets[${sub}]}
 	grep "{$tag}" ${meta_dir}/utt2subsets | subset_data_dir.sh --utt-list - ${data_dir}/corpus ${data_dir}/${sub}
+	utils/fix_data_dir.sh ${data_dir}/${sub}
     done
 fi
 
