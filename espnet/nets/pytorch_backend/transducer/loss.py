@@ -88,7 +88,7 @@ class TransLoss(torch.nn.Module):
 
                     loss += self.trans_loss(
                         log_probs,
-                        target[b : (b + 1), :],
+                        target[b : (b + 1), :u],
                         pred_len[b].unsqueeze(0),
                         target_len[b].unsqueeze(0),
                         reduction="mean",
@@ -98,7 +98,7 @@ class TransLoss(torch.nn.Module):
                 else:
                     loss += self.trans_loss(
                         pred_pad[_start : (_start + t_u), :].view(1, t, (u + 1), -1),
-                        target[b : (b + 1), :],
+                        target[b : (b + 1), :u],
                         pred_len[b].unsqueeze(0),
                         target_len[b].unsqueeze(0),
                     )
