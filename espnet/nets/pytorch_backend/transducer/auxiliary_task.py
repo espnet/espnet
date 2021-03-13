@@ -103,15 +103,44 @@ class AuxiliaryTask(torch.nn.Module):
                 )
 
             if self.aux_task_type != "default":
-                aux_symm_kl += F.kl_div(
-                    F.log_softmax(main_joint, dim=-1),
-                    F.softmax(aux_joint, dim=-1),
-                    reduction="mean",
-                ) + F.kl_div(
-                    F.log_softmax(aux_joint, dim=-1),
-                    F.softmax(main_joint, dim=-1),
-                    reduction="mean",
-                )
+                if main_joint.dim() == 2:
+                    batch = target.size(0)
+                    _start = 0
+
+                    for b in range(batch):
+                        t = int(pred_len[b])
+                        u = int(target_len[b])
+                        t_u = t * (u + 1)
+
+                        main_b = main_joint[_start : (_start + t_u), :].view(
+                            1, t, (u + 1), -1
+                        )
+                        aux_b = aux_joint[_start : (_start + t_u), :].view(
+                            1, t, (u + 1), -1
+                        )
+
+                        aux_symm_kl += F.kl_div(
+                            F.log_softmax(main_b, dim=-1),
+                            F.softmax(aux_b, dim=-1),
+                            reduction="mean",
+                        ) + F.kl_div(
+                            F.log_softmax(aux_b, dim=-1),
+                            F.softmax(main_b, dim=-1),
+                            reduction="mean",
+                        )
+                        _start += t_u
+
+                    aux_symm_kl /= batch
+                else:
+                    aux_symm_kl += F.kl_div(
+                        F.log_softmax(main_joint, dim=-1),
+                        F.softmax(aux_joint, dim=-1),
+                        reduction="mean",
+                    ) + F.kl_div(
+                        F.log_softmax(aux_joint, dim=-1),
+                        F.softmax(main_joint, dim=-1),
+                        reduction="mean",
+                    )
 
         aux_main_loss = aux_default + aux_symm_kl
 
