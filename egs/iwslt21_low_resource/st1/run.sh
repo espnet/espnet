@@ -112,7 +112,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train_sp.${src_lang}-${tgt_lang} valid.${src_lang}-${tgt_lang}; do
-        local/divide_lang.sh ${x} ${src_lang} ${tgt_lang}
+        divide_lang.sh ${x} "${src_lang} ${tgt_lang}"
     done
     for lang in ${tgt_lang} ${src_lang}; do
         cp -rf data/valid.${src_lang}-${tgt_lang}.${lang} data/valid_org.${src_lang}-${tgt_lang}.${lang}
