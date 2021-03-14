@@ -54,9 +54,8 @@ class TransLoss(torch.nn.Module):
 
         Args:
             pred_pad: Batch of predicted sequences
-                (B, T, U+1, odim) or
-                (sum(Tn * (U+1)n), odim)
-            target: Batch of target sequences (B, T)
+                          (B, T, U+1, vocab_size) or (sum(Tn * (U+1)n), vocab_size)
+            target: Batch of target sequences (B, Lmax)
             pred_len: Batch of lengths of predicted sequences (B)
             target_len: Batch of lengths of target sequences (B)
 

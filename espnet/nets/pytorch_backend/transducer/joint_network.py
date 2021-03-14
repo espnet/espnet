@@ -57,13 +57,13 @@ class JointNetwork(torch.nn.Module):
 
         Args:
             h_enc: Batch of expanded hidden state (B, T, 1, D_enc)
-            h_dec: Batch of expanded hidden state (B, 1, U, D_dec)
+            h_dec: Batch of expanded hidden state (B, 1, U+1, D_dec)
             is_aux: Whether auxiliary encoder representation is provided
-            pred_len: batch of lengths of predicted sequences (B)
-            target_len: batch of lengths of target sequences (B)
+            pred_len: Batch of lengths of predicted sequences (B)
+            target_len: Batch of lengths of target sequences (B)
 
         Returns:
-            z: Output (B, T, U, vocab_size) or (sum(Tn * Un), vocab_size)
+            z: Output (B, T, U, vocab_size) or (sum(Tn * Un+1), vocab_size)
 
         """
         if self.joint_memory_reduction:
