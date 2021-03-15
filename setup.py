@@ -20,7 +20,7 @@ requirements = {
         "matplotlib==3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
-        "ctc-segmentation>=1.5.1",
+        "ctc-segmentation>=1.5.2",
         "wandb",
         "filelock",
         # DNN related packages are installed by Makefile
