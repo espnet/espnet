@@ -79,7 +79,30 @@ class PositionalEncoding(torch.nn.Module):
         pe = pe.unsqueeze(0)
         self.pe = pe.to(device=x.device, dtype=x.dtype)
 
-    def forward(self, x: torch.Tensor):
+    def extend_pe2(self, length, device, dtype):
+        """Reset the positional encodings."""
+        if self.pe is not None:
+            if self.pe.size(1) >= length:
+                if self.pe.dtype != dtype or self.pe.device != device:
+                    self.pe = self.pe.to(dtype=dtype, device=device)
+                return
+        pe = torch.zeros(length, self.d_model)
+        if self.reverse:
+            position = torch.arange(
+                x.size(1) - 1, -1, -1.0, dtype=torch.float32
+            ).unsqueeze(1)
+        else:
+            position = torch.arange(0, length, dtype=torch.float32).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, self.d_model, 2, dtype=torch.float32)
+            * -(math.log(10000.0) / self.d_model)
+        )
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.pe = pe.to(device=device, dtype=dtype)
+        
+    def forward(self, x: torch.Tensor, start_idx: int = 0):
         """Add positional encoding.
 
         Args:
@@ -89,8 +112,8 @@ class PositionalEncoding(torch.nn.Module):
             torch.Tensor: Encoded tensor (batch, time, `*`).
 
         """
-        self.extend_pe(x)
-        x = x * self.xscale + self.pe[:, : x.size(1)]
+        self.extend_pe2(x.size(1)+start_idx, x.device, x.dtype)
+        x = x * self.xscale + self.pe[:, start_idx: start_idx+x.size(1)]
         return self.dropout(x)
 
 
