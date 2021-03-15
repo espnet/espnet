@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # Copyright 2021, Ludwig Kürzinger; Kamo Naoyuki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 """Perform CTC segmentation to align utterances within audio files."""
@@ -189,6 +188,20 @@ class CTCSegmentation:
         tokenized_text: bool = False,
         **ctc_segmentation_args,
     ):
+        """Initialize the CTCSegmentation module.
+
+        Args:
+            asr_train_config: ASR model config file (yaml).
+            asr_model_file: ASR model file (pth).
+            fs: Frame rate of audio file.
+            ngpu: Set to 0 for CPU computation, to 1 for GPU.
+            batch_size: Currently, only batch size == 1 is implemented.
+            dtype: Data type used for inference.
+            kaldi_style_text: True if each utterance begins with its name.
+                False if otherwise.
+            tokenized_text: True if tokenized text is given as input.
+            **ctc_segmentation_args: Parameters for CTC segmentation.
+        """
         assert check_argument_types()
 
         # Basic settings
@@ -393,6 +406,7 @@ def ctc_align(
     print_utt_score: bool = True,
     **kwargs,
 ):
+    """Provide the scripting interface to align text to audio."""
     assert check_argument_types()
     logging.basicConfig(
         level=log_level,
@@ -425,6 +439,7 @@ def ctc_align(
 
 
 def get_parser():
+    """Obtain an argument-parser for the script interface."""
     parser = config_argparse.ArgumentParser(
         description="ASR Decoding",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -573,6 +588,7 @@ def get_parser():
 
 
 def main(cmd=None):
+    """Parse arguments and start the alignment in ctc_align(·)."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)

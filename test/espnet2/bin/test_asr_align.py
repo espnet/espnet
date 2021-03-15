@@ -1,3 +1,4 @@
+"""Tests for asr_align.py."""
 from argparse import ArgumentParser
 from pathlib import Path
 import string
@@ -5,24 +6,27 @@ import string
 import numpy as np
 import pytest
 
-from espnet2.bin.asr_align import get_parser
-from espnet2.bin.asr_align import main
 from espnet2.bin.asr_align import CTCSegmentation
 from espnet2.bin.asr_align import CTCSegmentationResult
+from espnet2.bin.asr_align import get_parser
+from espnet2.bin.asr_align import main
 from espnet2.tasks.asr import ASRTask
 
 
 def test_get_parser():
+    """Check the parser."""
     assert isinstance(get_parser(), ArgumentParser)
 
 
 def test_main():
+    """Run main(·) once."""
     with pytest.raises(SystemExit):
         main()
 
 
 @pytest.fixture()
 def token_list(tmp_path: Path):
+    """Obtain a test file with a list of tokens."""
     with (tmp_path / "tokens.txt").open("w") as f:
         f.write("<blank>\n")
         for c in string.ascii_letters:
@@ -34,6 +38,7 @@ def token_list(tmp_path: Path):
 
 @pytest.fixture()
 def asr_config_file(tmp_path: Path, token_list):
+    """Obtain ASR config file for test."""
     # Write default configuration file
     ASRTask.main(
         cmd=[
@@ -52,6 +57,7 @@ def asr_config_file(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_CTCSegmentation(asr_config_file):
+    """Test CTC segmentation."""
     num_samples = 100000
     fs = 16000
     # text includes:
