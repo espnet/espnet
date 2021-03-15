@@ -193,8 +193,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         if self.training:
             return self.forward_train(xs_pad, ilens, prev_states)
         else:
-            #return self.forward_infer(xs_pad, ilens, prev_states, is_final)
-            return self.forward_train2(xs_pad, ilens, prev_states)
+            return self.forward_infer(xs_pad, ilens, prev_states, is_final)
+            #return self.forward_train2(xs_pad, ilens, prev_states)
         
     def forward_train(
         self,
@@ -363,7 +363,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             prev_states: Not to be used now.
         Returns:
             position embedded tensor and mask
-        """
+        """        
         if prev_states is None:
             prev_addin = None
             buffer_before_downsampling = None
@@ -402,9 +402,14 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             n_res_samples = xs_pad.size(1) % 6 + 6
             buffer_before_downsampling = xs_pad.narrow(1, xs_pad.size(1)-n_res_samples,n_res_samples)
             xs_pad = xs_pad.narrow(1, 0, n_samples*6)
+            
+        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
+            xs_pad, masks = self.embed(xs_pad, masks)
+        elif self.embed is not None:
+            xs_pad = self.embed(xs_pad)
 
-
-        if prev_states is None and xs_pad.shape(1) <= self.block_size:
+        if prev_states is None and xs_pad.size(1) <= self.block_size:
             xs_pad, masks, _, _, _ = self.encoders(
                 self.pos_enc(xs_pad), masks, None, None
             )
@@ -413,13 +418,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
             olens = masks.squeeze(1).sum(1)
             return xs_pad, olens, None
-
-            
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
-        if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
-            xs_pad, masks = self.embed(xs_pad, masks)
-        elif self.embed is not None:
-            xs_pad = self.embed(xs_pad)
 
         # create empty output container
         if buffer_after_downsampling is not None:
