@@ -246,7 +246,7 @@ class Speech2TextStreaming:
         else:
             feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
             
-        enc, _, _ = self.asr_model.encoder(feats, feats_lengths)
+        enc, _, _ = self.asr_model.encoder(feats, feats_lengths, is_final=True)
             
         assert len(enc) == 1, len(enc)
 
