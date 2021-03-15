@@ -194,7 +194,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             return self.forward_train(xs_pad, ilens, prev_states)
         else:
             return self.forward_infer(xs_pad, ilens, prev_states, is_final)
-            #return self.forward_train2(xs_pad, ilens, prev_states)
+            #return self.forward_train2(xs_pad, ilens, prev_states) # Refactored implementation of Emiru's code 
         
     def forward_train(
         self,
@@ -363,7 +363,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             prev_states: Not to be used now.
         Returns:
             position embedded tensor and mask
-        """        
+        """
         if prev_states is None:
             prev_addin = None
             buffer_before_downsampling = None
@@ -378,9 +378,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             n_processed_blocks = prev_states["n_processed_blocks"]
             past_encoder_ctx = prev_states["past_encoder_ctx"]
         bsize = xs_pad.size(0)
-
         assert bsize == 1
-        
+
         if prev_states is not None:
             xs_pad = torch.cat([buffer_before_downsampling, xs_pad], dim=1)
 
@@ -422,8 +421,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         # create empty output container
         if buffer_after_downsampling is not None:
             xs_pad = torch.cat([buffer_after_downsampling, xs_pad], dim=1)
+
         total_frame_num = xs_pad.size(1)
-        overlap_size = self.block_size - self.hop_size
 
         if is_final:
             past_size = self.block_size - self.hop_size - self.look_ahead
@@ -431,7 +430,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 float(total_frame_num - past_size - self.look_ahead) / float(self.hop_size)
             )
             buffer_after_downsampling = None
-        else:            
+        else:
             block_num = max(0,xs_pad.size(1)-overlap_size)//self.hop_size
             if block_num == 0:
                 next_states = {
@@ -447,6 +446,18 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             buffer_after_downsampling = xs_pad.narrow(1, xs_pad.size(1)-res_frame_num, res_frame_num)
             xs_pad = xs_pad.narrow(1, 0, block_num * self.hop_size + overlap_size)
 
+        # block_size could be 0 meaning infinite
+        # apply usual encoder for short sequence
+        #if self.block_size == 0 or total_frame_num <= self.block_size:
+        #    xs_pad, masks, _, _, _ = self.encoders(
+        #        self.pos_enc(xs_pad), masks, None, None
+        #    )
+        #    if self.normalize_before:
+        #        xs_pad = self.after_norm(xs_pad)
+        #    olens = masks.squeeze(1).sum(1)
+        #    return xs_pad, olens, None
+
+        # start block processing
         xs_chunk = xs_pad.new_zeros(
             bsize, block_num, self.block_size + 2, xs_pad.size(-1)
         )
@@ -460,7 +471,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             else:
                 addin = addin.max(1, keepdim=True)
             if self.ctx_pos_enc:
-                addin = self.pos_enc(addin, i+n_processed_blocks)
+                addin = self.pos_enc(addin, i + n_processed_blocks)
+            #addin2[:, i:i+1, :] = temp_addin
 
             if prev_addin is None:
                 prev_addin = addin
@@ -468,9 +480,11 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             xs_chunk[:,i,-1] = addin
 
             chunk = self.pos_enc(xs_pad.narrow(1, cur_hop, chunk_length), cur_hop+self.hop_size*n_processed_blocks)
+
             xs_chunk[:, i, 1:chunk_length+1] = chunk
 
             prev_addin = addin
+
             
         # set up masks
         mask_online = xs_pad.new_zeros(
@@ -479,9 +493,11 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         mask_online.narrow(2, 1, self.block_size + 1).narrow(
             3, 0, self.block_size + 1
         ).fill_(1)
-        
+
         # forward
-        ys_chunk, mask_online, _, past_encoder_ctx, _ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
+        ys_chunk, mask_online, _, _, _ = self.encoders(xs_chunk, mask_online, xs_chunk)
+        #ys_chunk, mask_online, _, past_encoder_ctx, _ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
+
         # remove addin
         ys_chunk = ys_chunk.narrow(2, 1, self.block_size)
 
@@ -526,7 +542,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             }
         
         return ys_pad, olens, next_states
-
 
     # Refactored implementation of Emiru's code
     def forward_train2(
