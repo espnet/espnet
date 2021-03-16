@@ -31,7 +31,6 @@ from ctc_segmentation import ctc_segmentation
 from ctc_segmentation import CtcSegmentationParameters
 from ctc_segmentation import determine_utterance_segments
 from ctc_segmentation import prepare_text
-from ctc_segmentation import prepare_tokenized_text
 
 
 class CTCSegmentationResult:
@@ -236,9 +235,8 @@ class CTCSegmentation:
         self.dtype = dtype
         self.ctc = asr_model.ctc
 
-        tokenized_text_choices = {False: prepare_text, True: prepare_tokenized_text}
-        self._prepare_text = tokenized_text_choices[tokenized_text]
-        self.kaldi_style_text = bool(kaldi_style_text)
+        self.tokenized_text = tokenized_text
+        self.kaldi_style_text = kaldi_style_text
         self.token_list = asr_model.token_list
         # Apply configuration
         self.set_config(fs=fs, **ctc_segmentation_args)
@@ -309,8 +307,6 @@ class CTCSegmentation:
     @torch.no_grad()
     def get_lpz(self, speech: torch.Tensor):
         """Obtain CTC posterior log probabilities for given speech data."""
-        if isinstance(speech, np.ndarray):
-            speech = torch.tensor(speech)
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lenghts: (1,)
@@ -339,7 +335,10 @@ class CTCSegmentation:
             utt_ids = [utt.split(" ", 1)[0] for utt in text]
             text = [utt.split(" ", 1)[1] for utt in text]
         # Prepare the text for aligning
-        ground_truth_mat, utt_begin_indices = self._prepare_text(self.config, text)
+        if self.tokenized_text:
+            raise NotImplementedError
+        else:
+            ground_truth_mat, utt_begin_indices = prepare_text(self.config, text)
         # Align using CTC segmentation
         timings, char_probs, state_list = ctc_segmentation(
             self.config, lpz, ground_truth_mat
@@ -383,6 +382,8 @@ class CTCSegmentation:
             CTCSegmentationResult object with segments.
         """
         assert check_argument_types()
+        if isinstance(speech, np.ndarray):
+            speech = torch.tensor(speech)
         if fs is not None:
             self.set_config(fs=fs)
         # Get log CTC posterior probabilities
