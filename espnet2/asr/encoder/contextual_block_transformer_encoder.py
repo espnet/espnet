@@ -367,6 +367,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         if prev_states is None:
             prev_addin = None
             buffer_before_downsampling = None
+            ilens_buffer = None
             buffer_after_downsampling = None
             n_processed_blocks = 0
             past_encoder_ctx = None
@@ -374,6 +375,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         else:
             prev_addin = prev_states['prev_addin']
             buffer_before_downsampling = prev_states['buffer_before_downsampling']
+            ilens_buffer = prev_states['ilens_buffer'] 
             buffer_after_downsampling = prev_states['buffer_after_downsampling']
             n_processed_blocks = prev_states["n_processed_blocks"]
             past_encoder_ctx = prev_states["past_encoder_ctx"]
@@ -382,15 +384,20 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
         if prev_states is not None:
             xs_pad = torch.cat([buffer_before_downsampling, xs_pad], dim=1)
+            ilens += ilens_buffer
 
+
+        #print(xs_pad.shape, ilens, is_final)
         if is_final:
             buffer_before_downsampling = None
         else:
-            n_samples = xs_pad.size(1) // 6
-            if n_samples < 3:
+            n_samples = xs_pad.size(1) // 6 - 1
+            #if n_samples < 3:
+            if True:
                 next_states = {
                     "prev_addin":prev_addin,
                     "buffer_before_downsampling": xs_pad,
+                    "ilens_buffer": ilens,
                     "buffer_after_downsampling": buffer_after_downsampling,
                     "n_processed_blocks": n_processed_blocks,
                     "past_encoder_ctx": past_encoder_ctx
@@ -398,7 +405,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 return xs_pad.new_zeros(bsize, 0, 512), \
                     xs_pad.new_zeros(bsize), next_states
         
-            n_res_samples = xs_pad.size(1) % 6 + 6
+            n_res_samples = xs_pad.size(1) % 6 + 12
             buffer_before_downsampling = xs_pad.narrow(1, xs_pad.size(1)-n_res_samples,n_res_samples)
             xs_pad = xs_pad.narrow(1, 0, n_samples*6)
             
@@ -449,7 +456,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         # block_size could be 0 meaning infinite
         # apply usual encoder for short sequence
         assert self.block_size > 0
-        if prev_states is None and total_frame_num <= self.block_size:
+        if n_processed_blocks ==0 and total_frame_num <= self.block_size and is_final:
             xs_chunk = self.pos_enc(xs_pad).unsqueeze(1)
             xs_pad, masks, _, _, _, _ = self.encoders(
                 xs_chunk, masks, None, None, True
@@ -459,10 +466,10 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 xs_pad = self.after_norm(xs_pad)
             olens = masks.squeeze(1).sum(1)
             return xs_pad, olens, None
-        elif total_frame_num <= self.block_size:
-            print("error")
-            import sys
-            sys.exit(1)
+        #elif total_frame_num < self.block_size:
+        #    print("error")
+        #    import sys
+        #sys.exit(1)
 
         # start block processing
         xs_chunk = xs_pad.new_zeros(
