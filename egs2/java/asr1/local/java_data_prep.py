@@ -1,7 +1,3 @@
-"""
-80% 10% 10% split
-"""
-
 import os
 import random
 
@@ -45,7 +41,7 @@ if __name__ == "__main__":
     dev_spks = train_dev_spks[num_train:]
 
     spks_by_phase = {"train": train_spks, "dev": dev_spks, "test": test_spks}
-    flac_dir = 'downloads/data'
+    flac_dir = "downloads/data"
     sr = 16000
     for phase in spks_by_phase:
         spks = spks_by_phase[phase]
@@ -56,17 +52,19 @@ if __name__ == "__main__":
         for spk in spks:
             fids = sorted(list(set(spk2utt[spk])))
             num_fids += len(fids)
-            if phase == 'test' and num_fids > 2000:
-                curr_num_fids = num_fids-2000
+            if phase == "test" and num_fids > 2000:
+                curr_num_fids = num_fids - 2000
                 random.Random(1).shuffle(fids)
                 fids = fids[:curr_num_fids]
             utts = [spk + "-" + f for f in fids]
             utts_str = " ".join(utts)
             spk2utt_strs.append("%s %s" % (spk, utts_str))
             for fid, utt in zip(fids, utts):
-                cmd = (
-                    "ffmpeg -i %s/%s/%s.flac -f wav -ar %d -ab 16 -ac 1 - |"
-                    % (flac_dir, fid[:2], fid, sr)
+                cmd = "ffmpeg -i %s/%s/%s.flac -f wav -ar %d -ab 16 -ac 1 - |" % (
+                    flac_dir,
+                    fid[:2],
+                    fid,
+                    sr,
                 )
                 text_strs.append("%s %s" % (utt, utt2text[fid]))
                 wav_scp_strs.append("%s %s" % (utt, cmd))

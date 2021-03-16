@@ -35,12 +35,16 @@ mkdir -p ${JAVA}
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
-    wget https://www.openslr.org/resources/35/asr_javanese_0.zip
-    mv asr_javanese_0.zip downloads
-    unzip downloads/asr_javanese_0.zip
-    rm -f downloads/asr_javanese_0.zip
-    mv asr_javanese/* downloads
+    cd ${JAVA}
+    idxs=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f")
+    for i in ${idxs[@]}; do
+        wget https://www.openslr.org/resources/35/asr_javanese_${i}.zip
+        unzip -o asr_javanese_${i}.zip
+        rm -f asr_javanese_${i}.zip
+    done
+    mv asr_javanese/* .
     rm -rf asr_javanese
+    cd ..
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
