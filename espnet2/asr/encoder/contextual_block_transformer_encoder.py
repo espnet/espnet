@@ -371,12 +371,13 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             buffer_after_downsampling = None
             n_processed_blocks = 0
             past_encoder_ctx = None
-
+            masks_buffer = None
         else:
             prev_addin = prev_states['prev_addin']
             buffer_before_downsampling = prev_states['buffer_before_downsampling']
             ilens_buffer = prev_states['ilens_buffer'] 
             buffer_after_downsampling = prev_states['buffer_after_downsampling']
+            masks_buffer = prev_states['masks_buffer']
             n_processed_blocks = prev_states["n_processed_blocks"]
             past_encoder_ctx = prev_states["past_encoder_ctx"]
         bsize = xs_pad.size(0)
@@ -392,13 +393,13 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             buffer_before_downsampling = None
         else:
             n_samples = xs_pad.size(1) // 6 - 1
-            #if n_samples < 3:
-            if True:
+            if n_samples < 2:
                 next_states = {
                     "prev_addin":prev_addin,
                     "buffer_before_downsampling": xs_pad,
                     "ilens_buffer": ilens,
                     "buffer_after_downsampling": buffer_after_downsampling,
+                    "masks_buffer": masks_buffer,
                     "n_processed_blocks": n_processed_blocks,
                     "past_encoder_ctx": past_encoder_ctx
                 }
@@ -408,29 +409,24 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             n_res_samples = xs_pad.size(1) % 6 + 12
             buffer_before_downsampling = xs_pad.narrow(1, xs_pad.size(1)-n_res_samples,n_res_samples)
             xs_pad = xs_pad.narrow(1, 0, n_samples*6)
+
+            ilens_buffer = ilens.new_full([1], dtype=torch.long, fill_value=n_res_samples)
+            ilens = ilens.new_full([1], dtype=torch.long, fill_value=n_samples * 6)
             
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
         if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
             xs_pad, masks = self.embed(xs_pad, masks)
         elif self.embed is not None:
             xs_pad = self.embed(xs_pad)
-            
-        #if prev_states is None and xs_pad.size(1) <= self.block_size:
-        #    xs_pad, masks, _, _, _ = self.encoders(
-        #        self.pos_enc(xs_pad), masks, None, None
-        #    )
-        #    if self.normalize_before:
-        #        xs_pad = self.after_norm(xs_pad)
-        #
-        #    olens = masks.squeeze(1).sum(1)
-        #    return xs_pad, olens, None
 
         # create empty output container
         if buffer_after_downsampling is not None:
             xs_pad = torch.cat([buffer_after_downsampling, xs_pad], dim=1)
+        if masks_buffer is not None:
+            masks = torch.cat([masks_buffer, masks], dim=2)
 
         total_frame_num = xs_pad.size(1)
-
+        
         if is_final:
             past_size = self.block_size - self.hop_size - self.look_ahead
             block_num = math.ceil(
@@ -438,17 +434,21 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             )
             buffer_after_downsampling = None
         else:
-            block_num = max(0,xs_pad.size(1)-overlap_size)//self.hop_size
-            if block_num == 0:
+            #if total_frame_num <= self.block_size:
+            if True:
                 next_states = {
                     "prev_addin":prev_addin,
                     "buffer_before_downsampling": buffer_before_downsampling,
+                    "ilens_buffer": ilens_buffer,
                     "buffer_after_downsampling": xs_pad,
+                    "masks_buffer": masks,
                     "n_processed_blocks": n_processed_blocks,
                     "past_encoder_ctx": past_encoder_ctx
                 }
                 return xs_pad.new_zeros(bsize, 0, 512), \
                     xs_pad.new_zeros(bsize), next_states
+            
+            block_num = max(0,xs_pad.size(1)-overlap_size)//self.hop_size
             res_frame_num = xs_pad.size(1) - self.hop_size * block_num
             buffer_after_downsampling = xs_pad.narrow(1, xs_pad.size(1)-res_frame_num, res_frame_num)
             xs_pad = xs_pad.narrow(1, 0, block_num * self.hop_size + overlap_size)
