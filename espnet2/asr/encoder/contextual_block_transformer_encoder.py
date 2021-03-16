@@ -451,8 +451,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         assert self.block_size > 0
         if prev_states is None and total_frame_num <= self.block_size:
             xs_chunk = self.pos_enc(xs_pad).unsqueeze(1)
-            xs_pad, masks, _, _, _ = self.encoders(
-                xs_chunk, masks, None, None
+            xs_pad, masks, _, _, _, _ = self.encoders(
+                xs_chunk, masks, None, None, True
             )
             xs_pad = xs_pad.squeeze(0)
             if self.normalize_before:
@@ -503,7 +503,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
         # forward
         #ys_chunk, mask_online, _, _, _ = self.encoders(xs_chunk, mask_online, xs_chunk)
-        ys_chunk, mask_online, _, past_encoder_ctx, _ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
+        ys_chunk, mask_online, _, past_encoder_ctx, _,_ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
 
         # remove addin
         ys_chunk = ys_chunk.narrow(2, 1, self.block_size)

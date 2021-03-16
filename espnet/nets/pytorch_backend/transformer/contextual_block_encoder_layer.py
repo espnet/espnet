@@ -58,11 +58,11 @@ class ContextualBlockEncoderLayer(nn.Module):
         if self.concat_after:
             self.concat_linear = nn.Linear(size + size, size)
 
-    def forward(self, x, mask, past_ctx=None, next_ctx=None, layer_idx=0, cache=None):
+    def forward(self, x, mask, past_ctx=None, next_ctx=None, is_short_segment=False, layer_idx=0, cache=None):
         if self.training:
             return self.forward_train(x, mask, past_ctx, next_ctx, layer_idx, cache)
         else:
-            return self.forward_infer(x, mask, past_ctx, next_ctx, layer_idx, cache)
+            return self.forward_infer(x, mask, past_ctx, next_ctx, is_short_segment, layer_idx, cache)
 
     def forward_train(self, x, mask, past_ctx=None, next_ctx=None, layer_idx=0, cache=None):
         """Compute encoded features.
@@ -143,7 +143,7 @@ class ContextualBlockEncoderLayer(nn.Module):
 
         return x, mask, next_ctx, next_ctx, layer_idx
 
-    def forward_infer(self, x, mask, past_ctx=None, next_ctx=None, layer_idx=0, cache=None):
+    def forward_infer(self, x, mask, past_ctx=None, next_ctx=None, is_short_segment=False, layer_idx=0, cache=None):
         """Compute encoded features.
 
         Args:
@@ -217,13 +217,16 @@ class ContextualBlockEncoderLayer(nn.Module):
         # Propagete context information (the last frame of each block) to the first frame
         # of the next block
 
-        x[:, 1:, 0, :] = x[:, 0:-1, -1, :]
-        if layer_idx == 0 and past_ctx is not None:
-            x[:, 0, 0, :] = past_ctx[:, layer_idx, :]
-        else:
-            x[:, 0, 0, :] = x[:, 0, -1, :]
+        if not is_short_segment:
+            x[:, 1:, 0, :] = x[:, 0:-1, -1, :]
+            if layer_idx == 0 and past_ctx is not None:
+                x[:, 0, 0, :] = past_ctx[:, layer_idx, :]
+            else:
+                x[:, 0, 0, :] = x[:, 0, -1, :]
 
-        next_ctx[:, layer_idx, :] = x[:, -1, -1, :]
+            next_ctx[:, layer_idx, :] = x[:, -1, -1, :]
+        else:
+            next_ctx = None
         
-        return x, mask, past_ctx, next_ctx, layer_idx+1
+        return x, mask, past_ctx, next_ctx, is_short_segment, layer_idx+1
 
