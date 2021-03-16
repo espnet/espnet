@@ -434,8 +434,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             )
             buffer_after_downsampling = None
         else:
-            #if total_frame_num <= self.block_size:
-            if True:
+            if True or total_frame_num <= self.block_size:
                 next_states = {
                     "prev_addin":prev_addin,
                     "buffer_before_downsampling": buffer_before_downsampling,
@@ -447,11 +446,14 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 }
                 return xs_pad.new_zeros(bsize, 0, 512), \
                     xs_pad.new_zeros(bsize), next_states
-            
+
+            overlap_size = self.block_size - self.hop_size
             block_num = max(0,xs_pad.size(1)-overlap_size)//self.hop_size
             res_frame_num = xs_pad.size(1) - self.hop_size * block_num
             buffer_after_downsampling = xs_pad.narrow(1, xs_pad.size(1)-res_frame_num, res_frame_num)
             xs_pad = xs_pad.narrow(1, 0, block_num * self.hop_size + overlap_size)
+            masks_buffer = masks.narrow(2, xs_pad.size(1)-res_frame_num, res_frame_num)
+            masks = masks.narrow(2, 0, block_num * self.hop_size + overlap_size)
 
         # block_size could be 0 meaning infinite
         # apply usual encoder for short sequence
@@ -550,7 +552,9 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             next_states = {
                 "prev_addin":prev_addin,
                 "buffer_before_downsampling": buffer_before_downsampling,
+                "ilens_buffer": ilens_buffer,
                 "buffer_after_downsampling": buffer_after_downsampling,
+                "masks_buffer": masks_buffer,
                 "n_processed_blocks": n_processed_blocks+block_num,
                 "past_encoder_ctx": past_encoder_ctx
             }
