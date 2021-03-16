@@ -233,7 +233,9 @@ class Speech2TextStreaming:
             speech = torch.tensor(speech)
 
         block_size=512
-        if block_size == 1024:
+        if block_size == 0:
+            feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
+        else:
             states=None
             feats_list=[]
             for i in range(len(speech)//block_size):
@@ -243,8 +245,6 @@ class Speech2TextStreaming:
             feats_list.append(temp_feats)
             feats = speech = torch.cat(feats_list, dim=1)
             feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
-        else:
-            feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
             
         enc, _, _ = self.asr_model.encoder(feats, feats_lengths, is_final=True)
             
