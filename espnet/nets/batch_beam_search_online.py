@@ -77,8 +77,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         else:
             x = self.encbuffer
             
-        self.conservative = True  # always true
-
         # set length bounds
         if maxlenratio == 0:
             maxlen = x.shape[0]
@@ -104,11 +102,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     cur_end_frame += int(self.hop_size)
                 else:
                     cur_end_frame = x.shape[0]
-                logging.debug("Going to next block: %d", cur_end_frame)
-                if self.process_idx > 1 and len(self.prev_hyps) > 0 and self.conservative:
-                    self.running_hyps = self.prev_hyps
-                    self.process_idx -= 1
-                    self.prev_hyps = []
             
             if cur_end_frame < x.shape[0]:
                 h = x.narrow(0, 0, cur_end_frame)
@@ -186,6 +179,12 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         if is_final:
             return self.assemble_hyps(self.ended_hyps)
         else:
+            logging.debug("Going to next block: %d", h.shape[0])
+            if self.process_idx > 1 and len(self.prev_hyps) > 0:
+                self.running_hyps = self.prev_hyps
+                self.process_idx -= 1
+                self.prev_hyps = []
+
             return None
         
     def assemble_hyps(self, ended_hyps):
