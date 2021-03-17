@@ -30,9 +30,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
     (https://arxiv.org/abs/2006.14941).
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, feature_width=0, text_width=0, **kwargs):
         super().__init__(*args, **kwargs)
         self.reset()
+        self.feature_width = feature_width
+        self.text_width = text_width
         
     def reset(self):
         self.encbuffer = None
@@ -62,7 +64,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         scores = dict()
         states = dict()
         for k, d in self.full_scorers.items():
-            if len(hyp.yseq) > 0 and len(hyp.yseq[0]) > 20:
+            if len(hyp.yseq) > 0 and self.text_width > 0 and len(hyp.yseq[0]) > self.text_width:
                 temp_yseq = hyp.yseq.narrow(1, -10, 10).clone()
                 temp_yseq[:,0] = 3951
                 scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
@@ -115,7 +117,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             logging.debug("position " + str(self.process_idx) + " " + str(maxlen))
             logging.debug(self.running_hyps.yseq.shape)
 
-            if self.encbuffer.shape[0] > 200:
+            if self.text_width > 0 and self.encbuffer.shape[0] > self.feature_width:
                 h = self.encbuffer.narrow(0, self.encbuffer.shape[0]-200, 200)
             else:
                 h = self.encbuffer

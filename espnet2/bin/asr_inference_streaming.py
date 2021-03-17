@@ -34,7 +34,7 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
-
+from espnet2.asr.encoder.contextual_block_transformer_encoder import ContextualBlockTransformerEncoder
 
 class Speech2TextStreaming:
     """Speech2TextStreaming class
@@ -66,7 +66,8 @@ class Speech2TextStreaming:
         lm_weight: float = 1.0,
         penalty: float = 0.0,
         nbest: int = 1,
-        streaming: bool = False,
+        text_width = 0,
+        feature_width = 0,    
     ):
         assert check_argument_types()
 
@@ -77,6 +78,8 @@ class Speech2TextStreaming:
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
+        assert isinstance(asr_model.encoder, ContextualBlockTransformerEncoder)
+        
         decoder = asr_model.decoder
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
         token_list = asr_model.token_list
@@ -100,7 +103,10 @@ class Speech2TextStreaming:
             lm=lm_weight,
             length_bonus=penalty,
         )
-        beam_search = BeamSearch(
+
+        assert batch_size == 1
+        
+        beam_search = BatchBeamSearchOnline(
             beam_size=beam_size,
             weights=weights,
             scorers=scorers,
@@ -109,27 +115,20 @@ class Speech2TextStreaming:
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+            feature_width=200,
+            text_width=20,
         )
+
+        non_batch = [
+            k
+            for k, v in beam_search.full_scorers.items()
+            if not isinstance(v, BatchScorerInterface)
+        ]
+        assert len(non_batch) == 0
+        
         # TODO(karita): make all scorers batchfied
-        if batch_size == 1:
-            non_batch = [
-                k
-                for k, v in beam_search.full_scorers.items()
-                if not isinstance(v, BatchScorerInterface)
-            ]
-            if len(non_batch) == 0:
-                if streaming:
-                    beam_search.__class__ = BatchBeamSearchOnline
-                    beam_search.set_streaming_config(asr_train_config)
-                    logging.info("BatchBeamSearchOnline implementation is selected.")
-                else:
-                    beam_search.__class__ = BatchBeamSearch
-                    logging.info("BatchBeamSearch implementation is selected.")
-            else:
-                logging.warning(
-                    f"As non-batch scorers {non_batch} are found, "
-                    f"fall back to non-batch implementation."
-                )
+        logging.info("BatchBeamSearchOnline implementation is selected.")
+                    
         beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
         for scorer in scorers.values():
             if isinstance(scorer, torch.nn.Module):
@@ -231,36 +230,36 @@ class Speech2TextStreaming:
         # Input as audio signal
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
-
+        self.beam_search.reset()
         block_size=512
         if block_size == 0:
             feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
             enc, _, _ = self.asr_model.encoder(feats, feats_lengths, is_final=True)
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
+            )
         else:
             states=None
             enc_states=None
             feats_list=[]
             for i in range(len(speech)//block_size):
                 feats,feats_lengths,states = self.apply_frontend(speech[i*block_size:(i+1)*block_size], states, is_final=False)
-                enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=False)
-
-                
+                enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=False)                
                 feats_list.append(enc)
+                nbest_hyps = self.beam_search(
+                    x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=False
+                )
+                
             feats,feats_lengths,_ = self.apply_frontend(speech[(i+1)*block_size:len(speech)], states, is_final=True)
             enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=True)
             feats_list.append(enc)
             enc = torch.cat(feats_list, dim=1)
-            #feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
+            )
             
-            
-        assert len(enc) == 1, len(enc)
 
-        # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
         nbest_hyps = nbest_hyps[: self.nbest]
-
         results = []
         for hyp in nbest_hyps:
             assert isinstance(hyp, Hypothesis), type(hyp)
@@ -310,7 +309,6 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    streaming: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -350,7 +348,6 @@ def inference(
         lm_weight=lm_weight,
         penalty=penalty,
         nbest=nbest,
-        streaming=streaming,
     )
 
     # 3. Build data-iterator
@@ -486,7 +483,6 @@ def get_parser():
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
-    group.add_argument("--streaming", type=str2bool, default=False)
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(
