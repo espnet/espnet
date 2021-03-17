@@ -434,7 +434,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             )
             buffer_after_downsampling = None
         else:
-            if True or total_frame_num <= self.block_size:
+            if total_frame_num <= self.block_size:
                 next_states = {
                     "prev_addin":prev_addin,
                     "buffer_before_downsampling": buffer_before_downsampling,
@@ -511,9 +511,21 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         ).fill_(1)
 
         # forward
-        #ys_chunk, mask_online, _, _, _ = self.encoders(xs_chunk, mask_online, xs_chunk)
-        ys_chunk, mask_online, _, past_encoder_ctx, _,_ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
-
+        if False:
+            ys_chunks=[]
+            for i in range(block_num):
+                print("loop ", i)
+                cur_mask_online = mask_online.narrow(1, i, 1)
+                cur_xs_chunk = xs_chunk.narrow(1, i, 1)
+                ys_chunk, _, _, past_encoder_ctx, _,_ = self.encoders(cur_xs_chunk, cur_mask_online, past_encoder_ctx)
+                ys_chunks.append(ys_chunk)
+                
+            ys_chunk = torch.cat(ys_chunks, dim=1)
+        else:        
+            ys_chunk, mask_online, _, past_encoder_ctx, _,_ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
+        #print(xs_chunk.shape, mask_online.shape, ys_chunk.shape)
+        #import sys
+        #sys.exit(1)
         # remove addin
         ys_chunk = ys_chunk.narrow(2, 1, self.block_size)
 
@@ -674,6 +686,3 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         next_states = {"prev_addin": prev_addin}
         
         return ys_pad, olens, None
-
-
-

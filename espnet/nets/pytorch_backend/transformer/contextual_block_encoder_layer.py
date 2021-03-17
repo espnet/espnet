@@ -218,12 +218,12 @@ class ContextualBlockEncoderLayer(nn.Module):
         # of the next block
 
         if not is_short_segment:
-            x[:, 1:, 0, :] = x[:, 0:-1, -1, :]
-            if layer_idx == 0 and past_ctx is not None:
-                x[:, 0, 0, :] = past_ctx[:, layer_idx, :]
-            else:
+            if past_ctx is None:
+                # First block of an utterance
                 x[:, 0, 0, :] = x[:, 0, -1, :]
-
+            else:
+                x[:, 0, 0, :] = past_ctx[:, layer_idx, :]
+            if nblock > 1: x[:, 1:, 0, :] = x[:, 0:-1, -1, :]
             next_ctx[:, layer_idx, :] = x[:, -1, -1, :]
         else:
             next_ctx = None
