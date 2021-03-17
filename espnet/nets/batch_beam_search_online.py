@@ -93,7 +93,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         while True:
             if is_first:
                 cur_end_frame = int(self.block_size - self.look_ahead)
-                process_idx = 0
+                self.process_idx = 0
                 is_first = False
             else:
                 if (
@@ -105,9 +105,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 else:
                     cur_end_frame = x.shape[0]
                 logging.debug("Going to next block: %d", cur_end_frame)
-                if process_idx > 1 and len(self.prev_hyps) > 0 and self.conservative:
+                if self.process_idx > 1 and len(self.prev_hyps) > 0 and self.conservative:
                     self.running_hyps = self.prev_hyps
-                    process_idx -= 1
+                    self.process_idx -= 1
                     self.prev_hyps = []
             
             if cur_end_frame < x.shape[0]:
@@ -117,70 +117,77 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 h = x
                 is_final = True
 
-            # extend states for ctc
-            self.extend(h, self.running_hyps)
+            ret = self.process_one_block(h, is_final, maxlen, maxlenratio)
+            if is_final:
+                return ret
 
-            while process_idx < maxlen:
-                logging.debug("position " + str(process_idx))
-                best = self.search(self.running_hyps, h)
+    def process_one_block(self, h, is_final, maxlen, maxlenratio):
+        # extend states for ctc
+        self.extend(h, self.running_hyps)
 
-                if process_idx == maxlen - 1:
-                    # end decoding
-                    self.running_hyps = self.post_process(
-                        process_idx, maxlen, maxlenratio, best, self.ended_hyps
-                    )
-                n_batch = best.yseq.shape[0]
-                local_ended_hyps = []
-                is_local_eos = (
-                    best.yseq[torch.arange(n_batch), best.length - 1] == self.eos
+        while self.process_idx < maxlen:
+            logging.debug("position " + str(self.process_idx))
+            best = self.search(self.running_hyps, h)
+
+            if self.process_idx == maxlen - 1:
+                # end decoding
+                self.running_hyps = self.post_process(
+                    self.process_idx, maxlen, maxlenratio, best, self.ended_hyps
                 )
+            n_batch = best.yseq.shape[0]
+            local_ended_hyps = []
+            is_local_eos = (
+                best.yseq[torch.arange(n_batch), best.length - 1] == self.eos
+            )
                 
-                prev_repeat = False
-                for i in range(is_local_eos.shape[0]):
-                    if is_local_eos[i]:
-                        hyp = self._select(best, i)
-                        local_ended_hyps.append(hyp)
-                    # NOTE(tsunoo): check repetitions here
-                    # This is a implicit implementation of
-                    # Eq (11) in https://arxiv.org/abs/2006.14941
-                    # A flag prev_repeat is used instead of using set
-                    elif (
+            prev_repeat = False
+            for i in range(is_local_eos.shape[0]):
+                if is_local_eos[i]:
+                    hyp = self._select(best, i)
+                    local_ended_hyps.append(hyp)
+                # NOTE(tsunoo): check repetitions here
+                # This is a implicit implementation of
+                # Eq (11) in https://arxiv.org/abs/2006.14941
+                # A flag prev_repeat is used instead of using set
+                elif (
                         not prev_repeat
                         and best.yseq[i, -1] in best.yseq[i, :-1]
                         and not is_final
-                    ):
-                        prev_repeat = True
-                if prev_repeat: break
-                
-                if maxlenratio == 0.0 and end_detect(
-                    [lh.asdict() for lh in self.ended_hyps], process_idx
                 ):
-                    logging.info(f"end detected at {process_idx}")
-                    return self.assemble_hyps(self.ended_hyps)
-
-                if len(local_ended_hyps) > 0 and not is_final:
-                    break
-
-                self.prev_hyps = self.running_hyps
-                self.running_hyps = self.post_process(
-                    process_idx, maxlen, maxlenratio, best, self.ended_hyps
-                )
-
-                if is_final:
-                    for hyp in local_ended_hyps:
-                        self.ended_hyps.append(hyp)
-
-                if len(self.running_hyps) == 0:
-                    logging.info("no hypothesis. Finish decoding.")
-                    return self.assemble_hyps(self.ended_hyps)
-                else:
-                    logging.debug(f"remained hypotheses: {len(self.running_hyps)}")
-                # increment number
-                process_idx += 1
-
-            if is_final: return self.assemble_hyps(self.ended_hyps)
-
+                    prev_repeat = True
+            if prev_repeat: break
                 
+            if maxlenratio == 0.0 and end_detect(
+                    [lh.asdict() for lh in self.ended_hyps], self.process_idx
+            ):
+                logging.info(f"end detected at {self.process_idx}")
+                return self.assemble_hyps(self.ended_hyps)
+
+            if len(local_ended_hyps) > 0 and not is_final:
+                break
+
+            self.prev_hyps = self.running_hyps
+            self.running_hyps = self.post_process(
+                self.process_idx, maxlen, maxlenratio, best, self.ended_hyps
+            )
+
+            if is_final:
+                for hyp in local_ended_hyps:
+                    self.ended_hyps.append(hyp)
+
+            if len(self.running_hyps) == 0:
+                logging.info("no hypothesis. Finish decoding.")
+                return self.assemble_hyps(self.ended_hyps)
+            else:
+                logging.debug(f"remained hypotheses: {len(self.running_hyps)}")
+            # increment number
+            self.process_idx += 1
+        
+        if is_final:
+            return self.assemble_hyps(self.ended_hyps)
+        else:
+            return None
+        
     def assemble_hyps(self, ended_hyps):
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check the number of hypotheses reaching to eos
