@@ -71,7 +71,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             
         self.conservative = True  # always true
 
-
         # set length bounds
         if maxlenratio == 0:
             maxlen = x.shape[0]
@@ -93,11 +92,27 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 cur_end_frame = int(self.block_size - self.look_ahead)
                 process_idx = 0
                 is_first = False
+            else:
+                if (
+                        self.hop_size
+                        and cur_end_frame + int(self.hop_size) + int(self.look_ahead)
+                        < x.shape[0]
+                ):
+                    cur_end_frame += int(self.hop_size)
+                else:
+                    cur_end_frame = x.shape[0]
+                logging.debug("Going to next block: %d", cur_end_frame)
+                if process_idx > 1 and len(prev_hyps) > 0 and self.conservative:
+                    running_hyps = prev_hyps
+                    process_idx -= 1
+                    prev_hyps = []
             
             if cur_end_frame < x.shape[0]:
                 h = x.narrow(0, 0, cur_end_frame)
+                is_final = False
             else:
                 h = x
+                is_final = True
 
             # extend states for ctc
             self.extend(h, running_hyps)
@@ -159,20 +174,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     logging.debug(f"remained hypotheses: {len(running_hyps)}")
                 # increment number
                 process_idx += 1
-
-            if (
-                self.hop_size
-                and cur_end_frame + int(self.hop_size) + int(self.look_ahead)
-                < x.shape[0]
-            ):
-                cur_end_frame += int(self.hop_size)
-            else:
-                cur_end_frame = x.shape[0]
-            logging.debug("Going to next block: %d", cur_end_frame)
-            if process_idx > 1 and len(prev_hyps) > 0 and self.conservative:
-                running_hyps = prev_hyps
-                process_idx -= 1
-                prev_hyps = []
 
 
                 
