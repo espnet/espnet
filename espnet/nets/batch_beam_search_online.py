@@ -71,12 +71,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             
         self.conservative = True  # always true
 
-        cur_end_frame = int(self.block_size - self.look_ahead)
-        process_idx = 0
-        if cur_end_frame < x.shape[0]:
-            h = x.narrow(0, 0, cur_end_frame)
-        else:
-            h = x
 
         # set length bounds
         if maxlenratio == 0:
@@ -89,15 +83,17 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         logging.info("min output length: " + str(minlen))
 
         # main loop of prefix search
-        running_hyps = self.init_hyp(h)
+        running_hyps = self.init_hyp(x)
         prev_hyps = []
         ended_hyps = []
-        prev_repeat = False
 
-        continue_decode = True
-
-        while continue_decode:
-            move_to_next_block = False
+        is_first = True
+        while True:
+            if is_first:
+                cur_end_frame = int(self.block_size - self.look_ahead)
+                process_idx = 0
+                is_first = False
+            
             if cur_end_frame < x.shape[0]:
                 h = x.narrow(0, 0, cur_end_frame)
             else:
@@ -120,6 +116,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 is_local_eos = (
                     best.yseq[torch.arange(n_batch), best.length - 1] == self.eos
                 )
+                prev_repeat = False
+                move_to_next_block = False
                 for i in range(is_local_eos.shape[0]):
                     if is_local_eos[i]:
                         hyp = self._select(best, i)
@@ -135,32 +133,16 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     ):
                         move_to_next_block = True
                         prev_repeat = True
+
+                if move_to_next_block: break
                 if maxlenratio == 0.0 and end_detect(
                     [lh.asdict() for lh in local_ended_hyps], process_idx
                 ):
                     logging.info(f"end detected at {process_idx}")
-                    continue_decode = False
-                    break
+                    return self.assemble_hyps(ended_hyps)
                 if len(local_ended_hyps) > 0 and cur_end_frame < x.shape[0]:
-                    move_to_next_block = True
-
-                if move_to_next_block:
-                    if (
-                        self.hop_size
-                        and cur_end_frame + int(self.hop_size) + int(self.look_ahead)
-                        < x.shape[0]
-                    ):
-                        cur_end_frame += int(self.hop_size)
-                    else:
-                        cur_end_frame = x.shape[0]
-                    logging.debug("Going to next block: %d", cur_end_frame)
-                    if process_idx > 1 and len(prev_hyps) > 0 and self.conservative:
-                        running_hyps = prev_hyps
-                        process_idx -= 1
-                        prev_hyps = []
                     break
 
-                prev_repeat = False
                 prev_hyps = running_hyps
                 running_hyps = self.post_process(
                     process_idx, maxlen, maxlenratio, best, ended_hyps
@@ -172,44 +154,59 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
                 if len(running_hyps) == 0:
                     logging.info("no hypothesis. Finish decoding.")
-                    continue_decode = False
-                    break
+                    return self.assemble_hyps(ended_hyps)
                 else:
                     logging.debug(f"remained hypotheses: {len(running_hyps)}")
                 # increment number
                 process_idx += 1
 
-        if True:
-            nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
-            # check the number of hypotheses reaching to eos
-            if len(nbest_hyps) == 0:
-                logging.warning(
-                    "there is no N-best results, perform recognition "
-                    "again with smaller minlenratio."
-                )
-                return (
-                    []
-                    if minlenratio < 0.1
-                    else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
-                )
+            if (
+                self.hop_size
+                and cur_end_frame + int(self.hop_size) + int(self.look_ahead)
+                < x.shape[0]
+            ):
+                cur_end_frame += int(self.hop_size)
+            else:
+                cur_end_frame = x.shape[0]
+            logging.debug("Going to next block: %d", cur_end_frame)
+            if process_idx > 1 and len(prev_hyps) > 0 and self.conservative:
+                running_hyps = prev_hyps
+                process_idx -= 1
+                prev_hyps = []
 
-            # report the best result
-            best = nbest_hyps[0]
-            for k, v in best.scores.items():
+
+                
+    def assemble_hyps(self, ended_hyps):
+        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+        # check the number of hypotheses reaching to eos
+        if len(nbest_hyps) == 0:
+            logging.warning(
+                "there is no N-best results, perform recognition "
+                "again with smaller minlenratio."
+            )
+            return (
+                []
+                if minlenratio < 0.1
+                else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
+            )
+
+        # report the best result
+        best = nbest_hyps[0]
+        for k, v in best.scores.items():
+            logging.info(
+                f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
+            )
+            logging.info(f"total log probability: {best.score:.2f}")
+            logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
+            logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
+            if self.token_list is not None:
                 logging.info(
-                    f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
+                    "best hypo: "
+                    + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                    + "\n"
                 )
-                logging.info(f"total log probability: {best.score:.2f}")
-                logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
-                logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
-                if self.token_list is not None:
-                    logging.info(
-                        "best hypo: "
-                        + "".join([self.token_list[x] for x in best.yseq[1:-1]])
-                        + "\n"
-                    )
-            return nbest_hyps
-
+        return nbest_hyps
+        
     def extend(self, x: torch.Tensor, hyps: Hypothesis) -> List[Hypothesis]:
         """Extend probabilities and states with more encoded chunks.
 
