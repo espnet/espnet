@@ -41,7 +41,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.running_hyps = None
         self.prev_hyps = []
         self.ended_hyps = []
-
+        self.processed_block = 0
+        self.process_idx = 0
         
     def forward(
         self,
@@ -72,10 +73,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         else:
             self.encbuffer = torch.cat([self.encbuffer,x], axis=0)
 
-        if is_final == False:
-            return []
-        else:
-            x = self.encbuffer
+
+        x = self.encbuffer
             
         # set length bounds
         if maxlenratio == 0:
@@ -87,31 +86,22 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
-        is_first = True
         while True:
-            if is_first:
-                cur_end_frame = int(self.block_size - self.look_ahead)
-                self.process_idx = 0
-                is_first = False
-            else:
-                if (
-                        self.hop_size
-                        and cur_end_frame + int(self.hop_size) + int(self.look_ahead)
-                        < x.shape[0]
-                ):
-                    cur_end_frame += int(self.hop_size)
-                else:
-                    cur_end_frame = x.shape[0]
+            cur_end_frame = self.block_size - self.look_ahead + self.hop_size * self.processed_block
             
             if cur_end_frame < x.shape[0]:
                 h = x.narrow(0, 0, cur_end_frame)
-                is_final = False
+                block_is_final = False
             else:
-                h = x
-                is_final = True
+                if is_final:
+                    h = x
+                    block_is_final = True
+                else:
+                    break
 
-            ret = self.process_one_block(h, is_final, maxlen, maxlenratio)
-            if is_final:
+            ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
+            self.processed_block += 1
+            if block_is_final:
                 return ret
 
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
