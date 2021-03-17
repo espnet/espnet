@@ -89,11 +89,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
-        # main loop of prefix search
-        #running_hyps = self.init_hyp(x)
-        #prev_hyps = []
-        #ended_hyps = []
-
         is_first = True
         while True:
             if is_first:
@@ -139,8 +134,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 is_local_eos = (
                     best.yseq[torch.arange(n_batch), best.length - 1] == self.eos
                 )
+                
                 prev_repeat = False
-                move_to_next_block = False
                 for i in range(is_local_eos.shape[0]):
                     if is_local_eos[i]:
                         hyp = self._select(best, i)
@@ -154,15 +149,15 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                         and best.yseq[i, -1] in best.yseq[i, :-1]
                         and not is_final
                     ):
-                        move_to_next_block = True
                         prev_repeat = True
-
-                if move_to_next_block: break
+                if prev_repeat: break
+                
                 if maxlenratio == 0.0 and end_detect(
-                    [lh.asdict() for lh in local_ended_hyps], process_idx
+                    [lh.asdict() for lh in self.ended_hyps], process_idx
                 ):
                     logging.info(f"end detected at {process_idx}")
                     return self.assemble_hyps(self.ended_hyps)
+
                 if len(local_ended_hyps) > 0 and not is_final:
                     break
 
@@ -183,6 +178,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 # increment number
                 process_idx += 1
 
+            if is_final: return self.assemble_hyps(self.ended_hyps)
 
                 
     def assemble_hyps(self, ended_hyps):
