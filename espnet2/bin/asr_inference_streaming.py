@@ -253,7 +253,7 @@ class Speech2TextStreaming:
             feats,feats_lengths,_ = self.apply_frontend(speech[(i+1)*block_size:len(speech)], states, is_final=True)
             enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=True)
             feats_list.append(enc)
-            enc = torch.cat(feats_list, dim=1)
+            #enc = torch.cat(feats_list, dim=1)
             nbest_hyps = self.beam_search(
                 x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
             )
