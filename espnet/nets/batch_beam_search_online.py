@@ -37,6 +37,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
     def reset(self):
         self.encbuffer = None
+
+        self.running_hyps = None
+        self.prev_hyps = []
+        self.ended_hyps = []
+
         
     def forward(
         self,
@@ -59,6 +64,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
         """
 
+        if self.running_hyps is None:
+            self.running_hyps = self.init_hyp(x)
+        
         if self.encbuffer is None:
             self.encbuffer = x
         else:
@@ -82,9 +90,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         logging.info("min output length: " + str(minlen))
 
         # main loop of prefix search
-        running_hyps = self.init_hyp(x)
-        prev_hyps = []
-        ended_hyps = []
+        #running_hyps = self.init_hyp(x)
+        #prev_hyps = []
+        #ended_hyps = []
 
         is_first = True
         while True:
@@ -102,10 +110,10 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 else:
                     cur_end_frame = x.shape[0]
                 logging.debug("Going to next block: %d", cur_end_frame)
-                if process_idx > 1 and len(prev_hyps) > 0 and self.conservative:
-                    running_hyps = prev_hyps
+                if process_idx > 1 and len(self.prev_hyps) > 0 and self.conservative:
+                    self.running_hyps = self.prev_hyps
                     process_idx -= 1
-                    prev_hyps = []
+                    self.prev_hyps = []
             
             if cur_end_frame < x.shape[0]:
                 h = x.narrow(0, 0, cur_end_frame)
@@ -115,16 +123,16 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 is_final = True
 
             # extend states for ctc
-            self.extend(h, running_hyps)
+            self.extend(h, self.running_hyps)
 
             while process_idx < maxlen:
                 logging.debug("position " + str(process_idx))
-                best = self.search(running_hyps, h)
+                best = self.search(self.running_hyps, h)
 
                 if process_idx == maxlen - 1:
                     # end decoding
-                    running_hyps = self.post_process(
-                        process_idx, maxlen, maxlenratio, best, ended_hyps
+                    self.running_hyps = self.post_process(
+                        process_idx, maxlen, maxlenratio, best, self.ended_hyps
                     )
                 n_batch = best.yseq.shape[0]
                 local_ended_hyps = []
@@ -144,7 +152,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     elif (
                         not prev_repeat
                         and best.yseq[i, -1] in best.yseq[i, :-1]
-                        and cur_end_frame < x.shape[0]
+                        and not is_final
                     ):
                         move_to_next_block = True
                         prev_repeat = True
@@ -154,24 +162,24 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     [lh.asdict() for lh in local_ended_hyps], process_idx
                 ):
                     logging.info(f"end detected at {process_idx}")
-                    return self.assemble_hyps(ended_hyps)
-                if len(local_ended_hyps) > 0 and cur_end_frame < x.shape[0]:
+                    return self.assemble_hyps(self.ended_hyps)
+                if len(local_ended_hyps) > 0 and not is_final:
                     break
 
-                prev_hyps = running_hyps
-                running_hyps = self.post_process(
-                    process_idx, maxlen, maxlenratio, best, ended_hyps
+                self.prev_hyps = self.running_hyps
+                self.running_hyps = self.post_process(
+                    process_idx, maxlen, maxlenratio, best, self.ended_hyps
                 )
 
-                if cur_end_frame >= x.shape[0]:
+                if is_final:
                     for hyp in local_ended_hyps:
-                        ended_hyps.append(hyp)
+                        self.ended_hyps.append(hyp)
 
-                if len(running_hyps) == 0:
+                if len(self.running_hyps) == 0:
                     logging.info("no hypothesis. Finish decoding.")
-                    return self.assemble_hyps(ended_hyps)
+                    return self.assemble_hyps(self.ended_hyps)
                 else:
-                    logging.debug(f"remained hypotheses: {len(running_hyps)}")
+                    logging.debug(f"remained hypotheses: {len(self.running_hyps)}")
                 # increment number
                 process_idx += 1
 
