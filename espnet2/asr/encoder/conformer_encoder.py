@@ -6,6 +6,7 @@
 from typing import Optional
 from typing import Tuple
 
+import logging
 import torch
 
 from typeguard import check_argument_types
@@ -17,11 +18,13 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
+    LegacyRelPositionMultiHeadedAttention,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,  # noqa: H301
     ScaledPositionalEncoding,  # noqa: H301
     RelPositionalEncoding,  # noqa: H301
+    LegacyRelPositionalEncoding,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
@@ -58,11 +61,16 @@ class ConformerEncoder(AbsEncoder):
             If False, no additional linear will be applied. i.e. x -> x + att(x)
         positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
         positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
+        rel_pos_type (str): Whether to use the latest relative positional encoding or
+            the legacy one. The legacy relative positional encoding will be deprecated
+            in the future. More Details can be found in
+            https://github.com/espnet/espnet/pull/2816.
         encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
         encoder_attn_layer_type (str): Encoder attention layer type.
         activation_type (str): Encoder activation function type.
         macaron_style (bool): Whether to use macaron style for positionwise layer.
         use_cnn_module (bool): Whether to use convolution module.
+        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
 
@@ -84,16 +92,29 @@ class ConformerEncoder(AbsEncoder):
         positionwise_layer_type: str = "linear",
         positionwise_conv_kernel_size: int = 3,
         macaron_style: bool = False,
+        rel_pos_type: str = "legacy",
         pos_enc_layer_type: str = "rel_pos",
         selfattention_layer_type: str = "rel_selfattn",
         activation_type: str = "swish",
         use_cnn_module: bool = True,
+        zero_triu: bool = False,
         cnn_module_kernel: int = 31,
         padding_idx: int = -1,
     ):
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
+
+        if rel_pos_type == "legacy":
+            if pos_enc_layer_type == "rel_pos":
+                pos_enc_layer_type = "legacy_rel_pos"
+            if selfattention_layer_type == "rel_selfattn":
+                selfattention_layer_type = "legacy_rel_selfattn"
+        elif rel_pos_type == "latest":
+            assert selfattention_layer_type != "legacy_rel_selfattn"
+            assert pos_enc_layer_type != "legacy_rel_pos"
+        else:
+            raise ValueError("unknown rel_pos_type: " + rel_pos_type)
 
         activation = get_activation(activation_type)
         if pos_enc_layer_type == "abs_pos":
@@ -103,6 +124,12 @@ class ConformerEncoder(AbsEncoder):
         elif pos_enc_layer_type == "rel_pos":
             assert selfattention_layer_type == "rel_selfattn"
             pos_enc_class = RelPositionalEncoding
+        elif pos_enc_layer_type == "legacy_rel_pos":
+            assert selfattention_layer_type == "legacy_rel_selfattn"
+            pos_enc_class = LegacyRelPositionalEncoding
+            logging.warning(
+                "Using legacy_rel_pos and it will be deprecated in the future."
+            )
         else:
             raise ValueError("unknown pos_enc_layer: " + pos_enc_layer_type)
 
@@ -185,6 +212,17 @@ class ConformerEncoder(AbsEncoder):
                 output_size,
                 attention_dropout_rate,
             )
+        elif selfattention_layer_type == "legacy_rel_selfattn":
+            assert pos_enc_layer_type == "legacy_rel_pos"
+            encoder_selfattn_layer = LegacyRelPositionMultiHeadedAttention
+            encoder_selfattn_layer_args = (
+                attention_heads,
+                output_size,
+                attention_dropout_rate,
+            )
+            logging.warning(
+                "Using legacy_rel_selfattn and it will be deprecated in the future."
+            )
         elif selfattention_layer_type == "rel_selfattn":
             assert pos_enc_layer_type == "rel_pos"
             encoder_selfattn_layer = RelPositionMultiHeadedAttention
@@ -192,6 +230,7 @@ class ConformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                zero_triu,
             )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)

@@ -1,11 +1,14 @@
 # coding: utf-8
 
 import argparse
+import tempfile
 
+import json
 import numpy as np
 import pytest
 import torch
 
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
@@ -35,7 +38,13 @@ def get_default_train_args(**kwargs):
         dropout_rate_embed_decoder=0.0,
         joint_dim=2,
         joint_activation_type="tanh",
-        mtlalpha=1.0,
+        transducer_weight=1.0,
+        aux_task_type=None,
+        aux_task_weight=0.1,
+        aux_task_layer_list=[],
+        aux_ctc=False,
+        aux_ctc_weight=1.0,
+        aux_ctc_dropout_rate=0.0,
         use_frontend=False,
         trans_type="warp-transducer",
         char_list=["a", "b", "c", "d"],
@@ -49,6 +58,7 @@ def get_default_train_args(**kwargs):
         verbose=0,
         outdir=None,
         rnnlm=None,
+        model_module="espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
     )
     train_defaults.update(kwargs)
 
@@ -283,3 +293,104 @@ def test_pytorch_multi_gpu_trainable(train_dic):
 
     loss = 1.0 / ngpu * model(*batch)
     loss.backward(loss.new_ones(ngpu))
+
+
+def test_calculate_plot_attention():
+    idim, odim, ilens, olens = get_default_scope_inputs()
+    train_args = get_default_train_args()
+
+    model = E2E(idim, odim, train_args)
+
+    batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=False)
+
+    assert model.calculate_all_attentions(*batch) == []
+
+
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {"elayers": 2, "aux_task_type": "default", "aux_task_layer_list": [0]},
+        {
+            "etype": "vggblstm",
+            "elayers": 3,
+            "aux_task_type": "symm_kl_div",
+            "aux_task_layer_list": [0, 1],
+        },
+        {
+            "etype": "blstm",
+            "elayers": 2,
+            "aux_task_type": "both",
+            "aux_task_layer_list": [0],
+        },
+        {"elayers": 2, "aux_ctc": True, "aux_ctc_weight": 0.5},
+        {"elayers": 2, "aux_cross_entropy": True, "aux_cross_entropy_weight": 0.5},
+    ],
+)
+def test_auxiliary_task(train_dic):
+    idim, odim, ilens, olens = get_default_scope_inputs()
+
+    train_args = get_default_train_args(**train_dic)
+    recog_args = get_default_recog_args()
+
+    model = E2E(idim, odim, train_args)
+
+    batch = prepare_inputs(idim, odim, ilens, olens)
+
+    loss = model(*batch)
+    loss.backward()
+
+    beam_search = BeamSearchTransducer(
+        decoder=model.dec,
+        joint_network=model.joint_network,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+    )
+
+    tmpdir = tempfile.mkdtemp(prefix="tmp_", dir="/tmp")
+    torch.save(model.state_dict(), tmpdir + "/model.dummy.best")
+
+    with open(tmpdir + "/model.json", "wb") as f:
+        f.write(
+            json.dumps(
+                (idim, odim, vars(train_args)),
+                indent=4,
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf_8")
+        )
+
+    with torch.no_grad():
+        in_data = np.random.randn(20, idim)
+
+        model, _ = load_trained_model(tmpdir + "/model.dummy.best", training=False)
+
+        model.recognize(in_data, beam_search)
+
+
+def test_invalid_aux_task_layer_list():
+    idim, odim, ilens, olens = get_default_scope_inputs()
+    train_args = get_default_train_args(aux_task_type="default")
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)
+
+    train_args = get_default_train_args(
+        aux_task_type="default", aux_task_layer_list="foo"
+    )
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)
+
+    train_args = get_default_train_args(
+        aux_task_type="default", aux_task_layer_list=[0, 4]
+    )
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)

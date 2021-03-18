@@ -29,12 +29,14 @@ HKUST2=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
+MINI_LIBRISPEECH=downloads
 LIBRITTS=
 LJSPEECH=downloads
 NSC=
 JSSS=downloads
 JSUT=downloads
 JVS=downloads
+SPGISPEECH=
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
@@ -72,6 +74,7 @@ HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
 JAVA=downloads
+RU_OPEN_STT=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -103,6 +106,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
+    MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
     JSSS=downloads

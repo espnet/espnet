@@ -32,9 +32,22 @@ class CTC(torch.nn.Module):
             if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
             else "builtin"
         )
+
+        # ctc_type = buitin not support Pytorch=1.0.1
+        if self.ctc_type == "builtin" and (
+            LooseVersion(torch.__version__) < LooseVersion("1.1.0")
+        ):
+            self.ctc_type = "cudnnctc"
+
         if ctc_type != self.ctc_type:
             logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")
+
         if self.ctc_type == "builtin":
+            reduction_type = "sum" if reduce else "none"
+            self.ctc_loss = torch.nn.CTCLoss(
+                reduction=reduction_type, zero_infinity=True
+            )
+        elif self.ctc_type == "cudnnctc":
             reduction_type = "sum" if reduce else "none"
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
         elif self.ctc_type == "warpctc":
@@ -54,7 +67,7 @@ class CTC(torch.nn.Module):
         self.reduce = reduce
 
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen):
-        if self.ctc_type == "builtin":
+        if self.ctc_type in ["builtin", "cudnnctc"]:
             th_pred = th_pred.log_softmax(2)
             # Use the deterministic CuDNN implementation of CTC loss to avoid
             #  [issue#17798](https://github.com/pytorch/pytorch/issues/17798)
@@ -85,15 +98,40 @@ class CTC(torch.nn.Module):
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
 
-        self.loss = None
-        hlens = torch.from_numpy(np.fromiter(hlens, dtype=np.int32))
-        olens = torch.from_numpy(np.fromiter((x.size(0) for x in ys), dtype=np.int32))
-
         # zero padding for hs
         ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
+        if self.ctc_type != "gtnctc":
+            ys_hat = ys_hat.transpose(0, 1)
 
-        # zero padding for ys
-        ys_true = torch.cat(ys).cpu().int()  # batch x olen
+        if self.ctc_type == "builtin":
+            olens = to_device(ys_hat, torch.LongTensor([len(s) for s in ys]))
+            hlens = hlens.long()
+            ys_pad = torch.cat(ys)  # without this the code breaks for asr_mix
+            self.loss = self.loss_fn(ys_hat, ys_pad, hlens, olens)
+        else:
+            self.loss = None
+            hlens = torch.from_numpy(np.fromiter(hlens, dtype=np.int32))
+            olens = torch.from_numpy(
+                np.fromiter((x.size(0) for x in ys), dtype=np.int32)
+            )
+            # zero padding for ys
+            ys_true = torch.cat(ys).cpu().int()  # batch x olen
+            # get ctc loss
+            # expected shape of seqLength x batchSize x alphabet_size
+            dtype = ys_hat.dtype
+            if self.ctc_type == "warpctc" or dtype == torch.float16:
+                # warpctc only supports float32
+                # torch.ctc does not support float16 (#1751)
+                ys_hat = ys_hat.to(dtype=torch.float32)
+            if self.ctc_type == "cudnnctc":
+                # use GPU when using the cuDNN implementation
+                ys_true = to_device(hs_pad, ys_true)
+            if self.ctc_type == "gtnctc":
+                # keep as list for gtn
+                ys_true = ys
+            self.loss = to_device(
+                hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)
+            ).to(dtype=dtype)
 
         # get length info
         logging.info(
@@ -107,24 +145,6 @@ class CTC(torch.nn.Module):
             + "".join(str(olens).split("\n"))
         )
 
-        # get ctc loss
-        # expected shape of seqLength x batchSize x alphabet_size
-        dtype = ys_hat.dtype
-        if self.ctc_type != "gtnctc":
-            ys_hat = ys_hat.transpose(0, 1)
-        if self.ctc_type == "warpctc" or dtype == torch.float16:
-            # warpctc only supports float32
-            # torch.ctc does not support float16 (#1751)
-            ys_hat = ys_hat.to(dtype=torch.float32)
-        if self.ctc_type == "builtin":
-            # use GPU when using the cuDNN implementation
-            ys_true = to_device(hs_pad, ys_true)
-        if self.ctc_type == "gtnctc":
-            # keep as list for gtn
-            ys_true = ys
-        self.loss = to_device(hs_pad, self.loss_fn(ys_hat, ys_true, hlens, olens)).to(
-            dtype=dtype
-        )
         if self.reduce:
             # NOTE: sum() is needed to keep consistency
             # since warpctc return as tensor w/ shape (1,)

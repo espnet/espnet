@@ -102,6 +102,7 @@ class IterableESPnetDataset(IterableDataset):
         self.debug_info = {}
         non_iterable_list = []
         self.path_name_type_list = []
+
         for path, name, _type in path_name_type_list:
             if name in self.debug_info:
                 raise RuntimeError(f'"{name}" is duplicated for data-key')

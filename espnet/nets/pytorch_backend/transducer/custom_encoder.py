@@ -23,6 +23,7 @@ class CustomEncoder(torch.nn.Module):
         positionwise_activation_type (str): positionwise activation type
         conv_mod_activation_type (str): convolutional module activation type
         normalize_before (bool): whether to use layer_norm before the first block
+        aux_task_layer_list (list): list of layer ids for intermediate output
         padding_idx (int): padding_idx for embedding input layer (if specified)
 
     """
@@ -39,6 +40,7 @@ class CustomEncoder(torch.nn.Module):
         positionwise_activation_type="relu",
         conv_mod_activation_type="relu",
         normalize_before=True,
+        aux_task_layer_list=[],
         padding_idx=-1,
     ):
         """Construct an CustomEncoder object."""
@@ -68,6 +70,10 @@ class CustomEncoder(torch.nn.Module):
         if self.normalize_before:
             self.after_norm = LayerNorm(self.enc_out)
 
+        self.n_blocks = len(enc_arch) * repeat_block
+
+        self.aux_task_layer_list = aux_task_layer_list
+
     def forward(self, xs, masks):
         """Encode input sequence.
 
@@ -76,7 +82,9 @@ class CustomEncoder(torch.nn.Module):
             masks (torch.Tensor): input mask
 
         Returns:
-            xs (torch.Tensor): position embedded input
+            xs (torch.Tensor or tuple):
+                position embedded output or
+                (position embedded output, auxiliary outputs)
             mask (torch.Tensor): position embedded mask
 
         """
@@ -85,12 +93,32 @@ class CustomEncoder(torch.nn.Module):
         else:
             xs = self.embed(xs)
 
-        xs, masks = self.encoders(xs, masks)
+        if self.aux_task_layer_list:
+            aux_xs_list = []
+
+            for b in range(self.n_blocks):
+                xs, masks = self.encoders[b](xs, masks)
+
+                if b in self.aux_task_layer_list:
+                    if isinstance(xs, tuple):
+                        aux_xs = xs[0]
+                    else:
+                        aux_xs = xs
+
+                    if self.normalize_before:
+                        aux_xs_list.append(self.after_norm(aux_xs))
+                    else:
+                        aux_xs_list.append(aux_xs)
+        else:
+            xs, masks = self.encoders(xs, masks)
 
         if isinstance(xs, tuple):
             xs = xs[0]
 
         if self.normalize_before:
             xs = self.after_norm(xs)
+
+        if self.aux_task_layer_list:
+            return (xs, aux_xs_list), masks
 
         return xs, masks

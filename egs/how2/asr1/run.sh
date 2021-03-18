@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -95,27 +95,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # Divide into source and target languages
     for x in train val dev5 test_set_iwslt2019; do
         utils/data/get_utt2num_frames.sh data/${x}
-        local/divide_lang.sh ${x}
+        divide_lang.sh ${x} "en pt"
     done
 
+    # remove long and short utterances
     for x in train val; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in en pt; do
-            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.pt.tmp/reclist1
-        cut -f 1 -d " " data/${x}.pt.tmp/text > data/${x}.pt.tmp/reclist2
-        comm -12 data/${x}.pt.tmp/reclist1 data/${x}.pt.tmp/reclist2 > data/${x}.pt.tmp/reclist
-
-        for lang in en pt; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.pt.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --maxframes 3000 --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en pt"
     done
 
     # compute global CMVN
@@ -134,9 +119,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for x in ${recog_set}; do
+    for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
             data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} \
@@ -171,9 +154,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${src_case} --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${src_case} --bpecode ${bpemodel}.model \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}.json
-    for x in ${recog_set}; do
+    for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${x}/text.${src_case} --bpecode ${bpemodel}.model \
             data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}.json
@@ -292,7 +273,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${recog_model} \
             --rnnlm ${lmexpdir}/rnnlm.model.best
 
-        local/score_sclite.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
+        score_sclite_case.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}
     ) &
     pids+=($!) # store background pids

@@ -22,6 +22,7 @@ requirements = {
         "editdistance==0.5.2",
         "ctc-segmentation>=1.4.0",
         "wandb",
+        "filelock",
         # DNN related packages are installed by Makefile
         # 'torch==1.0.1'
         # "chainer==6.0.0",
@@ -91,8 +92,12 @@ try:
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
         requirements["install"].append("torch_optimizer")
+    if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
+        requirements["install"].append("fairscale")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+        requirements["install"].append("torchaudio==0.8.0")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
         requirements["install"].append("torchaudio==0.7.2")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
         requirements["install"].append("torchaudio==0.7.0")

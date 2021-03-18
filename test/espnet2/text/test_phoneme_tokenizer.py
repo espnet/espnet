@@ -24,6 +24,13 @@ try:
     del pypinyin
 except ImportError:
     pass
+try:
+    import phonemizer
+
+    params.extend(["espeak_ng_arabic"])
+    del phonemizer
+except ImportError:
+    pass
 
 
 @pytest.fixture(params=params)
@@ -251,6 +258,9 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "i1",
             "。",
         ]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic":
+        input = u"السلام عليكم"
+        output = ["ʔ", "a", "s", "s", "ˈa", "l", "aː", "m", "ʕ", "l", "ˈiː", "k", "m"]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output

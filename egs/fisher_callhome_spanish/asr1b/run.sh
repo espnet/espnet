@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -100,39 +100,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/fisher_train/wav.scp
+    speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "es en" data/fisher_train data/train_sp ${fbankdir}
     for x in fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         # upsample audio from 8k to 16k to make a recipe consistent with others
         sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
 
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
-
-    # speed-perturbed. data/${train_set_ori} is the orignal and data/${train_set} is the augmented
-    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/fisher_train/wav.scp
-    utils/perturb_data_dir_speed.sh 0.9 data/fisher_train data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/fisher_train data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/fisher_train data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/train_sp data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_sp exp/make_fbank/train_sp ${fbankdir}
-    utils/fix_data_dir.sh data/train_sp
-    utils/validate_data_dir.sh data/train_sp
-
-    for lang in es en; do
-        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.${case}.${lang} >data/train_sp/text.${case}.${lang}
-        done
-        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.${case}.${lang} >>data/train_sp/text.${case}.${lang}
-        done
-        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
-        for case in lc.rm lc tc; do
-            utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.${case}.${lang} >>data/train_sp/text.${case}.${lang}
-        done
     done
 
     # Divide into source and target languages
@@ -148,24 +123,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
     # NOTE: do not use callhome_train for the training set
 
+    # remove long and short utterances
     for x in ${train_set_prefix} train_dev; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in es en; do
-            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract common lines
-        cut -f 1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
-        cut -f 1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
-        comm -12 data/${x}.en.tmp/reclist1 data/${x}.en.tmp/reclist2 > data/${x}.en.tmp/reclist
-
-        for lang in es en; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
+        clean_corpus.sh --maxframes 3000 --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "es en"
     done
 
     # compute global CMVN
@@ -184,9 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for x in ${recog_set}; do
+    for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
             data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} \
@@ -221,9 +179,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${src_case} --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${src_case} --bpecode ${bpemodel}.model \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}.json
-    for x in ${recog_set}; do
+    for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${x}/text.${src_case} --bpecode ${bpemodel}.model \
             data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}.json
@@ -299,9 +255,9 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+       [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best
@@ -328,6 +284,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
 
+        # reset log for RTF calculation
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
+
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${src_case}.json
 
@@ -342,8 +303,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${recog_model} \
             --rnnlm ${lmexpdir}/rnnlm.model.best
 
-        local/score_sclite.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
+        score_sclite_case.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}
+
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done

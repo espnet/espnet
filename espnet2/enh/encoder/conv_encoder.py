@@ -29,8 +29,10 @@ class ConvEncoder(AbsEncoder):
         """Forward.
 
         Args:
-        input (torch.Tensor): mixed speech [Batch, sample]
-        ilens (torch.Tensor): input lengths [Batch]
+            input (torch.Tensor): mixed speech [Batch, sample]
+            ilens (torch.Tensor): input lengths [Batch]
+        Returns:
+            feature (torch.Tensor): mixed feature after encoder [Batch, flens, channel]
         """
         assert input.dim() == 2, "Currently only support single channle input"
 

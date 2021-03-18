@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;

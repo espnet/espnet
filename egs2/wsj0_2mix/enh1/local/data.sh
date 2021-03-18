@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020  Shanghai Jiao Tong University (Authors: Chenda Li, Wangyou Zhang)
 # Apache 2.0

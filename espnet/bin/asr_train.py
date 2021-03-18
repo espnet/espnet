@@ -140,7 +140,7 @@ def get_parser(parser=None, required=True):
         "--ctc_type",
         default="warpctc",
         type=str,
-        choices=["builtin", "warpctc", "gtnctc"],
+        choices=["builtin", "warpctc", "gtnctc", "cudnnctc"],
         help="Type of CTC implementation to calculate loss.",
     )
     parser.add_argument(
@@ -379,7 +379,7 @@ def get_parser(parser=None, required=True):
     )
     parser.add_argument(
         "--dec-init-mods",
-        default="att., dec.",
+        default="att.,dec.",
         type=lambda s: [str(mod) for mod in s.split(",") if s != ""],
         help="List of decoder modules to initialize, separated by a comma.",
     )
@@ -535,7 +535,10 @@ def main(cmd_args):
     from espnet.utils.dynamic_import import dynamic_import
 
     if args.model_module is None:
-        model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+        if args.num_spkrs == 1:
+            model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+        else:
+            model_module = "espnet.nets." + args.backend + "_backend.e2e_asr_mix:E2E"
     else:
         model_module = args.model_module
     model_class = dynamic_import(model_module)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # E2E_mgb2
 # Copyright (C) 2020 Kanari AI  (Amir Hussein)
 

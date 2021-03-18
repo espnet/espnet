@@ -190,6 +190,7 @@ class TTSTask(AbsTask):
                 "pyopenjtalk_accent_with_pause",
                 "pypinyin_g2p",
                 "pypinyin_g2p_phone",
+                "espeak_ng_arabic",
             ],
             default=None,
             help="Specify g2p method if --token_type=phn",

@@ -2,15 +2,13 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.0.1|1.1.0|1.2.0|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-|ubuntu18/python3.8/pip||||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu18/python3.6/conda||||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|ubuntu20/python3.6/conda||||||||[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)|
-|debian9/python3.6/conda||||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
-|centos7/python3.6/conda||||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)|
-|[docs/coverage] python3.8||||||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
+|system/pytorch ver.|1.0.1|1.1.0|1.2.0|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|1.8.0|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|ubuntu18/python3.8/pip|||||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|debian9/python3.6/conda|||||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
+|centos7/python3.6/conda|||||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)|
+|[docs/coverage] python3.8|||||||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
 
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
 [![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
@@ -59,6 +57,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - CTC segmentation
 - Non-autoregressive based on Mask CTC
 - ASR examples for supporting endangered language documentation (Please refer to egs/puebla_nahuatl and egs/yoloxochitl_mixtec for details)
+- Wav2Vec2.0 pretrained model as Encoder, imported from [FairSeq](https://github.com/pytorch/fairseq/tree/master/fairseq).
 
 ### TTS: Text-to-speech
 - Tacotron2
@@ -100,12 +99,14 @@ To train the neural vocoder, please check the following repositories:
 ### ESPnet2
 See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
-- Indepedent from Kaldi/Chainer
+- Indepedent from Kaldi/Chainer, unlike ESPnet1
 - On the fly feature extraction and text processing when training
-- Multi GPUs training on single/multi nodes (Distributed training)
+- Supporting DistributedDataParallel and DaraParallel both
+- Supporting multiple nodes training and integrated with [Slurm](https://slurm.schedmd.com/) or MPI
+- Supporting Sharded Training provided by [fairscale](https://github.com/facebookresearch/fairscale)
 - A template recipe which can be applied for all corpora
 - Possible to train any size of corpus without cpu memory error
-- (Under development) [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
+- [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 - Integrated with [wandb](https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration)
 
 ## Installation
@@ -158,7 +159,9 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval1/eval2/eval3              | 5.7/3.8/4.2     | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/csj/asr1/RESULTS.md#pytorch-backend-transformer-without-any-hyperparameter-tuning)                            |
 | **ESPnet2** CSJ eval1/eval2/eval3              | 4.5/3.3/3.6     | N/A     | [link](https://github.com/espnet/espnet/tree/master/egs2/csj/asr1#initial-conformer-results)                            |
 | HKUST dev              | 23.5    | N/A     | [link](https://github.com/espnet/espnet/blob/master/egs/hkust/asr1/RESULTS.md#transformer-only-20-epochs)                                                             |
+|  **ESPnet2** HKUST dev              | 21.2    | N/A     | [link](https://github.com/espnet/espnet/tree/master/egs2/hkust/asr1#transformer-asr--transformer-lm)                                                             |
 | Librispeech dev_clean/dev_other/test_clean/test_other  | N/A     | 1.9/4.9/2.1/4.9     | [link](https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-conformer-with-specaug--speed-perturbation-8-gpus--transformer-lm-4-gpus)             |
+| **ESPnet2** Librispeech dev_clean/dev_other/test_clean/test_other  | 0.7/2.2/0.7/2.1    | 1.9/4.6/2.1/4.7     | [link](https://github.com/espnet/espnet/tree/master/egs2/librispeech/asr1#with-transformer-lm)             |
 | Switchboard (eval2000) callhm/swbd           | N/A     | 14.0/6.8     | [link](https://github.com/espnet/espnet/blob/master/egs/swbd/asr1/RESULTS.md#conformer-with-bpe-2000-specaug-speed-perturbation-transformer-lm-decoding)   |
 | TEDLIUM2 dev/test           | N/A     | 8.6/7.2     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#conformer-large-model--specaug--speed-perturbation--rnnlm)   |
 | TEDLIUM3 dev/test           | N/A     | 9.6/7.6     | [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md)                   |
