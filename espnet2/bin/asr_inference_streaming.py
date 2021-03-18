@@ -104,6 +104,14 @@ class Speech2TextStreaming:
             length_bonus=penalty,
         )
 
+        assert 'encoder_conf' in asr_train_args
+        assert 'look_ahead' in asr_train_args.encoder_conf
+        assert 'hop_size' in asr_train_args.encoder_conf
+        assert 'block_size' in asr_train_args.encoder_conf
+        look_ahead = asr_train_args.encoder_conf['look_ahead']
+        hop_size   = asr_train_args.encoder_conf['hop_size']
+        block_size = asr_train_args.encoder_conf['block_size']
+        
         assert batch_size == 1
         
         beam_search = BatchBeamSearchOnline(

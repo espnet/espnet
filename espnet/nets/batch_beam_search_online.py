@@ -25,15 +25,15 @@ class BatchBeamSearchOnline(BatchBeamSearch):
     (https://arxiv.org/abs/2006.14941).
     """
 
-    def __init__(self, *args, feature_width=0, text_width=0, **kwargs):
+    def __init__(self, *args, feature_width=0, text_width=0, block_size=40, hop_size=16, look_ahead=16, **kwargs):
         super().__init__(*args, **kwargs)
         self.reset()
         self.feature_width = feature_width
         self.text_width = text_width
 
-        self.block_size = 40
-        self.hop_size = 16
-        self.look_ahead = 16
+        self.block_size = block_size
+        self.hop_size = hop_size
+        self.look_ahead = look_ahead
 
     def reset(self):
         self.encbuffer = None
