@@ -117,9 +117,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
         minlen = int(minlenratio * x.size(0))
-        logging.info("decoder input length: " + str(x.shape[0]))
-        logging.info("max output length: " + str(maxlen))
-        logging.info("min output length: " + str(minlen))
+        #logging.info("decoder input length: " + str(x.shape[0]))
+        #logging.info("max output length: " + str(maxlen))
+        #logging.info("min output length: " + str(minlen))
 
         while True:
             cur_end_frame = self.block_size - self.look_ahead + self.hop_size * self.processed_block
@@ -134,13 +134,16 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 else:
                     break
 
+            logging.debug("Start processing block: %d", self.processed_block)
+            logging.debug("  Feature length: {}, current position: {}".format(h.shape[0], self.process_idx))
             if self.encoded_feat_length_limit > 0 and h.shape[0] > self.encoded_feat_length_limit:
                 h = h.narrow(0, h.shape[0] - self.encoded_feat_length_limit, self.encoded_feat_length_limit)
-                self.running_hyps.states['decoder'] = [ None for _ in self.running_hyps.states['decoder']]
+                #self.running_hyps.states['decoder'] = [ None for _ in self.running_hyps.states['decoder']]
                 
             if self.running_hyps is None:
                 self.running_hyps = self.init_hyp(h)
             ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
+            logging.debug("Finished processing block: %d", self.processed_block)
             self.processed_block += 1
             if block_is_final:
                 return ret
@@ -148,7 +151,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
         # extend states for ctc
         self.extend(h, self.running_hyps)
-
         while self.process_idx < maxlen:
             logging.debug("position " + str(self.process_idx))
             best = self.search(self.running_hyps, h)
@@ -173,10 +175,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 # This is a implicit implementation of
                 # Eq (11) in https://arxiv.org/abs/2006.14941
                 # A flag prev_repeat is used instead of using set
-                # NOTE(fujihara): The below lines are comented out
-                # because this criteria is so sensitive that the beam
+                # NOTE(fujihara): I made it possible to turned off
+                # the below lines using disable_repetition_detection flag,
+                # because this criteria is too sensitive that the beam
                 # search starts only after the entire inputs are available.
-                # Empirically, this change didn't affect the performance.
+                # Empirically, this flag didn't affect the performance.
                 elif (
                         not self.disable_repetition_detection
                         and not prev_repeat
@@ -184,7 +187,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                         and not is_final
                 ):
                     prev_repeat = True
-            if prev_repeat: break
+            if prev_repeat:
+                logging.info("Detected repetition.")
+                break
                 
             if is_final and maxlenratio == 0.0 and end_detect(
                     [lh.asdict() for lh in self.ended_hyps], self.process_idx
@@ -193,6 +198,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 return self.assemble_hyps(self.ended_hyps)
 
             if len(local_ended_hyps) > 0 and not is_final:
+                logging.info("Detected hyp(s) reaching EOS in this block.")
                 break
 
             self.prev_hyps = self.running_hyps
@@ -215,13 +221,13 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         if is_final:
             return self.assemble_hyps(self.ended_hyps)
         else:
-            logging.debug("Going to next block: %d", h.shape[0])
             if self.process_idx > 1 and len(self.prev_hyps) > 0:
                 self.running_hyps = self.prev_hyps
                 self.process_idx -= 1
                 self.prev_hyps = []
 
             return None
+
         
     def assemble_hyps(self, ended_hyps):
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
