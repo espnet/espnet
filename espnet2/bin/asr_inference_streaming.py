@@ -164,9 +164,15 @@ class Speech2TextStreaming:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+
+        self.reset()
+
+    def reset(self):
+        self.frontend_states = None
+        self.encoder_states = None
+        self.beam_search.reset()
         
     def apply_frontend(self, speech: torch.Tensor, prev_states = None, is_final: bool = False):
-        # FFTの時のみ実装
         if prev_states is not None:
             buf = prev_states["waveform_buffer"]
             speech = torch.cat([buf, speech], dim=0)
@@ -215,7 +221,7 @@ class Speech2TextStreaming:
         
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self, speech: Union[torch.Tensor, np.ndarray], is_final: bool = True
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
@@ -230,35 +236,43 @@ class Speech2TextStreaming:
         # Input as audio signal
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
-        self.beam_search.reset()
-        block_size=512
-        if block_size == 0:
-            feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
-            enc, _, _ = self.asr_model.encoder(feats, feats_lengths, is_final=True)
-            nbest_hyps = self.beam_search(
-                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
-            )
-        else:
-            states=None
-            enc_states=None
-            feats_list=[]
-            for i in range(len(speech)//block_size):
-                feats,feats_lengths,states = self.apply_frontend(speech[i*block_size:(i+1)*block_size], states, is_final=False)
-                enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=False)                
-                feats_list.append(enc)
-                nbest_hyps = self.beam_search(
-                    x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=False
-                )
-                
-            feats,feats_lengths,_ = self.apply_frontend(speech[(i+1)*block_size:len(speech)], states, is_final=True)
-            enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=True)
-            feats_list.append(enc)
-            #enc = torch.cat(feats_list, dim=1)
-            nbest_hyps = self.beam_search(
-                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
-            )
             
-
+        feats,feats_lengths,self.frontend_states = self.apply_frontend(speech, self.frontend_states, is_final=is_final)
+        enc, _, self.encoder_states = self.asr_model.encoder(feats, feats_lengths, self.encoder_states, is_final=is_final)
+        nbest_hyps = self.beam_search(
+            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=is_final
+        )
+        
+        #block_size=0
+        #if block_size == 0:
+        #    feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
+        #    enc, _, _ = self.asr_model.encoder(feats, feats_lengths, is_final=True)
+        #    nbest_hyps = self.beam_search(
+        #        x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
+        #    )
+        #else:
+        #    states=None
+        #    enc_states=None
+        #    feats_list=[]
+        #    for i in range(len(speech)//block_size):
+        #        feats,feats_lengths,states = self.apply_frontend(speech[i*block_size:(i+1)*block_size], states, is_final=False)
+        #        enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=False)                
+        #        feats_list.append(enc)
+        #        nbest_hyps = self.beam_search(
+        #            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=False
+        #        )
+                
+        #    feats,feats_lengths,_ = self.apply_frontend(speech[(i+1)*block_size:len(speech)], states, is_final=True)
+        #    enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=True)
+        #    feats_list.append(enc)
+        #    #enc = torch.cat(feats_list, dim=1)
+        #    nbest_hyps = self.beam_search(
+        #        x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
+        #    )
+            
+        if not is_final:
+            return
+        
         nbest_hyps = nbest_hyps[: self.nbest]
         results = []
         for hyp in nbest_hyps:
@@ -280,6 +294,7 @@ class Speech2TextStreaming:
             results.append((text, token, token_int, hyp))
 
         assert check_return_type(results)
+        self.reset()
         return results
 
 
@@ -309,6 +324,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    sim_chunk_length: int,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -372,10 +388,18 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            assert len(batch.keys()) == 1
 
-            # N-best list of (text, token, token_int, hyp_object)
+            sim_chunk_length = 512
             try:
-                results = speech2text(**batch)
+                if sim_chunk_length == 0:
+                # N-best list of (text, token, token_int, hyp_object)
+                    results = speech2text(**batch)
+                else:
+                    speech = batch['speech']
+                    for i in range(len(speech)//sim_chunk_length):
+                        speech2text(speech=speech[i*sim_chunk_length:(i+1)*sim_chunk_length], is_final=False)
+                    results = speech2text(speech[(i+1)*sim_chunk_length:len(speech)], is_final=True)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
@@ -499,6 +523,14 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+
+    group.add_argument(
+        "--sim_chunk_length",
+        type=int,
+        default=0,
+        help="The length of one chunk, to which speech will be "
+        "divided for evalution of streaming processing."
     )
 
     return parser
