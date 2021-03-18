@@ -28,8 +28,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
     def __init__(
             self,
             *args,
-            feature_width=0,
-            text_width=0,
             block_size=40,
             hop_size=16,
             look_ahead=16,
@@ -39,9 +37,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.reset()
-        self.feature_width = feature_width
-        self.text_width = text_width
         self.block_size = block_size
         self.hop_size = hop_size
         self.look_ahead = look_ahead
@@ -49,6 +44,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.encoded_feat_length_limit = encoded_feat_length_limit
         self.decoder_text_length_limit = decoder_text_length_limit
 
+        self.reset()
+        
     def reset(self):
         self.encbuffer = None
 
@@ -78,9 +75,10 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         scores = dict()
         states = dict()
         for k, d in self.full_scorers.items():
-            if self.decoder_text_length_limit > 0 and self.len(hyp.yseq) > 0 and len(hyp.yseq[0]) > self.decoder_text_length_limit :
-                temp_yseq = hyp.yseq.narrow(1, -self.decoder_text_length_limit, self.decoder_text_length_oimit).clone()
+            if self.decoder_text_length_limit > 0 and len(hyp.yseq) > 0 and len(hyp.yseq[0]) > self.decoder_text_length_limit:
+                temp_yseq = hyp.yseq.narrow(1, -self.decoder_text_length_limit, self.decoder_text_length_limit).clone()
                 temp_yseq[:,0] = self.sos
+                self.running_hyps.states['decoder'] = [ None for _ in self.running_hyps.states['decoder']]
                 scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
             else:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
@@ -179,12 +177,13 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 # because this criteria is so sensitive that the beam
                 # search starts only after the entire inputs are available.
                 # Empirically, this change didn't affect the performance.
-                #elif (
-                #        not prev_repeat
-                #        and best.yseq[i, -1] in best.yseq[i, :-1]
-                #        and not is_final
-                #):
-                #    prev_repeat = True
+                elif (
+                        not self.disable_repetition_detection
+                        and not prev_repeat
+                        and best.yseq[i, -1] in best.yseq[i, :-1]
+                        and not is_final
+                ):
+                    prev_repeat = True
             if prev_repeat: break
                 
             if is_final and maxlenratio == 0.0 and end_detect(

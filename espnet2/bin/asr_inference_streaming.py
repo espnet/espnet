@@ -66,8 +66,9 @@ class Speech2TextStreaming:
         lm_weight: float = 1.0,
         penalty: float = 0.0,
         nbest: int = 1,
-        text_width = 0,
-        feature_width = 0,    
+        disable_repetition_detection=False,
+        decoder_text_length_limit=0,
+        encoded_feat_length_limit=0,
     ):
         assert check_argument_types()
 
@@ -123,8 +124,9 @@ class Speech2TextStreaming:
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key=None if ctc_weight == 1.0 else "full",
-            feature_width=200,
-            text_width=20,
+            disable_repetition_detection=disable_repetition_detection,
+            decoder_text_length_limit=decoder_text_length_limit,
+            encoded_feat_length_limit=encoded_feat_length_limit,
         )
 
         non_batch = [
@@ -333,6 +335,9 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     sim_chunk_length: int,
+    disable_repetition_detection: bool,
+    encoded_feat_length_limit: int,
+    decoder_text_length_limit: int,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -372,6 +377,9 @@ def inference(
         lm_weight=lm_weight,
         penalty=penalty,
         nbest=nbest,
+        disable_repetition_detection=disable_repetition_detection,
+        decoder_text_length_limit=decoder_text_length_limit,
+        encoded_feat_length_limit=encoded_feat_length_limit,
     )
 
     # 3. Build data-iterator
@@ -473,6 +481,13 @@ def get_parser():
     )
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
+    group.add_argument(
+        "--sim_chunk_length",
+        type=int,
+        default=0,
+        help="The length of one chunk, to which speech will be "
+        "divided for evalution of streaming processing."
+    )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--asr_train_config", type=str, required=True)
@@ -514,6 +529,22 @@ def get_parser():
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--disable_repetition_detection", type=str2bool, default=False)
+
+    group.add_argument(
+        "--encoded_feat_length_limit",
+        type=int,
+        default=0,
+        help="Limit the lengths of the encoded feature"
+        "to input to the decoder."
+    )
+    group.add_argument(
+        "--decoder_text_length_limit",
+        type=int,
+        default=0,
+        help="Limit the lengths of the text"
+        "to input to the decoder."
+    )
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(
@@ -530,14 +561,6 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
-    )
-
-    group.add_argument(
-        "--sim_chunk_length",
-        type=int,
-        default=0,
-        help="The length of one chunk, to which speech will be "
-        "divided for evalution of streaming processing."
     )
 
     return parser
