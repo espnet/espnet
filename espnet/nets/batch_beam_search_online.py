@@ -2,13 +2,13 @@
 
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Tuple, Dict, Any
 
 import yaml
 
 import torch
 
-from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet.nets.batch_beam_search import BatchBeamSearch, BatchHypothesis
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.e2e_asr_common import end_detect
 
@@ -25,15 +25,29 @@ class BatchBeamSearchOnline(BatchBeamSearch):
     (https://arxiv.org/abs/2006.14941).
     """
 
-    def __init__(self, *args, feature_width=0, text_width=0, block_size=40, hop_size=16, look_ahead=16, **kwargs):
+    def __init__(
+            self,
+            *args,
+            feature_width=0,
+            text_width=0,
+            block_size=40,
+            hop_size=16,
+            look_ahead=16,
+            disable_repetition_detection=False,
+            encoded_feat_length_limit=0,
+            decoder_text_length_limit=0,
+            **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.reset()
         self.feature_width = feature_width
         self.text_width = text_width
-
         self.block_size = block_size
         self.hop_size = hop_size
         self.look_ahead = look_ahead
+        self.disable_repetition_detection = disable_repetition_detection
+        self.encoded_feat_length_limit = encoded_feat_length_limit
+        self.decoder_text_length_limit = decoder_text_length_limit
 
     def reset(self):
         self.encbuffer = None
@@ -43,6 +57,34 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.ended_hyps = []
         self.processed_block = 0
         self.process_idx = 0
+
+    def score_full(
+        self, hyp: BatchHypothesis, x: torch.Tensor
+    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+        """Score new hypothesis by `self.full_scorers`.
+
+        Args:
+            hyp (Hypothesis): Hypothesis with prefix tokens to score
+            x (torch.Tensor): Corresponding input feature
+
+        Returns:
+            Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
+                score dict of `hyp` that has string keys of `self.full_scorers`
+                and tensor score values of shape: `(self.n_vocab,)`,
+                and state dict that has string keys
+                and state values of `self.full_scorers`
+
+        """
+        scores = dict()
+        states = dict()
+        for k, d in self.full_scorers.items():
+            if self.decoder_text_length_limit > 0 and self.len(hyp.yseq) > 0 and len(hyp.yseq[0]) > self.decoder_text_length_limit :
+                temp_yseq = hyp.yseq.narrow(1, -self.decoder_text_length_limit, self.decoder_text_length_oimit).clone()
+                temp_yseq[:,0] = self.sos
+                scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
+            else:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+        return scores, states
         
     def forward(
         self,
@@ -63,12 +105,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         Returns:
             list[Hypothesis]: N-best decoding results
 
-        """        
+        """
         if self.encbuffer is None:
             self.encbuffer = x
         else:
             self.encbuffer = torch.cat([self.encbuffer,x], axis=0)
-
 
         x = self.encbuffer
             
@@ -94,6 +135,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     block_is_final = True
                 else:
                     break
+
+            if self.encoded_feat_length_limit > 0 and h.shape[0] > self.encoded_feat_length_limit:
+                h = h.narrow(0, h.shape[0] - self.encoded_feat_length_limit, self.encoded_feat_length_limit)
+                self.running_hyps.states['decoder'] = [ None for _ in self.running_hyps.states['decoder']]
+                
             if self.running_hyps is None:
                 self.running_hyps = self.init_hyp(h)
             ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
