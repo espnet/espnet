@@ -50,11 +50,10 @@ the following packages are installed using Anaconda, so you can skip them.)
 ### Supported Linux distributions and other requirements
 
 We support the following Linux distributions with CI. If you want to build your own Linux by yourself,
-please also check our [CI configurations](https://github.com/espnet/espnet/blob/master/.circleci/config.yml).
+please also check our [CI configurations](https://github.com/espnet/espnet/tree/master/.github/workflows).
 to prepare the appropriate environments
 
 - ubuntu18
-- ubuntu16
 - centos7
 - debian9
 

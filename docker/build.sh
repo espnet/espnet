@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 2019, Nelson Yalta
 # 2019, Ludwig Kürzinger, Technische Universität München

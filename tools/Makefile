@@ -153,7 +153,7 @@ endif
 	# chainer=6.0.0 depends on typing<=3.6.6, but this causes the following error when installing some modules. e.g. fairseq
 	# AttributeError: type object 'Callable' has no attribute '_abc_registry'
 	# "typing" modules is not required for python>=3.6, so uninstall here
-	python3 -m pip uninstall -y typing
+	. ./activate_python.sh && python3 -m pip uninstall -y typing
 	touch chainer.done
 
 # NOTE(kamo): Add conda_packages.done if cmake is used

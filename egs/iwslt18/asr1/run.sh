@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -75,11 +75,11 @@ train_set=train_nodevtest_sp.en
 train_set_prefix=train_nodevtest_sp
 train_dev=train_dev.en
 recog_subset="dev.en test.en"
-recog_set="dev.en test.en dev2010.en tst2010.en tst2013.en tst2014.en tst2015.en"
+recog_set="dev.en test.en dev2010.en tst2010.en tst2013.en tst2014.en tst2015.en tst2018.en tst2019.en"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for part in train dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for part in train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         local/download_and_untar.sh ${st_ted} ${part}
     done
 fi
@@ -90,7 +90,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data Preparation"
     local/data_prep_train.sh ${st_ted}
 
-    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         local/data_prep_eval.sh ${st_ted} ${part}
     done
 
@@ -135,7 +135,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in dev test dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
@@ -144,7 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodevtest data/train_nodevtest_sp ${fbankdir}
 
     # Divide into source and target languages
-    for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         local/divide_lang.sh ${x}
     done
 

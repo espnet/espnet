@@ -367,7 +367,7 @@ unlink($queue_logfile, $syncfile);
 #
 open(Q, ">$queue_scriptfile") || die "Failed to write to $queue_scriptfile";
 
-print Q "#!/bin/bash\n";
+print Q "#!/usr/bin/env bash\n";
 print Q "cd $cwd\n";
 print Q ". ./path.sh\n";
 print Q "( echo '#' Running on \`hostname\`\n";
