@@ -389,8 +389,7 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             assert len(batch.keys()) == 1
-
-            sim_chunk_length = 512
+            
             try:
                 if sim_chunk_length == 0:
                 # N-best list of (text, token, token_int, hyp_object)

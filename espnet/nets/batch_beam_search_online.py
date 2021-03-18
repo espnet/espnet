@@ -197,15 +197,15 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             logging.info(
                 f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
             )
-            logging.info(f"total log probability: {best.score:.2f}")
-            logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
-            logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
-            if self.token_list is not None:
-                logging.info(
-                    "best hypo: "
-                    + "".join([self.token_list[x] for x in best.yseq[1:-1]])
-                    + "\n"
-                )
+        logging.info(f"total log probability: {best.score:.2f}")
+        logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
+        logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
+        if self.token_list is not None:
+            logging.info(
+                "best hypo: "
+                + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                + "\n"
+            )
         return nbest_hyps
         
     def extend(self, x: torch.Tensor, hyps: Hypothesis) -> List[Hypothesis]:
