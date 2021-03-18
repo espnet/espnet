@@ -7,8 +7,7 @@ set -o pipefail
 
 train_set=train_nodev
 valid_set=dev_4k
-#test_sets="tedx-jp-500 tedx-jp-10k"
-test_sets="tedx-jp-500"
+test_sets="dev_4k dev tedx-jp-10k"
 
 asr_config=conf/train_asr_streaming_transformer.yaml
 inference_config=conf/decode_asr_streaming.yaml
