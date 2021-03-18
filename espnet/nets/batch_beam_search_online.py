@@ -63,11 +63,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         Returns:
             list[Hypothesis]: N-best decoding results
 
-        """
-
-        if self.running_hyps is None:
-            self.running_hyps = self.init_hyp(x)
-        
+        """        
         if self.encbuffer is None:
             self.encbuffer = x
         else:
@@ -98,7 +94,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     block_is_final = True
                 else:
                     break
-
+            if self.running_hyps is None:
+                self.running_hyps = self.init_hyp(h)
             ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
             self.processed_block += 1
             if block_is_final:
@@ -132,15 +129,19 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 # This is a implicit implementation of
                 # Eq (11) in https://arxiv.org/abs/2006.14941
                 # A flag prev_repeat is used instead of using set
-                elif (
-                        not prev_repeat
-                        and best.yseq[i, -1] in best.yseq[i, :-1]
-                        and not is_final
-                ):
-                    prev_repeat = True
+                # NOTE(fujihara): The below lines are comented out
+                # because this criteria is so sensitive that the beam
+                # search starts only after the entire inputs are available.
+                # Empirically, this change didn't affect the performance.
+                #elif (
+                #        not prev_repeat
+                #        and best.yseq[i, -1] in best.yseq[i, :-1]
+                #        and not is_final
+                #):
+                #    prev_repeat = True
             if prev_repeat: break
                 
-            if maxlenratio == 0.0 and end_detect(
+            if is_final and maxlenratio == 0.0 and end_detect(
                     [lh.asdict() for lh in self.ended_hyps], self.process_idx
             ):
                 logging.info(f"end detected at {self.process_idx}")
