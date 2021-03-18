@@ -1161,6 +1161,7 @@ if ! "${skip_eval}"; then
                     --asr_train_config "${asr_exp}"/config.yaml \
                     --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
                     --output_dir "${_logdir}"/output.JOB \
+		    --sim_chunk_length 512 \
                     ${_opts} ${inference_args}
 
             # 3. Concatenates the output files from each jobs
