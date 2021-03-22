@@ -252,38 +252,16 @@ class Speech2TextStreaming:
         nbest_hyps = self.beam_search(
             x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=is_final
         )
-        
-        #block_size=0
-        #if block_size == 0:
-        #    feats,feats_lengths,_ = self.apply_frontend(speech, None, is_final=True)
-        #    enc, _, _ = self.asr_model.encoder(feats, feats_lengths, is_final=True)
-        #    nbest_hyps = self.beam_search(
-        #        x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
-        #    )
-        #else:
-        #    states=None
-        #    enc_states=None
-        #    feats_list=[]
-        #    for i in range(len(speech)//block_size):
-        #        feats,feats_lengths,states = self.apply_frontend(speech[i*block_size:(i+1)*block_size], states, is_final=False)
-        #        enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=False)                
-        #        feats_list.append(enc)
-        #        nbest_hyps = self.beam_search(
-        #            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=False
-        #        )
-                
-        #    feats,feats_lengths,_ = self.apply_frontend(speech[(i+1)*block_size:len(speech)], states, is_final=True)
-        #    enc, _, enc_states = self.asr_model.encoder(feats, feats_lengths, prev_states=enc_states, is_final=True)
-        #    feats_list.append(enc)
-        #    #enc = torch.cat(feats_list, dim=1)
-        #    nbest_hyps = self.beam_search(
-        #        x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, is_final=True
-        #    )
             
-        if not is_final:
-            return
+        # TODO: Add is_final flag to the output
+
+        ret = self.assemble_hyps(nbest_hyps)
+        if is_final: self.reset()
+        return ret
+
         
-        nbest_hyps = nbest_hyps[: self.nbest]
+    def assemble_hyps(self, hyps):
+        nbest_hyps = hyps[: self.nbest]
         results = []
         for hyp in nbest_hyps:
             assert isinstance(hyp, Hypothesis), type(hyp)
@@ -304,10 +282,10 @@ class Speech2TextStreaming:
             results.append((text, token, token_int, hyp))
 
         assert check_return_type(results)
-        self.reset()
         return results
 
-
+    
+    
 def inference(
     output_dir: str,
     maxlenratio: float,

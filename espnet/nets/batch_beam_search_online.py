@@ -55,6 +55,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.processed_block = 0
         self.process_idx = 0
 
+        self.prev_output = None
+
     def score_full(
         self, hyp: BatchHypothesis, x: torch.Tensor
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
@@ -121,9 +123,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         #logging.info("max output length: " + str(maxlen))
         #logging.info("min output length: " + str(minlen))
 
+        ret = None
         while True:
             cur_end_frame = self.block_size - self.look_ahead + self.hop_size * self.processed_block
-            
             if cur_end_frame < x.shape[0]:
                 h = x.narrow(0, 0, cur_end_frame)
                 block_is_final = False
@@ -147,6 +149,14 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             self.processed_block += 1
             if block_is_final:
                 return ret
+        if ret is None:
+            if self.prev_output is None:
+                return []
+            else:
+                return self.prev_output
+        else:
+            self.prev_output = ret
+            return ret
 
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
         # extend states for ctc
@@ -165,7 +175,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             is_local_eos = (
                 best.yseq[torch.arange(n_batch), best.length - 1] == self.eos
             )
-                
             prev_repeat = False
             for i in range(is_local_eos.shape[0]):
                 if is_local_eos[i]:
@@ -217,16 +226,20 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 logging.debug(f"remained hypotheses: {len(self.running_hyps)}")
             # increment number
             self.process_idx += 1
-        
+
         if is_final:
             return self.assemble_hyps(self.ended_hyps)
         else:
+            for hyp in self.ended_hyps:
+                local_ended_hyps.append(hyp)
+            rets = self.assemble_hyps(local_ended_hyps)
+
             if self.process_idx > 1 and len(self.prev_hyps) > 0:
                 self.running_hyps = self.prev_hyps
                 self.process_idx -= 1
                 self.prev_hyps = []
 
-            return None
+            return rets
 
         
     def assemble_hyps(self, ended_hyps):
@@ -239,8 +252,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             )
             return (
                 []
-                if minlenratio < 0.1
-                else self.forward(x, maxlenratio, max(0.0, minlenratio - 0.1))
             )
 
         # report the best result
