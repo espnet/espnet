@@ -2,7 +2,7 @@
 batch_type: numel
 batch_bins: 35000000
 accum_grad: 4
-max_epoch: 35
+max_epoch: 20
 patience: none
 init: none
 best_model_criterion:
@@ -38,6 +38,9 @@ decoder_conf:
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
+
+ctc_conf:
+    ignore_nan_grad: true
 
 model_conf:
     ctc_weight: 0.3

@@ -23,6 +23,7 @@ speed_perturb_factors=""
     --ngpu 4 \
     --nj 128 \
     --inference_nj 256 \
+    --use_lm false \
     --nbpe 5000 \
     --max_wav_duration 30 \
     --speed_perturb_factors "${speed_perturb_factors}" \
@@ -32,5 +33,4 @@ speed_perturb_factors=""
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --lm_train_text "data/${train_set}/text" \
     --bpe_train_text "data/${train_set}/text" "$@"
