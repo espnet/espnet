@@ -145,7 +145,7 @@ class ChunkIterFactory(AbsIterFactory):
             cache_chunks = cache_chunks_dict.setdefault(W, {})
 
             # Shift width to the next chunk
-            S = int(L * self.chunk_shift_ratio)
+            S = int(W * self.chunk_shift_ratio)
             # Number of chunks
             N = (L - W) // S + 1
             if shuffle:
