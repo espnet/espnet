@@ -12,6 +12,7 @@ if [ ! -e pyopenjtalk.done ]; then
     (
         set -euo pipefail
         python3 -m pip install pyopenjtalk==0.1.0
+        python3 -c "import pyopenjtalk; pyopenjtalk.g2p('download dict')"
     )
     touch pyopenjtalk.done
 else
