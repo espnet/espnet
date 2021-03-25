@@ -2,6 +2,7 @@
 
 from itertools import chain
 from typing import List
+from typing import Tuple
 from typing import Union
 
 import torch
@@ -58,7 +59,7 @@ class AuxiliaryTask(torch.nn.Module):
         target: torch.Tensor,
         pred_len: torch.Tensor,
         target_len: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward auxiliary task.
 
         Args:
