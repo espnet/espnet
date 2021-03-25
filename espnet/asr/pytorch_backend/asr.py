@@ -747,7 +747,7 @@ def train(args):
             "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
         ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
 
-    if model.is_rnnt:
+    if hasattr(model, "is_rnnt"):
         trainer.extend(
             extensions.PlotReport(
                 [
@@ -874,7 +874,7 @@ def train(args):
         extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
     )
 
-    if model.is_rnnt:
+    if hasattr(model, "is_rnnt"):
         report_keys = [
             "epoch",
             "iteration",
