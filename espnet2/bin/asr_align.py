@@ -90,9 +90,11 @@ class CTCSegmentationResult:
                 with their new values. Unknown properties are ignored.
         """
         for key in kwargs:
-            if key.startswith("_"):
-                raise ValueError(f"Don't touch {key}!")
-            if hasattr(self, key) and kwargs[key] is not None:
+            if (
+                not key.startswith("_")
+                and hasattr(self, key)
+                and kwargs[key] is not None
+            ):
                 setattr(self, key, kwargs[key])
 
     def __str__(self):
@@ -124,35 +126,11 @@ class CTCSegmentation:
     """Align text to audio using CTC segmentation.
 
     Usage:
-        Initialize with given ASR model.
+        Initialize with given ASR model and parameters.
         If needed, parameters for CTC segmentation can be set with ``set_config(·)``.
+        Then call the instance as function to align text within an audio file.
 
-    Parameters:
-        fs: Sample rate.
-        ngpu: Number of GPUs. Set 0 for processing on CPU, set to 1 for
-            processing on GPU. Multi-GPU aligning is currentlly not
-            implemented. Default: 0.
-        dtype: Set dtype according to the ASR model.
-        kaldi_style_text: A kaldi-style text file includes the name of the
-            utterance at the start of the line. Set this option to True if
-            this is the case with your input data. Default: False.
-        tokenized_text: If given text is tokenized. Default: False.
-
-    Selected CTC segmentation parameters:
-        gratis_blank: If True, the transition cost of blank is set to zero.
-            Useful for long preambles or if there are large unrelated segments
-            between utterances. Default: False.
-        replace_spaces_with_blanks: Inserts blanks between words, which is
-            useful for handling long pauses between words. Default: False.
-        min_window_size: Minimum number of frames considered for a single
-            utterance. The current default value of 8000 should be OK in most
-            cases. If your utterances are further apart, increase this value,
-            or decrease it for smaller audio files.
-        set_blank: Index of blank in token list. Default: 0.
-        scoring_length: Block length to calculate confidence score. The
-            default value of 30 should be OK in most cases.
-
-    Examples:
+    Example:
         >>> # example file included in the ESPnet repository
         >>> import soundfile
         >>> speech, fs = soundfile.read("test_utils/ctc_align_test.wav")
@@ -169,9 +147,19 @@ class CTCSegmentation:
         utt_0000 utt 0.27 1.70 -5.4395 THE SALE OF THE HOTELS
         utt_0001 utt 4.52 6.10 -9.1153 ON PROPERTY MANAGEMENT
 
+    References:
+        CTC-Segmentation of Large Corpora for German End-to-end Speech Recognition
+        2020, Kürzinger, Winkelbauer, Li, Watzel, Rigoll
+        https://arxiv.org/abs/2007.09127
+
+    More parameters are described in https://github.com/lumaku/ctc-segmentation
+
     """
 
+    fs = 16000
     samples_to_frames_ratio = None
+    time_stamps = "auto"
+    choices_time_stamps = ["fixed", "auto"]
     warned_about_misconfiguration = False
     config = CtcSegmentationParameters()
 
@@ -185,6 +173,7 @@ class CTCSegmentation:
         dtype: str = "float32",
         kaldi_style_text: bool = False,
         tokenized_text: bool = False,
+        time_stamps: str = "auto",
         **ctc_segmentation_args,
     ):
         """Initialize the CTCSegmentation module.
@@ -192,13 +181,24 @@ class CTCSegmentation:
         Args:
             asr_train_config: ASR model config file (yaml).
             asr_model_file: ASR model file (pth).
-            fs: Frame rate of audio file.
-            ngpu: Set to 0 for CPU computation, to 1 for GPU.
+            fs: Sample rate of audio file.
+            ngpu: Number of GPUs. Set 0 for processing on CPU, set to 1 for
+                processing on GPU. Multi-GPU aligning is currently not
+                implemented. Default: 0.
             batch_size: Currently, only batch size == 1 is implemented.
-            dtype: Data type used for inference.
-            kaldi_style_text: True if each utterance begins with its name.
-                False if otherwise.
+            dtype: Data type used for inference. Set dtype according to
+                the ASR model.
+            kaldi_style_text: A kaldi-style text file includes the name of the
+                utterance at the start of the line. Set this option to True if
+                this is the case with your input data. Default: False.
             tokenized_text: True if tokenized text is given as input.
+            time_stamps: Choose the method how the time stamps are
+                calculated. While "fixed" and "auto" use both the sample rate,
+                the ratio of samples to one frame is either automatically
+                determined for each inference or fixed at a certain ratio that
+                is initially determined by the module, but can be changed via
+                the parameter ``samples_to_frames_ratio``. Recommended for
+                longer audio files: "auto".
             **ctc_segmentation_args: Parameters for CTC segmentation.
         """
         assert check_argument_types()
@@ -239,40 +239,71 @@ class CTCSegmentation:
         self.kaldi_style_text = kaldi_style_text
         self.token_list = asr_model.token_list
         # Apply configuration
-        self.set_config(fs=fs, **ctc_segmentation_args)
+        self.set_config(fs=fs, time_stamps=time_stamps, **ctc_segmentation_args)
         # last token "<sos/eos>", not needed
         self.config.char_list = asr_model.token_list[:-1]
 
     def set_config(self, **kwargs):
-        """Set CTC segmentation parameters."""
+        """Set CTC segmentation parameters.
+
+        Parameters for timing:
+            time_stamps: Select method how CTC index duration is estimated, and
+                thus how the time stamps are calculated.
+            fs: Sample rate.
+            samples_to_frames_ratio: If you want to directly determine the
+                ratio of samples to CTC frames, set this parameter, and
+                set ``time_stamps`` to "fixed".
+                Note: If you want to calculate the time stamps as in
+                ESPnet 1, set this parameter to:
+                ``subsampling_factor * frame_duration / 1000``.
+
+        Parameters for text preparation:
+            replace_spaces_with_blanks: Inserts blanks between words, which is
+                useful for handling long pauses between words. Default: False.
+
+        Parameters for alignment:
+            min_window_size: Minimum number of frames considered for a single
+                utterance. The current default value of 8000 should be OK in most
+                cases. If your utterances are further apart, increase this value,
+                or decrease it for smaller audio files.
+            max_window_size: Maximum window size. It should not be necessary
+                to change this value.
+            gratis_blank: If True, the transition cost of blank is set to zero.
+                Useful for long preambles or if there are large unrelated segments
+                between utterances. Default: False.
+            set_blank: Index of blank in token list. Default: 0.
+
+        Parameters for calculation of confidence score:
+            scoring_length: Block length to calculate confidence score. The
+                default value of 30 should be OK in most cases.
+        """
+        # Parameters for timing
+        if "time_stamps" in kwargs:
+            if kwargs["time_stamps"] not in self.choices_time_stamps:
+                raise NotImplementedError(
+                    f"time_stamps type has to be one of "
+                    f"{list(self.choices_time_stamps)}",
+                )
+            self.time_stamps = kwargs["time_stamps"]
         if "fs" in kwargs:
-            assert isinstance(kwargs["fs"], int)
-            self.config.fs = kwargs["fs"]
-            self.config.subsampling_factor = self.determine_sample_to_encoded_ratio()
-        if "subsampling_factor" in kwargs:
-            logging.warning("subsampling_factor is deprecated. Use fs instead.")
-            assert isinstance(kwargs["subsampling_factor"], int)
-            self.config.subsampling_factor = kwargs["subsampling_factor"]
-        if "frame_duration" in kwargs:
-            logging.warning("frame_duration is deprecated. Use fs instead.")
-            assert isinstance(kwargs["frame_duration"], int)
-            self.config.frame_duration_ms = kwargs["frame_duration"]
+            self.fs = float(kwargs["fs"])
+        if "samples_to_frames_ratio" in kwargs:
+            self.samples_to_frames_ratio = float(kwargs["samples_to_frames_ratio"])
+        # Parameters for text preparation
+        if "set_blank" in kwargs:
+            assert isinstance(kwargs["set_blank"], int)
+            self.config.blank = kwargs["set_blank"]
+        if "replace_spaces_with_blanks" in kwargs:
+            self.config.replace_spaces_with_blanks = bool(
+                kwargs["replace_spaces_with_blanks"]
+            )
+        # Parameters for alignment
         if "min_window_size" in kwargs:
             assert isinstance(kwargs["min_window_size"], int)
             self.config.min_window_size = kwargs["min_window_size"]
         if "max_window_size" in kwargs:
             assert isinstance(kwargs["max_window_size"], int)
             self.config.max_window_size = kwargs["max_window_size"]
-        if "set_blank" in kwargs:
-            assert isinstance(kwargs["set_blank"], int)
-            self.config.blank = kwargs["set_blank"]
-        if "scoring_length" in kwargs:
-            assert isinstance(kwargs["scoring_length"], int)
-            self.config.score_min_mean_over_L = kwargs["scoring_length"]
-        if "replace_spaces_with_blanks" in kwargs:
-            self.config.replace_spaces_with_blanks = bool(
-                kwargs["replace_spaces_with_blanks"]
-            )
         if "gratis_blank" in kwargs:
             self.config.blank_transition_cost_zero = bool(kwargs["gratis_blank"])
         if (
@@ -285,24 +316,51 @@ class CTCSegmentation:
                 " blank is zero. This configuration may lead to misalignments!"
             )
             self.warned_about_misconfiguration = True
+        # Parameter for calculation of confidence score
+        if "scoring_length" in kwargs:
+            assert isinstance(kwargs["scoring_length"], int)
+            self.config.score_min_mean_over_L = kwargs["scoring_length"]
 
-    def determine_sample_to_encoded_ratio(self):
+    def get_timing_config(self, speech_len=None, lpz_len=None):
+        """Obtain parameters to determine time stamps."""
+        timing_cfg = {
+            "index_duration": self.config.index_duration,
+        }
+        # As the parameter ctc_index_duration vetoes the other
+        if self.time_stamps == "fixed":
+            # Initialize the value, if not yet available
+            if self.samples_to_frames_ratio is None:
+                ratio = self.estimate_samples_to_frames_ratio()
+                self.samples_to_frames_ratio = ratio
+            index_duration = self.samples_to_frames_ratio / self.fs
+        elif self.time_stamps == "auto":
+            samples_to_frames_ratio = speech_len / lpz_len
+            index_duration = samples_to_frames_ratio / self.fs
+        timing_cfg["index_duration"] = index_duration
+        return timing_cfg
+
+    def estimate_samples_to_frames_ratio(self, speech_len=215040):
         """Determine the ratio of encoded frames to sample points.
 
         This method helps to determine the time a single encoded frame occupies.
         As the sample rate already gave the number of samples, only the ratio
-        of samples per encoded frame are needed. This function estimates them by
+        of samples per encoded CTC frame are needed. This function estimates them by
         doing one inference, which is only needed once.
+
+        Args:
+            speech_len: Length of randomly generated speech vector for single
+                inference. Default: 215040=(2048 * 3 * 5 * 7).
+
+        Returns:
+            samples_to_frames_ratio: Estimated ratio.
         """
-        if self.samples_to_frames_ratio is None:
-            audio_len = 2048 * 3 * 5 * 7
-            random_input = torch.rand(audio_len)
-            lpz = self.get_lpz(random_input)
-            encoder_out_len = lpz.shape[0]
-            # Most frontends (DefaultFrontend, SlidingWindow) discard trailing data
-            encoder_out_len = encoder_out_len + 1
-            self.samples_to_frames_ratio = audio_len // encoder_out_len
-        return self.samples_to_frames_ratio
+        random_input = torch.rand(speech_len)
+        lpz = self.get_lpz(random_input)
+        lpz_len = lpz.shape[0]
+        # Most frontends (DefaultFrontend, SlidingWindow) discard trailing data
+        lpz_len = lpz_len + 1
+        samples_to_frames_ratio = speech_len // lpz_len
+        return samples_to_frames_ratio
 
     @torch.no_grad()
     def get_lpz(self, speech: torch.Tensor):
@@ -322,34 +380,45 @@ class CTCSegmentation:
         lpz = lpz.squeeze(0).squeeze(0).cpu().numpy()
         return lpz
 
-    def get_segments(self, text, lpz):
-        """Obtain segments for given utterance texts and CTC log posteriors."""
+    def _text_preprocess(self, text):
+        """Cleanup text and extract utterance IDs."""
         utt_ids = None
-        # handle multiline strings
+        # Handle multiline strings
         if isinstance(text, str):
             text = text.splitlines()
-        # remove empty lines
+        # Remove empty lines
         text = list(filter(len, text))
-        # handle kaldi-style text format
+        # Handle kaldi-style text format
         if self.kaldi_style_text:
             utt_ids = [utt.split(" ", 1)[0] for utt in text]
             text = [utt.split(" ", 1)[1] for utt in text]
-        # Prepare the text for aligning
+        return utt_ids, text
+
+    def get_segments(self, text, lpz, timing_cfg=None):
+        """Obtain segments for given utterance texts and CTC log posteriors."""
+        config = self.config
+        # text is needed in the form of a list.
+        utt_ids, text = self._text_preprocess(text)
+        # Update timing parameters
+        if timing_cfg is not None:
+            config.set(**timing_cfg)
+        # Obtain utterance & label sequence from text
         if self.tokenized_text:
-            raise NotImplementedError
+            raise NotImplementedError("Tokenized text is not yet supported.")
         else:
             ground_truth_mat, utt_begin_indices = prepare_text(self.config, text)
         # Align using CTC segmentation
         timings, char_probs, state_list = ctc_segmentation(
-            self.config, lpz, ground_truth_mat
+            config, lpz, ground_truth_mat
         )
         # Obtain list of utterances with time intervals and confidence score
         segments = determine_utterance_segments(
-            self.config, utt_begin_indices, char_probs, timings, text
+            config, utt_begin_indices, char_probs, timings, text
         )
+        # Store results in a result object
         result = CTCSegmentationResult()
         result.set(
-            config=self.config,
+            config=config,
             text=text,
             ground_truth_mat=ground_truth_mat,
             utt_begin_indices=utt_begin_indices,
@@ -388,8 +457,12 @@ class CTCSegmentation:
             self.set_config(fs=fs)
         # Get log CTC posterior probabilities
         lpz = self.get_lpz(speech)
+        # If needed, determine timing information
+        speech_len = speech.shape[0]
+        lpz_len = lpz.shape[0]
+        timing_cfg = self.get_timing_config(speech_len, lpz_len)
         # Apply CTC segmentation
-        result = self.get_segments(text, lpz)
+        result = self.get_segments(text, lpz, timing_cfg)
         if name is not None:
             result.name = name
         assert check_return_type(result)

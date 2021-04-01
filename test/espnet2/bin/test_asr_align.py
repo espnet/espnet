@@ -92,8 +92,9 @@ def test_CTCSegmentation(asr_config_file):
     assert score < 0.0
     # check options
     option_dict = {
-        "subsampling_factor": 512,
-        "frame_duration": 10,
+        "fs": 16000,
+        "time_stamps": "fixed",
+        "samples_to_frames_ratio": 512,
         "min_window_size": 100,
         "max_window_size": 20000,
         "set_blank": 0,
