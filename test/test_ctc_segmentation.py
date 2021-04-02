@@ -35,7 +35,7 @@ def test_determine_utterance_segments():
     Results are checked and compared with test vectors.
     """
     config = CtcSegmentationParameters()
-    config.frame_duration_ms = 1000
+    config.index_duration = 1
     config.score_min_mean_over_L = 2
     utt_begin_indices = [1, 4, 9]
     text = ["catzz#\n", "dogs!!\n"]
