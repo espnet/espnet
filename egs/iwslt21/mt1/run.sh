@@ -153,15 +153,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
-    # rm data/*/segments
-    # rm data/*/wav.scp
+    rm data/*/segments
+    rm data/*/wav.scp
 
     # Divide into source and target languages
     divide_lang.sh tr_wmt20_subset${datasize} "en de"
 
     for lang in en de; do
         utils/combine_data.sh --extra_files "text.tc text.lc text.lc.rm" data/train_${datasize}.${lang} data/tr_wmt20_subset${datasize}.${lang} data/tr_mustc.${lang} data/tr_mustcv2.${lang} data/tr_stted.${lang}
-        # cp -rf data/dt_mustc.${lang} data/dev.${lang}
+        cp -rf data/dt_mustc.${lang} data/dev.${lang}
     done
 
     echo "Remove offlimit"
@@ -220,15 +220,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
             set=$(echo ${x} | cut -f 1 -d ".")
             data2json.sh --text data/${set}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
-                data/${set}.en ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+                data/${set}.en ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
         done
 
         # update json (add source references)
-        for x in ${train_set} ${train_dev} ${trans_set}; do
+        update_json.sh --text data/train_${datasize}.de/text.${src_case} --bpecode ${bpemodel}.model \
+            ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/train_${datasize}.de ${dict}
+        for x in ${train_dev} ${trans_set}; do
             feat_dir=${dumpdir}/${x}
             data_dir=data/$(echo ${x} | cut -f 1 -d ".").de
             update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
-                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
+                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json ${data_dir} ${dict}
         done
     else
         data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
@@ -236,15 +238,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
             data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
-                data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+                data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
         done
 
         # update json (add source references)
-        for x in ${train_set} ${train_dev} ${trans_set}; do
+        update_json.sh --text data/train_${datasize}.en/text.${src_case} --bpecode ${bpemodel}.model \
+            ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/train_${datasize}.en ${dict}
+        for x in ${train_dev} ${trans_set}; do
             feat_dir=${dumpdir}/${x}
             data_dir=data/$(echo ${x} | cut -f 1 -d ".").en
             update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
-                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
+                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json ${data_dir} ${dict}
         done
     fi
 fi
@@ -311,7 +315,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${x}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             mt_trans.py \
