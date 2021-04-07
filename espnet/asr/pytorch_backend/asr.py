@@ -413,10 +413,10 @@ def train(args):
     # specify attention, CTC, hybrid mode
     if "transducer" in args.model_module:
         if (
-            getattr(args, "etype", False) == "transformer"
-            or getattr(args, "dtype", False) == "transformer"
+            getattr(args, "etype", False) == "custom"
+            or getattr(args, "dtype", False) == "custom"
         ):
-            mtl_mode = "transformer_transducer"
+            mtl_mode = "custom_transducer"
         else:
             mtl_mode = "transducer"
         logging.info("Pure transducer mode")
@@ -683,8 +683,8 @@ def train(args):
     is_attn_plot = (
         "transformer" in args.model_module
         or "conformer" in args.model_module
-        or mtl_mode in ["att", "mtl"]
-    ) or mtl_mode == "transformer_transducer"
+        or mtl_mode in ["att", "mtl", "custom_transducer"]
+    )
 
     if args.num_save_attention > 0 and is_attn_plot:
         data = sorted(
@@ -746,21 +746,45 @@ def train(args):
         report_keys_cer_ctc = [
             "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
         ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
-    trainer.extend(
-        extensions.PlotReport(
-            [
-                "main/loss",
-                "validation/main/loss",
-                "main/loss_ctc",
-                "validation/main/loss_ctc",
-                "main/loss_att",
-                "validation/main/loss_att",
-            ]
-            + ([] if args.num_encs == 1 else report_keys_loss_ctc),
-            "epoch",
-            file_name="loss.png",
+
+    if hasattr(model, "is_rnnt"):
+        trainer.extend(
+            extensions.PlotReport(
+                [
+                    "main/loss",
+                    "validation/main/loss",
+                    "main/loss_trans",
+                    "validation/main/loss_trans",
+                    "main/loss_ctc",
+                    "validation/main/loss_ctc",
+                    "main/loss_lm",
+                    "validation/main/loss_lm",
+                    "main/loss_aux_trans",
+                    "validation/main/loss_aux_trans",
+                    "main/loss_aux_symm_kl",
+                    "validation/main/loss_aux_symm_kl",
+                ],
+                "epoch",
+                file_name="loss.png",
+            )
         )
-    )
+    else:
+        trainer.extend(
+            extensions.PlotReport(
+                [
+                    "main/loss",
+                    "validation/main/loss",
+                    "main/loss_ctc",
+                    "validation/main/loss_ctc",
+                    "main/loss_att",
+                    "validation/main/loss_att",
+                ]
+                + ([] if args.num_encs == 1 else report_keys_loss_ctc),
+                "epoch",
+                file_name="loss.png",
+            )
+        )
+
     trainer.extend(
         extensions.PlotReport(
             ["main/acc", "validation/main/acc"], "epoch", file_name="acc.png"
@@ -780,7 +804,7 @@ def train(args):
         snapshot_object(model, "model.loss.best"),
         trigger=training.triggers.MinValueTrigger("validation/main/loss"),
     )
-    if mtl_mode not in ["ctc", "transducer", "transformer_transducer"]:
+    if mtl_mode not in ["ctc", "transducer", "custom_transducer"]:
         trainer.extend(
             snapshot_object(model, "model.acc.best"),
             trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
@@ -849,21 +873,42 @@ def train(args):
     trainer.extend(
         extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
     )
-    report_keys = [
-        "epoch",
-        "iteration",
-        "main/loss",
-        "main/loss_ctc",
-        "main/loss_att",
-        "validation/main/loss",
-        "validation/main/loss_ctc",
-        "validation/main/loss_att",
-        "main/acc",
-        "validation/main/acc",
-        "main/cer_ctc",
-        "validation/main/cer_ctc",
-        "elapsed_time",
-    ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+
+    if hasattr(model, "is_rnnt"):
+        report_keys = [
+            "epoch",
+            "iteration",
+            "main/loss",
+            "main/loss_trans",
+            "main/loss_ctc",
+            "main/loss_lm",
+            "main/loss_aux_trans",
+            "main/loss_aux_symm_kl",
+            "validation/main/loss",
+            "validation/main/loss_trans",
+            "validation/main/loss_ctc",
+            "validation/main/loss_lm",
+            "validation/main/loss_aux_trans",
+            "validation/main/loss_aux_symm_kl",
+            "elapsed_time",
+        ]
+    else:
+        report_keys = [
+            "epoch",
+            "iteration",
+            "main/loss",
+            "main/loss_ctc",
+            "main/loss_att",
+            "validation/main/loss",
+            "validation/main/loss_ctc",
+            "validation/main/loss_att",
+            "main/acc",
+            "validation/main/acc",
+            "main/cer_ctc",
+            "validation/main/cer_ctc",
+            "elapsed_time",
+        ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+
     if args.opt == "adadelta":
         trainer.extend(
             extensions.observe_value(
