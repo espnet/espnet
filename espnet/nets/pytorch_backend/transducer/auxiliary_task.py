@@ -2,6 +2,7 @@
 
 from itertools import chain
 from typing import List
+from typing import Tuple
 from typing import Union
 
 import torch
@@ -58,7 +59,7 @@ class AuxiliaryTask(torch.nn.Module):
         target: torch.Tensor,
         pred_len: torch.Tensor,
         target_len: torch.Tensor,
-    ) -> float:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward auxiliary task.
 
         Args:
@@ -70,10 +71,10 @@ class AuxiliaryTask(torch.nn.Module):
             target_len: Target lengths
 
         Returns:
-            : Weighted auxiliary loss
+            : (Weighted auxiliary transducer loss, Weighted auxiliary symmetric KL loss)
 
         """
-        aux_default = 0
+        aux_trans = 0
         aux_symm_kl = 0
 
         for p in chain(self.decoder.parameters(), self.joint_network.parameters()):
@@ -89,7 +90,7 @@ class AuxiliaryTask(torch.nn.Module):
             )
 
             if self.aux_task_type != "symm_kl_div":
-                aux_default += self.rnnt_criterion(
+                aux_trans += self.rnnt_criterion(
                     aux_joint,
                     target,
                     pred_len,
@@ -107,9 +108,7 @@ class AuxiliaryTask(torch.nn.Module):
                     reduction="mean",
                 )
 
-        aux_main_loss = aux_default + aux_symm_kl
-
         for p in chain(self.decoder.parameters(), self.joint_network.parameters()):
             p.requires_grad = True
 
-        return self.aux_task_weight * aux_main_loss
+        return self.aux_task_weight * aux_trans, self.aux_task_weight * aux_symm_kl

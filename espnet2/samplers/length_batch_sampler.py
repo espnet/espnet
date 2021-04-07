@@ -58,37 +58,26 @@ class LengthBatchSampler(AbsSampler):
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
 
         # Decide batch-sizes
-        start = 0
         batch_sizes = []
-        bs = 1
-        while True:
+        current_batch_keys = []
+        for key in keys:
+            current_batch_keys.append(key)
             # shape: (Length, dim1, dim2, ...)
             if padding:
-                max_lengths = [
-                    max(d[keys[i]][0] for i in range(start, start + bs))
-                    for d in utt2shapes
-                ]
                 # bins = bs x max_length
-                bins = sum(bs * lg for lg in max_lengths)
+                bins = sum(len(current_batch_keys) * sh[key][0] for sh in utt2shapes)
             else:
                 # bins = sum of lengths
-                bins = sum(
-                    d[keys[i]][0] for i in range(start, start + bs) for d in utt2shapes
-                )
+                bins = sum(d[k][0] for k in current_batch_keys for d in utt2shapes)
 
-            if bins > batch_bins and bs >= min_batch_size:
-                batch_sizes.append(bs)
-                start += bs
-                bs = 1
-            else:
-                bs += 1
-            if start >= len(keys):
-                break
-
-            if start + bs > len(keys):
-                if not self.drop_last or len(batch_sizes) == 0:
-                    batch_sizes.append(len(keys) - start)
-                break
+            if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
+                batch_sizes.append(len(current_batch_keys))
+                current_batch_keys = []
+        else:
+            if len(current_batch_keys) != 0 and (
+                not self.drop_last or len(batch_sizes) == 0
+            ):
+                batch_sizes.append(len(current_batch_keys))
 
         if len(batch_sizes) == 0:
             # Maybe we can't reach here
@@ -106,21 +95,28 @@ class LengthBatchSampler(AbsSampler):
 
         # Set mini-batch
         self.batch_list = []
-        start = 0
-        for bs in batch_sizes:
-            assert len(keys) >= start + bs, "Bug"
-            minibatch_keys = keys[start : start + bs]
-            start += bs
-            if sort_in_batch == "descending":
-                minibatch_keys.reverse()
-            elif sort_in_batch == "ascending":
-                # Key are already sorted in ascending
-                pass
-            else:
-                raise ValueError(
-                    f"sort_in_batch must be ascending or descending: {sort_in_batch}"
-                )
-            self.batch_list.append(tuple(minibatch_keys))
+        iter_bs = iter(batch_sizes)
+        bs = next(iter_bs)
+        minibatch_keys = []
+        for key in keys:
+            minibatch_keys.append(key)
+            if len(minibatch_keys) == bs:
+                if sort_in_batch == "descending":
+                    minibatch_keys.reverse()
+                elif sort_in_batch == "ascending":
+                    # Key are already sorted in ascending
+                    pass
+                else:
+                    raise ValueError(
+                        "sort_in_batch must be ascending"
+                        f" or descending: {sort_in_batch}"
+                    )
+                self.batch_list.append(tuple(minibatch_keys))
+                minibatch_keys = []
+                try:
+                    bs = next(iter_bs)
+                except StopIteration:
+                    break
 
         if sort_batch == "ascending":
             pass

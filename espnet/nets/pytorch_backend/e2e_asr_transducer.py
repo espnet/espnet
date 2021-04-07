@@ -51,11 +51,26 @@ from espnet.utils.fill_missing_args import fill_missing_args
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper for transducer models."""
 
-    def report(self, loss, cer, wer):
+    def report(
+        self,
+        loss,
+        loss_trans,
+        loss_ctc,
+        loss_lm,
+        loss_aux_trans,
+        loss_aux_symm_kl,
+        cer,
+        wer,
+    ):
         """Instantiate reporter attributes."""
+        chainer.reporter.report({"loss": loss}, self)
+        chainer.reporter.report({"loss_trans": loss_trans}, self)
+        chainer.reporter.report({"loss_ctc": loss_ctc}, self)
+        chainer.reporter.report({"loss_lm": loss_lm}, self)
+        chainer.reporter.report({"loss_aux_trans": loss_aux_trans}, self)
+        chainer.reporter.report({"loss_aux_symm_kl": loss_aux_symm_kl}, self)
         chainer.reporter.report({"cer": cer}, self)
         chainer.reporter.report({"wer": wer}, self)
-        chainer.reporter.report({"loss": loss}, self)
 
         logging.info("loss:" + str(loss))
 
@@ -305,6 +320,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.odim = odim
 
         self.reporter = Reporter()
+
         self.error_calculator = None
 
         self.default_parameters(args)
@@ -411,9 +427,11 @@ class E2E(ASRInterface, torch.nn.Module):
         loss_trans = self.criterion(z, target, pred_len, target_len)
 
         if self.use_aux_task and aux_hs_pad is not None:
-            loss_trans += self.auxiliary_task(
+            loss_aux_trans, loss_aux_symm_kl = self.auxiliary_task(
                 aux_hs_pad, pred_pad, z, target, pred_len, target_len
             )
+        else:
+            loss_aux_trans, loss_aux_symm_kl = 0.0, 0.0
 
         if self.use_aux_ctc:
             if "custom" in self.etype:
@@ -421,21 +439,22 @@ class E2E(ASRInterface, torch.nn.Module):
                     [h.size(1) for h in hs_mask],
                 ).to(hs_mask.device)
 
-            loss_ctc = self.aux_ctc(hs_pad, hs_mask, ys_pad)
+            loss_ctc = self.aux_ctc_weight * self.aux_ctc(hs_pad, hs_mask, ys_pad)
         else:
-            loss_ctc = 0
+            loss_ctc = 0.0
 
         if self.use_aux_cross_entropy:
-            loss_ce = self.aux_cross_entropy(
+            loss_lm = self.aux_cross_entropy_weight * self.aux_cross_entropy(
                 self.aux_decoder_output(pred_pad), ys_out_pad
             )
         else:
-            loss_ce = 0
+            loss_lm = 0.0
 
         loss = (
-            self.transducer_weight * loss_trans
-            + self.aux_ctc_weight * loss_ctc
-            + self.aux_cross_entropy_weight * loss_ce
+            loss_trans
+            + self.transducer_weight * (loss_aux_trans + loss_aux_symm_kl)
+            + loss_ctc
+            + loss_lm
         )
 
         self.loss = loss
@@ -448,7 +467,16 @@ class E2E(ASRInterface, torch.nn.Module):
             cer, wer = self.error_calculator(hs_pad, ys_pad)
 
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, cer, wer)
+            self.reporter.report(
+                loss_data,
+                float(loss_trans),
+                float(loss_ctc),
+                float(loss_lm),
+                float(loss_aux_trans),
+                float(loss_aux_symm_kl),
+                cer,
+                wer,
+            )
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
 
