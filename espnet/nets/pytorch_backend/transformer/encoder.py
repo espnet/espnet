@@ -122,6 +122,8 @@ class Encoder(torch.nn.Module):
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
             self.conv_subsampling_factor = 4
+        elif input_layer == "nothing":
+            self.embed = None
         elif input_layer == "conv2d6":
             self.embed = Conv2dSubsampling6(idim, attention_dim, dropout_rate)
             self.conv_subsampling_factor = 6
@@ -296,8 +298,11 @@ class Encoder(torch.nn.Module):
             (Conv2dSubsampling, Conv2dSubsampling6, Conv2dSubsampling8, VGG2L),
         ):
             xs, masks = self.embed(xs, masks)
+        elif self.embed is None:
+            xs = xs
         else:
             xs = self.embed(xs)
+
         xs, masks = self.encoders(xs, masks)
         if self.normalize_before:
             xs = self.after_norm(xs)
@@ -319,8 +324,11 @@ class Encoder(torch.nn.Module):
         """
         if isinstance(self.embed, Conv2dSubsampling):
             xs, masks = self.embed(xs, masks)
+        elif self.embed is None:
+            xs = xs
         else:
             xs = self.embed(xs)
+
         if cache is None:
             cache = [None for _ in range(len(self.encoders))]
         new_cache = []

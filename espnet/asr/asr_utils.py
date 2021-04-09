@@ -843,7 +843,7 @@ def parse_hypothesis(hyp, char_list):
     return text, token, tokenid, score
 
 
-def add_results_to_json(js, nbest_hyps, char_list):
+def add_results_to_json(js, nbest_hyps, char_list, intermediate=False):
     """Add N-best results to json.
 
     Args:
@@ -867,7 +867,11 @@ def add_results_to_json(js, nbest_hyps, char_list):
 
         # copy ground-truth
         if len(js["output"]) > 0:
-            out_dic = dict(js["output"][0].items())
+            if intermediate and len(js["output"]) > 1:
+                out_dic = dict(js["output"][1].items())
+            else:
+                # HACK: The scoring of intermediates will produce garbage if int ground truth is not present during test.
+                out_dic = dict(js["output"][0].items())
         else:
             # for no reference case (e.g., speech translation)
             out_dic = {"name": ""}

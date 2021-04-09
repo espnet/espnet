@@ -43,24 +43,41 @@ class DecoderLayer(nn.Module):
         dropout_rate,
         normalize_before=True,
         concat_after=False,
+        speech_attn=None,
+        speech_attn_type=None,
     ):
         """Construct an DecoderLayer object."""
         super(DecoderLayer, self).__init__()
         self.size = size
         self.self_attn = self_attn
         self.src_attn = src_attn
+        self.speech_attn = speech_attn
+        self.speech_attn_type = speech_attn_type
         self.feed_forward = feed_forward
         self.norm1 = LayerNorm(size)
         self.norm2 = LayerNorm(size)
         self.norm3 = LayerNorm(size)
+        if speech_attn is not None:
+            self.norm4 = LayerNorm(size)
         self.dropout = nn.Dropout(dropout_rate)
         self.normalize_before = normalize_before
         self.concat_after = concat_after
         if self.concat_after:
             self.concat_linear1 = nn.Linear(size + size, size)
             self.concat_linear2 = nn.Linear(size + size, size)
+            if speech_attn is not None:
+                self.concat_linear3 = nn.Linear(size + size, size)
 
-    def forward(self, tgt, tgt_mask, memory, memory_mask, cache=None):
+    def forward(
+        self,
+        tgt,
+        tgt_mask,
+        memory,
+        memory_mask,
+        speech=None,
+        speech_mask=None,
+        cache=None,
+    ):
         """Compute decoded features.
 
         Args:
@@ -108,18 +125,52 @@ class DecoderLayer(nn.Module):
         if not self.normalize_before:
             x = self.norm1(x)
 
-        residual = x
-        if self.normalize_before:
-            x = self.norm2(x)
-        if self.concat_after:
-            x_concat = torch.cat(
-                (x, self.src_attn(x, memory, memory, memory_mask)), dim=-1
-            )
-            x = residual + self.concat_linear2(x_concat)
+        if self.speech_attn_type == "seqspeechattn":
+            # add speech encoder context
+            residual = x
+            if self.normalize_before:
+                x = self.norm4(x)
+            if self.concat_after:
+                x_concat = torch.cat(
+                    (x, self.speech_attn(x, speech, speech, speech_mask)), dim=-1
+                )
+                x = residual + self.concat_linear3(x_concat)
+            else:
+                x = residual + self.dropout(
+                    self.speech_attn(x, speech, speech, speech_mask)
+                )
+            if not self.normalize_before:
+                x = self.norm4(x)
+
+            residual = x
+            if self.normalize_before:
+                x = self.norm2(x)
+            if self.concat_after:
+                x_concat = torch.cat(
+                    (x, self.src_attn(x, memory, memory, memory_mask)), dim=-1
+                )
+                x = residual + self.concat_linear2(x_concat)
+            else:
+                x = residual + self.dropout(
+                    self.src_attn(x, memory, memory, memory_mask)
+                )
+            if not self.normalize_before:
+                x = self.norm2(x)
         else:
-            x = residual + self.dropout(self.src_attn(x, memory, memory, memory_mask))
-        if not self.normalize_before:
-            x = self.norm2(x)
+            residual = x
+            if self.normalize_before:
+                x = self.norm2(x)
+            if self.concat_after:
+                x_concat = torch.cat(
+                    (x, self.src_attn(x, memory, memory, memory_mask)), dim=-1
+                )
+                x = residual + self.concat_linear2(x_concat)
+            else:
+                x = residual + self.dropout(
+                    self.src_attn(x, memory, memory, memory_mask)
+                )
+            if not self.normalize_before:
+                x = self.norm2(x)
 
         residual = x
         if self.normalize_before:
@@ -131,4 +182,4 @@ class DecoderLayer(nn.Module):
         if cache is not None:
             x = torch.cat([cache, x], dim=1)
 
-        return x, tgt_mask, memory, memory_mask
+        return x, tgt_mask, memory, memory_mask, speech, speech_mask

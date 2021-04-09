@@ -13,6 +13,7 @@ import sys
 
 import configargparse
 import numpy as np
+from espnet.utils.cli_utils import strtobool
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -116,6 +117,76 @@ def get_parser():
         type=str,
         help="target language ID (e.g., <en>, <de>, and <fr> etc.)",
     )
+    # asr si related params
+    parser.add_argument(
+        "--asr-si-result-label",
+        type=str,
+        required=True,
+        help="Filename of asr result label data (json)",
+    )
+    parser.add_argument(
+        "--asr-si-nbest", type=int, default=1, help="Output N-best hypotheses"
+    )
+    parser.add_argument(
+        "--asr-si-maxlenratio",
+        type=float,
+        default=0.0,
+        help="""Input length ratio to obtain max output length.
+                        If maxlenratio=0.0 (default), it uses a end-detect function
+                        to automatically find maximum hypothesis lengths""",
+    )
+    parser.add_argument(
+        "--asr-si-ctc-weight",
+        type=float,
+        default=0.0,
+        help="CTC weight in joint decoding",
+    )
+    parser.add_argument(
+        "--asr-si-minlenratio",
+        type=float,
+        default=0.0,
+        help="Input length ratio to obtain min output length",
+    )
+    parser.add_argument(
+        "--asr-si-lm-weight", type=float, default=0.1, help="RNNLM weight"
+    )
+    parser.add_argument("--asr-si-beam-size", type=int, default=1, help="Beam size")
+    parser.add_argument(
+        "--asr-si-penalty", type=float, default=0.0, help="Incertion penalty"
+    )
+    parser.add_argument(
+        "--asr-si-rnnlm", type=str, default=None, help="ASR RNNLM model file to read"
+    )
+    parser.add_argument(
+        "--asr-si-rnnlm-conf",
+        type=str,
+        default=None,
+        help="ASR RNNLM model config file to read",
+    )
+    parser.add_argument(
+        "--eval-st-subnet",
+        type=strtobool,
+        default=False,
+        help="The flag to switch to use noise injection to gradients during training",
+    )
+    # rnnlm related
+    parser.add_argument(
+        "--rnnlm", type=str, default=None, help="RNNLM model file to read"
+    )
+    parser.add_argument(
+        "--rnnlm-conf", type=str, default=None, help="RNNLM model config file to read"
+    )
+    parser.add_argument(
+        "--word-rnnlm", type=str, default=None, help="Word RNNLM model file to read"
+    )
+    parser.add_argument(
+        "--word-rnnlm-conf",
+        type=str,
+        default=None,
+        help="Word RNNLM model config file to read",
+    )
+    parser.add_argument("--word-dict", type=str, default=None, help="Word list to read")
+    parser.add_argument("--lm-weight", type=float, default=0.1, help="RNNLM weight")
     return parser
 
 

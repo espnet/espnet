@@ -195,20 +195,45 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
                 for lnum in range(num_blocks)
             ]
 
-        self.decoders = repeat(
-            num_blocks,
-            lambda lnum: DecoderLayer(
-                attention_dim,
-                decoder_selfattn_layer(*decoder_selfattn_layer_args[lnum]),
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, src_attention_dropout_rate
+        if selfattention_layer_type == "seqspeechattn":
+            logging.info(
+                "decoder self-attention layer type = sequential self-speech-text attn"
+            )
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, self_attention_dropout_rate
+                    ),
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, src_attention_dropout_rate
+                    ),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, src_attention_dropout_rate
+                    ),
+                    selfattention_layer_type,
                 ),
-                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                dropout_rate,
-                normalize_before,
-                concat_after,
-            ),
-        )
+            )
+        else:
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    decoder_selfattn_layer(*decoder_selfattn_layer_args[lnum]),
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, src_attention_dropout_rate
+                    ),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
         self.selfattention_layer_type = selfattention_layer_type
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
@@ -217,7 +242,16 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         else:
             self.output_layer = None
 
-    def forward(self, tgt, tgt_mask, memory, memory_mask):
+    def forward(
+        self,
+        tgt,
+        tgt_mask,
+        memory,
+        memory_mask,
+        speech=None,
+        speech_mask=None,
+        return_hidden=False,
+    ):
         """Forward decoder.
 
         Args:
@@ -240,16 +274,30 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
 
         """
         x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask = self.decoders(
-            x, tgt_mask, memory, memory_mask
+        x, tgt_mask, memory, memory_mask, speech, speech_mask = self.decoders(
+            x, tgt_mask, memory, memory_mask, speech, speech_mask
         )
         if self.normalize_before:
             x = self.after_norm(x)
+            if return_hidden:
+                hs_pad_asr = x
         if self.output_layer is not None:
             x = self.output_layer(x)
+
+        if return_hidden:
+            return x, tgt_mask, hs_pad_asr
         return x, tgt_mask
 
-    def forward_one_step(self, tgt, tgt_mask, memory, cache=None):
+    def forward_one_step(
+        self,
+        tgt,
+        tgt_mask,
+        memory,
+        speech=None,
+        speech_mask=None,
+        cache=None,
+        return_hidden=False,
+    ):
         """Forward one step.
 
         Args:
@@ -271,8 +319,8 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             cache = [None] * len(self.decoders)
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
-            x, tgt_mask, memory, memory_mask = decoder(
-                x, tgt_mask, memory, None, cache=c
+            x, tgt_mask, memory, memory_mask, speech, speech_mask = decoder(
+                x, tgt_mask, memory, None, speech, None, cache=c
             )
             new_cache.append(x)
 
@@ -280,13 +328,18 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             y = self.after_norm(x[:, -1])
         else:
             y = x[:, -1]
+        if return_hidden:
+            h_asr = y
+
         if self.output_layer is not None:
             y = torch.log_softmax(self.output_layer(y), dim=-1)
 
+        if return_hidden:
+            return y, h_asr, new_cache
         return y, new_cache
 
     # beam search API (see ScorerInterface)
-    def score(self, ys, state, x):
+    def score(self, ys, state, x, speech=None):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         if self.selfattention_layer_type != "selfattn":
@@ -296,13 +349,13 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             )
             state = None
         logp, state = self.forward_one_step(
-            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state
+            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), speech.unsqueeze(0), cache=state
         )
         return logp.squeeze(0), state
 
     # batch beam search API (see BatchScorerInterface)
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech=None
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch (required).
 
@@ -332,7 +385,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
-        logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state)
+        logp, states = self.forward_one_step(ys, ys_mask, xs, speech, cache=batch_state)
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]

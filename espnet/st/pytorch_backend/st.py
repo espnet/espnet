@@ -136,7 +136,14 @@ def train(args):
         model = load_trained_modules(idim, odim, args, interface=STInterface)
     else:
         model_class = dynamic_import(args.model_module)
-        model = model_class(idim, odim, args)
+        if "md" in str(model_class):
+            adim = args.enc_inp_adim
+            odim_si = int(valid_json[utts[0]]["output"][1]["shape"][-1])
+            logging.info("#input asr dims : " + str(odim_si))
+            model = model_class(idim, odim, args, odim_si=odim_si)
+        else:
+            adim = args.adim
+            model = model_class(idim, odim, args)
     assert isinstance(model, STInterface)
     total_subsampling_factor = model.get_total_subsampling_factor()
 
@@ -197,7 +204,7 @@ def train(args):
 
         optimizer = get_std_opt(
             model.parameters(),
-            args.adim,
+            adim,
             args.transformer_warmup_steps,
             args.transformer_lr,
         )
@@ -613,6 +620,9 @@ def trans(args):
     assert isinstance(model, STInterface)
     model.trans_args = args
 
+    if "md" in str(model.__class__):
+        return md_trans(model, train_args, args)
+
     # gpu
     if args.ngpu == 1:
         gpu_id = list(range(args.ngpu))
@@ -683,5 +693,145 @@ def trans(args):
         f.write(
             json.dumps(
                 {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
+            ).encode("utf_8")
+        )
+
+
+def md_trans(model, train_args, args):
+    """Decode with the given args.
+
+    Args:
+        args (namespace): The program arguments.
+
+    """
+    # read rnnlm
+    if args.rnnlm:
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        if getattr(rnnlm_args, "model_module", "default") != "default":
+            raise ValueError(
+                "use '--api v2' option to decode with non-default language model"
+            )
+        rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(
+                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit
+            )
+        )
+        torch_load(args.rnnlm, rnnlm)
+        rnnlm.eval()
+    else:
+        rnnlm = None
+
+    if args.asr_si_rnnlm:
+        asr_si_rnnlm_args = get_model_conf(args.asr_si_rnnlm, args.asr_si_rnnlm_conf)
+        if getattr(asr_si_rnnlm_args, "model_module", "default") != "default":
+            raise ValueError(
+                "use '--api v2' option to decode with non-default language model"
+            )
+        asr_si_rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(
+                len(train_args.char_list),
+                asr_si_rnnlm_args.layer,
+                asr_si_rnnlm_args.unit,
+            )
+        )
+        torch_load(args.asr_si_rnnlm, asr_si_rnnlm)
+        asr_si_rnnlm.eval()
+    else:
+        asr_si_rnnlm = None
+
+    # gpu
+    if args.ngpu == 1:
+        gpu_id = list(range(args.ngpu))
+        logging.info("gpu id: " + str(gpu_id))
+        model.cuda()
+        if rnnlm:
+            rnnlm.cuda()
+        if asr_si_rnnlm:
+            asr_si_rnnlm.cuda()
+
+    # read json data
+    with open(args.trans_json, "rb") as f:
+        js = json.load(f)["utts"]
+    new_js = {}
+    new_asr_si_js = {}
+
+    if args.eval_st_subnet:
+        logging.info("Evaluate ST Subnet with ASR GT for Previous Tokens")
+        load_inputs_and_targets = LoadInputsAndTargets(
+            mode="asr",
+            load_output=True,
+            sort_in_input_length=True,
+            preprocess_conf=train_args.preprocess_conf
+            if args.preprocess_conf is None
+            else args.preprocess_conf,
+            preprocess_args={"train": False},  # Switch the mode of preprocessing
+        )
+    else:
+        load_inputs_and_targets = LoadInputsAndTargets(
+            mode="asr",
+            load_output=False,
+            sort_in_input_length=False,
+            preprocess_conf=train_args.preprocess_conf
+            if args.preprocess_conf is None
+            else args.preprocess_conf,
+            preprocess_args={"train": False},
+        )
+
+    if args.batchsize == 0:
+        with torch.no_grad():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
+                batch = [(name, js[name])]
+                if args.eval_st_subnet:
+                    feat, _, asr_si_target = load_inputs_and_targets(batch)
+                    feat = feat[0]
+                    nbest_hyps, asr_si_hyps = model.translate(
+                        feat,
+                        args,
+                        train_args.char_list,
+                        rnnlm=rnnlm,
+                        asr_target=asr_si_target,
+                        asr_rnnlm=asr_si_rnnlm,
+                    )
+                    logging.info("ASR SI SUBNET OUTPUT")
+                    new_asr_si_js[name] = add_results_to_json(
+                        js[name],
+                        nbest_hyps,
+                        train_args.char_list,
+                        intermediate=True,
+                    )
+                else:
+                    feat = load_inputs_and_targets(batch)[0][0]
+                    nbest_hyps, asr_si_hyps = model.translate(
+                        feat,
+                        args,
+                        train_args.char_list,
+                        rnnlm=rnnlm,
+                        asr_rnnlm=asr_si_rnnlm,
+                    )
+                    logging.info("ASR SI SUBNET OUTPUT")
+                    new_asr_si_js[name] = add_results_to_json(
+                        js[name],
+                        asr_si_hyps,
+                        train_args.char_list,
+                        intermediate=True,
+                    )
+
+                logging.info("ST FINAL OUTPUT")
+                new_js[name] = add_results_to_json(
+                    js[name], nbest_hyps, train_args.char_list
+                )
+
+    with open(args.result_label, "wb") as f:
+        f.write(
+            json.dumps(
+                {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
+            ).encode("utf_8")
+        )
+
+    with open(args.asr_si_result_label, "wb") as f:
+        f.write(
+            json.dumps(
+                {"utts": new_asr_si_js}, indent=4, ensure_ascii=False, sort_keys=True
             ).encode("utf_8")
         )
