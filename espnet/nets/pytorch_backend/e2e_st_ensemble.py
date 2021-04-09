@@ -19,11 +19,13 @@ from espnet.nets.st_interface import STInterface
 
 class E2E(STInterface, torch.nn.Module):
     """EnsembleE2E module (A wrapper around an ensemble of models.
+
     :param list models: models for ensemble inference
     """
 
     def __init__(self, models):
         """Construct an EnsembleE2E object.
+
         :param list models: models for ensemble inference
         """
         self.model_size = len(models)
@@ -52,6 +54,7 @@ class E2E(STInterface, torch.nn.Module):
         char_list=None,
     ):
         """Translate input speech.
+
         :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
         :param Namespace trans_args: argment Namespace contraining options
         :param list char_list: list of characters

@@ -614,6 +614,7 @@ def trans(args):
     if not isinstance(args.model, list):
         args.model = [args.model]
     for m in args.model:
+        logging.info("ensemble decoding: add model " + str(m))
         model, train_args = load_trained_model(m)
         assert isinstance(model, STInterface)
         model.trans_args = args
