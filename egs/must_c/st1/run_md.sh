@@ -23,7 +23,7 @@ seed=1          # seed to generate random number
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/tuning/md/mdtrain-sa2g9-lg9.yaml
+train_config=conf/tuning/md/mdtrain-speechattn.yaml
 decode_config=conf/tuning/md/mddecode-noASRscoring.yaml
 
 # decoding parameter
