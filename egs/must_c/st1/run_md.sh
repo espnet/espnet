@@ -30,8 +30,7 @@ decode_config=conf/tuning/md/mddecode-noASRscoring.yaml
 trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # model average realted (only for transformer)
-#n_average=10                  # the number of ST models to be averaged
-n_average=1                  # the number of ST models to be averaged
+n_average=10                  # the number of ST models to be averaged
 use_valbest_average=false     # if true, the validation `n_average`-best ST models will be averaged.
                              # if false, the last `n_average` ST models will be averaged.
 metric=bleu                  # loss/acc/bleu
@@ -112,7 +111,7 @@ mkdir -p ${expdir}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
 
-    cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         st_train.py \
         --config ${train_config} \
         --n-iter-process 8 \
