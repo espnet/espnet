@@ -58,7 +58,7 @@ bpemode=bpe
 tag="" # tag for managing experiments.
 
 # data size related
-datasize=5m  # 1m/5m/10m
+datasize=5m  # 5m/10m/20m
 
 . utils/parse_options.sh || exit 1;
 
