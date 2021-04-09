@@ -12,7 +12,7 @@ class STInterface(ASRInterface):
 
     """
 
-    def translate(self, x, trans_args, char_list=None, rnnlm=None, ensemble_models=[]):
+    def translate(self, x, trans_args, char_list=None, rnnlm=None):
         """Recognize x for evaluation.
 
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
