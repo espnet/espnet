@@ -614,10 +614,10 @@ def trans(args):
     if not isinstance(args.model, list):
         args.model = [args.model]
     for m in args.model:
-        model, train_args = load_trained_model(args.model)
+        model, train_args = load_trained_model(m)
         assert isinstance(model, STInterface)
         model.trans_args = args
-        model_list.append(m)
+        model_list.append(model)
     model = EnsembleE2E(model_list)
 
     # gpu
