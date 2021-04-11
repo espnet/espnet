@@ -1,3 +1,6 @@
+# Trained on 4 16gb gpus (V-100)
+# For other gpu sizes and counts 
+# vary accum grad and batchsize accordingly
 # network architecture
 backend: pytorch
 model-module: "espnet.nets.pytorch_backend.e2e_st_md_transformer:E2E"
