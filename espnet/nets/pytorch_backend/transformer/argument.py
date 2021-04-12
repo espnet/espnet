@@ -447,5 +447,20 @@ def add_arguments_md_transformer_common(group):
         type=float,
         help="Dropout in transformer attention for Enc SI. use --enc-inp-transformer-attn-dropout-rate if None is set",
     )
+    group.add_argument(
+        "--enc-si-transformer-selfattn-layer-type",
+        type=str,
+        default="selfattn",
+        choices=[
+            "selfattn",
+            "rel_selfattn",
+            "lightconv",
+            "lightconv2d",
+            "dynamicconv",
+            "dynamicconv2d",
+            "light-dynamicconv2d",
+        ],
+        help="transformer encoder self-attention layer type",
+    )
     ######
     return group

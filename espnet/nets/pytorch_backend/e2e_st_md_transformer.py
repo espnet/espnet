@@ -135,6 +135,8 @@ class E2E(STInterface, torch.nn.Module):
             args.enc_si_transformer_attn_dropout_rate = (
                 args.enc_inp_transformer_attn_dropout_rate
             )
+        if args.enc_si_transformer_selfattn_layer_type is None:
+            args.enc_si_transformer_selfattn_layer_type = args.transformer_encoder_selfattn_layer_type
 
         self.pad = 0  # use <blank> for padding
         self.sos = odim - 1
@@ -195,7 +197,7 @@ class E2E(STInterface, torch.nn.Module):
         if args.enc_si_layers > 0:
             self.encoder_st = Encoder(
                 idim=self.odim_si,
-                selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
+                selfattention_layer_type=args.enc_si_transformer_selfattn_layer_type,
                 attention_dim=args.enc_si_adim,
                 attention_heads=args.enc_si_aheads,
                 conv_wshare=args.wshare,

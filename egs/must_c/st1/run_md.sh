@@ -105,7 +105,7 @@ if [[ ${tag} != "" ]]; then
     expname=${expname}_${tag}
 fi
 
-expdir=/tmp/exp/${expname}
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
