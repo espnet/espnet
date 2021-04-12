@@ -247,7 +247,6 @@ class Trainer:
             dp_model = torch.nn.parallel.DataParallel(
                 model,
                 device_ids=list(range(distributed_option.ngpu)),
-                find_unused_parameters=trainer_options.unused_parameters,
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
