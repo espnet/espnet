@@ -6,13 +6,10 @@
 from argparse import Namespace
 import logging
 import math
-import numpy
 
 import torch
 
 from espnet.nets.e2e_asr_common import end_detect
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.st_interface import STInterface
 
@@ -39,6 +36,7 @@ class E2E(STInterface, torch.nn.Module):
 
     def encode(self, x):
         """Encode source acoustic features.
+
         :param ndarray x: source acoustic feature (T, D)
         :return: encoder outputs
         :rtype: torch.Tensor
