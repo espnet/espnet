@@ -28,9 +28,14 @@ class E2E(STInterface, torch.nn.Module):
 
         :param list models: models for ensemble inference
         """
+        torch.nn.Module.__init__(self)
         self.model_size = len(models)
         self.single_model = models[0]
-        self.models = nn.ModuleList(models)
+        self.sos = self.single_model.sos
+        self.eos = self.single_model.eos
+        self.odim = self.single_model.odim
+        self.ignore_id = self.single_model.ignore_id
+        self.models = torch.nn.ModuleList(models)
 
     def encode(self, x):
         """Encode source acoustic features.
@@ -71,7 +76,7 @@ class E2E(STInterface, torch.nn.Module):
         logging.info("<sos> mark: " + char_list[y])
         logging.info("input lengths: " + str(x.shape[0]))
 
-        enc_outputs = self.encode(x).unsqueeze(0)
+        enc_outputs = [ encoded.unsqueeze(0) for encoded in self.encode(x) ]
 
         h = enc_outputs
         reference_length = h[0].size(1)
@@ -97,6 +102,7 @@ class E2E(STInterface, torch.nn.Module):
 
         for i in range(maxlen):
             logging.debug("position " + str(i))
+            local_scores = []
 
             for m in range(len(h)):
                 # batchfy
@@ -105,13 +111,13 @@ class E2E(STInterface, torch.nn.Module):
                     ys[j, :] = torch.tensor(hyp["yseq"])
                 ys_mask = subsequent_mask(i + 1).unsqueeze(0).to(h[m].device)
 
-                local_scores = self.models[m].decoder.forward_one_step(
+                local_scores.append(self.models[m].decoder.forward_one_step(
                     ys, ys_mask, h[m].repeat([len(hyps), 1, 1])
-                )[0]
+                )[0])
 
             avg_scores = torch.logsumexp(
                 torch.stack(local_scores, dim=0), dim=0
-            ) - math.log(self.models_size)
+            ) - math.log(self.model_size)
 
             hyps_best_kept = []
             for j, hyp in enumerate(hyps):
