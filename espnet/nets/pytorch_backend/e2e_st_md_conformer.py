@@ -4,13 +4,13 @@
 """Transformer speech recognition model (pytorch)."""
 
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
-from espnet.nets.pytorch_backend.e2e_st_transformer import E2E as E2ETransformer
+from espnet.nets.pytorch_backend.e2e_st_md_transformer import E2E as E2EMdTransformer
 from espnet.nets.pytorch_backend.conformer.argument import (
     add_arguments_conformer_common,
     verify_rel_pos_type,  # noqa: H301
 )
 
-class E2E(E2ETransformer):
+class E2E(E2EMdTransformer):
     """E2E module.
 
     :param int idim: dimension of inputs
@@ -22,7 +22,7 @@ class E2E(E2ETransformer):
     @staticmethod
     def add_arguments(parser):
         """Add arguments."""
-        E2ETransformer.add_arguments(parser)
+        E2EMdTransformer.add_arguments(parser)
         E2E.add_conformer_arguments(parser)
         return parser
 
@@ -34,14 +34,14 @@ class E2E(E2ETransformer):
         return parser
 
 
-    def __init__(self, idim, odim, args, ignore_id=-1):
+    def __init__(self, idim, odim, args, ignore_id=-1, odim_si=-1):
         """Construct an E2E object.
 
         :param int idim: dimension of inputs
         :param int odim: dimension of outputs
         :param Namespace args: argument Namespace containing options
         """
-        super().__init__(idim, odim, args, ignore_id)
+        super().__init__(idim, odim, args, ignore_id, odim_si)
 
         # Check the relative positional encoding type
         args = verify_rel_pos_type(args)
