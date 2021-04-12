@@ -30,25 +30,7 @@ class E2E(STInterface, torch.nn.Module):
         self.single_model = models[0]
         self.sos = self.single_model.sos
         self.eos = self.single_model.eos
-        self.odim = self.single_model.odim
-        self.ignore_id = self.single_model.ignore_id
         self.models = torch.nn.ModuleList(models)
-
-    def encode(self, x):
-        """Encode source acoustic features.
-
-        :param ndarray x: source acoustic feature (T, D)
-        :return: encoder outputs
-        :rtype: torch.Tensor
-        """
-        self.eval()
-
-        enc_outputs = []
-        x = torch.as_tensor(x).unsqueeze(0)
-        for m in self.models:
-            enc_output, _ = m.encoder(x, None)
-            enc_outputs.append(enc_output.squeeze(0))
-        return enc_outputs
 
     def translate(
         self,
@@ -74,7 +56,9 @@ class E2E(STInterface, torch.nn.Module):
         logging.info("<sos> mark: " + char_list[y])
         logging.info("input lengths: " + str(x.shape[0]))
 
-        enc_outputs = [encoded.unsqueeze(0) for encoded in self.encode(x)]
+        self.eval()
+
+        enc_outputs = [m.encode(x).unsqueeze(0) for m in self.models]
 
         h = enc_outputs
         reference_length = h[0].size(1)
