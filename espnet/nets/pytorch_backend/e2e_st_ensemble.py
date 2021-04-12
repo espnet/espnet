@@ -76,7 +76,7 @@ class E2E(STInterface, torch.nn.Module):
         logging.info("<sos> mark: " + char_list[y])
         logging.info("input lengths: " + str(x.shape[0]))
 
-        enc_outputs = [ encoded.unsqueeze(0) for encoded in self.encode(x) ]
+        enc_outputs = [encoded.unsqueeze(0) for encoded in self.encode(x)]
 
         h = enc_outputs
         reference_length = h[0].size(1)
@@ -111,9 +111,11 @@ class E2E(STInterface, torch.nn.Module):
                     ys[j, :] = torch.tensor(hyp["yseq"])
                 ys_mask = subsequent_mask(i + 1).unsqueeze(0).to(h[m].device)
 
-                local_scores.append(self.models[m].decoder.forward_one_step(
-                    ys, ys_mask, h[m].repeat([len(hyps), 1, 1])
-                )[0])
+                local_scores.append(
+                    self.models[m].decoder.forward_one_step(
+                        ys, ys_mask, h[m].repeat([len(hyps), 1, 1])
+                    )[0]
+                )
 
             avg_scores = torch.logsumexp(
                 torch.stack(local_scores, dim=0), dim=0
