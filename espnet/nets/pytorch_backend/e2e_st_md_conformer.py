@@ -65,3 +65,7 @@ class E2E(E2EMdTransformer):
         )
 
         self.reset_parameters(args)
+        if args.init_like_bert_enc:
+            self.init_like_bert_enc()
+        if args.init_like_bert_dec:
+            self.init_like_bert_dec()
