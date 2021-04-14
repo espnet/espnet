@@ -25,6 +25,7 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules_for_multidecoder
 
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.st_interface import STInterface
@@ -133,7 +134,10 @@ def train(args):
 
     # Initialize with pre-trained ASR encoder and MT decoder
     if args.enc_init is not None or args.dec_init is not None:
-        model = load_trained_modules(idim, odim, args, interface=STInterface)
+        if args.model_module == "espnet.nets.pytorch_backend.e2e_st_md_transformer:E2E" or args.model_module == "espnet.nets.pytorch_backend.e2e_st_md_conformer:E2E":
+            model = load_trained_modules_for_multidecoder(idim, odim, args, interface=STInterface)
+        else:
+            model = load_trained_modules(idim, odim, args, interface=STInterface)
     else:
         model_class = dynamic_import(args.model_module)
         if "md" in str(model_class):
