@@ -153,7 +153,9 @@ class E2E(STInterface, torch.nn.Module):
                 args.enc_inp_transformer_attn_dropout_rate
             )
         if args.enc_si_transformer_selfattn_layer_type is None:
-            args.enc_si_transformer_selfattn_layer_type = args.transformer_encoder_selfattn_layer_type
+            args.enc_si_transformer_selfattn_layer_type = (
+                args.transformer_encoder_selfattn_layer_type
+            )
 
         self.pad = 0  # use <blank> for padding
         self.sos = odim - 1
@@ -314,9 +316,7 @@ class E2E(STInterface, torch.nn.Module):
             return
         if "norm" in n and "weight" in n:
             assert p.dim() == 1
-            torch.nn.init.normal_(
-                p, mean=1.0, std=0.02
-            )  # gamma in layer normalization
+            torch.nn.init.normal_(p, mean=1.0, std=0.02)  # gamma in layer normalization
         elif p.dim() == 1:
             torch.nn.init.constant_(p, 0.0)  # bias
         elif p.dim() == 2:

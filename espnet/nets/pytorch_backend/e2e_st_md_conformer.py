@@ -10,6 +10,7 @@ from espnet.nets.pytorch_backend.conformer.argument import (
     verify_rel_pos_type,  # noqa: H301
 )
 
+
 class E2E(E2EMdTransformer):
     """E2E module.
 
@@ -32,7 +33,6 @@ class E2E(E2EMdTransformer):
         group = parser.add_argument_group("conformer model specific setting")
         group = add_arguments_conformer_common(group)
         return parser
-
 
     def __init__(self, idim, odim, args, ignore_id=-1, odim_si=-1):
         """Construct an E2E object.

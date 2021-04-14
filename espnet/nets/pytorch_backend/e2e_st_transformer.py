@@ -213,9 +213,7 @@ class E2E(STInterface, torch.nn.Module):
             return
         if "norm" in n and "weight" in n:
             assert p.dim() == 1
-            torch.nn.init.normal_(
-                p, mean=1.0, std=0.02
-            )  # gamma in layer normalization
+            torch.nn.init.normal_(p, mean=1.0, std=0.02)  # gamma in layer normalization
         elif p.dim() == 1:
             torch.nn.init.constant_(p, 0.0)  # bias
         elif p.dim() == 2:
@@ -491,7 +489,7 @@ class E2E(STInterface, torch.nn.Module):
             hyps_best_kept = []
             for j, hyp in enumerate(hyps):
                 local_best_scores, local_best_ids = torch.topk(
-                    local_scores[j: j + 1], beam, dim=1
+                    local_scores[j : j + 1], beam, dim=1
                 )
 
                 for j in range(beam):
