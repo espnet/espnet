@@ -14,8 +14,8 @@ config: conf/tuning/train_enh_conv_tasnet.yaml
 
 |dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
-|enhanced_dt05_simu_isolated_1ch_track|2.63359|0.909127|11.3937|11.3937|0|10.1792|
-|enhanced_et05_simu_isolated_1ch_track|2.58602|0.891826|12.5193|12.5193|0|11.5768|
+|enhanced_dt05_simu_isolated_1ch_track|2.63|0.90|11.39|11.39|0|10.17|
+|enhanced_et05_simu_isolated_1ch_track|2.58|0.89|12.51|12.51|0|11.57|
 
 ## enh_train_enh_beamformer_mvdr_raw
 
@@ -23,5 +23,5 @@ config: conf/tuning/train_enh_beamformer_mvdr.yaml
 
 |dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
-|enhanced_dt05_simu_isolated_6ch_track|2.60262|0.945147|13.6748|13.6748|0|12.5195|
-|enhanced_et05_simu_isolated_6ch_track|2.63531|0.950153|15.5108|15.5108|0|14.6525|
+|enhanced_dt05_simu_isolated_6ch_track|2.60|0.94|13.67|13.67|0|12.51|
+|enhanced_et05_simu_isolated_6ch_track|2.63|0.95|15.51|15.51|0|14.65|

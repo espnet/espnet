@@ -16,8 +16,8 @@ config: conf/tuning/train_enh_beamformer_no_wpe.yaml
 
 |dataset|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
-|enhanced_cv_spatialized_anechoic_multich|0.965245|24.4831|20.6248|23.7421|
-|enhanced_tt_spatialized_anechoic_multich|0.968908|24.3599|20.4742|23.5676|
+|enhanced_cv_spatialized_anechoic_multich|0.96|24.48|20.62|23.74|
+|enhanced_tt_spatialized_anechoic_multich|0.96|24.35|20.47|23.56|
 
 ## Environments
 - date: `Tue Jan 26 19:31:08 CST 2021`
@@ -36,10 +36,10 @@ Model link: https://zenodo.org/record/4512933/files/enh_train_enh_beamformer_no_
 
 |dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
-|enhanced_cv_spatialized_anechoic_multich_min_8k|3.09721|0.937657|12.6048|11.7628|25.09|9.49375|
-|enhanced_tt_spatialized_anechoic_multich_min_8k|3.02394|0.943056|12.5872|11.7275|25.0255|9.42349|
-|enhanced_cv_spatialized_anechoic_2ch_min_8k|3.63867|0.97273|25.386|22.2414|26.0157|20.7877|
-|enhanced_tt_spatialized_anechoic_2ch_min_8k|3.59756|0.975745|25.3675|22.251|26.017|20.8179|
+|enhanced_cv_spatialized_anechoic_multich_min_8k|3.09|0.93|12.60|11.76|25.09|9.49|
+|enhanced_tt_spatialized_anechoic_multich_min_8k|3.02|0.94|12.58|11.72|25.02|9.42|
+|enhanced_cv_spatialized_anechoic_2ch_min_8k|3.63|0.97|25.38|22.24|26.01|20.78|
+|enhanced_tt_spatialized_anechoic_2ch_min_8k|3.59|0.97|25.36|22.25|26.01|20.81|
 
 ## Environments
 - date: `Sat Feb  6 16:42:40 CST 2021`
@@ -66,6 +66,6 @@ Model link: https://zenodo.org/record/4513751/files/enh_train_enh_beamformer_no_
 
 |dataset|PESQ|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
-|enhanced_cv_spatialized_reverb_multich_min_8k|2.89554|0.871864|11.9148|9.50443|16.7254|6.4575|
-|enhanced_tt_spatialized_reverb_multich_min_8k|2.88883|0.87636|11.8577|9.39594|16.5588|6.38265|
+|enhanced_cv_spatialized_reverb_multich_min_8k|2.89|0.87|11.91|9.50|16.72|6.45|
+|enhanced_tt_spatialized_reverb_multich_min_8k|2.88|0.87|11.85|9.39|16.55|6.38|
 
