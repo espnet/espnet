@@ -134,9 +134,13 @@ def train(args):
 
     # Initialize with pre-trained ASR encoder and MT decoder
     if args.enc_init is not None or args.dec_init is not None:
-        if args.model_module == "espnet.nets.pytorch_backend.e2e_st_md_transformer:E2E" or args.model_module == "espnet.nets.pytorch_backend.e2e_st_md_conformer:E2E":
+        if "md" in args.model_module:
+            adim = args.enc_inp_adim
+            odim_si = int(valid_json[utts[0]]["output"][1]["shape"][-1])
+            logging.info("#input asr dims : " + str(odim_si))
             model = load_trained_modules_for_multidecoder(idim, odim, args, interface=STInterface)
         else:
+            adim = args.adim
             model = load_trained_modules(idim, odim, args, interface=STInterface)
     else:
         model_class = dynamic_import(args.model_module)
