@@ -4,6 +4,7 @@
 """Transformer speech recognition model (pytorch)."""
 
 from argparse import Namespace
+from distutils.util import strtobool
 import logging
 import math
 import numpy
@@ -52,6 +53,19 @@ class E2E(STInterface, torch.nn.Module):
         """Add arguments."""
         group = parser.add_argument_group("transformer model setting")
         group = add_arguments_transformer_common(group)
+        # initialization related
+        group.add_argument(
+            "--init-like-bert-enc",
+            default=False,
+            type=strtobool,
+            help="Initialize decoder parameters like BERT",
+        )
+        group.add_argument(
+            "--init-like-bert-dec",
+            default=False,
+            type=strtobool,
+            help="Initialize decoder parameters like BERT",
+        )
         return parser
 
     @property
@@ -180,6 +194,11 @@ class E2E(STInterface, torch.nn.Module):
         self.multilingual = getattr(args, "multilingual", False)
         self.replace_sos = getattr(args, "replace_sos", False)
 
+        if args.init_like_bert_enc:
+            self.init_like_bert_enc()
+        if args.init_like_bert_dec:
+            self.init_like_bert_dec()
+
     def reset_parameters(self, args):
         """Initialize parameters."""
         initialize(self, args.transformer_init)
@@ -188,6 +207,25 @@ class E2E(STInterface, torch.nn.Module):
                 self.encoder_mt.embed[0].weight, mean=0, std=args.adim ** -0.5
             )
             torch.nn.init.constant_(self.encoder_mt.embed[0].weight[self.pad], 0)
+
+    def _init_like_bert(self, n, p):
+        if "embed" in n:
+            return
+        if "norm" in n and "weight" in n:
+            assert p.dim() == 1
+            torch.nn.init.normal_(p, mean=1.0, std=0.02)  # gamma in layer normalization
+        elif p.dim() == 1:
+            torch.nn.init.constant_(p, 0.0)  # bias
+        elif p.dim() == 2:
+            torch.nn.init.normal_(p, mean=0, std=0.02)
+
+    def init_like_bert_enc(self):
+        for n, p in self.encoder.named_parameters():
+            self._init_like_bert(n, p)
+
+    def init_like_bert_dec(self):
+        for n, p in self.decoder.named_parameters():
+            self._init_like_bert(n, p)
 
     def forward(self, xs_pad, ilens, ys_pad, ys_pad_src):
         """E2E forward.
