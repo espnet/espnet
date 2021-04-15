@@ -126,7 +126,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # additionally we copy text to text.${case}
     for x in tr_${data_code} dt_${data_code} et_${data_code}_dev et_${data_code}_test; do
         for case in tc lc lc.rm; do
-            cp data/${x}/text data/${x}/text.${case}
+            paste -d " " <(cut -d " " -f 1 data/${x}/text) <(cut -d " " -f 2- data/${x}/text | lowercase.perl | tokenizer.perl -l en -q) > data/${x}/text.${case}
         done
     done
 
@@ -200,8 +200,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} \
-            ${feat_recog_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} ${feat_recog_dir}
     done
 fi
 
