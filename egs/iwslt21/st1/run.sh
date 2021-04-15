@@ -214,7 +214,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
-        if [[ ${x} = *tst* ]]; then
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
             local/data2json.sh --feat ${feat_trans_dir}/feats.scp --no_text true \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         else
@@ -225,7 +225,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # update json (add source references)
     for x in ${train_set} ${train_dev} ${trans_set}; do
-        if [[ ${x} = *tst* ]]; then
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
             continue
         fi
         feat_dir=${dumpdir}/${x}/delta${do_delta}
@@ -313,7 +313,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        if [[ ${x} = *tst* ]]; then
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
             set=$(echo ${x} | cut -f 1 -d "." | cut -f 3 -d "_")
             local/score_bleu_reseg.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
