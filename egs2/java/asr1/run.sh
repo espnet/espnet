@@ -7,9 +7,11 @@ set -o pipefail
 
 lid=false # whether to use language id as additional label
 
-train_set="train"
-train_dev="dev"
-test_set="test"
+lang="java"
+
+train_set="${lang}_train"
+train_dev="${lang}_dev"
+test_set="${lang}_test"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
@@ -19,6 +21,7 @@ ngpu=1
 ./asr.sh \
     --stage 1 \
     --stop_stage 100 \
+    --local_data_opts "--lang ${lang}" \
     --ngpu ${ngpu} \
     --nj 80 \
     --inference_nj 256 \

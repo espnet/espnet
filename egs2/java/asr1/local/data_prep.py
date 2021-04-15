@@ -5,7 +5,8 @@ import random
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', help='downloads directory', type=str, default='downloads')
+    parser.add_argument("--lang", "-l", help="language", type=str, default="java")
+    parser.add_argument("-d", help="downloads directory", type=str, default="downloads")
     args = parser.parse_args()
 
     tsv_path = "%s/utt_spk_text.tsv" % args.d
@@ -73,8 +74,9 @@ if __name__ == "__main__":
                 )
                 text_strs.append("%s %s" % (utt, utt2text[fid]))
                 wav_scp_strs.append("%s %s" % (utt, cmd))
-        phase_dir = "data/%s" % phase
-        os.makedirs(phase_dir)
+        phase_dir = "data/%s_%s" % (args.lang, phase)
+        if not os.path.exists(phase_dir):
+            os.makedirs(phase_dir)
         text_strs = sorted(text_strs)
         wav_scp_strs = sorted(wav_scp_strs)
         spk2utt_strs = sorted(spk2utt_strs)
