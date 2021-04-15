@@ -50,7 +50,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "sub-stage 1: Preparing Data for openslr"
 
-    python3 local/java_data_prep.py
+    python3 local/java_data_prep.py -d ${JAVA}
     utils/spk2utt_to_utt2spk.pl data/train/spk2utt > data/train/utt2spk
     utils/spk2utt_to_utt2spk.pl data/dev/spk2utt > data/dev/utt2spk
     utils/spk2utt_to_utt2spk.pl data/test/spk2utt > data/test/utt2spk

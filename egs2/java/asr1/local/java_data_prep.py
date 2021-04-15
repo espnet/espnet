@@ -1,9 +1,14 @@
+import argparse
 import os
 import random
 
 
 if __name__ == "__main__":
-    tsv_path = "downloads/utt_spk_text.tsv"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', help='downloads directory', type=str, default='downloads')
+    args = parser.parse_args()
+
+    tsv_path = "%s/utt_spk_text.tsv" % args.d
 
     with open(tsv_path, "r") as inf:
         tsv_lines = inf.readlines()
@@ -16,7 +21,7 @@ if __name__ == "__main__":
         fid = l_list[0]
         spk = l_list[1]
         text = l_list[2]
-        path = "downloads/data/%s/%s.flac" % (fid[:2], fid)
+        path = "%s/data/%s/%s.flac" % (args.d, fid[:2], fid)
         if os.path.exists(path):
             utt2text[fid] = text
             if spk in spk2utt:
@@ -41,7 +46,7 @@ if __name__ == "__main__":
     dev_spks = train_dev_spks[num_train:]
 
     spks_by_phase = {"train": train_spks, "dev": dev_spks, "test": test_spks}
-    flac_dir = "downloads/data"
+    flac_dir = "%s/data" % args.d
     sr = 16000
     for phase in spks_by_phase:
         spks = spks_by_phase[phase]

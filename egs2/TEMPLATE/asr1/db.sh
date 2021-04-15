@@ -149,5 +149,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HOW2_TEXT=
     HOW2_FEATS=
     ZEROTH_KOREAN=downloads
+    JAVA=
 
 fi
