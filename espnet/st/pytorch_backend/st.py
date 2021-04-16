@@ -27,6 +27,7 @@ from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_st_ensemble import E2E as EnsembleE2E
 from espnet.nets.st_interface import STInterface
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset
@@ -616,9 +617,16 @@ def trans(args):
 
     """
     set_deterministic_pytorch(args)
-    model, train_args = load_trained_model(args.model)
-    assert isinstance(model, STInterface)
-    model.trans_args = args
+    model_list = []
+    if not isinstance(args.model, list):
+        args.model = [args.model]
+    for m in args.model:
+        logging.info("ensemble decoding: add model " + str(m))
+        model, train_args = load_trained_model(m)
+        assert isinstance(model, STInterface)
+        model.trans_args = args
+        model_list.append(model)
+    model = EnsembleE2E(model_list)
 
     if "md" in str(model.__class__):
         return md_trans(model, train_args, args)
