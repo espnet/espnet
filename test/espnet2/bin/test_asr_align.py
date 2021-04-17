@@ -101,12 +101,13 @@ def test_CTCSegmentation(asr_config_file):
         "scoring_length": 10,
         "replace_spaces_with_blanks": True,
         "gratis_blank": True,
+        "kaldi_style_text": False,
+        "text_converter": "classic",
     }
     aligner.set_config(**option_dict)
     assert aligner.warned_about_misconfiguration
-    aligner.kaldi_style_text = False
     text = ["HOTELS", "HOLIDAY'S STRATEGY", "ASSETS", "PROPERTY MANAGEMENT"]
     segments = aligner(speech, text, name="foo")
-    kaldi_segments = str(segments)
-    first_line = kaldi_segments.splitlines()[0]
+    segments_str = str(segments)
+    first_line = segments_str.splitlines()[0]
     assert "foo_0000" == first_line.split(" ")[0]

@@ -31,6 +31,7 @@ from ctc_segmentation import ctc_segmentation
 from ctc_segmentation import CtcSegmentationParameters
 from ctc_segmentation import determine_utterance_segments
 from ctc_segmentation import prepare_text
+from ctc_segmentation import prepare_token_list
 
 
 class CTCSegmentationResult:
@@ -140,12 +141,12 @@ class CTCSegmentation:
         >>> wsjmodel = d.download_and_unpack( "kamo-naoyuki/wsj" )
         >>> # Apply CTC segmentation
         >>> aligner = CTCSegmentation( **wsjmodel )
-        >>> text=["THE SALE OF THE HOTELS", "ON PROPERTY MANAGEMENT"]
+        >>> text=["utt1 THE SALE OF THE HOTELS", "utt2 ON PROPERTY MANAGEMENT"]
         >>> aligner.set_config( gratis_blank=True )
         >>> segments = aligner( speech, text, fs=fs )
         >>> print( segments )
-        utt_0000 utt 0.27 1.70 -5.4395 THE SALE OF THE HOTELS
-        utt_0001 utt 4.52 6.10 -9.1153 ON PROPERTY MANAGEMENT
+        utt1 utt 0.27 1.70 -3.9123 THE SALE OF THE HOTELS
+        utt2 utt 4.54 6.11 -8.7251 ON PROPERTY MANAGEMENT
 
     References:
         CTC-Segmentation of Large Corpora for German End-to-end Speech Recognition
@@ -159,7 +160,9 @@ class CTCSegmentation:
     fs = 16000
     samples_to_frames_ratio = None
     time_stamps = "auto"
-    choices_time_stamps = ["fixed", "auto"]
+    choices_time_stamps = ["auto", "fixed"]
+    text_converter = "tokenize"
+    choices_text_converter = ["tokenize", "classic"]
     warned_about_misconfiguration = False
     config = CtcSegmentationParameters()
 
@@ -171,8 +174,8 @@ class CTCSegmentation:
         ngpu: int = 0,
         batch_size: int = 1,
         dtype: str = "float32",
-        kaldi_style_text: bool = False,
-        tokenized_text: bool = False,
+        kaldi_style_text: bool = True,
+        text_converter: str = "tokenize",
         time_stamps: str = "auto",
         **ctc_segmentation_args,
     ):
@@ -189,9 +192,15 @@ class CTCSegmentation:
             dtype: Data type used for inference. Set dtype according to
                 the ASR model.
             kaldi_style_text: A kaldi-style text file includes the name of the
-                utterance at the start of the line. Set this option to True if
-                this is the case with your input data. Default: False.
-            tokenized_text: True if tokenized text is given as input.
+                utterance at the start of the line. If True, the utterance name
+                is expected as first word at each line. If False, utterance
+                names are automatically generated. Set this option according to
+                your input data. Default: True.
+            text_converter: How CTC segmentation handles text.
+                "tokenize": Use ESPnet 2 preprocessing to tokenize the text.
+                "classic": The text is preprocessed as in ESPnet 1 which takes
+                token length into account. If the ASR model has longer tokens,
+                this option may yield better results. Default: "tokenize".
             time_stamps: Choose the method how the time stamps are
                 calculated. While "fixed" and "auto" use both the sample rate,
                 the ratio of samples to one frame is either automatically
@@ -218,6 +227,7 @@ class CTCSegmentation:
             asr_train_config, asr_model_file, device
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
+        self.preprocess_fn = ASRTask.build_preprocess_fn(asr_train_args, False)
 
         # Warn for nets with high memory consumption on long audio files
         if hasattr(asr_model, "encoder"):
@@ -235,11 +245,16 @@ class CTCSegmentation:
         self.dtype = dtype
         self.ctc = asr_model.ctc
 
-        self.tokenized_text = tokenized_text
         self.kaldi_style_text = kaldi_style_text
         self.token_list = asr_model.token_list
         # Apply configuration
-        self.set_config(fs=fs, time_stamps=time_stamps, **ctc_segmentation_args)
+        self.set_config(
+            fs=fs,
+            time_stamps=time_stamps,
+            kaldi_style_text=kaldi_style_text,
+            text_converter=text_converter,
+            **ctc_segmentation_args,
+        )
         # last token "<sos/eos>", not needed
         self.config.char_list = asr_model.token_list[:-1]
 
@@ -258,8 +273,14 @@ class CTCSegmentation:
                 ``subsampling_factor * frame_duration / 1000``.
 
         Parameters for text preparation:
+            set_blank: Index of blank in token list. Default: 0.
             replace_spaces_with_blanks: Inserts blanks between words, which is
-                useful for handling long pauses between words. Default: False.
+                useful for handling long pauses between words. Only used in
+                "text" preprocessing mode. Default: False.
+            kaldi_style_text: Determines whether the utterance name is expected
+                as fist word of the utterance. Set at module initialization.
+            text_converter: How CTC segmentation handles text.
+                Set at module initialization.
 
         Parameters for alignment:
             min_window_size: Minimum number of frames considered for a single
@@ -271,7 +292,6 @@ class CTCSegmentation:
             gratis_blank: If True, the transition cost of blank is set to zero.
                 Useful for long preambles or if there are large unrelated segments
                 between utterances. Default: False.
-            set_blank: Index of blank in token list. Default: 0.
 
         Parameters for calculation of confidence score:
             scoring_length: Block length to calculate confidence score. The
@@ -281,7 +301,7 @@ class CTCSegmentation:
         if "time_stamps" in kwargs:
             if kwargs["time_stamps"] not in self.choices_time_stamps:
                 raise NotImplementedError(
-                    f"time_stamps type has to be one of "
+                    f"Parameter ´time_stamps´ has to be one of "
                     f"{list(self.choices_time_stamps)}",
                 )
             self.time_stamps = kwargs["time_stamps"]
@@ -297,6 +317,16 @@ class CTCSegmentation:
             self.config.replace_spaces_with_blanks = bool(
                 kwargs["replace_spaces_with_blanks"]
             )
+        if "kaldi_style_text" in kwargs:
+            assert isinstance(kwargs["kaldi_style_text"], bool)
+            self.kaldi_style_text = kwargs["kaldi_style_text"]
+        if "text_converter" in kwargs:
+            if kwargs["text_converter"] not in self.choices_text_converter:
+                raise NotImplementedError(
+                    f"Parameter ´text_converter´ has to be one of "
+                    f"{list(self.choices_text_converter)}",
+                )
+            self.text_converter = kwargs["text_converter"]
         # Parameters for alignment
         if "min_window_size" in kwargs:
             assert isinstance(kwargs["min_window_size"], int)
@@ -333,7 +363,8 @@ class CTCSegmentation:
                 ratio = self.estimate_samples_to_frames_ratio()
                 self.samples_to_frames_ratio = ratio
             index_duration = self.samples_to_frames_ratio / self.fs
-        elif self.time_stamps == "auto":
+        else:
+            assert self.time_stamps == "auto"
             samples_to_frames_ratio = speech_len / lpz_len
             index_duration = samples_to_frames_ratio / self.fs
         timing_cfg["index_duration"] = index_duration
@@ -349,7 +380,7 @@ class CTCSegmentation:
 
         Args:
             speech_len: Length of randomly generated speech vector for single
-                inference. Default: 215040=(2048 * 3 * 5 * 7).
+                inference. Default: 215040.
 
         Returns:
             samples_to_frames_ratio: Estimated ratio.
@@ -380,8 +411,8 @@ class CTCSegmentation:
         lpz = lpz.squeeze(0).squeeze(0).cpu().numpy()
         return lpz
 
-    def _text_preprocess(self, text):
-        """Cleanup text and extract utterance IDs."""
+    def _split_text(self, text):
+        """Convert text to list and extract utterance IDs."""
         utt_ids = None
         # Handle multiline strings
         if isinstance(text, str):
@@ -390,22 +421,27 @@ class CTCSegmentation:
         text = list(filter(len, text))
         # Handle kaldi-style text format
         if self.kaldi_style_text:
-            utt_ids = [utt.split(" ", 1)[0] for utt in text]
-            text = [utt.split(" ", 1)[1] for utt in text]
+            utt_ids_and_text = [utt.split(" ", 1) for utt in text]
+            utt_ids = [utt[0] for utt in utt_ids_and_text]
+            text = [utt[1] for utt in utt_ids_and_text]
         return utt_ids, text
 
-    def get_segments(self, text, lpz, timing_cfg=None):
+    def get_segments(self, text, lpz, utt_ids=None, timing_cfg=None):
         """Obtain segments for given utterance texts and CTC log posteriors."""
         config = self.config
-        # text is needed in the form of a list.
-        utt_ids, text = self._text_preprocess(text)
         # Update timing parameters
         if timing_cfg is not None:
             config.set(**timing_cfg)
         # Obtain utterance & label sequence from text
-        if self.tokenized_text:
-            raise NotImplementedError("Tokenized text is not yet supported.")
+        if self.text_converter == "tokenize":
+            token_list = [
+                self.preprocess_fn("<dummy>", {"text": utt})["text"] for utt in text
+            ]
+            ground_truth_mat, utt_begin_indices = prepare_token_list(
+                self.config, token_list
+            )
         else:
+            assert self.text_converter == "classic"
             ground_truth_mat, utt_begin_indices = prepare_text(self.config, text)
         # Align using CTC segmentation
         timings, char_probs, state_list = ctc_segmentation(
@@ -455,6 +491,8 @@ class CTCSegmentation:
             speech = torch.tensor(speech)
         if fs is not None:
             self.set_config(fs=fs)
+        # `text` is needed in the form of a list.
+        utt_ids, text = self._split_text(text)
         # Get log CTC posterior probabilities
         lpz = self.get_lpz(speech)
         # If needed, determine timing information
@@ -462,7 +500,7 @@ class CTCSegmentation:
         lpz_len = lpz.shape[0]
         timing_cfg = self.get_timing_config(speech_len, lpz_len)
         # Apply CTC segmentation
-        result = self.get_segments(text, lpz, timing_cfg)
+        result = self.get_segments(text, lpz, utt_ids, timing_cfg)
         if name is not None:
             result.name = name
         assert check_return_type(result)
@@ -490,7 +528,7 @@ def ctc_align(
     # Ignore configuration values that are set to None (from parser).
     kwargs = {k: v for (k, v) in kwargs.items() if v is not None}
 
-    # Prepare CTC segmentation
+    # Prepare CTC segmentation module
     model = {
         "asr_train_config": asr_train_config,
         "asr_model_file": asr_model_file,
@@ -504,11 +542,13 @@ def ctc_align(
     # load text file
     transcripts = text.read()
 
-    aligned = aligner(speech=speech, text=transcripts, fs=fs, name=name)
-    # Write to "segments" file
-    aligned.print_utterance_text = print_utt_text
-    aligned.print_confidence_score = print_utt_score
-    segments_str = str(aligned)
+    # perform inference and CTC segmentation
+    segments = aligner(speech=speech, text=transcripts, fs=fs, name=name)
+
+    # Write to "segments" file or stdout
+    segments.print_utterance_text = print_utt_text
+    segments.print_confidence_score = print_utt_score
+    segments_str = str(segments)
     output.write(segments_str)
 
 
@@ -612,12 +652,27 @@ def get_parser():
         default=None,
         help="Changes partitioning length L for calculation of the confidence score.",
     )
+    group.add_argument(
+        "--time_stamps",
+        type=str,
+        default=CTCSegmentation.time_stamps,
+        choices=CTCSegmentation.choices_time_stamps,
+        help="Select method how CTC index duration is estimated, and"
+        " thus how the time stamps are calculated.",
+    )
+    group.add_argument(
+        "--text_converter",
+        type=str,
+        default=CTCSegmentation.text_converter,
+        choices=CTCSegmentation.choices_text_converter,
+        help="How CTC segmentation handles text.",
+    )
 
     group = parser.add_argument_group("Input/output arguments")
     group.add_argument(
         "--kaldi_style_text",
         type=str2bool,
-        default=False,
+        default=True,
         help="Assume that the input text file is kaldi-style formatted, i.e., the"
         " utterance name is at the beginning of each line.",
     )

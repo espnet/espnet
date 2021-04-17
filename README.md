@@ -510,41 +510,41 @@ This can be done either directly from the Python command line or using the scrip
 From the Python command line interface:
 
 ```python
-# load the example file included in the ESPnet repository
-import soundfile
-speech, fs = soundfile.read("test_utils/ctc_align_test.wav")
-# load an ASR model
+# load a model with character tokens
 from espnet_model_zoo.downloader import ModelDownloader
 d = ModelDownloader(cachedir="./modelcache")
-wsjmodel = d.download_and_unpack( "kamo-naoyuki/wsj" )
-# give utterances line-by-line or as a list of strings
-text = """
-THE SALE OF THE HOTELS
-IS PART OF HOLIDAY'S STRATEGY
-TO SELL OFF ASSETS
-AND CONCENTRATE ON PROPERTY MANAGEMENT
-"""
-# prepare CTC segmentation module
+wsjmodel = d.download_and_unpack("kamo-naoyuki/wsj")
+# load the example file included in the ESPnet repository
+import soundfile
+speech, rate = soundfile.read("./test_utils/ctc_align_test.wav")
+# CTC segmentation
 from espnet2.bin.asr_align import CTCSegmentation
-aligner = CTCSegmentation( **wsjmodel, fs=fs )
-# obtain segments
-segments = aligner( speech, text )
+aligner = CTCSegmentation( **wsjmodel , fs=rate )
+text = """
+utt1 THE SALE OF THE HOTELS
+utt2 IS PART OF HOLIDAY'S STRATEGY
+utt3 TO SELL OFF ASSETS
+utt4 AND CONCENTRATE ON PROPERTY MANAGEMENT
+"""
+segments = aligner(speech, text)
 print(segments)
-# utt_0000 utt 0.26 1.73 -5.3245 THE SALE OF THE HOTELS
-# utt_0001 utt 1.73 3.17 -5.1811 IS PART OF HOLIDAY'S STRATEGY
-# utt_0002 utt 3.17 4.19 -5.7120 TO SELL OFF ASSETS
-# utt_0003 utt 4.19 6.10 -5.7606 AND CONCENTRATE ON PROPERTY MANAGEMENT
+# utt1 utt 0.26 1.73 -3.8277 THE SALE OF THE HOTELS
+# utt2 utt 1.73 3.18 -3.9960 IS PART OF HOLIDAY'S STRATEGY
+# utt3 utt 3.18 4.20 -4.8537 TO SELL OFF ASSETS
+# utt4 utt 4.20 6.11 -4.8485 AND CONCENTRATE ON PROPERTY MANAGEMENT
 ```
 
-Aligning also works with fragments of the text. For this, set the `gratis_blank` option that allows skipping unrelated audio sections without penalty.
+Aligning also works with fragments of the text.
+For this, set the `gratis_blank` option that allows skipping unrelated audio sections without penalty.
+It's also possible to omit the utterance names at the beginning of each line, by setting `kaldi_style_text` to False.
 
 ```python
-aligner.set_config( gratis_blank=True, )
+aligner.set_config( gratis_blank=True, kaldi_style_text=False )
 text = ["SALE OF THE HOTELS", "PROPERTY MANAGEMENT"]
 segments = aligner(speech, text)
 print(segments)
-# utt_0000 utt 0.37 1.70 -6.8894 SALE OF THE HOTELS
-# utt_0001 utt 4.68 6.10 -9.8057 PROPERTY MANAGEMENT
+# utt_0000 utt 0.37 1.70 -5.7288 SALE OF THE HOTELS
+# utt_0001 utt 4.70 6.11 -9.3781 PROPERTY MANAGEMENT
 ```
 
 The script `espnet2/bin/asr_align.py` uses a similar interface. To align utterances:
@@ -557,23 +557,22 @@ asr_model=<path-to-model>/valid.*best.pth
 wav="test_utils/ctc_align_test.wav"
 text="test_utils/ctc_align_text.txt"
 cat << EOF > ${text}
-THE SALE OF THE HOTELS
-IS PART OF HOLIDAY'S STRATEGY
-TO SELL OFF ASSETS
-AND CONCENTRATE
-ON PROPERTY MANAGEMENT
+utt1 THE SALE OF THE HOTELS
+utt2 IS PART OF HOLIDAY'S STRATEGY
+utt3 TO SELL OFF ASSETS
+utt4 AND CONCENTRATE
+utt5 ON PROPERTY MANAGEMENT
 EOF
 # obtain alignments:
-# (Here: added 2>/dev/null to silence the logging module)
-python espnet2/bin/asr_align.py --asr_train_config ${asr_config} --asr_model_file ${asr_model} --audio ${wav} --text ${text} 2>/dev/null
-# ctc_align_test_0000 ctc_align_test 0.26 1.73 -5.3245 THE SALE OF THE HOTELS
-# ctc_align_test_0001 ctc_align_test 1.73 3.17 -5.1811 IS PART OF HOLIDAY'S STRATEGY
-# ctc_align_test_0002 ctc_align_test 3.17 4.19 -5.7120 TO SELL OFF ASSETS
-# ctc_align_test_0003 ctc_align_test 4.19 4.96 -5.0718 AND CONCENTRATE
-# ctc_align_test_0004 ctc_align_test 4.96 6.10 -5.1032 ON PROPERTY MANAGEMENT
+python espnet2/bin/asr_align.py --asr_train_config ${asr_config} --asr_model_file ${asr_model} --audio ${wav} --text ${text}
+# utt1 ctc_align_test 0.26 1.73 -3.8277 THE SALE OF THE HOTELS
+# utt2 ctc_align_test 1.73 3.18 -3.9960 IS PART OF HOLIDAY'S STRATEGY
+# utt3 ctc_align_test 3.18 4.20 -4.8537 TO SELL OFF ASSETS
+# utt4 ctc_align_test 4.20 4.97 -4.6691 AND CONCENTRATE
+# utt5 ctc_align_test 4.97 6.11 -4.2853 ON PROPERTY MANAGEMENT
 ```
 
-The output of the script can be reditected to a `segments` file by adding the argument `--output segments`.
+The output of the script can be redirected to a `segments` file by adding the argument `--output segments`.
 Each line contains file/utterance name, utterance start and end times in seconds and a confidence score; optionally also the utterance text.
 The confidence score is a probability in log space that indicates how good the utterance was aligned. If needed, remove bad utterances:
 
@@ -583,6 +582,7 @@ min_confidence_score=-7
 awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' segments
 ```
 
+See the module documentation for more information.
 It is recommended to use models with RNN-based encoders (such as BLSTMP) for aligning large audio files;
 rather than using Transformer models that have a high memory consumption on longer audio data.
 The sample rate of the audio must be consistent with that of the data used in training; adjust with `sox` if needed.
