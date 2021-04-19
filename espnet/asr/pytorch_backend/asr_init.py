@@ -280,3 +280,77 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
     main_model.load_state_dict(main_state_dict)
 
     return main_model
+
+def load_trained_modules_for_multidecoder(idim, odim, args, interface=ASRInterface):
+    """Load model encoder or/and decoder modules with ESPNET pre-trained model(s).
+
+    Args:
+        idim (int): initial input dimension.
+        odim (int): initial output dimension.
+        args (Namespace): The initial model arguments.
+        interface (Interface): ASRInterface or STInterface or TTSInterface.
+
+    Return:
+        model (torch.nn.Module): The model with pretrained modules.
+
+    """
+
+    def print_new_keys(state_dict, modules, model_path):
+        logging.warning("loading %s from model: %s", modules, model_path)
+
+        for k in state_dict.keys():
+            logging.warning("override %s" % k)
+
+    def convert_to_multidecoder(state_dict, part):
+        new_state_dict = OrderedDict()
+        for key in state_dict.keys():
+            key_tok = key.split(".")
+            if key_tok[0] == 'encoder' or key_tok[0] == 'decoder':
+                key_tok[0] = key_tok[0]+"_"+part
+                new_key = ".".join(key_tok)
+                new_state_dict[new_key] = state_dict[key]
+            else:
+                new_state_dict[key] = state_dict[key]
+        return new_state_dict
+
+    enc_model_path = args.enc_init
+    dec_model_path = args.dec_init
+    enc_modules = args.enc_init_mods
+    dec_modules = args.dec_init_mods
+
+    model_class = dynamic_import(args.model_module)
+    main_model = model_class(idim, odim, args)
+    assert isinstance(main_model, interface)
+
+    main_state_dict = main_model.state_dict()
+
+    logging.warning("model(s) found for pre-initialization")
+    for model_path, modules, part in [
+        (enc_model_path, enc_modules, "asr"),
+        (dec_model_path, dec_modules, "st"),
+    ]:
+        if model_path is not None:
+            if os.path.isfile(model_path):
+                model_state_dict = get_trained_model_state_dict(model_path)
+                model_state_dict = convert_to_multidecoder(model_state_dict, part)
+
+                modules = filter_modules(model_state_dict, modules)
+
+                partial_state_dict = get_partial_state_dict(model_state_dict, modules)
+                if partial_state_dict:
+                    if transfer_verification(
+                        main_state_dict, partial_state_dict, modules
+                    ):
+                        print_new_keys(partial_state_dict, modules, model_path)
+                        main_state_dict.update(partial_state_dict)
+                    else:
+                        logging.warning(
+                            f"modules {modules} in model {model_path} "
+                            f"don't match your training config",
+                        )
+            else:
+                logging.warning("model was not found : %s", model_path)
+
+    main_model.load_state_dict(main_state_dict)
+
+    return main_model

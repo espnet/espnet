@@ -25,6 +25,7 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
+from espnet.asr.pytorch_backend.asr_init import load_trained_modules_for_multidecoder
 
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_st_ensemble import E2E as EnsembleE2E
@@ -134,7 +135,14 @@ def train(args):
 
     # Initialize with pre-trained ASR encoder and MT decoder
     if args.enc_init is not None or args.dec_init is not None:
-        model = load_trained_modules(idim, odim, args, interface=STInterface)
+        if "md" in args.model_module:
+            adim = args.enc_inp_adim
+            odim_si = int(valid_json[utts[0]]["output"][1]["shape"][-1])
+            logging.info("#input asr dims : " + str(odim_si))
+            model = load_trained_modules_for_multidecoder(idim, odim, args, interface=STInterface)
+        else:
+            adim = args.adim
+            model = load_trained_modules(idim, odim, args, interface=STInterface)
     else:
         model_class = dynamic_import(args.model_module)
         if "md" in str(model_class):

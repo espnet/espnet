@@ -4,6 +4,7 @@
 """Transformer speech recognition model (pytorch)."""
 
 from argparse import Namespace
+from distutils.util import strtobool
 import logging
 import math
 import numpy
@@ -15,6 +16,7 @@ from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
 from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
+from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.e2e_st import Reporter
@@ -58,6 +60,20 @@ class E2E(STInterface, torch.nn.Module):
         # we call encoder as the one in the input side (in this case speech encoder)
         # we call decoder as the one in the output side (in this case translation decoder)
         # we call the intermediate decoder as the one in the output side (in this case translation decoder)
+
+        # initialization related
+        group.add_argument(
+            "--init-like-bert-enc",
+            default=False,
+            type=strtobool,
+            help="Initialize decoder parameters like BERT",
+        )
+        group.add_argument(
+            "--init-like-bert-dec",
+            default=False,
+            type=strtobool,
+            help="Initialize decoder parameters like BERT",
+        )
         return parser
 
     @property
@@ -138,7 +154,9 @@ class E2E(STInterface, torch.nn.Module):
                 args.enc_inp_transformer_attn_dropout_rate
             )
         if args.enc_si_transformer_selfattn_layer_type is None:
-            args.enc_si_transformer_selfattn_layer_type = args.transformer_encoder_selfattn_layer_type
+            args.enc_si_transformer_selfattn_layer_type = (
+                args.transformer_encoder_selfattn_layer_type
+            )
 
         self.pad = 0  # use <blank> for padding
         self.sos = odim - 1
@@ -285,9 +303,41 @@ class E2E(STInterface, torch.nn.Module):
         self.multilingual = getattr(args, "multilingual", False)
         self.replace_sos = getattr(args, "replace_sos", False)
 
+        if args.init_like_bert_enc:
+            self.init_like_bert_enc()
+        if args.init_like_bert_dec:
+            self.init_like_bert_dec()
+
     def reset_parameters(self, args):
         """Initialize parameters."""
         initialize(self, args.transformer_init)
+
+    def _init_like_bert(self, n, p):
+        if "embed" in n:
+            return
+        if "norm" in n and "weight" in n:
+            assert p.dim() == 1
+            torch.nn.init.normal_(p, mean=1.0, std=0.02)  # gamma in layer normalization
+        elif p.dim() == 1:
+            torch.nn.init.constant_(p, 0.0)  # bias
+        elif p.dim() == 2:
+            torch.nn.init.normal_(p, mean=0, std=0.02)
+
+    def init_like_bert_enc(self):
+        # ASR encoder
+        for n, p in self.encoder_asr.named_parameters():
+            self._init_like_bert(n, p)
+        # ST encoder
+        for n, p in self.encoder_st.named_parameters():
+            self._init_like_bert(n, p)
+
+    def init_like_bert_dec(self):
+        # ASR decoder
+        # for n, p in self.decoder_asr.named_parameters():
+        #     self._init_like_bert(n, p)
+        # ST decoder
+        for n, p in self.decoder_st.named_parameters():
+            self._init_like_bert(n, p)
 
     def forward(self, xs_pad, ilens, ys_pad, ys_pad_src):
         """E2E forward.
