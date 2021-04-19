@@ -18,6 +18,7 @@ from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.e2e_st import Reporter
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -544,6 +545,58 @@ class E2E(STInterface, torch.nn.Module):
         enc_output, _ = self.encoder_st(x, None)
         return enc_output.squeeze(0)
 
+    def encode(self, x, trans_args, char_list=None):
+        # interface for ensemble
+        x = torch.as_tensor(x)
+
+        # preprate sos
+        if getattr(trans_args, "tgt_lang", False):
+            if self.replace_sos:
+                y = char_list.index(trans_args.tgt_lang)
+        else:
+            y = self.sos
+
+        if trans_args.eval_st_subnet:
+            asr_output, speech_enc = self.recognize(
+                x, trans_args, char_list, None, None
+            )
+            x = asr_output.squeeze(0)
+            maxlen_asr = len(speech_enc[0])
+        else:
+            asr_output, maxlen_asr, speech_enc = self.recognize(
+                x, trans_args, char_list, None, None
+            )
+            x = torch.stack(asr_output[0]["hs_asrs"]).squeeze(1)
+
+        if hasattr(self, "encoder_st"):
+            st_enc_output = self.encode_st(x)
+        else:
+            st_enc_output = None
+        return st_enc_output, speech_enc
+
+    def decoder_forward_one_step(self, h, i, hyps):
+        enc_output = h[0]
+        speech_enc = h[1]
+        stack_scores = []
+        for hyp in hyps:
+
+            # get nbest local scores and their ids
+            ys_mask = subsequent_mask(i + 1).unsqueeze(0)
+            ys = torch.tensor(hyp["yseq"]).unsqueeze(0)
+
+            if self.use_speech_attn:
+                local_att_scores = self.decoder_st.forward_one_step(
+                    ys, ys_mask, enc_output, speech_enc
+                )[0]
+            else:
+                local_att_scores = self.decoder_st.forward_one_step(
+                    ys, ys_mask, enc_output
+                )[0]
+
+            # TODO (jiatong): skip lm
+            stack_scores.append(local_att_scores.squeeze(0))
+        return torch.stack(stack_scores, dim=0)
+        
     def translate(
         self,
         x,

@@ -426,6 +426,17 @@ class E2E(STInterface, torch.nn.Module):
         enc_output, _ = self.encoder(x, None)
         return enc_output.squeeze(0)
 
+    def decoder_forward_one_step(self, h, i, hyps):
+        ys = h.new_zeros((len(hyps), i + 1), dtype=torch.int64)
+        for j, hyp in enumerate(hyps):
+           ys[j, :] = torch.tensor(hyp["yseq"])
+        ys_mask = subsequent_mask(i + 1).unsqueeze(0).to(h.device)
+
+        local_scores = self.decoder.forward_one_step(
+            ys, ys_mask, h.repeat([len(hyps), 1, 1])
+        )[0]
+        return local_scores
+
     def translate(
         self,
         x,

@@ -90,7 +90,11 @@ def get_parser():
     )
     # model (parameter) related
     parser.add_argument(
-        "--model", type=str, required=True, help="Model file parameters to read"
+        "--model",
+        type=str,
+        required=True,
+        help="Model file parameters to read",
+        action="append",
     )
     # search related
     parser.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
