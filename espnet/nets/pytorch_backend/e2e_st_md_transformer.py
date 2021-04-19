@@ -495,6 +495,43 @@ class E2E(STInterface, torch.nn.Module):
         enc_output, _ = self.encoder_st(x, None)
         return enc_output.squeeze(0)
 
+    def encode(self, x):
+        # interface for ensemble
+        asr_enc_output = encode_asr(x)
+        st_enc_output = encode_st(x)
+        return asr_enc_output, st_enc_output
+
+    def decoder_forward_one_step(self, h, i, hyps)
+        enc_output = h[0]
+        speech_enc = h[1]
+        stack_scores = []
+        for hyp in hyps:
+            vy[0] = hyp["yseq"][i]
+
+            # get nbest local scores and their ids
+            ys_mask = subsequent_mask(i + 1).unsqueeze(0)
+            ys = torch.tensor(hyp["yseq"]).unsqueeze(0)
+
+            if self.use_speech_attn:
+                local_att_scores = self.decoder_st.forward_one_step(
+                    ys, ys_mask, enc_output, speech_enc
+                )[0]
+            else:
+                local_att_scores = self.decoder_st.forward_one_step(
+                    ys, ys_mask, enc_output
+                )[0]
+
+            if rnnlm:
+                rnnlm_state, local_lm_scores = rnnlm.predict(hyp["rnnlm_prev"], vy)
+                local_scores = (
+                    local_att_scores + trans_args.lm_weight * local_lm_scores
+                )
+
+            else:
+                local_scores = local_att_scores
+            stack_scores.append(local_scores)
+        return torch.stack(stack_scores, dim=0)
+        
     def translate(
         self,
         x,

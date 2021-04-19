@@ -54,8 +54,14 @@ class E2E(STInterface, torch.nn.Module):
         logging.info("input lengths: " + str(x.shape[0]))
 
         self.eval()
-
-        enc_outputs = [m.encode(x).unsqueeze(0) for m in self.models]
+        enc_outputs = []        
+        for m in self.models:
+            enc_output = m.encode(x)
+            if type(enc_output) is not Tuple:
+                enc_outputs.append(enc_output.unsqueeze(0))
+            else:
+                # for multi-decoder
+                enc_outputs.append(enc_output[0].unsqueeze(0), enc_output[1].unsqueeze(0))
 
         h = enc_outputs
         reference_length = h[0].size(1)
@@ -84,17 +90,7 @@ class E2E(STInterface, torch.nn.Module):
             local_scores = []
 
             for m in range(len(h)):
-                # batchfy
-                ys = h[m].new_zeros((len(hyps), i + 1), dtype=torch.int64)
-                for j, hyp in enumerate(hyps):
-                    ys[j, :] = torch.tensor(hyp["yseq"])
-                ys_mask = subsequent_mask(i + 1).unsqueeze(0).to(h[m].device)
-
-                local_scores.append(
-                    self.models[m].decoder.forward_one_step(
-                        ys, ys_mask, h[m].repeat([len(hyps), 1, 1])
-                    )[0]
-                )
+                local_scores.append(self.models[m].decoder_forward_one_step(h[m], i, hyps))
 
             avg_scores = torch.logsumexp(
                 torch.stack(local_scores, dim=0), dim=0
