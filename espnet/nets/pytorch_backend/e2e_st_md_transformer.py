@@ -545,18 +545,40 @@ class E2E(STInterface, torch.nn.Module):
         enc_output, _ = self.encoder_st(x, None)
         return enc_output.squeeze(0)
 
-    def encode(self, x):
+    def encode(self, x, trans_args, char_list=None):
         # interface for ensemble
-        asr_enc_output = encode_asr(x)
-        st_enc_output = encode_st(x)
-        return asr_enc_output, st_enc_output
+        x = torch.as_tensor(x)
 
-    def decoder_forward_one_step(self, h, i, hyps)
+        # preprate sos
+        if getattr(trans_args, "tgt_lang", False):
+            if self.replace_sos:
+                y = char_list.index(trans_args.tgt_lang)
+        else:
+            y = self.sos
+
+        if trans_args.eval_st_subnet:
+            asr_output, speech_enc = self.recognize(
+                x, trans_args, char_list, None, None
+            )
+            x = asr_output.squeeze(0)
+            maxlen_asr = len(speech_enc[0])
+        else:
+            asr_output, maxlen_asr, speech_enc = self.recognize(
+                x, trans_args, char_list, None, None
+            )
+            x = torch.stack(asr_output[0]["hs_asrs"]).squeeze(1)
+
+        if hasattr(self, "encoder_st"):
+            st_enc_output = self.encode_st(x)
+        else:
+            st_enc_output = None
+        return st_enc_output, speech_enc
+
+    def decoder_forward_one_step(self, h, i, hyps):
         enc_output = h[0]
         speech_enc = h[1]
         stack_scores = []
         for hyp in hyps:
-            vy[0] = hyp["yseq"][i]
 
             # get nbest local scores and their ids
             ys_mask = subsequent_mask(i + 1).unsqueeze(0)
@@ -571,15 +593,8 @@ class E2E(STInterface, torch.nn.Module):
                     ys, ys_mask, enc_output
                 )[0]
 
-            if rnnlm:
-                rnnlm_state, local_lm_scores = rnnlm.predict(hyp["rnnlm_prev"], vy)
-                local_scores = (
-                    local_att_scores + trans_args.lm_weight * local_lm_scores
-                )
-
-            else:
-                local_scores = local_att_scores
-            stack_scores.append(local_scores)
+            # TODO (jiatong): skip lm
+            stack_scores.append(local_att_scores.squeeze(0))
         return torch.stack(stack_scores, dim=0)
         
     def translate(

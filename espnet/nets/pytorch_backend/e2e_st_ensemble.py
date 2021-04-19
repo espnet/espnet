@@ -54,17 +54,21 @@ class E2E(STInterface, torch.nn.Module):
         logging.info("input lengths: " + str(x.shape[0]))
 
         self.eval()
-        enc_outputs = []        
+        enc_outputs = []
+        reference_length = 0 
         for m in self.models:
-            enc_output = m.encode(x)
-            if type(enc_output) is not Tuple:
-                enc_outputs.append(enc_output.unsqueeze(0))
+            if hasattr(m, "encoder_st"): # for multi-decoder
+                enc_output = m.encode(x, trans_args, char_list)
+                if enc_output[1].size(1) > reference_length:
+                    reference_length = enc_output[1].size(1)
+                enc_outputs.append((enc_output[0].unsqueeze(0), enc_output[1].unsqueeze(0)))
             else:
-                # for multi-decoder
-                enc_outputs.append(enc_output[0].unsqueeze(0), enc_output[1].unsqueeze(0))
+                enc_output = m.encode(x)
+                if enc_output.size(1) > reference_length:
+                    reference_length = enc_output.size(1)
+                enc_outputs.append(enc_output.unsqueeze(0))
 
         h = enc_outputs
-        reference_length = h[0].size(1)
 
         logging.info("encoder output lengths: " + str(reference_length))
         # search parms
@@ -72,7 +76,7 @@ class E2E(STInterface, torch.nn.Module):
         penalty = trans_args.penalty
 
         if trans_args.maxlenratio == 0:
-            maxlen = h.size(1)
+            maxlen = reference_length
         else:
             # maxlen >= 1
             maxlen = max(1, int(trans_args.maxlenratio * reference_length))
