@@ -19,7 +19,7 @@ test_sets="tt_${min_or_max}_${sample_rate} "
     --test_sets "${test_sets}" \
     --fs "${sample_rate}" \
     --lang en \
-    --ngpu 1 \
+    --ngpu 4 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --enh_config ./conf/tuning/train_enh_rnn_tf.yaml \
+    --enh_config conf/tuning/train_enh_dprnn_tasnet.yaml \
     "$@"
