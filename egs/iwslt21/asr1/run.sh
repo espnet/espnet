@@ -61,6 +61,9 @@ stted_dir=../../iwslt18
 tedlium2_dir=../../tedlium2
 librispeech_dir=../../librispeech
 
+# test data directory
+iwslt_test_data=/n/rd8/iwslt18
+
 train_set=train
 train_dev=dev
 recog_set_subset="et_mustc_tst-COMMON et_tedlium2_test et_librispeech_test_other"  # for quick decoding
@@ -68,7 +71,9 @@ recog_set="et_mustc_dev_org et_mustc_tst-COMMON et_mustc_tst-HE \
            et_mustcv2_dev_org et_mustcv2_tst-COMMON et_mustcv2_tst-HE \
            et_stted_dev et_stted_test \
            et_tedlium2_dev et_tedlium2_test \
-           et_librispeech_dev_clean et_librispeech_dev_other et_librispeech_test_clean et_librispeech_test_other"
+           et_librispeech_dev_clean et_librispeech_dev_other et_librispeech_test_clean et_librispeech_test_other \
+           et_stted_dev2010 et_stted_tst2010 et_stted_tst2013 et_stted_tst2014 et_stted_tst2015 \
+           et_stted_tst2018 et_stted_tst2019"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -109,7 +114,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${stted_dir}/asr1/data/train_dev.en          data/dt_${data_code}
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${stted_dir}/asr1/data/dev.en                data/et_${data_code}_dev
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${stted_dir}/asr1/data/test.en               data/et_${data_code}_test
-    for x in dev2010 tst2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in dev2010 tst2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         cp -rf ${stted_dir}/asr1/data/${x}.en data/et_${data_code}_${x}
     done
 
@@ -235,8 +240,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
     for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${x}/text.lc.rm --bpecode ${bpemodel}.model \
-            data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
+                data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        else
+            data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${x}/text.lc.rm --bpecode ${bpemodel}.model \
+                data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        fi
     done
 fi
 
@@ -363,7 +373,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            set=$(echo ${x} | cut -f 3 -d "_")
+            local/score_sclite_reseg.sh --case lc.rm --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
+                ${expdir}/${decode_dir} ${dict} ${iwslt_test_data} ${set}
+        else
+            score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        fi
     ) &
     pids+=($!) # store background pids
     done

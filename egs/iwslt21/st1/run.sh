@@ -51,7 +51,7 @@ remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
 # NOTE: IWSLT community accepts this setting and therefore we use this by default
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=16000
 bpemode=bpe
 
 # exp tag
@@ -69,6 +69,8 @@ set -o pipefail
 mustc_dir=../../must_c
 mustc_v2_dir=../../must_c_v2
 stted_dir=../../iwslt18
+# test data directory
+iwslt_test_data=/n/rd8/iwslt18
 
 train_set=train.de
 train_dev=dev.de
@@ -212,12 +214,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
-        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
-            data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            local/data2json.sh --feat ${feat_trans_dir}/feats.scp --no_text true \
+                data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        else
+            data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
+                data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        fi
     done
 
     # update json (add source references)
     for x in ${train_set} ${train_dev} ${trans_set}; do
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            continue
+        fi
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").en
         update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
@@ -303,9 +313,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            --remove_nonverbal ${remove_nonverbal} \
-            ${expdir}/${decode_dir} "de" ${dict}
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            set=$(echo ${x} | cut -f 1 -d "." | cut -f 3 -d "_")
+            local/score_bleu_reseg.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+                --remove_nonverbal ${remove_nonverbal} \
+                ${expdir}/${decode_dir} ${dict} ${iwslt_test_data} ${set}
+        else
+            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+                --remove_nonverbal ${remove_nonverbal} \
+                ${expdir}/${decode_dir} "de" ${dict}
+        fi
     ) &
     pids+=($!) # store background pids
     done

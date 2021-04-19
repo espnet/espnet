@@ -24,7 +24,7 @@ if [ $# != 4 ]; then
 fi
 
 dir=$1
-dic=$2
+dict=$2
 set=$4
 src=$3/${set}/IWSLT.${set}
 
@@ -35,7 +35,7 @@ xml_src=${src}/IWSLT.TED.${set}.${sl}-${tl}.${sl}.xml
 
 # sort hypotheses
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-local/json2trn_reorder.py ${dir}/data.json ${dic} ${dir}/hyp.trn.org ${src}/FILE_ORDER
+local/json2trn_reorder.py ${dir}/data.json ${dict} ${dir}/hyp.trn.org ${src}/FILE_ORDER
 
 # remove uttterance id
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn.org > ${dir}/hyp.trn
@@ -80,10 +80,10 @@ lowercase.perl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc
 lowercase.perl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc
 
 # remove punctuation (keep apostrophe)
-local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/hyp.wrd.trn.detok.lc.rm
-local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/ref.wrd.trn.detok.lc.rm
+remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/hyp.wrd.trn.detok.lc.rm
+remove_punctuation.pl < ${dir}/ref.wrd.trn.detok.lc | sed -e "s/  / /g" -e "s/'/ /g" > ${dir}/ref.wrd.trn.detok.lc.rm
 
-# segment hypotheses with RWTH tool
+# resegment hypotheses based on WER
 perl local/wrap-xml.perl en ${xml_src} ${system} < ${dir}/ref.wrd.trn.detok.lc.rm > ${dir}/ref.xml
 # segmentBasedOnMWER.sh ${xml_src} ${xml_src} ${dir}/hyp.wrd.trn.detok.lc.rm ${system} en ${dir}/hyp.wrd.trn.detok.lc.rm.sgm.xml "" 0 || exit 1;
 segmentBasedOnMWER.sh ${dir}/ref.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.detok.lc.rm ${system} en ${dir}/hyp.wrd.trn.detok.lc.rm.sgm.xml "" 0 || exit 1;
