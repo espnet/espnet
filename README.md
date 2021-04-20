@@ -528,10 +528,10 @@ utt4 AND CONCENTRATE ON PROPERTY MANAGEMENT
 """
 segments = aligner(speech, text)
 print(segments)
-# utt1 utt 0.26 1.73 -3.8277 THE SALE OF THE HOTELS
-# utt2 utt 1.73 3.18 -3.9960 IS PART OF HOLIDAY'S STRATEGY
-# utt3 utt 3.18 4.20 -4.8537 TO SELL OFF ASSETS
-# utt4 utt 4.20 6.11 -4.8485 AND CONCENTRATE ON PROPERTY MANAGEMENT
+# utt1 utt 0.26 1.73 -0.0154 THE SALE OF THE HOTELS
+# utt2 utt 1.73 3.19 -0.7674 IS PART OF HOLIDAY'S STRATEGY
+# utt3 utt 3.19 4.20 -0.7433 TO SELL OFF ASSETS
+# utt4 utt 4.20 6.10 -0.4899 AND CONCENTRATE ON PROPERTY MANAGEMENT
 ```
 
 Aligning also works with fragments of the text.
@@ -543,8 +543,8 @@ aligner.set_config( gratis_blank=True, kaldi_style_text=False )
 text = ["SALE OF THE HOTELS", "PROPERTY MANAGEMENT"]
 segments = aligner(speech, text)
 print(segments)
-# utt_0000 utt 0.37 1.70 -5.7288 SALE OF THE HOTELS
-# utt_0001 utt 4.70 6.11 -9.3781 PROPERTY MANAGEMENT
+# utt_0000 utt 0.37 1.72 -2.0651 SALE OF THE HOTELS
+# utt_0001 utt 4.70 6.10 -5.0566 PROPERTY MANAGEMENT
 ```
 
 The script `espnet2/bin/asr_align.py` uses a similar interface. To align utterances:
@@ -565,11 +565,11 @@ utt5 ON PROPERTY MANAGEMENT
 EOF
 # obtain alignments:
 python espnet2/bin/asr_align.py --asr_train_config ${asr_config} --asr_model_file ${asr_model} --audio ${wav} --text ${text}
-# utt1 ctc_align_test 0.26 1.73 -3.8277 THE SALE OF THE HOTELS
-# utt2 ctc_align_test 1.73 3.18 -3.9960 IS PART OF HOLIDAY'S STRATEGY
-# utt3 ctc_align_test 3.18 4.20 -4.8537 TO SELL OFF ASSETS
-# utt4 ctc_align_test 4.20 4.97 -4.6691 AND CONCENTRATE
-# utt5 ctc_align_test 4.97 6.11 -4.2853 ON PROPERTY MANAGEMENT
+# utt1 ctc_align_test 0.26 1.73 -0.0154 THE SALE OF THE HOTELS
+# utt2 ctc_align_test 1.73 3.19 -0.7674 IS PART OF HOLIDAY'S STRATEGY
+# utt3 ctc_align_test 3.19 4.20 -0.7433 TO SELL OFF ASSETS
+# utt4 ctc_align_test 4.20 4.97 -0.6017 AND CONCENTRATE
+# utt5 ctc_align_test 4.97 6.10 -0.3477 ON PROPERTY MANAGEMENT
 ```
 
 The output of the script can be redirected to a `segments` file by adding the argument `--output segments`.

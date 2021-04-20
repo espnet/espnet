@@ -145,8 +145,8 @@ class CTCSegmentation:
         >>> aligner.set_config( gratis_blank=True )
         >>> segments = aligner( speech, text, fs=fs )
         >>> print( segments )
-        utt1 utt 0.27 1.70 -3.9123 THE SALE OF THE HOTELS
-        utt2 utt 4.54 6.11 -8.7251 ON PROPERTY MANAGEMENT
+        utt1 utt 0.27 1.72 -0.1663 THE SALE OF THE HOTELS
+        utt2 utt 4.54 6.10 -4.9646 ON PROPERTY MANAGEMENT
 
     References:
         CTC-Segmentation of Large Corpora for German End-to-end Speech Recognition
@@ -406,9 +406,9 @@ class CTCSegmentation:
         enc, _ = self.asr_model.encode(**batch)
         assert len(enc) == 1, len(enc)
         # Apply ctc layer to obtain log character probabilities
-        lpz = self.ctc.log_softmax(enc.unsqueeze(0)).detach()
+        lpz = self.ctc.log_softmax(enc).detach()
         #  Shape should be ( <time steps>, <classes> )
-        lpz = lpz.squeeze(0).squeeze(0).cpu().numpy()
+        lpz = lpz.squeeze(0).cpu().numpy()
         return lpz
 
     def _split_text(self, text):
@@ -434,9 +434,13 @@ class CTCSegmentation:
             config.set(**timing_cfg)
         # Obtain utterance & label sequence from text
         if self.text_converter == "tokenize":
+            # list of str --tokenize--> list of np.array
             token_list = [
                 self.preprocess_fn("<dummy>", {"text": utt})["text"] for utt in text
             ]
+            # filter out any instances of the <unk> token
+            unk = config.char_list.index("<unk>")
+            token_list = [utt[utt != unk] for utt in token_list]
             ground_truth_mat, utt_begin_indices = prepare_token_list(
                 self.config, token_list
             )
