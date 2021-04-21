@@ -13,7 +13,7 @@
 python=python3
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0        # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 verbose=1      # verbose option
@@ -23,8 +23,8 @@ do_delta=false
 cmvn=
 
 # data
-CSJDATATOP=/export/corpora5/CSJ/USB
-CSJVER=usb                          # see kaldi/egs/csj/s5/run.sh about the version
+CSJDATATOP=/home/geng17/nas01home/CSJ/
+CSJVER=dvd                          # see kaldi/egs/csj/s5/run.sh about the version
 
 # Parameters for CTC alignment
 # The subsampling factor depends on whether the encoder uses subsampling
@@ -41,7 +41,11 @@ set -e
 set -u
 set -o pipefail
 
-align_set="eval1 eval2 eval3"
+# align_set="eval1 eval2 eval3"
+# align_set="eval1"
+# align_set='iis20160531'
+# align_set='iis20160607 iis20160614'
+align_set="iis20160517 iis20160531 iis20160607 iis20160614 sp20161006 sp20161013 sp20161222 sp20170110 sp20170112"
 models=csj.rnn.v1
 
 download_dir=models
@@ -54,7 +58,6 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data and Model Download"
     . local/download_model.sh
 fi
-
 
 # Download trained models
 if [ -z "${cmvn}" ]; then
@@ -117,14 +120,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # feature extraction
     fbankdir=fbank
     for x in ${align_set}; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 1 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
 
     for rtask in ${align_set}; do
         feat_align_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_align_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
+        dump.sh --cmd "$train_cmd" --nj 1 --do_delta ${do_delta} \
             data/${rtask}/feats.scp ${cmvn} exp/dump_feats/align/${rtask} \
             ${feat_align_dir}
     done
@@ -145,6 +148,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Alignments using CTC segmentation"
     for rtask in ${align_set}; do
 	    # results are written to data/$rtask/aligned_segments
+        CUDA_VISIBLE_DEVICES=2 \
         ${python} -m espnet.bin.asr_align \
             --config ${align_config} \
             --ngpu ${ngpu} \
@@ -158,6 +162,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --use-dict-blank 1 \
             --output data/${rtask}/aligned_segments || exit 1;
     done
+
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
