@@ -193,8 +193,8 @@ else
     }' < ${dst}/.yaml0 | uniq | sort > ${dst}/wav.scp
 
     awk '{
-        segment=$1; split(segment,S,"[_]");
-        spkid=S[1]; print $1 " " spkid
+        segment=$1; num = split(segment,S,"[_]");
+        if (num == 3) spkid=S[1]; else spkid=S[1]"_"S[2]; print $1 " " spkid;
     }' ${dst}/segments | sort > ${dst}/utt2spk
 fi
 
