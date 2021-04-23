@@ -47,6 +47,11 @@ n_de=$(cat ${de} | wc -l)
 [ ${n} -ne ${n_de} ] && echo "Warning: expected ${n} data files, found ${n_de}" && exit 1;
 
 
+# downloads reclist (for removing noisy training utterances)
+if [ ! -d data/local/downloads ]; then
+    download_from_google_drive.sh https://drive.google.com/open?id=1agQOUEm47LIeLZAFF8RTZ5qx6OsOFGTM data/local
+fi
+
 # (1a) Transcriptions and translations preparation
 # make basic transcription file (add segments info)
 cp ${yml} ${dst}/.yaml0

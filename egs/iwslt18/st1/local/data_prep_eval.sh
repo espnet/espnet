@@ -11,6 +11,7 @@
 export LC_ALL=C
 
 is_mt=false
+no_reference=false
 
 . utils/parse_options.sh || exit 1;
 
@@ -29,13 +30,14 @@ dst=data/local/${set}
 wav_dir=${src}/wavs
 xml_en=${src}/IWSLT.TED.${set}.en-de.en.xml
 xml_de=${src}/IWSLT.TED.${set}.en-de.de.xml
-yml=${src}/IWSLT.TED.${set}.en-de.yaml
-
+if [[ ${set} = *tst2018* ]] || [[ ${set} = *tst2019* ]] || [[ ${set} = *tst2020* ]] || [[ ${set} = *tst2021* ]]; then
+    yml=${src}/IWSLT.TED.${set}.en-de.yaml
+else
+    yml=${src}/test-db.yaml
+fi
 mkdir -p ${dst} || exit 1;
 
 [ ! -d ${wav_dir} ] && echo "$0: no such directory ${wav_dir}" && exit 1;
-[ ! -f ${xml_en} ] && echo "$0: expected file ${xml_en} to exist" && exit 1;
-[ ! -f ${xml_de} ] && echo "$0: expected file ${xml_de} to exist" && exit 1;
 
 wav_scp=${dst}/wav.scp; [[ -f "${wav_scp}" ]] && rm ${wav_scp}
 trans_en=${dst}/text.en; [[ -f "${trans_en}" ]] && rm ${trans_en}
@@ -64,57 +66,68 @@ fi
 # TODO(hirofumi): Remove this after updating download URL
 
 
-# downloads test-db.yaml and reclist (for removing noisy training utterances)
+# downloads test-db.yaml
 # if [ ! -d data/local/downloads ]; then
 #     download_from_google_drive.sh https://drive.google.com/open?id=1agQOUEm47LIeLZAFF8RTZ5qx6OsOFGTM data/local
 # fi
 
-# (1a) Transcriptions and translations preparation
-local/parse_xml.py ${xml_en} ${dst}/en.org || exit 1;
-local/parse_xml.py ${xml_de} ${dst}/de.org || exit 1;
-
 # copy for evaluation
-cp ${xml_en} ${dst}
-cp ${xml_de} ${dst}
 cp ${src}/FILE_ORDER ${dst}
 # cp ${src}/CTM_LIST ${dst}
 
-for lang in en de; do
-    # normalize punctuation
-    cut -d " " -f 1 ${dst}/${lang}.org > ${dst}/reclist.${lang}
-    cut -d " " -f 2- ${dst}/${lang}.org | normalize-punctuation.perl -l ${lang} > ${dst}/${lang}.norm
-    # NOTE: Only Moses script is applied for the evaluation sets
+# (1a) Transcriptions and translations preparation
+if [ ${no_reference} = false ]; then
+    [ ! -f ${xml_en} ] && echo "$0: expected file ${xml_en} to exist" && exit 1;
+    [ ! -f ${xml_de} ] && echo "$0: expected file ${xml_de} to exist" && exit 1;
 
-    # fix reclist (original utterance ids include langauge tags)
-    awk '{
-        uttid=$1; split(uttid,S,"[.]");
-        uttid2=S[1] "." S[3]; print uttid2
-    }' ${dst}/reclist.${lang} > ${dst}/reclist
+    cp ${xml_en} ${dst}
+    cp ${xml_de} ${dst}
 
-    # lowercasing
-    lowercase.perl < ${dst}/${lang}.norm > ${dst}/${lang}.norm.lc
-    cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
+    local/parse_xml.py ${xml_en} ${dst}/en.org || exit 1;
+    local/parse_xml.py ${xml_de} ${dst}/de.org || exit 1;
 
-    # remove punctuation (not used)
-    remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+    for lang in en de; do
+        # normalize punctuation
+        cut -d " " -f 1 ${dst}/${lang}.org > ${dst}/reclist.${lang}
+        cut -d " " -f 2- ${dst}/${lang}.org | normalize-punctuation.perl -l ${lang} > ${dst}/${lang}.norm
+        # NOTE: Only Moses script is applied for the evaluation sets
 
-    for case in lc.rm lc tc; do
-        # tokenization
-        tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.${case} > ${dst}/${lang}.norm.${case}.tok
+        # fix reclist (original utterance ids include langauge tags)
+        awk '{
+            uttid=$1; split(uttid,S,"[.]");
+            uttid2=S[1] "." S[3]; print uttid2
+        }' ${dst}/reclist.${lang} > ${dst}/reclist
 
-        if [ ${is_mt} = true ]; then
-            paste -d " " <(cat ${dst}/reclist) <(cat ${dst}/${lang}.norm.${case}.tok) > ${dst}/text.${case}.${lang}
-        else
-            paste -d " " <(awk '{print $1}' ${dst}/${lang}.org) <(cat ${dst}/${lang}.norm.${case}.tok) > ${dst}/text.${case}.${lang}
-        fi
+        # lowercasing
+        lowercase.perl < ${dst}/${lang}.norm > ${dst}/${lang}.norm.lc
+        cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
+
+        # remove punctuation (not used)
+        remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+
+        for case in lc.rm lc tc; do
+            # tokenization
+            tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.${case} > ${dst}/${lang}.norm.${case}.tok
+
+            if [ ${is_mt} = true ]; then
+                paste -d " " <(cat ${dst}/reclist) <(cat ${dst}/${lang}.norm.${case}.tok) > ${dst}/text.${case}.${lang}
+            else
+                paste -d " " <(awk '{print $1}' ${dst}/${lang}.org) <(cat ${dst}/${lang}.norm.${case}.tok) > ${dst}/text.${case}.${lang}
+            fi
+        done
+
+        # save original and cleaned punctuation
+        lowercase.perl < ${dst}/${lang}.org | text2token.py -s 0 -n 1 | tr " " "\n" \
+            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > ${dst}/punctuation.${lang}
+        lowercase.perl < ${dst}/${lang}.norm.tc | text2token.py -s 0 -n 1 | tr " " "\n" \
+            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > ${dst}/punctuation.clean.${lang}
     done
 
-    # save original and cleaned punctuation
-    lowercase.perl < ${dst}/${lang}.org | text2token.py -s 0 -n 1 | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > ${dst}/punctuation.${lang}
-    lowercase.perl < ${dst}/${lang}.norm.tc | text2token.py -s 0 -n 1 | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > ${dst}/punctuation.clean.${lang}
-done
+    # error check
+    n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
+    n_de=$(cat ${dst}/de.norm.tc.tok | wc -l)
+    [ ${n_en} -ne ${n_de} ] && echo "Warning: expected ${n_en} data data files, found ${n_de}" && exit 1;
+fi
 
 # add segmentation based ctm files provided by organizers
 # for f in $(cat ${src}/CTM_LIST); do
@@ -124,11 +137,6 @@ done
 #     local/ctm2segments.py ${dst}/text.en.$talkid ${dst}/ctm.$talkid ${set} $talkid > ${dst}/segments.$talkid || exit 1;
 # done
 # sort ${dst}/segments* > ${dst}/segments
-
-# error check
-n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
-n_de=$(cat ${dst}/de.norm.tc.tok | wc -l)
-[ ${n_en} -ne ${n_de} ] && echo "Warning: expected ${n_en} data data files, found ${n_de}" && exit 1;
 
 # NOTE: This is how to extract test-db-****.yaml. But that is downloaded form Google drive instead.
 # (1b) Segmente audio file with LIUM diarization tool
@@ -162,8 +170,9 @@ else
         gsub(",","",wav); gsub("\"","",wav);
         gsub(",","",offset); gsub("\"","",offset); gsub("offset:","",offset);
         gsub("}","",duration); gsub("\"","",duration); gsub("duration:","",duration);
-        match(wav, /\/[a-z0-9]+.en.[a-z]+[0-9]+.wav/);
-        spkid = substr(wav, RSTART, RLENGTH); gsub(".wav","",spkid); gsub("/","",spkid);
+        match(wav, /\/[^\/]+.wav/);
+        n = split(wav, a, "/");
+        spkid = a[n]; gsub(".wav","",spkid);
         duration=sprintf("%.7f", duration);
         if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
         else extendt=0;
@@ -175,14 +184,17 @@ else
     # NOTE: Extend the lengths of short utterances (< 0.2s) rather than exclude them
 
     awk '{
-        spkid=$2; split(spkid,S,"[.]");
-        set=S[1]; talkid=S[3];
-        printf("%s cat '${wav_dir}'/%s.en.%s.wav |\n", spkid, set, talkid);
-    }' < ${dst}/segments | uniq | sort > ${dst}/wav.scp
+        wav=$3;
+        gsub(",","",wav); gsub("\"","",wav);
+        match(wav, /\/[^\/]+.wav/);
+        n = split(wav, a, "/");
+        spkid = a[n]; gsub(".wav","",spkid);
+        printf("%s cat '${wav_dir}'/%s.wav |\n", spkid, spkid);
+    }' < ${dst}/.yaml0 | uniq | sort > ${dst}/wav.scp
 
     awk '{
-        segment=$1; split(segment,S,"[_]");
-        spkid=S[1]; print $1 " " spkid
+        segment=$1; num = split(segment,S,"[_]");
+        if (num == 3) spkid=S[1]; else spkid=S[1]"_"S[2]; print $1 " " spkid;
     }' ${dst}/segments | sort > ${dst}/utt2spk
 fi
 
@@ -196,16 +208,17 @@ for f in spk2utt utt2spk wav.scp segments; do
         cp ${dst}/${f} data/${set}/
     fi
 done
-for lang in en de; do
-    for case in lc.rm lc tc; do
-        if [ ${is_mt} = true ]; then
-            cp ${dst}/text.${case}.${lang} data/${set}/text.${case}.${lang}
-        else
-            cp ${dst}/text.${case}.${lang} data/${set}/text_noseg.${case}.${lang}
-            # NOTE: text -> text_noseg for passing utils/validate_data_dir.sh (ASR/ST)
-        fi
+if [ ${no_reference} = false ]; then
+    for lang in en de; do
+        for case in lc.rm lc tc; do
+            if [ ${is_mt} = true ]; then
+                cp ${dst}/text.${case}.${lang} data/${set}/text.${case}.${lang}
+            else
+                cp ${dst}/text.${case}.${lang} data/${set}/text_noseg.${case}.${lang}
+                # NOTE: text -> text_noseg for passing utils/validate_data_dir.sh (ASR/ST)
+            fi
+        done
     done
-done
-
+fi
 
 echo "$0: successfully prepared data in ${dst}"

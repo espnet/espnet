@@ -260,6 +260,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+
     for x in ${train_dev} ${trans_set} ${iwslt_test_set} ${iwslt_test_set_vad}; do
         if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
             feat_trans_dir=${dumpdir}/${x}_merge${max_interval}_duration${max_duration}/delta${do_delta}
