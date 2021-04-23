@@ -29,8 +29,11 @@ dst=data/local/${set}
 wav_dir=${src}/wavs
 xml_en=${src}/IWSLT.TED.${set}.en-de.en.xml
 xml_de=${src}/IWSLT.TED.${set}.en-de.de.xml
-yml=${src}/IWSLT.TED.${set}.en-de.yaml
-
+if [[ ${set} = *tst2018* ]] || [[ ${set} = *tst2019* ]]; then
+    yml=${src}/IWSLT.TED.${set}.en-de.yaml
+else
+    yml=${src}/test-db.yaml
+fi
 mkdir -p ${dst} || exit 1;
 
 [ ! -d ${wav_dir} ] && echo "$0: no such directory ${wav_dir}" && exit 1;
@@ -64,7 +67,7 @@ fi
 # TODO(hirofumi): Remove this after updating download URL
 
 
-# downloads test-db.yaml and reclist (for removing noisy training utterances)
+# downloads test-db.yaml
 # if [ ! -d data/local/downloads ]; then
 #     download_from_google_drive.sh https://drive.google.com/open?id=1agQOUEm47LIeLZAFF8RTZ5qx6OsOFGTM data/local
 # fi
