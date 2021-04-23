@@ -67,7 +67,6 @@ librispeech_dir=../../librispeech
 
 # test data directory
 iwslt_test_data_dir=/n/rd8/iwslt18
-# iwslt_test_data_dir=/home/inaguma/inaguma/iwslt18
 
 train_set=train
 train_dev=dev

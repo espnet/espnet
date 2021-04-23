@@ -20,7 +20,6 @@ if ! which tokenizer.perl > /dev/null; then
     echo "Error: cd ${MAIN_ROOT}/tools && make moses.done" >&2
     return 1
 fi
-export PATH="${MAIN_ROOT}"/tools/mwerSegmenter:"${PATH:-}"
 if ! which segmentBasedOnMWER.sh > /dev/null; then
     echo "Error: it seems that mwerSegmenter is not installed." >&2
     echo "Error: please install mwerSegmenter as follows." >&2
