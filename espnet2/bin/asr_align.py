@@ -34,8 +34,8 @@ from ctc_segmentation import prepare_text
 from ctc_segmentation import prepare_token_list
 
 
-class CTCSegmentationResult:
-    """Result object for CTC segmentation.
+class CTCSegmentationTask:
+    """Task object for CTC segmentation.
 
     When formatted with str(·), this object returns
     results in a kaldi-style segments file formatting.
@@ -60,7 +60,6 @@ class CTCSegmentationResult:
     Properties for printing:
         print_confidence_score: Includes the confidence score.
         print_utterance_text: Includes utterance text.
-
     """
 
     text = None
@@ -84,7 +83,7 @@ class CTCSegmentationResult:
         self.set(**kwargs)
 
     def set(self, **kwargs):
-        """Update CTCSegmentationResult properties.
+        """Update properties.
 
         Args:
             **kwargs: Key-value dict that contains all properties
@@ -442,11 +441,12 @@ class CTCSegmentation:
             unk = config.char_list.index("<unk>")
             token_list = [utt[utt != unk] for utt in token_list]
             ground_truth_mat, utt_begin_indices = prepare_token_list(
-                self.config, token_list
+                config, token_list
             )
         else:
             assert self.text_converter == "classic"
-            ground_truth_mat, utt_begin_indices = prepare_text(self.config, text)
+            text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
+            ground_truth_mat, utt_begin_indices = prepare_text(config, text)
         # Align using CTC segmentation
         timings, char_probs, state_list = ctc_segmentation(
             config, lpz, ground_truth_mat
@@ -455,8 +455,8 @@ class CTCSegmentation:
         segments = determine_utterance_segments(
             config, utt_begin_indices, char_probs, timings, text
         )
-        # Store results in a result object
-        result = CTCSegmentationResult()
+        # Store results
+        result = CTCSegmentationTask()
         result.set(
             config=config,
             text=text,
@@ -477,7 +477,7 @@ class CTCSegmentation:
         text: Union[List[str], str],
         fs: Optional[int] = None,
         name: Optional[str] = None,
-    ) -> CTCSegmentationResult:
+    ) -> CTCSegmentationTask:
         """Align utterances.
 
         Args:
@@ -488,7 +488,7 @@ class CTCSegmentation:
             name: Name of the file. Utterance names are derived from it.
 
         Returns:
-            CTCSegmentationResult object with segments.
+            CTCSegmentationTask object with segments.
         """
         assert check_argument_types()
         if isinstance(speech, np.ndarray):

@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from espnet2.bin.asr_align import CTCSegmentation
-from espnet2.bin.asr_align import CTCSegmentationResult
+from espnet2.bin.asr_align import CTCSegmentationTask
 from espnet2.bin.asr_align import get_parser
 from espnet2.bin.asr_align import main
 from espnet2.tasks.asr import ASRTask
@@ -57,7 +57,13 @@ def asr_config_file(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_CTCSegmentation(asr_config_file):
-    """Test CTC segmentation."""
+    """Test CTC segmentation.
+
+    Note that due to the random vector that is given to the CTC segmentation function,
+    there is a small chance that this test might randomly fail. If this ever happens,
+    use the test file test_utils/ctc_align_test.wav instead, or a fixed test vector.
+    """
+
     num_samples = 100000
     fs = 16000
     # text includes:
@@ -81,7 +87,7 @@ def test_CTCSegmentation(asr_config_file):
     )
     segments = aligner(speech, text, fs=fs)
     # check segments
-    assert isinstance(segments, CTCSegmentationResult)
+    assert isinstance(segments, CTCSegmentationTask)
     kaldi_text = str(segments)
     first_line = kaldi_text.splitlines()[0]
     assert "utt_a" == first_line.split(" ")[0]
@@ -90,7 +96,7 @@ def test_CTCSegmentation(asr_config_file):
     assert start < (num_samples / fs)
     assert end >= start
     assert score < 0.0
-    # check options
+    # check options and align with "classic" text converter
     option_dict = {
         "fs": 16000,
         "time_stamps": "fixed",
@@ -111,3 +117,6 @@ def test_CTCSegmentation(asr_config_file):
     segments_str = str(segments)
     first_line = segments_str.splitlines()[0]
     assert "foo_0000" == first_line.split(" ")[0]
+    # test the ratio estimation (result: 509)
+    ratio = aligner.estimate_samples_to_frames_ratio()
+    assert 500 <= ratio <= 520
