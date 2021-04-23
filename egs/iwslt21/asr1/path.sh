@@ -20,6 +20,12 @@ if ! which tokenizer.perl > /dev/null; then
     echo "Error: cd ${MAIN_ROOT}/tools && make moses.done" >&2
     return 1
 fi
+if ! which segmentBasedOnMWER.sh > /dev/null; then
+    echo "Error: it seems that mwerSegmenter is not installed." >&2
+    echo "Error: please install mwerSegmenter as follows." >&2
+    echo "Error: cd tools && installers/install_mwerSegmenter.sh" >&2
+    return 1
+fi
 
 # NOTE(kan-bayashi): Use UTF-8 in Python to avoid UnicodeDecodeError when LC_ALL=C
 export PYTHONIOENCODING=UTF-8
