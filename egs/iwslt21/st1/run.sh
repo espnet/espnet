@@ -135,8 +135,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cp -rf ${stted_dir}/st1/data/${x}.en data/et_${data_code}_${x}.en
         cp -rf ${stted_dir}/st1/data/${x}.de data/et_${data_code}_${x}.de
     done
-
-    # TODO: IWSLT21 test set
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
