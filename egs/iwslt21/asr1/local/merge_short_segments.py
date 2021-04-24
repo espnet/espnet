@@ -59,9 +59,9 @@ def merge(segments, segments_dict):
 
     delimiter = args.delimiter
     for utt_ids, _, _ in segments:
-        spk = utt_ids[0].split(delimiter)[0]
-        s = utt_ids[0].split(delimiter)[1]
-        e = utt_ids[-1].split(delimiter)[2]
+        spk = delimiter.join(utt_ids[0].split(delimiter)[:-2])
+        s = utt_ids[0].split(delimiter)[-2]
+        e = utt_ids[-1].split(delimiter)[-1]
         new_utt_id = "%s" % (spk + delimiter + s + delimiter + e)
 
         segments_dict[new_utt_id] = (
@@ -98,13 +98,13 @@ def main():
 
     with codecs.open(args.output_segments, "w", encoding="utf-8") as f:
         for utt_id, (start, end) in sorted(segments_dict.items(), key=lambda x: x[0]):
-            spk = utt_id.split(args.delimiter)[0]
+            spk = args.delimiter.join(utt_id.split(args.delimiter)[:-2])
             f.write("%s %s %s %s\n" % (utt_id, spk, start, end))
 
     spk2utt_dict = {}
     with codecs.open(args.output_utt2spk, "w", encoding="utf-8") as f:
         for utt_id, ref in sorted(segments_dict.items(), key=lambda x: x[0]):
-            spk = utt_id.split("_")[0]
+            spk = args.delimiter.join(utt_id.split(args.delimiter)[:-2])
             f.write("%s %s\n" % (utt_id, spk))
 
             if spk not in spk2utt_dict:
