@@ -70,6 +70,7 @@ class CTCSegmentationTask:
     state_list = None
     segments = None
     config = None
+    done = False
     # Optional
     name = "utt"
     utt_ids = None
@@ -393,8 +394,17 @@ class CTCSegmentation:
         return samples_to_frames_ratio
 
     @torch.no_grad()
-    def get_lpz(self, speech: torch.Tensor):
-        """Obtain CTC posterior log probabilities for given speech data."""
+    def get_lpz(self, speech: Union[torch.Tensor, np.ndarray]):
+        """Obtain CTC posterior log probabilities for given speech data.
+
+        Args:
+            speech: Speech audio input.
+
+        Returns:
+            lpz: Numpy vector with CTC log posterior probabilities.
+        """
+        if isinstance(speech, np.ndarray):
+            speech = torch.tensor(speech)
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lenghts: (1,)
@@ -425,12 +435,39 @@ class CTCSegmentation:
             text = [utt[1] for utt in utt_ids_and_text]
         return utt_ids, text
 
-    def get_segments(self, text, lpz, utt_ids=None, timing_cfg=None):
-        """Obtain segments for given utterance texts and CTC log posteriors."""
+    def prepare_segmentation_task(self, text, lpz, name=None, speech_len=None):
+        """Preprocess text, and gather text and lpz into a task object.
+
+        Text is pre-processed and tokenized depending on configuration.
+        If ``speech_len`` is given, the timing configuration is updated.
+        Text, lpz, and configuration is collected in a CTCSegmentationTask
+        object. The resulting object can be serialized and passed in a
+        multiprocessing computation.
+
+        Args:
+            text: List or multiline-string with utterance ground truths.
+            lpz: Log CTC posterior probabilities obtained from the CTC-network;
+                numpy array shaped as ( <time steps>, <classes> ).
+            name: Audio file name. Choose a unique name, or the original audio
+                file name, to distinguish multiple audio files. Default: None.
+            speech_len: Number of sample points. If given, the timing
+                configuration is automatically derived from length of fs, length
+                of speech and length of lpz. If None is given, make sure the
+                timing parameters are correct, see time_stamps for reference!
+                Default: None.
+
+        Returns:
+            task: CTCSegmentationTask object that can be passed to
+                ``get_segments()`` in order to obtain alignments.
+        """
         config = self.config
-        # Update timing parameters
-        if timing_cfg is not None:
+        # Update timing parameters, if needed
+        if speech_len is not None:
+            lpz_len = lpz.shape[0]
+            timing_cfg = self.get_timing_config(speech_len, lpz_len)
             config.set(**timing_cfg)
+        # `text` is needed in the form of a list.
+        utt_ids, text = self._split_text(text)
         # Obtain utterance & label sequence from text
         if self.text_converter == "tokenize":
             # list of str --tokenize--> list of np.array
@@ -440,13 +477,41 @@ class CTCSegmentation:
             # filter out any instances of the <unk> token
             unk = config.char_list.index("<unk>")
             token_list = [utt[utt != unk] for utt in token_list]
-            ground_truth_mat, utt_begin_indices = prepare_token_list(
-                config, token_list
-            )
+            ground_truth_mat, utt_begin_indices = prepare_token_list(config, token_list)
         else:
             assert self.text_converter == "classic"
             text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
             ground_truth_mat, utt_begin_indices = prepare_text(config, text)
+        task = CTCSegmentationTask(
+            config=config,
+            name=name,
+            text=text,
+            ground_truth_mat=ground_truth_mat,
+            utt_begin_indices=utt_begin_indices,
+            utt_ids=utt_ids,
+            lpz=lpz,
+        )
+        return task
+
+    @staticmethod
+    def get_segments(task: CTCSegmentationTask):
+        """Obtain segments for given utterance texts and CTC log posteriors.
+
+        Args:
+            task: CTCSegmentationTask object that contains ground truth and
+                CTC posterior probabilities.
+
+        Returns:
+            result: Dictionary with alignments. Combine this with the task
+                object to obtain a human-readable segments representation.
+        """
+        assert check_argument_types()
+        assert task.config is not None
+        config = task.config
+        lpz = task.lpz
+        ground_truth_mat = task.ground_truth_mat
+        utt_begin_indices = task.utt_begin_indices
+        text = task.text
         # Align using CTC segmentation
         timings, char_probs, state_list = ctc_segmentation(
             config, lpz, ground_truth_mat
@@ -456,19 +521,14 @@ class CTCSegmentation:
             config, utt_begin_indices, char_probs, timings, text
         )
         # Store results
-        result = CTCSegmentationTask()
-        result.set(
-            config=config,
-            text=text,
-            ground_truth_mat=ground_truth_mat,
-            utt_begin_indices=utt_begin_indices,
-            timings=timings,
-            char_probs=char_probs,
-            state_list=state_list,
-            segments=segments,
-            utt_ids=utt_ids,
-            lpz=lpz,
-        )
+        result = {
+            "name": task.name,
+            "timings": timings,
+            "char_probs": char_probs,
+            "state_list": state_list,
+            "segments": segments,
+            "done": True,
+        }
         return result
 
     def __call__(
@@ -491,24 +551,17 @@ class CTCSegmentation:
             CTCSegmentationTask object with segments.
         """
         assert check_argument_types()
-        if isinstance(speech, np.ndarray):
-            speech = torch.tensor(speech)
         if fs is not None:
             self.set_config(fs=fs)
-        # `text` is needed in the form of a list.
-        utt_ids, text = self._split_text(text)
         # Get log CTC posterior probabilities
         lpz = self.get_lpz(speech)
-        # If needed, determine timing information
-        speech_len = speech.shape[0]
-        lpz_len = lpz.shape[0]
-        timing_cfg = self.get_timing_config(speech_len, lpz_len)
+        # Conflate text & lpz & config as a segmentation task object
+        task = self.prepare_segmentation_task(text, lpz, name, speech.shape[0])
         # Apply CTC segmentation
-        result = self.get_segments(text, lpz, utt_ids, timing_cfg)
-        if name is not None:
-            result.name = name
-        assert check_return_type(result)
-        return result
+        segments = self.get_segments(task)
+        task.set(**segments)
+        assert check_return_type(task)
+        return task
 
 
 def ctc_align(
