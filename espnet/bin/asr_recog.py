@@ -258,6 +258,12 @@ def get_parser():
         help="Threshold probability for CTC output",
     )
 
+    parser.add_argument(
+            "--wfst-decdoe",
+            type=bool,
+            default=False,
+            help="wfst-based decoding",
+    )
     return parser
 
 
