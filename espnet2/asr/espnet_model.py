@@ -77,7 +77,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.encoder = encoder
         # we set self.decoder = None in the CTC mode since
-        # self.decoder parameters were never used and PyTorch complained 
+        # self.decoder parameters were never used and PyTorch complained
         # and threw an Exception in the multi-GPU experiment.
         # thanks Jeff Farris for pointing out the issue.
         if ctc_weight == 1.0:
