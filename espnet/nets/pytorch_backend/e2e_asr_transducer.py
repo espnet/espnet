@@ -172,6 +172,11 @@ class E2E(ASRInterface, torch.nn.Module):
 
         return parser
 
+    @property
+    def attention_plot_class(self):
+        """Get attention plot class."""
+        return PlotAttentionReport
+
     def get_total_subsampling_factor(self) -> float:
         """Get total subsampling factor."""
         if self.etype == "custom":
