@@ -1,0 +1,1 @@
+../../TEMPLATE/asr1/setup.sh
