@@ -65,7 +65,7 @@ def main():
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     if args.verbose > 0:
-        logging.basicConfig(level=logging.INFO, format=logfmt)
+        logging.basicConfig(level=logging.DEBUG, format=logfmt)
     else:
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())

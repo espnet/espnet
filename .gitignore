@@ -40,6 +40,10 @@ egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
 
+# still working
+egs/TMSV/lts1
+utils/make_face.sh
+
 # tools related
 tools/bin
 tools/include
@@ -57,6 +61,7 @@ tools/sentencepiece/
 tools/swig/
 tools/warp-ctc/
 tools/warp-transducer/
+tools/warp-rnnt/
 tools/*.done
 tools/PESQ*
 tools/hts_engine_API*

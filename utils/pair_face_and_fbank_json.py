@@ -18,12 +18,11 @@ def get_parser():
         description="Merge source and target data.json files into one json file.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--src-json", type=str, help="Json file for the source speaker")
+    parser.add_argument("--face-json", type=str, help="Json file with the face features")
     parser.add_argument(
-        "--trg-json",
+        "--fbank-json",
         type=str,
-        default=None,
-        help="Json file for the target speaker. If not specified, use source only.",
+        help="Json file with the fbank features",
     )
     parser.add_argument(
         "--num_utts", default=-1, type=int, help="Number of utterances (take from head)"
@@ -50,34 +49,22 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    with open(args.src_json, "rb") as f:
-        src_json = json.load(f)["utts"]
-    if args.trg_json:
-        with open(args.trg_json, "rb") as f:
-            trg_json = json.load(f)["utts"]
-
-    # get source and target speaker
-    _ = list(src_json.keys())[0].split("_")
-    srcspk = _[0]
-    if args.trg_json:
-        _ = list(trg_json.keys())[0].split("_")
-        trgspk = _[0]
+    with open(args.face_json, "rb") as f:
+        face_json = json.load(f)["utts"]
+    with open(args.fbank_json, "rb") as f:
+        fbank_json = json.load(f)["utts"]
 
     count = 0
     data = {"utts": {}}
     # (dirty) loop through input only because in/out should have same files
-    for k, v in src_json.items():
-        _ = k.split("_")
-        number = "_".join(_[1:])
-        print(number)
+    for utt_id, v in face_json.items():
 
-        entry = {"input": src_json[srcspk + "_" + number]["input"]}
+        entry = {"input": face_json[utt_id]["input"]}
 
-        if args.trg_json:
-            entry["output"] = trg_json[trgspk + "_" + number]["input"]
-            entry["output"][0]["name"] = "target1"
+        entry["output"] = fbank_json[utt_id]["input"]
+        entry["output"][0]["name"] = "target1"
 
-        data["utts"][number] = entry
+        data["utts"][utt_id] = entry
         count += 1
         if args.num_utts > 0 and count >= args.num_utts:
             break

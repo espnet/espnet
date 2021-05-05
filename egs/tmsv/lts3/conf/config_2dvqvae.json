@@ -1,0 +1,24 @@
+{
+        "y_dim": 128,
+        "y_num": 18,
+        "z_dim": 256,
+        "z_num": 64,
+        "embed_norm": true,
+        "beta": 0.1,
+        "encoder": {
+            "in_size": [64, 128],
+            "h_dim": 32,
+            "kernel": 4,
+            "stride": 2,
+            "res_h_dim": 64,
+            "n_res_layers": 2
+        },
+        "decoder": {
+            "in_size": [4, 8],
+            "h_dim": 32,
+            "kernel": 4,
+            "stride": 2,
+            "res_h_dim": 64,
+            "n_res_layers": 2
+        }
+}
