@@ -1,4 +1,5 @@
-FROM ubuntu:18.04
+ARG FROM_TAG
+FROM ubuntu:${FROM_TAG}
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ARG DOCKER_VER
@@ -23,6 +24,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
         git \
         libtool \
         libsndfile1-dev \
+        patch \
         python2.7 \
         python3 \
         sox \
@@ -36,9 +38,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
     rm -rf /var/lib/apt/lists/*
 
 # Install Kaldi
-RUN git clone https://github.com/kaldi-asr/kaldi
+RUN git clone --depth 1 https://github.com/kaldi-asr/kaldi /opt/kaldi
 
-RUN cd /kaldi/tools && \
+RUN cd /opt/kaldi/tools && \
     ./extras/install_mkl.sh -sp debian intel-mkl-64bit-2019.2-057 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -46,15 +48,16 @@ RUN cd /kaldi/tools && \
     rm -r openfst-*/src && \
     ./extras/install_beamformit.sh && \
     ./extras/install_irstlm.sh && \
-    cd /kaldi/src && \
+    cd /opt/kaldi/src && \
     ./configure --shared --use-cuda=no && \
     make depend -j${NUM_BUILD_CORES} && \
     make -j${NUM_BUILD_CORES} && \
-    find /kaldi/src -name "*.o" -exec rm -f {} \; && \
-    find /kaldi/src -name "*.o" -exec rm -f {} \;
+    cd / && \
+    find /opt/kaldi  -type f \( -name "*.o" -o -name "*.la" -o -name "*.a" \) -exec rm {} \; && \
+    find /opt/intel -type f -name "*.a" -exec rm -f {} \; && \
+    find /opt/intel -type f -regex '.*\(_mc.?\|_mic\|_thread\|_ilp64\)\.so' -exec rm {} \; && \
+    rm -rf /kaldi/.git
 
 RUN wget --tries=3 "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
-    bash miniconda.sh -b -p /miniconda && \
+    bash miniconda.sh -b -p /opt/miniconda && \
     rm miniconda.sh
-
-WORKDIR /
