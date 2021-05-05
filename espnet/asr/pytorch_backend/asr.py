@@ -519,17 +519,20 @@ def train(args):
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
-        if hasattr(args, "noam_dim"):
+        if "transducer" in mtl_mode:
             if args.noam_adim > 0:
-                adim = args.noam_adim
+                optimizer = get_std_opt(
+                    model_params,
+                    args.noam_adim,
+                    args.optimizer_warmup_steps,
+                    args.noam_lr,
+                )
             else:
                 raise ValueError("noam_adim option should be set to use Noam scheduler")
         else:
-            adim = args.adim
-
-        optimizer = get_std_opt(
-            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
-        )
+            optimizer = get_std_opt(
+                model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
