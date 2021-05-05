@@ -1,5 +1,8 @@
 """CausalConv1d module definition for custom decoder."""
 
+from typing import Optional
+from typing import Tuple
+
 import torch
 
 
@@ -7,18 +10,25 @@ class CausalConv1d(torch.nn.Module):
     """CausalConv1d module for custom decoder.
 
     Args:
-        idim (int): dimension of inputs
-        odim (int): dimension of outputs
-        kernel_size (int): size of convolving kernel
-        stride (int): stride of the convolution
-        dilation (int): spacing between the kernel points
-        groups (int): number of blocked connections from ichannels to ochannels
-        bias (bool): whether to add a learnable bias to the output
+        idim: Input dimension.
+        odim: Output dimension.
+        kernel_size: Size of the convolving kernel.
+        stride: Stride of the convolution.
+        dilation: Spacing between the kernel points.
+        groups: Number of blocked connections from input channels to output channels.
+        bias: Whether to add a learnable bias to the output.
 
     """
 
     def __init__(
-        self, idim, odim, kernel_size, stride=1, dilation=1, groups=1, bias=True
+        self,
+        idim: int,
+        odim: int,
+        kernel_size: int,
+        stride: int = 1,
+        dilation: int = 1,
+        groups: int = 1,
+        bias: bool = True,
     ):
         """Construct a CausalConv1d object."""
         super().__init__()
@@ -36,24 +46,29 @@ class CausalConv1d(torch.nn.Module):
             bias=bias,
         )
 
-    def forward(self, x, x_mask, cache=None):
-        """CausalConv1d forward for x.
+    def forward(
+        self,
+        sequence: torch.Tensor,
+        mask: torch.Tensor,
+        cache: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward CausalConv1d for custom decoder.
 
         Args:
-            x (torch.Tensor): input torch (B, U, idim)
-            x_mask (torch.Tensor): (B, 1, U)
+            sequence: CausalConv1d input sequences. (B, U, D_in)
+            mask: Mask of CausalConv1d input sequences. (B, 1, U)
 
         Returns:
-            x (torch.Tensor): input torch (B, sub(U), attention_dim)
-            x_mask (torch.Tensor): (B, 1, sub(U))
+            sequence: CausalConv1d output sequences. (B, sub(U), D_out)
+            mask: Mask of CausalConv1d output sequences. (B, 1, sub(U))
 
         """
-        x = x.permute(0, 2, 1)
-        x = self.causal_conv1d(x)
+        sequence = sequence.permute(0, 2, 1)
+        sequence = self.causal_conv1d(sequence)
 
         if self._pad != 0:
-            x = x[:, :, : -self._pad]
+            sequence = sequence[:, :, : -self._pad]
 
-        x = x.permute(0, 2, 1)
+        sequence = sequence.permute(0, 2, 1)
 
-        return x, x_mask
+        return sequence, mask
