@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Copyright 2019 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -30,16 +30,24 @@ text=${data_dir}/text
 sox=`which sox` || { echo "Could not find sox in PATH"; exit 1; }
 silence="local/ob_eval/silence_16k_100ms.wav"
 # Silence (mainly electrical noise) was recorded using a microphone jack with no microphone connected.
-find ${db} -name "*.wav" | sort | while read -r filename;do
-    id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
-    echo "${id} $sox -t wav ${filename} -c 1 -b 16 -t wav - rate 16000 | $sox ${silence} -t wav - -t wav - |" >> ${scp}
-    echo "${id} LJ" >> ${utt2spk}
-done
+if [ ${db} = "exp/ground_truth/sym_link_denorm/train_dev/wav" ] || [ ${db} = "exp/ground_truth/sym_link_denorm/test/wav" ]; then
+    dir=`dirname ${metadata}`
+    cat ${dir}/wav.scp | while read -r filename; do
+        echo "${filename} $sox -t wav - -c 1 -b 16 -t wav - rate 16000 | $sox ${silence} -t wav - -t wav - |" >> ${scp}
+    done
+    cp ${dir}/utt2spk ${utt2spk}
+else
+    find ${db} -name "*.wav" | sort | while read -r filename; do
+        id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
+        echo "${id} $sox -t wav ${filename} -c 1 -b 16 -t wav - rate 16000 | $sox ${silence} -t wav - -t wav - |" >> ${scp}
+        echo "${id} an4" >> ${utt2spk}
+    done
+fi
 utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-local/clean_text.py ${metadata} char > ${text}
+cp ${metadata} ${text}
 echo "finished making text."
 
 # remove reduntant lines of text

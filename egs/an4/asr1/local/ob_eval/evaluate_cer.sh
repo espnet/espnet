@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-# Copyright 2019 Okayama University (Katsuki Inoue)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Copyright 2020 Okayama University (Katsuki Inoue)
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 echo "$0 $*"  # Print the command line for logging
 . ./path.sh
@@ -62,14 +62,14 @@ else
     outdir=${expdir}/sym_link
 
     mkdir -p ${outdir}_denorm/${name}/wav
-    cat < data/${name}/wav.scp | awk '{print $1}' | while read -r wav_id; do
-        filename=${wav_id} # corpus dependent
-        if [ -L ${outdir}_denorm/${name}/wav/${filename}.wav ]; then
-            unlink ${outdir}_denorm/${name}/wav/${filename}.wav
-        fi
-        ground_truth_wav="${db_root}/wavs/${filename}.wav" # corpus dependent
-        ln -s ${ground_truth_wav} ${outdir}_denorm/${name}/wav/${filename}.wav
-    done
+    # cat < data/${name}/wav.scp | awk '{print $1}' | while read -r wav_id; do
+    #     filename=${wav_id} # corpus dependent
+    #     if [ -L ${outdir}_denorm/${name}/wav/${filename}.wav ]; then
+    #         unlink ${outdir}_denorm/${name}/wav/${filename}.wav
+    #     fi
+    #     ground_truth_wav="${db_root}/wavs/${filename}.wav" # corpus dependent
+    #     ln -s ${ground_truth_wav} ${outdir}_denorm/${name}/wav/${filename}.wav
+    # done
 fi
 
 
@@ -82,7 +82,7 @@ asr_result_dir="${outdir}_denorm.ob_eval/${asr_model}_asr.result"
 
 echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
-ground_truth_txt="${db_root}/metadata.csv" # corpus dependent
+ground_truth_txt="data/${name}/text" # corpus dependent
 local/ob_eval/data_prep_for_asr.sh \
     ${outdir}_denorm/${name}/wav \
     ${asr_data_dir}/${name} \

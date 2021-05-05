@@ -30,3 +30,38 @@
 ## Samples
 
 https://drive.google.com/open?id=1oF8rsQrJccZEJ5mdLFyhiGVQR3q503fN
+
+## Results
+
+### CER
+
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+train_pytorch_transformer.v1.single.finetune.mailabs.en_US.judy.transformer.v1.single/slt_dev/result.txt:|100|4008|97.5|1.2|1.3|0.6|3.1|33|
+train_pytorch_transformer.v1.single.finetune.mailabs.en_US.judy.transformer.v1.single/slt_eval/result.txt:|100|4001|96.6|1|2.4|0.7|4.1|36|
+
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+train_pytorch_transformer.v1.single.finetune.mailabs.en_US.judy.transformer.v1.single/slt_dev/result.wrd.txt:|100|929|94.7|4.3|1|0.5|5.8|33|
+train_pytorch_transformer.v1.single.finetune.mailabs.en_US.judy.transformer.v1.single/slt_eval/result.wrd.txt:|100|878|93.6|5.1|1.3|1.1|7.5|38|
+
+# Ground truth
+
+## Results
+
+### CER
+
+|dataset|Snt|Char|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+ground_truth/slt_dev/result.txt:|100|4008|99.6|0.2|0.2|0.3|0.7|11|
+ground_truth/slt_eval/result.txt:|100|4001|99.2|0.3|0.5|0.2|1.1|16|
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+ground_truth/slt_dev/result.wrd.txt:|100|929|98.5|1.4|0.1|0.2|1.7|11|
+ground_truth/slt_eval/result.wrd.txt:|100|878|97.3|2.3|0.5|0.7|3.4|18|
