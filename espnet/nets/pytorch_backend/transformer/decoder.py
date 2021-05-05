@@ -249,7 +249,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             x = self.output_layer(x)
         return x, tgt_mask
 
-    def forward_one_step(self, tgt, tgt_mask, memory, cache=None):
+    def forward_one_step(self, tgt, tgt_mask, memory, memory_mask=None, cache=None):
         """Forward one step.
 
         Args:
@@ -258,6 +258,9 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
                 dtype=torch.uint8 in PyTorch 1.2- and dtype=torch.bool in PyTorch 1.2+
                 (include 1.2).
             memory (torch.Tensor): Encoded memory, float32 (#batch, maxlen_in, feat).
+            memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
+                dtype=torch.uint8 in PyTorch 1.2- and dtype=torch.bool in PyTorch 1.2+
+                (include 1.2).
             cache (List[torch.Tensor]): List of cached tensors.
                 Each tensor shape should be (#batch, maxlen_out - 1, size).
 
@@ -272,7 +275,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(
-                x, tgt_mask, memory, None, cache=c
+                x, tgt_mask, memory, memory_mask, cache=c
             )
             new_cache.append(x)
 

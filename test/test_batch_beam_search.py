@@ -189,3 +189,76 @@ def test_batch_beam_search_equal(
         numpy.testing.assert_allclose(
             expected.score.cpu(), actual.score.cpu(), rtol=1e-6
         )
+
+
+@pytest.mark.parametrize(
+    "model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, \
+        bonus, device, dtype",
+    [
+        (nn, args, ctc, lm_nn, lm_args, lm, bonus, device, dtype)
+        for device in ("cpu",)
+        for nn, args in (("transformer", transformer_args),)
+        for ctc in (0.001, 0.5, 0.999)
+        for lm_nn, lm_args in (
+            ("default", lstm_lm),
+            ("default", gru_lm),
+        )
+        for lm in (0.5,)
+        for bonus in (0.1,)
+        for dtype in ("float32",)  # TODO(karita): float16
+    ],
+)
+def test_batch_recognize_equal(
+    model_class,
+    args,
+    ctc_weight,
+    lm_nn,
+    lm_args,
+    lm_weight,
+    bonus,
+    device,
+    dtype,
+):
+    # seed setting
+    torch.manual_seed(123)
+    torch.backends.cudnn.deterministic = True
+    # https://github.com/pytorch/pytorch/issues/6351
+    torch.backends.cudnn.benchmark = False
+
+    dtype = getattr(torch, dtype)
+    model, x, ilens, y, data, train_args = prepare(
+        model_class, args, mtlalpha=ctc_weight
+    )
+    model.eval()
+    char_list = train_args.char_list
+    lm = dynamic_import_lm(lm_nn, backend="pytorch")(len(char_list), lm_args)
+    lm = lm.model
+    lm.eval()
+
+    args = Namespace(
+        beam_size=3,
+        penalty=bonus,
+        ctc_weight=ctc_weight,
+        maxlenratio=0,
+        lm_weight=lm_weight,
+        minlenratio=0,
+        nbest=1,
+    )
+
+    model.to(device, dtype=dtype)
+    model.eval()
+    xs = []
+    for i in range(len(x)):
+        xs.append(x[i, : ilens[i]].numpy())
+
+    with torch.no_grad():
+        ls_nbest_hyps = []
+        for i in range(len(x)):
+            ls_nbest_hyps.append(model.recognize(xs[i], args, char_list, rnnlm=lm))
+        b_nbest_hyps = model.recognize_batch(xs, args, char_list, rnnlm=lm)
+
+    for i, (expected, actual) in enumerate(zip(ls_nbest_hyps, b_nbest_hyps)):
+        assert expected[0]["yseq"] == actual[0]["yseq"]
+        numpy.testing.assert_allclose(
+            expected[0]["score"], actual[0]["score"], rtol=1e-6
+        )

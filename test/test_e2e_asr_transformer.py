@@ -219,6 +219,12 @@ def test_transformer_trainable_and_decodable(module, model_dict):
             nbest = model.recognize(x[0, : ilens[0]].numpy(), recog_args)
             print(y[0])
             print(nbest[0]["yseq"][1:-1])
+            nbests = model.recognize_batch(
+                [x[0, : ilens[0]].numpy(), x[1, : ilens[1]].numpy()], recog_args
+            )  # batch decodable
+            for idx, nbest in enumerate(nbests):
+                print(y[idx])
+                print(nbest[0]["yseq"][1:-1])
     else:
         # test trainable
         optim = chainer.optimizers.Adam(0.01)
