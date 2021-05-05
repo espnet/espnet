@@ -30,6 +30,7 @@ test_spm.model
 # recipe related
 egs*/*/*/data*
 egs*/*/*/db
+egs*/*/*/decode
 egs*/*/*/downloads
 egs*/*/*/dump
 egs*/*/*/enhan
