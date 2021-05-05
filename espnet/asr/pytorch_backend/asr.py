@@ -54,7 +54,7 @@ from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
+import k2
 import matplotlib
 
 matplotlib.use("Agg")
@@ -1116,6 +1116,13 @@ def recog(args):
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
                 elif hasattr(model, "is_rnnt"):
                     nbest_hyps = model.recognize(feat, beam_search_transducer)
+                elif hasattr(model, "decoder_mode") and args.wfst_decode:
+                    grpha = torch.load('data/graph/HLG.pt')
+                    HLG = k2.Fsa.from_dict(grpha)
+                    HLG = HLG.to(device)
+                    HLG.aux_labels = k2.ragged.remove_values_eq(HLG.aux_labels, 0)
+                    HLG.requires_grad_(False)
+                    nbest_hyps = model.wfst_based_decoding(feat, HLG, args, train_args.char_list)
                 else:
                     nbest_hyps = model.recognize(
                         feat, args, train_args.char_list, rnnlm

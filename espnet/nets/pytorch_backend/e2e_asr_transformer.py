@@ -10,6 +10,8 @@ import math
 import numpy
 import torch
 
+import k2
+
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
@@ -159,6 +161,44 @@ class E2E(ASRInterface, torch.nn.Module):
         """Initialize parameters."""
         # initialize parameters
         initialize(self, args.transformer_init)
+
+    def wfst_based_decoding(self, x, HLG, recog_args, char_list=None):
+        """wfst-based decoding.
+
+        :param ndnarray x: input acoustic feature (B, T, D) or (T, D)
+        :param Namespace recog_args: argment Namespace contraining options
+        :param list char_list: list of characters
+        :return: decoding result
+        :rtype: list
+        """
+        self.eval()
+        encoder_out, encoder_mask = self.encoder(x, None)
+        log_probs = self.ctc.log_softmax(
+            encoder_out)
+        log_probs[:, :, 0] += -1
+        dense_fsa_vec_seg = torch.stack(
+             (torch.tensor(range(encoder_out_lens.shape[0])),
+             torch.zeros(encoder_out_lens.shape[0]),
+             encoder_out_lens.to("cpu")), 1).to(torch.int32)
+        indices = torch.argsort(dense_fsa_vec_seg[:, 2], descending=True)
+        dense_fsa_vec_seg = dense_fsa_vec_seg[indices]
+        dense_fsa_vec = k2.DenseFsaVec(log_probs, dense_fsa_vec_seg)
+        lattices = k2.intersect_dense_pruned(HLG, dense_fsa_vec, 30.0, 7.0, recog_args.beam_size, 10000)
+        best_paths = k2.shortest_path(lattices, use_double_scores=True)
+        labels = k2.ragged.remove_values_leq(best_paths.aux_labels, 0)
+        shape = k2.ragged.compose_ragged_shapes(best_paths.arcs.shape(),
+                                                    labels.shape())
+        shape = k2.ragged.remove_axis(k2.ragged.remove_axis(shape, 1),1)
+        labels = k2.RaggedInt(shape, labels.values())
+        assert (labels.num_axes() == 2)
+        ans = torch.zeros(indices.shape, device=indices.device, dtype=torch.long)
+        ans[indices] = torch.arange(0, indices.shape[0], device=indices.device)
+        labels, _ = k2.ragged.index(labels,
+                        ans.to(dtype=torch.int32,
+                        device=best_paths.device))
+        hyps = k2.ragged.to_list(labels)
+        
+        return hyps
 
     def forward(self, xs_pad, ilens, ys_pad):
         """E2E forward.
