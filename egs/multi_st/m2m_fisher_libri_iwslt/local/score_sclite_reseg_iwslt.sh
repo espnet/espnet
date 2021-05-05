@@ -1,0 +1,1 @@
+../../../iwslt18/st1/local/score_sclite_reseg.sh
