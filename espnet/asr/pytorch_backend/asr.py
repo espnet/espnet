@@ -531,7 +531,10 @@ def train(args):
                 raise ValueError("noam_adim option should be set to use Noam scheduler")
         else:
             optimizer = get_std_opt(
-                model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
+                model_params,
+                args.adim,
+                args.transformer_warmup_steps,
+                args.transformer_lr,
             )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
