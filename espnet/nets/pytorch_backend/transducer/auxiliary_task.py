@@ -63,12 +63,14 @@ class AuxiliaryTask(torch.nn.Module):
         """Forward auxiliary task.
 
         Args:
-            enc_out_aux: List of encoder intermediate outputs
-            dec_out: Decoder outputs
-            main_joint: Joint output for main task
-            target: Target labels
-            pred_len: Prediction lengths
-            target_len: Target lengths
+            enc_out_aux: List of batch encoder intermediate outputs
+                             [L x (B, T, D_enc_aux)]
+            dec_out: Batch of ecoder outputs (B, U+1, D_dec)
+            main_joint: Batch of joint output for main task
+                           (B, T, U+1, vocab_size) or (sum(Tn * Un+1), vocab_size)
+            target: Batch of target sequences (B, Lmax)
+            pred_len: Batch of lengths of predicted sequences (B)
+            target_len: Batch of lengths of target sequences (B)
 
         Returns:
             : (Weighted auxiliary transducer loss, Weighted auxiliary symmetric KL loss)
@@ -76,6 +78,11 @@ class AuxiliaryTask(torch.nn.Module):
         """
         aux_trans = 0
         aux_symm_kl = 0
+
+        if main_joint.dim() == 2:
+            joint_memory_reduction = True
+        else:
+            joint_memory_reduction = False
 
         for p in chain(self.decoder.parameters(), self.joint_network.parameters()):
             p.requires_grad = False
@@ -86,6 +93,8 @@ class AuxiliaryTask(torch.nn.Module):
             aux_joint = self.joint_network(
                 aux_mlp.unsqueeze(2),
                 dec_out.unsqueeze(1),
+                pred_len=pred_len if joint_memory_reduction else None,
+                target_len=target_len if joint_memory_reduction else None,
                 is_aux=True,
             )
 
@@ -98,15 +107,44 @@ class AuxiliaryTask(torch.nn.Module):
                 )
 
             if self.aux_task_type != "default":
-                aux_symm_kl += F.kl_div(
-                    F.log_softmax(main_joint, dim=-1),
-                    F.softmax(aux_joint, dim=-1),
-                    reduction="mean",
-                ) + F.kl_div(
-                    F.log_softmax(aux_joint, dim=-1),
-                    F.softmax(main_joint, dim=-1),
-                    reduction="mean",
-                )
+                if joint_memory_reduction:
+                    batch = target.size(0)
+                    _start = 0
+
+                    for b in range(batch):
+                        t = int(pred_len[b])
+                        u = int(target_len[b])
+                        t_u = t * (u + 1)
+
+                        main_b = main_joint[_start : (_start + t_u), :].view(
+                            1, t, (u + 1), -1
+                        )
+                        aux_b = aux_joint[_start : (_start + t_u), :].view(
+                            1, t, (u + 1), -1
+                        )
+
+                        aux_symm_kl += F.kl_div(
+                            F.log_softmax(main_b, dim=-1),
+                            F.softmax(aux_b, dim=-1),
+                            reduction="mean",
+                        ) + F.kl_div(
+                            F.log_softmax(aux_b, dim=-1),
+                            F.softmax(main_b, dim=-1),
+                            reduction="mean",
+                        )
+                        _start += t_u
+
+                    aux_symm_kl /= batch
+                else:
+                    aux_symm_kl += F.kl_div(
+                        F.log_softmax(main_joint, dim=-1),
+                        F.softmax(aux_joint, dim=-1),
+                        reduction="mean",
+                    ) + F.kl_div(
+                        F.log_softmax(aux_joint, dim=-1),
+                        F.softmax(main_joint, dim=-1),
+                        reduction="mean",
+                    )
 
         for p in chain(self.decoder.parameters(), self.joint_network.parameters()):
             p.requires_grad = True

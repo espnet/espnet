@@ -38,6 +38,7 @@ def get_default_train_args(**kwargs):
         dropout_rate_embed_decoder=0.0,
         joint_dim=2,
         joint_activation_type="tanh",
+        joint_memory_reduction=False,
         transducer_weight=1.0,
         aux_task_type=None,
         aux_task_weight=0.1,
@@ -164,6 +165,7 @@ def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
         ({"dtype": "gru", "dlayers": 2}, {}),
         ({"joint-activation-type": "relu"}, {}),
         ({"joint-activation-type": "swish"}, {}),
+        ({"joint-memory-reduction": True}, {}),
         ({}, {"score_norm_transducer": False}),
         ({"report_cer": True, "report_wer": True}, {}),
         ({}, {"nbest": 2}),
@@ -322,6 +324,13 @@ def test_calculate_plot_attention():
             "aux_task_type": "both",
             "aux_task_layer_list": [0],
         },
+        {
+            "etype": "blstm",
+            "elayers": 2,
+            "aux_task_type": "both",
+            "aux_task_layer_list": [0],
+            "joint_memory_reduction": True,
+        },
         {"elayers": 2, "aux_ctc": True, "aux_ctc_weight": 0.5},
         {"elayers": 2, "aux_cross_entropy": True, "aux_cross_entropy_weight": 0.5},
     ],
@@ -339,6 +348,7 @@ def test_auxiliary_task(train_dic):
     loss = model(*batch)
     loss.backward()
 
+    model.joint_network.joint_memory_reduction = False
     beam_search = BeamSearchTransducer(
         decoder=model.dec,
         joint_network=model.joint_network,
