@@ -59,6 +59,9 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - ASR examples for supporting endangered language documentation (Please refer to egs/puebla_nahuatl and egs/yoloxochitl_mixtec for details)
 - Wav2Vec2.0 pretrained model as Encoder, imported from [FairSeq](https://github.com/pytorch/fairseq/tree/master/fairseq).
 
+Demonstration
+- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
+
 ### TTS: Text-to-speech
 - Tacotron2
 - Transformer-TTS
@@ -70,7 +73,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Phoneme-based training (En, Jp, and Zn)
 - Integration with neural vocoders (WaveNet, ParallelWaveGAN, and MelGAN)
 
-You can try demo online now!
+Demonstration
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
 - Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
 
