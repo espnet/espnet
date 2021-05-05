@@ -78,7 +78,8 @@ GIGASPEECH=
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
-    AISHELL=
+    AIDATATANG=/export/b03/hyan/espnet-data/aidatatang
+    AISHELL=/export/b03/hyan/espnet-data/aishell
     AN4=
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=

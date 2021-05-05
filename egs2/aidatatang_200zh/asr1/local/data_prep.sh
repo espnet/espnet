@@ -1,0 +1,1 @@
+../../../../egs/aidatatang_200zh/asr1/local/data_prep.sh
