@@ -443,7 +443,7 @@ You can download converted samples of the cascade ASR+TTS baseline system [here]
 
 ### CTC Segmentation demo
 
-<details><summary>expand</summary><div>
+<details><summary>ESPnet1</summary><div>
 
 [CTC segmentation](https://arxiv.org/abs/2007.09127) determines utterance segments within audio files.
 Aligned utterance segments constitute the labels of speech datasets.
@@ -502,6 +502,95 @@ A full example recipe is in `egs/tedlium2/align1/`.
 
 </div></details>
 
+<details><summary>ESPnet2</summary><div>
+
+[CTC segmentation](https://arxiv.org/abs/2007.09127) determines utterance segments within audio files.
+Aligned utterance segments constitute the labels of speech datasets.
+
+As demo, we align start and end of utterances within the audio file `ctc_align_test.wav`.
+This can be done either directly from the Python command line or using the script `espnet2/bin/asr_align.py`.
+
+From the Python command line interface:
+
+```python
+# load a model with character tokens
+from espnet_model_zoo.downloader import ModelDownloader
+d = ModelDownloader(cachedir="./modelcache")
+wsjmodel = d.download_and_unpack("kamo-naoyuki/wsj")
+# load the example file included in the ESPnet repository
+import soundfile
+speech, rate = soundfile.read("./test_utils/ctc_align_test.wav")
+# CTC segmentation
+from espnet2.bin.asr_align import CTCSegmentation
+aligner = CTCSegmentation( **wsjmodel , fs=rate )
+text = """
+utt1 THE SALE OF THE HOTELS
+utt2 IS PART OF HOLIDAY'S STRATEGY
+utt3 TO SELL OFF ASSETS
+utt4 AND CONCENTRATE ON PROPERTY MANAGEMENT
+"""
+segments = aligner(speech, text)
+print(segments)
+# utt1 utt 0.26 1.73 -0.0154 THE SALE OF THE HOTELS
+# utt2 utt 1.73 3.19 -0.7674 IS PART OF HOLIDAY'S STRATEGY
+# utt3 utt 3.19 4.20 -0.7433 TO SELL OFF ASSETS
+# utt4 utt 4.20 6.10 -0.4899 AND CONCENTRATE ON PROPERTY MANAGEMENT
+```
+
+Aligning also works with fragments of the text.
+For this, set the `gratis_blank` option that allows skipping unrelated audio sections without penalty.
+It's also possible to omit the utterance names at the beginning of each line, by setting `kaldi_style_text` to False.
+
+```python
+aligner.set_config( gratis_blank=True, kaldi_style_text=False )
+text = ["SALE OF THE HOTELS", "PROPERTY MANAGEMENT"]
+segments = aligner(speech, text)
+print(segments)
+# utt_0000 utt 0.37 1.72 -2.0651 SALE OF THE HOTELS
+# utt_0001 utt 4.70 6.10 -5.0566 PROPERTY MANAGEMENT
+```
+
+The script `espnet2/bin/asr_align.py` uses a similar interface. To align utterances:
+
+```sh
+# ASR model and config files from pretrained model (e.g. from cachedir):
+asr_config=<path-to-model>/config.yaml
+asr_model=<path-to-model>/valid.*best.pth
+# prepare the text file
+wav="test_utils/ctc_align_test.wav"
+text="test_utils/ctc_align_text.txt"
+cat << EOF > ${text}
+utt1 THE SALE OF THE HOTELS
+utt2 IS PART OF HOLIDAY'S STRATEGY
+utt3 TO SELL OFF ASSETS
+utt4 AND CONCENTRATE
+utt5 ON PROPERTY MANAGEMENT
+EOF
+# obtain alignments:
+python espnet2/bin/asr_align.py --asr_train_config ${asr_config} --asr_model_file ${asr_model} --audio ${wav} --text ${text}
+# utt1 ctc_align_test 0.26 1.73 -0.0154 THE SALE OF THE HOTELS
+# utt2 ctc_align_test 1.73 3.19 -0.7674 IS PART OF HOLIDAY'S STRATEGY
+# utt3 ctc_align_test 3.19 4.20 -0.7433 TO SELL OFF ASSETS
+# utt4 ctc_align_test 4.20 4.97 -0.6017 AND CONCENTRATE
+# utt5 ctc_align_test 4.97 6.10 -0.3477 ON PROPERTY MANAGEMENT
+```
+
+The output of the script can be redirected to a `segments` file by adding the argument `--output segments`.
+Each line contains file/utterance name, utterance start and end times in seconds and a confidence score; optionally also the utterance text.
+The confidence score is a probability in log space that indicates how good the utterance was aligned. If needed, remove bad utterances:
+
+```sh
+min_confidence_score=-7
+# here, we assume that the output was written to the file `segments`
+awk -v ms=${min_confidence_score} '{ if ($5 > ms) {print} }' segments
+```
+
+See the module documentation for more information.
+It is recommended to use models with RNN-based encoders (such as BLSTMP) for aligning large audio files;
+rather than using Transformer models that have a high memory consumption on longer audio data.
+The sample rate of the audio must be consistent with that of the data used in training; adjust with `sox` if needed.
+
+</div></details>
 
 ## References
 
