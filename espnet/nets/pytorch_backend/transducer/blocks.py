@@ -21,6 +21,7 @@ from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
+    ChunkedMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import (
@@ -306,7 +307,12 @@ def build_input_layer(
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
 
 
-def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_type):
+def build_transformer_block(
+    net_part,
+    block_arch,
+    pw_layer_type,
+    pw_activation_type,
+):
     """Build function for transformer block.
 
     Args:
@@ -330,6 +336,8 @@ def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_t
     att_dropout_rate = (
         block_arch["att-dropout-rate"] if "att-dropout-rate" in block_arch else 0.0
     )
+    enc_win_left = block_arch.get("win_left", 0)
+    enc_win_right = block_arch.get("win_right", 0)
 
     if pw_layer_type == "linear":
         pw_layer = PositionwiseFeedForward
@@ -340,12 +348,19 @@ def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_t
 
     if net_part == "encoder":
         transformer_layer_class = EncoderLayer
+        if enc_win_left > 0 or enc_win_right > 0:
+            MHA = ChunkedMultiHeadedAttention(
+                heads, d_hidden, att_dropout_rate, enc_win_left, enc_win_right
+            )
+        else:
+            MHA = MultiHeadedAttention(heads, d_hidden, att_dropout_rate)
     elif net_part == "decoder":
         transformer_layer_class = DecoderLayer
+        MHA = MultiHeadedAttention(heads, d_hidden, att_dropout_rate)
 
     return lambda: transformer_layer_class(
         d_hidden,
-        MultiHeadedAttention(heads, d_hidden, att_dropout_rate),
+        MHA,
         pw_layer(*pw_layer_args),
         dropout_rate,
     )

@@ -569,7 +569,17 @@ class E2E(ASRInterface, torch.nn.Module):
                 if isinstance(m, MultiHeadedAttention) or isinstance(
                     m, RelPositionMultiHeadedAttention
                 ):
-                    ret[name] = m.attn.cpu().numpy()
+                    if name.split(".")[-1] == "Child_MHA":
+                        attn = m.attn.view(
+                            xs_pad.shape[0],
+                            -1,
+                            m.attn.shape[1],
+                            m.attn.shape[2],
+                            m.attn.shape[3],
+                        ).mean(dim=1)
+                        ret[name] = attn.cpu().numpy()
+                    else:
+                        ret[name] = m.attn.cpu().numpy()
 
         self.train()
 
