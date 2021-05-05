@@ -12,16 +12,16 @@ ln -sf ${cwd}/.coverage .
 
 set -euo pipefail
 
-# echo "==== ASR (backend=pytorch lm=RNNLM) ==="
-# ./run.sh --python "${python}"
-# echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
-# ./run.sh --python "${python}" --stage 3 --stop-stage 3 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
-# # skip duplicated ASR training stage 4
-# ./run.sh --python "${python}" --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
-# echo "==== ASR (backend=pytorch, dtype=float64) ==="
-# ./run.sh --python "${python}" --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
-# echo "==== ASR (backend=chainer) ==="
-# ./run.sh --python "${python}" --stage 3 --backend chainer
+echo "==== ASR (backend=pytorch lm=RNNLM) ==="
+./run.sh --python "${python}"
+echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
+./run.sh --python "${python}" --stage 3 --stop-stage 3 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
+# skip duplicated ASR training stage 4
+./run.sh --python "${python}" --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
+echo "==== ASR (backend=pytorch, dtype=float64) ==="
+./run.sh --python "${python}" --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
+echo "==== ASR (backend=chainer) ==="
+./run.sh --python "${python}" --stage 3 --backend chainer
 
 # skip duplicated ASR training stage 2,3
 # test rnn recipe
