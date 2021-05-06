@@ -1,48 +1,60 @@
-batch_size: 4
-accum_grad: 8
+batch_size: 1
+accum_grad: 16
 max_epoch: 80
 patience: none
 num_att_plot: 0
-unused_parameters: true
 # The initialization method for model parameters
+cudnn_deterministic: false
 init: xavier_uniform
 best_model_criterion:
-    -   - valid
-        - acc
-        - max
-    -   - valid
-        - loss
-        - min
+-   - valid
+    - acc
+    - max
+-   - valid
+    - loss
+    - min
 keep_nbest_models: 10
 
 optim: adam
 batch_type: folded
 num_workers: 4
 optim_conf:
-    lr: 1.0e-03
+    lr: 5.0e-03
     eps: 1.0e-08
     weight_decay: 1.0e-7
+    
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 60000
+
 val_scheduler_criterion:
     - valid
     - loss
-scheduler: reducelronplateau
-scheduler_conf:
-    mode: min
-    factor: 0.5
-    patience: 2
-enh: tasnet
-enh_conf:
-    N: 256
-    L: 20
-    B: 256
-    H: 512
-    P: 3
-    X: 8
-    R: 4
+
+# Enhancement Related
+enh_model_conf:
+    loss_type: si_snr
+enh_encoder: conv
+enh_encoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+enh_decoder: conv
+enh_decoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+enh_separator: tcn
+enh_separator_conf:
     num_spk: 2
-    norm_type: gLN
+    layer: 8
+    stack: 4
+    bottleneck_dim: 256
+    hidden_dim: 512
+    kernel: 3
     causal: False
-    mask_nonlinear: relu
+    norm_type: "gLN"
+    nonlinear: relu
 
 # ASR Related
 frontend: default
@@ -86,5 +98,4 @@ asr_model_conf:
 joint_model_conf:
     enh_weight: 0.8
     end2end_train: true
-    enh_return_type: waveform # waveform or spectrum or none
     cal_enh_loss: true # whether to calculate enh_loss, need the reduce in ctc_conf
