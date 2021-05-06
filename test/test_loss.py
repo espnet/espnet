@@ -36,9 +36,11 @@ def test_ctc_loss(in_length, out_length, ctc_type):
             # Batch-size average
             loss = loss / th_pred.size(1)
             return loss
+
     elif ctc_type == "gtnctc":
         pytest.importorskip("gtn")
         from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
+
         _ctcloss_sum = GTNCTCLossFunction.apply
 
         def torch_ctcloss(th_pred, th_target, th_ilen, th_olen):
@@ -70,7 +72,7 @@ def test_ctc_loss(in_length, out_length, ctc_type):
         # gtn implementation expects targets as list
         th_target = np_target
         # keep as B x T x H for gtn
-        th_pred = th_pred.transpose(0,1)
+        th_pred = th_pred.transpose(0, 1)
     else:
         th_target = torch.from_numpy(numpy.concatenate(np_target))
     th_ilen = torch.from_numpy(input_length)
