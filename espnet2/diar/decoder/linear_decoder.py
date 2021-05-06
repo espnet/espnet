@@ -4,7 +4,7 @@ from espnet2.diar.decoder.abs_decoder import AbsDecoder
 
 
 class LinearDecoder(AbsDecoder):
-    """Linear decoder for speaker diarization """
+    """Linear decoder for speaker diarization"""
 
     def __init__(
         self,

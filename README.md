@@ -68,9 +68,12 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
     - Transfer learning with acoustic model or language model.  
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
-- Non-autoregressive based on Mask CTC
+- Non-autoregressive model based on Mask-CTC
 - ASR examples for supporting endangered language documentation (Please refer to egs/puebla_nahuatl and egs/yoloxochitl_mixtec for details)
 - Wav2Vec2.0 pretrained model as Encoder, imported from [FairSeq](https://github.com/pytorch/fairseq/tree/master/fairseq).
+
+Demonstration
+- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
 
 ### TTS: Text-to-speech
 - Tacotron2
@@ -83,7 +86,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Phoneme-based training (En, Jp, and Zn)
 - Integration with neural vocoders (WaveNet, ParallelWaveGAN, and MelGAN)
 
-You can try demo online now!
+Demonstration
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
 - Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
 

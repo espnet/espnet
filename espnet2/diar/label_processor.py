@@ -4,7 +4,7 @@ from espnet2.layers.label_aggregation import LabelAggregate
 
 
 class LabelProcessor(torch.nn.Module):
-    """Label aggregator for speaker diarization """
+    """Label aggregator for speaker diarization"""
 
     def __init__(
         self, win_length: int = 512, hop_length: int = 128, center: bool = True
