@@ -51,8 +51,21 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
 - **Transducer** based end-to-end ASR
-  - Available: RNN-based encoder/decoder or custom encoder/decoder w/ supports for Transformer, Conformer, TDNN (encoder) and causal conv1d (decoder) blocks.
-  - Also support: mixed RNN/Custom encoder-decoder, VGG2L (RNN/Cutom encoder) and various decoding algorithms.
+  - Architecture:
+    - RNN-based encoder/decoder
+    - Custom encoder/decoder supporting Transformer, Conformer, TDNN (encoder) and causal conv1d (decoder) blocks.
+    - Mixed RNN/Custom encoder-decoder
+    - Also supports: VGG2L (RNN/custom encoder), Conv2D (custom encoder), TDNN (custom encoder) and causal conv1d (custom decoder)
+  - Search algorithms:
+    - Greedy search constrained to one emission by timestep.
+    - Default beam search algorithm without prefix search.
+    - Alignment-Length Synchronous decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040).
+    - Time Synchronous Decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040).
+    - N-step Constrained beam search.
+  - Features:
+    - Multi-task learning with various auxiliary tasks: CTC, LM, auxiliary RNN-T and Jensen-Shannon divergence.
+    - Efficient encoder and decoder output prediction for joint network.
+    - Transfer learning with acoustic model or language model.  
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive based on Mask CTC

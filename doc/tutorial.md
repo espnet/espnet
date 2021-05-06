@@ -173,8 +173,7 @@ $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
 
 ### Transducer
 
-ESPnet also supports transducer-based models.
-To switch to transducer mode, the following should be set in the training config:
+ESPnet supports models trained with transducer loss, aka transducer models. To train such model, the following should be set in the training config:
 
 ```
 criterion: loss
@@ -182,13 +181,13 @@ model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 ```
 
 Several transducer architectures are currently available:
-- RNN-Transducer (default)
-- Custom-Transducer (`etype: custom` and `dtype: custom`)
+- RNN-Transducer (default, e.g.: `etype: blstm` with `dtype: lstm`)
+- Custom-Transducer (e.g.: `etype: custom` and `dtype: custom`)
 - Mixed Custom/RNN-Transducer (e.g: `etype: custom` with `dtype: lstm`)
 
-The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `custom` is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.
+The architecture specification is separated for the encoder and decoder part, and defined by the user through, respectively, `etype` and `dtype` in training config. If `custom` is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.
 
-While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a customizable architecture definition for transducer is different:
+While defining a RNN architecture is done in an usual manner (similarly to CTC, attention and MTL) with global parameters, a customizable architecture definition for transducer is different:
 1) Each blocks (or layers) for both network part should be specified individually through `enc-block-arch` or/and `dec-block-arch`:
 
         # e.g: TDNN-Transformer encoder
@@ -209,37 +208,41 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
 
         # TDNN
         - type: tdnn
-          idim: input dimension
-          odim: output dimension
-          ctx_size: size of the context window
-          dilation: parameter to control the stride of elements within the neighborhood
-          stride: stride of the sliding blocks
-          [optional: dropout-rate]
+          idim: [Input dimension. (int)]
+          odim: [Output dimension. (int)]
+          ctx_size: [Size of the context window. (int)]
+          dilation: [Parameter to control the stride of elements within the neighborhood. (int)]
+          stride: [Stride of the sliding blocks. (int)]
+          dropout-rate (optional): [Dropout-rate for TDNN block. (float)]
 
         # Transformer
         - type: transformer
-          d_hidden: input/output dimension
-          d_ff: feed-forward hidden dimension
-          heads: number of heads in multi-head attention
-          [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+          d_hidden: [Input/output dimension of Transformer block. (int)]
+          d_ff: [Hidden dimension of the Feed-forward module. (int)]
+          heads: [Number of heads in multi-head attention. (int)]
+          dropout-rate (optional): [Dropout-rate for Transformer block. (float)]
+          pos-dropout-rate (optional): [Dropout-rate for positional encoding module. (float)]
+          att-dropout-rate (optional): [Dropout-rate for attention module. (float)]
 
         # Conformer
         - type: conformer
-          d_hidden: input/output dimension
-          d_ff: feed-forward hidden dimension
-          heads: number of heads in multi-head attention
-          macaron_style: wheter to use macaron style
-          use_conv_mod: whether to use convolutional module
-          conv_mod_kernel: number of kernel in convolutional module (optional if `use_conv_mod=True`)
-          [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+          d_hidden: [Input/output dimension of Conformer block (int)]
+          d_ff: [Hidden dimension of the Feed-forward module. (int)]
+          heads: [Number of heads in multi-head attention. (int)]
+          macaron_style: [Whether to use macaron style. (boolean)]
+          use_conv_mod: [Whether to use convolutional module. (boolean)]
+          conv_mod_kernel: [Number of kernel in convolutional module. (int)]
+          dropout-rate (optional): [Dropout-rate for Transformer block. (float)]
+          pos-dropout-rate (optional): [Dropout-rate for positional encoding module. (float)]
+          att-dropout-rate (optional): [Dropout-rate for attention module. (float)]
 
         # Causal Conv1d
         - type: causal-conv1d
-          idim: input dimension
-          odim: output dimension
-          kernel_size: size of convolving kernel
-          stride: stride of the convolution
-          dilation: spacing between the kernel points
+          idim: [Input dimension. (int)]
+          odim: [Output dimension. (int)]
+          kernel_size: [Size of convolving kernel. (int)]
+          stride: [Stride of the convolution. (int)]
+          dilation: [Spacing between the kernel points. (int)]
 
 3) Each specified block(s) for each network part can be repeated by specifying the number of duplications through `enc-block-repeat` or `dec-block-repeat` parameters:
 
@@ -258,47 +261,89 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
                   att-dropout-rate: 0.4
         dec-block-repeat: 2
 
-For more information about the customizable architecture, please refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer) which cover all cases.
+For more information about the customizable architecture, please refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer) which cover most cases.
 
-Various decoding algorithms are also available for transducer by setting `search-type` parameter in decode config:
-- Default beam search (`default`)
-- Time-synchronous decoding (`tsd`)
-- Alignment-length decoding (`alsd`)
-- N-step Constrained beam search (`nsc`)
+## Augmented training
 
-All algorithms share a common parameter to control beam size (`beam-size`) but each ones have its own parameters:
+We also supports augmented transducer model training with various auxiliary tasks, such as: CTC loss, LM loss (label-smoothing), auxiliary transducer loss and Jensen-Shannon divergence.
+The five losses can be simultaneously trained and jointly optimize the total loss function defined as:
+
+       ```math
+       \begin{equation}
+       \mathcal{L}_{tot} = \lambda_{1}\mathcal{L}_{1}\, + \, \lambda_{2}\mathcal{L}_{2} + \lambda_{3}\mathcal{L}_{3}\, + \, \lambda_{4} \mathcal{L}_{4}\, +\, \lambda_{5} \mathcal{L}_{5},
+       \end{equation}
+       ```
+
+where $\mathcal{L}_{1}$ is the transducer loss, $\mathcal{L}_{2}$ the CTC loss, $\mathcal{L}_{3}$ the auxiliary transducer loss, $\mathcal{L}_{4}$ the auxiliary symmetric KL-divergence and $\mathcal{L}_{5}$ the LM loss. $\lambda_{x}$ define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task. 
+
+Each loss have specific options and are defined as follow:
+
+        # Transducer loss (L1)
+        transducer-loss-weight: [Weight of the main transducer loss (float)]
+
+        # CTC loss (L2)
+        use-ctc-loss: True
+        ctc-loss-weight: [Weight of the CTC loss. (float)]
+        ctc-loss-dropout-rate: [Dropout rate for encoder output representation. (float)]
+
+        # Auxiliary transducer loss (L3)
+        use-aux-transducer-loss: True
+        aux-transducer-loss-weight: [Weight of the auxiliary transducer loss. (float)]
+        aux-transducer-loss-enc-output-layers: [List of intermediate encoder layer IDs to compute auxiliary transducer loss(es). (list)]
+        aux-transducer-loss-mlp-dim: [Hidden dimension for the MLP network. (int)]
+        aux-transducer-loss-mlp-dropout-rate: [Dropout rate for the MLP network. (float)]
+
+        # Jensen-Shannon divergence loss (L4)
+        # Note: Only used in addition to the auxiliary transducer loss.
+        use-js-div-loss: True
+        js-div-loss-weight: [Weight of the Jensen-Shannon divergence loss. (float)]
+
+        # LM loss (L5)
+        use-lm-loss: True
+        lm-loss-weight: [Weight of the LM loss. (float)]
+        lm-loss-smoothing-rate: [Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float)]
+
+## Inference
+
+Various decoding algorithms are also available for transducer by setting `beam-size` and `search-type` parameter in decode config.
+
+  - Greedy search  constrained to one emission by timestep (`beam-size: 1`)
+  - Beam search algorithm without prefix search. (`beam-size: >1` and `search-type: default`)
+  - Time-synchronous decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: tsd`)
+  - Alignment-length decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: alsd`)
+  - N-step Constrained beam search. (`beam-size: >1` and `search-type: default`)
+
+The algorithms share two parameters to control beam size (`beam-size`) and final hypothesis normalization (`score-norm-transducer`). The specific parameters for each algorithms are:
 
         # Default beam search
         search-type: default
-        score-norm-transducer: normalize final scores by length
 
         # Time-synchronous decoding
         search-type: tsd
-        max-sym-exp: number of maximum symbol expansions at each time step
+        max-sym-exp: [Number of maximum symbol expansions at each time step (int)]
 
         # Alignement-length decoding
         search-type: alsd
-        u-max: maximum output sequence length
+        u-max: [Maximum output sequence length (int)]
 
         # N-step Constrained beam search
         search-type: nsc
-        nstep: number of maximum expansion steps at each time step
-               (N exp. step = N symbol expansion + 1)
-        prefix-alpha: maximum prefix length in prefix search
+        nstep: [Number of maximum expansion steps at each time step (int)]
+               # nstep = max-sym-exp + 1 (blank transition)
+        prefix-alpha: [Maximum prefix length in prefix search (int)]
 
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
 
-IMPORTANT (temporary) note: ALSD, TSD and NSC have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference part for transducer will be replaced by our own torch lib.
+IMPORTANT (temporary) note: ALSD, TSD and NSC have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference will be handled at C++ level.
 
-The algorithm references can be found in [methods documentation](https://github.com/espnet/espnet/tree/master/espnet/nets/beam_search_transducer.py). For more information about decoding usage, refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer).
+## Additional notes
 
-Additional notes:
 - Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
-- There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
+- There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview and `espnet/espnet/nets/pytorch_backend/transducer/arguments` for all possible arguments.
+- Memory usage during training can be reduced with minor training time augmentation using efficient encoder and decoder output combination [Li et al. (2019)](https://arxiv.org/pdf/1909.12415.pdf). To enable the feature, `joint-memory-reduction` can be set to True in training config.
 - RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
 - Transformer-decoder pre-initialization using a transformer LM is not supported yet.
-- Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.
-- Customizable architecture is a in-progress work and will be eventually extended to RNN. Please report any encountered error or usage issue.
+- Mixing transformer and conformer blocks within the same architecture part (i.e.: encoder) is not supported.
 
 ### Changing the training configuration
 
