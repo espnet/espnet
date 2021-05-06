@@ -1,1 +1,1 @@
-../../TEMPLATE/asr1/path.sh
+../../open_li52/asr1/path.sh

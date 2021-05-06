@@ -1,0 +1,1 @@
+../../../../egs/yoloxochitl_mixtec/asr1/local/data_prep.py
