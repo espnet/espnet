@@ -46,6 +46,7 @@ ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end 
    :caption: Tool Reference:
 
    ./apis/espnet_bin.rst
+   ./apis/espnet2_bin.rst
    ./apis/utils_py.rst
    ./apis/utils_sh.rst
 

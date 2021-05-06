@@ -1,0 +1,134 @@
+*** /home/inaguma/tool/mwerSegmenter/sgm2mref.py	2010-09-22 17:37:14.000000000 +0900
+--- sgm2mref.py	2021-01-29 18:49:05.876731321 +0900
+***************
+*** 1,12 ****
+! #!/usr/bin/env python
+  
+  import sys
+  from sgmllib import SGMLParser
+  import optparse
+  
+  def normalize(reference):
+      return reference.replace("#", "\\#").replace("\n", " ").strip()
+  
+  class ReferenceSet:
+      def __init__(self):
+          self.references = []
+--- 1,14 ----
+! #!/usr/bin/env python2
+  
+  import sys
+  from sgmllib import SGMLParser
+  import optparse
+  
++ 
+  def normalize(reference):
+      return reference.replace("#", "\\#").replace("\n", " ").strip()
+  
++ 
+  class ReferenceSet:
+      def __init__(self):
+          self.references = []
+***************
+*** 26,31 ****
+--- 28,34 ----
+                  output.write(" # %s" % normalize(r))
+              output.write("\n")
+  
++ 
+  class SGMLRefParser(SGMLParser):
+      def __init__(self, referenceSet, verbose):
+          SGMLParser.__init__(self)
+***************
+*** 54,60 ****
+          if self.verbose:
+              sys.stderr.write("end_seg\n")
+          if self.inSegment:
+!             self.referenceSet.addReference("%s#%s" % (self.basekey, self.segid), self.lastReference)
+              self.inSegment = False
+              self.lastReference = None
+  
+--- 57,64 ----
+          if self.verbose:
+              sys.stderr.write("end_seg\n")
+          if self.inSegment:
+!             self.referenceSet.addReference("%s#%s" % (
+!                 self.basekey, self.segid), self.lastReference)
+              self.inSegment = False
+              self.lastReference = None
+  
+***************
+*** 66,77 ****
+                  self.lastReference += " %s" % (data.strip())
+              else:
+                  self.lastReference = data.strip()
+!             
+  
+  def main():
+      usage = "usage: %prog [options] sgmfile"
+      optionParser = optparse.OptionParser(usage=usage)
+!     optionParser.add_option("-o", "--out", metavar="file", dest="outFilename", help="output file")
+      optionParser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
+                              help="write every step to stderr, useful for finding errors in sgml files")
+      (options, args) = optionParser.parse_args()
+--- 70,82 ----
+                  self.lastReference += " %s" % (data.strip())
+              else:
+                  self.lastReference = data.strip()
+! 
+  
+  def main():
+      usage = "usage: %prog [options] sgmfile"
+      optionParser = optparse.OptionParser(usage=usage)
+!     optionParser.add_option("-o", "--out", metavar="file",
+!                             dest="outFilename", help="output file")
+      optionParser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
+                              help="write every step to stderr, useful for finding errors in sgml files")
+      (options, args) = optionParser.parse_args()
+***************
+*** 81,101 ****
+      else:
+          try:
+              fpIn = open(args[0])
+!         except IOError, ioError:
+!             optionParser.error("couldn't open %s, %s" % (args[0], ioError[1]))
+  
+      if not options.outFilename:
+          fpOut = sys.stdout
+      else:
+          try:
+              fpOut = open(options.outFilename, "w")
+!         except IOError, ioError:
+!             optionParser.error("couldn't open %s for writing, %s" % (options.outFilename, ioError[1]))
+!             
+      referenceSet = ReferenceSet()
+      parser = SGMLRefParser(referenceSet, options.verbose)
+      parser.feed(fpIn.read())
+      referenceSet.printReferences(fpOut)
+!     
+  if __name__ == "__main__":
+      main()
+--- 86,108 ----
+      else:
+          try:
+              fpIn = open(args[0])
+!         except IOError:
+!             optionParser.error("couldn't open %s, %s" % (args[0]))
+  
+      if not options.outFilename:
+          fpOut = sys.stdout
+      else:
+          try:
+              fpOut = open(options.outFilename, "w")
+!         except IOError:
+!             optionParser.error("couldn't open %s for writing, %s" %
+!                                (options.outFilename))
+! 
+      referenceSet = ReferenceSet()
+      parser = SGMLRefParser(referenceSet, options.verbose)
+      parser.feed(fpIn.read())
+      referenceSet.printReferences(fpOut)
+! 
+! 
+  if __name__ == "__main__":
+      main()

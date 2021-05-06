@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Copyright 2019 University of Stuttgart (Pavel Denisov)
+# Copyright 2019-2020 University of Stuttgart (Pavel Denisov)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -22,7 +22,7 @@ do_delta=false
 
 preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
-lm_config=conf/lm.yaml
+lm_config=conf/lm_transformer_large.yaml
 decode_config=conf/decode.yaml
 
 # rnnlm related
@@ -39,7 +39,7 @@ use_valbest_average=true     # if true, the validation `n_average`-best ASR mode
                              # if false, the last `n_average` ASR models will be averaged.
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-datadir=/resources/asr-data/ru_open_stt_mp3_v05
+datadir=/resources/asr-data/ru_open_stt_opus
 
 # bpemode (unigram or bpe)
 nbpe=100
@@ -180,7 +180,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
-        --dict ${dict}
+        --dict ${dict} \
+        --dump-hdf5-path ${lmdatadir}
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
@@ -205,7 +206,10 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best
@@ -242,7 +246,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/${lang_model}
+            --rnnlm ${lmexpdir}/${lang_model} \
+            --api v2
 
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
     done

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=chainer # chainer or pytorch
+backend=pytorch # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -21,17 +21,23 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
+preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
 # rnnlm related
+skip_lm_training=false   # for only using end-to-end ASR model without LM
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
+
+# model average realted (only for transformer)
+n_average=10                 # the number of ASR models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
+                             # if false, the last `n_average` ASR models will be averaged.
 
 # data
 CSJDATATOP=/export/corpora5/CSJ/USB
@@ -152,16 +158,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
-# You can skip this and remove --rnnlm option in the recognition (stage 5)
-if [ -z ${lmtag} ]; then
-    lmtag=$(basename ${lm_config%.*})
-fi
-lmexpname=train_rnnlm_${backend}_${lmtag}
-lmexpdir=exp/${lmexpname}
-mkdir -p ${lmexpdir}
-
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+# You can skip this by setting skip_lm_training=true
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_lm_training}; then
     echo "stage 3: LM Preparation"
+
+    if [ -z ${lmtag} ]; then
+        lmtag=$(basename ${lm_config%.*})
+    fi
+    lmexpname=train_rnnlm_${backend}_${lmtag}
+    lmexpdir=exp/${lmexpname}
+    mkdir -p ${lmexpdir}
+
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
     text2token.py -s 1 -n 1 data/${train_set_ori}/text | cut -f 2- -d" " \
@@ -199,6 +206,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
        asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -217,18 +225,37 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        recog_model=model.last${n_average}.avg.best
-        average_checkpoints.py \
-            --backend ${backend} \
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
+       [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+       [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+       average_opts=
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            average_opts="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+        fi
+        average_checkpoints.py --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
             --out ${expdir}/results/${recog_model} \
-            --num ${n_average}
+            --num ${n_average} \
+            ${average_opts}
     fi
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
+        recog_opts=
+        if ${skip_lm_training}; then
+            if [ -z ${lmtag} ]; then
+                lmtag="nolm"
+            fi
+        else
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+
         decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
@@ -249,7 +276,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/rnnlm.model.best
+            ${recog_opts}
 
         score_sclite.sh ${expdir}/${decode_dir} ${dict}
 

@@ -250,7 +250,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 logging.info(" scheduled sampling ")
                 z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach().cpu(), axis=1)
-                z_out = self.dropout_emb(self.embed(to_device(self, z_out)))
+                z_out = self.dropout_emb(self.embed(to_device(hs_pad[0], z_out)))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
@@ -302,7 +302,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
         if self.labeldist is not None:
             if self.vlabeldist is None:
-                self.vlabeldist = to_device(self, torch.from_numpy(self.labeldist))
+                self.vlabeldist = to_device(hs_pad[0], torch.from_numpy(self.labeldist))
             loss_reg = -torch.sum(
                 (F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0
             ) / len(ys_in)
@@ -681,7 +681,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
             weights_ctc_dec = [1.0]
 
         n_bb = batch * beam
-        pad_b = to_device(self, torch.arange(batch) * beam).view(-1, 1)
+        pad_b = to_device(h[0], torch.arange(batch) * beam).view(-1, 1)
 
         max_hlen = np.amin([max(hlens[idx]) for idx in range(self.num_encs)])
         if recog_args.maxlenratio == 0:
@@ -694,18 +694,18 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
         # initialization
         c_prev = [
-            to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
+            to_device(h[0], torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
         ]
         z_prev = [
-            to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
+            to_device(h[0], torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
         ]
         c_list = [
-            to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
+            to_device(h[0], torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
         ]
         z_list = [
-            to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
+            to_device(h[0], torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)
         ]
-        vscores = to_device(self, torch.zeros(batch, beam))
+        vscores = to_device(h[0], torch.zeros(batch, beam))
 
         rnnlm_state = None
         if self.num_encs == 1:
@@ -756,8 +756,11 @@ class Decoder(torch.nn.Module, ScorerInterface):
         ]
 
         if lpz[0] is not None:
-            scoring_ratio = (
-                CTC_SCORING_RATIO if att_weight > 0.0 and not lpz[0].is_cuda else 0
+            scoring_num = min(
+                int(beam * CTC_SCORING_RATIO)
+                if att_weight > 0.0 and not lpz[0].is_cuda
+                else 0,
+                lpz[0].size(-1),
             )
             ctc_scorer = [
                 CTCPrefixScoreTH(
@@ -765,8 +768,6 @@ class Decoder(torch.nn.Module, ScorerInterface):
                     hlens[idx],
                     0,
                     self.eos,
-                    beam,
-                    scoring_ratio,
                     margin=ctc_margin,
                 )
                 for idx in range(self.num_encs)
@@ -775,7 +776,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         for i in six.moves.range(maxlen):
             logging.debug("position " + str(i))
 
-            vy = to_device(self, torch.LongTensor(self._get_last_yseq(yseq)))
+            vy = to_device(h[0], torch.LongTensor(self._get_last_yseq(yseq)))
             ey = self.dropout_emb(self.embed(vy))
             if self.num_encs == 1:
                 att_c, att_w = self.att[att_idx](
@@ -816,11 +817,17 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
             # ctc
             if ctc_scorer[0]:
+                local_scores[:, 0] = self.logzero  # avoid choosing blank
+                part_ids = (
+                    torch.topk(local_scores, scoring_num, dim=-1)[1]
+                    if scoring_num > 0
+                    else None
+                )
                 for idx in range(self.num_encs):
                     att_w = att_w_list[idx]
                     att_w_ = att_w if isinstance(att_w, torch.Tensor) else att_w[0]
-                    ctc_state[idx], local_ctc_scores = ctc_scorer[idx](
-                        yseq, ctc_state[idx], local_scores, att_w_
+                    local_ctc_scores, ctc_state[idx] = ctc_scorer[idx](
+                        yseq, ctc_state[idx], part_ids, att_w_
                     )
                     local_scores = (
                         local_scores
@@ -843,17 +850,14 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
             )
             accum_padded_beam_ids = (
-                (torch.div(accum_best_ids, self.odim) + pad_b)
-                .view(-1)
-                .data.cpu()
-                .tolist()
+                (accum_best_ids // self.odim + pad_b).view(-1).data.cpu().tolist()
             )
 
             y_prev = yseq[:][:]
             yseq = self._index_select_list(yseq, accum_padded_beam_ids)
             yseq = self._append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
-            vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
+            vidx = to_device(h[0], torch.LongTensor(accum_padded_beam_ids))
 
             a_prev = []
             num_atts = self.num_encs if self.num_encs == 1 else self.num_encs + 1
@@ -965,24 +969,24 @@ class Decoder(torch.nn.Module, ScorerInterface):
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, lang_ids=None):
         """Calculate all of attentions
 
-            :param torch.Tensor hs_pad: batch of padded hidden state sequences
-                                        (B, Tmax, D)
-                                        in multi-encoder case, list of torch.Tensor,
-                                        [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
-            :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
-                                        [in multi-encoder case, list of torch.Tensor,
-                                        [(B), (B), ..., ]
-            :param torch.Tensor ys_pad:
-                batch of padded character id sequence tensor (B, Lmax)
-            :param int strm_idx:
-                stream index for parallel speaker attention in multi-speaker case
-            :param torch.Tensor lang_ids: batch of target language id tensor (B, 1)
-            :return: attention weights with the following shape,
-                1) multi-head case => attention weights (B, H, Lmax, Tmax),
-                2) multi-encoder case =>
-                    [(B, Lmax, Tmax1), (B, Lmax, Tmax2), ..., (B, Lmax, NumEncs)]
-                3) other case => attention weights (B, Lmax, Tmax).
-            :rtype: float ndarray
+        :param torch.Tensor hs_pad: batch of padded hidden state sequences
+                                    (B, Tmax, D)
+                                    in multi-encoder case, list of torch.Tensor,
+                                    [(B, Tmax_1, D), (B, Tmax_2, D), ..., ] ]
+        :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
+                                    [in multi-encoder case, list of torch.Tensor,
+                                    [(B), (B), ..., ]
+        :param torch.Tensor ys_pad:
+            batch of padded character id sequence tensor (B, Lmax)
+        :param int strm_idx:
+            stream index for parallel speaker attention in multi-speaker case
+        :param torch.Tensor lang_ids: batch of target language id tensor (B, 1)
+        :return: attention weights with the following shape,
+            1) multi-head case => attention weights (B, H, Lmax, Tmax),
+            2) multi-encoder case =>
+                [(B, Lmax, Tmax1), (B, Lmax, Tmax2), ..., (B, Lmax, NumEncs)]
+            3) other case => attention weights (B, Lmax, Tmax).
+        :rtype: float ndarray
         """
         # to support mutiple encoder asr mode, in single encoder mode,
         # convert torch.Tensor to List of torch.Tensor
@@ -1057,7 +1061,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                     self.dropout_dec[0](z_list[0]),
                     att_w_list[self.num_encs],
                 )
-                att_ws.append(att_w_list)
+                att_ws.append(att_w_list.copy())
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
 

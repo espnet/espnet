@@ -1,0 +1,19 @@
+model_conf:
+    loss_type: mask_mse
+    mask_type: psm
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+separator: rnn
+separator_conf:
+    rnn_type: blstm
+    num_spk: 1
+    nonlinear: relu
+    layer: 1
+    unit: 128
+    dropout: 0.2

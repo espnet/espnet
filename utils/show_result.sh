@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 mindepth=0
 maxdepth=1
 
@@ -28,7 +28,7 @@ cat << EOF
 - date: \`$(LC_ALL=C date)\`
 EOF
 
-python << EOF
+python3 << EOF
 import sys, espnet, chainer, torch
 pyversion = sys.version.replace('\n', ' ')
 

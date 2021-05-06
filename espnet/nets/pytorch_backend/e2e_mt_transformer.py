@@ -1,13 +1,9 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Transformer text translation model (pytorch)."""
 
 from argparse import Namespace
-from distutils.util import strtobool
 import logging
 import math
 
@@ -23,6 +19,9 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet.nets.pytorch_backend.transformer.argument import (
+    add_arguments_transformer_common,  # noqa: H301
+)
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
@@ -33,6 +32,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class E2E(MTInterface, torch.nn.Module):
@@ -48,82 +48,7 @@ class E2E(MTInterface, torch.nn.Module):
     def add_arguments(parser):
         """Add arguments."""
         group = parser.add_argument_group("transformer model setting")
-
-        group.add_argument(
-            "--transformer-init",
-            type=str,
-            default="xavier_uniform",
-            choices=[
-                "pytorch",
-                "xavier_uniform",
-                "xavier_normal",
-                "kaiming_uniform",
-                "kaiming_normal",
-            ],
-            help="how to initialize transformer parameters",
-        )
-        group.add_argument(
-            "--transformer-attn-dropout-rate",
-            default=None,
-            type=float,
-            help="dropout in transformer attention. use --dropout-rate if None is set",
-        )
-        group.add_argument(
-            "--transformer-lr",
-            default=1.0,
-            type=float,
-            help="Initial value of learning rate",
-        )
-        group.add_argument(
-            "--transformer-warmup-steps",
-            default=4000,
-            type=int,
-            help="optimizer warmup steps",
-        )
-        group.add_argument(
-            "--transformer-length-normalized-loss",
-            default=False,
-            type=strtobool,
-            help="normalize loss by length",
-        )
-
-        group.add_argument(
-            "--dropout-rate",
-            default=0.1,
-            type=float,
-            help="Dropout rate for the encoder",
-        )
-        # Encoder
-        group.add_argument(
-            "--elayers", default=6, type=int, help="Number of encoder layers",
-        )
-        group.add_argument(
-            "--eunits",
-            "-u",
-            default=2048,
-            type=int,
-            help="Number of encoder hidden units",
-        )
-        # Attention
-        group.add_argument(
-            "--adim",
-            default=256,
-            type=int,
-            help="Number of attention transformation dimensions",
-        )
-        group.add_argument(
-            "--aheads",
-            default=4,
-            type=int,
-            help="Number of heads for multi head attention",
-        )
-        # Decoder
-        group.add_argument(
-            "--dlayers", default=6, type=int, help="Number of decoder layers"
-        )
-        group.add_argument(
-            "--dunits", default=2048, type=int, help="Number of decoder hidden units"
-        )
+        group = add_arguments_transformer_common(group)
         return parser
 
     @property
@@ -139,12 +64,20 @@ class E2E(MTInterface, torch.nn.Module):
         :param Namespace args: argument Namespace containing options
         """
         torch.nn.Module.__init__(self)
+
+        # fill missing arguments for compatibility
+        args = fill_missing_args(args, self.add_arguments)
+
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
         self.encoder = Encoder(
             idim=idim,
+            selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_encoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.eunits,
             num_blocks=args.elayers,
             input_layer="embed",
@@ -154,8 +87,12 @@ class E2E(MTInterface, torch.nn.Module):
         )
         self.decoder = Decoder(
             odim=odim,
+            selfattention_layer_type=args.transformer_decoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
+            conv_wshare=args.wshare,
+            conv_kernel_length=args.ldconv_decoder_kernel_length,
+            conv_usebias=args.ldconv_usebias,
             linear_units=args.dunits,
             num_blocks=args.dlayers,
             dropout_rate=args.dropout_rate,
@@ -202,7 +139,6 @@ class E2E(MTInterface, torch.nn.Module):
 
     def reset_parameters(self, args):
         """Initialize parameters."""
-        # initialize parameters
         initialize(self, args.transformer_init)
         torch.nn.init.normal_(
             self.encoder.embed[0].weight, mean=0, std=args.adim ** -0.5
@@ -303,13 +239,12 @@ class E2E(MTInterface, torch.nn.Module):
             xs_pad = torch.cat([lang_ids, xs_pad], dim=1)
         return xs_pad, ys_pad
 
-    def translate(self, x, trans_args, char_list=None, rnnlm=None, use_jit=False):
+    def translate(self, x, trans_args, char_list=None):
         """Translate source text.
 
         :param list x: input source text feature (T,)
         :param Namespace trans_args: argment Namespace contraining options
         :param list char_list: list of characters
-        :param torch.nn.Module rnnlm: language model module
         :return: N-best decoding results
         :rtype: list
         """
@@ -326,85 +261,58 @@ class E2E(MTInterface, torch.nn.Module):
                 self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64))
             )
 
+        logging.info("input lengths: " + str(x.size(0)))
         xs_pad = x.unsqueeze(0)
         tgt_lang = None
         if trans_args.tgt_lang:
             tgt_lang = char_list.index(trans_args.tgt_lang)
         xs_pad, _ = self.target_forcing(xs_pad, tgt_lang=tgt_lang)
-        enc_output, _ = self.encoder(xs_pad, None)
-        h = enc_output.squeeze(0)
+        h, _ = self.encoder(xs_pad, None)
+        logging.info("encoder output lengths: " + str(h.size(1)))
 
-        logging.info("input lengths: " + str(h.size(0)))
         # search parms
         beam = trans_args.beam_size
         penalty = trans_args.penalty
 
-        # preprare sos
-        y = self.sos
-        vy = h.new_zeros(1).long()
-
         if trans_args.maxlenratio == 0:
-            maxlen = h.shape[0]
+            maxlen = h.size(1)
         else:
             # maxlen >= 1
-            maxlen = max(1, int(trans_args.maxlenratio * h.size(0)))
-        minlen = int(trans_args.minlenratio * h.size(0))
+            maxlen = max(1, int(trans_args.maxlenratio * h.size(1)))
+        minlen = int(trans_args.minlenratio * h.size(1))
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
         # initialize hypothesis
-        if rnnlm:
-            hyp = {"score": 0.0, "yseq": [y], "rnnlm_prev": None}
-        else:
-            hyp = {"score": 0.0, "yseq": [y]}
+        hyp = {"score": 0.0, "yseq": [self.sos]}
         hyps = [hyp]
         ended_hyps = []
 
-        import six
-
-        traced_decoder = None
-        for i in six.moves.range(maxlen):
+        for i in range(maxlen):
             logging.debug("position " + str(i))
 
+            # batchfy
+            ys = h.new_zeros((len(hyps), i + 1), dtype=torch.int64)
+            for j, hyp in enumerate(hyps):
+                ys[j, :] = torch.tensor(hyp["yseq"])
+            ys_mask = subsequent_mask(i + 1).unsqueeze(0).to(h.device)
+
+            local_scores = self.decoder.forward_one_step(
+                ys, ys_mask, h.repeat([len(hyps), 1, 1])
+            )[0]
+
             hyps_best_kept = []
-            for hyp in hyps:
-                vy[0] = hyp["yseq"][i]
-
-                # get nbest local scores and their ids
-                ys_mask = subsequent_mask(i + 1).unsqueeze(0)
-                ys = torch.tensor(hyp["yseq"]).unsqueeze(0)
-                # FIXME: jit does not match non-jit result
-                if use_jit:
-                    if traced_decoder is None:
-                        traced_decoder = torch.jit.trace(
-                            self.decoder.forward_one_step, (ys, ys_mask, enc_output)
-                        )
-                    local_att_scores = traced_decoder(ys, ys_mask, enc_output)[0]
-                else:
-                    local_att_scores = self.decoder.forward_one_step(
-                        ys, ys_mask, enc_output
-                    )[0]
-
-                if rnnlm:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp["rnnlm_prev"], vy)
-                    local_scores = (
-                        local_att_scores + trans_args.lm_weight * local_lm_scores
-                    )
-                else:
-                    local_scores = local_att_scores
-
+            for j, hyp in enumerate(hyps):
                 local_best_scores, local_best_ids = torch.topk(
-                    local_scores, beam, dim=1
+                    local_scores[j : j + 1], beam, dim=1
                 )
 
-                for j in six.moves.range(beam):
+                for j in range(beam):
                     new_hyp = {}
                     new_hyp["score"] = hyp["score"] + float(local_best_scores[0, j])
                     new_hyp["yseq"] = [0] * (1 + len(hyp["yseq"]))
                     new_hyp["yseq"][: len(hyp["yseq"])] = hyp["yseq"]
                     new_hyp["yseq"][len(hyp["yseq"])] = int(local_best_ids[0, j])
-                    if rnnlm:
-                        new_hyp["rnnlm_prev"] = rnnlm_state
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 
@@ -436,10 +344,6 @@ class E2E(MTInterface, torch.nn.Module):
                     # also add penalty
                     if len(hyp["yseq"]) > minlen:
                         hyp["score"] += (i + 1) * penalty
-                        if rnnlm:  # Word LM needs to add final <eos> score
-                            hyp["score"] += trans_args.lm_weight * rnnlm.final(
-                                hyp["rnnlm_prev"]
-                            )
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
@@ -477,7 +381,7 @@ class E2E(MTInterface, torch.nn.Module):
             # should copy becasuse Namespace will be overwritten globally
             trans_args = Namespace(**vars(trans_args))
             trans_args.minlenratio = max(0.0, trans_args.minlenratio - 0.1)
-            return self.translate(x, trans_args, char_list, rnnlm)
+            return self.translate(x, trans_args, char_list)
 
         logging.info("total log probability: " + str(nbest_hyps[0]["score"]))
         logging.info(
@@ -492,15 +396,15 @@ class E2E(MTInterface, torch.nn.Module):
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded token id sequence tensor (B, Lmax)
-        :return: attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
+        :return: attention weights (B, H, Lmax, Tmax)
         :rtype: float ndarray
         """
+        self.eval()
         with torch.no_grad():
             self.forward(xs_pad, ilens, ys_pad)
         ret = dict()
         for name, m in self.named_modules():
             if isinstance(m, MultiHeadedAttention) and m.attn is not None:
                 ret[name] = m.attn.cpu().numpy()
+        self.train()
         return ret

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -378,21 +378,20 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Score enhanced speech"
     if ${compute_se}; then
         pesqdir=${PWD}/local
-        for rtask in "et"; do
-            simu_scp=${expdir}/enhance_${rtask}_simu_${nch_se}ch_multich/enhance.scp
-            real_scp=${expdir}/enhance_${rtask}_real_${nch_se}ch_multich/enhance.scp
-            enhancement_simu_scp=${PWD}/$simu_scp
-            enhancement_real_scp=${PWD}/$real_scp
-            local/compute_se_scores_multich.sh --nch ${nch_se} --enable_pesq ${enable_pesq} \
-                ${enhancement_simu_scp} \
-                ${enhancement_real_scp} \
-                ${reverb} \
-                ${PWD}/data/${rtask}_cln/wav.scp \
-                ${pesqdir} \
-                ${expdir}/enhanced_${rtask}_${nch_se}ch_metrics
+        rtask="et"
+        simu_scp=${expdir}/enhance_${rtask}_simu_${nch_se}ch_multich/enhance.scp
+        real_scp=${expdir}/enhance_${rtask}_real_${nch_se}ch_multich/enhance.scp
+        enhancement_simu_scp=${PWD}/$simu_scp
+        enhancement_real_scp=${PWD}/$real_scp
+        local/compute_se_scores_multich.sh --nch ${nch_se} --enable_pesq ${enable_pesq} \
+            ${enhancement_simu_scp} \
+            ${enhancement_real_scp} \
+            ${reverb} \
+            ${PWD}/data/${rtask}_cln/wav.scp \
+            ${pesqdir} \
+            ${expdir}/enhanced_${rtask}_${nch_se}ch_metrics
 
-            cat ${expdir}/enhanced_${rtask}_metrics/scores/score_SimData
-            cat ${expdir}/enhanced_${rtask}_metrics/scores/score_RealData
-        done
+        cat ${expdir}/enhanced_${rtask}_metrics/scores/score_SimData
+        cat ${expdir}/enhanced_${rtask}_metrics/scores/score_RealData
     fi
 fi

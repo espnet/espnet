@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -11,8 +11,9 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
-case=lc
+case=tc
 text=""
+remove_nonverbal=true
 
 . utils/parse_options.sh
 
@@ -22,22 +23,25 @@ if [ $# != 4 ]; then
 fi
 
 dir=$1
-dic=$2
+dict=$2
 set=$4
 src=$3/${set}/IWSLT.${set}
 
-sl=en
-tl=de
-system=st
-xml_src=${src}/IWSLT.TED.${set}.${sl}-${tl}.${sl}.xml
-xml_tgt=${src}/IWSLT.TED.${set}.${sl}-${tl}.${tl}.xml
+src_lang=en
+tgt_lang=de
+sysid=st
+xml_src=${src}/IWSLT.TED.${set}.${src_lang}-${tgt_lang}.${src_lang}.xml
+xml_tgt=${src}/IWSLT.TED.${set}.${src_lang}-${tgt_lang}.${tgt_lang}.xml
 
 # sort hypotheses
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-local/json2trn_reorder.py ${dir}/data.json ${dic} ${dir}/hyp.trn.org ${src}/FILE_ORDER
+local/json2trn_reorder.py ${dir}/data.json ${dict} ${dir}/hyp.trn.org ${src}/FILE_ORDER
 
 # remove uttterance id
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn.org > ${dir}/hyp.trn
+
+# remove non-verbal labels (optional)
+perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn > ${dir}/hyp.rm.trn
 
 # if [ -n "${nlsyms}" ]; then
 #     cp ${dir}/hyp.trn ${dir}/hyp.trn.org
@@ -55,9 +59,17 @@ fi
 grep "<seg id" ${xml_tgt} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
 if [ ! -z ${bpemodel} ]; then
-    spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
+    if [ ${remove_nonverbal} = true ]; then
+        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
+    else
+        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
+    fi
 else
-    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+    if [ ${remove_nonverbal} = true ]; then
+        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.rm.trn > ${dir}/hyp.wrd.trn
+    else
+        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+    fi
 fi
 
 # detokenize
@@ -75,27 +87,21 @@ fi
 if [ ${case} = tc ]; then
     ### case-sensitive
     echo ${set} > ${dir}/result.tc.txt
-    # segment hypotheses with RWTH tool
-    segmentBasedOnMWER.sh ${dir}/src.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
-    sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.sgm.xml > ${dir}/hyp.wrd.trn.detok.sgm
-    multi-bleu-detok.perl ${dir}/ref.wrd.trn < ${dir}/hyp.wrd.trn.detok.sgm > ${dir}/result.tc.txt
+    # resegment hypotheses based on WER
+    segmentBasedOnMWER.sh ${xml_src} ${xml_tgt} ${dir}/hyp.wrd.trn.detok ${sysid} ${tgt_lang} ${dir}/hyp.wrd.trn.detok.reseg.xml "" 1 || exit 1;
+    sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.reseg.xml > ${dir}/hyp.wrd.trn.detok.reseg
+    multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok.reseg > ${dir}/result.tc.txt
     echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
     cat ${dir}/result.tc.txt
+else
+    ### case-insensitive
+    echo ${set} > ${dir}/result.lc.txt
+    # resegment hypotheses based on WER
+    segmentBasedOnMWER.sh  ${xml_src}  ${xml_tgt} ${dir}/hyp.wrd.trn.detok ${sysid} ${tgt_lang} ${dir}/hyp.wrd.trn.detok.reseg.xml "" 0 || exit 1;
+    sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.reseg.xml > ${dir}/hyp.wrd.trn.detok.reseg
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok.reseg > ${dir}/result.lc.txt
+    echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
+    cat ${dir}/result.lc.txt
 fi
-
-# lowercase
-lowercase.perl < ${xml_src} > ${dir}/src.xml
-lowercase.perl < ${xml_tgt} > ${dir}/ref.xml
-# NOTE: these are used for segementation
-
-### case-insensitive
-echo ${set} > ${dir}/result.lc.txt
-# segment hypotheses with RWTH tool
-segmentBasedOnMWER.sh ${dir}/src.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
-sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.sgm.xml > ${dir}/hyp.wrd.trn.detok.sgm
-multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn < ${dir}/hyp.wrd.trn.detok.sgm > ${dir}/result.lc.txt
-echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
-cat ${dir}/result.lc.txt
-
 
 # TODO(hirofumi): add TER & METEOR metrics here

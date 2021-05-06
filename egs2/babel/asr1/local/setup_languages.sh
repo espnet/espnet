@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Johns Hopkins University (Jiatong Shi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -75,5 +75,6 @@ done
 
 for l in ${recog}; do
   ln -s ${cwd}/data/${l}/data/eval_${l} ${cwd}/data/eval_${l}
+  ln -s ${cwd}/data/${l}/data/dev_${l} ${cwd}/data/dev_${l}
 done
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Copyright 2009-2012  Microsoft Corporation  Johns Hopkins University (Author: Daniel Povey)
@@ -25,8 +25,8 @@ dir=`pwd`/data/local/data
 local=`pwd`/local
 utils=`pwd`/utils
 
-sph2pipe=../../../tools/kaldi/tools/sph2pipe_v2.5/sph2pipe
-if [ ! -x ${sph2pipe} ]; then
+sph2pipe=sph2pipe
+if ! command -v "${sph2pipe}" &> /dev/null; then
   echo "Could not find (or execute) the sph2pipe program at ${sph2pipe}";
   exit 1;
 fi

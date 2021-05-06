@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 # Copyright 2020 Nagoya University (Ibuki Kuroyanagi)
@@ -12,7 +12,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=32        # numebr of parallel jobs
+nj=32        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=1    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -83,11 +83,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    for x in ${trans_type}_eval ${trans_type}_train; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-        utils/fix_data_dir.sh data/${x}
-    done
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 --write_utt2num_frames true \
+        data/${trans_type}_train exp/make_fbank/${trans_type}_train ${fbankdir}
+    utils/fix_data_dir.sh data/${trans_type}_train
+
     # make a dev set
     utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
     utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${eval_set}

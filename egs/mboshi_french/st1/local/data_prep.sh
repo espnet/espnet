@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -33,8 +33,8 @@ utt2spk=${dst}/utt2spk; [[ -f "${utt2spk}" ]] && rm ${utt2spk}
 n_wav=$(find -L ${src} -iname "*.wav" | wc -l)
 n_mb=$(find -L ${src} -iname "*.mb.cleaned" | wc -l)
 n_fr=$(find -L ${src} -iname "*.fr.cleaned" | wc -l)
-[ ${n_wav} -ne ${n_mb} ] && echo "Warning: expected ${n_wav} data data files, found ${n_mb}" && exit 1;
-[ ${n_wav} -ne ${n_fr} ] && echo "Warning: expected ${n_wav} data data files, found ${n_fr}" && exit 1;
+[ ${n_wav} -ne ${n_mb} ] && echo "Warning: expected ${n_wav} data files, found ${n_mb}" && exit 1;
+[ ${n_wav} -ne ${n_fr} ] && echo "Warning: expected ${n_wav} data files, found ${n_fr}" && exit 1;
 
 # extract meta data
 find -L ${src} -iname "*.wav" | sort | while read line; do
@@ -104,7 +104,7 @@ for f in text.tc.mb text.tc.fr; do
 done
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/${set}
 for f in spk2utt utt2spk wav.scp; do
     cp ${dst}/${f} data/${set}/${f}

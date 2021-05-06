@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2009-2012  Microsoft Corporation  Johns Hopkins University (Author: Daniel Povey)
 # Apache 2.0.
@@ -19,8 +19,8 @@ local=`pwd`/local
 utils=`pwd`/utils
 
 . ./path.sh # Needed for KALDI_ROOT
-sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
-if [ ! -x $sph2pipe ]; then
+sph2pipe=sph2pipe
+if ! command -v "${sph2pipe}" &> /dev/null; then
   echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
   exit 1;
 fi

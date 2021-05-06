@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -11,7 +11,7 @@ backend=pytorch
 stage=-1
 stop_stage=100
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=10        # numebr of parallel jobs
+nj=10        # number of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -44,7 +44,7 @@ model=model.loss.best
 voc=PWG                         # GL or PWG
 voc_expdir=downloads/pwg_task1  # If use provided pretrained models, set to desired dir, ex. `downloads/pwg_task1`
                                 # If use manually trained models, set to `../voc1/exp/<expdir>`
-voc_checkpoint=                 # If not specified, automatically set to the latest checkpoint 
+voc_checkpoint=                 # If not specified, automatically set to the latest checkpoint
 griffin_lim_iters=64            # the number of iterations of Griffin-Lim
 
 # pretrained model related
@@ -55,17 +55,16 @@ pretrained_model_name=          # If use provided pretrained models, only set to
 finetuned_model_name=           # Only set to `tts1_[trgspk]`
 
 # dataset configuration
-db_root=downloads/official_v1.0_training
-eval_db_root=downloads/official_v1.0_training    # Same as `db_root` in training
+db_root=downloads/vcc20
 list_dir=local/lists
-spk=TEF1 
+spk=TEF1
 
 # vc configuration
 srcspk=                                         # Ex. SEF1
 trgspk=                                         # Ex. TEF1
 asr_model="librispeech.transformer.ngpu4"
-test_list_file=local/lists/E_train_list.txt     # use source training set as development set
-test_name=dev_asr
+test_list_file=local/lists/eval_list.txt
+test_name=eval_asr
 tts_model_dir=                                  # If use downloaded model,
                                                 # set to, ex. `downloads/tts1_TEF1/exp/TEF1_train_pytorch_train_pytorch_transformer+spkemb.tts1`
                                                 # If use manually trained model,
@@ -92,14 +91,14 @@ dev_set=${spk}_dev
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data and Pretrained model download"
-    echo "Please download the dataset following the README."
+    local/data_download.sh ${db_root}
 
     if [ ! -d ${pretrained_model_dir}/${pretrained_model_name} ]; then
         echo "Downloading pretrained TTS model..."
         local/pretrained_model_download.sh ${pretrained_model_dir} ${pretrained_model_name}
     fi
     echo "Pretrained TTS model exists: ${pretrained_model_name}"
-    
+
     if [ ! -d ${voc_expdir} ]; then
         echo "Downloading pretrained PWG model..."
         local/pretrained_model_download.sh ${pretrained_model_dir} pwg_task1
@@ -245,7 +244,7 @@ fi
 expdir=exp/${expname}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Text-to-speech model fine-tuning"
-    
+
     mkdir -p ${expdir}
 
     # copy x-vector into expdir
@@ -274,7 +273,7 @@ fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding, Synthesis"
-    
+
     pids=() # initialize pids
     for name in ${dev_set}; do
     (
@@ -301,7 +300,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
-    
+
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Synthesis"
 
@@ -401,12 +400,12 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         --api v1 \
         exp/${asr_model}_asr \
         ${expdir} \
-        ${eval_db_root}/${srcspk} \
+        ${db_root}/${srcspk} \
         ${srcspk} \
         ${test_list_file}
 
 fi
-    
+
 if [ -z ${tts_model_dir} ]; then
     echo "Please specify tts_model_dir!"
     exit 1
@@ -431,7 +430,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     sed -i "s~${trgspk}_~${srcspk}_${trgspk}_~g" ${tts_datadir}/utt2spk
     data2json.sh --trans_type ${trans_type} \
          ${tts_datadir} ${dict} > ${tts_datadir}/data.json
-    
+
     # use the avg x-vector in target speaker training set
     echo "Updating x vector..."
     sed "s~spk~${tts_model_dir}/spk~g" ${tts_model_dir}/spk_xvector.scp > ${tts_datadir}/spk_xvector.scp
@@ -497,7 +496,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         hdf5_norm_dir=${outdir}_denorm/${pairname}/hdf5_norm
         [ ! -e "${wav_dir}" ] && mkdir -p ${wav_dir}
         [ ! -e ${hdf5_norm_dir} ] && mkdir -p ${hdf5_norm_dir}
-        
+
         # normalize and dump them
         echo "Normalizing..."
         ${train_cmd} "${hdf5_norm_dir}/normalize.log" \
@@ -522,4 +521,44 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     else
         echo "Vocoder type not supported. Only GL and PWG are available."
     fi
+fi
+
+
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] ; then
+    echo "stage 14: Objective Evaluation: MCD"
+
+    minf0=$(awk '{print $1}' conf/${trgspk}.f0)
+    maxf0=$(awk '{print $2}' conf/${trgspk}.f0)
+    mcd_file=${outdir}_denorm/${pairname}/mcd.log
+
+    # Decide wavdir depending on vocoder
+    if [ -n "${voc}" ]; then
+        # select vocoder type (GL, PWG)
+        if [ ${voc} == "PWG" ]; then
+            wavdir=${outdir}_denorm/${pairname}/pwg_wav
+        elif [ ${voc} == "GL" ]; then
+            wavdir=${outdir}_denorm/${pairname}/wav
+        else
+            echo "Vocoder type other than GL, PWG is not supported!"
+            exit 1
+        fi
+    else
+        echo "Please specify vocoder."
+        exit 1
+    fi
+
+    ${decode_cmd} ${mcd_file} \
+        mcd_calculate.py \
+            --wavdir ${wavdir} \
+            --gtwavdir ${db_root}/${trgspk} \
+            --mcep_dim 34 \
+            --shiftms 5 \
+            --f0min ${minf0} \
+            --f0max ${maxf0}
+    grep 'Mean' ${mcd_file}
+
+    local/ob_eval/evaluate.sh --nj ${nj} \
+        --db_root ${db_root} \
+        --asr_model_dir exp/${asr_model}_asr \
+        ${outdir} ${pairname} ${srcspk} ${trgspk} ${wavdir}
 fi

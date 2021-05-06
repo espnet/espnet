@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -7,6 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
+python=python3
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
@@ -21,8 +22,9 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-train_config=conf/train.yaml
-train_config2=conf/train_multispkr.yaml
+num_spkrs=2
+
+train_config=conf/train_multispkr.yaml
 preprocess_config=conf/preprocess.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -78,7 +80,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         exit 1
     fi
 
-    python local/data_prep.py ${an4_root} ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+    python3 local/data_prep.py ${an4_root} sph2pipe
 
     for x in test train; do
         for f in text wav.scp utt2spk; do
@@ -199,7 +201,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
 
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
-        lm_train.py \
+        ${python} -m espnet.bin.lm_train \
         --config ${lm_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -228,9 +230,8 @@ mkdir -p ${expdir}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+        ${python} -m espnet.bin.asr_train \
         --config ${train_config} \
-        --config2 ${train_config2} \
         --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -244,7 +245,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json \
-        --etype vggblstmp
+        --num-spkrs ${num_spkrs}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -260,13 +261,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         else
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
         fi
+        if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]]; then
+            recog_opts=${recog_opts}" --batchsize 0"
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
+            ${python} -m espnet.bin.asr_recog \
             --config ${decode_config} \
             --ngpu ${decode_ngpu} \
             --backend ${backend} \
@@ -275,10 +280,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \
-            --num-spkrs 2 \
+            --num-spkrs ${num_spkrs} \
             ${recog_opts}
 
-        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true --num_spkrs 2 \
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true --num_spkrs ${num_spkrs} \
             ${expdir}/${decode_dir} ${dict}
 
     ) &

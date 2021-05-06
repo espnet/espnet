@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Nagoya University (Takenori Yoshimura)
 #           2019 RevComm Inc. (Takekatsu Hiramura)
@@ -197,7 +197,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
 
     mkdir -p ${decode_dir}/data
-    echo "$base $wav" > ${decode_dir}/data/wav.scp
+    echo "$base sox $wav -R -r 16000 -c 1 -b 16 -t wav - dither |" > ${decode_dir}/data/wav.scp
     echo "X $base" > ${decode_dir}/data/spk2utt
     echo "$base X" > ${decode_dir}/data/utt2spk
     echo "$base X" > ${decode_dir}/data/text

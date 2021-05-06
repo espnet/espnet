@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2018 Johns Hopkins University (Author: Aswin Shanmugam Subramanian)
 # Copyright 2019 Johns Hopkins University (Author: Xiaofei Wang)
 # This script downloads the official REVERB challenge SE scripts and SRMR toolbox

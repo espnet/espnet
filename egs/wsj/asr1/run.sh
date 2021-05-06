@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -31,14 +31,19 @@ lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
 # rnnlm related
-use_wordlm=true     # false means to train/use a character LM
-lm_vocabsize=65000  # effective only for word LMs
-lm_resume=          # specify a snapshot file to resume LM training
-lmtag=              # tag for managing LMs
+skip_lm_training=false  # for only using end-to-end ASR model without LM
+use_wordlm=true         # false means to train/use a character LM
+lm_vocabsize=65000      # effective only for word LMs
+lm_resume=              # specify a snapshot file to resume LM training
+lmtag=                  # tag for managing LMs
 
 # decoding parameter
-n_average=10 # use 1 for RNN models
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+recog_model=model.acc.best   # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+
+# model average realted (only for transformer)
+n_average=10                 # the number of ASR models to be averaged
+use_valbest_average=false    # if true, the validation `n_average`-best ASR models will be averaged.
+                             # if false, the last `n_average` ASR models will be averaged.
 
 # data
 wsj0=/export/corpora5/LDC/LDC93S6B
@@ -146,25 +151,24 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --preprocess-conf ${preprocess_config} \
         --data-json ${feat_tr_dir}/data.json \
         --mode-subsample "asr" \
-        --arch-subsample "rnn" \
         ${min_io_delta:+--min-io-delta $min_io_delta} \
         --output-json-path ${feat_tr_dir}/data.json
 fi
 
-# It takes about one day. If you just want to do end-to-end ASR without LM,
-# you can skip this and remove --rnnlm option in the recognition (stage 5)
-if [ -z ${lmtag} ]; then
-    lmtag=$(basename ${lm_config%.*})
-    if [ ${use_wordlm} = true ]; then
-        lmtag=${lmtag}_word${lm_vocabsize}
-    fi
-fi
-lmexpname=train_rnnlm_${backend}_${lmtag}
-lmexpdir=exp/${lmexpname}
-mkdir -p ${lmexpdir}
-
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+# It takes a few days. If you just want to end-to-end ASR without LM,
+# you can skip this by setting skip_lm_training=true
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_lm_training}; then
     echo "stage 3: LM Preparation"
+
+    if [ -z ${lmtag} ]; then
+        lmtag=$(basename ${lm_config%.*})
+        if [ ${use_wordlm} = true ]; then
+            lmtag=${lmtag}_word${lm_vocabsize}
+        fi
+    fi
+    lmexpname=train_rnnlm_${backend}_${lmtag}
+    lmexpdir=exp/${lmexpname}
+    mkdir -p ${lmexpdir}
 
     if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
@@ -245,23 +249,42 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        recog_model=model.last${n_average}.avg.best
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
+       [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+       [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        average_opts=
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            average_opts="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+        fi
         average_checkpoints.py --backend ${backend} \
                                --snapshots ${expdir}/results/snapshot.ep.* \
                                --out ${expdir}/results/${recog_model} \
-                               --num ${n_average}
+                               --num ${n_average} \
+                               ${average_opts}
     fi
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
-        if [ ${use_wordlm} = true ]; then
-            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+        recog_opts=
+        if ${skip_lm_training}; then
+            if [ -z ${lmtag} ]; then
+                lmtag="nolm"
+            fi
         else
-            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+            if [ ${use_wordlm} = true ]; then
+                recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+            else
+                recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+            fi
         fi
+
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data

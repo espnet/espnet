@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -122,7 +119,7 @@ class GuidedAttentionLoss(torch.nn.Module):
 
         """
         grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
-        grid_x, grid_y = grid_x.float(), grid_y.float()
+        grid_x, grid_y = grid_x.float().to(olen.device), grid_y.float().to(ilen.device)
         return 1.0 - torch.exp(
             -((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma ** 2))
         )

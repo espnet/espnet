@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -19,8 +19,9 @@ fi
 data=$1
 set=$2
 
-train_url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
-if [ ${set} = "dev2010" ]; then
+if [ ${set} = "train" ]; then
+    url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
+elif [ ${set} = "dev2010" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.dev2010.en-de.tgz
 elif [ ${set} = "tst2010" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2010.en-de.tgz
@@ -32,6 +33,12 @@ elif [ ${set} = "tst2015" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2015.en-de.tgz
 elif [ ${set} = "tst2018" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2018.en-de.tgz
+elif [ ${set} = "tst2019" ]; then
+    # url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/segmented/IWSLT-SLT.segmented.tst2019.en-de.tgz
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2019.en-de.tgz
+elif [ ${set} = "tst2020" ]; then
+    # url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/segmented/IWSLT-SLT.segmented.tst2020.en-de.tgz
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2020.en-de.tgz
 fi
 
 if [ ! -d "${data}" ]; then
@@ -39,7 +46,7 @@ if [ ! -d "${data}" ]; then
     exit 1;
 fi
 
-sets="train_dev2010_tst2010_tst2013_tst2014_tst2015_tst2018"
+sets="train_dev2010_tst2010_tst2013_tst2014_tst2015_tst2018_tst2019_tst2020"
 if [ ! $(echo ${sets} | grep ${set}) ]; then
     echo "$0: no such set ${set}"
     exit 1;
@@ -62,10 +69,10 @@ if [ ${set} = train ]; then
             echo "$0: wget is not installed."
             exit 1;
         fi
-        echo "$0: downloading data from ${train_url}.  This may take some time, please be patient."
+        echo "$0: downloading data from ${url}.  This may take some time, please be patient."
 
-        if ! wget --no-check-certificate -P ${data}/${set} ${train_url}; then
-            echo "$0: error executing wget ${train_url}"
+        if ! wget --no-check-certificate -P ${data}/${set} ${url}; then
+            echo "$0: error executing wget ${url}"
             exit 1;
         fi
     fi

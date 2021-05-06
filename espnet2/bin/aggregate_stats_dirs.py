@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import logging
 from pathlib import Path
@@ -11,7 +12,10 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def aggregate_stats_dirs(
-    input_dir: Iterable[Union[str, Path]], output_dir: Union[str, Path], log_level: str,
+    input_dir: Iterable[Union[str, Path]],
+    output_dir: Union[str, Path],
+    log_level: str,
+    skip_sum_stats: bool,
 ):
     logging.basicConfig(
         level=log_level,
@@ -36,20 +40,25 @@ def aggregate_stats_dirs(
                     with (idir / mode / f"{key}_shape").open(
                         "r", encoding="utf-8"
                     ) as fin:
-                        for line in fin:
+                        # Read to the last in order to sort keys
+                        # because the order can be changed if num_workers>=1
+                        lines = fin.readlines()
+                        lines = sorted(lines, key=lambda x: x.split()[0])
+                        for line in lines:
                             fout.write(line)
 
         for key in stats_keys:
-            sum_stats = None
-            for idir in input_dirs:
-                stats = np.load(idir / mode / f"{key}_stats.npz")
-                if sum_stats is None:
-                    sum_stats = dict(**stats)
-                else:
-                    for k in stats:
-                        sum_stats[k] += stats[k]
+            if not skip_sum_stats:
+                sum_stats = None
+                for idir in input_dirs:
+                    stats = np.load(idir / mode / f"{key}_stats.npz")
+                    if sum_stats is None:
+                        sum_stats = dict(**stats)
+                    else:
+                        for k in stats:
+                            sum_stats[k] += stats[k]
 
-            np.savez(output_dir / mode / f"{key}_stats.npz", **sum_stats)
+                np.savez(output_dir / mode / f"{key}_stats.npz", **sum_stats)
 
             # if --write_collected_feats=true
             p = Path(mode) / "collect_feats" / f"{key}.scp"
@@ -72,8 +81,14 @@ def get_parser() -> argparse.ArgumentParser:
         "--log_level",
         type=lambda x: x.upper(),
         default="INFO",
-        choices=("INFO", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+        choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
+    )
+    parser.add_argument(
+        "--skip_sum_stats",
+        default=False,
+        action="store_true",
+        help="Skip computing the sum of statistics.",
     )
 
     parser.add_argument("--input_dir", action="append", help="Input directories")

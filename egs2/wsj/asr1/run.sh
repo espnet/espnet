@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -6,16 +6,20 @@ set -u
 set -o pipefail
 
 train_set=train_si284
-dev_set=test_dev93
-eval_sets="test_eval92 "
+valid_set=test_dev93
+test_sets="test_dev93 test_eval92"
 
 ./asr.sh \
-    --nbpe 5000 \
-    --nlsyms_txt data/nlsyms.txt \
+    --lang "en" \
+    --use_lm true \
     --token_type char \
-    --lm_config conf/train_lm.yaml \
+    --nbpe 80 \
+    --nlsyms_txt data/nlsyms.txt \
+    --lm_config conf/train_lm_transformer.yaml \
     --asr_config conf/train_asr_transformer.yaml \
+    --inference_config conf/decode.yaml \
     --train_set "${train_set}" \
-    --dev_set "${dev_set}" \
-    --eval_sets "${eval_sets}" \
-    --srctexts "data/train_si284/text data/local/other_text/text" "$@"
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
+    --bpe_train_text "data/train_si284/text" \
+    --lm_train_text "data/train_si284/text data/local/other_text/text" "$@"

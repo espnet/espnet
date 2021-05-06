@@ -3,48 +3,6 @@
 
 - Python 3.6.1+
 - gcc 4.9+ for PyTorch1.0.0+
-- cmake3 for some extensions
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install cmake
-    # e.g. Using anaconda (If you don't have sudo privilege, the installation from conda might be useful)
-    $ conda install cmake
-    ```
-
-We often use audio converter tools in several recipes:
-
-- sox
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install sox
-    # e.g. CentOS
-    $ sudo yum install sox
-    # e.g. Using anaconda
-    $ conda install -c conda-forge sox
-    ```
-- sndfile
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install libsndfile1-dev
-    # e.g. CentOS
-    $ sudo yum install libsndfile
-    ```
-- ffmpeg (This is not required when insllataion, but used in some recipes)
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install ffmpeg
-    # e.g. CentOS
-    $ sudo yum install ffmpeg
-    # e.g. Using anaconda
-    $ conda install -c conda-forge ffmpeg
-    ```
-- flac (This is not required when insllataion, but used in some recipes)
-    ```bash
-    # e.g. Ubuntu
-    $ sudo apt-get install flac
-    # e.g. CentOS
-    $ sudo yum install flac
-    ```
 
 Optionally, GPU environment requires the following libraries:
 
@@ -52,49 +10,61 @@ Optionally, GPU environment requires the following libraries:
 - Cudnn 6+, 7+
 - NCCL 2.0+ (for the use of multi-GPUs)
 
+(If you'll use anaconda environment at installation step2,
+the following packages are installed using Anaconda, so you can skip them.)
+
+- cmake3 for some extensions
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install cmake
+    ```
+- sox
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install sox
+    # For CentOS
+    $ sudo yum install sox
+    ```
+- sndfile
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install libsndfile1-dev
+    # For CentOS
+    $ sudo yum install libsndfile
+    ```
+- ffmpeg (This is not required when installataion, but used in some recipes)
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install ffmpeg
+    # For CentOS
+    $ sudo yum install ffmpeg
+    ```
+- flac (This is not required when installataion, but used in some recipes)
+    ```sh
+    # For Ubuntu
+    $ sudo apt-get install flac
+    # For CentOS
+    $ sudo yum install flac
+    ```
+
 ### Supported Linux distributions and other requirements
 
 We support the following Linux distributions with CI. If you want to build your own Linux by yourself,
-please also check our [CI configurations](https://github.com/espnet/espnet/blob/master/.circleci/config.yml).
+please also check our [CI configurations](https://github.com/espnet/espnet/tree/master/.github/workflows).
 to prepare the appropriate environments
 
 - ubuntu18
-- ubuntu16
 - centos7
 - debian9
 
 
-### Step 1) setting of the environment for GPU support
+### Step 1) [Optional] Install Kaldi
+- If you'll use ESPnet1 (under egs/): You need to compile Kaldi.  
+- If you'll use ESPnet2 (under egs2/): You can skip installation of Kaldi.
 
-To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
-```
-CUDAROOT=/path/to/cuda
-
-export PATH=$CUDAROOT/bin:$PATH
-export LD_LIBRARY_PATH=$CUDAROOT/lib64:$LD_LIBRARY_PATH
-export CFLAGS="-I$CUDAROOT/include $CFLAGS"
-export CPATH=$CUDAROOT/include:$CPATH
-export CUDA_HOME=$CUDAROOT
-export CUDA_PATH=$CUDAROOT
-```
-
-If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl)
-and set paths in your `.bashrc` or `.bash_profile` appropriately, for example:
-```
-CUDAROOT=/path/to/cuda
-NCCL_ROOT=/path/to/nccl
-
-export CPATH=$NCCL_ROOT/include:$CPATH
-export LD_LIBRARY_PATH=$NCCL_ROOT/lib/:$CUDAROOT/lib64:$LD_LIBRARY_PATH
-export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
-export CFLAGS="-I$CUDAROOT/include $CFLAGS"
-export CPATH=$CUDAROOT/include:$CPATH
-export CUDA_HOME=$CUDAROOT
-export CUDA_PATH=$CUDAROOT
-```
+<details><summary>Click to compile Kaldi...</summary><div>
 
 
-### Step 2) Install Kaldi
 Related links:
 - [Kaldi Github](https://github.com/kaldi-asr/kaldi)
 - [Kaldi Documentation](https://kaldi-asr.org/)
@@ -106,18 +76,15 @@ Kaldi's requirements:
 - OS: Ubuntu, CentOS, MacOSX, Windows, Cygwin, etc.
 - GCC >= 4.7
 
-We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh).
+1. Git clone Kaldi
 
-
-1. Git clone kaldi
-
-    ```bash
+    ```sh
     $ cd <any-place>
     $ git clone https://github.com/kaldi-asr/kaldi
     ```
 1. Install tools
 
-    ```bash
+    ```sh
     $ cd <kaldi-root>/tools
     $ make -j <NUM-CPU>
     ```
@@ -125,99 +92,172 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     - OpenBLAS
 
-    ```bash
+    ```sh
     $ cd <kaldi-root>/tools
     $ ./extras/install_openblas.sh
     ```
     - MKL (You need sudo privilege)
 
-    ```bash
+    ```sh
     $ cd <kaldi-root>/tools
     $ sudo ./extras/install_mkl.sh
     ```
     - ATLAS (You need sudo privilege)
 
-    ```bash
+    ```sh
     # Ubuntu
     $ sudo apt-get install libatlas-base-dev
     ```
 
 1. Compile Kaldi & install
 
-    ```bash
+    ```sh
     $ cd <kaldi-root>/src
     # [By default MKL is used] ESPnet uses only feature extractor, so you can disable CUDA
     $ ./configure --use-cuda=no
-    # e.g. With OpenBLAS]
+    # [With OpenBLAS]
     # $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
     # If you'll use CUDA
     # ./configure --cudatk-dir=/usr/local/cuda-10.0
     $ make -j clean depend; make -j <NUM-CPU>
     ```
+We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh).
 
-### Step 3-A) installation of espnet
+</div></details>
 
-```bash
-$ cd <any-place>
-$ git clone https://github.com/espnet/espnet
-```
+### Step 2) Installation ESPnet
+1. Git clone ESPnet
+    ```sh
+    $ cd <any-place>
+    $ git clone https://github.com/espnet/espnet
+    ```
+1. [Optional] Put compiled Kaldi under espnet/tools
 
-#### create miniconda environment (default)
+    If you have compiled Kaldi at Step1, put it under `tools`.
 
-Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+
+    ```sh
+    $ cd <espnet-root>/tools
+    $ ln -s <kaldi-root> .
+    ```
+    
+    If you don't have `espnet/tools/kaldi` when `make`, Kaldi repository is automatically put without compiling.
+1. Setup Python environment
+
+    You have to create `<espnet-root>/tools/activate_python.sh` to specify the Python interpreter used in espnet recipes.
+    (To understand how ESPnet specifies Python, see [path.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh) for example.)
+
+    We also have some scripts to generate `tools/activate_python.sh`.
+
+    - Option A) Setup Anaconda environment
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ ./setup_anaconda.sh [output-dir-name|default=venv] [conda-env-name|default=root] [python-version|default=none]
+        # e.g.
+        $ ./setup_anaconda.sh anaconda espnet 3.8
+        ```
+
+        This script tries to create a new miniconda if the output directory doesn't exist.
+        If you already have Anaconda and you'll use it then,
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ CONDA_TOOLS_DIR=$(dirname ${CONDA_EXE})/..
+        $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} [conda-env-name] [python-version]
+        # e.g.
+        $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} espnet 3.8
+        ```
+
+    - Option B) Setup venv from system Python
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ ./setup_venv.sh $(command -v python3)
+        ```
+
+    - Option C) Setup system Python environment
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ ./setup_python.sh $(command -v python3)
+        ```
+    - Option D) Without setting Python environment.
+    
+        `Option C` and `Option D` are almost same. This option might be suitable for Google colab.
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ rm -f activate_python.sh && touch activate_python.sh
+        ```
+1. Install ESPnet
+
+    ```sh
+    $ cd <espnet-root>/tools
+    $ make
+    ```
+
+    The Makefile tries to install ESPnet and all dependencies including PyTorch.
+    You can also specify PyTorch version, for example:
+
+    ```sh
+    $ cd <espnet-root>/tools
+    $ make TH_VERSION=1.3.1
+    ```
+    
+    Note that the CUDA version is derived from `nvcc` command. If you'd like to specify the other CUDA version, you need to give `CUDA_VERSION`.
+    
+    ```sh
+    $ cd <espnet-root>/tools
+    $ make TH_VERSION=1.3.1 CUDA_VERSION=10.1
+    ```
+
+    If you don't have `nvcc` command, packages are installed for CPU mode by default.
+    If you'll turn it on manually, give `CPU_ONLY` option.
+
+    ```sh
+    $ cd <espnet-root>/tools
+    $ make CPU_ONLY=0
+    ```
+
+### Step 3) [Optional] Custom tool installation
+Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default, 
+so if you meet some installation error when running these recipe, you need to install them optionally.
+
+
+e.g. 
+
+- To install Warp CTC
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
+    ./installers/install_warp-ctc.sh
+    ```
+- To install Warp Transducer
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
+    ./installers/install_warp-transducer.sh
+    ```
+- To install PyOpenJTalk
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    ./installers/install_pyopenjtalk.sh
+    ```
+- To install a module using pip: e.g. to intstall ipython
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    pip install ipython
+    ```
+
+### Check installation
+You can check whether your installation is succesfully finished by
 ```sh
-$ cd <espnet-root>/tools
-$ make KALDI=<kaldi-root>
+cd <espnet-root>/tools
+. ./activate_python.sh; python3 check_install.py
 ```
-
-You can also specify the Python (`PYTHON_VERSION` default 3.7), PyTorch (`TH_VERSION` default 1.0.0) and CUDA versions (`CUDA_VERSION` default 10.0), for example:
-```sh
-$ cd <espnet-root>/tools
-$ make KALDI=<kaldi-root> PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
-```
-
-#### create virtualenv from an existing python
-
-If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
-
-```sh
-$ cd <espnet-root>/tools
-$ make KALDI=<kaldi-root> PYTHON=/usr/bin/python3.6
-```
-
-#### using the system Python without creating new python environment
-We prepare a new Python interpreter independently in the Makefile, but if you'd like to use the System Python, for example, Google Colab originally provides an independent environment and you may use the Python as it is, then just create an empty file at `tools/venv/bin/activate`:
-
-```sh
-$ cd <espnet-root>/tools
-$ rm -rf venv; mkdir -p venv/bin; touch venv/bin/activate  # Create an empty file
-$ make KALDI=<kaldi-root> PYTHON=dummy
-```
-
-### Step 3-B) installation for CPU-only
-
-To install in a terminal that does not have a GPU installed, just clear the version of `CUPY` as follows:
-
-```sh
-$ cd <espnet-root>/tools
-$ make KALDI=<kaldi-root> CUPY_VERSION='' -j 10
-```
-
-This option is enabled for any of the install configuration.
-
-### Step 4) installation check
-
-You can check whether the install is succeeded via the following commands
-```sh
-$ cd <espnet-root>/tools
-$ make check_install
-```
-or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
-If you have no warning, ready to run the recipe!
-
-If there are some problems in python libraries, you can re-setup only python environment via following commands
-```sh
-$ cd <espnet-root>/tools
-$ make clean_python
-$ make python
-```
+Note that this check is always called in the last stage of the above installation.

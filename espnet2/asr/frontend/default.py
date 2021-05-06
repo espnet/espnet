@@ -17,7 +17,7 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 
 
 class DefaultFrontend(AbsFrontend):
-    """Conventional frontend structure for ASR
+    """Conventional frontend structure for ASR.
 
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN
     """
@@ -28,16 +28,16 @@ class DefaultFrontend(AbsFrontend):
         n_fft: int = 512,
         win_length: int = None,
         hop_length: int = 128,
+        window: Optional[str] = "hann",
         center: bool = True,
-        pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
         n_mels: int = 80,
         fmin: int = None,
         fmax: int = None,
         htk: bool = False,
-        norm=1,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
+        apply_stft: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -47,22 +47,32 @@ class DefaultFrontend(AbsFrontend):
         # Deepcopy (In general, dict shouldn't be used as default arg)
         frontend_conf = copy.deepcopy(frontend_conf)
 
-        self.stft = Stft(
-            n_fft=n_fft,
-            win_length=win_length,
-            hop_length=hop_length,
-            center=center,
-            pad_mode=pad_mode,
-            normalized=normalized,
-            onesided=onesided,
-        )
+        if apply_stft:
+            self.stft = Stft(
+                n_fft=n_fft,
+                win_length=win_length,
+                hop_length=hop_length,
+                center=center,
+                window=window,
+                normalized=normalized,
+                onesided=onesided,
+            )
+        else:
+            self.stft = None
+        self.apply_stft = apply_stft
+
         if frontend_conf is not None:
             self.frontend = Frontend(idim=n_fft // 2 + 1, **frontend_conf)
         else:
             self.frontend = None
 
         self.logmel = LogMel(
-            fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm,
+            fs=fs,
+            n_fft=n_fft,
+            n_mels=n_mels,
+            fmin=fmin,
+            fmax=fmax,
+            htk=htk,
         )
         self.n_mels = n_mels
 
@@ -73,16 +83,11 @@ class DefaultFrontend(AbsFrontend):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        input_stft, feats_lens = self.stft(input, input_lengths)
-
-        assert input_stft.dim() >= 4, input_stft.shape
-        # "2" refers to the real/imag parts of Complex
-        assert input_stft.shape[-1] == 2, input_stft.shape
-
-        # Change torch.Tensor to ComplexTensor
-        # input_stft: (..., F, 2) -> (..., F)
-        input_stft = ComplexTensor(input_stft[..., 0], input_stft[..., 1])
-
+        if self.stft is not None:
+            input_stft, feats_lens = self._compute_stft(input, input_lengths)
+        else:
+            input_stft = ComplexTensor(input[..., 0], input[..., 1])
+            feats_lens = input_lengths
         # 2. [Option] Speech enhancement
         if self.frontend is not None:
             assert isinstance(input_stft, ComplexTensor), type(input_stft)
@@ -110,3 +115,17 @@ class DefaultFrontend(AbsFrontend):
         input_feats, _ = self.logmel(input_power, feats_lens)
 
         return input_feats, feats_lens
+
+    def _compute_stft(
+        self, input: torch.Tensor, input_lengths: torch.Tensor
+    ) -> torch.Tensor:
+        input_stft, feats_lens = self.stft(input, input_lengths)
+
+        assert input_stft.dim() >= 4, input_stft.shape
+        # "2" refers to the real/imag parts of Complex
+        assert input_stft.shape[-1] == 2, input_stft.shape
+
+        # Change torch.Tensor to ComplexTensor
+        # input_stft: (..., F, 2) -> (..., F)
+        input_stft = ComplexTensor(input_stft[..., 0], input_stft[..., 1])
+        return input_stft, feats_lens

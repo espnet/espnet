@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -57,9 +57,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodup
-train_dev=train_dev
-recog_set="train_dev eval2000 rt03"
+train_set=train_nodup_sp
+train_dev=train_dev_trim
+recog_set="train_dev_trim eval2000 rt03"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -107,10 +107,25 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/fix_data_dir.sh data/${x}
     done
 
-    utils/subset_data_dir.sh --first data/train 4000 data/${train_dev} # 5hr 6min
+    utils/subset_data_dir.sh --first data/train 4000 data/train_dev # 5hr 6min
     n=$(($(wc -l < data/train/segments) - 4000))
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
-    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set} # 286hr
+    utils/data/remove_dup_utts.sh 300 data/train_nodev data/train_nodup # 286hr
+
+    # remove utt having > 2000 frames or < 10 frames or
+    # remove utt having > 400 characters or 0 characters
+    remove_longshortdata.sh --maxchars 400 data/train_nodup data/train_nodup_trim
+    remove_longshortdata.sh --maxchars 400 data/train_dev data/${train_dev}
+
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/train_nodup_trim data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/train_nodup_trim data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/train_nodup_trim data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    utils/fix_data_dir.sh data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -138,8 +153,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_char/${train_set}_${bpemode}${nbpe}_units.txt
-bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
+dict=data/lang_char/train_nodup_${bpemode}${nbpe}_units.txt
+bpemodel=data/lang_char/train_nodup_${bpemode}${nbpe}
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -149,10 +164,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
 
     # map acronym such as p._h._d. to p h d for train_set& dev_set
-    cp data/${train_set}/text data/${train_set}/text.backup
-    cp data/${train_dev}/text data/${train_dev}/text.backup
-    sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/${train_set}/text
-    sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/${train_dev}/text
+    cp data/${train_set}/text data/${train_set}/text.tmp
+    cp data/${train_dev}/text data/${train_dev}/text.tmp
+    sed -i 's/\._/ /g; s/them_1/them/g' data/${train_set}/text.tmp
+    sed -i 's/\._/ /g; s/them_1/them/g' data/${train_dev}/text.tmp
+    # remove . from second columns, skiping first column, which includes sp0.9, sp1.1 etc.
+    awk -F " " '{for(i=2;i<=NF;++i) gsub(/\._|\./,"",$i)}1' data/${train_set}/text.tmp > data/${train_set}/text
+    awk -F " " '{for(i=2;i<=NF;++i) gsub(/\._|\./,"",$i)}1' data/${train_dev}/text.tmp > data/${train_dev}/text
     if [ -n "${fisher_dir}" ]; then
         cp data/train_fisher/text data/train_fisher/text.backup
         sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_fisher/text
@@ -178,7 +196,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
+    data2json.sh --nj ${nj} --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
@@ -194,7 +212,7 @@ fi
 if [ -z ${lmtag} ]; then
     lmtag=$(basename ${lm_config%.*})
 fi
-lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+lmexpname=train_transformer_lm_${backend}_${lmtag}_${bpemode}${nbpe}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
@@ -267,12 +285,15 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-	recog_model=model.last${n_average}.avg.best
-	average_checkpoints.py --backend ${backend} \
-			       --snapshots ${expdir}/results/snapshot.ep.* \
-			       --out ${expdir}/results/${recog_model} \
-			       --num ${n_average}
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+                    --snapshots ${expdir}/results/snapshot.ep.* \
+                    --out ${expdir}/results/${recog_model} \
+                    --num ${n_average}
     fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -61,7 +61,7 @@ if [ $num_spkrs -eq 1 ]; then
       echo "write a WER result in ${dir}/result.wrd.txt"
       grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt
   fi
-elif [ ${num_spkrs} -eq 2 ]; then
+elif [ ${num_spkrs} -lt 4 ]; then
   ref_trns=""
   hyp_trns=""
   for i in $(seq ${num_spkrs}); do
@@ -86,15 +86,17 @@ elif [ ${num_spkrs} -eq 2 ]; then
       fi
   done
 
+  results_str=""
   for (( i=0; i<$((num_spkrs * num_spkrs)); i++ )); do
       ind_r=$((i / num_spkrs + 1))
       ind_h=$((i % num_spkrs + 1))
+      results_str=${results_str}"${dir}/result_r${ind_r}h${ind_h}.txt "
       sclite -r ${dir}/ref${ind_r}.trn trn -h ${dir}/hyp${ind_h}.trn trn -i rm -o all stdout > ${dir}/result_r${ind_r}h${ind_h}.txt
   done
 
   echo "write CER (or TER) results in ${dir}/result_r*h*.txt"
-  eval_perm_free_error.py --num-spkrs ${num_spkrs} ${dir}/result_r1h1.txt ${dir}/result_r1h2.txt \
-      ${dir}/result_r2h1.txt ${dir}/result_r2h2.txt > ${dir}/min_perm_result.json
+  eval_perm_free_error.py --num-spkrs ${num_spkrs} \
+      ${results_str} > ${dir}/min_perm_result.json
   sed -n '2,4p' ${dir}/min_perm_result.json
 
   if ${wer}; then
@@ -107,15 +109,17 @@ elif [ ${num_spkrs} -eq 2 ]; then
               sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp${n}.trn > ${dir}/hyp${n}.wrd.trn
           fi
       done
+      results_str=""
       for (( i=0; i<$((num_spkrs * num_spkrs)); i++ )); do
           ind_r=$((i / num_spkrs + 1))
           ind_h=$((i % num_spkrs + 1))
+          results_str=${results_str}"${dir}/result_r${ind_r}h${ind_h}.wrd.txt "
           sclite -r ${dir}/ref${ind_r}.wrd.trn trn -h ${dir}/hyp${ind_h}.wrd.trn trn -i rm -o all stdout > ${dir}/result_r${ind_r}h${ind_h}.wrd.txt
       done
 
       echo "write WER results in ${dir}/result_r*h*.wrd.txt"
-      eval_perm_free_error.py --num-spkrs ${num_spkrs} ${dir}/result_r1h1.wrd.txt ${dir}/result_r1h2.wrd.txt \
-          ${dir}/result_r2h1.wrd.txt ${dir}/result_r2h2.wrd.txt > ${dir}/min_perm_result.wrd.json
+      eval_perm_free_error.py --num-spkrs ${num_spkrs} \
+          ${results_str} > ${dir}/min_perm_result.wrd.json
       sed -n '2,4p' ${dir}/min_perm_result.wrd.json
   fi
 fi

@@ -13,6 +13,7 @@ from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
+from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class ChunkIterFactory(AbsIterFactory):
@@ -38,8 +39,8 @@ class ChunkIterFactory(AbsIterFactory):
     def __init__(
         self,
         dataset,
-        batches: Sequence[Sequence[Any]],
         batch_size: int,
+        batches: Union[AbsSampler, Sequence[Sequence[Any]]],
         chunk_length: Union[int, str],
         chunk_shift_ratio: float = 0.5,
         num_cache_chunks: int = 1024,
@@ -93,7 +94,9 @@ class ChunkIterFactory(AbsIterFactory):
         self.shuffle = shuffle
 
     def build_iter(
-        self, epoch: int, shuffle: bool = None,
+        self,
+        epoch: int,
+        shuffle: bool = None,
     ) -> Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]:
         per_sample_loader = self.per_sample_iter_factory.build_iter(epoch, shuffle)
 
@@ -110,6 +113,7 @@ class ChunkIterFactory(AbsIterFactory):
             # Must be per-sample-loader
             assert len(ids) == 1, f"Must be per-sample-loader: {len(ids)}"
             assert all(len(x) == 1 for x in batch.values())
+
             # Get keys of sequence data
             sequence_keys = []
             for key in batch:
@@ -141,7 +145,7 @@ class ChunkIterFactory(AbsIterFactory):
             cache_chunks = cache_chunks_dict.setdefault(W, {})
 
             # Shift width to the next chunk
-            S = int(L * self.chunk_shift_ratio)
+            S = int(W * self.chunk_shift_ratio)
             # Number of chunks
             N = (L - W) // S + 1
             if shuffle:
@@ -164,7 +168,10 @@ class ChunkIterFactory(AbsIterFactory):
 
             if len(cache_id_list) > self.num_cache_chunks:
                 cache_id_list, cache_chunks = yield from self._generate_mini_batches(
-                    cache_id_list, cache_chunks, shuffle, state,
+                    cache_id_list,
+                    cache_chunks,
+                    shuffle,
+                    state,
                 )
 
             cache_id_list_dict[W] = cache_id_list
@@ -176,7 +183,10 @@ class ChunkIterFactory(AbsIterFactory):
                 cache_chunks = cache_chunks_dict.setdefault(W, {})
 
                 yield from self._generate_mini_batches(
-                    cache_id_list, cache_chunks, shuffle, state,
+                    cache_id_list,
+                    cache_chunks,
+                    shuffle,
+                    state,
                 )
 
     def _generate_mini_batches(
@@ -201,4 +211,5 @@ class ChunkIterFactory(AbsIterFactory):
             )
             id_list = id_list[bs:]
             batches = {k: v[bs:] for k, v in batches.items()}
+
         return id_list, batches

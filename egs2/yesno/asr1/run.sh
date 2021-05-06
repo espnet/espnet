@@ -1,24 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 set -u
 set -o pipefail
 
 train_set="train_nodev"
-train_dev="train_dev"
-eval_set="test_yesno"
+valid_set="train_dev"
+test_sets="train_dev test_yesno"
 
 asr_config=conf/train_asr.yaml
-decode_config=conf/decode.yaml
+inference_config=conf/decode.yaml
 
 ./asr.sh                                        \
+    --lang en                                   \
     --audio_format wav                          \
     --feats_type raw                            \
     --token_type char                           \
     --use_lm false                              \
     --asr_config "${asr_config}"                \
-    --decode_config "${decode_config}"          \
+    --inference_config "${inference_config}"          \
     --train_set "${train_set}"                  \
-    --dev_set "${train_dev}"                    \
-    --eval_sets "${eval_set}"                   \
-    --srctexts "data/${train_set}/text" "$@"
+    --valid_set "${valid_set}"                  \
+    --test_sets "${test_sets}"                  \
+    --lm_train_text "data/${train_set}/text" "$@"

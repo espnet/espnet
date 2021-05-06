@@ -1,5 +1,4 @@
 import librosa
-import numpy as np
 import torch
 from typing import Tuple
 
@@ -19,11 +18,6 @@ class LogMel(torch.nn.Module):
         fmax: float >= 0 [scalar] highest frequency (in Hz).
             If `None`, use `fmax = fs / 2.0`
         htk: use HTK formula instead of Slaney
-        norm: {None, 1, np.inf} [scalar]
-            if 1, divide the triangular mel weights by the width of the mel band
-            (area normalization).  Otherwise, leave all the triangles aiming for
-            a peak value of 1.0
-
     """
 
     def __init__(
@@ -34,34 +28,49 @@ class LogMel(torch.nn.Module):
         fmin: float = None,
         fmax: float = None,
         htk: bool = False,
-        norm=1,
+        log_base: float = None,
     ):
         super().__init__()
 
         fmin = 0 if fmin is None else fmin
         fmax = fs / 2 if fmax is None else fmax
         _mel_options = dict(
-            sr=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk, norm=norm
+            sr=fs,
+            n_fft=n_fft,
+            n_mels=n_mels,
+            fmin=fmin,
+            fmax=fmax,
+            htk=htk,
         )
         self.mel_options = _mel_options
+        self.log_base = log_base
 
         # Note(kamo): The mel matrix of librosa is different from kaldi.
         melmat = librosa.filters.mel(**_mel_options)
         # melmat: (D2, D1) -> (D1, D2)
         self.register_buffer("melmat", torch.from_numpy(melmat.T).float())
-        inv_mel = np.linalg.pinv(melmat)
-        self.register_buffer("inv_melmat", torch.from_numpy(inv_mel.T).float())
 
     def extra_repr(self):
         return ", ".join(f"{k}={v}" for k, v in self.mel_options.items())
 
     def forward(
-        self, feat: torch.Tensor, ilens: torch.Tensor = None,
+        self,
+        feat: torch.Tensor,
+        ilens: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # feat: (B, T, D1) x melmat: (D1, D2) -> mel_feat: (B, T, D2)
         mel_feat = torch.matmul(feat, self.melmat)
+        mel_feat = torch.clamp(mel_feat, min=1e-10)
 
-        logmel_feat = (mel_feat + 1e-20).log()
+        if self.log_base is None:
+            logmel_feat = mel_feat.log()
+        elif self.log_base == 2.0:
+            logmel_feat = mel_feat.log2()
+        elif self.log_base == 10.0:
+            logmel_feat = mel_feat.log10()
+        else:
+            logmel_feat = mel_feat.log() / torch.log(self.log_base)
+
         # Zero padding
         if ilens is not None:
             logmel_feat = logmel_feat.masked_fill(

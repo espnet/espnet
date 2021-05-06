@@ -1,5 +1,6 @@
 from typing import Any
 from typing import Dict
+from typing import Optional
 from typing import Tuple
 
 import torch
@@ -20,8 +21,8 @@ class LogSpectrogram(AbsFeatsExtract):
         n_fft: int = 1024,
         win_length: int = None,
         hop_length: int = 256,
+        window: Optional[str] = "hann",
         center: bool = True,
-        pad_mode: str = "reflect",
         normalized: bool = False,
         onesided: bool = True,
     ):
@@ -30,12 +31,13 @@ class LogSpectrogram(AbsFeatsExtract):
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
+        self.window = window
         self.stft = Stft(
             n_fft=n_fft,
             win_length=win_length,
             hop_length=hop_length,
+            window=window,
             center=center,
-            pad_mode=pad_mode,
             normalized=normalized,
             onesided=onesided,
         )
@@ -47,11 +49,14 @@ class LogSpectrogram(AbsFeatsExtract):
     def get_parameters(self) -> Dict[str, Any]:
         """Return the parameters required by Vocoder"""
         return dict(
-            n_fft=self.n_fft, n_shift=self.hop_length, win_length=self.win_length,
+            n_fft=self.n_fft,
+            n_shift=self.hop_length,
+            win_length=self.win_length,
+            window=self.window,
         )
 
     def forward(
-        self, input: torch.Tensor, input_lengths: torch.Tensor
+        self, input: torch.Tensor, input_lengths: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Stft: time -> time-freq
         input_stft, feats_lens = self.stft(input, input_lengths)
@@ -60,8 +65,12 @@ class LogSpectrogram(AbsFeatsExtract):
         # "2" refers to the real/imag parts of Complex
         assert input_stft.shape[-1] == 2, input_stft.shape
 
+        # NOTE(kamo): We use different definition for log-spec between TTS and ASR
+        #   TTS: log_10(abs(stft))
+        #   ASR: log_e(power(stft))
+
         # STFT -> Power spectrum
         # input_stft: (..., F, 2) -> (..., F)
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
-        log_amp = 0.5 * torch.log(input_power + 1.0e-20)
+        log_amp = 0.5 * torch.log10(torch.clamp(input_power, min=1.0e-10))
         return log_amp, feats_lens

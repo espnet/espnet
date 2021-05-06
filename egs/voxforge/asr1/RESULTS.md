@@ -1,3 +1,41 @@
+# Conformer results
+
+## Environments
+- date: `Fri Nov  6 18:57:07 JST 2020`
+- python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.2`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.1.0`
+- Git hash: `87bc8f1a1ad548b7dfc062c0820c969200fed3b4`
+  - Commit date: `Sat Sep 5 01:30:59 2020 +0900`
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/file/d/1-s4AUuqCyNNH-lZk9ZLLWH11cdDSLnL5/view?usp=sharing
+  - training config file: `conf/work/train_pytorch_conformer_k7.yaml`
+  - decoding config file: `conf/work/decode_pytorch_transformer_bs20_ctc0.3.yaml`
+  - cmvn file: `data/tr_it/cmvn.ark`
+  - e2e file: `exp/tr_it_pytorch_train_pytorch_conformer_k7/results/model.last10.avg.best`
+  - e2e JSON file: `exp/tr_it_pytorch_train_pytorch_conformer_k7/results/model.json`
+
+### WER
+```
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_pytorch_transformer_bs1_ctc0.3|1082|13235|71.2|24.1|4.7|3.8|32.6|94.4|
+|decode_dt_it_decode_pytorch_transformer_bs20_ctc0.3|1082|13235|71.1|24.4|4.6|3.7|32.6|94.2|
+|decode_et_it_decode_pytorch_transformer_bs1_ctc0.3|1055|12990|73.4|22.2|4.4|3.9|30.5|92.8|
+|decode_et_it_decode_pytorch_transformer_bs20_ctc0.3|1055|12990|73.4|22.2|4.3|3.9|30.5|93.1|
+```
+
+### CER
+```
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_pytorch_transformer_bs1_ctc0.3|1082|79133|92.9|3.8|3.3|2.0|9.1|93.5|
+|decode_dt_it_decode_pytorch_transformer_bs20_ctc0.3|1082|79133|93.2|3.8|3.0|1.9|8.7|94.1|
+|decode_et_it_decode_pytorch_transformer_bs1_ctc0.3|1055|77966|93.3|3.4|3.3|1.7|8.4|92.3|
+|decode_et_it_decode_pytorch_transformer_bs20_ctc0.3|1055|77966|93.5|3.4|3.1|1.7|8.2|92.4|
+```
+
 # Transformer 300 epochs, decoder 6 layer 2048 unitsns
   - Environments (obtained by `$ get_sys_info.sh`)
       - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
@@ -24,7 +62,7 @@ exp/tr_it_pytorch_train_d6-2048/decode_et_it_decode/result.txt
 | Sum/Avg               | 1055   77966 | 92.6    3.7    3.7    1.7    9.1   95.6 |
 ```
 
-# Transformer 300 epochs, decoder 1 layer 1024 units 
+# Transformer 300 epochs, decoder 1 layer 1024 units
   - Environments (obtained by `$ get_sys_info.sh`)
       - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
 	  - python version: `Python 3.7.3`
@@ -119,7 +157,7 @@ exp/tr_it_a02/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 
 # VGGBLSMP, adaeldta with eps decay monitoring validation accuracy
 ```bash
-$ grep Avg exp/tr_it_a10/decode_*t_it_beam20_eacc.best_p0_len0.0-0.8/result.txt 
+$ grep Avg exp/tr_it_a10/decode_*t_it_beam20_eacc.best_p0_len0.0-0.8/result.txt
 exp/tr_it_a10/decode_dt_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 exp/tr_it_a10/decode_dt_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg               | 1080   78951 | 86.7    5.9    7.3    3.2   16.5   98.1 |
 exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
@@ -127,64 +165,148 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 ```
 
 # Below are preliminaries results for transducer and transducer-attention.
-# Note that current recipes can demonstrate slightly different results compared to the ones reported here.
 
-# Default transducer ('rnnt')
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1082   79133 | 89.9    5.1    5.0    2.8   12.8   97.1 |
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1055   77966 | 90.0    5.0    4.9    2.5   12.4   97.3 |
-```
 
-# Transducer with encoder pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1082   79133  | 91.2    4.6    4.3    2.3    11.2   97.8 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1055   77966  | 91.3    4.5    4.2    2.2    11.0   97.2 |
-```
+# RNN-Transducer ('rnnt')
 
-# Transducer with enc + dec (LM) pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1082    79133 | 91.0    4.7     4.3    2.4   11.5    97.5 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1055    77966 | 90.8    4.8     4.4    2.4   11.5    97.6 |
-```
+- Environments
+  - date: `Mon Jul 13 11:18:28 CEST 2020`
+  - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.6.2`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.0.1.post2`
+  - Git hash: `c1a32dab8d3b5d1e213e1e74c0a1f355b2adf6f5`
+  - Commit date: `Sun Jul 12 13:46:35 2020 +0200`
 
-# Default transducer-attention ('rnnt-att')
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1082   79133 | 89.9    5.0    5.1    2.7   12.8   97.3 |
-$ grep Avg exp/tr_it_pytorch_train_transducer/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-| Sum/Avg               | 1055   77966 | 89.9    5.1    5.0    2.5   12.6   96.3 |
-```
+## CER
 
-# Transducer-attention with encoder pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1082   79133  | 90.8    4.7    4.5    2.3    11.6   96.9 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_enc_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt  # Wrd  | Corr    Sub    Del    Ins     Err  S.Err |
-| Sum/Avg               | 1055   77966  | 90.8    4.8    4.4    2.3    11.5   97.4 |
-```
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.3|4.8|4.9|2.6|12.3|97.0|
+|decode_dt_it_decode_default|1082|79133|89.5|4.8|5.6|2.5|13.0|97.4|
+|decode_dt_it_decode_nsc|1082|79133|90.3|4.7|5.0|2.5|12.2|97.2|
+|decode_dt_it_decode_tsd|1082|79133|90.2|4.6|5.2|2.5|12.3|97.0|
+|decode_et_it_decode_alsd|1055|77966|90.1|5.0|4.8|2.7|12.5|97.7|
+|decode_et_it_decode_default|1055|77966|89.6|5.0|5.4|2.3|12.8|98.2|
+|decode_et_it_decode_nsc|1055|77966|90.2|4.9|4.8|2.4|12.2|97.2|
+|decode_et_it_decode_tsd|1055|77966|90.1|4.9|5.0|2.4|12.3|97.2|
 
-# Transducer-attention with enc + dec (att AM) pre-initialization
-```bash
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_dt_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1082    79133 | 90.8    4.6     4.5    2.3   11.4    96.9 |
-$ grep Avg exp/tr_it_pytorch_train_transducer_both_init/decode_et_it_decode_transducer/result*
-| SPKR                  | # Snt   # Wrd | Corr    Sub     Del    Ins    Err   S.Err |
-| Sum/Avg               | 1055    77966 | 91.0    4.6     4.4    2.2   11.2    98.2 |
-```
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|62.7|31.3|5.9|4.9|42.1|97.0|
+|decode_dt_it_decode_default|1082|13235|61.0|32.3|6.7|4.5|43.5|97.4|
+|decode_dt_it_decode_nsc|1082|13235|62.9|31.0|6.1|4.7|41.9|97.2|
+|decode_dt_it_decode_tsd|1082|13235|62.7|30.9|6.4|4.5|41.8|97.0|
+|decode_et_it_decode_alsd|1055|12990|61.9|31.7|6.5|5.9|44.0|97.7|
+|decode_et_it_decode_default|1055|12990|60.7|32.3|7.0|5.3|44.6|98.2|
+|decode_et_it_decode_nsc|1055|12990|62.4|31.2|6.4|5.2|42.8|97.2|
+|decode_et_it_decode_tsd|1055|12990|62.1|31.3|6.5|5.0|42.9|97.2|
+
+# RNN-Transducer + encoder pre-initialization (CTC)
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.9|4.8|4.3|2.6|11.7|97.0|
+|decode_dt_it_decode_default|1082|79133|90.7|4.7|4.6|2.5|11.8|97.5|
+|decode_dt_it_decode_nsc|1082|79133|90.9|4.7|4.4|2.5|11.6|97.1|
+|decode_dt_it_decode_tsd|1082|79133|90.8|4.7|4.5|2.4|11.6|97.2|
+|decode_et_it_decode_alsd|1055|77966|91.0|4.8|4.2|2.4|11.4|97.8|
+|decode_et_it_decode_default|1055|77966|90.8|4.8|4.4|2.2|11.4|97.7|
+|decode_et_it_decode_nsc|1055|77966|91.0|4.7|4.2|2.3|11.3|97.3|
+|decode_et_it_decode_tsd|1055|77966|91.0|4.7|4.3|2.2|11.3|97.3|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|61.9|32.4|5.7|4.9|42.9|97.0|
+|decode_dt_it_decode_default|1082|13235|61.5|32.5|6.0|4.5|43.1|97.5|
+|decode_dt_it_decode_nsc|1082|13235|61.9|32.2|5.9|4.6|42.7|97.1|
+|decode_dt_it_decode_tsd|1082|13235|61.9|32.2|5.9|4.5|42.6|97.2|
+|decode_et_it_decode_alsd|1055|12990|61.5|33.1|5.5|4.7|43.3|97.8|
+|decode_et_it_decode_default|1055|12990|61.0|33.0|6.1|4.3|43.3|97.7|
+|decode_et_it_decode_nsc|1055|12990|61.6|32.8|5.6|4.5|43.0|97.3|
+|decode_et_it_decode_tsd|1055|12990|61.5|32.7|5.8|4.4|42.9|97.3|
+
+# RNN-Transducer + encoder pre-initialization (CTC) + decoder pre-initialization (LM)
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|90.9|4.7|4.4|2.5|11.6|97.3|
+|decode_dt_it_decode_default|1082|79133|90.6|4.7|4.7|2.2|11.6|97.1|
+|decode_dt_it_decode_nsc|1082|79133|90.8|4.7|4.5|2.3|11.5|96.9|
+|decode_dt_it_decode_tsd|1082|79133|90.7|4.7|4.6|2.2|11.5|96.9|
+|decode_et_it_decode_alsd|1055|77966|90.9|4.8|4.3|2.3|11.4|97.5|
+|decode_et_it_decode_default|1055|77966|90.7|4.7|4.6|2.2|11.5|97.5|
+|decode_et_it_decode_nsc|1055|77966|90.9|4.7|4.4|2.2|11.3|97.5|
+|decode_et_it_decode_tsd|1055|77966|90.8|4.7|4.5|2.2|11.4|97.6|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|62.0|32.2|5.8|4.5|42.5|97.3|
+|decode_dt_it_decode_default|1082|13235|61.2|32.2|6.6|3.9|42.7|97.1|
+|decode_dt_it_decode_nsc|1082|13235|61.9|32.0|6.2|4.1|42.2|96.9|
+|decode_dt_it_decode_tsd|1082|13235|61.8|31.9|6.3|4.0|42.2|96.9|
+|decode_et_it_decode_alsd|1055|12990|61.5|32.5|6.0|4.7|43.2|97.5|
+|decode_et_it_decode_default|1055|12990|61.2|32.4|6.4|4.2|43.0|97.5|
+|decode_et_it_decode_nsc|1055|12990|61.7|32.2|6.1|4.4|42.7|97.5|
+|decode_et_it_decode_tsd|1055|12990|61.6|32.2|6.2|4.3|42.7|97.6|
+
+# Conformer/RNN-Transducer (enc: 8 x Conformer, dec: 1 x LSTM)
+# modified decoding params:
+#   - general: n_average=20
+#   - alsd: beam-size=10, u-max=300, score-norm=True
+#   - nsc: nstep=4, prefix-alpha=3
+#   - tsd: max-sym-exp=5, score-norm=True
+
+- Environments
+  - date: `Fri Nov 27 11:41:31 CET 2020`
+  - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.9.4`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.4.0`
+  - Git hash: `b0ec37da0357c3b612833b02b45994eaaa4370ae`
+  - Commit date: `Fri Nov 27 10:14:20 2020 +0100
+
+- Model files (archived to conformer-rnn_transducer.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=13HHW3Qs5Yk4vzmEuOHl-VJ46M-e3qtZ6
+  - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/tr_it/cmvn.ark`
+  - e2e file: `exp/tr_it_pytorch_train_conformer-rnn_transducer/results/model.last20.avg.best`
+  - e2e JSON file: `exp/tr_it_pytorch_train_conformer-rnn_transducer/results/model.json`
+  - dict file: `data/lang_1char/`
+
+## CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|79133|93.6|3.5|2.9|2.4|8.8|93.5|
+|decode_dt_it_decode_default|1082|79133|93.6|3.4|3.0|2.4|8.8|93.3|
+|decode_dt_it_decode_nsc|1082|79133|93.6|3.4|3.0|2.3|8.7|93.2|
+|decode_dt_it_decode_tsd|1082|79133|93.6|3.4|3.0|2.4|8.8|93.3|
+|decode_et_it_decode_alsd|1055|77966|93.4|3.5|3.1|2.1|8.6|93.3|
+|decode_et_it_decode_default|1055|77966|93.5|3.5|3.1|2.1|8.7|92.9|
+|decode_et_it_decode_nsc|1055|77966|93.4|3.5|3.1|2.1|8.7|93.3|
+|decode_et_it_decode_tsd|1055|77966|93.4|3.5|3.1|2.1|8.7|93.0|
+
+## WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dt_it_decode_alsd|1082|13235|71.5|23.9|4.6|4.1|32.7|93.5|
+|decode_dt_it_decode_default|1082|13235|71.4|23.9|4.7|4.3|32.9|93.3|
+|decode_dt_it_decode_nsc|1082|13235|71.4|23.9|4.7|4.2|32.9|93.2|
+|decode_dt_it_decode_tsd|1082|13235|71.4|23.9|4.7|4.3|32.9|93.3|
+|decode_et_it_decode_alsd|1055|12990|71.8|23.6|4.6|4.2|32.4|93.3|
+|decode_et_it_decode_default|1055|12990|71.8|23.6|4.6|4.4|32.6|92.9|
+|decode_et_it_decode_nsc|1055|12990|71.7|23.6|4.7|4.2|32.5|93.3|
+|decode_et_it_decode_tsd|1055|12990|71.7|23.7|4.6|4.2|32.5|93.0|

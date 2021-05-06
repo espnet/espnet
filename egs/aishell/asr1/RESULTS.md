@@ -1,3 +1,45 @@
+# Conformer (kernel size = 15) + SpecAugment + LM weight = 0.0 result
+
+- training config file: `conf/tuning/train_pytorch_conformer_kernel15.yaml`
+- preprocess config file: `conf/specaug.yaml`
+- decoding config file: `conf/decode.yaml`, set `lm-weight = 0.0`
+- model link: https://drive.google.com/file/d/1pOhwj6JFqVyt5quW7BKWfJ3vfPFRoxpQ/view?usp=sharing
+```
+exp/train_sp_pytorch_train_pytorch_conformer_kernel15_specaug/decode_dev_decode_lm0.0/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
+|   Sum/Avg  |  14326      205341   |   95.4        4.5        0.1        0.1        4.6       36.0   |
+exp/train_sp_pytorch_train_pytorch_conformer_kernel15_specaug/decode_test_decode_lm0.0/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
+|   Sum/Avg  |   7176      104765   |   95.0        4.9         0.1        0.1        5.1       38.6   |
+```
+
+# Conformer (kernel size = 31) + SpecAugment + LM weight = 0.0 result
+
+- training config file: `conf/tuning/train_pytorch_conformer_kernel31.yaml`
+- preprocess config file: `conf/specaug.yaml`
+- decoding config file: `conf/decode.yaml`, set `lm-weight = 0.0`
+```
+exp/train_sp_pytorch_train_pytorch_conformer_kernel31_specaug/decode_dev_decode_lm0.0/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
+|   Sum/Avg  |  14326      205341   |   95.4        4.5        0.1        0.1        4.7       36.2   |
+exp/train_sp_pytorch_train_pytorch_conformer_kernel31_specaug/decode_test_decode_lm0.0/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
+|   Sum/Avg  |   7176      104765   |   94.9        5.0         0.1        0.1        5.2       39.1   |
+```
+
+# Conformer (kernel size = 31) result
+
+- training config file: `conf/tuning/train_pytorch_conformer_kernel31.yaml`
+- decoding config file: `conf/decode.yaml`
+```
+exp/train_sp_pytorch_train_pytorch_conformer_kernel31/decode_dev_decode/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
+|   Sum/Avg  |  14326      205341   |   94.9        5.0        0.1        0.1        5.2       38.3   |
+exp/train_sp_pytorch_train_pytorch_conformer_kernel31/decode_test_decode/result.txt
+|   SPKR     |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
+|   Sum/Avg  |   7176      104765   |   94.2        5.4         0.2        0.1        5.8       41.0   |
+```
+
 # Transformer result (default transformer with initial learning rate = 1.0 and epochs = 50)
 
   - Environments (obtained by `$ get_sys_info.sh`)
@@ -64,3 +106,4 @@ exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/decode_test_decode_pytorch_
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
 |   Sum/Avg  |   7176       104765  |   92.7        7.1        0.2        0.1        7.4      49.8    |
 ```
+

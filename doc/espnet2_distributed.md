@@ -2,19 +2,14 @@
 
 ESPnet2 provides some kinds of data-parallel distributed training.
 
-1. Single node with multi GPUs
-    1. Using multi-processing: `torch.nn.DistributedDataParallel`
-        - `--ngpu N-GPU --multiprocessing_distributed true`
-    1. Using multi-threading: `torch.nn.DataParallel`
-        - `--ngpu N-GPU --multiprocessing_distributed false`
-1. Multi nodes with multi GPUs: `torch.nn.DistributedDataParallel`
-    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes) with multi-processing
-        - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed true`
-    1. Launch `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes) with multi-threading
-        - `--dist_world_size N-HOST --ngpu N-GPU --multiprocessing_distributed false`
-    1. Launch `N-NODE` jobs with `1-GPU` for each node
-        - `--dist_world_size N-NODE --ngpu 1`
-        
+||DP/DDP|Single/Multi host|Option|
+|---|---|---|---|
+|Multi-processing with single host|DistributedDataParallel|Single|--ngpu `N-GPU` --multiprocessing_distributed true|
+|Multi-threading with single host|DataParallel|Single|--ngpu `N-GPU` --multiprocessing_distributed false|
+|Multi-processing with `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)|DistributedDataParallel|Multi|--dist_world_size `N-HOST` --ngpu `N-GPU` --multiprocessing_distributed true|
+|Multi-threading with `N-HOST` jobs with `N-GPU` for each host (=`N-HOST`x`N-GPU` nodes)|DistributedDataParallel|Multi|--dist_world_size `N-HOST` --ngpu `N-GPU` --multiprocessing_distributed false|
+|`N-NODE` jobs with `1-GPU` for each node|DistributedDataParallel|Single/Multi|--dist_world_size `N-NODE` --ngpu 1|
+
 
 
 ## Examples
@@ -32,7 +27,16 @@ You can disable distributed mode and switch to threading based data parallel as 
 
 If you meet some errors with distributed mode, please try single gpu mode or multi-GPUs with `--multiprocessing_distributed false` before reporting the issue.
 
-### 2Nodes and 2GPUs for each node with multiprocessing distributed mode
+### To enable sharded training
+We supports sharded training provided by [fairscale](https://github.com/facebookresearch/fairscale)
+
+```bash
+% python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed true --sharded_ddp true
+```
+
+Note that the other features of fairscale are not supported now.
+
+### 2Host and 2GPUs for each host with multiprocessing distributed mode
 Note that multiprocessing distributed mode assumes the same number of GPUs for each node.
 
 ```bash
@@ -55,7 +59,7 @@ Note that multiprocessing distributed mode assumes the same number of GPUs for e
 #### RANK and WORLD_SIZE
 `--dist_rank` and `--dist_world_size` indicate `RANK` and `WORLD_SIZE` in terms of MPI;
 i.e., they indicate the id of each processe and the number of processes respectively.
-It can be also specified by the environment variables `${RANK}` and `${WORLD_SIZE}`.
+They can be also specified by the environment variables `${RANK}` and `${WORLD_SIZE}`.
 
 
 #### About init method
@@ -83,7 +87,7 @@ There are two ways to initialize and **these methods can be interchanged** in al
    ```
 
 
-### 2Nodes which have 2GPUs and 1GPU respectively
+### 2Hosts which have 2GPUs and 1GPU respectively
 ```bash
 (host1) % python -m espnet2.bin.asr_train \
     --ngpu 1 \
@@ -108,7 +112,7 @@ There are two ways to initialize and **these methods can be interchanged** in al
     --dist_master_port <any-free-port>
 ```
 
-### 2Nodes and 2GPUs for each node using `Slurm` with multiprocessing distributed
+### 2Hosts and 2GPUs for each node using `Slurm` with multiprocessing distributed
 
 ```bash
  % srun -c2 -N2 --gres gpu:2 \
@@ -129,7 +133,7 @@ I recommend shared-file initialization in this case because the host will be det
     --dist_init_method "file://$(pwd)/.dist_init_$(openssl rand -base64 12)"
 ```
 
-### 2Nodes and 2GPUs for each nodes using `MPI` with multiprocessing distributed
+### 2Hosts and 2GPUs for each node using `MPI` with multiprocessing distributed
 
 ```bash
  % mpirun -np 2 -host host1,host2 \

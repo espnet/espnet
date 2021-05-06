@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #  Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -17,27 +17,26 @@ set -o pipefail
 mic=ihm
 
 train_set=${mic}_train
-train_dev=${mic}_dev
-train_test=${mic}_eval
+valid_set=${mic}_dev
+test_sets="${mic}_eval ${mic}_dev"
 
-asr_config=conf/train_asr.yaml
-lm_config=conf/train_lm.yaml
-decode_config=conf/decode_asr.yaml
+asr_config=conf/tuning/train_asr_transformer4.yaml
+lm_config=conf/tuning/train_lm_transformer2.yaml
+inference_config=conf/tuning/decode_transformer2.yaml
 
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh \
+    --lang en \
     --local_data_opts "--mic ${mic}" \
+    --nbpe 100 \
     --use_lm true \
     --lm_config "${lm_config}" \
-    --use_word_lm false \
-    --word_vocab_size 20000 \
-    --token_type char \
-    --feats_type raw \
     --asr_config "${asr_config}" \
-    --decode_config "${decode_config}" \
+    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
-    --dev_set "${train_dev}" \
-    --eval_sets "${train_test}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" \
+    --bpe_train_text "data/${train_set}/text" "$@"

@@ -62,3 +62,10 @@ tools/PESQ*
 tools/hts_engine_API*
 tools/open_jtalk*
 tools/pyopenjtalk*
+tools/sctk*
+tools/sph2pipe*
+tools/espeak-ng*
+tools/MBROLA*
+tools/festival*
+tools/speech_tools*
+tools/phonemizer*

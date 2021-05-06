@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -26,12 +26,17 @@ lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
 # rnnlm related
-lm_resume=        # specify a snapshot file to resume LM training
-lmtag=            # tag for managing LMs
+skip_lm_training=false   # for only using end-to-end ASR model without LM
+lm_resume=              # specify a snapshot file to resume LM training
+lmtag=                  # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
+
+# model average realted (only for transformer)
+n_average=10                 # the number of ASR models to be averaged
+use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
+                             # if false, the last `n_average` ASR models will be averaged.
 
 # bpemode (unigram or bpe)
 nbpe=500
@@ -144,8 +149,8 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
-    if [ -n "${preprocess_config}" ]; then 
-	expname=${expname}_$(basename ${preprocess_config%.*}) 
+    if [ -n "${preprocess_config}" ]; then
+        expname=${expname}_$(basename ${preprocess_config%.*})
     fi
 else
     expname=${train_set}_${backend}_${tag}
@@ -154,16 +159,17 @@ expdir=exp/${expname}
 mkdir -p ${expdir}
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
-# you can skip this and remove --rnnlm option in the recognition (stage 5)
-if [ -z ${lmtag} ]; then
-    lmtag=$(basename ${lm_config%.*})
-fi
-lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
-lmexpdir=exp/${lmexpname}
-mkdir -p ${lmexpdir}
-
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+# you can skip this by setting skip_lm_training=true
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_lm_training}; then
     echo "stage 3: LM Preparation"
+
+    if [ -z ${lmtag} ]; then
+        lmtag=$(basename ${lm_config%.*})
+    fi
+    lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+    lmexpdir=exp/${lmexpname}
+    mkdir -p ${lmexpdir}
+
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
     gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py |\
@@ -207,17 +213,38 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-	recog_model=model.last${n_average}.avg.best
-	average_checkpoints.py --backend ${backend} \
-			       --snapshots ${expdir}/results/snapshot.ep.* \
-			       --out ${expdir}/results/${recog_model} \
-			       --num ${n_average}
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
+       [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+       [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        average_opts=
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            average_opts="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+        fi
+        average_checkpoints.py --backend ${backend} \
+			        --snapshots ${expdir}/results/snapshot.ep.* \
+			        --out ${expdir}/results/${recog_model} \
+			        --num ${n_average} \
+                    ${average_opts}
     fi
+
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
+        recog_opts=
+        if ${skip_lm_training}; then
+            if [ -z ${lmtag} ]; then
+                lmtag="nolm"
+            fi
+        else
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -235,7 +262,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/rnnlm.model.best
+            ${recog_opts}
 
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 docker_gpu=0
 docker_egs=
@@ -12,6 +12,7 @@ docker_os=u18
 is_root=false
 is_local=false
 is_egs2=false
+is_extras=false
 
 while test $# -gt 0
 do
@@ -88,6 +89,8 @@ if [ ! -z "${docker_os}" ]; then
     from_tag="${from_tag}-${docker_os}"
 fi
 
+EXTRAS=${is_extras}
+
 if [ ${is_local} = true ]; then
     from_tag="${from_tag}-local"
 fi
@@ -118,6 +121,7 @@ if [ ${is_root} = false ]; then
         build_args="--build-arg FROM_TAG=${from_tag}"
         build_args="${build_args} --build-arg THIS_USER=${HOME##*/}"
         build_args="${build_args} --build-arg THIS_UID=${UID}"
+        build_args="${build_args} --build-arg EXTRA_LIBS=${EXTRAS}"
 
         echo "Now running docker build ${build_args} -f prebuilt/Dockerfile -t espnet/espnet:${container_tag} ."
         (docker build ${build_args} -f prebuilt/Dockerfile -t  espnet/espnet:${container_tag} .) || exit 1

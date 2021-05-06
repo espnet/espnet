@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -30,7 +30,7 @@ SimData_et_.*_cln_room3"
 for task in ${tasks}; do
     filename=`echo ${task} | sed -e "s/\.\*_//"`
     mkdir -p ${dir}/${filename}
-    python local/filterjson.py -f ${task} ${jsons} > ${dir}/${filename}/data.1.json
+    python3 local/filterjson.py -f ${task} ${jsons} > ${dir}/${filename}/data.1.json
     score_sclite.sh --wer ${wer} --nlsyms ${nlsyms} ${dir}/${filename} ${dic} 1> /dev/null 2> /dev/null
 done
 

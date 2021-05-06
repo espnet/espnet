@@ -294,6 +294,16 @@ def train(args):
             )
         )
 
+    logging.warning(
+        "num. model params: {:,} (num. trained: {:,} ({:.1f}%))".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+            sum(p.numel() for p in model.parameters() if p.requires_grad)
+            * 100.0
+            / sum(p.numel() for p in model.parameters()),
+        )
+    )
+
     # Set up an optimizer
     opt_class = dynamic_import_optimizer(args.opt, args.backend)
     optimizer = opt_class.from_args(model.parameters(), args)

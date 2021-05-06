@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright 2014  Gaurav Kumar.   Apache 2.0
 # The input is the Callhome Spanish Dataset. (*.sph files)
@@ -31,8 +31,8 @@ tmpdir=`pwd`/data/local/tmp
 
 . ./path.sh || exit 1; # Needed for KALDI_ROOT
 export PATH=$PATH:$KALDI_ROOT/tools/irstlm/bin
-sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
-if [ ! -x $sph2pipe ]; then
+sph2pipe=sph2pipe
+if ! command -v "${sph2pipe}" &> /dev/null; then
    echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
    exit 1;
 fi

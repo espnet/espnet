@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -33,7 +33,7 @@ fi
 targets=""
 
 # Copy
-for f in cmd.sh conf; do
+for f in cmd.sh conf local; do
     target="${dir}"/../../TEMPLATE/tts1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
@@ -62,5 +62,10 @@ for f in steps utils; do
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
+
+# Symlinks to Kaldi SID
+target=../../../tools/kaldi/egs/sre08/v1/sid
+ln -sf "${target}" "${dir}"
+targets+="${dir}/${target} "
 
 log "Created: ${targets}"

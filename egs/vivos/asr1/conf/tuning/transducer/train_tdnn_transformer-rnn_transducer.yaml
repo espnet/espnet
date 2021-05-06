@@ -1,0 +1,104 @@
+# minibatch related
+batch-size: 28
+maxlen-in: 500
+maxlen-out: 150
+
+# optimization related
+criterion: loss
+early-stop-criterion: "validation/main/loss"
+sortagrad: 0
+opt: noam
+transformer-lr: 5.0
+transformer-warmup-steps: 8000
+epochs: 30
+patience: 0
+accum-grad: 4
+
+# network architecture
+## general
+## encoder related
+etype: custom
+custom-enc-input-layer: linear
+enc-block-arch:
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 3
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: transformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 8
+          att-dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: transformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 8
+          att-dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 1
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: tdnn
+          idim: 512
+          odim: 512
+          ctx_size: 7
+          dilation: 1
+          stride: 3
+          use-relu: True
+          use-batch-norm: True
+          dropout-rate: 0.2
+        - type: transformer
+          d_hidden: 512
+          d_ff: 512
+          heads: 4
+          att-dropout-rate: 0.2
+## decoder related
+dtype: lstm
+dlayers: 1
+dec-embed-dim: 512
+dunits: 512
+dropout-rate-decoder: 0.2
+dropout-rate-embed-decoder: 0.1
+
+## joint network related
+joint-dim: 128
+
+# transducer related
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -20,12 +20,18 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
+# config files
+preprocess_config=conf/no_preprocess.yaml  # use conf/specaug.yaml for data augmentation
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
+
+# model average realted (only for transformer)
+n_average=10                 # the number of ASR models to be averaged
+use_valbest_average=false    # if true, the validation `n_average`-best ASR models will be averaged.
+                             # if false, the last `n_average` ASR models will be averaged.
 
 # data
 voxforge=downloads # original data directory to be stored
@@ -146,6 +152,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -163,13 +170,25 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=16
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        recog_model=model.last${n_average}.avg.best
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
+       [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+       [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        average_opts=
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            average_opts="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+        fi
         average_checkpoints.py --backend ${backend} \
-			       --snapshots ${expdir}/results/snapshot.ep.* \
-			       --out ${expdir}/results/${recog_model} \
-			       --num ${n_average}
+			        --snapshots ${expdir}/results/snapshot.ep.* \
+			        --out ${expdir}/results/${recog_model} \
+			        --num ${n_average} \
+                    ${average_opts}
     fi
+
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (

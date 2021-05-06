@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 . ./path.sh
 . ./cmd.sh
 
-sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
-if [ ! -x $sph2pipe ]; then
+sph2pipe=sph2pipe
+if ! command -v "${sph2pipe}" &> /dev/null; then
   echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
   exit 1;
 fi
@@ -52,9 +52,9 @@ for f in si_tr_s si_et_05 si_dt_05; do
 done
 
 # Create scp's with wav's. (the wv1 in the distribution is not really wav, it is sph.)
-awk -v dir=${dir} 'BEGIN{print("#!/bin/bash")}{len=split($2, lst, "/"); spk_wav=lst[len-1]"/"lst[len]; gsub(/\.wv1/, "", spk_wav); printf("'$sph2pipe' -f wav %s %s/wsj0/si_tr_s/%s.wav \n",  $2, dir, spk_wav);}' < si_tr_s.scp > si_tr_s_wav.sh
-awk -v dir=${dir} 'BEGIN{print("#!/bin/bash")}{len=split($2, lst, "/"); spk_wav=lst[len-1]"/"lst[len]; gsub(/\.wv1/, "", spk_wav); printf("'$sph2pipe' -f wav %s %s/wsj0/si_dt_05/%s.wav \n", $2, dir, spk_wav);}' < si_dt_05.scp > si_dt_05_wav.sh
-awk -v dir=${dir} 'BEGIN{print("#!/bin/bash")}{len=split($2, lst, "/"); spk_wav=lst[len-1]"/"lst[len]; gsub(/\.wv1/, "", spk_wav); printf("'$sph2pipe' -f wav %s %s/wsj0/si_et_05/%s.wav \n", $2, dir, spk_wav);}' < si_et_05.scp > si_et_05_wav.sh
+awk -v dir=${dir} 'BEGIN{print("#!/usr/bin/env bash")}{len=split($2, lst, "/"); spk_wav=lst[len-1]"/"lst[len]; gsub(/\.wv1/, "", spk_wav); printf("'$sph2pipe' -f wav %s %s/wsj0/si_tr_s/%s.wav \n",  $2, dir, spk_wav);}' < si_tr_s.scp > si_tr_s_wav.sh
+awk -v dir=${dir} 'BEGIN{print("#!/usr/bin/env bash")}{len=split($2, lst, "/"); spk_wav=lst[len-1]"/"lst[len]; gsub(/\.wv1/, "", spk_wav); printf("'$sph2pipe' -f wav %s %s/wsj0/si_dt_05/%s.wav \n", $2, dir, spk_wav);}' < si_dt_05.scp > si_dt_05_wav.sh
+awk -v dir=${dir} 'BEGIN{print("#!/usr/bin/env bash")}{len=split($2, lst, "/"); spk_wav=lst[len-1]"/"lst[len]; gsub(/\.wv1/, "", spk_wav); printf("'$sph2pipe' -f wav %s %s/wsj0/si_et_05/%s.wav \n", $2, dir, spk_wav);}' < si_et_05.scp > si_et_05_wav.sh
 
 for f in si_tr_s si_dt_05 si_et_05; do
   awk '(NR>1){print $NF}' ${f}_wav.sh | \

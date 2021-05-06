@@ -36,9 +36,9 @@ wsj_names={'WSJ1_contaminated_mic', 'WSJ0_contaminated_mic'};  %name of the outp
 dirha_name='DIRHA_wsj_oracle_VAD_mic'; %name of the output DIRHA_dataset folder (with an Oracle VAD applied to the 1-minute sequences)
 
 % Impulse responses for WSJ contamination
-IR_folders{1}=strcat(IR_folder, '/T1_06');
-IR_folders{2}=strcat(IR_folder, '/T2_05');
-IR_folders{3}=strcat(IR_folder, '/T3_03');
+IR_folders{1}=strcat(IR_folder, '/T1_O6');
+IR_folders{2}=strcat(IR_folder, '/T2_O5');
+IR_folders{3}=strcat(IR_folder, '/T3_O3');
 
 %-----------------------------------------------------------------------
 

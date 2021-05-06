@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -71,6 +71,10 @@ fcaw-cen8-b fcaw-cen8-b_org 0.0 2.9
 mmxg-cen8-b mmxg-cen8-b_org 0.0 2.3
 EOF
 
+    # for enh task
+    for x in test ${train_set} ${train_dev}; do
+        cp data/${x}/wav.scp data/${x}/spk1.scp
+    done
 fi
 
 

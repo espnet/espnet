@@ -50,7 +50,7 @@ class LoadInputsAndTargets(object):
         keep_all_data_on_mem=False,
     ):
         self._loaders = {}
-        if mode not in ["asr", "tts", "mt"]:
+        if mode not in ["asr", "tts", "mt", "vc"]:
             raise ValueError("Only asr or tts are allowed: mode={}".format(mode))
         if preprocess_conf is not None:
             self.preprocessing = Transformation(preprocess_conf)
@@ -66,10 +66,14 @@ class LoadInputsAndTargets(object):
             raise ValueError(
                 'Choose one of "use_second_target" and ' '"use_speaker_embedding "'
             )
-        if (use_second_target or use_speaker_embedding) and mode != "tts":
+        if (
+            (use_second_target or use_speaker_embedding)
+            and mode != "tts"
+            and mode != "vc"
+        ):
             logging.warning(
                 '"use_second_target" and "use_speaker_embedding" is '
-                "used only for tts mode"
+                "used only for tts or vc mode"
             )
 
         self.mode = mode
@@ -86,11 +90,12 @@ class LoadInputsAndTargets(object):
 
         self.keep_all_data_on_mem = keep_all_data_on_mem
 
-    def __call__(self, batch):
+    def __call__(self, batch, return_uttid=False):
         """Function to load inputs and targets from list of dicts
 
         :param List[Tuple[str, dict]] batch: list of dict which is subset of
             loaded data.json
+        :param bool return_uttid: return utterance ID information for visualization
         :return: list of input token id sequences [(L_1), (L_2), ..., (L_B)]
         :return: list of input feature sequences
             [(T_1, D), (T_2, D), ..., (T_B, D)]
@@ -168,8 +173,12 @@ class LoadInputsAndTargets(object):
             return_batch, uttid_list = self._create_batch_mt(
                 x_feats_dict, y_feats_dict, uttid_list
             )
+        elif self.mode == "vc":
+            return_batch, uttid_list = self._create_batch_vc(
+                x_feats_dict, y_feats_dict, uttid_list
+            )
         else:
-            raise NotImplementedError
+            raise NotImplementedError(self.mode)
 
         if self.preprocessing is not None:
             # Apply pre-processing all input features
@@ -178,6 +187,9 @@ class LoadInputsAndTargets(object):
                     return_batch[x_name] = self.preprocessing(
                         return_batch[x_name], uttid_list, **self.preprocess_args
                     )
+
+        if return_uttid:
+            return tuple(return_batch.values()), uttid_list
 
         # Doesn't return the names now.
         return tuple(return_batch.values())
@@ -200,22 +212,13 @@ class LoadInputsAndTargets(object):
         xs = list(x_feats_dict.values())
 
         if self.load_output:
-            if len(y_feats_dict) == 1:
-                ys = list(y_feats_dict.values())[0]
-                assert len(xs[0]) == len(ys), (len(xs[0]), len(ys))
+            ys = list(y_feats_dict.values())
+            assert len(xs[0]) == len(ys[0]), (len(xs[0]), len(ys[0]))
 
-                # get index of non-zero length samples
-                nonzero_idx = list(filter(lambda i: len(ys[i]) > 0, range(len(ys))))
-            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
-                ys = list(y_feats_dict.values())
-                assert len(xs[0]) == len(ys[0]), (len(xs[0]), len(ys[0]))
-
-                # get index of non-zero length samples
-                nonzero_idx = list(
-                    filter(lambda i: len(ys[0][i]) > 0, range(len(ys[0])))
-                )
-                for n in range(1, len(y_feats_dict)):
-                    nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
+            # get index of non-zero length samples
+            nonzero_idx = list(filter(lambda i: len(ys[0][i]) > 0, range(len(ys[0]))))
+            for n in range(1, len(y_feats_dict)):
+                nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
         else:
             # Note(kamo): Be careful not to make nonzero_idx to a generator
             nonzero_idx = list(range(len(xs[0])))
@@ -239,16 +242,15 @@ class LoadInputsAndTargets(object):
 
         x_names = list(x_feats_dict.keys())
         if self.load_output:
-            if len(y_feats_dict) == 1:
-                ys = [ys[i] for i in nonzero_sorted_idx]
-            elif len(y_feats_dict) > 1:  # multi-speaker asr mode
-                ys = zip(*[[y[i] for i in nonzero_sorted_idx] for y in ys])
-
-            y_name = list(y_feats_dict.keys())[0]
+            ys = [[y[i] for i in nonzero_sorted_idx] for y in ys]
+            y_names = list(y_feats_dict.keys())
 
             # Keeping x_name and y_name, e.g. input1, for future extension
             return_batch = OrderedDict(
-                [*[(x_name, x) for x_name, x in zip(x_names, xs)], (y_name, ys)]
+                [
+                    *[(x_name, x) for x_name, x in zip(x_names, xs)],
+                    *[(y_name, y) for y_name, y in zip(y_names, ys)],
+                ]
             )
         else:
             return_batch = OrderedDict([(x_name, x) for x_name, x in zip(x_names, xs)])
@@ -374,6 +376,84 @@ class LoadInputsAndTargets(object):
             return_batch = OrderedDict([(x_name, xs), (spembs_name, spembs)])
         else:
             x_name = list(y_feats_dict.keys())[0]
+
+            return_batch = OrderedDict([(x_name, xs)])
+        return return_batch, uttid_list
+
+    def _create_batch_vc(self, x_feats_dict, y_feats_dict, uttid_list):
+        """Create a OrderedDict for the mini-batch
+
+        :param OrderedDict x_feats_dict:
+            e.g. {"input1": [ndarray, ndarray, ...],
+                  "input2": [ndarray, ndarray, ...]}
+        :param OrderedDict y_feats_dict:
+            e.g. {"target1": [ndarray, ndarray, ...],
+                  "target2": [ndarray, ndarray, ...]}
+        :param: List[str] uttid_list:
+        :return: batch, uttid_list
+        :rtype: Tuple[OrderedDict, List[str]]
+        """
+        # Create a list from the first item
+        xs = list(x_feats_dict.values())[0]
+
+        # get index of non-zero length samples
+        nonzero_idx = list(filter(lambda i: len(xs[i]) > 0, range(len(xs))))
+
+        # sort in input lengths
+        if self.sort_in_input_length:
+            # sort in input lengths
+            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        else:
+            nonzero_sorted_idx = nonzero_idx
+
+        # remove zero-length samples
+        xs = [xs[i] for i in nonzero_sorted_idx]
+        uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
+
+        if self.load_output:
+            ys = list(y_feats_dict.values())[0]
+            assert len(xs) == len(ys), (len(xs), len(ys))
+            ys = [ys[i] for i in nonzero_sorted_idx]
+
+            spembs = None
+            spcs = None
+            spembs_name = "spembs_none"
+            spcs_name = "spcs_none"
+
+            if self.use_second_target:
+                raise ValueError("Currently second target not supported.")
+                spcs = list(x_feats_dict.values())[1]
+                spcs = [spcs[i] for i in nonzero_sorted_idx]
+                spcs_name = list(x_feats_dict.keys())[1]
+
+            if self.use_speaker_embedding:
+                spembs = list(x_feats_dict.values())[1]
+                spembs = [spembs[i] for i in nonzero_sorted_idx]
+                spembs_name = list(x_feats_dict.keys())[1]
+
+            x_name = list(x_feats_dict.keys())[0]
+            y_name = list(y_feats_dict.keys())[0]
+
+            return_batch = OrderedDict(
+                [(x_name, xs), (y_name, ys), (spembs_name, spembs), (spcs_name, spcs)]
+            )
+        elif self.use_speaker_embedding:
+            if len(x_feats_dict) == 0:
+                raise IndexError("No speaker embedding is provided")
+            elif len(x_feats_dict) == 1:
+                spembs_idx = 0
+            else:
+                spembs_idx = 1
+
+            spembs = list(x_feats_dict.values())[spembs_idx]
+            spembs = [spembs[i] for i in nonzero_sorted_idx]
+
+            x_name = list(x_feats_dict.keys())[0]
+            spembs_name = list(x_feats_dict.keys())[spembs_idx]
+
+            return_batch = OrderedDict([(x_name, xs), (spembs_name, spembs)])
+        else:
+            x_name = list(x_feats_dict.keys())[0]
 
             return_batch = OrderedDict([(x_name, xs)])
         return return_batch, uttid_list

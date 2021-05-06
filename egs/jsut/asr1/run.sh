@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Nagoya University (MAsao Someki)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -22,6 +22,7 @@ sampling_rate=48000
 # feature configuration
 do_delta=false
 
+preprocess_config=conf/specaug.yaml
 lm_config=conf/lm.yaml
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
@@ -29,6 +30,7 @@ decode_config=conf/decode.yaml
 lm_resume=
 lmtag=
 # decoding parameter
+n_average=10 # use 1 for RNN models
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # root directory of db
@@ -45,9 +47,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr_no_dev
+train_set=tr_no_dev_sp
 train_dev=dev
-recog_set=eval1
+recog_set="dev eval1"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -67,8 +69,6 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
-feat_ev_dir=${dumpdir}/${recog_set}; mkdir -p ${feat_ev_dir}
-
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -82,11 +82,21 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                               exp/make_fbank/train  \
                               ${fbankdir}
     # make a dev set
-    utils/subset_data_dir.sh --first data/train 500 data/deveval
-    utils/subset_data_dir.sh --first data/deveval 250 data/${recog_set}
-    utils/subset_data_dir.sh --last data/deveval 250 data/${train_dev}
+    utils/subset_data_dir.sh --first data/train   500 data/deveval
+    utils/subset_data_dir.sh --first data/deveval 250 data/eval1
+    utils/subset_data_dir.sh --last  data/deveval 250 data/dev
     n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --last data/train ${n} data/tr_no_dev
+
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/tr_no_dev data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/tr_no_dev data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/tr_no_dev data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    utils/fix_data_dir.sh data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -104,14 +114,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1char/${train_set}_units.txt
+dict=data/lang_1char/tr_no_dev_units.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/tr_no_dev/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
     # make json labels
@@ -139,7 +149,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " \
+    text2token.py -s 1 -n 1 data/tr_no_dev/text | cut -f 2- -d" " \
         > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " \
         > ${lmdatadir}/valid.txt
@@ -163,6 +173,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ -n "${preprocess_config}" ]; then
+        expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -174,6 +187,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -191,6 +205,16 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=16
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${recog_model} \
+                               --num ${n_average}
+    fi
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do

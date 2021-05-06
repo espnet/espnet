@@ -79,7 +79,7 @@ class ASRInterface:
     def calculate_all_attentions(self, xs, ilens, ys):
         """Caluculate attention.
 
-        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
+        :param list xs: list of padded input sequences [(T1, idim), (T2, idim), ...]
         :param ndarray ilens: batch of lengths of input sequences (B)
         :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
         :return: attention weights (B, Lmax, Tmax)
@@ -87,12 +87,36 @@ class ASRInterface:
         """
         raise NotImplementedError("calculate_all_attentions method is not implemented")
 
+    def calculate_all_ctc_probs(self, xs, ilens, ys):
+        """Caluculate CTC probability.
+
+        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
+        :param ndarray ilens: batch of lengths of input sequences (B)
+        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
+        :return: CTC probabilities (B, Tmax, vocab)
+        :rtype: float ndarray
+        """
+        raise NotImplementedError("calculate_all_ctc_probs method is not implemented")
+
     @property
     def attention_plot_class(self):
         """Get attention plot class."""
         from espnet.asr.asr_utils import PlotAttentionReport
 
         return PlotAttentionReport
+
+    @property
+    def ctc_plot_class(self):
+        """Get CTC plot class."""
+        from espnet.asr.asr_utils import PlotCTCReport
+
+        return PlotCTCReport
+
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        raise NotImplementedError(
+            "get_total_subsampling_factor method is not implemented"
+        )
 
     def encode(self, feat):
         """Encode feature in `beam_search` (optional).
@@ -119,7 +143,9 @@ class ASRInterface:
 predefined_asr = {
     "pytorch": {
         "rnn": "espnet.nets.pytorch_backend.e2e_asr:E2E",
+        "transducer": "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E",
         "transformer": "espnet.nets.pytorch_backend.e2e_asr_transformer:E2E",
+        "conformer": "espnet.nets.pytorch_backend.e2e_asr_conformer:E2E",
     },
     "chainer": {
         "rnn": "espnet.nets.chainer_backend.e2e_asr:E2E",

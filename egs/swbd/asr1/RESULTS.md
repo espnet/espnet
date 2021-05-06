@@ -1,3 +1,23 @@
+# conformer with BPE 2000, specaug, speed perturbation, Transformer LM decoding
+## Models
+- model link: https://drive.google.com/file/d/1FhDeQ4eFxBsnGitZkG7rgScZB0oNpeg7/view
+- training config file: `conf/tuning/train_pytorch_conformer_lr5.yaml`
+- preprocess config file: `conf/specaug.yaml`
+- decoding config file: `conf/decode.yaml`
+
+## WER
+```
+exp_sp/train_nodup_sp_pytorch_train_pytorch_conformer_lr5_specaug_resume/decode_eval2000_model.last10.avg.best_decode_train_transformer_lm_pytorch_swbd+fisher_bpe2000/scoring/hyp.callhm.ctm.filt.sys
+|       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
+|       Sum/Avg           |        2628               21594        |        87.9                 8.9                  3.2                 2.0                 14.0                49.8        |
+exp_sp/train_nodup_sp_pytorch_train_pytorch_conformer_lr5_specaug_resume/decode_eval2000_model.last10.avg.best_decode_train_transformer_lm_pytorch_swbd+fisher_bpe2000/scoring/hyp.ctm.filt.sys
+|       SPKR              |       # Snt             # Wrd        |       Corr                 Sub                Del                 Ins                 Err              S.Err        |
+|       Sum/Avg           |       4459              42989        |       91.0                 6.5                2.5                 1.4                10.4               44.5        |
+exp_sp/train_nodup_sp_pytorch_train_pytorch_conformer_lr5_specaug_resume/decode_eval2000_model.last10.avg.best_decode_train_transformer_lm_pytorch_swbd+fisher_bpe2000/scoring/hyp.swbd.ctm.filt.sys
+|       SPKR             |        # Snt              # Wrd        |       Corr                  Sub                 Del                 Ins                  Err               S.Err        |
+|       Sum/Avg          |        1831               21395        |       94.1                  4.1                 1.9                 0.9                  6.8                36.9        |
+```
+
 # transformer with BPE 2000, specaug, LM decoding
 ## Models
 - model link: https://drive.google.com/open?id=10AeST49tCFOHQul4rVETBHISwaN4PwuU

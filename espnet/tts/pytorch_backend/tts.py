@@ -343,6 +343,16 @@ def train(args):
     else:
         model_params = model.parameters()
 
+    logging.warning(
+        "num. model params: {:,} (num. trained: {:,} ({:.1f}%))".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+            sum(p.numel() for p in model.parameters() if p.requires_grad)
+            * 100.0
+            / sum(p.numel() for p in model.parameters()),
+        )
+    )
+
     # Setup an optimizer
     if args.opt == "adam":
         optimizer = torch.optim.Adam(
@@ -488,7 +498,6 @@ def train(args):
         data = sorted(
             list(valid_json.items())[: args.num_save_attention],
             key=lambda x: int(x[1]["output"][0]["shape"][0]),
-            reverse=True,
         )
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2018 Johns Hopkins University (Author: Aswin Shanmugam Subramanian)
 # Apache 2.0
 
@@ -18,7 +18,7 @@ set -u
 set -o pipefail
 
 # check if WPE is installed
-result=`python -c "\
+result=`python3 -c "\
 try:
     import nara_wpe
     print('1')
@@ -74,14 +74,14 @@ for task in dt et; do
             echo $allwavs_output | tr ' ' '\n' | rev | sort | rev | awk 'NR%8==0' > $wdir/channels_output.8th
             paste -d" " $wdir/channels.1st $wdir/channels.2nd $wdir/channels.3rd $wdir/channels.4th $wdir/channels.5th $wdir/channels.6th $wdir/channels.7th $wdir/channels.8th $wdir/channels_output.1st $wdir/channels_output.2nd $wdir/channels_output.3rd $wdir/channels_output.4th $wdir/channels_output.5th $wdir/channels_output.6th $wdir/channels_output.7th $wdir/channels_output.8th > $arrays
         fi
-        
+
         # split the list for parallel processing
         split_wavfiles=""
         for n in `seq $nj`; do
             split_wavfiles="$split_wavfiles $output_wavfiles.$n"
         done
         utils/split_scp.pl $arrays $split_wavfiles || exit 1;
-        
+
         echo -e "Dereverberation - $task - real - $nch ch\n"
         # making a shell script for each job
 	for n in `seq $nj`; do
@@ -140,14 +140,14 @@ for task in dt et; do
             echo $allwavs_output | tr ' ' '\n' | grep 'ch8' | sort > $wdir/channels_output.8th
             paste -d" " $wdir/channels.1st $wdir/channels.2nd $wdir/channels.3rd $wdir/channels.4th $wdir/channels.5th $wdir/channels.6th $wdir/channels.7th $wdir/channels.8th $wdir/channels_output.1st $wdir/channels_output.2nd $wdir/channels_output.3rd $wdir/channels_output.4th $wdir/channels_output.5th $wdir/channels_output.6th $wdir/channels_output.7th $wdir/channels_output.8th > $arrays
         fi
-        
+
         # split the list for parallel processing
         split_wavfiles=""
         for n in `seq $nj`; do
             split_wavfiles="$split_wavfiles $output_wavfiles.$n"
         done
         utils/split_scp.pl $arrays $split_wavfiles || exit 1;
-        
+
         echo -e "Dereverberation - $task - simu - $nch ch\n"
         # making a shell script for each job
 	for n in `seq $nj`; do
