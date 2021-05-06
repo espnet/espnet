@@ -38,7 +38,7 @@ class GTNCTCLossFunction(torch.autograd.Function):
         return g_criterion
 
     @staticmethod
-    def forward(ctx, log_probs, targets, blank_idx=0, reduction="none"):
+    def forward(ctx, log_probs, targets, ilens, blank_idx=0, reduction="none"):
         """Forward computation.
 
         :param torch.tensor log_probs: batched log softmax probabilities (B, Tmax, oDim)
@@ -47,15 +47,16 @@ class GTNCTCLossFunction(torch.autograd.Function):
         :return: ctc loss value
         :rtype: torch.Tensor
         """
-        B, T, C = log_probs.shape
+        B, _, C = log_probs.shape
         losses = [None] * B
         scales = [None] * B
         emissions_graphs = [None] * B
 
         def process(b):
             # create emission graph
+            T = ilens[b]
             g_emissions = gtn.linear_graph(T, C, log_probs.requires_grad)
-            cpu_data = log_probs[b].cpu().contiguous()
+            cpu_data = log_probs[b][:T].cpu().contiguous()
             g_emissions.set_weights(cpu_data.data_ptr())
 
             # create criterion graph
