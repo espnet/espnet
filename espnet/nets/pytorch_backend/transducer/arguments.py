@@ -336,13 +336,13 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         type=strtobool,
         nargs="?",
         default=False,
-        help="Whether to compute auxiliary Jensen-Shannon divergence loss.",
+        help="Whether to compute Jensen-Shannon divergence loss.",
     )
     group.add_argument(
         "--js-div-loss-weight",
         default=0.0,
         type=float,
-        help="Weight of auxiliary Jensen-Shannon divergence loss.",
+        help="Weight of Jensen-Shannon divergence loss.",
     )
 
     return group
