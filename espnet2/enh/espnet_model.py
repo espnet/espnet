@@ -250,7 +250,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref,
         dereverb_speech_ref=None,
         noise_ref=None,
-        cal_loss=True,
     ):
         """Compute loss according to self.loss_type.
 
@@ -266,7 +265,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         or (Batch, num_speaker, samples, channels)
             noise_ref: (Batch, num_noise_type, samples)
                         or (Batch, num_speaker, samples, channels)
-            cal_loss: whether to calculate enh loss, defualt is True
 
         Returns:
             loss: (torch.Tensor) speech enhancement loss
@@ -300,9 +298,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     ComplexTensor(*torch.unbind(sp, dim=-1)) for sp in spectrum_pre
                 ]
 
-            if not cal_loss:
-                loss, perm = None, None
-                return loss, spectrum_pre, others, flens, perm
 
             # prepare reference speech and reference spectrum
             speech_ref = torch.unbind(speech_ref, dim=1)
@@ -422,10 +417,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         else:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
-            if not cal_loss:
-                loss, perm = None, None
-                return loss, speech_pre, None, speech_lengths, perm
-
+            
             # speech_pre: list[(batch, sample)]
             assert speech_pre[0].dim() == 2, speech_pre[0].dim()
 

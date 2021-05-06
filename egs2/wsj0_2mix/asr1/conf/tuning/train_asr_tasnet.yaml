@@ -1,0 +1,90 @@
+batch_size: 4
+accum_grad: 8
+max_epoch: 80
+patience: none
+num_att_plot: 0
+unused_parameters: true
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+    -   - valid
+        - acc
+        - max
+    -   - valid
+        - loss
+        - min
+keep_nbest_models: 10
+
+optim: adam
+batch_type: folded
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+val_scheduler_criterion:
+    - valid
+    - loss
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 2
+enh: tasnet
+enh_conf:
+    N: 256
+    L: 20
+    B: 256
+    H: 512
+    P: 3
+    X: 8
+    R: 4
+    num_spk: 2
+    norm_type: gLN
+    causal: False
+    mask_nonlinear: relu
+
+# ASR Related
+frontend: default
+frontend_conf:
+    fs: 8000
+    n_fft: 256
+    win_length: 256
+    hop_length: 64
+    apply_stft: true
+
+encoder: transformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.2
+    attention_dropout_rate: 0.0
+    input_layer: conv2d
+    normalize_before: true
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+ctc_conf:
+    reduce: true
+
+asr_model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+joint_model_conf:
+    enh_weight: 0.8
+    end2end_train: true
+    enh_return_type: waveform # waveform or spectrum or none
+    cal_enh_loss: true # whether to calculate enh_loss, need the reduce in ctc_conf

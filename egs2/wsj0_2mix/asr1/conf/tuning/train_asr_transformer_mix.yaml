@@ -1,0 +1,64 @@
+batch_size: 16
+num_workers: 4
+accum_grad: 8
+max_epoch: 100
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+# ASR Related
+frontend: default
+frontend_conf:
+    fs: 16000
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+    frontend_conf: null
+
+encoder: transformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks_sd: 4
+    num_blocks_rec: 8
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d
+    normalize_before: true
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+ctc_conf:
+    dropout_rate: 0.0
+    reduce: False
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+
+optim: adam
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
