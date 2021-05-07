@@ -1,0 +1,7 @@
+batchsize: 0
+
+# maskctc specific
+maskctc-n-iterations: 10
+maskctc-probability-threshold: 0.9
+streaming-mode: window
+block_length: 16
