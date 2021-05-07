@@ -24,6 +24,7 @@ module_list = [
     ("espnet", None, None),
     ("fairseq", None, "installers/install_fairseq.sh"),
     ("phonemizer", None, "installers/install_phonemizer.sh"),
+    ("s3prl", None, "installers/install_s3prl.sh"),
 ]
 
 executable_list = [
