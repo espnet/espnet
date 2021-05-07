@@ -7,7 +7,7 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-# Install pyopenjtalk
+# Install gtn
 if [ ! -e gtn.done ]; then
     (
         set -euo pipefail
