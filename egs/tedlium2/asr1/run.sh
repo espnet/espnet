@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -6,35 +6,34 @@
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 
-set -x
-
 # general configuration
 backend=pytorch
-stage=5       # start from -1 if you need to start from data download
-stop_stage=5
+stage=-1       # start from -1 if you need to start from data download
+stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=1      # verbose option
+verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/tuning/train_pytorch_conformer_maskctc_block_bl16.yaml
+train_config=conf/train.yaml
 lm_config=conf/lm.yaml
-decode_config=conf/tuning/decode_pytorch_transformer_maskctc_latency.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
-skip_lm_training=true   # for only using end-to-end ASR model without LM
+skip_lm_training=false   # for only using end-to-end ASR model without LM
 lm_resume=              # specify a snapshot file to resume LM training
 lmtag=                  # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-use_stearming=true
+use_unsegmented=false # set true to use unsegmented audio for decoding
+
 # model average realted (only for transformer)
 n_average=10                 # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
@@ -57,7 +56,7 @@ set -o pipefail
 
 train_set=train_trim_sp
 train_dev=dev_trim
-recog_set="dev"
+recog_set="dev test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -192,9 +191,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_lm_training}; then
         --dict ${dict}
 fi
 
-lmexpname=train_rnnlm_${backend}_${bpemode}${nbpe}
-lmexpdir=exp/${lmexpname}
-
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -215,80 +211,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json
 fi
 
-if ${use_stearming}; then
-    recog_set="dev_unsegmented" # test_unsegmented"
-fi
-
-
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Decoding"
-    nj=8
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
-       [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-       [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
-        average_opts=
-        if ${use_valbest_average}; then
-            recog_model=model.val${n_average}.avg.best
-            average_opts="--log ${expdir}/results/log"
-        else
-            recog_model=model.last${n_average}.avg.best
-        fi
-	#average_checkpoints.py --backend ${backend} \
-	#    --snapshots ${expdir}/results/snapshot.ep.* \
-	#    --out ${expdir}/results/${recog_model} \
-	#    --num ${n_average} \
-	#    ${average_opts}
-    fi
-
-    pids=() # initialize pids
-    for rtask in ${recog_set}; do
-	(
-        recog_opts=
-        if ${skip_lm_training}; then
-            if [ -z ${lmtag} ]; then
-                lmtag="nolm"
-            fi
-        else
-            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-        fi
-
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}_${use_stearming}
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-
-        # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
-
-        #### use CPU for decoding
-        ngpu=0
-	set -o xtrace
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
-            --config ${decode_config} \
-            --ngpu ${ngpu} \
-            --backend ${backend} \
-            --debugmode ${debugmode} \
-            --verbose ${verbose} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
-            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
-            ${recog_opts}
-
-        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
-
-    ) &
-    pids+=($!) # store background pids
-    done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
-    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-    echo "Finished"
-fi
-
-set -x 
-if [ ${stage} -le 200 ] && [ ${stop_stage} -ge 200 ]; then
+if ${use_unsegmented}; then
     dir=data/
-    recog_set="dev"
+    recog_set="dev test"
     for task in ${recog_set}; do
 	task_new=${task}_unsegmented
 	if [ -d "${dir}/${task_new}" ]; then
@@ -326,4 +251,70 @@ if [ ${stage} -le 200 ] && [ ${stop_stage} -ge 200 ]; then
 	data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
 		     data/${task_new} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
+    recog_set="dev_unsegmented" "test_unsegmented"
+fi
+
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Decoding"
+    nj=32
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
+       [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+       [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        average_opts=
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            average_opts="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+        fi
+        average_checkpoints.py --backend ${backend} \
+			        --snapshots ${expdir}/results/snapshot.ep.* \
+			        --out ${expdir}/results/${recog_model} \
+			        --num ${n_average} \
+                    ${average_opts}
+    fi
+
+    pids=() # initialize pids
+    for rtask in ${recog_set}; do
+    (
+        recog_opts=
+        if ${skip_lm_training}; then
+            if [ -z ${lmtag} ]; then
+                lmtag="nolm"
+            fi
+        else
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+
+        # split data
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+
+        #### use CPU for decoding
+        ngpu=0
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            asr_recog.py \
+            --config ${decode_config} \
+            --ngpu ${ngpu} \
+            --backend ${backend} \
+            --debugmode ${debugmode} \
+            --verbose ${verbose} \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/${recog_model}  \
+            ${recog_opts}
+
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished"
 fi
