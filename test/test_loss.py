@@ -14,18 +14,18 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
 
-@pytest.mark.parametrize("use_warpctc", [True, False])
+@pytest.mark.parametrize("ctc_type", ["warpctc", "builtin", "gtnctc", "cudnnctc"])
 @pytest.mark.parametrize(
     "in_length,out_length", [([11, 17, 15], [4, 2, 3]), ([4], [1])]
 )
-def test_ctc_loss(in_length, out_length, use_warpctc):
+def test_ctc_loss(in_length, out_length, ctc_type):
     pytest.importorskip("torch")
-    if use_warpctc:
+    if ctc_type == "warpctc":
         pytest.importorskip("warpctc_pytorch")
         import warpctc_pytorch
 
         torch_ctcloss = warpctc_pytorch.CTCLoss(size_average=True)
-    else:
+    elif ctc_type == "builtin" or ctc_type == "cudnnctc":
         if LooseVersion(torch.__version__) < LooseVersion("1.0"):
             pytest.skip("pytorch < 1.0 doesn't support CTCLoss")
         _ctcloss_sum = torch.nn.CTCLoss(reduction="sum")
@@ -35,6 +35,18 @@ def test_ctc_loss(in_length, out_length, use_warpctc):
             loss = _ctcloss_sum(th_pred, th_target, th_ilen, th_olen)
             # Batch-size average
             loss = loss / th_pred.size(1)
+            return loss
+
+    elif ctc_type == "gtnctc":
+        pytest.importorskip("gtn")
+        from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
+
+        _ctcloss_sum = GTNCTCLossFunction.apply
+
+        def torch_ctcloss(th_pred, th_target, th_ilen, th_olen):
+            targets = [t.tolist() for t in th_target]
+            log_probs = torch.nn.functional.log_softmax(th_pred, dim=2)
+            loss = _ctcloss_sum(log_probs, targets, th_ilen, 0, "none")
             return loss
 
     n_out = 7
@@ -56,10 +68,17 @@ def test_ctc_loss(in_length, out_length, use_warpctc):
     ).data
 
     th_pred = pad_list([torch.from_numpy(x) for x in np_pred], 0.0).transpose(0, 1)
-    th_target = torch.from_numpy(numpy.concatenate(np_target))
+    if ctc_type == "gtnctc":
+        # gtn implementation expects targets as list
+        th_target = np_target
+        # keep as B x T x H for gtn
+        th_pred = th_pred.transpose(0, 1)
+    else:
+        th_target = torch.from_numpy(numpy.concatenate(np_target))
     th_ilen = torch.from_numpy(input_length)
     th_olen = torch.from_numpy(label_length)
     th_loss = torch_ctcloss(th_pred, th_target, th_ilen, th_olen).numpy()
+
     numpy.testing.assert_allclose(th_loss, ch_loss, 0.05)
 
 

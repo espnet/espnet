@@ -81,7 +81,7 @@ class CTC(torch.nn.Module):
         elif self.ctc_type == "gtnctc":
             targets = [t.tolist() for t in th_target]
             log_probs = torch.nn.functional.log_softmax(th_pred, dim=2)
-            return self.ctc_loss(log_probs, targets, 0, "none")
+            return self.ctc_loss(log_probs, targets, th_ilen, 0, "none")
         else:
             raise NotImplementedError
 
