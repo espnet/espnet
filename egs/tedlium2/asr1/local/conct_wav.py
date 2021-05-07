@@ -1,7 +1,5 @@
 import subprocess
 import sys
-import pdb
-
 
 before = 0
 after = 0
