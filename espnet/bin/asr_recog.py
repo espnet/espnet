@@ -57,8 +57,7 @@ def get_parser():
     )
     parser.add_argument("--debugmode", type=int, default=1, help="Debugmode")
     parser.add_argument("--seed", type=int, default=1, help="Random seed")
-    parser.add_argument("--verbose", "-V", type=int,
-                        default=1, help="Verbose option")
+    parser.add_argument("--verbose", "-V", type=int, default=1, help="Verbose option")
     parser.add_argument(
         "--batchsize",
         type=int,
@@ -108,11 +107,9 @@ def get_parser():
         "--num-encs", default=1, type=int, help="Number of encoders in the model."
     )
     # search related
-    parser.add_argument("--nbest", type=int, default=1,
-                        help="Output N-best hypotheses")
+    parser.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     parser.add_argument("--beam-size", type=int, default=1, help="Beam size")
-    parser.add_argument("--penalty", type=float,
-                        default=0.0, help="Incertion penalty")
+    parser.add_argument("--penalty", type=float, default=0.0, help="Incertion penalty")
     parser.add_argument(
         "--maxlenratio",
         type=float,
@@ -206,16 +203,13 @@ def get_parser():
         default=None,
         help="Word RNNLM model config file to read",
     )
-    parser.add_argument("--word-dict", type=str,
-                        default=None, help="Word list to read")
-    parser.add_argument("--lm-weight", type=float,
-                        default=0.1, help="RNNLM weight")
+    parser.add_argument("--word-dict", type=str, default=None, help="Word list to read")
+    parser.add_argument("--lm-weight", type=float, default=0.1, help="RNNLM weight")
     # ngram related
     parser.add_argument(
         "--ngram-model", type=str, default=None, help="ngram model file to read"
     )
-    parser.add_argument("--ngram-weight", type=float,
-                        default=0.1, help="ngram weight")
+    parser.add_argument("--ngram-weight", type=float, default=0.1, help="ngram weight")
     parser.add_argument(
         "--ngram-scorer",
         type=str,
@@ -229,14 +223,13 @@ def get_parser():
     # streaming related
     parser.add_argument(
         "--streaming-mode",
-        type=str2bool,
-        default=False,
+        type=str,
+        default=None,
         choices=["window", "segment"],
         help="""Use streaming recognizer for inference.
                         `--batchsize` must be set to 0 to enable this mode""",
     )
-    parser.add_argument("--streaming-window", type=int,
-                        default=10, help="Window size")
+    parser.add_argument("--streaming-window", type=int, default=10, help="Window size")
     parser.add_argument(
         "--streaming-min-blank-dur",
         type=int,
@@ -259,18 +252,11 @@ def get_parser():
         "For Mask CTC, set 0 to predict 1 mask/iter.",
     )
     parser.add_argument(
-        "--maskctc-filter-ctc-probability",
-        type=strtobool,
-        default=True,
-        help="Threshold probability for CTC output",
-    )
-    parser.add_argument(
         "--maskctc-probability-threshold",
         type=float,
         default=0.999,
         help="Threshold probability for CTC output",
     )
-
     parser.add_argument(
         "--block_length",
         type=float,
@@ -287,8 +273,7 @@ def main(args):
     args = parser.parse_args(args)
 
     if args.ngpu == 0 and args.dtype == "float16":
-        raise ValueError(
-            f"--dtype {args.dtype} does not support the CPU backend.")
+        raise ValueError(f"--dtype {args.dtype} does not support the CPU backend.")
 
     # logging info
     if args.verbose == 1:
