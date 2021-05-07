@@ -5,12 +5,15 @@
 
 """Fastspeech related modules for ESPnet2."""
 
+import logging
+
 from typing import Dict
 from typing import Sequence
 from typing import Tuple
 
 import torch
 import torch.nn.functional as F
+
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.conformer.encoder import (
@@ -135,6 +138,7 @@ class FastSpeech(AbsTTS):
         encoder_type: str = "transformer",
         decoder_type: str = "transformer",
         # only for conformer
+        conformer_rel_pos_type: str = "legacy",
         conformer_pos_enc_layer_type: str = "rel_pos",
         conformer_self_attn_layer_type: str = "rel_selfattn",
         conformer_activation_type: str = "swish",
@@ -142,6 +146,7 @@ class FastSpeech(AbsTTS):
         use_cnn_in_conformer: bool = True,
         conformer_enc_kernel_size: int = 7,
         conformer_dec_kernel_size: int = 31,
+        zero_triu: bool = False,
         # pretrained spk emb
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
@@ -194,6 +199,30 @@ class FastSpeech(AbsTTS):
         pos_enc_class = (
             ScaledPositionalEncoding if self.use_scaled_pos_enc else PositionalEncoding
         )
+
+        # check relative positional encoding compatibility
+        if "conformer" in [encoder_type, decoder_type]:
+            if conformer_rel_pos_type == "legacy":
+                if conformer_pos_enc_layer_type == "rel_pos":
+                    conformer_pos_enc_layer_type = "legacy_rel_pos"
+                    logging.warning(
+                        "Fallback to conformer_pos_enc_layer_type = 'legacy_rel_pos' "
+                        "due to the compatibility. If you want to use the new one, "
+                        "please use conformer_pos_enc_layer_type = 'latest'."
+                    )
+                if conformer_self_attn_layer_type == "rel_selfattn":
+                    conformer_self_attn_layer_type = "legacy_rel_selfattn"
+                    logging.warning(
+                        "Fallback to "
+                        "conformer_self_attn_layer_type = 'legacy_rel_selfattn' "
+                        "due to the compatibility. If you want to use the new one, "
+                        "please use conformer_pos_enc_layer_type = 'latest'."
+                    )
+            elif conformer_rel_pos_type == "latest":
+                assert conformer_pos_enc_layer_type != "legacy_rel_pos"
+                assert conformer_self_attn_layer_type != "legacy_rel_selfattn"
+            else:
+                raise ValueError(f"Unknown rel_pos_type: {conformer_rel_pos_type}")
 
         # define encoder
         encoder_input_layer = torch.nn.Embedding(

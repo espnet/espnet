@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -416,10 +413,10 @@ def train(args):
     # specify attention, CTC, hybrid mode
     if "transducer" in args.model_module:
         if (
-            getattr(args, "etype", False) == "transformer"
-            or getattr(args, "dtype", False) == "transformer"
+            getattr(args, "etype", False) == "custom"
+            or getattr(args, "dtype", False) == "custom"
         ):
-            mtl_mode = "transformer_transducer"
+            mtl_mode = "custom_transducer"
         else:
             mtl_mode = "transducer"
         logging.info("Pure transducer mode")
@@ -441,6 +438,7 @@ def train(args):
             idim_list[0] if args.num_encs == 1 else idim_list, odim, args
         )
     assert isinstance(model, ASRInterface)
+    total_subsampling_factor = model.get_total_subsampling_factor()
 
     logging.info(
         " Total parameter of the model = "
@@ -500,6 +498,16 @@ def train(args):
         model, model_params = freeze_modules(model, args.freeze_mods)
     else:
         model_params = model.parameters()
+
+    logging.warning(
+        "num. model params: {:,} (num. trained: {:,} ({:.1f}%))".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+            sum(p.numel() for p in model.parameters() if p.requires_grad)
+            * 100.0
+            / sum(p.numel() for p in model.parameters()),
+        )
+    )
 
     # Setup an optimizer
     if args.opt == "adadelta":
@@ -673,15 +681,9 @@ def train(args):
 
     # Save attention weight each epoch
     is_attn_plot = (
-        (
-            "transformer" in args.model_module
-            or "conformer" in args.model_module
-            or mtl_mode in ["att", "mtl"]
-        )
-        or (
-            mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
-        )
-        or mtl_mode == "transformer_transducer"
+        "transformer" in args.model_module
+        or "conformer" in args.model_module
+        or mtl_mode in ["att", "mtl", "custom_transducer"]
     )
 
     if args.num_save_attention > 0 and is_attn_plot:
@@ -703,6 +705,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
@@ -729,8 +732,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
-            ikey="output",
-            iaxis=1,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(ctc_reporter, trigger=(1, "epoch"))
     else:
@@ -744,21 +746,45 @@ def train(args):
         report_keys_cer_ctc = [
             "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
         ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
-    trainer.extend(
-        extensions.PlotReport(
-            [
-                "main/loss",
-                "validation/main/loss",
-                "main/loss_ctc",
-                "validation/main/loss_ctc",
-                "main/loss_att",
-                "validation/main/loss_att",
-            ]
-            + ([] if args.num_encs == 1 else report_keys_loss_ctc),
-            "epoch",
-            file_name="loss.png",
+
+    if hasattr(model, "is_rnnt"):
+        trainer.extend(
+            extensions.PlotReport(
+                [
+                    "main/loss",
+                    "validation/main/loss",
+                    "main/loss_trans",
+                    "validation/main/loss_trans",
+                    "main/loss_ctc",
+                    "validation/main/loss_ctc",
+                    "main/loss_lm",
+                    "validation/main/loss_lm",
+                    "main/loss_aux_trans",
+                    "validation/main/loss_aux_trans",
+                    "main/loss_aux_symm_kl",
+                    "validation/main/loss_aux_symm_kl",
+                ],
+                "epoch",
+                file_name="loss.png",
+            )
         )
-    )
+    else:
+        trainer.extend(
+            extensions.PlotReport(
+                [
+                    "main/loss",
+                    "validation/main/loss",
+                    "main/loss_ctc",
+                    "validation/main/loss_ctc",
+                    "main/loss_att",
+                    "validation/main/loss_att",
+                ]
+                + ([] if args.num_encs == 1 else report_keys_loss_ctc),
+                "epoch",
+                file_name="loss.png",
+            )
+        )
+
     trainer.extend(
         extensions.PlotReport(
             ["main/acc", "validation/main/acc"], "epoch", file_name="acc.png"
@@ -778,7 +804,7 @@ def train(args):
         snapshot_object(model, "model.loss.best"),
         trigger=training.triggers.MinValueTrigger("validation/main/loss"),
     )
-    if mtl_mode not in ["ctc", "transducer", "transformer_transducer"]:
+    if mtl_mode not in ["ctc", "transducer", "custom_transducer"]:
         trainer.extend(
             snapshot_object(model, "model.acc.best"),
             trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
@@ -847,21 +873,42 @@ def train(args):
     trainer.extend(
         extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
     )
-    report_keys = [
-        "epoch",
-        "iteration",
-        "main/loss",
-        "main/loss_ctc",
-        "main/loss_att",
-        "validation/main/loss",
-        "validation/main/loss_ctc",
-        "validation/main/loss_att",
-        "main/acc",
-        "validation/main/acc",
-        "main/cer_ctc",
-        "validation/main/cer_ctc",
-        "elapsed_time",
-    ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+
+    if hasattr(model, "is_rnnt"):
+        report_keys = [
+            "epoch",
+            "iteration",
+            "main/loss",
+            "main/loss_trans",
+            "main/loss_ctc",
+            "main/loss_lm",
+            "main/loss_aux_trans",
+            "main/loss_aux_symm_kl",
+            "validation/main/loss",
+            "validation/main/loss_trans",
+            "validation/main/loss_ctc",
+            "validation/main/loss_lm",
+            "validation/main/loss_aux_trans",
+            "validation/main/loss_aux_symm_kl",
+            "elapsed_time",
+        ]
+    else:
+        report_keys = [
+            "epoch",
+            "iteration",
+            "main/loss",
+            "main/loss_ctc",
+            "main/loss_att",
+            "validation/main/loss",
+            "validation/main/loss_ctc",
+            "validation/main/loss_att",
+            "main/acc",
+            "validation/main/acc",
+            "main/cer_ctc",
+            "validation/main/cer_ctc",
+            "elapsed_time",
+        ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+
     if args.opt == "adadelta":
         trainer.extend(
             extensions.observe_value(
@@ -990,15 +1037,18 @@ def recog(args):
     )
 
     # load transducer beam search
-    if hasattr(model, "rnnt_mode"):
+    if hasattr(model, "is_rnnt"):
         if hasattr(model, "dec"):
             trans_decoder = model.dec
         else:
             trans_decoder = model.decoder
+        joint_network = model.joint_network
 
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
+            joint_network=joint_network,
             beam_size=args.beam_size,
+            nbest=args.nbest,
             lm=rnnlm,
             lm_weight=args.lm_weight,
             search_type=args.search_type,
@@ -1064,7 +1114,7 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
-                elif hasattr(model, "rnnt_mode"):
+                elif hasattr(model, "is_rnnt"):
                     nbest_hyps = model.recognize(feat, beam_search_transducer)
                 else:
                     nbest_hyps = model.recognize(

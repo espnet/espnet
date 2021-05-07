@@ -5,14 +5,14 @@
 espnet/              # Python modules
 utils/               # Utility scripts of ESPnet
 test/                # Unit test
-test_utils/          #unit test for executable scripts
+test_utils/          # Unit test for executable scripts
 egs/                 # The complete recipe for each corpora
     an4/             # AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial
       asr1/          # ASR recipe
           - run.sh   # Executable script
           - cmd.sh   # To select the backend for job scheduler
           - path.sh  # Setup script for environment variables
-          - conf/    # Containing COnfiguration files
+          - conf/    # Containing Configuration files
           - steps/   # The steps scripts from Kaldi
           - utils/   # The utils scripts from Kaldi
       tts1/          # TTS recipe
@@ -86,7 +86,7 @@ We rely on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/mast
 e.g. If the script has `ngpu` option
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # run.sh
 ngpu=1
 . utils/parse_options.sh
@@ -152,22 +152,46 @@ $ ./run.sh --stage 3 --stop-stage 5
 
 ### CTC, attention, and hybrid CTC/attention
 
-ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
+ESPnet can easily switch the model's training/decoding mode from CTC, attention, and hybrid CTC/attention.
+
+Each mode can be trained by specifying `mtlalpha` in the [training configuration](https://github.com/espnet/espnet/blob/7dc9da2f07c54b4b0e878d8ef219fcd4d16a5bec/doc/tutorial.md#changing-the-training-configuration):
 
 ```sh
 # hybrid CTC/attention (default)
-#  --mtlalpha 0.5 and --ctc_weight 0.3 in most cases
-$ ./run.sh
+mtlalpha: 0.3
 
-# CTC mode
-$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
+# CTC
+mtlalpha: 1.0
 
-# attention mode
-$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
+# attention
+mtlalpha: 0.0
 ```
 
-- The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
-(i.e., `--recog_model model.loss.best`).
+Decoding for each mode can be done using the following decoding configurations:
+
+```sh
+# hybrid CTC/attention (default)
+ctc-weight: 0.3
+beam-size: 10
+
+# CTC
+ctc-weight: 1.0
+## for best path decoding
+api: v1 # default setting (can be omitted)
+## for prefix search decoding w/ beam search
+api: v2
+beam-size: 10
+
+# attention
+ctc-weight: 0.0
+beam-size: 10
+maxlenratio: 0.8
+minlenratio: 0.3
+```
+
+- The CTC mode does not compute the validation accuracy, and the optimum model is selected with its loss value
+(i.e., `$ ./run.sh --recog_model model.loss.best`).
+- The CTC decoding adopts the best path decoding by default, which simply outputs the most probable label at every time step. The prefix search deocding with beam search is also supported in [beam search API v2](https://espnet.github.io/espnet/apis/espnet_bin.html?highlight=api#asr-recog-py).
 - The pure attention mode requires to set the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`), appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.
 - About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics. 
 
@@ -183,18 +207,16 @@ model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 
 Several transducer architectures are currently available:
 - RNN-Transducer (default)
-- RNN-Transducer with attention decoder (+ `rnnt-mode: 'rnnt-att'`)
-- Transformer-Transducer (`etype: transformer` and `dtype: transformer`)
-- Mixed Transformer/RNN-Transducer (e.g: `etype: transformer` with `dtype: lstm`)
+- Custom-Transducer (`etype: custom` and `dtype: custom`)
+- Mixed Custom/RNN-Transducer (e.g: `etype: custom` with `dtype: lstm`)
 
-The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `transformer` is specified for either, a transformer-based architecture will be used for the corresponding part, otherwise a RNN architecture will be selected.
+The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, `etype` and `dtype` in training config. If `custom` is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.
 
-While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a transformer-based architecture definition for transducer is customizable:
+While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a customizable architecture definition for transducer is different:
 1) Each blocks (or layers) for both network part should be specified individually through `enc-block-arch` or/and `dec-block-arch`:
 
-
         # e.g: TDNN-Transformer encoder
-        etype: transformer
+        etype: custom
         enc-block-arch:
                 - type: tdnn
                   idim: 512
@@ -297,7 +319,6 @@ The algorithm references can be found in [methods documentation](https://github.
 Additional notes:
 - Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
 - There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview.
-- Attention decoder (`rnnt-mode: 'rnnt-att'`) with transformer encoder (`etype: transformer`) is currently not supported.
 - RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
 - Transformer-decoder pre-initialization using a transformer LM is not supported yet.
 - Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.
@@ -350,26 +371,37 @@ Basically, this option makes training iteration faster than `--batch-count seq`.
 
 ### How to use finetuning
 
-ESPnet currently supports two finetuning operations: transfer learning (1.x) and freezing (2.).
+ESPnet currently supports two finetuning operations: transfer learning and freezing.
+We expect the user to define the following options in its main training config (e.g.: conf/train*.yaml). If needed, they can be directly passed to `(asr|tts|vc)_train.py` by adding the prefix `--` to the options.
 
-1.1. Transfer learning option is split between encoder initialization (`--enc-init`) and decoder initialization (`--dec-init`). However, the same model can be specified for both options. Each option takes a snapshot path (e.g.: `exp/[model]/results/snapshot.ep.1`) or model path (e.g.: `exp/[model]/results/model.loss.best`) as argument.
+#### Transfer learning
 
-1.2. Additionally, a list of modules (separated by a comma) can be specified to control the modules to transfer using `--enc-init-mods` and `--dec-init-mods` options.
-It should be noted the user doesn't need to specify each module individually, only a partial matching (beginning of the string) is needed.
+- Transfer learning option is split between encoder initialization (`enc-init`) and decoder initialization (`dec-init`). However, the same model can be specified for both options.
+- Each option takes a snapshot path (e.g.: `[espnet_model_path]/results/snapshot.ep.1`) or model path (e.g.: `[espnet_model_path]/results/model.loss.best`) as argument.
+- Additionally, a list of encoder and decoder modules (separated by a comma) can also be specified to control the modules to transfer with the options `enc-init-mods` and `dec-init-mods`.
+- For each specified module, we only expect a partial match with the start of the target model module name. Thus, multiple modules can be specified with the same key if they share a common prefix.
 
-Example 1: `--enc-init-mods='enc.'` means all encoder modules should be transfered.
+    > Mandatory: `enc-init: /home/usr/espnet/egs/vivos/asr1/exp/train_nodev_pytorch_train/results/model.loss.best` -> specify a pre-trained model on VIVOS for transfer learning.  
+         > Example 1: `enc-init-mods: 'enc.'` -> transfer all encoder parameters.  
+         > Example 2: `enc-init-mods: 'enc.embed.,enc.0.'` -> transfer encoder embedding layer and first layer parameters.  
 
-Example 2: `--enc-init-mods='enc.embed.,enc.0.'` means encoder embedding layer and first layer should be transfered.
 
-2. Freezing option can be used through `--freeze-mods`. Similarly to `--(enc|dec)-init-mods`, the option take a list of modules (separated by a comma). The behaviour being the same (partial matching).
+#### Freezing
 
-Example 1: `--freeze-mods='enc.embed.'` means encoder embedding layer should be frozen.
+- Freezing option can be enabled with `freeze-mods`, (`freeze_param` in espnet2).
+- The option take a list of model modules (separated by a comma) as argument. As previously, we do not expect a complete match for the specified modules.
 
-Example 2: `--freeze-mods='dec.embed,dec.0.'` means decoder embedding layer and first layer should be frozen.
+    > Example 1: `freeze-mods: 'enc.embed.'` -> freeze encoder embedding layer parameters.  
+    > Example 2: `freeze-mods: 'dec.embed,dec.0.'` -> freeze decoder embedding layer and first layer parameters.
+    > Example 3 (espnet2): `freeze_param: 'encoder.embed'` -> freeze encoder embedding layer parameters.
 
-3. RNN-based and Transformer-based models have different key names for encoder and decoder parts:
- - RNN model has `enc` for encoder and `dec` for decoder.
- - Transformer has `encoder` for encoder and `decoder` for decoder.
+### Important notes
+
+- Given a pre-trained source model, the modules specified for transfer learning are expected to have the same parameters (i.e.: layers and units) as the target model modules.
+- We also support initialization with a pre-trained RNN LM for the RNN-transducer decoder.
+- RNN models use different key names for encoder and decoder parts compared to Transformer, Conformer or Custom models:
+  - RNN model use `enc.` for encoder part and `dec.` for decoder part.
+  - Transformer/Conformer/Custom model use `encoder.` for encoder part and `decoder.` for decoder part.
 
 ### Known issues
 

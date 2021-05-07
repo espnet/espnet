@@ -18,6 +18,7 @@ This is a template of TTS recipe for ESPnet2.
   * [How to run](#how-to-run)
     * [FastSpeech training](#fastspeech-training)
     * [FastSpeech2 training](#fastspeech2-training)
+    * [Multi speaker model with X-vector training](#multi-speaker-model-with-x-vector-training)
   * [Supported text frontend](#supported-text-frontend)
   * [Supported text cleaner](#supported-text-cleaner)
   * [Supported Models](#supported-models)
@@ -60,6 +61,10 @@ The processing in this stage is changed according to `--feats_type` option (Defa
 In the case of `feats_type=raw`, reformat `wav.scp` in date directories.
 In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with Librosa will be performed.
 Since the performance is almost the same, we recommend using `feats_type=raw`.
+
+Additionaly, we support X-vector extraction in this stage as you can use in ESPnet1.
+If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
+This processing requires the compiled kaldi, please be careful.
 
 ### 3. Removal of long / short data
 
@@ -249,6 +254,27 @@ $ ./run.sh --stage 5 \
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
 The use of `--write_collected_feats` is optional but it helps to accelerate the training.
 
+### Multi-speaker model with X-vector training
+
+First, you need to run from the stage 2 and 3 with `--use_xvector true` to extract X-vector.
+```sh
+$ ./run.sh --stage 2 --stop-stage 3 --use_xvector true
+```
+You can find the extracted X-vector in `dump/xvector/*/xvector.{ark,scp}`.
+Then, you can run the training with the config which has `spk_embed_dim: 512` in `tts_conf`.
+```yaml
+# e.g.
+tts_conf:
+    spk_embed_dim: 512               # dimension of speaker embedding
+    spk_embed_integration_type: add  # how to integrate speaker embedding
+```
+Please run the training from stage 6.
+```sh
+$ ./run.sh --stage 6 --use_xvector true --train_config /path/to/your_xvector_config.yaml
+```
+
+You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+
 ## Supported text frontend
 
 You can change via `--g2p` option in `tts.sh`.
@@ -261,18 +287,24 @@ You can change via `--g2p` option in `tts.sh`.
     - Same G2P but do not use word separator
     - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - e.g. `こんにちは` -> `[k, o, N, n, i, ch, i, w, a]`
-- `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - Add accent labels in addition to phoneme labels
-    - e.g. `こんにちは` -> `[k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
+    - e.g. `こ、こんにちは` -> `[k, o, pau, k, o, N, n, i, ch, i, w, a]`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Use kana instead of phoneme
-    - e.g. `こんにちは` -> `[コ, ン, ニ, チ, ワ]`
+    - e.g. `こ、こんにちは` -> `[コ, 、, コ, ン, ニ, チ, ワ]`
+- `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
+    - Add accent labels in addition to phoneme labels
+    - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
+- `pyopenjtalk_accent_with_pause`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
+    - Add a pause label in addition to phoneme and accenet labels
+    - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, pau, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
 - `pypinyin`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
     - e.g. `卡尔普陪外孙玩滑梯。` -> `[ka3, er3, pu3, pei2, wai4, sun1, wan2, hua2, ti1, 。]`
 - `pypinyin_phone`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
     - Separate into first and last parts
     - e.g. `卡尔普陪外孙玩滑梯。` -> `[k, a3, er3, p, u3, p, ei2, wai4, s, un1, uan2, h, ua2, t, i1, 。]`
+- `espeak_ng_arabic`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `السلام عليكم` -> `[ʔ, a, s, s, ˈa, l, aː, m, ʕ, l, ˈiː, k, m]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 
 You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 
@@ -304,12 +336,19 @@ You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tu
 
 ### Multi speaker model
 
-- [GST + Tacotron2](https://arxiv.org/abs/1803.09017)
+- [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375) + Tacotron2
+- X-Vector + Transformer-TTS
+- X-Vector + FastSpeech
+- X-Vector + FastSpeech2
+- X-Vector + Conformer-based FastSpeech / FastSpeech2
+- [GST](https://arxiv.org/abs/1803.09017) + Tacotron2
 - GST + Transformer-TTS
 - GST + FastSpeech
 - GST + FastSpeech2
 - GST + Conformer-based FastSpeech / FastSpeech2
 
+X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
+GST and X-vector can be combined (Not tested well).
 You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 
 ## FAQ
@@ -333,6 +372,10 @@ See [how to make/port new recipe](https://github.com/espnet/espnet/tree/master/e
 
 Update [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) to add new module.
 Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L226-L240) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L180-L194).
+
+We have the warpper module of [bootphon/phonemizer](https://github.com/bootphon/phonemizer).
+You can find the module [`espnet2/text/phoneme_tokenizer.py`](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L110).
+If the g2p you wanted is implemented in [bootphon/phonemizer](https://github.com/bootphon/phonemizer), we can easily add it [like this](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L172-L173) (Note that you need to update the choice as I mentioned the above).
 
 ### How to add a new `cleaner` module?
 

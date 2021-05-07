@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Iterable
 from typing import List
+from typing import Optional
 from typing import Union
 
 import g2p_en
@@ -28,6 +29,21 @@ def pyopenjtalk_g2p_accent(text) -> List[str]:
 
     phones = []
     for labels in pyopenjtalk.run_frontend(text)[1]:
+        p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])", labels)
+        if len(p) == 1:
+            phones += [p[0][0], p[0][2], p[0][1]]
+    return phones
+
+
+def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
+    import pyopenjtalk
+    import re
+
+    phones = []
+    for labels in pyopenjtalk.run_frontend(text)[1]:
+        if labels.split("-")[1].split("+")[0] == "pau":
+            phones += ["pau"]
+            continue
         p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9])", labels)
         if len(p) == 1:
             phones += [p[0][0], p[0][2], p[0][1]]
@@ -91,6 +107,41 @@ class G2p_en:
         return phones
 
 
+class Phonemizer:
+    """Phonemizer module for various languages.
+
+    This is wrapper module of https://github.com/bootphon/phonemizer.
+    You can define various g2p modules by specifying options for phonemizer.
+
+    See available options:
+        https://github.com/bootphon/phonemizer/blob/master/phonemizer/phonemize.py#L32
+
+    """
+
+    def __init__(
+        self,
+        word_separator: Optional[str] = None,
+        syllable_separator: Optional[str] = None,
+        **phonemize_kwargs,
+    ):
+        # delayed import
+        from phonemizer import phonemize
+        from phonemizer.separator import Separator
+
+        self.phonemize = phonemize
+        self.separator = Separator(
+            word=word_separator, syllable=syllable_separator, phone=" "
+        )
+        self.phonemize_kwargs = phonemize_kwargs
+
+    def __call__(self, text) -> List[str]:
+        return self.phonemize(
+            text,
+            separator=self.separator,
+            **self.phonemize_kwargs,
+        ).split()
+
+
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
@@ -108,14 +159,18 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = G2p_en(no_space=True)
         elif g2p_type == "pyopenjtalk":
             self.g2p = pyopenjtalk_g2p
-        elif g2p_type == "pyopenjtalk_accent":
-            self.g2p = pyopenjtalk_g2p_accent
         elif g2p_type == "pyopenjtalk_kana":
             self.g2p = pyopenjtalk_g2p_kana
+        elif g2p_type == "pyopenjtalk_accent":
+            self.g2p = pyopenjtalk_g2p_accent
+        elif g2p_type == "pyopenjtalk_accent_with_pause":
+            self.g2p = pyopenjtalk_g2p_accent_with_pause
         elif g2p_type == "pypinyin_g2p":
             self.g2p = pypinyin_g2p
         elif g2p_type == "pypinyin_g2p_phone":
             self.g2p = pypinyin_g2p_phone
+        elif g2p_type == "espeak_ng_arabic":
+            self.g2p = Phonemizer(language="ar", backend="espeak", with_stress=True)
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 

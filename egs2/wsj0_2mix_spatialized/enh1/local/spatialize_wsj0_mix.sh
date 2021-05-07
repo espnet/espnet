@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright  2020  Shanghai Jiao Tong University (Author: Wangyou Zhang)
 # Apache 2.0
 
 min_or_max=min
-sample_rate=8000
+sample_rate=8k
 nj=16
 
 . utils/parse_options.sh
@@ -41,8 +41,8 @@ if [ $# -ne 3 ]; then
 fi
 
 dir=$1
-wsj0_2mix_wav=$3
-wsj0_2mix_spatialized_wav=$2
+wsj0_2mix_wav=$2
+wsj0_2mix_spatialized_wav=$3
 
 
 if ! command -v matlab >/dev/null 2>&1; then
@@ -55,15 +55,12 @@ if ! command -v mex >/dev/null 2>&1; then
     exit 1
 fi
 
-rootdir=$PWD
 echo "Downloading spatialize_WSJ0_mixture scripts."
 
 url=https://www.merl.com/demos/deep-clustering/spatialize_wsj0-mix.zip
 wdir=data/local/downloads
-url2=https://raw.githubusercontent.com/ehabets/RIR-Generator/master/rir_generator.cpp
 
 mkdir -p ${dir}
-mkdir -p ${dir}/RIR-Generator-master
 mkdir -p ${wdir}/log
 
 # Download and modiy spatialize_wsj0 scripts
@@ -82,8 +79,9 @@ sed -i -e "s#MIN_OR_MAX=\"'min'\"#MIN_OR_MAX=\"'${min_or_max}'\"#" \
        ${dir}/launch_spatialize.sh
 
 # Download and compile rir_generator
-wget --continue -O ${dir}/RIR-Generator-master/rir_generator.cpp ${url2}
-(cd ${dir}/RIR-Generator-master && mex rir_generator.cpp)
+git clone https://github.com/ehabets/RIR-Generator "${dir}/RIR-Generator"
+(cd "${dir}/RIR-Generator" && mex rir_generator.cpp rir_generator_core.cpp)
+rir_generator=$(realpath ${dir}/RIR-Generator/rir_generator.mexa64)
 
 echo "Spatializing Mixtures."
 NUM_SPEAKERS=2
@@ -95,24 +93,51 @@ USEPARCLUSTER_WITH_IND=1  # 1 for using parallel processing toolbox
 GENERATE_RIRS=1           # 1 for generating RIRs
 
 NUM_WORKERS=${nj}         # maximum of 1 MATLAB worker per CPU core is recommended
-sed -i -e "s#c.NumWorkers = 22;#c.NumWorkers = ${NUM_WORKERS};#" ${dir}/spatialize_wsj0_mix.m
+sed -i -e "s#c.NumWorkers = 22;#c.NumWorkers = ${NUM_WORKERS};#" \
+    -e "/parpool(c, c.NumWorkers);/a addAttachedFiles(gcp, {'${rir_generator}'});" \
+    ${dir}/spatialize_wsj0_mix.m
 
 # Java must be initialized in order to use the Parallel Computing Toolbox.
 # Please launch MATLAB without the '-nojvm' flag.
 matlab_cmd="matlab -nodesktop -nodisplay -nosplash -r \"spatialize_wsj0_mix(${NUM_SPEAKERS},${MIN_OR_MAX},${FS},${START_IND},${STOP_IND},${USEPARCLUSTER_WITH_IND},${GENERATE_RIRS})\""
 
 cmdfile=${dir}/spatialize_matlab.sh
-echo "#!/bin/bash" > $cmdfile
+echo "#!/usr/bin/env bash" > $cmdfile
+echo "cd ${dir}" >> $cmdfile
 echo $matlab_cmd >> $cmdfile
 chmod +x $cmdfile
 
 # Run Matlab (This takes more than 8 hours)
-# Expected data directory to be generated:
+# Expected data directories to be generated:
 #   - ${wsj0_2mix_spatialized_wav}/RIRs_16k/rir_*.mat
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_anechoic/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav
 #   - ${wsj0_2mix_spatialized_wav}/2speakers_reverb/wav16k/${min_or_max}/{tr,cv,tt}/{mix,s1,s2}/*.wav
-cd ${dir}
+# -----------------------------------------------------------------------------------------
+# directory (same for 2speakers_reverb)   disk usage  duration      #samples
+# -----------------------------------------------------------------------------------------
+# 2speakers_anechoic/wav16k/max/tr/mix    41  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tr/s1     34  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tr/s2     33  GiB     46h 56m 16s   20000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav16k/max/cv/mix    11  GiB     11h 53m 36s   5000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/cv/s1     8.5 GiB     11h 53m 36s   5000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/cv/s2     8.4 GiB     11h 53m 36s   5000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav16k/max/tt/mix    6.2 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tt/s1     5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav16k/max/tt/s2     5.1 GiB     7h 20m 48s    3000 * 8 (8 channels)
+# -----------------------------------------------------------------------------------------
+# 2speakers_anechoic/wav8k/min/tr/mix     27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s1      27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tr/s2      27 GiB      30h 22m 49s   20000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav8k/min/cv/mix     6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s1      6.7 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/cv/s2      6.6 GiB     7h 40m 21s    5000 * 8 (8 channels)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2speakers_anechoic/wav8k/min/tt/mix     4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tt/s1      4.2 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# 2speakers_anechoic/wav8k/min/tt/s2      4.1 GiB     4h 49m 33s    3000 * 8 (8 channels)
+# -----------------------------------------------------------------------------------------
 echo "Log is in ${dir}/spatialize.log"
 $train_cmd ${dir}/spatialize.log $cmdfile
-
-cd ${rootdir}

@@ -86,7 +86,7 @@ def get_rnnt_args(**kwargs):
         dropout_rate_embed_decoder=0.0,
         joint_dim=2,
         joint_activation_type="tanh",
-        mtlalpha=1.0,
+        aux_task_type=None,
         rnnt_mode="rnnt",
         trans_type="warp-transducer",
         char_list=["a", "b", "c", "d"],
@@ -235,6 +235,7 @@ def test_pytorch_trainable_and_transferable(model_type, finetune_dic):
     if model_type == "rnnt":
         beam_search = BeamSearchTransducer(
             decoder=model.dec,
+            joint_network=model.joint_network,
             beam_size=1,
             lm=None,
             lm_weight=0.0,

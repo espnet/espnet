@@ -338,6 +338,16 @@ def train(args):
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
     model = model.to(device)
 
+    logging.warning(
+        "num. model params: {:,} (num. trained: {:,} ({:.1f}%))".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+            sum(p.numel() for p in model.parameters() if p.requires_grad)
+            * 100.0
+            / sum(p.numel() for p in model.parameters()),
+        )
+    )
+
     # Setup an optimizer
     if args.opt == "adam":
         optimizer = torch.optim.Adam(

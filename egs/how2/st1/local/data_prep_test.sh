@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -10,7 +10,7 @@ export LC_ALL=C
 download=data/local/download
 
 # download test data
-url=http://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
+url=https://islpc21.is.cs.cmu.edu/ramons/iwslt2019.tar.gz
 if [ -f ${download}/iwslt2019.tar.gz ]; then
     echo "${download}/iwslt2019.tar.gz exists and appears to be complete."
 else
@@ -61,7 +61,7 @@ for lang in en; do
     cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
     # remove punctuation
-    local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+    remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
     # tokenization
     tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok
@@ -91,7 +91,7 @@ fbank_path=$(echo ${fbank_path} | sed -e "s/\//@/g")
 sed -e "s/..\/fbank_pitch/${fbank_path}/" < ${feat} | sed -e "s/@/\//g" > ${feat}.tmp
 mv ${feat}.tmp ${feat}
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/test_set_iwslt2019
 for f in spk2utt utt2spk feats.scp; do
     cp ${dst}/${f} data/test_set_iwslt2019/${f}

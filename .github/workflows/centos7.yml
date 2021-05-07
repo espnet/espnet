@@ -1,6 +1,12 @@
 name: centos7
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   check_skip:
@@ -14,7 +20,7 @@ jobs:
       image: centos:7
       env:
         ESPNET_PYTHON_VERSION: 3.6
-        TH_VERSION: 1.7.1
+        TH_VERSION: 1.8.1
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
@@ -25,13 +31,13 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: check OS
-        run: cat /etc/os-release 
+        run: cat /etc/os-release
       - name: install dependencies
         run: |
           # NOTE(kamo): cmake sndfile will be download using anacond:
-          yum install -y git centos-release-scl make bzip2 wget which unzip bc
+          yum install -y git centos-release-scl make bzip2 wget which unzip bc patch
           yum-config-manager --enable rhel-server-rhscl-7-rpms
-          yum install -y devtoolset-7-gcc-c++
+          yum install -y devtoolset-7-gcc-c++ sox
           localedef -f UTF-8 -i en_US en_US
       - name: install espnet
         run: |

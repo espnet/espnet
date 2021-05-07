@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 if [ $# -eq 0 ] || [ $# -gt 2 ]; then
     echo "Usage: $0 CUDA_HOME [NCCL_HOME]"
     return 1

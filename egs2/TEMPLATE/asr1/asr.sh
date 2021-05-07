@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -113,6 +113,8 @@ nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
+score_opts=                # The options given to sclite scoring
+local_score_opts=          # The options given to local/score.sh.
 asr_speech_fold_length=800 # fold_length for speech data during ASR training.
 asr_text_fold_length=150   # fold_length for text data during ASR training.
 lm_fold_length=150         # fold_length for LM training.
@@ -209,6 +211,8 @@ Options:
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
     --lang          # The language type of corpus (default=${lang}).
+    --score_opts             # The options given to sclite scoring (default="{score_opts}").
+    --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
     --asr_speech_fold_length # fold_length for speech data during ASR training (default="${asr_speech_fold_length}").
     --asr_text_fold_length   # fold_length for text data during ASR training (default="${asr_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
@@ -260,7 +264,11 @@ fi
 [ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text"
 
 # Check tokenization type
-token_listdir=data/token_list
+if [ "${lang}" != noinfo ]; then
+    token_listdir=data/${lang}_token_list
+else
+    token_listdir=data/token_list
+fi
 bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
 bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
@@ -297,16 +305,21 @@ fi
 # Set tag for naming of model directory
 if [ -z "${asr_tag}" ]; then
     if [ -n "${asr_config}" ]; then
-        asr_tag="$(basename "${asr_config}" .yaml)_${feats_type}_${token_type}"
+        asr_tag="$(basename "${asr_config}" .yaml)_${feats_type}"
     else
-        asr_tag="train_${feats_type}_${token_type}"
+        asr_tag="train_${feats_type}"
+    fi
+    if [ "${lang}" != noinfo ]; then
+        asr_tag+="_${lang}_${token_type}"
+    else
+        asr_tag+="_${token_type}"
     fi
     if [ "${token_type}" = bpe ]; then
         asr_tag+="${nbpe}"
     fi
     # Add overwritten arg's info
     if [ -n "${asr_args}" ]; then
-        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
         asr_tag+="_sp"
@@ -314,22 +327,31 @@ if [ -z "${asr_tag}" ]; then
 fi
 if [ -z "${lm_tag}" ]; then
     if [ -n "${lm_config}" ]; then
-        lm_tag="$(basename "${lm_config}" .yaml)_${lm_token_type}"
+        lm_tag="$(basename "${lm_config}" .yaml)"
     else
-        lm_tag="train_${lm_token_type}"
+        lm_tag="train"
+    fi
+    if [ "${lang}" != noinfo ]; then
+        lm_tag+="_${lang}_${lm_token_type}"
+    else
+        lm_tag+="_${lm_token_type}"
     fi
     if [ "${lm_token_type}" = bpe ]; then
         lm_tag+="${nbpe}"
     fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
-        lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+        lm_tag+="$(echo "${lm_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
 fi
 
 # The directory used for collect-stats mode
 if [ -z "${asr_stats_dir}" ]; then
-    asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
+    if [ "${lang}" != noinfo ]; then
+        asr_stats_dir="${expdir}/asr_stats_${feats_type}_${lang}_${token_type}"
+    else
+        asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
+    fi
     if [ "${token_type}" = bpe ]; then
         asr_stats_dir+="${nbpe}"
     fi
@@ -338,7 +360,11 @@ if [ -z "${asr_stats_dir}" ]; then
     fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
-    lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
+    if [ "${lang}" != noinfo ]; then
+        lm_stats_dir="${expdir}/lm_stats_${lang}_${lm_token_type}"
+    else
+        lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
+    fi
     if [ "${lm_token_type}" = bpe ]; then
         lm_stats_dir+="${nbpe}"
     fi
@@ -417,7 +443,7 @@ if ! "${skip_data_prep}"; then
                 else
                     _suf=""
                 fi
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -446,7 +472,7 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # 1. Copy datadir
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 # 2. Feature extract
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
@@ -482,7 +508,7 @@ if ! "${skip_data_prep}"; then
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
                 <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}${_suf}/${dset}/feats.scp |" - | \
                     awk '{ print $2 }' | cut -d, -f2 > "${data_feats}${_suf}/${dset}/feats_dim"
@@ -504,7 +530,7 @@ if ! "${skip_data_prep}"; then
         for dset in "${train_set}" "${valid_set}"; do
 
             # Copy data dir
-            utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
             # Remove short utterances
@@ -1244,6 +1270,7 @@ if ! "${skip_eval}"; then
                 fi
 
                 sclite \
+		    ${score_opts} \
                     -r "${_scoredir}/ref.trn" trn \
                     -h "${_scoredir}/hyp.trn" trn \
                     -i rm -o all stdout > "${_scoredir}/result.txt"
@@ -1253,7 +1280,7 @@ if ! "${skip_eval}"; then
             done
         done
 
-        [ -f local/score.sh ] && local/score.sh "${asr_exp}"
+        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
 
         # Show results in Markdown syntax
         scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md

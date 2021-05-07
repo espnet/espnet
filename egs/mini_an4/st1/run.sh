@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -65,9 +65,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train_nodev"
-train_dev="train_dev"
-trans_set="train_dev test"
+train_set="train_nodev_sp.de"
+train_dev="train_dev.de"
+trans_set="test.de"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -112,15 +112,34 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # make a dev set
-    utils/subset_data_dir.sh --first data/train 2 data/${train_dev}
+    utils/subset_data_dir.sh --first data/train 2 data/train_dev
     n=$(($(wc -l < data/train/text) - 2))
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
 
     # add pseudo case infomation
     for x in train_nodev train_dev test; do
-        cp data/${x}/text data/${x}/text.tc
-        cp data/${x}/text data/${x}/text.lc
-        cp data/${x}/text data/${x}/text.lc.rm
+        for case in lc.rm lc tc; do
+            cp data/${x}/text data/${x}/text.${case}.en
+            cp data/${x}/text data/${x}/text.${case}.de
+        done
+    done
+
+    # speed-perturbed
+    speed_perturb.sh --nj 1 --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodev data/train_nodev_sp ${fbankdir}
+
+    # divide into source and target languages
+    for x in train_nodev_sp train_dev test; do
+        for lang in en de; do
+            cp -rf data/${x} data/${x}.${lang}
+            for case in lc.rm lc tc; do
+                mv data/${x}.${lang}/text.${case}.${lang} data/${x}.${lang}/text.${case}
+            done
+        done
+    done
+
+    # remove long and short utterances
+    for x in train_nodev_sp train_dev; do
+        clean_corpus.sh --maxframes 3000 --maxchars 400 --utt_extra_files "text.tc text.lc text.lc.rm" data/${x} "en de"
     done
 
     # compute global CMVN
@@ -129,13 +148,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features
     dump.sh --cmd "$train_cmd" --nj 2 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 2 --do_delta ${do_delta} \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    for ttask in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}; mkdir -p ${feat_trans_dir}
+    for x in ${train_dev} ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 2 --do_delta ${do_delta} \
-            data/${ttask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${ttask} \
-            ${feat_trans_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_trans_dir}
     done
 fi
 
@@ -157,18 +173,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for ttask in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
-        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${ttask}/text.${tgt_case} --bpecode ${bpemodel}.model \
-            data/${ttask} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+    for x in ${train_dev} ${trans_set}; do
+        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
+        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model \
+            data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
     # update json (add source references)
     for x in ${train_set} ${train_dev}; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/${x}  # copy task
+        data_dir=data/$(echo ${x} | cut -f 1 -d ".").en
         update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
             ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
     done
@@ -237,10 +251,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=2
 
     pids=() # initialize pids
-    for ttask in ${trans_set}; do
+    for x in ${trans_set}; do
     (
-        decode_dir=decode_${ttask}_$(basename ${decode_config%.*})
-        feat_trans_dir=${dumpdir}/${ttask}/delta${do_delta}
+        decode_dir=decode_${x}_$(basename ${decode_config%.*})
+        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
+
+        # reset log for RTF calculation
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
+            rm ${expdir}/${decode_dir}/log/decode.*.log
+        fi
 
         # split data
         splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
@@ -257,8 +276,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            ${expdir}/${decode_dir} en ${dict}
+            ${expdir}/${decode_dir} "de" ${dict}
 
+        calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
     pids+=($!) # store background pids
     done

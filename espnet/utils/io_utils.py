@@ -90,11 +90,12 @@ class LoadInputsAndTargets(object):
 
         self.keep_all_data_on_mem = keep_all_data_on_mem
 
-    def __call__(self, batch):
+    def __call__(self, batch, return_uttid=False):
         """Function to load inputs and targets from list of dicts
 
         :param List[Tuple[str, dict]] batch: list of dict which is subset of
             loaded data.json
+        :param bool return_uttid: return utterance ID information for visualization
         :return: list of input token id sequences [(L_1), (L_2), ..., (L_B)]
         :return: list of input feature sequences
             [(T_1, D), (T_2, D), ..., (T_B, D)]
@@ -177,7 +178,7 @@ class LoadInputsAndTargets(object):
                 x_feats_dict, y_feats_dict, uttid_list
             )
         else:
-            raise NotImplementedError
+            raise NotImplementedError(self.mode)
 
         if self.preprocessing is not None:
             # Apply pre-processing all input features
@@ -186,6 +187,9 @@ class LoadInputsAndTargets(object):
                     return_batch[x_name] = self.preprocessing(
                         return_batch[x_name], uttid_list, **self.preprocess_args
                     )
+
+        if return_uttid:
+            return tuple(return_batch.values()), uttid_list
 
         # Doesn't return the names now.
         return tuple(return_batch.values())

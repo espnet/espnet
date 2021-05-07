@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 mindepth=0
 maxdepth=1
 

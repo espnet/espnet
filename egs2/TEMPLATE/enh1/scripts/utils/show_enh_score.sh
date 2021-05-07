@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 mindepth=0
 maxdepth=1
 
@@ -51,7 +51,7 @@ while IFS= read -r expdir; do
         metrics=()
         heading="\n|dataset|"
         sep="|---|"
-        for type in pesq stoi sar sdr sir; do
+        for type in pesq stoi sar sdr sir si_snr; do
             if ls "${expdir}"/enhanced_*/scoring/result_${type}.txt &> /dev/null; then
                 metrics+=("$type")
                 heading+="${type^^}|"

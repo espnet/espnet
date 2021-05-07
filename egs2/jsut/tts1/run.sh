@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -25,9 +25,23 @@ test_sets="dev eval1"
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
-# g2p=pyopenjtalk      # Phoneme (e.g. k o N n i ch i w a)
-# g2p=pyopenjtalk_kana # Kana (e.g. コ ン ニ チ ワ)
-g2p=pyopenjtalk_accent # Phoneme + Accent (e.g. k 5 -4 o 5 -4 N 5 -3 n 5 -2 i 5 -2 ch 5 -1 i 5 -1 w 5 0 a 5 0)
+# Input example: こ、こんにちは
+
+# 1. Phoneme + Pause
+# (e.g. k o pau k o N n i ch i w a)
+g2p=pyopenjtalk
+
+# 2. Kana + Symbol
+# (e.g. コ 、 コ ン ニ チ ワ)
+# g2p=pyopenjtalk_kana
+
+# 3. Phoneme + Accent
+# (e.g. k 1 0 o 1 0 k 5 -4 o 5 -4 N 5 -3 n 5 -2 i 5 -2 ch 5 -1 i 5 -1 w 5 0 a 5 0)
+# g2p=pyopenjtalk_accent
+
+# 4. Phoneme + Accent + Pause
+# (e.g. k 1 0 o 1 0 pau k 5 -4 o 5 -4 N 5 -3 n 5 -2 i 5 -2 ch 5 -1 i 5 -1 w 5 0 a 5 0)
+# g2p=pyopenjtalk_accent_with_pause
 
 ./tts.sh \
     --lang jp \

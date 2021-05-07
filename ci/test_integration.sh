@@ -60,18 +60,22 @@ echo "=== ASR (backend=pytorch num-encs 2, model=transformer) ==="
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
-echo "=== ASR (backend=pytorch, model=rnnt-att) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_attention.yaml \
-        --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
-echo "=== ASR (backend=pytorch, model=transformer-transducer-att) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer_transducer_attention.yaml \
-         --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
+
+# test finetuning
+## test transfer learning
+echo "=== ASR (backend=pytorch, model=rnnt, transfer_learning=enc) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_pre_init_enc.yaml \
+         --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=rnnt, transfer_learning=LM) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_pre_init_lm.yaml \
+         --decode-config conf/decode_transducer.yaml
+## to do: cover all tasks + freezing option
 
 echo "==== ASR (backend=pytorch num-encs 2) ==="
 ./run.sh --python "${python}" --stage 2 --train-config ./conf/train_mulenc2.yaml --decode-config ./conf/decode_mulenc2.yaml --mulenc true
@@ -225,7 +229,7 @@ fi
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
-if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
+if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
         python3 -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done

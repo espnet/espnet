@@ -1,6 +1,12 @@
 name: debian9
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   check_skip:
@@ -14,7 +20,7 @@ jobs:
       image: debian:9
       env:
         ESPNET_PYTHON_VERSION: 3.6
-        TH_VERSION: 1.7.1
+        TH_VERSION: 1.8.1
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         CC: gcc-6
@@ -30,7 +36,7 @@ jobs:
         run: |
           apt-get update -qq
           # NOTE(kamo): cmake sndfile will be download using anacond:
-          apt-get install -qq -y build-essential git g++-6 unzip bzip2 wget curl bc locales make
+          apt-get install -qq -y build-essential git g++-6 unzip bzip2 wget curl bc locales make sox
           localedef -f UTF-8 -i en_US en_US
       - name: install espnet
         run: ./ci/install.sh

@@ -1,4 +1,4 @@
-#!/bin/bash -u
+#!/usr/bin/env bash -u
 
 # Copyright 2015 (c) Johns Hopkins University (Jan Trmal <jtrmal@gmail.com>)
 

@@ -17,6 +17,7 @@ import configargparse
 import numpy as np
 import torch
 
+from espnet import __version__
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
@@ -134,7 +135,7 @@ def get_parser(parser=None, required=True):
         "--ctc_type",
         default="warpctc",
         type=str,
-        choices=["builtin", "warpctc"],
+        choices=["builtin", "warpctc", "gtnctc", "cudnnctc"],
         help="Type of CTC implementation to calculate loss.",
     )
     parser.add_argument(
@@ -470,6 +471,9 @@ def main(cmd_args):
         args.backend = "chainer"
     if "pytorch_backend" in args.model_module:
         args.backend = "pytorch"
+
+    # add version info in args
+    args.version = __version__
 
     # logging info
     if args.verbose > 0:

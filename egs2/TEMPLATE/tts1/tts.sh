@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -49,6 +49,7 @@ feats_type=raw       # Feature type (fbank or stft or raw).
 audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
+use_xvector=false    # Whether to use x-vector (Require Kaldi).
 # Only used for feats_type != raw
 fs=16000          # Sampling rate.
 fmin=80           # Minimum frequency of Mel basis.
@@ -131,6 +132,7 @@ Options:
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
+    --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
     --fs               # Sampling rate (default="${fs}").
     --fmax             # Maximum frequency of Mel basis (default="${fmax}").
     --fmin             # Minimum frequency of Mel basis (default="${fmin}").
@@ -354,6 +356,63 @@ if ! "${skip_data_prep}"; then
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
         fi
+
+        # Extract X-vector
+        if "${use_xvector}"; then
+            log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
+            # Download X-vector pretrained model
+            xvector_exp=${expdir}/xvector_nnet_1a
+            if [ ! -e "${xvector_exp}" ]; then
+                log "X-vector model does not exist. Download pre-trained model."
+                wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+                tar xvf 0008_sitw_v2_1a.tar.gz
+                [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
+                mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
+                rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
+            fi
+
+            # Generate the MFCC features, VAD decision, and X-vector
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                # 1. Copy datadir and resample to 16k
+                utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
+                utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
+
+                # 2. Extract mfcc features
+                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/utt2spk wc -l)")
+                steps/make_mfcc.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                    --write-utt2num-frames true \
+                    --mfcc-config conf/mfcc.conf \
+                    "${dumpdir}/mfcc/${dset}"
+                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                # 3. Compute VAD decision
+                sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
+                    --vad-config conf/vad.conf \
+                    "${dumpdir}/mfcc/${dset}"
+                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                # 4. Extract X-vector
+                sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                    "${xvector_exp}" \
+                    "${dumpdir}/mfcc/${dset}" \
+                    "${dumpdir}/xvector/${dset}"
+
+                # 5. Filter scp
+                # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
+                #   the number of utts will be different from the original features (raw or fbank).
+                #   To avoid this mismatch, perform filtering of the original feature scp here.
+                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                    _suf="/org"
+                else
+                    _suf=""
+                fi
+                cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
+                <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
+                    utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
+                    >"${data_feats}${_suf}/${dset}/wav.scp"
+                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
+            done
+        fi
     fi
 
 
@@ -413,6 +472,14 @@ if ! "${skip_data_prep}"; then
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
+
+            # Filter x-vector
+            if "${use_xvector}"; then
+                cp "${dumpdir}/xvector/${dset}"/xvector.{scp,scp.bak}
+                <"${dumpdir}/xvector/${dset}/xvector.scp.bak" \
+                    utils/filter_scp.pl "${data_feats}/${dset}/wav.scp"  \
+                    >"${dumpdir}/xvector/${dset}/xvector.scp"
+            fi
         done
 
         # shellcheck disable=SC2002
@@ -500,6 +567,13 @@ if ! "${skip_train}"; then
             _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
             _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
             _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
+        fi
+
+        if "${use_xvector}"; then
+            _xvector_train_dir="${dumpdir}/xvector/${train_set}"
+            _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
+            _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
         fi
 
         # 1. Split the key file
@@ -736,6 +810,14 @@ if ! "${skip_train}"; then
             _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
+        # Add X-vector to the inputs if needed
+        if "${use_xvector}"; then
+            _xvector_train_dir="${dumpdir}/xvector/${train_set}"
+            _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
+            _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        fi
+
         log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${tts_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts_exp}/run.sh"; chmod +x "${tts_exp}/run.sh"
 
@@ -872,6 +954,12 @@ if ! "${skip_eval}"; then
                 fi
             fi
 
+            # Add X-vector to the inputs if needed
+            if "${use_xvector}"; then
+                _xvector_dir="${dumpdir}/xvector/${dset}"
+                _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
+            fi
+
             # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
 
@@ -953,6 +1041,12 @@ if ! "${skip_upload}"; then
         fi
         if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
             _opts+=" --option ${tts_stats_dir}/train/energy_stats.npz"
+        fi
+        if "${use_xvector}"; then
+            for dset in "${train_set}" ${test_sets}; do
+                _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.scp"
+                _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.ark"
+            done
         fi
         ${python} -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \

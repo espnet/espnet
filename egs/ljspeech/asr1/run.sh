@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 # Copyright 2020 Nagoya University (Ibuki Kuroyanagi)
@@ -83,11 +83,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    for x in ${trans_type}_eval ${trans_type}_train; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-        utils/fix_data_dir.sh data/${x}
-    done
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 --write_utt2num_frames true \
+        data/${trans_type}_train exp/make_fbank/${trans_type}_train ${fbankdir}
+    utils/fix_data_dir.sh data/${trans_type}_train
+
     # make a dev set
     utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
     utils/subset_data_dir.sh --last data/${trans_type}_deveval 250 data/${eval_set}
