@@ -235,14 +235,14 @@ if ${use_unsegmented}; then
     for task in ${recog_set}; do
 	task_new=${task}_unsegmented
 	if [ -d "${dir}/${task_new}" ]; then
-	    rm -r ${dir}/${task_new}
+	    rm -r ${dir:?}/${task_new}
 	fi
 	mkdir -p ${dir}/${task_new}/wavs
 	python local/conct_wav.py data/${task}/wav.scp data/${task_new}/wavs/ \
 	       data/${task_new}/wavs/gen_wav.sh data/${task_new}/wav.scp
 	bash data/${task_new}/wavs/gen_wav.sh
-	cat ${dir}/${task}/text | python ./local/conct.py > ${dir}/${task_new}/text
-	cat ${dir}/${task_new}/text | cut -f 1 | awk {'print $1"\t"$1'} > ${dir}/${task_new}/utt2spk
+	python ./local/conct.py < ${dir}/${task}/text > ${dir}/${task_new}/text
+	awk '{print $1"\t"$1}' < ${dir}/${task_new}/text > ${dir}/${task_new}/utt2spk
 	cp ${dir}/${task_new}/utt2spk ${dir}/${task_new}/spk2utt
     done
     
