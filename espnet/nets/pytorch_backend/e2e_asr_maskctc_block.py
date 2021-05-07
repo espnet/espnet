@@ -242,7 +242,7 @@ class E2E(E2ETransformer):
 
         x = torch.as_tensor(x)
         self.eval()
-    logging.info(
+        logging.info(
             "check model state mask token: {}".format(self.mask_token))
         block_len = int(recog_args.block_length)
         logging.info("block length:{}".format(block_len))
