@@ -22,7 +22,9 @@ class ConvolutionModule(nn.Module):
 
     """
 
-    def __init__(self, channels, kernel_size, block_len=None, activation=nn.ReLU(), bias=True):
+    def __init__(
+        self, channels, kernel_size, block_len=None, activation=nn.ReLU(), bias=True
+    ):
         """Construct an ConvolutionModule object."""
         super(ConvolutionModule, self).__init__()
         # kernerl_size should be a odd number for 'SAME' padding
@@ -79,15 +81,19 @@ class ConvolutionModule(nn.Module):
                 plen = 0
                 xlen = time
             x = nn.functional.pad(x, (0, 0, blen, plen))
-            x = x.transpose(1, 2)             # x(batch, dim, xlen)
+            x = x.transpose(1, 2)  # x(batch, dim, xlen)
             # GLU mechanism
             x = self.pointwise_conv1(x)  # (batch, 2*dim, time)
             x = nn.functional.glu(x, dim=1)  # (batch, dim, time)
 
-            x = x.as_strided((n_batch, int(xlen / blen), blen * 2, dim),
-                             ((blen + xlen) * dim, dim * blen, dim, 1))
+            x = x.as_strided(
+                (n_batch, int(xlen / blen), blen * 2, dim),
+                ((blen + xlen) * dim, dim * blen, dim, 1),
+            )
 
-            x = x.contiguous().view(-1, blen * 2, dim).transpose(1, 2)  # (batch, dim, time)
+            x = (
+                x.contiguous().view(-1, blen * 2, dim).transpose(1, 2)
+            )  # (batch, dim, time)
             x = self.depthwise_conv(x)
             x = x[:, :, blen:]
             x = x.transpose(1, 2).contiguous().view(n_batch, -1, dim)

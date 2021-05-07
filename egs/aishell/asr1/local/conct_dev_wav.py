@@ -6,7 +6,7 @@ after = 0
 
 utts = {}
 # sox track1.wav silence.wav track2.wav silence.wav ... output.wav
-wav_file = open(sys.argv[1], 'r')
+wav_file = open(sys.argv[1], "r")
 orig_wavs = wav_file.readlines()
 
 sdir = sys.argv[2]
@@ -25,19 +25,18 @@ for line in orig_wavs:
 
 utts_2 = {}
 for sid in utts.keys():
-    utts_2[sid+'A'] = utts[sid][len(utts[sid])//2:]
-    utts_2[sid+'B'] = utts[sid][:len(utts[sid])//2]
+    utts_2[sid + "A"] = utts[sid][len(utts[sid]) // 2 :]
+    utts_2[sid + "B"] = utts[sid][: len(utts[sid]) // 2]
 
 
 f = open(sfile, "a")
 for sid in utts_2.keys():
-    cmd = "sox " + " ".join(utts_2[sid]) + \
-          (" -t wav " + sdir + '/' + sid + '.wav')
-    f.write(cmd + '\n')
+    cmd = "sox " + " ".join(utts_2[sid]) + (" -t wav " + sdir + "/" + sid + ".wav")
+    f.write(cmd + "\n")
 f.close()
 
 f = open(wfile, "a")
 for sid in utts_2.keys():
-    cmd = sid + ' ' + sdir + '/' + sid + '.wav'
-    f.write(cmd + '\n')
+    cmd = sid + " " + sdir + "/" + sid + ".wav"
+    f.write(cmd + "\n")
 f.close()

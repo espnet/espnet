@@ -307,6 +307,7 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
 
         return self.forward_attention(v, scores, mask)
 
+
 class RelBlockMultiHeadedAttention(nn.Module):
     def __init__(self, n_head, n_feat, dropout_rate, pos_emb, block_len=None):
         super(RelBlockMultiHeadedAttention, self).__init__()
@@ -331,7 +332,17 @@ class RelBlockMultiHeadedAttention(nn.Module):
         self.attn = None
         self.dropout = nn.Dropout(p=dropout_rate)
 
-    def forward(self, query, key, value, mask, key_memory=None, key_memory_mask=None, block_len=None, kmem_after=False):
+    def forward(
+        self,
+        query,
+        key,
+        value,
+        mask,
+        key_memory=None,
+        key_memory_mask=None,
+        block_len=None,
+        kmem_after=False,
+    ):
         qlen = query.size(1)
         n_batch, klen, dim = key.size()
         if block_len is not None:
@@ -340,7 +351,8 @@ class RelBlockMultiHeadedAttention(nn.Module):
         if self.block_len > 0:
             if query.size(1) != key.size(1):
                 print(
-                    "lenght of query and key must be same when block processing is enabled")
+                    "lenght of query and key must be same when block processing is enabled"
+                )
                 exit(-1)
             blen = self.block_len
             if klen % blen > 0:
@@ -355,17 +367,24 @@ class RelBlockMultiHeadedAttention(nn.Module):
 
             k = self.linear_k(key)
             k = torch.nn.functional.pad(k, (0, 0, blen, plen))
-            k = k.as_strided((n_batch, int(klen / blen), blen * 2, dim),
-                             ((blen + klen) * dim, dim * blen, dim, 1))
+            k = k.as_strided(
+                (n_batch, int(klen / blen), blen * 2, dim),
+                ((blen + klen) * dim, dim * blen, dim, 1),
+            )
             kmem_len = 0
             if key_memory is not None:
-                #key_memory = key_memory.detach()
+                # key_memory = key_memory.detach()
                 key_memory = self.linear_k(key_memory)
                 kmem_len = key_memory.size(1)
-                kmem_ext = torch.zeros(n_batch, int(
-                    klen / blen), kmem_len, self.h*self.d_k, device=k.device)
+                kmem_ext = torch.zeros(
+                    n_batch,
+                    int(klen / blen),
+                    kmem_len,
+                    self.h * self.d_k,
+                    device=k.device,
+                )
                 kmem_ext = kmem_ext.copy_(key_memory.unsqueeze(1))
-                #k = torch.cat([k, kmem_ext], dim=-2)
+                # k = torch.cat([k, kmem_ext], dim=-2)
                 if kmem_after:
                     k = torch.cat([k, kmem_ext], dim=-2)
                 else:
@@ -375,14 +394,23 @@ class RelBlockMultiHeadedAttention(nn.Module):
 
             v = self.linear_v(value)
             v = torch.nn.functional.pad(v, (0, 0, blen, plen))
-            v = v.as_strided((n_batch, int(klen / blen), blen * 2, dim),
-                             ((blen + klen) * dim, dim * blen,  dim, 1))
-            if key_memory is not None:  # assuming key_memory is identical to value. should be separated?
+            v = v.as_strided(
+                (n_batch, int(klen / blen), blen * 2, dim),
+                ((blen + klen) * dim, dim * blen, dim, 1),
+            )
+            if (
+                key_memory is not None
+            ):  # assuming key_memory is identical to value. should be separated?
                 kmem_len = key_memory.size(1)
-                kmem_ext = torch.zeros(n_batch, int(
-                    klen / blen), kmem_len, self.h*self.d_k, device=k.device)
+                kmem_ext = torch.zeros(
+                    n_batch,
+                    int(klen / blen),
+                    kmem_len,
+                    self.h * self.d_k,
+                    device=k.device,
+                )
                 kmem_ext = kmem_ext.copy_(key_memory.unsqueeze(1))
-                #v = torch.cat([v, kmem_ext], dim=-2)
+                # v = torch.cat([v, kmem_ext], dim=-2)
                 if kmem_after:
                     v = torch.cat([v, kmem_ext], dim=-2)
                 else:
@@ -392,14 +420,21 @@ class RelBlockMultiHeadedAttention(nn.Module):
 
             # handling of masks might be insufficient
             if mask is not None:
-                mask = torch.nn.functional.pad(mask.squeeze(
-                    1), (blen, plen, 0, 0))  # B x t1(q) x t2(k)
-                mask = mask.as_strided((n_batch, int(klen / blen), blen * 2),
-                                       ((blen + klen), blen, 1))
+                mask = torch.nn.functional.pad(
+                    mask.squeeze(1), (blen, plen, 0, 0)
+                )  # B x t1(q) x t2(k)
+                mask = mask.as_strided(
+                    (n_batch, int(klen / blen), blen * 2), ((blen + klen), blen, 1)
+                )
                 if kmem_len > 0:
                     if key_memory_mask is not None:
-                        kmask_ext = torch.zeros(n_batch, int(
-                            klen / blen), kmem_len, dtype=key_memory_mask.dtype, device=key_memory_mask.device)
+                        kmask_ext = torch.zeros(
+                            n_batch,
+                            int(klen / blen),
+                            kmem_len,
+                            dtype=key_memory_mask.dtype,
+                            device=key_memory_mask.device,
+                        )
                         kmask_ext = kmask_ext.copy_(key_memory_mask)
                         if kmem_after:
                             mask = torch.cat([mask, kmask_ext], dim=-1)
@@ -413,7 +448,7 @@ class RelBlockMultiHeadedAttention(nn.Module):
 
         else:
             if key_memory is not None:
-                #key_memory = key_memory.detach()
+                # key_memory = key_memory.detach()
                 if kmem_after:
                     key = torch.cat([key, key_memory], dim=-2)
                     value = torch.cat([value, key_memory], dim=-2)
@@ -456,8 +491,11 @@ class RelBlockMultiHeadedAttention(nn.Module):
             ofset = T2 - 1
         else:
             ofset = T1 - 1
-        t_bd = torch.cat([t_bd, f_t_bd], dim=-1).as_strided((B, H, T1, T2),
-                                                            (H*T1*(T2*2-1), T1*(T2*2-1), T2*2-2, 1), storage_offset=ofset)
+        t_bd = torch.cat([t_bd, f_t_bd], dim=-1).as_strided(
+            (B, H, T1, T2),
+            (H * T1 * (T2 * 2 - 1), T1 * (T2 * 2 - 1), T2 * 2 - 2, 1),
+            storage_offset=ofset,
+        )
         # rel shift of ESPnet
         # zero_pad = torch.zeros((t_bd.size(0), 1, *t_bd.size()[2:]), device=t_bd.device, dtype=t_bd.dtype)
         # t_bd_padded = torch.cat([zero_pad, t_bd], dim=1)
@@ -467,8 +505,9 @@ class RelBlockMultiHeadedAttention(nn.Module):
         scores = (t_ac + t_bd) / math.sqrt(self.d_k)
         if mask is not None:
             mask = mask.unsqueeze(1).eq(0)  # (batch, 1, time1, time2)
-            min_value = float(numpy.finfo(torch.tensor(
-                0, dtype=scores.dtype).numpy().dtype).min)
+            min_value = float(
+                numpy.finfo(torch.tensor(0, dtype=scores.dtype).numpy().dtype).min
+            )
             scores = scores.masked_fill(mask, min_value)
             # (batch, head, time1, time2)
             self.attn = torch.softmax(scores, dim=-1).masked_fill(mask, 0.0)
@@ -477,7 +516,8 @@ class RelBlockMultiHeadedAttention(nn.Module):
 
         p_attn = self.dropout(self.attn)
         x = torch.matmul(p_attn, v)  # (batch, head, time1, d_k)
-        x = x.transpose(1, 2).contiguous().view(
-            n_batch, -1, self.h * self.d_k)  # (batch, time1, d_model)
+        x = (
+            x.transpose(1, 2).contiguous().view(n_batch, -1, self.h * self.d_k)
+        )  # (batch, time1, d_model)
 
         return self.linear_out(x)[:, :qlen, :]  # (batch, time1, d_model)

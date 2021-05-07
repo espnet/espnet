@@ -11,7 +11,9 @@ import logging
 import torch
 
 from espnet.nets.pytorch_backend.transformer.xl_convolution import ConvolutionModule
-from espnet.nets.pytorch_backend.transformer.encoder_xl_layer import EncoderLayerXL as EncoderLayer
+from espnet.nets.pytorch_backend.transformer.encoder_xl_layer import (
+    EncoderLayerXL as EncoderLayer,
+)
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 from espnet.nets.pytorch_backend.transformer.attention import (
@@ -121,8 +123,7 @@ class EncoderXL(torch.nn.Module):
             self.embed = VGG2L(idim, attention_dim)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(idim, attention_dim,
-                                   padding_idx=padding_idx),
+                torch.nn.Embedding(idim, attention_dim, padding_idx=padding_idx),
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif isinstance(input_layer, torch.nn.Module):
@@ -155,12 +156,12 @@ class EncoderXL(torch.nn.Module):
                 attention_dim,
                 attention_dropout_rate,
                 PositionalEncoding(
-                    attention_dim, positional_dropout_rate, reverse=True),
+                    attention_dim, positional_dropout_rate, reverse=True
+                ),
                 block_length,
             )
         else:
-            raise ValueError("unknown encoder_attn_layer: " +
-                             selfattention_layer_type)
+            raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
 
         # feed-forward module definition
         if positionwise_layer_type == "linear":
@@ -194,7 +195,11 @@ class EncoderXL(torch.nn.Module):
             # convolution module definition
             convolution_layer = ConvolutionModule
             convolution_layer_args = (
-                attention_dim, cnn_module_kernel, self.bl, activation)
+                attention_dim,
+                cnn_module_kernel,
+                self.bl,
+                activation,
+            )
 
         self.encoders = repeat(
             num_blocks,
@@ -202,10 +207,8 @@ class EncoderXL(torch.nn.Module):
                 attention_dim,
                 encoder_selfattn_layer(*encoder_selfattn_layer_args),
                 positionwise_layer(*positionwise_layer_args),
-                positionwise_layer(
-                    *positionwise_layer_args) if macaron_style else None,
-                convolution_layer(
-                    *convolution_layer_args) if use_cnn_module else None,
+                positionwise_layer(*positionwise_layer_args) if macaron_style else None,
+                convolution_layer(*convolution_layer_args) if use_cnn_module else None,
                 dropout_rate,
                 normalize_before,
                 concat_after,
@@ -213,6 +216,7 @@ class EncoderXL(torch.nn.Module):
         )
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
+
     # need change
 
     def forward(self, xs, masks, km, km_mask, bl=None):
@@ -234,8 +238,7 @@ class EncoderXL(torch.nn.Module):
         else:
             xs = self.embed(xs)
 
-        xs, masks, km, km_mask, bl = self.encoders(
-            xs, masks, km, km_mask, self.bl)
+        xs, masks, km, km_mask, bl = self.encoders(xs, masks, km, km_mask, self.bl)
         if isinstance(xs, tuple):
             xs = xs[0]
 

@@ -17,8 +17,8 @@ for line in sys.stdin:
 
 txt_2 = {}
 for sid in txt.keys():
-    txt_2[sid+'A'] = txt[sid][len(txt[sid])//2:]
-    txt_2[sid+'B'] = txt[sid][:len(txt[sid])//2]
+    txt_2[sid + "A"] = txt[sid][len(txt[sid]) // 2 :]
+    txt_2[sid + "B"] = txt[sid][: len(txt[sid]) // 2]
 
 for sid in txt_2.keys():
     after += 1
