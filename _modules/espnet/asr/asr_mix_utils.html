@@ -1,0 +1,455 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.asr.asr_mix_utils &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.asr.asr_mix_utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.asr.asr_mix_utils</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script is used to provide utility functions designed for multi-speaker ASR.</span>
+
+<span class="sd">Copyright 2017 Johns Hopkins University (Shinji Watanabe)</span>
+<span class="sd"> Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
+
+<span class="sd">Most functions can be directly used as in asr_utils.py:</span>
+<span class="sd">    CompareValueTrigger, restore_snapshot, adadelta_eps_decay, chainer_load,</span>
+<span class="sd">    torch_snapshot, torch_save, torch_resume, AttributeDict, get_model_conf.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extension</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+
+<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">parse_hypothesis</span>
+
+
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># * -------------------- chainer extension related -------------------- *</span>
+<div class="viewcode-block" id="PlotAttentionReport"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport">[docs]</a><span class="k">class</span> <span class="nc">PlotAttentionReport</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Plot attention reporter.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        att_vis_fn (espnet.nets.*_backend.e2e_asr.calculate_all_attentions):</span>
+<span class="sd">            Function of attention visualization.</span>
+<span class="sd">        data (list[tuple(str, dict[str, dict[str, Any]])]): List json utt key items.</span>
+<span class="sd">        outdir (str): Directory to save figures.</span>
+<span class="sd">        converter (espnet.asr.*_backend.asr.CustomConverter):</span>
+<span class="sd">            CustomConverter object. Function to convert data.</span>
+<span class="sd">        device (torch.device): The destination device to send tensor.</span>
+<span class="sd">        reverse (bool): If True, input and output length are reversed.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_vis_fn</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize PlotAttentionReport.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att_vis_fn</span> <span class="o">=</span> <span class="n">att_vis_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span> <span class="o">=</span> <span class="n">reverse</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot and save imaged matrix of att_ws.&quot;&quot;&quot;</span>
+        <span class="n">att_ws_sd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ns</span><span class="p">,</span> <span class="n">att_ws</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws_sd</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">):</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.output</span><span class="si">%d</span><span class="s2">.png&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">ns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weight</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">ns</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_attention</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
+
+<div class="viewcode-block" id="PlotAttentionReport.log_attentions"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.log_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">log_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add image files of attention matrix to tensorboard.&quot;&quot;&quot;</span>
+        <span class="n">att_ws_sd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ns</span><span class="p">,</span> <span class="n">att_ws</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws_sd</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">):</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weight</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">ns</span><span class="p">)</span>
+                <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_attention_plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span> <span class="n">step</span><span class="p">)</span>
+                <span class="n">plot</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PlotAttentionReport.get_attention_weights"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.get_attention_weights">[docs]</a>    <span class="k">def</span> <span class="nf">get_attention_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return attention weights.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            arr_ws_sd (numpy.ndarray): attention weights. It&#39;s shape would be</span>
+<span class="sd">                differ from bachend.dtype=float</span>
+<span class="sd">                * pytorch-&gt; 1) multi-head case =&gt; (B, H, Lmax, Tmax). 2)</span>
+<span class="sd">                  other case =&gt; (B, Lmax, Tmax).</span>
+<span class="sd">                * chainer-&gt; attention weights (B, Lmax, Tmax).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)],</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">att_ws_sd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_vis_fn</span><span class="p">(</span><span class="o">*</span><span class="n">batch</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">att_ws_sd</span></div>
+
+<div class="viewcode-block" id="PlotAttentionReport.get_attention_weight"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.get_attention_weight">[docs]</a>    <span class="k">def</span> <span class="nf">get_attention_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">spkr_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Transform attention weight in regard to self.reverse.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
+            <span class="n">dec_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">enc_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="n">spkr_idx</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dec_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="n">spkr_idx</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">enc_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="p">[:,</span> <span class="p">:</span><span class="n">dec_len</span><span class="p">,</span> <span class="p">:</span><span class="n">enc_len</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="p">[:</span><span class="n">dec_len</span><span class="p">,</span> <span class="p">:</span><span class="n">enc_len</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">att_w</span></div>
+
+<div class="viewcode-block" id="PlotAttentionReport.draw_attention_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.draw_attention_plot">[docs]</a>    <span class="k">def</span> <span class="nf">draw_attention_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Visualize attention weights matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            att_w(Tensor): Attention weight matrix.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            matplotlib.pyplot: pyplot object with attention matrix image.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">aw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">aw</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Encoder Index&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Decoder Index&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Encoder Index&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Decoder Index&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">plt</span></div>
+
+    <span class="k">def</span> <span class="nf">_plot_and_save_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_attention_plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="add_results_to_json"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.add_results_to_json">[docs]</a><span class="k">def</span> <span class="nf">add_results_to_json</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="n">nbest_hyps_sd</span><span class="p">,</span> <span class="n">char_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add N-best results to json.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        js (dict[str, Any]): Groundtruth utterance dict.</span>
+<span class="sd">        nbest_hyps_sd (list[dict[str, Any]]):</span>
+<span class="sd">            List of hypothesis for multi_speakers (# Utts x # Spkrs).</span>
+<span class="sd">        char_list (list[str]): List of characters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, Any]: N-best results added utterance dict.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># copy old json info</span>
+    <span class="n">new_js</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;utt2spk&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">js</span><span class="p">[</span><span class="s2">&quot;utt2spk&quot;</span><span class="p">]</span>
+    <span class="n">num_spkrs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps_sd</span><span class="p">)</span>
+    <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spkrs</span><span class="p">):</span>
+        <span class="n">tmp_js</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">nbest_hyps_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># parse hypothesis</span>
+            <span class="n">rec_text</span><span class="p">,</span> <span class="n">rec_token</span><span class="p">,</span> <span class="n">rec_tokenid</span><span class="p">,</span> <span class="n">score</span> <span class="o">=</span> <span class="n">parse_hypothesis</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">char_list</span><span class="p">)</span>
+
+            <span class="c1"># copy ground-truth</span>
+            <span class="n">out_dic</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">js</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="n">ns</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+            <span class="c1"># update name</span>
+            <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="s2">&quot;[</span><span class="si">%d</span><span class="s2">]&quot;</span> <span class="o">%</span> <span class="n">n</span>
+
+            <span class="c1"># add recognition results</span>
+            <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rec_text</span>
+            <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_token&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rec_token</span>
+            <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_tokenid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rec_tokenid</span>
+            <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
+
+            <span class="c1"># add to list of N-best result dicts</span>
+            <span class="n">tmp_js</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_dic</span><span class="p">)</span>
+
+            <span class="c1"># show 1-best result</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;groundtruth: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;prediction : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_text&quot;</span><span class="p">])</span>
+
+        <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_js</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_js</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

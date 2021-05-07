@@ -1,0 +1,1725 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Text-to-Speech (Recipe) &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Pretrained Model" href="pretrained.html" />
+    <link rel="prev" title="Speech Recognition (Library)" href="asr_library.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Text-to-Speech (Recipe)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Setup-envrionment">Setup envrionment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Run-the-recipe">Run the recipe</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Stage--1:-Data-download">Stage -1: Data download</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-0:-Data-preparation">Stage 0: Data preparation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-1:-Feature-extration">Stage 1: Feature extration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-2:-Dictionary-and-json-preparation">Stage 2: Dictionary and json preparation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-3:-Network-training">Stage 3: Network training</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-4:-Network-decoding">Stage 4: Network decoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-5:-Waveform-synthesis">Stage 5: Waveform synthesis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#NEXT-step">NEXT step</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Text-to-Speech (Recipe)</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/notebook/tts_cli.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="Text-to-Speech-(Recipe)">
+<h1>Text-to-Speech (Recipe)<a class="headerlink" href="#Text-to-Speech-(Recipe)" title="Permalink to this headline">¶</a></h1>
+<div class="line-block">
+<div class="line">This is the example notebook of how-to-run the ESPnet TTS recipe using an4 dataset.</div>
+<div class="line">You can understand the overview of TTS recipe through this notebook within an hour!</div>
+</div>
+<p>See also: - Documentaion: <a class="reference external" href="https://espnet.github.io/espnet">https://espnet.github.io/espnet</a> - Github: <a class="reference external" href="https://github.com/espnet">https://github.com/espnet</a></p>
+<p>Author: <a class="reference external" href="https://github.com/kan-bayashi">Tomoki Hayashi</a></p>
+<p>Last update: 2019/07/25</p>
+<div class="section" id="Setup-envrionment">
+<h2>Setup envrionment<a class="headerlink" href="#Setup-envrionment" title="Permalink to this headline">¶</a></h2>
+<div class="line-block">
+<div class="line">First, let’s setup the environmet to run the recipe.</div>
+<div class="line">It take around 10 minues. Please keep waiting for a while.</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># OS setup
+!sudo apt-get install bc tree
+!cat /etc/os-release
+
+# espnet setup
+!git clone https://github.com/espnet/espnet
+!cd espnet; pip install -e .
+
+# warp ctc setup
+!git clone https://github.com/espnet/warp-ctc -b pytorch-1.1
+!cd warp-ctc &amp;&amp; mkdir build &amp;&amp; cd build &amp;&amp; cmake .. &amp;&amp; make -j
+!cd warp-ctc/pytorch_binding &amp;&amp; python setup.py install
+
+# kaldi setup
+!cd /content/espnet/tools; git clone https://github.com/kaldi-asr/kaldi
+!echo &quot;&quot; &gt; ./espnet/tools/kaldi/tools/extras/check_dependencies.sh # ignore check
+!chmod +x ./espnet/tools/kaldi/tools/extras/check_dependencies.sh
+!cd ./espnet/tools/kaldi/tools; make sph2pipe sclite
+!rm -rf espnet/tools/kaldi/tools/python
+!wget https://18-198329952-gh.circle-artifacts.com/0/home/circleci/repo/ubuntu16-featbin.tar.gz
+!tar -xf ./ubuntu16-featbin.tar.gz # take a few minutes
+!cp featbin/* espnet/tools/kaldi/src/featbin/
+
+# make dummy activate
+!mkdir -p espnet/tools/venv/bin
+!touch espnet/tools/venv/bin/activate
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Run-the-recipe">
+<h2>Run the recipe<a class="headerlink" href="#Run-the-recipe" title="Permalink to this headline">¶</a></h2>
+<div class="line-block">
+<div class="line">Now ready to run the recipe!</div>
+<div class="line">We use the most simplest recipe <code class="docutils literal notranslate"><span class="pre">egs/an4/tts1</span></code> as an example.</div>
+<div class="line">&gt; Unfortunately, <code class="docutils literal notranslate"><span class="pre">egs/an4/tts1</span></code> is too small to generate reasonable speech.</div>
+<div class="line">&gt; But you can understand the flow or TTS recipe through this recipe since all of the TTS recipes has the exactly same flow.</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># Let&#39;s go to an4 recipe!
+import os
+os.chdir(&quot;/content/espnet/egs/an4/tts1&quot;)
+</pre></div>
+</div>
+</div>
+<p>Before running the recipe, let us check the recipe structure.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!tree -L 1
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+.
+├── cmd.sh
+├── conf
+├── data
+├── downloads
+├── dump
+├── exp
+├── fbank
+├── local -&gt; ../asr1/local
+├── path.sh
+├── run.sh
+├── steps -&gt; ../../../tools/kaldi/egs/wsj/s5/steps
+├── tensorboard
+└── utils -&gt; ../../../tools/kaldi/egs/wsj/s5/utils
+
+10 directories, 3 files
+</pre></div></div>
+</div>
+<p>Each recipe has the same structure and files.</p>
+<ul class="simple">
+<li><p><strong>run.sh</strong>: Main script of the recipe. Once you run this script, all of the processing will be conducted from data download, preparation, feature extraction, training, and decoding.</p></li>
+<li><p><strong>cmd.sh</strong>: Command configuration source file about how-to-run each processing. You can modify this script if you want to run the script through job control system e.g. Slurm or Torque.</p></li>
+<li><p><strong>path.sh</strong>: Path configuration source file. Basically, we do not have to touch.</p></li>
+<li><p><strong>conf/</strong>: Directory containing configuration files.</p></li>
+<li><p><strong>local/</strong>: Directory containing the recipe-specific scripts e.g. data preparation.</p></li>
+<li><p><strong>steps/</strong> and <strong>utils/</strong>: Directory containing kaldi tools.</p></li>
+</ul>
+<p>Main script <strong>run.sh</strong> consists of several stages:</p>
+<ul class="simple">
+<li><p><strong>stage -1</strong>: Download data if the data is available online.</p></li>
+<li><p><strong>stage 0</strong>: Prepare data to make kaldi-stype data directory.</p></li>
+<li><p><strong>stage 1</strong>: Extract feature vector, calculate statistics, and perform normalization.</p></li>
+<li><p><strong>stage 2</strong>: Prepare a dictionary and make json files for training.</p></li>
+<li><p><strong>stage 3</strong>: Train the E2E-TTS network.</p></li>
+<li><p><strong>stage 4</strong>: Decode mel-spectrogram using the trained network.</p></li>
+<li><p><strong>stage 5</strong>: Generate a waveform from a generated mel-spectrogram using Griffin-Lim.</p></li>
+</ul>
+<p>Currently, we support the following networks: - Tacotron2: <a class="reference external" href="https://arxiv.org/abs/1712.05884">Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions</a> - Transformer: <a class="reference external" href="https://arxiv.org/pdf/1809.08895.pdf">Neural Speech Synthesis with Transformer Network</a> - FastSpeech: <a class="reference external" href="https://arxiv.org/pdf/1905.09263.pdf">FastSpeech: Fast, Robust and Controllable Text to Speech</a></p>
+<p>Let us check each stage step-by-step via <strong>–stage</strong> and <strong>–stop_stage</strong> options!</p>
+<div class="section" id="Stage--1:-Data-download">
+<h3>Stage -1: Data download<a class="headerlink" href="#Stage--1:-Data-download" title="Permalink to this headline">¶</a></h3>
+<p>This stage downloads dataset if the dataset is available online.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage -1 --stop_stage -1
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+stage -1: Data Download
+local/download_and_untar.sh: an4 directory already exists in ./downloads
+dictionary: data/lang_1char/train_nodev_units.txt
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!tree -L 1
+!ls downloads/
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+.
+├── cmd.sh
+├── conf
+├── data
+├── downloads
+├── dump
+├── exp
+├── fbank
+├── local -&gt; ../asr1/local
+├── path.sh
+├── run.sh
+├── steps -&gt; ../../../tools/kaldi/egs/wsj/s5/steps
+├── tensorboard
+└── utils -&gt; ../../../tools/kaldi/egs/wsj/s5/utils
+
+10 directories, 3 files
+an4  an4_sphere.tar.gz
+</pre></div></div>
+</div>
+<p>You can see <strong>downloads</strong> directory is cretead, which containing donwloaded an4 dataset.</p>
+</div>
+<div class="section" id="Stage-0:-Data-preparation">
+<h3>Stage 0: Data preparation<a class="headerlink" href="#Stage-0:-Data-preparation" title="Permalink to this headline">¶</a></h3>
+<p>This stage creates kaldi-style data directories.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage 0 --stop_stage 0
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+stage 0: Data preparation
+dictionary: data/lang_1char/train_nodev_units.txt
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!tree -L 1 data
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+data
+├── lang_1char
+├── test
+├── train
+├── train_dev
+└── train_nodev
+
+5 directories, 0 files
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line">Through the data preparation stage, kaldi-style data directories will be created.</div>
+<div class="line">Here, <strong>data/train/</strong> is corresponding to training set, and <strong>data/test</strong> is corresponding to evaluation set.</div>
+<div class="line">Each directory has the same following files:</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls data/*
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+data/lang_1char:
+train_nodev_units.txt
+
+data/test:
+feats.scp  filetype  spk2utt  text  utt2num_frames  utt2spk  wav.scp
+
+data/train:
+feats.scp  filetype  spk2utt  text  utt2num_frames  utt2spk  wav.scp
+
+data/train_dev:
+feats.scp  spk2utt  text  utt2num_frames  utt2spk  wav.scp
+
+data/train_nodev:
+cmvn.ark  feats.scp  spk2utt  text  utt2num_frames  utt2spk  wav.scp
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line">The above four files are all we have to prepare to create new recipes.</div>
+<div class="line">Let’s check each file.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!head -n 3 data/train/{wav.scp,text,utt2spk,spk2utt}
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+==&gt; data/train/wav.scp &lt;==
+fash-an251-b /content/espnet/egs/an4/tts1/../../../tools/kaldi/tools/sph2pipe_v2.5/sph2pipe -f wav -p -c 1 ./downloads/an4/wav/an4_clstk/fash/an251-fash-b.sph |
+fash-an253-b /content/espnet/egs/an4/tts1/../../../tools/kaldi/tools/sph2pipe_v2.5/sph2pipe -f wav -p -c 1 ./downloads/an4/wav/an4_clstk/fash/an253-fash-b.sph |
+fash-an254-b /content/espnet/egs/an4/tts1/../../../tools/kaldi/tools/sph2pipe_v2.5/sph2pipe -f wav -p -c 1 ./downloads/an4/wav/an4_clstk/fash/an254-fash-b.sph |
+
+==&gt; data/train/text &lt;==
+fash-an251-b YES
+fash-an253-b GO
+fash-an254-b YES
+
+==&gt; data/train/utt2spk &lt;==
+fash-an251-b fash
+fash-an253-b fash
+fash-an254-b fash
+
+==&gt; data/train/spk2utt &lt;==
+fash fash-an251-b fash-an253-b fash-an254-b fash-an255-b fash-cen1-b fash-cen2-b fash-cen4-b fash-cen5-b fash-cen7-b
+fbbh fbbh-an86-b fbbh-an87-b fbbh-an88-b fbbh-an89-b fbbh-an90-b fbbh-cen1-b fbbh-cen2-b fbbh-cen3-b fbbh-cen4-b fbbh-cen5-b fbbh-cen6-b fbbh-cen7-b fbbh-cen8-b
+fclc fclc-an146-b fclc-an147-b fclc-an148-b fclc-an149-b fclc-an150-b fclc-cen1-b fclc-cen2-b fclc-cen3-b fclc-cen4-b fclc-cen5-b fclc-cen6-b fclc-cen7-b fclc-cen8-b
+</pre></div></div>
+</div>
+<p>Each file contains the following information: - <strong>wav.scp</strong>: List of audio path. Each line has <code class="docutils literal notranslate"><span class="pre">&lt;utt_id&gt;</span> <span class="pre">&lt;wavfile_path</span> <span class="pre">or</span> <span class="pre">command</span> <span class="pre">pipe&gt;</span></code>. <code class="docutils literal notranslate"><span class="pre">&lt;utt_id&gt;</span></code> must be unique. - <strong>text</strong>: List of transcriptions. Each line has <code class="docutils literal notranslate"><span class="pre">&lt;utt_id&gt;</span> <span class="pre">&lt;transcription&gt;</span></code>. In the case of TTS, we assume that <code class="docutils literal notranslate"><span class="pre">&lt;transcription&gt;</span></code> is cleaned. - <strong>utt2spk</strong>: List of correspondence table between utterances and speakers. Each line has <code class="docutils literal notranslate"><span class="pre">&lt;utt_id&gt;</span> <span class="pre">&lt;speaker_id&gt;</span></code>. - <strong>spk2utt</strong>: List of correspondence table between speakers and
+utterances. Each lien has <code class="docutils literal notranslate"><span class="pre">&lt;speaker_id&gt;</span> <span class="pre">&lt;utt_id&gt;</span> <span class="pre">...</span> <span class="pre">&lt;utt_id&gt;</span></code>. This file can be automatically created from <strong>utt2spk</strong>.</p>
+<div class="line-block">
+<div class="line">In the ESPnet, speaker information is not used for any processing.</div>
+<div class="line">Therefore, <strong>utt2spk</strong> and <strong>spk2utt</strong> can be a dummy.</div>
+</div>
+</div>
+<div class="section" id="Stage-1:-Feature-extration">
+<h3>Stage 1: Feature extration<a class="headerlink" href="#Stage-1:-Feature-extration" title="Permalink to this headline">¶</a></h3>
+<p>This stage performs the following processing: 1. Mel-spectrogram extraction 2. Data split into training and validation set 2. Statistics (mean and variance) calculation 3. Normalization</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage 1 --stop_stage 1 --nj 4
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+stage 1: Feature Generation
+/content/espnet/egs/an4/tts1/../../../utils/make_fbank.sh --cmd run.pl --nj 4 --fs 16000 --fmax  --fmin  --n_fft 1024 --n_shift 256 --win_length  --n_mels 80 data/train exp/make_fbank/train fbank
+/content/espnet/egs/an4/tts1/../../../utils/make_fbank.sh: moving data/train/feats.scp to data/train/.backup
+utils/validate_data_dir.sh: Successfully validated data-directory data/train
+/content/espnet/egs/an4/tts1/../../../utils/make_fbank.sh: [info]: no segments file exists: assuming pcm.scp indexed by utterance.
+Succeeded creating filterbank features for train
+/content/espnet/egs/an4/tts1/../../../utils/make_fbank.sh --cmd run.pl --nj 4 --fs 16000 --fmax  --fmin  --n_fft 1024 --n_shift 256 --win_length  --n_mels 80 data/test exp/make_fbank/test fbank
+/content/espnet/egs/an4/tts1/../../../utils/make_fbank.sh: moving data/test/feats.scp to data/test/.backup
+utils/validate_data_dir.sh: Successfully validated data-directory data/test
+/content/espnet/egs/an4/tts1/../../../utils/make_fbank.sh: [info]: no segments file exists: assuming pcm.scp indexed by utterance.
+Succeeded creating filterbank features for test
+utils/subset_data_dir.sh: reducing #utt from 948 to 100
+utils/subset_data_dir.sh: reducing #utt from 948 to 848
+compute-cmvn-stats scp:data/train_nodev/feats.scp data/train_nodev/cmvn.ark
+LOG (compute-cmvn-stats[5.5.428~1-29b3]:main():compute-cmvn-stats.cc:168) Wrote global CMVN stats to data/train_nodev/cmvn.ark
+LOG (compute-cmvn-stats[5.5.428~1-29b3]:main():compute-cmvn-stats.cc:171) Done accumulating CMVN stats for 848 utterances; 0 had errors.
+/content/espnet/egs/an4/tts1/../../../utils/dump.sh --cmd run.pl --nj 4 --do_delta false data/train_nodev/feats.scp data/train_nodev/cmvn.ark exp/dump_feats/train dump/train_nodev
+/content/espnet/egs/an4/tts1/../../../utils/dump.sh --cmd run.pl --nj 4 --do_delta false data/train_dev/feats.scp data/train_nodev/cmvn.ark exp/dump_feats/dev dump/train_dev
+/content/espnet/egs/an4/tts1/../../../utils/dump.sh --cmd run.pl --nj 4 --do_delta false data/test/feats.scp data/train_nodev/cmvn.ark exp/dump_feats/eval dump/test
+dictionary: data/lang_1char/train_nodev_units.txt
+</pre></div></div>
+</div>
+<p>Raw filterbanks are saved in <strong>fbank/</strong> directory with ark/scp format.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls fbank
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+raw_fbank_test.1.ark  raw_fbank_test.4.ark   raw_fbank_train.3.ark
+raw_fbank_test.1.scp  raw_fbank_test.4.scp   raw_fbank_train.3.scp
+raw_fbank_test.2.ark  raw_fbank_train.1.ark  raw_fbank_train.4.ark
+raw_fbank_test.2.scp  raw_fbank_train.1.scp  raw_fbank_train.4.scp
+raw_fbank_test.3.ark  raw_fbank_train.2.ark
+raw_fbank_test.3.scp  raw_fbank_train.2.scp
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line"><strong>.ark</strong> is binary file and <strong>.scp</strong> contain the correspondence between <code class="docutils literal notranslate"><span class="pre">&lt;utt_id&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;path_in_ark&gt;</span></code>.</div>
+<div class="line">Since feature extraction can be performed for split small sets in parallel, raw_fbank is split into <code class="docutils literal notranslate"><span class="pre">raw_fbank_*.{1..N}.{scp,ark}.</span></code></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!head -n 3 fbank/raw_fbank_train.1.scp
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+fash-an251-b /content/espnet/egs/an4/tts1/fbank/raw_fbank_train.1.ark:13
+fash-an253-b /content/espnet/egs/an4/tts1/fbank/raw_fbank_train.1.ark:5727
+fash-an254-b /content/espnet/egs/an4/tts1/fbank/raw_fbank_train.1.ark:9921
+</pre></div></div>
+</div>
+<p>These files can be loaded in python via <strong>kaldiio</strong> as follows:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import kaldiio
+import matplotlib.pyplot as plt
+
+# load scp file
+scp_dict = kaldiio.load_scp(&quot;fbank/raw_fbank_train.1.scp&quot;)
+for key in scp_dict:
+    plt.imshow(scp_dict[key].T[::-1])
+    plt.title(key)
+    plt.colorbar()
+    plt.show()
+    break
+
+# load ark file
+ark_generator = kaldiio.load_ark(&quot;fbank/raw_fbank_train.1.ark&quot;)
+for key, array in ark_generator:
+    plt.imshow(array.T[::-1])
+    plt.title(key)
+    plt.colorbar()
+    plt.show()
+    break
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_tts_cli_27_0.png" src="../_images/notebook_tts_cli_27_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_tts_cli_27_1.png" src="../_images/notebook_tts_cli_27_1.png" />
+</div>
+</div>
+<div class="line-block">
+<div class="line">After raw mel-spectrogram extraction, some files are added in <strong>data/train/</strong>.</div>
+<div class="line"><strong>feats.scp</strong> is concatenated scp file of <strong>fbank/raw_fbank_train.{1..N}.scp</strong>.</div>
+<div class="line"><strong>utt2num_frames</strong> has the number of feature frames of each <code class="docutils literal notranslate"><span class="pre">&lt;utt_id&gt;</span></code>.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls data/train
+!head -n 3 data/train/{feats.scp,utt2num_frames}
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+feats.scp  filetype  spk2utt  text  utt2num_frames  utt2spk  wav.scp
+==&gt; data/train/feats.scp &lt;==
+fash-an251-b /content/espnet/egs/an4/tts1/fbank/raw_fbank_train.1.ark:13
+fash-an253-b /content/espnet/egs/an4/tts1/fbank/raw_fbank_train.1.ark:5727
+fash-an254-b /content/espnet/egs/an4/tts1/fbank/raw_fbank_train.1.ark:9921
+
+==&gt; data/train/utt2num_frames &lt;==
+fash-an251-b 63
+fash-an253-b 44
+fash-an254-b 57
+</pre></div></div>
+</div>
+<p>And <strong>data/train/</strong> directory is split into two directory: - <strong>data/train_nodev/</strong>: data directory for training - <strong>data/train_dev/</strong>: data directory for validation</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls data
+!ls data/train_*
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+lang_1char  test  train  train_dev  train_nodev
+data/train_dev:
+feats.scp  spk2utt  text  utt2num_frames  utt2spk  wav.scp
+
+data/train_nodev:
+cmvn.ark  feats.scp  spk2utt  text  utt2num_frames  utt2spk  wav.scp
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line">You can find <strong>cmvn.ark</strong> in <strong>data/train_nodev</strong>, which is the calculated statistics file.</div>
+<div class="line">This file also can be loaded in python via kaldiio.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># load cmvn.ark file (Be careful not load_ark, but load_mat)
+cmvn = kaldiio.load_mat(&quot;data/train_nodev/cmvn.ark&quot;)
+
+# cmvn consists of mean and variance, the last dimension of mean represents the number of frames.
+print(&quot;cmvn shape = &quot;+ str(cmvn.shape))
+
+# calculate mean and variance
+mu = cmvn[0, :-1] / cmvn[0, -1]
+var = cmvn[1, :-1] / cmvn[0, -1]
+
+# show mean
+print(&quot;mean = &quot; + str(mu))
+print(&quot;variance = &quot; + str(var))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+cmvn shape = (2, 81)
+mean = [-2.3015275 -2.1957324 -1.9654763 -1.9376634 -1.7633141 -1.6846672
+ -1.7875645 -1.9486219 -1.9248276 -1.8872185 -1.9270604 -1.991474
+ -1.9778731 -2.09246   -2.1971824 -2.209918  -2.3019788 -2.2964242
+ -2.32575   -2.3705876 -2.40271   -2.449803  -2.4300003 -2.466036
+ -2.5255735 -2.5386114 -2.582323  -2.5250685 -2.6118424 -2.632455
+ -2.6633208 -2.672028  -2.6356308 -2.6361263 -2.6829064 -2.691491
+ -2.694131  -2.675015  -2.6734142 -2.665589  -2.6630545 -2.6658235
+ -2.657909  -2.6691167 -2.6635575 -2.6643658 -2.6674545 -2.661883
+ -2.6606252 -2.657067  -2.6489155 -2.6527998 -2.6650834 -2.678152
+ -2.698867  -2.708589  -2.7201533 -2.7215238 -2.7254083 -2.7388637
+ -2.7713299 -2.8122768 -2.8621979 -2.9113584 -2.9572158 -3.0068166
+ -3.0537205 -3.1046875 -3.160605  -3.2164888 -3.2550604 -3.2886407
+ -3.3207698 -3.3445303 -3.3530545 -3.3561647 -3.357716  -3.3631625
+ -3.3077478 -3.2325494]
+variance = [ 5.478512   5.1941466  4.6532855  4.389601   3.6336286  3.4551063
+  3.7337823  4.3736997  4.2437925  4.1938186  4.4535246  4.6856284
+  4.5197277  4.960779   5.486998   5.5303926  5.9634395  5.9297132
+  6.0229506  6.2188787  6.402854   6.6038113  6.456947   6.6182714
+  6.9164844  6.9951644  7.2030034  6.832003   7.333239   7.455782
+  7.639241   7.6680694  7.402422   7.3907475  7.693637   7.768753
+  7.773008   7.671266   7.682944   7.639572   7.626395   7.6473846
+  7.611816   7.679605   7.6519523  7.658576   7.6860723  7.670902
+  7.6756134  7.674951   7.639459   7.6657314  7.7366185  7.789132
+  7.8906317  7.934334   8.0020485  8.016449   8.038348   8.104283
+  8.278971   8.490983   8.759398   9.036307   9.297286   9.589112
+  9.866017  10.173562  10.518697  10.873265  11.115793  11.32935
+ 11.530077  11.672476  11.716665  11.724409  11.7235985 11.751684
+ 11.366631  10.894848 ]
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line">Normalzed features for training, validation and evaluation set are dumped in <strong>dump/{train_nodev,train_dev,test}/</strong>.</div>
+<div class="line">There ark and scp can be loaded as the same as the above procedure.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls dump/*
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+dump/test:
+data.json    feats.2.ark  feats.3.scp  feats.scp  utt2num_frames
+feats.1.ark  feats.2.scp  feats.4.ark  filetype
+feats.1.scp  feats.3.ark  feats.4.scp  log
+
+dump/train_dev:
+data.json    feats.2.ark  feats.3.scp  feats.scp  utt2num_frames
+feats.1.ark  feats.2.scp  feats.4.ark  filetype
+feats.1.scp  feats.3.ark  feats.4.scp  log
+
+dump/train_nodev:
+data.json    feats.2.ark  feats.3.scp  feats.scp  utt2num_frames
+feats.1.ark  feats.2.scp  feats.4.ark  filetype
+feats.1.scp  feats.3.ark  feats.4.scp  log
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Stage-2:-Dictionary-and-json-preparation">
+<h3>Stage 2: Dictionary and json preparation<a class="headerlink" href="#Stage-2:-Dictionary-and-json-preparation" title="Permalink to this headline">¶</a></h3>
+<p>This stage creates dictrionary from <strong>data/train_nodev/text</strong> and makes json file for training.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage 2 --stop_stage 2
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+dictionary: data/lang_1char/train_nodev_units.txt
+stage 2: Dictionary and Json Data Preparation
+28 data/lang_1char/train_nodev_units.txt
+/content/espnet/egs/an4/tts1/../../../utils/data2json.sh --feat dump/train_nodev/feats.scp data/train_nodev data/lang_1char/train_nodev_units.txt
+/content/espnet/egs/an4/tts1/../../../utils/feat_to_shape.sh --cmd run.pl --nj 1 --filetype  --preprocess-conf  --verbose 0 dump/train_nodev/feats.scp data/train_nodev/tmp-6VLm9/input/shape.scp
+/content/espnet/egs/an4/tts1/../../../utils/data2json.sh --feat dump/train_dev/feats.scp data/train_dev data/lang_1char/train_nodev_units.txt
+/content/espnet/egs/an4/tts1/../../../utils/feat_to_shape.sh --cmd run.pl --nj 1 --filetype  --preprocess-conf  --verbose 0 dump/train_dev/feats.scp data/train_dev/tmp-g5AHB/input/shape.scp
+/content/espnet/egs/an4/tts1/../../../utils/data2json.sh --feat dump/test/feats.scp data/test data/lang_1char/train_nodev_units.txt
+/content/espnet/egs/an4/tts1/../../../utils/feat_to_shape.sh --cmd run.pl --nj 1 --filetype  --preprocess-conf  --verbose 0 dump/test/feats.scp data/test/tmp-U7FtO/input/shape.scp
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line">Dictrionary file will be created in <strong>data/lang_1char/</strong>.</div>
+<div class="line">Dictionary file consists of <code class="docutils literal notranslate"><span class="pre">&lt;token&gt;</span></code> <code class="docutils literal notranslate"><span class="pre">&lt;token</span> <span class="pre">index&gt;</span></code>.</div>
+<div class="line">Here, <code class="docutils literal notranslate"><span class="pre">&lt;token</span> <span class="pre">index&gt;</span></code> starts from 1 because 0 is used as padding index.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls data
+!cat data/lang_1char/train_nodev_units.txt
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+lang_1char  test  train  train_dev  train_nodev
+&lt;unk&gt; 1
+&lt;space&gt; 2
+A 3
+B 4
+C 5
+D 6
+E 7
+F 8
+G 9
+H 10
+I 11
+J 12
+K 13
+L 14
+M 15
+N 16
+O 17
+P 18
+Q 19
+R 20
+S 21
+T 22
+U 23
+V 24
+W 25
+X 26
+Y 27
+Z 28
+</pre></div></div>
+</div>
+<p>Json file will be created for training / validation /evaludation sets and they are saved as <strong>dump/{train_nodev,train_dev,test}/data.json</strong>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls dump/*/*.json
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+dump/test/data.json  dump/train_dev/data.json  dump/train_nodev/data.json
+</pre></div></div>
+</div>
+<p>Each json file contains all of the information in the data directory.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!head -n 27 dump/train_nodev/data.json
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{
+    &#34;utts&#34;: {
+        &#34;fash-an251-b&#34;: {
+            &#34;input&#34;: [
+                {
+                    &#34;feat&#34;: &#34;/content/espnet/egs/an4/tts1/dump/train_nodev/feats.1.ark:13&#34;,
+                    &#34;name&#34;: &#34;input1&#34;,
+                    &#34;shape&#34;: [
+                        63,
+                        80
+                    ]
+                }
+            ],
+            &#34;output&#34;: [
+                {
+                    &#34;name&#34;: &#34;target1&#34;,
+                    &#34;shape&#34;: [
+                        3,
+                        30
+                    ],
+                    &#34;text&#34;: &#34;YES&#34;,
+                    &#34;token&#34;: &#34;Y E S&#34;,
+                    &#34;tokenid&#34;: &#34;27 7 21&#34;
+                }
+            ],
+            &#34;utt2spk&#34;: &#34;fash&#34;
+        },
+</pre></div></div>
+</div>
+<ul class="simple">
+<li><p>“shape”: Shape of the input or output sequence. Here input shape [63, 80] represents the number of frames = 63 and the dimension of mel-spectrogram = 80.</p></li>
+<li><p>“text”: Original transcription.</p></li>
+<li><p>“token”: Token sequence of original transcription.</p></li>
+<li><p>“tokenid” Token id sequence of original transcription, which is converted using the dictionary.</p></li>
+</ul>
+<p>Now ready to start training!</p>
+</div>
+<div class="section" id="Stage-3:-Network-training">
+<h3>Stage 3: Network training<a class="headerlink" href="#Stage-3:-Network-training" title="Permalink to this headline">¶</a></h3>
+<div class="line-block">
+<div class="line">This stage performs training of the network.</div>
+<div class="line">Network training configurations are written as <strong>.yaml</strong> format file.</div>
+<div class="line">Let us check the default cofiguration <strong>conf/train_pytroch_tacotron2.yaml</strong>.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!cat conf/train_pytorch_tacotron2.yaml
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+# This is the basic tactron2 training settting
+
+# encoder related
+embed-dim: 512
+elayers: 1
+eunits: 512
+econv-layers: 3 # if set 0, no conv layer is used
+econv-chans: 512
+econv-filts: 5
+
+# decoder related
+dlayers: 2
+dunits: 1024
+prenet-layers: 2  # if set 0, no prenet is used
+prenet-units: 256
+postnet-layers: 5 # if set 0, no postnet is used
+postnet-chans: 512
+postnet-filts: 5
+
+# attention related
+atype: location
+adim: 128
+aconv-chans: 32
+aconv-filts: 15      # resulting in filter-size = aconv-filts * 2 + 1
+cumulate-att-w: true # whether to cumulate attetion weight
+use-batch-norm: true # whether to use batch normalization in conv layer
+use-concate: true    # whether to concatenate encoder embedding with decoder lstm outputs
+use-residual: false  # whether to use residual connection in encoder convolution
+use-masking: true    # whether to mask the padded part in loss calculation
+bce-pos-weight: 1.0  # weight for positive samples of stop token in cross-entropy calculation
+reduction-factor: 2
+
+# minibatch related
+batch-size: 32
+batch-sort-key: shuffle # shuffle or input or output
+maxlen-in: 150     # if input length  &gt; maxlen-in, batchsize is reduced (if use &#34;shuffle&#34;, not effect)
+maxlen-out: 400    # if output length &gt; maxlen-out, batchsize is reduced (if use &#34;shuffle&#34;, not effect)
+
+# optimization related
+lr: 1e-3
+eps: 1e-6
+weight-decay: 0.0
+dropout-rate: 0.5
+zoneout-rate: 0.1
+epochs: 50
+patience: 5
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line">You can modify this configuration file to change the hyperparameters.</div>
+<div class="line">Here, let’s change the number of epochs for this demonstration.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># TODO(kan-bayashi): Change here to use change_yaml.py
+!cat conf/train_pytorch_tacotron2.yaml | sed -e &quot;s/epochs: 50/epochs: 3/g&quot; &gt; conf/train_pytorch_tacotron2_sample.yaml
+!cat conf/train_pytorch_tacotron2_sample.yaml
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+# This is the basic tactron2 training settting
+
+# encoder related
+embed-dim: 512
+elayers: 1
+eunits: 512
+econv-layers: 3 # if set 0, no conv layer is used
+econv-chans: 512
+econv-filts: 5
+
+# decoder related
+dlayers: 2
+dunits: 1024
+prenet-layers: 2  # if set 0, no prenet is used
+prenet-units: 256
+postnet-layers: 5 # if set 0, no postnet is used
+postnet-chans: 512
+postnet-filts: 5
+
+# attention related
+atype: location
+adim: 128
+aconv-chans: 32
+aconv-filts: 15      # resulting in filter-size = aconv-filts * 2 + 1
+cumulate-att-w: true # whether to cumulate attetion weight
+use-batch-norm: true # whether to use batch normalization in conv layer
+use-concate: true    # whether to concatenate encoder embedding with decoder lstm outputs
+use-residual: false  # whether to use residual connection in encoder convolution
+use-masking: true    # whether to mask the padded part in loss calculation
+bce-pos-weight: 1.0  # weight for positive samples of stop token in cross-entropy calculation
+reduction-factor: 2
+
+# minibatch related
+batch-size: 32
+batch-sort-key: shuffle # shuffle or input or output
+maxlen-in: 150     # if input length  &gt; maxlen-in, batchsize is reduced (if use &#34;shuffle&#34;, not effect)
+maxlen-out: 400    # if output length &gt; maxlen-out, batchsize is reduced (if use &#34;shuffle&#34;, not effect)
+
+# optimization related
+lr: 1e-3
+eps: 1e-6
+weight-decay: 0.0
+dropout-rate: 0.5
+zoneout-rate: 0.1
+epochs: 3
+patience: 5
+</pre></div></div>
+</div>
+<div class="line-block">
+<div class="line">Let’s train the network.</div>
+<div class="line">You can specify the config file via <strong>–train_config</strong> option. It takes several minutes.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage 3 --stop_stage 3 --train_config conf/train_pytorch_tacotron2_sample.yaml --verbose 1
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+dictionary: data/lang_1char/train_nodev_units.txt
+stage 3: Text-to-speech model training
+^C
+</pre></div></div>
+</div>
+<p>You can see the training log in <code class="docutils literal notranslate"><span class="pre">exp/train_*/train.log</span></code>.</p>
+<p>The models are saved in <code class="docutils literal notranslate"><span class="pre">exp/train_*/results/</span></code> directory.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/{results,results/att_ws}
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results:
+all_loss.png  l1_loss.png  model.loss.best  snapshot.ep.2
+att_ws        loss.png     mse_loss.png     snapshot.ep.3
+bce_loss.png  model.json   snapshot.ep.1
+
+exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results/att_ws:
+fash-an251-b.ep.1.png  fash-an253-b.ep.3.png  fash-an255-b.ep.2.png
+fash-an251-b.ep.2.png  fash-an254-b.ep.1.png  fash-an255-b.ep.3.png
+fash-an251-b.ep.3.png  fash-an254-b.ep.2.png  fash-cen1-b.ep.1.png
+fash-an253-b.ep.1.png  fash-an254-b.ep.3.png  fash-cen1-b.ep.2.png
+fash-an253-b.ep.2.png  fash-an255-b.ep.1.png  fash-cen1-b.ep.3.png
+</pre></div></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">exp/train_*/results/*.png</span></code> are the figures of training curve.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>from IPython.display import Image, display_png
+print(&quot;all loss curve&quot;)
+display_png(Image(&quot;exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results/all_loss.png&quot;))
+print(&quot;l1 loss curve&quot;)
+display_png(Image(&quot;exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results/l1_loss.png&quot;))
+print(&quot;mse loss curve&quot;)
+display_png(Image(&quot;exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results/mse_loss.png&quot;))
+print(&quot;bce loss curve&quot;)
+display_png(Image(&quot;exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results/bce_loss.png&quot;))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+all loss curve
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_tts_cli_55_1.png" src="../_images/notebook_tts_cli_55_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+l1 loss curve
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_tts_cli_55_3.png" src="../_images/notebook_tts_cli_55_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+mse loss curve
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_tts_cli_55_5.png" src="../_images/notebook_tts_cli_55_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+bce loss curve
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_tts_cli_55_7.png" src="../_images/notebook_tts_cli_55_7.png" />
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">exp/train_*/results/att_ws/.png</span></code> are the figures of attention weights in each epoch.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>print(&quot;Attention weights of initial epoch&quot;)
+display_png(Image(&quot;exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results/att_ws/fash-cen1-b.ep.1.png&quot;))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Attention weights of initial epoch
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_tts_cli_57_1.png" src="../_images/notebook_tts_cli_57_1.png" />
+</div>
+</div>
+<div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">exp/train_*/results/model.loss.best</span></code> contains only the model parameters.</div>
+<div class="line">On the other hand, <code class="docutils literal notranslate"><span class="pre">exp/train_*/results/snapshot</span></code> contains the model parameters, optimizer states, and iterator states.</div>
+<div class="line">So you can restart from the training by specifying the snapshot file with <strong>–resume</strong> option.</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># resume training from snapshot.ep.2
+!./run.sh --stage 3 --stop_stage 3 --train_config conf/train_pytorch_tacotron2_sample.yaml --resume exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/results/snapshot.ep.2 --verbose 1
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+dictionary: data/lang_1char/train_nodev_units.txt
+stage 3: Text-to-speech model training
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!cat exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/train.log
+</pre></div>
+</div>
+</div>
+<div class="line-block">
+<div class="line">Also, we support tensorboard.</div>
+<div class="line">You can see the training log through tensorboard.</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>%load_ext tensorboard
+%tensorboard --logdir tensorboard/train_nodev_pytorch_train_pytorch_tacotron2_sample/
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Stage-4:-Network-decoding">
+<h3>Stage 4: Network decoding<a class="headerlink" href="#Stage-4:-Network-decoding" title="Permalink to this headline">¶</a></h3>
+<p>This stage performs decoding using the trained model to generate mel-spectrogram from a given text.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage 4 --stop_stage 4 --nj 8 --train_config conf/train_pytorch_tacotron2_sample.yaml
+</pre></div>
+</div>
+</div>
+<p>Generated features are saved as ark/scp format.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/outputs_model.loss.best_decode/*
+</pre></div>
+</div>
+</div>
+<p>We can specify the model or snapshot to be used for decoding via <strong>–model</strong>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage 4 --stop_stage 4 --nj 8 --train_config conf/train_pytorch_tacotron2_sample.yaml --model snapshot.ep.2
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/outputs_snapshot.ep.2_decode/*
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Stage-5:-Waveform-synthesis">
+<h3>Stage 5: Waveform synthesis<a class="headerlink" href="#Stage-5:-Waveform-synthesis" title="Permalink to this headline">¶</a></h3>
+<div class="line-block">
+<div class="line">Finally, in this stage, we generate waveform using Grrifin-Lim algorithm.</div>
+<div class="line">First, we perform de-normalization to convert the generated mel-spectrogram into the original scale.</div>
+<div class="line">Then we apply Grrifin-Lim algorithm to restore phase components and apply inverse STFT to generate waveforms.</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!./run.sh --stage 5 --stop_stage 5 --nj 8 --train_config conf/train_pytorch_tacotron2_sample.yaml --griffin_lim_iters 50
+</pre></div>
+</div>
+</div>
+<p>Generated wav files are saved in <code class="docutils literal notranslate"><span class="pre">exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/outputs_model.loss.best_decode_denorm/*/wav</span></code></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!ls exp/train_nodev_pytorch_train_pytorch_tacotron2_sample/outputs_model.loss.best_decode_denorm/*/wav
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!tree -L 3
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="NEXT-step">
+<h2>NEXT step<a class="headerlink" href="#NEXT-step" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Try pretrained model to generate speech.</p></li>
+<li><p>Try a large single speaker dataset recipe <strong>egs/ljspeech/tts1</strong>.</p></li>
+<li><p>Try a large multi-speaker recipe <strong>egs/libritts/tts1</strong>.</p></li>
+<li><p>Make the original recipe using your own dataset.</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="pretrained.html" class="btn btn-neutral float-right" title="Pretrained Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="asr_library.html" class="btn btn-neutral float-left" title="Speech Recognition (Library)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

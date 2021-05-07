@@ -1,0 +1,1292 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.asr.asr_utils &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.asr.asr_utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.asr.asr_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2017 Johns Hopkins University (Shinji Watanabe)</span>
+<span class="c1"># Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+
+<span class="c1"># * -------------------- training iterator related -------------------- *</span>
+
+
+<div class="viewcode-block" id="CompareValueTrigger"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.CompareValueTrigger">[docs]</a><span class="k">class</span> <span class="nc">CompareValueTrigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Trigger invoked when key value getting bigger or lower than before.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        key (str) : Key of value.</span>
+<span class="sd">        compare_fn ((float, float) -&gt; bool) : Function to compare the values.</span>
+<span class="sd">        trigger (tuple(int, str)) : Trigger that decide the comparison interval.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">compare_fn</span><span class="p">,</span> <span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">)):</span>
+        <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interval_trigger</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">get_trigger</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_summary</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compare_fn</span> <span class="o">=</span> <span class="n">compare_fn</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get value related to the key and compare with current value.&quot;&quot;&quot;</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">observation</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">observation</span><span class="p">:</span>
+            <span class="n">summary</span><span class="o">.</span><span class="n">add</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">observation</span><span class="p">[</span><span class="n">key</span><span class="p">]})</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interval_trigger</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">compute_mean</span><span class="p">()</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>  <span class="c1"># copy to CPU</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_summary</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># initialize best value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compare_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_best_value</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_init_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">chainer</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">DictSummary</span><span class="p">()</span></div>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extension</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">PlotAttentionReport</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">else</span><span class="p">:</span>
+
+<div class="viewcode-block" id="PlotAttentionReport"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport">[docs]</a>    <span class="k">class</span> <span class="nc">PlotAttentionReport</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot attention reporter.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions):</span>
+<span class="sd">                Function of attention visualization.</span>
+<span class="sd">            data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.</span>
+<span class="sd">            outdir (str): Directory to save figures.</span>
+<span class="sd">            converter (espnet.asr.*_backend.asr.CustomConverter):</span>
+<span class="sd">                Function to convert data.</span>
+<span class="sd">            device (int | torch.device): Device.</span>
+<span class="sd">            reverse (bool): If True, input and output length are reversed.</span>
+<span class="sd">            ikey (str): Key to access input</span>
+<span class="sd">                (for ASR/ST ikey=&quot;input&quot;, for MT ikey=&quot;output&quot;.)</span>
+<span class="sd">            iaxis (int): Dimension to access input</span>
+<span class="sd">                (for ASR/ST iaxis=0, for MT iaxis=1.)</span>
+<span class="sd">            okey (str): Key to access output</span>
+<span class="sd">                (for ASR/ST okey=&quot;input&quot;, MT okay=&quot;output&quot;.)</span>
+<span class="sd">            oaxis (int): Dimension to access output</span>
+<span class="sd">                (for ASR/ST oaxis=0, for MT oaxis=0.)</span>
+<span class="sd">            subsampling_factor (int): subsampling factor in encoder</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">att_vis_fn</span><span class="p">,</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">outdir</span><span class="p">,</span>
+            <span class="n">converter</span><span class="p">,</span>
+            <span class="n">transform</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">ikey</span><span class="o">=</span><span class="s2">&quot;input&quot;</span><span class="p">,</span>
+            <span class="n">iaxis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">okey</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
+            <span class="n">oaxis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">subsampling_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">att_vis_fn</span> <span class="o">=</span> <span class="n">att_vis_fn</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)}</span>
+            <span class="c1"># key is utterance ID</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span> <span class="o">=</span> <span class="n">reverse</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ikey</span> <span class="o">=</span> <span class="n">ikey</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iaxis</span> <span class="o">=</span> <span class="n">iaxis</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">okey</span> <span class="o">=</span> <span class="n">okey</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">oaxis</span> <span class="o">=</span> <span class="n">oaxis</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">=</span> <span class="n">subsampling_factor</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Plot and save image file of att_ws matrix.&quot;&quot;&quot;</span>
+            <span class="n">att_ws</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
+                <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_ws</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="c1"># atts</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_encs</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                        <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.att</span><span class="si">%d</span><span class="s2">.png&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                            <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                            <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_attention_weight</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">att_w</span><span class="p">)</span>
+                        <span class="n">np_filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.att</span><span class="si">%d</span><span class="s2">.npy&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                            <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                            <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">np_filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">),</span> <span class="n">att_w</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_attention</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
+                <span class="c1"># han</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">[</span><span class="n">num_encs</span><span class="p">]):</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.han.png&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                        <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_attention_weight</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">att_w</span><span class="p">)</span>
+                    <span class="n">np_filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.han.npy&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                        <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">np_filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">),</span> <span class="n">att_w</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_attention</span><span class="p">(</span>
+                        <span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">),</span> <span class="n">han_mode</span><span class="o">=</span><span class="kc">True</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">):</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.png&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                        <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_attention_weight</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">att_w</span><span class="p">)</span>
+                    <span class="n">np_filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.npy&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                        <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">np_filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">),</span> <span class="n">att_w</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_attention</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
+
+<div class="viewcode-block" id="PlotAttentionReport.log_attentions"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.log_attentions">[docs]</a>        <span class="k">def</span> <span class="nf">log_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Add image files of att_ws matrix to the tensorboard.&quot;&quot;&quot;</span>
+            <span class="n">att_ws</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
+                <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_ws</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="c1"># atts</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_encs</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                        <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_attention_weight</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">att_w</span><span class="p">)</span>
+                        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_attention_plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_att</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                            <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span>
+                            <span class="n">step</span><span class="p">,</span>
+                        <span class="p">)</span>
+                <span class="c1"># han</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">[</span><span class="n">num_encs</span><span class="p">]):</span>
+                    <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_attention_weight</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">att_w</span><span class="p">)</span>
+                    <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_han_plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_han&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span>
+                        <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span>
+                        <span class="n">step</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">):</span>
+                    <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_attention_weight</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">att_w</span><span class="p">)</span>
+                    <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_attention_plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span> <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span> <span class="n">step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PlotAttentionReport.get_attention_weights"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.get_attention_weights">[docs]</a>        <span class="k">def</span> <span class="nf">get_attention_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Return attention weights.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                numpy.ndarray: attention weights. float. Its shape would be</span>
+<span class="sd">                    differ from backend.</span>
+<span class="sd">                    * pytorch-&gt; 1) multi-head case =&gt; (B, H, Lmax, Tmax), 2)</span>
+<span class="sd">                      other case =&gt; (B, Lmax, Tmax).</span>
+<span class="sd">                    * chainer-&gt; (B, Lmax, Tmax)</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">return_uttid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="p">([</span><span class="n">return_batch</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">att_ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_vis_fn</span><span class="p">(</span><span class="o">*</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">att_ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_vis_fn</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">att_ws</span><span class="p">,</span> <span class="n">uttid_list</span></div>
+
+<div class="viewcode-block" id="PlotAttentionReport.trim_attention_weight"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.trim_attention_weight">[docs]</a>        <span class="k">def</span> <span class="nf">trim_attention_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uttid</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Transform attention matrix with regard to self.reverse.&quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
+                <span class="n">enc_key</span><span class="p">,</span> <span class="n">enc_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">okey</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">oaxis</span>
+                <span class="n">dec_key</span><span class="p">,</span> <span class="n">dec_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ikey</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iaxis</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">enc_key</span><span class="p">,</span> <span class="n">enc_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ikey</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iaxis</span>
+                <span class="n">dec_key</span><span class="p">,</span> <span class="n">dec_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">okey</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">oaxis</span>
+            <span class="n">dec_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span><span class="p">[</span><span class="n">uttid</span><span class="p">][</span><span class="n">dec_key</span><span class="p">][</span><span class="n">dec_axis</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">enc_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span><span class="p">[</span><span class="n">uttid</span><span class="p">][</span><span class="n">enc_key</span><span class="p">][</span><span class="n">enc_axis</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">enc_len</span> <span class="o">//=</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="p">[:,</span> <span class="p">:</span><span class="n">dec_len</span><span class="p">,</span> <span class="p">:</span><span class="n">enc_len</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="p">[:</span><span class="n">dec_len</span><span class="p">,</span> <span class="p">:</span><span class="n">enc_len</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">att_w</span></div>
+
+<div class="viewcode-block" id="PlotAttentionReport.draw_attention_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.draw_attention_plot">[docs]</a>        <span class="k">def</span> <span class="nf">draw_attention_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Plot the att_w matrix.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                matplotlib.pyplot: pyplot object with attention matrix image.</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="kn">import</span> <span class="nn">matplotlib</span>
+
+            <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+            <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">aw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">aw</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Encoder Index&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Decoder Index&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Encoder Index&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Decoder Index&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">plt</span></div>
+
+<div class="viewcode-block" id="PlotAttentionReport.draw_han_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.draw_han_plot">[docs]</a>        <span class="k">def</span> <span class="nf">draw_han_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Plot the att_w matrix for hierarchical attention.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                matplotlib.pyplot: pyplot object with attention matrix image.</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="kn">import</span> <span class="nn">matplotlib</span>
+
+            <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">aw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">legends</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">aw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">aw</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+                        <span class="n">legends</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Att</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">aw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Attention Weight&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Decoder Index&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legends</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">legends</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+                    <span class="n">legends</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Att</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Attention Weight&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Decoder Index&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legends</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">plt</span></div>
+
+        <span class="k">def</span> <span class="nf">_plot_and_save_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">han_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">han_mode</span><span class="p">:</span>
+                <span class="n">plt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_han_plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">plt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_attention_plot</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extension</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">PlotCTCReport</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">else</span><span class="p">:</span>
+
+<div class="viewcode-block" id="PlotCTCReport"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport">[docs]</a>    <span class="k">class</span> <span class="nc">PlotCTCReport</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot CTC reporter.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ctc_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_ctc_probs):</span>
+<span class="sd">                Function of CTC visualization.</span>
+<span class="sd">            data (list[tuple(str, dict[str, list[Any]])]): List json utt key items.</span>
+<span class="sd">            outdir (str): Directory to save figures.</span>
+<span class="sd">            converter (espnet.asr.*_backend.asr.CustomConverter):</span>
+<span class="sd">                Function to convert data.</span>
+<span class="sd">            device (int | torch.device): Device.</span>
+<span class="sd">            reverse (bool): If True, input and output length are reversed.</span>
+<span class="sd">            ikey (str): Key to access input</span>
+<span class="sd">                (for ASR/ST ikey=&quot;input&quot;, for MT ikey=&quot;output&quot;.)</span>
+<span class="sd">            iaxis (int): Dimension to access input</span>
+<span class="sd">                (for ASR/ST iaxis=0, for MT iaxis=1.)</span>
+<span class="sd">            okey (str): Key to access output</span>
+<span class="sd">                (for ASR/ST okey=&quot;input&quot;, MT okay=&quot;output&quot;.)</span>
+<span class="sd">            oaxis (int): Dimension to access output</span>
+<span class="sd">                (for ASR/ST oaxis=0, for MT oaxis=0.)</span>
+<span class="sd">            subsampling_factor (int): subsampling factor in encoder</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ctc_vis_fn</span><span class="p">,</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">outdir</span><span class="p">,</span>
+            <span class="n">converter</span><span class="p">,</span>
+            <span class="n">transform</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">ikey</span><span class="o">=</span><span class="s2">&quot;input&quot;</span><span class="p">,</span>
+            <span class="n">iaxis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">okey</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
+            <span class="n">oaxis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">subsampling_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc_vis_fn</span> <span class="o">=</span> <span class="n">ctc_vis_fn</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)}</span>
+            <span class="c1"># key is utterance ID</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span> <span class="o">=</span> <span class="n">reverse</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ikey</span> <span class="o">=</span> <span class="n">ikey</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iaxis</span> <span class="o">=</span> <span class="n">iaxis</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">okey</span> <span class="o">=</span> <span class="n">okey</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">oaxis</span> <span class="o">=</span> <span class="n">oaxis</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">=</span> <span class="n">subsampling_factor</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Plot and save image file of ctc prob.&quot;&quot;&quot;</span>
+            <span class="n">ctc_probs</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ctc_probs</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
+                <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_encs</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ctc_prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                        <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.ctc</span><span class="si">%d</span><span class="s2">.png&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                            <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                            <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">ctc_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_ctc_prob</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">ctc_prob</span><span class="p">)</span>
+                        <span class="n">np_filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.ctc</span><span class="si">%d</span><span class="s2">.npy&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                            <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                            <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">np_filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">),</span> <span class="n">ctc_prob</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_ctc</span><span class="p">(</span><span class="n">ctc_prob</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ctc_prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">):</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.png&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                        <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">ctc_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_ctc_prob</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">ctc_prob</span><span class="p">)</span>
+                    <span class="n">np_filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">.ep.{.updater.epoch}.npy&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                        <span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">np_filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">),</span> <span class="n">ctc_prob</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_ctc</span><span class="p">(</span><span class="n">ctc_prob</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
+
+<div class="viewcode-block" id="PlotCTCReport.log_ctc_probs"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.log_ctc_probs">[docs]</a>        <span class="k">def</span> <span class="nf">log_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Add image files of ctc probs to the tensorboard.&quot;&quot;&quot;</span>
+            <span class="n">ctc_probs</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ctc_probs</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
+                <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_encs</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ctc_prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                        <span class="n">ctc_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_ctc_prob</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">ctc_prob</span><span class="p">)</span>
+                        <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_ctc_plot</span><span class="p">(</span><span class="n">ctc_prob</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_ctc</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                            <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span>
+                            <span class="n">step</span><span class="p">,</span>
+                        <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ctc_prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">):</span>
+                    <span class="n">ctc_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trim_ctc_prob</span><span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">ctc_prob</span><span class="p">)</span>
+                    <span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_ctc_plot</span><span class="p">(</span><span class="n">ctc_prob</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span> <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span> <span class="n">step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PlotCTCReport.get_ctc_probs"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.get_ctc_probs">[docs]</a>        <span class="k">def</span> <span class="nf">get_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Return CTC probs.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                numpy.ndarray: CTC probs. float. Its shape would be</span>
+<span class="sd">                    differ from backend. (B, Tmax, vocab).</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">return_uttid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="p">([</span><span class="n">return_batch</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_vis_fn</span><span class="p">(</span><span class="o">*</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_vis_fn</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">probs</span><span class="p">,</span> <span class="n">uttid_list</span></div>
+
+<div class="viewcode-block" id="PlotCTCReport.trim_ctc_prob"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.trim_ctc_prob">[docs]</a>        <span class="k">def</span> <span class="nf">trim_ctc_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uttid</span><span class="p">,</span> <span class="n">prob</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Trim CTC posteriors accoding to input lengths.&quot;&quot;&quot;</span>
+            <span class="n">enc_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span><span class="p">[</span><span class="n">uttid</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">ikey</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">iaxis</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">enc_len</span> <span class="o">//=</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span>
+            <span class="n">prob</span> <span class="o">=</span> <span class="n">prob</span><span class="p">[:</span><span class="n">enc_len</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">prob</span></div>
+
+<div class="viewcode-block" id="PlotCTCReport.draw_ctc_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.draw_ctc_plot">[docs]</a>        <span class="k">def</span> <span class="nf">draw_ctc_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctc_prob</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Plot the ctc_prob matrix.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                matplotlib.pyplot: pyplot object with CTC prob matrix image.</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="kn">import</span> <span class="nn">matplotlib</span>
+
+            <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+            <span class="n">ctc_prob</span> <span class="o">=</span> <span class="n">ctc_prob</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+            <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">ctc_prob</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">n_frames</span><span class="p">,</span> <span class="n">vocab</span> <span class="o">=</span> <span class="n">ctc_prob</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">times_probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_frames</span><span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+
+            <span class="c1"># NOTE: index 0 is reserved for blank</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">topk_ids</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                        <span class="n">times_probs</span><span class="p">,</span> <span class="n">ctc_prob</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times_probs</span><span class="p">,</span> <span class="n">ctc_prob</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">])</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Input [frame]&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Posteriors&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_frames</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">plt</span></div>
+
+        <span class="k">def</span> <span class="nf">_plot_and_save_ctc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctc_prob</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+            <span class="n">plt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_ctc_plot</span><span class="p">(</span><span class="n">ctc_prob</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="restore_snapshot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.restore_snapshot">[docs]</a><span class="k">def</span> <span class="nf">restore_snapshot</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">load_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extension to restore snapshot.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An extension function.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">chainer</span>
+    <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
+
+    <span class="k">if</span> <span class="n">load_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">load_fn</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">serializers</span><span class="o">.</span><span class="n">load_npz</span>
+
+    <span class="nd">@training</span><span class="o">.</span><span class="n">make_extension</span><span class="p">(</span><span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">restore_snapshot</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+        <span class="n">_restore_snapshot</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">load_fn</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">restore_snapshot</span></div>
+
+
+<span class="k">def</span> <span class="nf">_restore_snapshot</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">load_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">load_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">chainer</span>
+
+        <span class="n">load_fn</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">serializers</span><span class="o">.</span><span class="n">load_npz</span>
+
+    <span class="n">load_fn</span><span class="p">(</span><span class="n">snapshot</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;restored from &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">snapshot</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="adadelta_eps_decay"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.adadelta_eps_decay">[docs]</a><span class="k">def</span> <span class="nf">adadelta_eps_decay</span><span class="p">(</span><span class="n">eps_decay</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extension to perform adadelta eps decay.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        eps_decay (float): Decay rate of eps.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An extension function.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
+
+    <span class="nd">@training</span><span class="o">.</span><span class="n">make_extension</span><span class="p">(</span><span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">adadelta_eps_decay</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+        <span class="n">_adadelta_eps_decay</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">eps_decay</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">adadelta_eps_decay</span></div>
+
+
+<span class="k">def</span> <span class="nf">_adadelta_eps_decay</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">eps_decay</span><span class="p">):</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
+    <span class="c1"># for chainer</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;eps&quot;</span><span class="p">):</span>
+        <span class="n">current_eps</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">eps</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;eps&quot;</span><span class="p">,</span> <span class="n">current_eps</span> <span class="o">*</span> <span class="n">eps_decay</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adadelta eps decayed to &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">eps</span><span class="p">))</span>
+    <span class="c1"># pytorch</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+            <span class="n">p</span><span class="p">[</span><span class="s2">&quot;eps&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="n">eps_decay</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adadelta eps decayed to &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;eps&quot;</span><span class="p">]))</span>
+
+
+<div class="viewcode-block" id="adam_lr_decay"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.adam_lr_decay">[docs]</a><span class="k">def</span> <span class="nf">adam_lr_decay</span><span class="p">(</span><span class="n">eps_decay</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extension to perform adam lr decay.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        eps_decay (float): Decay rate of lr.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An extension function.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
+
+    <span class="nd">@training</span><span class="o">.</span><span class="n">make_extension</span><span class="p">(</span><span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">adam_lr_decay</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+        <span class="n">_adam_lr_decay</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">eps_decay</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">adam_lr_decay</span></div>
+
+
+<span class="k">def</span> <span class="nf">_adam_lr_decay</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">eps_decay</span><span class="p">):</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
+    <span class="c1"># for chainer</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">):</span>
+        <span class="n">current_lr</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">lr</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">current_lr</span> <span class="o">*</span> <span class="n">eps_decay</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adam lr decayed to &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">lr</span><span class="p">))</span>
+    <span class="c1"># pytorch</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+            <span class="n">p</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="n">eps_decay</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adam lr decayed to &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]))</span>
+
+
+<div class="viewcode-block" id="torch_snapshot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_snapshot">[docs]</a><span class="k">def</span> <span class="nf">torch_snapshot</span><span class="p">(</span><span class="n">savefun</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;snapshot.ep.{.updater.epoch}&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extension to take snapshot of the trainer for pytorch.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An extension function.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extension</span>
+
+    <span class="nd">@extension</span><span class="o">.</span><span class="n">make_extension</span><span class="p">(</span><span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">),</span> <span class="n">priority</span><span class="o">=-</span><span class="mi">100</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">torch_snapshot</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+        <span class="n">_torch_snapshot_object</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">),</span> <span class="n">savefun</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">torch_snapshot</span></div>
+
+
+<span class="k">def</span> <span class="nf">_torch_snapshot_object</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">savefun</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">chainer.serializers</span> <span class="kn">import</span> <span class="n">DictionarySerializer</span>
+
+    <span class="c1"># make snapshot_dict dictionary</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">DictionarySerializer</span><span class="p">()</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
+        <span class="c1"># (for TTS)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">):</span>
+            <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># (for ASR)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">):</span>
+            <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+    <span class="n">snapshot_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;trainer&quot;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">target</span><span class="p">,</span>
+        <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">model_state_dict</span><span class="p">,</span>
+        <span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+    <span class="p">}</span>
+
+    <span class="c1"># save snapshot dictionary</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;tmp&quot;</span> <span class="o">+</span> <span class="n">fn</span>
+    <span class="n">tmpdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">trainer</span><span class="o">.</span><span class="n">out</span><span class="p">)</span>
+    <span class="n">tmppath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">savefun</span><span class="p">(</span><span class="n">snapshot_dict</span><span class="p">,</span> <span class="n">tmppath</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">tmppath</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">out</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="add_gradient_noise"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.add_gradient_noise">[docs]</a><span class="k">def</span> <span class="nf">add_gradient_noise</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mf">0.55</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds noise from a standard normal distribution to the gradients.</span>
+
+<span class="sd">    The standard deviation (`sigma`) is controlled by the three hyper-parameters below.</span>
+<span class="sd">    `sigma` goes to zero (no noise) with more iterations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (torch.nn.model): Model.</span>
+<span class="sd">        iteration (int): Number of iterations.</span>
+<span class="sd">        duration (int) {100, 1000}:</span>
+<span class="sd">            Number of durations to control the interval of the `sigma` change.</span>
+<span class="sd">        eta (float) {0.01, 0.3, 1.0}: The magnitude of `sigma`.</span>
+<span class="sd">        scale_factor (float) {0.55}: The scale of `sigma`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">interval</span> <span class="o">=</span> <span class="p">(</span><span class="n">iteration</span> <span class="o">//</span> <span class="n">duration</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">/</span> <span class="n">interval</span> <span class="o">**</span> <span class="n">scale_factor</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_shape</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+            <span class="n">noise</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">_shape</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="o">+=</span> <span class="n">noise</span></div>
+
+
+<span class="c1"># * -------------------- general -------------------- *</span>
+<div class="viewcode-block" id="get_model_conf"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.get_model_conf">[docs]</a><span class="k">def</span> <span class="nf">get_model_conf</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">conf_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get model config information by reading a model config file (model.json).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model_path (str): Model path.</span>
+<span class="sd">        conf_path (str): Optional model config path.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list[int, int, dict[str, Any]]: Config information loaded from json file.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">conf_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model_conf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/model.json&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model_conf</span> <span class="o">=</span> <span class="n">conf_path</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">model_conf</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;reading a config file from &quot;</span> <span class="o">+</span> <span class="n">model_conf</span><span class="p">)</span>
+        <span class="n">confs</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">confs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="c1"># for lm</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">confs</span>
+        <span class="k">return</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># for asr, tts, mt</span>
+        <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">confs</span>
+        <span class="k">return</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="chainer_load"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.chainer_load">[docs]</a><span class="k">def</span> <span class="nf">chainer_load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load chainer model parameters.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Model path or snapshot file path to be loaded.</span>
+<span class="sd">        model (chainer.Chain): Chainer model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">chainer</span>
+
+    <span class="k">if</span> <span class="s2">&quot;snapshot&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">serializers</span><span class="o">.</span><span class="n">load_npz</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;updater/model:main/&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">serializers</span><span class="o">.</span><span class="n">load_npz</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="torch_save"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_save">[docs]</a><span class="k">def</span> <span class="nf">torch_save</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Save torch model states.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Model path to be saved.</span>
+<span class="sd">        model (torch.nn.Module): Torch model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">):</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="snapshot_object"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.snapshot_object">[docs]</a><span class="k">def</span> <span class="nf">snapshot_object</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a trainer extension to take snapshots of a given object.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        target (model): Object to serialize.</span>
+<span class="sd">        filename (str): Name of the file into which the object is serialized.It can</span>
+<span class="sd">            be a format string, where the trainer object is passed to</span>
+<span class="sd">            the :meth: `str.format` method. For example,</span>
+<span class="sd">            ``&#39;snapshot_{.updater.iteration}&#39;`` is converted to</span>
+<span class="sd">            ``&#39;snapshot_10000&#39;`` at the 10,000th iteration.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An extension function.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extension</span>
+
+    <span class="nd">@extension</span><span class="o">.</span><span class="n">make_extension</span><span class="p">(</span><span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">),</span> <span class="n">priority</span><span class="o">=-</span><span class="mi">100</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">snapshot_object</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+        <span class="n">torch_save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">out</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">)),</span> <span class="n">target</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">snapshot_object</span></div>
+
+
+<div class="viewcode-block" id="torch_load"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_load">[docs]</a><span class="k">def</span> <span class="nf">torch_load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load torch model states.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Model path or snapshot file path to be loaded.</span>
+<span class="sd">        model (torch.nn.Module): Torch model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;snapshot&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">)[</span>
+            <span class="s2">&quot;model&quot;</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">):</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">)</span>
+
+    <span class="k">del</span> <span class="n">model_state_dict</span></div>
+
+
+<div class="viewcode-block" id="torch_resume"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_resume">[docs]</a><span class="k">def</span> <span class="nf">torch_resume</span><span class="p">(</span><span class="n">snapshot_path</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Resume from snapshot for pytorch.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        snapshot_path (str): Snapshot file path.</span>
+<span class="sd">        trainer (chainer.training.Trainer): Chainer&#39;s trainer instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">chainer.serializers</span> <span class="kn">import</span> <span class="n">NpzDeserializer</span>
+
+    <span class="c1"># load snapshot</span>
+    <span class="n">snapshot_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">snapshot_path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">)</span>
+
+    <span class="c1"># restore trainer states</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NpzDeserializer</span><span class="p">(</span><span class="n">snapshot_dict</span><span class="p">[</span><span class="s2">&quot;trainer&quot;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+
+    <span class="c1"># restore model states</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
+        <span class="c1"># (for TTS model)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">snapshot_dict</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">snapshot_dict</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># (for ASR model)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">snapshot_dict</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">snapshot_dict</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+
+    <span class="c1"># retore optimizer states</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">snapshot_dict</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">])</span>
+
+    <span class="c1"># delete opened snapshot</span>
+    <span class="k">del</span> <span class="n">snapshot_dict</span></div>
+
+
+<span class="c1"># * ------------------ recognition related ------------------ *</span>
+<div class="viewcode-block" id="parse_hypothesis"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.parse_hypothesis">[docs]</a><span class="k">def</span> <span class="nf">parse_hypothesis</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">char_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse hypothesis.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        hyp (list[dict[str, Any]]): Recognition hypothesis.</span>
+<span class="sd">        char_list (list[str]): List of characters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple(str, str, str, float)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># remove sos and get results</span>
+    <span class="n">tokenid_as_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:]))</span>
+    <span class="n">token_as_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">char_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">tokenid_as_list</span><span class="p">]</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">])</span>
+
+    <span class="c1"># convert to string</span>
+    <span class="n">tokenid</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">tokenid_as_list</span><span class="p">])</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">token_as_list</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">token_as_list</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">tokenid</span><span class="p">,</span> <span class="n">score</span></div>
+
+
+<div class="viewcode-block" id="add_results_to_json"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.add_results_to_json">[docs]</a><span class="k">def</span> <span class="nf">add_results_to_json</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">char_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add N-best results to json.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        js (dict[str, Any]): Groundtruth utterance dict.</span>
+<span class="sd">        nbest_hyps_sd (list[dict[str, Any]]):</span>
+<span class="sd">            List of hypothesis for multi_speakers: nutts x nspkrs.</span>
+<span class="sd">        char_list (list[str]): List of characters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, Any]: N-best results added utterance dict.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># copy old json info</span>
+    <span class="n">new_js</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;utt2spk&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">js</span><span class="p">[</span><span class="s2">&quot;utt2spk&quot;</span><span class="p">]</span>
+    <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># parse hypothesis</span>
+        <span class="n">rec_text</span><span class="p">,</span> <span class="n">rec_token</span><span class="p">,</span> <span class="n">rec_tokenid</span><span class="p">,</span> <span class="n">score</span> <span class="o">=</span> <span class="n">parse_hypothesis</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">char_list</span><span class="p">)</span>
+
+        <span class="c1"># copy ground-truth</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">js</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">out_dic</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">js</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># for no reference case (e.g., speech translation)</span>
+            <span class="n">out_dic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">}</span>
+
+        <span class="c1"># update name</span>
+        <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="s2">&quot;[</span><span class="si">%d</span><span class="s2">]&quot;</span> <span class="o">%</span> <span class="n">n</span>
+
+        <span class="c1"># add recognition results</span>
+        <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rec_text</span>
+        <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_token&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rec_token</span>
+        <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_tokenid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rec_tokenid</span>
+        <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
+
+        <span class="c1"># add to list of N-best result dicts</span>
+        <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_dic</span><span class="p">)</span>
+
+        <span class="c1"># show 1-best result</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;text&quot;</span> <span class="ow">in</span> <span class="n">out_dic</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;groundtruth: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;prediction : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">out_dic</span><span class="p">[</span><span class="s2">&quot;rec_text&quot;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">new_js</span></div>
+
+
+<div class="viewcode-block" id="plot_spectrogram"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.plot_spectrogram">[docs]</a><span class="k">def</span> <span class="nf">plot_spectrogram</span><span class="p">(</span>
+    <span class="n">plt</span><span class="p">,</span>
+    <span class="n">spec</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;db&quot;</span><span class="p">,</span>
+    <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">frame_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">bottom</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">left</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">right</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">top</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">labelbottom</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">labelleft</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">labelright</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">labeltop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Plot spectrogram using matplotlib.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        plt (matplotlib.pyplot): pyplot object.</span>
+<span class="sd">        spec (numpy.ndarray): Input stft (Freq, Time)</span>
+<span class="sd">        mode (str): db or linear.</span>
+<span class="sd">        fs (int): Sample frequency. To convert y-axis to kHz unit.</span>
+<span class="sd">        frame_shift (int): The frame shift of stft. To convert x-axis to second unit.</span>
+<span class="sd">        bottom (bool):Whether to draw the respective ticks.</span>
+<span class="sd">        left (bool):</span>
+<span class="sd">        right (bool):</span>
+<span class="sd">        top (bool):</span>
+<span class="sd">        labelbottom (bool):Whether to draw the respective tick labels.</span>
+<span class="sd">        labelleft (bool):</span>
+<span class="sd">        labelright (bool):</span>
+<span class="sd">        labeltop (bool):</span>
+<span class="sd">        cmap (str): Colormap defined in matplotlib.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;db&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">spec</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">spec</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ytop</span> <span class="o">=</span> <span class="n">fs</span> <span class="o">/</span> <span class="mi">2000</span>
+        <span class="n">ylabel</span> <span class="o">=</span> <span class="s2">&quot;kHz&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ytop</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ylabel</span> <span class="o">=</span> <span class="s2">&quot;bin&quot;</span>
+
+    <span class="k">if</span> <span class="n">frame_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xtop</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">frame_shift</span> <span class="o">/</span> <span class="n">fs</span>
+        <span class="n">xlabel</span> <span class="o">=</span> <span class="s2">&quot;s&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xtop</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">xlabel</span> <span class="o">=</span> <span class="s2">&quot;frame&quot;</span>
+
+    <span class="n">extent</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">xtop</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ytop</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">x</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">labelbottom</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time [</span><span class="si">{}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xlabel</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">labelleft</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;freq [</span><span class="si">{}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ylabel</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mode</span><span class="p">))</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span>
+        <span class="n">bottom</span><span class="o">=</span><span class="n">bottom</span><span class="p">,</span>
+        <span class="n">left</span><span class="o">=</span><span class="n">left</span><span class="p">,</span>
+        <span class="n">right</span><span class="o">=</span><span class="n">right</span><span class="p">,</span>
+        <span class="n">top</span><span class="o">=</span><span class="n">top</span><span class="p">,</span>
+        <span class="n">labelbottom</span><span class="o">=</span><span class="n">labelbottom</span><span class="p">,</span>
+        <span class="n">labelleft</span><span class="o">=</span><span class="n">labelleft</span><span class="p">,</span>
+        <span class="n">labelright</span><span class="o">=</span><span class="n">labelright</span><span class="p">,</span>
+        <span class="n">labeltop</span><span class="o">=</span><span class="n">labeltop</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># * ------------------ recognition related ------------------ *</span>
+<div class="viewcode-block" id="format_mulenc_args"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.format_mulenc_args">[docs]</a><span class="k">def</span> <span class="nf">format_mulenc_args</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Format args for multi-encoder setup.</span>
+
+<span class="sd">    It deals with following situations:  (when args.num_encs=2):</span>
+<span class="sd">    1. args.elayers = None -&gt; args.elayers = [4, 4];</span>
+<span class="sd">    2. args.elayers = 4 -&gt; args.elayers = [4, 4];</span>
+<span class="sd">    3. args.elayers = [4, 4, 4] -&gt; args.elayers = [4, 4].</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># default values when None is assigned.</span>
+    <span class="n">default_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;etype&quot;</span><span class="p">:</span> <span class="s2">&quot;blstmp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;elayers&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s2">&quot;eunits&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="s2">&quot;subsample&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s2">&quot;atype&quot;</span><span class="p">:</span> <span class="s2">&quot;dot&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;adim&quot;</span><span class="p">:</span> <span class="mi">320</span><span class="p">,</span>
+        <span class="s2">&quot;awin&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="s2">&quot;aheads&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s2">&quot;aconv_chans&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;aconv_filts&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">default_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">])</span> <span class="o">!=</span> <span class="n">args</span><span class="o">.</span><span class="n">num_encs</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Length mismatch </span><span class="si">{}</span><span class="s2">: Convert </span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">k</span><span class="p">,</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">],</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">][:</span> <span class="n">args</span><span class="o">.</span><span class="n">num_encs</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">][:</span> <span class="n">args</span><span class="o">.</span><span class="n">num_encs</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">]:</span>
+                <span class="c1"># assign default value if it is None</span>
+                <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> is not specified, use default value </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">k</span><span class="p">,</span> <span class="n">default_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="c1"># duplicate</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Type mismatch </span><span class="si">{}</span><span class="s2">: Convert </span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">k</span><span class="p">,</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">],</span> <span class="p">[</span><span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">num_encs</span><span class="p">)]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">num_encs</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">args</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

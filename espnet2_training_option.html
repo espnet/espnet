@@ -1,0 +1,792 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Change the configuration for training &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Task class and data input system for training" href="espnet2_task.html" />
+    <link rel="prev" title="ESPnet2" href="espnet2_tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Change the configuration for training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#show-usage">Show usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-the-configuration-for-dict-type-value">Change the configuration for dict type value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#resume-training-process">Resume training process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transfer-learning-fine-tuning-using-pretrained-model">Transfer learning / Fine tuning using pretrained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#freeze-parameters">Freeze parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-logging-interval">Change logging interval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-the-number-of-iterations-in-each-epoch">Change the number of iterations in each epoch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#weights-biases-integration">Weights &amp; Biases integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-gpus">Multi GPUs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-relation-between-mini-batch-size-and-number-of-gpus">The relation between mini-batch size and number of GPUs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-mini-batch-type">Change mini-batch type</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#batch-type-unsorted"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">unsorted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#batch-type-sorted"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">sorted</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#batch-type-folded"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#batch-type-length"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#batch-type-numel"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#gradient-accumulating">Gradient accumulating</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#automatic-mixed-precision-training">Automatic Mixed Precision training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reproducibility-and-determinization">Reproducibility and determinization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Change the configuration for training</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/espnet2_training_option.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="change-the-configuration-for-training">
+<h1>Change the configuration for training<a class="headerlink" href="#change-the-configuration-for-training" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="show-usage">
+<h2>Show usage<a class="headerlink" href="#show-usage" title="Permalink to this headline">¶</a></h2>
+<p>There are two ways to show the command line options: <code class="docutils literal notranslate"><span class="pre">--help</span></code> and <code class="docutils literal notranslate"><span class="pre">--print_config</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Show the command line option</span>
+python -m espnet2.bin.asr_train --help
+<span class="c1"># Show the all configuration in yaml format</span>
+python -m espnet2.bin.asr_train --print_config
+</pre></div>
+</div>
+<p>In this section, we use <code class="docutils literal notranslate"><span class="pre">espnet2.bin.asr_train</span></code> for an example,
+but the other training tools based on <code class="docutils literal notranslate"><span class="pre">Task</span></code> class have the same interface,
+so you can replace it to another command.</p>
+<p>Note that ESPnet2 always selects<code class="docutils literal notranslate"><span class="pre">_</span></code> instead of <code class="docutils literal notranslate"><span class="pre">-</span></code> for the separation
+for the option name to avoid confusion.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Bad</span>
+<span class="o">--</span><span class="n">batch</span><span class="o">-</span><span class="n">size</span>
+<span class="c1"># Good</span>
+<span class="o">--</span><span class="n">batch_size</span>
+</pre></div>
+</div>
+<p>A notable feature of <code class="docutils literal notranslate"><span class="pre">--print_config</span></code> is that
+it shows the configuration parsing with the given arguments dynamically:
+You can look up the parameters for a <strong>changeable</strong> class.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% <span class="c1"># Show parameters of Adam optimizer</span>
+% python -m espnet2.bin.asr_train --optim adam --print_config
+...
+optim: adam
+optim_conf:
+    lr: <span class="m">0</span>.001
+    betas:
+    - <span class="m">0</span>.9
+    - <span class="m">0</span>.999
+    eps: <span class="m">1</span>.0e-08
+    weight_decay: <span class="m">0</span>
+    amsgrad: <span class="nb">false</span>
+...
+% <span class="c1"># Show parameters of ReduceLROnPlateau scheduler</span>
+% python -m espnet2.bin.asr_train --scheduler ReduceLROnPlateau --print_config
+...
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: <span class="m">0</span>.1
+    patience: <span class="m">10</span>
+    verbose: <span class="nb">false</span>
+    threshold: <span class="m">0</span>.0001
+    threshold_mode: rel
+    cooldown: <span class="m">0</span>
+    min_lr: <span class="m">0</span>
+    eps: <span class="m">1</span>.0e-08
+...
+</pre></div>
+</div>
+</div>
+<div class="section" id="configuration-file">
+<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline">¶</a></h2>
+<p>You can find the configuration files for DNN training in <code class="docutils literal notranslate"><span class="pre">conf/train_*.yaml</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls conf/
+</pre></div>
+</div>
+<p>We adopt <a class="reference external" href="https://github.com/bw2/ConfigArgParse">ConfigArgParse</a> for this configuration system.
+The configuration in YAML format has an equivalent effect to the command line argument.
+e.g. The following two are equivalent:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># config.yaml</span>
+<span class="nt">foo</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="nt">bar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">4</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --config conf/config.yaml
+python -m espnet2.bin.asr_train --foo <span class="m">3</span> --bar <span class="m">4</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="change-the-configuration-for-dict-type-value">
+<h2>Change the configuration for dict type value<a class="headerlink" href="#change-the-configuration-for-dict-type-value" title="Permalink to this headline">¶</a></h2>
+<p>Some parameters are named as <code class="docutils literal notranslate"><span class="pre">*_conf</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">optim_conf</span></code>, <code class="docutils literal notranslate"><span class="pre">decoder_conf</span></code> and they has the <code class="docutils literal notranslate"><span class="pre">dict</span></code> type value. We also provide a way to configure the nested value in such a dict object.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g. Change parameters one by one</span>
+python -m espnet2.bin.asr_train --optim_conf <span class="nv">lr</span><span class="o">=</span><span class="m">0</span>.1 --optim_conf <span class="nv">rho</span><span class="o">=</span><span class="m">0</span>.8
+<span class="c1"># e.g. Give the parameters in yaml format</span>
+python -m espnet2.bin.asr_train --optim_conf <span class="s2">&quot;{lr: 0.1, rho: 0.8}&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="resume-training-process">
+<h2>Resume training process<a class="headerlink" href="#resume-training-process" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --resume <span class="nb">true</span>
+</pre></div>
+</div>
+<p>The state of the training process is saved at the end of every epoch as <code class="docutils literal notranslate"><span class="pre">checkpoint.pth</span></code> and
+the training process can be resumed from the start of the next epoch.
+Checkpoint includes the following states.</p>
+<ul class="simple">
+<li><p>Model state</p></li>
+<li><p>Optimizer states</p></li>
+<li><p>Scheduler states</p></li>
+<li><p>Reporter state</p></li>
+<li><p>torch.cuda.amp state (from torch=1.6)</p></li>
+</ul>
+</div>
+<div class="section" id="transfer-learning-fine-tuning-using-pretrained-model">
+<h2>Transfer learning / Fine tuning using pretrained model<a class="headerlink" href="#transfer-learning-fine-tuning-using-pretrained-model" title="Permalink to this headline">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--init_param</span> <span class="pre">&lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_keys&gt;</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load all parameters</span>
+python -m espnet2.bin.asr_train --init_param model.pth
+<span class="c1"># Load only the parameters starting with &quot;decoder&quot;</span>
+python -m espnet2.bin.asr_train --init_param model.pth:decoder
+<span class="c1"># Load only the parameters starting with &quot;decoder&quot; and set it to model.decoder</span>
+python -m espnet2.bin.asr_train --init_param model.pth:decoder:decoder
+<span class="c1"># Set parameters to model.decoder</span>
+python -m espnet2.bin.asr_train --init_param decoder.pth::decoder
+<span class="c1"># Load all parameters excluding &quot;decoder.embed&quot;</span>
+python -m espnet2.bin.asr_train --init_param model.pth:::decoder.embed
+<span class="c1"># Load all parameters excluding &quot;encoder&quot; and &quot;decoder.embed&quot;</span>
+python -m espnet2.bin.asr_train --init_param model.pth:::encoder,decoder.embed
+</pre></div>
+</div>
+</div>
+<div class="section" id="freeze-parameters">
+<h2>Freeze parameters<a class="headerlink" href="#freeze-parameters" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --freeze_param encoder.enc encoder.decoder
+</pre></div>
+</div>
+</div>
+<div class="section" id="change-logging-interval">
+<h2>Change logging interval<a class="headerlink" href="#change-logging-interval" title="Permalink to this headline">¶</a></h2>
+<p>The result in the middle state of the training will be shown by the specified number:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --log_interval <span class="m">100</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="change-the-number-of-iterations-in-each-epoch">
+<h2>Change the number of iterations in each epoch<a class="headerlink" href="#change-the-number-of-iterations-in-each-epoch" title="Permalink to this headline">¶</a></h2>
+<p>By default, an <code class="docutils literal notranslate"><span class="pre">epoch</span></code> indicates using up whole data in the training corpus and
+the following steps will also run after training for every epoch:</p>
+<ul class="simple">
+<li><p>Validation</p></li>
+<li><p>Saving model and checkpoint</p></li>
+<li><p>Show result in the epoch</p></li>
+</ul>
+<p>Sometimes the validation after training with a whole corpus is too coarse
+if using large corpus.
+For that case, <code class="docutils literal notranslate"><span class="pre">--num_iters_per_epoch</span></code> can restrict the number of iteration of each epoch.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --num_iters_per_epoch <span class="m">1000</span>
+</pre></div>
+</div>
+<p>Note that the training process can’t be resumed at the middle of an epoch
+because data iterators are stateless, but don’t worry it!
+Our iterator is built at the start of each epoch
+and the random seed is fixed by the epoch number, just like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">epoch_iter_factory</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.</span><span class="n">build_epoch_iter_factory</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_epoch</span><span class="p">):</span>
+  <span class="n">iterator</span> <span class="o">=</span> <span class="n">epoch_iter_factory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Therefore, the training can be resumed at the start of the epoch.</p>
+</div>
+<div class="section" id="weights-biases-integration">
+<h2>Weights &amp; Biases integration<a class="headerlink" href="#weights-biases-integration" title="Permalink to this headline">¶</a></h2>
+<p>About Weights &amp; Biases: https://docs.wandb.com/</p>
+<ol>
+<li><p>Installation and setup</p>
+<p>See: https://docs.wandb.com/quickstart</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>wandb login
+</pre></div>
+</div>
+</li>
+<li><p>Enable wandb</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --use_wandb <span class="nb">true</span>
+</pre></div>
+</div>
+<p>and go to the shown URL.</p>
+</li>
+<li><p>[Option] To use HTTPS PROXY</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">HTTPS_PROXY</span><span class="o">=</span>...your proxy
+<span class="nb">export</span> <span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span>your.pem
+<span class="nb">export</span> <span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span>   <span class="c1"># Disable SSL certificate verification</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="multi-gpus">
+<h2>Multi GPUs<a class="headerlink" href="#multi-gpus" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --ngpu <span class="m">2</span>
+</pre></div>
+</div>
+<p>Just using <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> to specify the device number:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3 python -m espnet2.bin.asr_train --ngpu <span class="m">2</span>
+</pre></div>
+</div>
+<p>About distributed training, see <a class="reference internal" href="espnet2_distributed.html"><span class="doc">Distributed training</span></a>.</p>
+</div>
+<div class="section" id="the-relation-between-mini-batch-size-and-number-of-gpus">
+<h2>The relation between mini-batch size and number of GPUs<a class="headerlink" href="#the-relation-between-mini-batch-size-and-number-of-gpus" title="Permalink to this headline">¶</a></h2>
+<p>The batch-size can be changed as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change both of the batch_size for training and validation</span>
+python -m espnet2.bin.asr_train --batch_size <span class="m">20</span>
+<span class="c1"># Change the batch_size for validation</span>
+python -m espnet2.bin.asr_train --valid_batch_size <span class="m">200</span>
+</pre></div>
+</div>
+<p>The behavior for batch-size during multi-GPU training is <strong>different from that of ESPNet1</strong>.</p>
+<ul>
+<li><p>ESPNet1: The batch-size will be multiplied by the number of GPUs.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --batch_size <span class="m">10</span> --ngpu <span class="m">2</span> <span class="c1"># Actual batch_size is 20 and each GPU devices are assigned to 10</span>
+</pre></div>
+</div>
+</li>
+<li><p>ESPnet2: The batch-size is not changed regardless of the number of GPUs.</p>
+<ul class="simple">
+<li><p>Therefore, you should set a more number of batch-size than that of GPUs.</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --batch_size <span class="m">10</span> --ngpu <span class="m">2</span> <span class="c1"># Actual batch_size is 10 and each GPU devices are assigned to 5</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="change-mini-batch-type">
+<h2>Change mini-batch type<a class="headerlink" href="#change-mini-batch-type" title="Permalink to this headline">¶</a></h2>
+<p>We adopt variable mini-batch size with considering the dimension of the input features
+to make the best use of the GPU memory.</p>
+<p>There are 5 types:</p>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th>batch_type</th>
+<th>Option to change batch-size</th>
+<th>Variable batch-size</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unsorted</td>
+<td>--batch_size</td>
+<td>No</td>
+<td>-</td>
+</tr>
+<tr>
+<td>sorted</td>
+<td>--batch_size</td>
+<td>No</td>
+<td>Length information of features</td>
+</tr>
+<tr>
+<td>folded</td>
+<td>--batch_size</td>
+<td>Yes</td>
+<td>Length information of features</td>
+</tr>
+<tr>
+<td>length</td>
+<td>--batch_bins</td>
+<td>Yes</td>
+<td>Length information of features</td>
+</tr>
+<tr>
+<td>numel</td>
+<td>--batch_bins</td>
+<td>Yes</td>
+<td>Shape information of features</td>
+</tr>
+</tbody>
+</table><p>Note that <strong>–batch_size is ignored if –batch_type=length or –batch_type=numel</strong>.</p>
+<div class="section" id="batch-type-unsorted">
+<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">unsorted</span></code><a class="headerlink" href="#batch-type-unsorted" title="Permalink to this headline">¶</a></h3>
+<p>This mode has nothing special feature and just creates constant-size mini-batches without any sorting by the length order.
+If you intend to use ESPnet as <strong>not</strong> Seq2Seq task, this type may be suitable.</p>
+<p>Unlike the other mode, this mode doesn’t require the information of the feature dimension.
+In other words, it’s not mandatory to prepare <code class="docutils literal notranslate"><span class="pre">shape_file</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
+  --batch_size <span class="m">10</span> --batch_type unsorted <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train.scp&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid.scp&quot;</span>
+</pre></div>
+</div>
+<p>This system might seem strange and you might also feel <code class="docutils literal notranslate"><span class="pre">--*_shape_file</span></code> is verbose
+because the training corpus can be described totally only using <code class="docutils literal notranslate"><span class="pre">--*_data_path_and_name_and_type</span></code>.</p>
+<p>From the viewpoint of the implementation,
+we separate the data source for the <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> and <code class="docutils literal notranslate"><span class="pre">BatchSampler</span></code> in the term of PyTorch
+and  <code class="docutils literal notranslate"><span class="pre">--*_data_path_and_name_and_type</span></code> and <code class="docutils literal notranslate"><span class="pre">--*_shape_file</span></code> correspond to them respectively.
+From the viewpoint of the training strategy,
+because variable batch-size is supported according to the length/dimension of each feature,
+thus we need to prepare the shape information before training.</p>
+</div>
+<div class="section" id="batch-type-sorted">
+<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">sorted</span></code><a class="headerlink" href="#batch-type-sorted" title="Permalink to this headline">¶</a></h3>
+<p>This mode creates constant-size mini-batches with sorting by the length order.
+This mode requires the information of the length.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
+  --batch_size <span class="m">10</span> --batch_type sorted <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_length.txt&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_length.txt&quot;</span>
+</pre></div>
+</div>
+<p>e.g. length.txt</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sample_id1</span> <span class="mi">1230</span>
+<span class="n">sample_id2</span> <span class="mi">156</span>
+<span class="n">sample_id3</span> <span class="mi">890</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>Where the fist column indicates the sample id and the second is the length of the corresponding feature.
+You can see that <code class="docutils literal notranslate"><span class="pre">shape</span> <span class="pre">file</span></code> is input instead in our recipes.</p>
+<p>e.g. shape.txt</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sample_id1</span> <span class="mi">1230</span><span class="p">,</span><span class="mi">80</span>
+<span class="n">sample_id2</span> <span class="mi">156</span><span class="p">,</span><span class="mi">80</span>
+<span class="n">sample_id3</span> <span class="mi">890</span><span class="p">,</span><span class="mi">80</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>This file describes the full information of the feature shape;
+The first number is the length of the sequence and
+the second or later are the dimension of feature: <code class="docutils literal notranslate"><span class="pre">Length,Dim1,Dim2,...</span></code>.</p>
+<p>Only the first number is referred for
+<code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">sorted</span></code>, <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code> and <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code>,
+and the shape information is required only when <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code>.</p>
+</div>
+<div class="section" id="batch-type-folded">
+<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code><a class="headerlink" href="#batch-type-folded" title="Permalink to this headline">¶</a></h3>
+<p><strong>In ESPnet1, this mode is refered as seq.</strong></p>
+<p>This mode creates mini-batch which has the size of <code class="docutils literal notranslate"><span class="pre">base_batch_size</span> <span class="pre">//</span> <span class="pre">max_i(1</span> <span class="pre">+</span> <span class="pre">L_i</span> <span class="pre">//</span> <span class="pre">f_i)</span></code>.
+Where <code class="docutils literal notranslate"><span class="pre">L_i</span></code> is the maximum length in the mini-batch for <code class="docutils literal notranslate"><span class="pre">i</span></code>th feature and
+<code class="docutils literal notranslate"><span class="pre">f_i</span></code> is the <code class="docutils literal notranslate"><span class="pre">--fold</span> <span class="pre">length</span></code> corresponding to the feature.
+This mode requires the information of length.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
+  --batch_size <span class="m">20</span> --batch_type folded <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_length.scp&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_length2.scp&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_length.scp&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_length2.scp&quot;</span> <span class="se">\</span>
+  --fold_length <span class="m">5000</span> <span class="se">\</span>
+  --fold_length <span class="m">300</span>
+</pre></div>
+</div>
+<p>Note that the repeat number of <code class="docutils literal notranslate"><span class="pre">*_shape_file</span></code> must equal to the number of <code class="docutils literal notranslate"><span class="pre">--fold_length</span></code>, but
+<strong>you don’t need to input same number of shape files as the number of data file</strong>.
+i.e. You can give it as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
+  --batch_size <span class="m">20</span> --batch_type folded <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_length.txt&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_length.txt&quot;</span> <span class="se">\</span>
+  --fold_length <span class="m">5000</span>
+</pre></div>
+</div>
+<p>In this example, the length of the first feature is considered while the second can be ignored.
+This technique can be also applied for <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code> and <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code>.</p>
+</div>
+<div class="section" id="batch-type-length">
+<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code><a class="headerlink" href="#batch-type-length" title="Permalink to this headline">¶</a></h3>
+<p><strong>In ESPnet1, this mode is referred as frame.</strong></p>
+<p>You need to specify <code class="docutils literal notranslate"><span class="pre">--batch_bins</span></code> to determine the mini-batch size instead of <code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>.
+Each mini-batch has equal number of bins as possible counting by the total length in the mini-batch;
+i.e. <code class="docutils literal notranslate"><span class="pre">bins</span> <span class="pre">=</span> <span class="pre">sum(len(feat)</span> <span class="pre">for</span> <span class="pre">feats</span> <span class="pre">in</span> <span class="pre">batch</span> <span class="pre">for</span> <span class="pre">feat</span> <span class="pre">in</span> <span class="pre">feats)</span></code>.
+This mode requires the information of length.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
+  --batch_bins <span class="m">10000</span> --batch_type length <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_length.txt&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_length2.txt&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_length.txt&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_length2.txt&quot;</span> <span class="se">\</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="batch-type-numel">
+<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code><a class="headerlink" href="#batch-type-numel" title="Permalink to this headline">¶</a></h3>
+<p><strong>In ESPnet1, this mode is referred as bins.</strong></p>
+<p>You need to specify <code class="docutils literal notranslate"><span class="pre">--batch_bins</span></code> to determine the mini-batch size instead of <code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>.
+Each mini-batches has equal number of bins as possible
+counting by the total number of elements;
+i.e. <code class="docutils literal notranslate"><span class="pre">bins</span> <span class="pre">=</span> <span class="pre">sum(numel(feat)</span> <span class="pre">for</span> <span class="pre">feats</span> <span class="pre">in</span> <span class="pre">batch</span> <span class="pre">for</span> <span class="pre">feat</span> <span class="pre">in</span> <span class="pre">feats)</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">numel</span></code> returns the infinite product of the shape of each feature;
+<code class="docutils literal notranslate"><span class="pre">shape[0]</span> <span class="pre">*</span> <span class="pre">shape[1]</span> <span class="pre">*</span> <span class="pre">...</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
+  --batch_bins <span class="m">200000</span> --batch_type numel <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type  <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
+  --valid_data_path_and_name_and_type  <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_shape.txt&quot;</span> <span class="se">\</span>
+  --train_shape_file <span class="s2">&quot;train_shape2.txt&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_shape.txt&quot;</span> <span class="se">\</span>
+  --valid_shape_file <span class="s2">&quot;valid_shape2.txt&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="gradient-accumulating">
+<h2>Gradient accumulating<a class="headerlink" href="#gradient-accumulating" title="Permalink to this headline">¶</a></h2>
+<p>There are several ways to deal with larger model architectures than the capacity of your GPU device memory during training.</p>
+<ul class="simple">
+<li><p>Using a larger number of GPUs</p></li>
+<li><p>Using a half decision tensor</p></li>
+<li><p>Using <a class="reference external" href="https://pytorch.org/docs/stable/checkpoint.html">torch.utils.checkpoint</a></p></li>
+<li><p>Gradient accumulating</p></li>
+</ul>
+<p>Gradient accumulating is a technique to handle larger mini-batch than available size.</p>
+<p>Split a mini-batch into several numbers and forward and backward for each piece and accumulate the gradients ony by one,
+while optimizer’s updating is invoked every the number of forwarding just like following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># accum_grad is the number of pieces</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iterator</span><span class="p">):</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">net</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">loss</span> <span class="o">/</span> <span class="n">accum_grad</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span> <span class="c1"># Gradients are accumulated</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="n">accum_grad</span><span class="p">:</span>
+        <span class="n">optim</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+        <span class="n">optim</span><span class="o">.</span><span class="n">zero_grads</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Give <code class="docutils literal notranslate"><span class="pre">--accum_grad</span> <span class="pre">&lt;int&gt;</span></code> to use this option.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --accum_grad <span class="m">2</span>
+</pre></div>
+</div>
+<p>The effective batch_size becomes <strong>almost</strong> same as <code class="docutils literal notranslate"><span class="pre">accum_grad</span> <span class="pre">*</span> <span class="pre">batch_size</span></code> except for:</p>
+<ul class="simple">
+<li><p>The random state</p></li>
+<li><p>Some statistical layers based on mini-batch e.g. BatchNormalization</p></li>
+<li><p>The case that the batch_size is not unified for each iteration.</p></li>
+</ul>
+</div>
+<div class="section" id="automatic-mixed-precision-training">
+<h2>Automatic Mixed Precision training<a class="headerlink" href="#automatic-mixed-precision-training" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --use_amp <span class="nb">true</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reproducibility-and-determinization">
+<h2>Reproducibility and determinization<a class="headerlink" href="#reproducibility-and-determinization" title="Permalink to this headline">¶</a></h2>
+<p>There are some possibilities to make training non-reproducible.</p>
+<ul class="simple">
+<li><p>Initialization of parameters that come from PyTorch/ESPnet version difference.</p></li>
+<li><p>Reducing order for float values during multi GPUs training.</p>
+<ul>
+<li><p>I don’t know whether NCCL is deterministic or not.</p></li>
+</ul>
+</li>
+<li><p>Random seed difference</p>
+<ul>
+<li><p>We fixed the random seed for each epoch.</p></li>
+</ul>
+</li>
+<li><p>CuDNN or some non-deterministic operations for CUDA: See https://pytorch.org/docs/stable/notes/randomness.html</p></li>
+</ul>
+<p>By default, CuDNN performs deterministic mode in our training and it can be turned off by:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --cudnn_deterministic <span class="nb">false</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2_task.html" class="btn btn-neutral float-right" title="Task class and data input system for training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2_tutorial.html" class="btn btn-neutral float-left" title="ESPnet2" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,909 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.utils.io_utils &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.utils.io_utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.utils.io_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">kaldiio</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">soundfile</span>
+
+<span class="kn">from</span> <span class="nn">espnet.transform.transformation</span> <span class="kn">import</span> <span class="n">Transformation</span>
+
+
+<div class="viewcode-block" id="LoadInputsAndTargets"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.LoadInputsAndTargets">[docs]</a><span class="k">class</span> <span class="nc">LoadInputsAndTargets</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a mini-batch from a list of dicts</span>
+
+<span class="sd">    &gt;&gt;&gt; batch = [(&#39;utt1&#39;,</span>
+<span class="sd">    ...           dict(input=[dict(feat=&#39;some.ark:123&#39;,</span>
+<span class="sd">    ...                            filetype=&#39;mat&#39;,</span>
+<span class="sd">    ...                            name=&#39;input1&#39;,</span>
+<span class="sd">    ...                            shape=[100, 80])],</span>
+<span class="sd">    ...                output=[dict(tokenid=&#39;1 2 3 4&#39;,</span>
+<span class="sd">    ...                             name=&#39;target1&#39;,</span>
+<span class="sd">    ...                             shape=[4, 31])]]))</span>
+<span class="sd">    &gt;&gt;&gt; l = LoadInputsAndTargets()</span>
+<span class="sd">    &gt;&gt;&gt; feat, target = l(batch)</span>
+
+<span class="sd">    :param: str mode: Specify the task mode, &quot;asr&quot; or &quot;tts&quot;</span>
+<span class="sd">    :param: str preprocess_conf: The path of a json file for pre-processing</span>
+<span class="sd">    :param: bool load_input: If False, not to load the input data</span>
+<span class="sd">    :param: bool load_output: If False, not to load the output data</span>
+<span class="sd">    :param: bool sort_in_input_length: Sort the mini-batch in descending order</span>
+<span class="sd">        of the input length</span>
+<span class="sd">    :param: bool use_speaker_embedding: Used for tts mode only</span>
+<span class="sd">    :param: bool use_second_target: Used for tts mode only</span>
+<span class="sd">    :param: dict preprocess_args: Set some optional arguments for preprocessing</span>
+<span class="sd">    :param: Optional[dict] preprocess_args: Used for tts mode only</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span>
+        <span class="n">preprocess_conf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">load_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">load_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">sort_in_input_length</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_speaker_embedding</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_second_target</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">preprocess_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">keep_all_data_on_mem</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="s2">&quot;tts&quot;</span><span class="p">,</span> <span class="s2">&quot;mt&quot;</span><span class="p">,</span> <span class="s2">&quot;vc&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only asr or tts are allowed: mode=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mode</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">preprocess_conf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preprocessing</span> <span class="o">=</span> <span class="n">Transformation</span><span class="p">(</span><span class="n">preprocess_conf</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;[Experimental feature] Some preprocessing will be done &quot;</span>
+                <span class="s2">&quot;for the mini-batch creation using </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">preprocessing</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If conf doesn&#39;t exist, this function don&#39;t touch anything.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preprocessing</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">use_second_target</span> <span class="ow">and</span> <span class="n">use_speaker_embedding</span> <span class="ow">and</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;tts&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Choose one of &quot;use_second_target&quot; and &#39;</span> <span class="s1">&#39;&quot;use_speaker_embedding &quot;&#39;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">use_second_target</span> <span class="ow">or</span> <span class="n">use_speaker_embedding</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;tts&quot;</span>
+            <span class="ow">and</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;vc&quot;</span>
+        <span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s1">&#39;&quot;use_second_target&quot; and &quot;use_speaker_embedding&quot; is &#39;</span>
+                <span class="s2">&quot;used only for tts or vc mode&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_output</span> <span class="o">=</span> <span class="n">load_output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_input</span> <span class="o">=</span> <span class="n">load_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sort_in_input_length</span> <span class="o">=</span> <span class="n">sort_in_input_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_speaker_embedding</span> <span class="o">=</span> <span class="n">use_speaker_embedding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_second_target</span> <span class="o">=</span> <span class="n">use_second_target</span>
+        <span class="k">if</span> <span class="n">preprocess_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_args</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">preprocess_args</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">preprocess_args</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">preprocess_args</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">keep_all_data_on_mem</span> <span class="o">=</span> <span class="n">keep_all_data_on_mem</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">return_uttid</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function to load inputs and targets from list of dicts</span>
+
+<span class="sd">        :param List[Tuple[str, dict]] batch: list of dict which is subset of</span>
+<span class="sd">            loaded data.json</span>
+<span class="sd">        :param bool return_uttid: return utterance ID information for visualization</span>
+<span class="sd">        :return: list of input token id sequences [(L_1), (L_2), ..., (L_B)]</span>
+<span class="sd">        :return: list of input feature sequences</span>
+<span class="sd">            [(T_1, D), (T_2, D), ..., (T_B, D)]</span>
+<span class="sd">        :rtype: list of float ndarray</span>
+<span class="sd">        :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]</span>
+<span class="sd">        :rtype: list of int ndarray</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_feats_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>  <span class="c1"># OrderedDict[str, List[np.ndarray]]</span>
+        <span class="n">y_feats_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>  <span class="c1"># OrderedDict[str, List[np.ndarray]]</span>
+        <span class="n">uttid_list</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># List[str]</span>
+
+        <span class="k">for</span> <span class="n">uttid</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="n">uttid_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uttid</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_input</span><span class="p">:</span>
+                <span class="c1"># Note(kamo): This for-loop is for multiple inputs</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">inp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]):</span>
+                    <span class="c1"># {&quot;input&quot;:</span>
+                    <span class="c1">#  [{&quot;feat&quot;: &quot;some/path.h5:F01_050C0101_PED_REAL&quot;,</span>
+                    <span class="c1">#    &quot;filetype&quot;: &quot;hdf5&quot;,</span>
+                    <span class="c1">#    &quot;name&quot;: &quot;input1&quot;, ...}], ...}</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_from_loader</span><span class="p">(</span>
+                        <span class="n">filepath</span><span class="o">=</span><span class="n">inp</span><span class="p">[</span><span class="s2">&quot;feat&quot;</span><span class="p">],</span> <span class="n">filetype</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filetype&quot;</span><span class="p">,</span> <span class="s2">&quot;mat&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">x_feats_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">inp</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="c1"># FIXME(kamo): Dirty way to load only speaker_embedding</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;tts&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speaker_embedding</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">inp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]):</span>
+                    <span class="k">if</span> <span class="n">idx</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_from_loader</span><span class="p">(</span>
+                            <span class="n">filepath</span><span class="o">=</span><span class="n">inp</span><span class="p">[</span><span class="s2">&quot;feat&quot;</span><span class="p">],</span> <span class="n">filetype</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filetype&quot;</span><span class="p">,</span> <span class="s2">&quot;mat&quot;</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="n">x_feats_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">inp</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_output</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;mt&quot;</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span>
+                        <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;tokenid&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+                    <span class="p">)</span>
+                    <span class="n">x_feats_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">inp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]):</span>
+                    <span class="k">if</span> <span class="s2">&quot;tokenid&quot;</span> <span class="ow">in</span> <span class="n">inp</span><span class="p">:</span>
+                        <span class="c1"># ======= Legacy format for output =======</span>
+                        <span class="c1"># {&quot;output&quot;: [{&quot;tokenid&quot;: &quot;1 2 3 4&quot;}])</span>
+                        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span>
+                            <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">inp</span><span class="p">[</span><span class="s2">&quot;tokenid&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># ======= New format =======</span>
+                        <span class="c1"># {&quot;input&quot;:</span>
+                        <span class="c1">#  [{&quot;feat&quot;: &quot;some/path.h5:F01_050C0101_PED_REAL&quot;,</span>
+                        <span class="c1">#    &quot;filetype&quot;: &quot;hdf5&quot;,</span>
+                        <span class="c1">#    &quot;name&quot;: &quot;target1&quot;, ...}], ...}</span>
+                        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_from_loader</span><span class="p">(</span>
+                            <span class="n">filepath</span><span class="o">=</span><span class="n">inp</span><span class="p">[</span><span class="s2">&quot;feat&quot;</span><span class="p">],</span> <span class="n">filetype</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filetype&quot;</span><span class="p">,</span> <span class="s2">&quot;mat&quot;</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+                    <span class="n">y_feats_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">inp</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;asr&quot;</span><span class="p">:</span>
+            <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_batch_asr</span><span class="p">(</span>
+                <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;tts&quot;</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">eos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_batch_tts</span><span class="p">(</span>
+                <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">,</span> <span class="n">eos</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;mt&quot;</span><span class="p">:</span>
+            <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_batch_mt</span><span class="p">(</span>
+                <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;vc&quot;</span><span class="p">:</span>
+            <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_batch_vc</span><span class="p">(</span>
+                <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Apply pre-processing all input features</span>
+            <span class="k">for</span> <span class="n">x_name</span> <span class="ow">in</span> <span class="n">return_batch</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">x_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">):</span>
+                    <span class="n">return_batch</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessing</span><span class="p">(</span>
+                        <span class="n">return_batch</span><span class="p">[</span><span class="n">x_name</span><span class="p">],</span> <span class="n">uttid_list</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">preprocess_args</span>
+                    <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_uttid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">return_batch</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">uttid_list</span>
+
+        <span class="c1"># Doesn&#39;t return the names now.</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">return_batch</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_create_batch_asr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+
+<span class="sd">        :param OrderedDict x_feats_dict:</span>
+<span class="sd">            e.g. {&quot;input1&quot;: [ndarray, ndarray, ...],</span>
+<span class="sd">                  &quot;input2&quot;: [ndarray, ndarray, ...]}</span>
+<span class="sd">        :param OrderedDict y_feats_dict:</span>
+<span class="sd">            e.g. {&quot;target1&quot;: [ndarray, ndarray, ...],</span>
+<span class="sd">                  &quot;target2&quot;: [ndarray, ndarray, ...]}</span>
+<span class="sd">        :param: List[str] uttid_list:</span>
+<span class="sd">            Give uttid_list to sort in the same order as the mini-batch</span>
+<span class="sd">        :return: batch, uttid_list</span>
+<span class="sd">        :rtype: Tuple[OrderedDict, List[str]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># handle single-input and multi-input (paralell) asr mode</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_output</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+            <span class="c1"># get index of non-zero length samples</span>
+            <span class="n">nonzero_idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">]))))</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="p">)):</span>
+                <span class="n">nonzero_idx</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nonzero_idx</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Note(kamo): Be careful not to make nonzero_idx to a generator</span>
+            <span class="n">nonzero_idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_in_input_length</span><span class="p">:</span>
+            <span class="c1"># sort in input lengths based on the first input</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nonzero_idx</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="n">nonzero_idx</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonzero_sorted_idx</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Target sequences include empty tokenid (batch </span><span class="si">{}</span><span class="s2"> -&gt; </span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonzero_sorted_idx</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># remove zero-length samples</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+        <span class="n">uttid_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+
+        <span class="n">x_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_output</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="p">[[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="p">]</span>
+            <span class="n">y_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+            <span class="c1"># Keeping x_name and y_name, e.g. input1, for future extension</span>
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="o">*</span><span class="p">[(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x_name</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_names</span><span class="p">,</span> <span class="n">xs</span><span class="p">)],</span>
+                    <span class="o">*</span><span class="p">[(</span><span class="n">y_name</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">y_name</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">y_names</span><span class="p">,</span> <span class="n">ys</span><span class="p">)],</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x_name</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_names</span><span class="p">,</span> <span class="n">xs</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
+
+    <span class="k">def</span> <span class="nf">_create_batch_mt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+
+<span class="sd">        :param OrderedDict x_feats_dict:</span>
+<span class="sd">        :param OrderedDict y_feats_dict:</span>
+<span class="sd">        :return: batch, uttid_list</span>
+<span class="sd">        :rtype: Tuple[OrderedDict, List[str]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create a list from the first item</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_output</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">))</span>
+
+            <span class="c1"># get index of non-zero length samples</span>
+            <span class="n">nonzero_idx</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nonzero_idx</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_in_input_length</span><span class="p">:</span>
+            <span class="c1"># sort in input lengths</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nonzero_idx</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="n">nonzero_idx</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonzero_sorted_idx</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Target sequences include empty tokenid (batch </span><span class="si">{}</span><span class="s2"> -&gt; </span><span class="si">{}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonzero_sorted_idx</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># remove zero-length samples</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+        <span class="n">uttid_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+
+        <span class="n">x_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_output</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+            <span class="n">y_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">),</span> <span class="p">(</span><span class="n">y_name</span><span class="p">,</span> <span class="n">ys</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
+
+    <span class="k">def</span> <span class="nf">_create_batch_tts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">,</span> <span class="n">eos</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+
+<span class="sd">        :param OrderedDict x_feats_dict:</span>
+<span class="sd">            e.g. {&quot;input1&quot;: [ndarray, ndarray, ...],</span>
+<span class="sd">                  &quot;input2&quot;: [ndarray, ndarray, ...]}</span>
+<span class="sd">        :param OrderedDict y_feats_dict:</span>
+<span class="sd">            e.g. {&quot;target1&quot;: [ndarray, ndarray, ...],</span>
+<span class="sd">                  &quot;target2&quot;: [ndarray, ndarray, ...]}</span>
+<span class="sd">        :param: List[str] uttid_list:</span>
+<span class="sd">        :param int eos:</span>
+<span class="sd">        :return: batch, uttid_list</span>
+<span class="sd">        :rtype: Tuple[OrderedDict, List[str]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Use the output values as the input feats for tts mode</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># get index of non-zero length samples</span>
+        <span class="n">nonzero_idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">))))</span>
+        <span class="c1"># sort in input lengths</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_in_input_length</span><span class="p">:</span>
+            <span class="c1"># sort in input lengths</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nonzero_idx</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="n">nonzero_idx</span>
+        <span class="c1"># remove zero-length samples</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+        <span class="n">uttid_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+        <span class="c1"># Added eos into input sequence</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">eos</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_input</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">))</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+
+            <span class="n">spembs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">spcs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">spembs_name</span> <span class="o">=</span> <span class="s2">&quot;spembs_none&quot;</span>
+            <span class="n">spcs_name</span> <span class="o">=</span> <span class="s2">&quot;spcs_none&quot;</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_second_target</span><span class="p">:</span>
+                <span class="n">spcs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">spcs</span> <span class="o">=</span> <span class="p">[</span><span class="n">spcs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+                <span class="n">spcs_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speaker_embedding</span><span class="p">:</span>
+                <span class="n">spembs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">spembs</span> <span class="o">=</span> <span class="p">[</span><span class="n">spembs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+                <span class="n">spembs_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">x_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">y_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="p">[(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">),</span> <span class="p">(</span><span class="n">y_name</span><span class="p">,</span> <span class="n">ys</span><span class="p">),</span> <span class="p">(</span><span class="n">spembs_name</span><span class="p">,</span> <span class="n">spembs</span><span class="p">),</span> <span class="p">(</span><span class="n">spcs_name</span><span class="p">,</span> <span class="n">spcs</span><span class="p">)]</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speaker_embedding</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;No speaker embedding is provided&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">spembs_idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">spembs_idx</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">spembs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="n">spembs_idx</span><span class="p">]</span>
+            <span class="n">spembs</span> <span class="o">=</span> <span class="p">[</span><span class="n">spembs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+
+            <span class="n">x_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">spembs_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="n">spembs_idx</span><span class="p">]</span>
+
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">),</span> <span class="p">(</span><span class="n">spembs_name</span><span class="p">,</span> <span class="n">spembs</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
+
+    <span class="k">def</span> <span class="nf">_create_batch_vc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+
+<span class="sd">        :param OrderedDict x_feats_dict:</span>
+<span class="sd">            e.g. {&quot;input1&quot;: [ndarray, ndarray, ...],</span>
+<span class="sd">                  &quot;input2&quot;: [ndarray, ndarray, ...]}</span>
+<span class="sd">        :param OrderedDict y_feats_dict:</span>
+<span class="sd">            e.g. {&quot;target1&quot;: [ndarray, ndarray, ...],</span>
+<span class="sd">                  &quot;target2&quot;: [ndarray, ndarray, ...]}</span>
+<span class="sd">        :param: List[str] uttid_list:</span>
+<span class="sd">        :return: batch, uttid_list</span>
+<span class="sd">        :rtype: Tuple[OrderedDict, List[str]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create a list from the first item</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># get index of non-zero length samples</span>
+        <span class="n">nonzero_idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">))))</span>
+
+        <span class="c1"># sort in input lengths</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_in_input_length</span><span class="p">:</span>
+            <span class="c1"># sort in input lengths</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nonzero_idx</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nonzero_sorted_idx</span> <span class="o">=</span> <span class="n">nonzero_idx</span>
+
+        <span class="c1"># remove zero-length samples</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+        <span class="n">uttid_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_output</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">))</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+
+            <span class="n">spembs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">spcs</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">spembs_name</span> <span class="o">=</span> <span class="s2">&quot;spembs_none&quot;</span>
+            <span class="n">spcs_name</span> <span class="o">=</span> <span class="s2">&quot;spcs_none&quot;</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_second_target</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Currently second target not supported.&quot;</span><span class="p">)</span>
+                <span class="n">spcs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">spcs</span> <span class="o">=</span> <span class="p">[</span><span class="n">spcs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+                <span class="n">spcs_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speaker_embedding</span><span class="p">:</span>
+                <span class="n">spembs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">spembs</span> <span class="o">=</span> <span class="p">[</span><span class="n">spembs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+                <span class="n">spembs_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">x_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">y_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="p">[(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">),</span> <span class="p">(</span><span class="n">y_name</span><span class="p">,</span> <span class="n">ys</span><span class="p">),</span> <span class="p">(</span><span class="n">spembs_name</span><span class="p">,</span> <span class="n">spembs</span><span class="p">),</span> <span class="p">(</span><span class="n">spcs_name</span><span class="p">,</span> <span class="n">spcs</span><span class="p">)]</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speaker_embedding</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;No speaker embedding is provided&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">spembs_idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">spembs_idx</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">spembs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="n">spembs_idx</span><span class="p">]</span>
+            <span class="n">spembs</span> <span class="o">=</span> <span class="p">[</span><span class="n">spembs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nonzero_sorted_idx</span><span class="p">]</span>
+
+            <span class="n">x_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">spembs_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="n">spembs_idx</span><span class="p">]</span>
+
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">),</span> <span class="p">(</span><span class="n">spembs_name</span><span class="p">,</span> <span class="n">spembs</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_feats_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">return_batch</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">x_name</span><span class="p">,</span> <span class="n">xs</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
+
+    <span class="k">def</span> <span class="nf">_get_from_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">filetype</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return ndarray</span>
+
+<span class="sd">        In order to make the fds to be opened only at the first referring,</span>
+<span class="sd">        the loader are stored in self._loaders</span>
+
+<span class="sd">        &gt;&gt;&gt; ndarray = loader.get_from_loader(</span>
+<span class="sd">        ...     &#39;some/path.h5:F01_050C0101_PED_REAL&#39;, filetype=&#39;hdf5&#39;)</span>
+
+<span class="sd">        :param: str filepath:</span>
+<span class="sd">        :param: str filetype:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        :rtype: np.ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;hdf5&quot;</span><span class="p">:</span>
+            <span class="c1"># e.g.</span>
+            <span class="c1">#    {&quot;input&quot;: [{&quot;feat&quot;: &quot;some/path.h5:F01_050C0101_PED_REAL&quot;,</span>
+            <span class="c1">#                &quot;filetype&quot;: &quot;hdf5&quot;,</span>
+            <span class="c1"># -&gt; filepath = &quot;some/path.h5&quot;, key = &quot;F01_050C0101_PED_REAL&quot;</span>
+            <span class="n">filepath</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">loader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># To avoid disk access, create loader only for the first time</span>
+                <span class="n">loader</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span> <span class="o">=</span> <span class="n">loader</span>
+            <span class="k">return</span> <span class="n">loader</span><span class="p">[</span><span class="n">key</span><span class="p">][()]</span>
+        <span class="k">elif</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;sound.hdf5&quot;</span><span class="p">:</span>
+            <span class="c1"># e.g.</span>
+            <span class="c1">#    {&quot;input&quot;: [{&quot;feat&quot;: &quot;some/path.h5:F01_050C0101_PED_REAL&quot;,</span>
+            <span class="c1">#                &quot;filetype&quot;: &quot;sound.hdf5&quot;,</span>
+            <span class="c1"># -&gt; filepath = &quot;some/path.h5&quot;, key = &quot;F01_050C0101_PED_REAL&quot;</span>
+            <span class="n">filepath</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">loader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># To avoid disk access, create loader only for the first time</span>
+                <span class="n">loader</span> <span class="o">=</span> <span class="n">SoundHDF5File</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int16&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span> <span class="o">=</span> <span class="n">loader</span>
+            <span class="n">array</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">loader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">array</span>
+        <span class="k">elif</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;sound&quot;</span><span class="p">:</span>
+            <span class="c1"># e.g.</span>
+            <span class="c1">#    {&quot;input&quot;: [{&quot;feat&quot;: &quot;some/path.wav&quot;,</span>
+            <span class="c1">#                &quot;filetype&quot;: &quot;sound&quot;},</span>
+            <span class="c1"># Assume PCM16</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_all_data_on_mem</span><span class="p">:</span>
+                <span class="n">array</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int16&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">array</span>
+            <span class="k">if</span> <span class="n">filepath</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">:</span>
+                <span class="n">array</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int16&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;npz&quot;</span><span class="p">:</span>
+            <span class="c1"># e.g.</span>
+            <span class="c1">#    {&quot;input&quot;: [{&quot;feat&quot;: &quot;some/path.npz:F01_050C0101_PED_REAL&quot;,</span>
+            <span class="c1">#                &quot;filetype&quot;: &quot;npz&quot;,</span>
+            <span class="n">filepath</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">loader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># To avoid disk access, create loader only for the first time</span>
+                <span class="n">loader</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span> <span class="o">=</span> <span class="n">loader</span>
+            <span class="k">return</span> <span class="n">loader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;npy&quot;</span><span class="p">:</span>
+            <span class="c1"># e.g.</span>
+            <span class="c1">#    {&quot;input&quot;: [{&quot;feat&quot;: &quot;some/path.npy&quot;,</span>
+            <span class="c1">#                &quot;filetype&quot;: &quot;npy&quot;},</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_all_data_on_mem</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">filepath</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">filetype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mat&quot;</span><span class="p">,</span> <span class="s2">&quot;vec&quot;</span><span class="p">]:</span>
+            <span class="c1"># e.g.</span>
+            <span class="c1">#    {&quot;input&quot;: [{&quot;feat&quot;: &quot;some/path.ark:123&quot;,</span>
+            <span class="c1">#                &quot;filetype&quot;: &quot;mat&quot;}]},</span>
+            <span class="c1"># In this case, &quot;123&quot; indicates the starting points of the matrix</span>
+            <span class="c1"># load_mat can load both matrix and vector</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_all_data_on_mem</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">kaldiio</span><span class="o">.</span><span class="n">load_mat</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">filepath</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span> <span class="o">=</span> <span class="n">kaldiio</span><span class="o">.</span><span class="n">load_mat</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">filetype</span> <span class="o">==</span> <span class="s2">&quot;scp&quot;</span><span class="p">:</span>
+            <span class="c1"># e.g.</span>
+            <span class="c1">#    {&quot;input&quot;: [{&quot;feat&quot;: &quot;some/path.scp:F01_050C0101_PED_REAL&quot;,</span>
+            <span class="c1">#                &quot;filetype&quot;: &quot;scp&quot;,</span>
+            <span class="n">filepath</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">loader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># To avoid disk access, create loader only for the first time</span>
+                <span class="n">loader</span> <span class="o">=</span> <span class="n">kaldiio</span><span class="o">.</span><span class="n">load_scp</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_loaders</span><span class="p">[</span><span class="n">filepath</span><span class="p">]</span> <span class="o">=</span> <span class="n">loader</span>
+            <span class="k">return</span> <span class="n">loader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Not supported: loader_type=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filetype</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="SoundHDF5File"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.SoundHDF5File">[docs]</a><span class="k">class</span> <span class="nc">SoundHDF5File</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Collecting sound files to a HDF5 file</span>
+
+<span class="sd">    &gt;&gt;&gt; f = SoundHDF5File(&#39;a.flac.h5&#39;, mode=&#39;a&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; array = np.random.randint(0, 100, 100, dtype=np.int16)</span>
+<span class="sd">    &gt;&gt;&gt; f[&#39;id&#39;] = (array, 16000)</span>
+<span class="sd">    &gt;&gt;&gt; array, rate = f[&#39;id&#39;]</span>
+
+
+<span class="sd">    :param: str filepath:</span>
+<span class="sd">    :param: str mode:</span>
+<span class="sd">    :param: str format: The type used when saving wav. flac, nist, htk, etc.</span>
+<span class="sd">    :param: str dtype:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int16&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># filepath = a.flac.h5 -&gt; format = flac</span>
+            <span class="n">second_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filepath</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="nb">format</span> <span class="o">=</span> <span class="n">second_ext</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">if</span> <span class="nb">format</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">available_formats</span><span class="p">():</span>
+                <span class="c1"># If not found, flac is selected</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;flac&quot;</span>
+
+        <span class="c1"># This format affects only saving</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="nb">format</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;SoundHDF5 file &quot;</span><span class="si">{}</span><span class="s1">&quot; (mode </span><span class="si">{}</span><span class="s1">, format </span><span class="si">{}</span><span class="s1">, type </span><span class="si">{}</span><span class="s1">)&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="SoundHDF5File.create_dataset"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.SoundHDF5File.create_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">create_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="n">array</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="n">soundfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()),</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">[</span><span class="n">key</span><span class="p">][()]</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+        <span class="n">array</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">array</span><span class="p">,</span> <span class="n">rate</span>
+
+<div class="viewcode-block" id="SoundHDF5File.keys"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.SoundHDF5File.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SoundHDF5File.values"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.SoundHDF5File.values">[docs]</a>    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SoundHDF5File.items"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.SoundHDF5File.items">[docs]</a>    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SoundHDF5File.close"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.SoundHDF5File.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

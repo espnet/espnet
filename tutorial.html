@@ -1,0 +1,823 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Usage &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Using Job scheduling system" href="parallelization.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#directory-structure">Directory structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#execution-of-example-scripts">Execution of example scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setup-in-your-cluster">Setup in your cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logging">Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-options-in-run-sh">Change options in run.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-of-gpu">Use of GPU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multiple-gpu-tips">Multiple GPU TIPs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#start-from-the-middle-stage-or-stop-at-specified-stage">Start from the middle stage or stop at specified stage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ctc-attention-and-hybrid-ctc-attention">CTC, attention, and hybrid CTC/attention</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transducer">Transducer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#changing-the-training-configuration">Changing the training configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-set-minibatch">How to set minibatch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-use-finetuning">How to use finetuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transfer-learning">Transfer learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#freezing">Freezing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#important-notes">Important notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#known-issues">Known issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#error-due-to-acs-multiple-gpus">Error due to ACS (Multiple GPUs)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#error-due-to-matplotlib">Error due to matplotlib</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#chainer-and-pytorch-backends">Chainer and Pytorch backends</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Usage</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/tutorial.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="directory-structure">
+<h2>Directory structure<a class="headerlink" href="#directory-structure" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">espnet</span><span class="o">/</span>              <span class="c1"># Python modules</span>
+<span class="n">utils</span><span class="o">/</span>               <span class="c1"># Utility scripts of ESPnet</span>
+<span class="n">test</span><span class="o">/</span>                <span class="c1"># Unit test</span>
+<span class="n">test_utils</span><span class="o">/</span>          <span class="c1"># Unit test for executable scripts</span>
+<span class="n">egs</span><span class="o">/</span>                 <span class="c1"># The complete recipe for each corpora</span>
+    <span class="n">an4</span><span class="o">/</span>             <span class="c1"># AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial</span>
+      <span class="n">asr1</span><span class="o">/</span>          <span class="c1"># ASR recipe</span>
+          <span class="o">-</span> <span class="n">run</span><span class="o">.</span><span class="n">sh</span>   <span class="c1"># Executable script</span>
+          <span class="o">-</span> <span class="n">cmd</span><span class="o">.</span><span class="n">sh</span>   <span class="c1"># To select the backend for job scheduler</span>
+          <span class="o">-</span> <span class="n">path</span><span class="o">.</span><span class="n">sh</span>  <span class="c1"># Setup script for environment variables</span>
+          <span class="o">-</span> <span class="n">conf</span><span class="o">/</span>    <span class="c1"># Containing Configuration files</span>
+          <span class="o">-</span> <span class="n">steps</span><span class="o">/</span>   <span class="c1"># The steps scripts from Kaldi</span>
+          <span class="o">-</span> <span class="n">utils</span><span class="o">/</span>   <span class="c1"># The utils scripts from Kaldi</span>
+      <span class="n">tts1</span><span class="o">/</span>          <span class="c1"># TTS recipe</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="execution-of-example-scripts">
+<h2>Execution of example scripts<a class="headerlink" href="#execution-of-example-scripts" title="Permalink to this headline">¶</a></h2>
+<p>Move to an example directory under the <code class="docutils literal notranslate"><span class="pre">egs</span></code> directory.
+We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
+The following directory is an example of performing ASR experiment with the CMU Census Database (AN4) recipe.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> egs/an4/asr1
+</pre></div>
+</div>
+<p>Once move to the directory, then, execute the following main script with a <strong>chainer</strong> backend:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --backend chainer
+</pre></div>
+</div>
+<p>or execute the following main script with a <strong>pytorch</strong> backend:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --backend pytorch
+</pre></div>
+</div>
+<p>With this main script, you can perform a full procedure of ASR experiments including</p>
+<ul class="simple">
+<li><p>Data download</p></li>
+<li><p><a class="reference external" href="http://kaldi-asr.org/doc/data_prep.html">Data preparation</a> (Kaldi style)</p></li>
+<li><p><a class="reference external" href="http://kaldi-asr.org/doc/feat.html">Feature extraction</a> (Kaldi style)</p></li>
+<li><p>Dictionary and JSON format data preparation</p></li>
+<li><p>Training based on <a class="reference external" href="https://chainer.org/">chainer</a> or <a class="reference external" href="http://pytorch.org/">pytorch</a>.</p></li>
+<li><p>Recognition and scoring</p></li>
+</ul>
+</div>
+<div class="section" id="setup-in-your-cluster">
+<h2>Setup in your cluster<a class="headerlink" href="#setup-in-your-cluster" title="Permalink to this headline">¶</a></h2>
+<p>See <a class="reference internal" href="parallelization.html"><span class="doc">Using Job scheduling system</span></a></p>
+</div>
+<div class="section" id="logging">
+<h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
+<p>The training progress (loss and accuracy for training and validation data) can be monitored with the following command</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ tail -f exp/<span class="si">${</span><span class="nv">expdir</span><span class="si">}</span>/train.log
+</pre></div>
+</div>
+<p>When we use <code class="docutils literal notranslate"><span class="pre">./run.sh</span> <span class="pre">--verbose</span> <span class="pre">0</span></code> (<code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">0</span></code> is default in most recipes), it gives you the following information</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">epoch</span>       <span class="n">iteration</span>   <span class="n">main</span><span class="o">/</span><span class="n">loss</span>   <span class="n">main</span><span class="o">/</span><span class="n">loss_ctc</span>  <span class="n">main</span><span class="o">/</span><span class="n">loss_att</span>  <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">loss</span>  <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">loss_ctc</span>  <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">loss_att</span>  <span class="n">main</span><span class="o">/</span><span class="n">acc</span>    <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">acc</span>  <span class="n">elapsed_time</span>  <span class="n">eps</span>
+<span class="p">:</span>
+<span class="p">:</span>
+<span class="mi">6</span>           <span class="mi">89700</span>       <span class="mf">63.7861</span>     <span class="mf">83.8041</span>        <span class="mf">43.768</span>                                                                                   <span class="mf">0.731425</span>                         <span class="mi">136184</span>        <span class="mf">1e-08</span>
+<span class="mi">6</span>           <span class="mi">89800</span>       <span class="mf">71.5186</span>     <span class="mf">93.9897</span>        <span class="mf">49.0475</span>                                                                                  <span class="mf">0.72843</span>                          <span class="mi">136320</span>        <span class="mf">1e-08</span>
+<span class="mi">6</span>           <span class="mi">89900</span>       <span class="mf">72.1616</span>     <span class="mf">94.3773</span>        <span class="mf">49.9459</span>                                                                                  <span class="mf">0.730052</span>                         <span class="mi">136473</span>        <span class="mf">1e-08</span>
+<span class="mi">7</span>           <span class="mi">90000</span>       <span class="mf">64.2985</span>     <span class="mf">84.4583</span>        <span class="mf">44.1386</span>        <span class="mf">72.506</span>                <span class="mf">94.9823</span>                   <span class="mf">50.0296</span>                   <span class="mf">0.740617</span>    <span class="mf">0.72476</span>              <span class="mi">137936</span>        <span class="mf">1e-08</span>
+<span class="mi">7</span>           <span class="mi">90100</span>       <span class="mf">81.6931</span>     <span class="mf">106.74</span>         <span class="mf">56.6462</span>                                                                                  <span class="mf">0.733486</span>                         <span class="mi">138049</span>        <span class="mf">1e-08</span>
+<span class="mi">7</span>           <span class="mi">90200</span>       <span class="mf">74.6084</span>     <span class="mf">97.5268</span>        <span class="mf">51.6901</span>                                                                                  <span class="mf">0.731593</span>                         <span class="mi">138175</span>        <span class="mf">1e-08</span>
+     <span class="n">total</span> <span class="p">[</span><span class="c1">#################.................................] 35.54%</span>
+<span class="n">this</span> <span class="n">epoch</span> <span class="p">[</span><span class="c1">#####.............................................] 10.84%</span>
+     <span class="mi">91300</span> <span class="nb">iter</span><span class="p">,</span> <span class="mi">7</span> <span class="n">epoch</span> <span class="o">/</span> <span class="mi">20</span> <span class="n">epochs</span>
+   <span class="mf">0.71428</span> <span class="n">iters</span><span class="o">/</span><span class="n">sec</span><span class="o">.</span> <span class="n">Estimated</span> <span class="n">time</span> <span class="n">to</span> <span class="n">finish</span><span class="p">:</span> <span class="mi">2</span> <span class="n">days</span><span class="p">,</span> <span class="mi">16</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mf">34.613215</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Note that the an4 recipe uses <code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">1</span></code> as default since this recipe is often used for a debugging purpose.</p>
+<p>In addition <a class="reference external" href="https://www.tensorflow.org/guide/summaries_and_tensorboard">Tensorboard</a> events are automatically logged in the <code class="docutils literal notranslate"><span class="pre">tensorboard/${expname}</span></code> folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ tensorboard --logdir tensorboard
+</pre></div>
+</div>
+<p>and connecting to the given address (default : localhost:6006). This will provide the following information:
+<img alt="2018-12-18_19h49_48" src="https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png" />
+Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tensorflow;</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tensorboard</span></code>) when you want to use Tensorboard.</p>
+</div>
+<div class="section" id="change-options-in-run-sh">
+<h2>Change options in run.sh<a class="headerlink" href="#change-options-in-run-sh" title="Permalink to this headline">¶</a></h2>
+<p>We rely on <a class="reference external" href="https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh">utils/parse_options.sh</a> to paser command line arguments in shell script and it’s used in run.sh:</p>
+<p>e.g. If the script has <code class="docutils literal notranslate"><span class="pre">ngpu</span></code> option</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+<span class="c1"># run.sh</span>
+<span class="nv">ngpu</span><span class="o">=</span><span class="m">1</span>
+. utils/parse_options.sh
+<span class="nb">echo</span> <span class="si">${</span><span class="nv">ngpu</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>Then you can change the value as following:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --ngpu <span class="m">2</span>
+<span class="nb">echo</span> <span class="m">2</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="use-of-gpu">
+<h2>Use of GPU<a class="headerlink" href="#use-of-gpu" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>Training:
+If you want to use GPUs in your experiment, please set <code class="docutils literal notranslate"><span class="pre">--ngpu</span></code> option in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> appropriately, e.g.,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>  <span class="c1"># use single gpu</span>
+  $ ./run.sh --ngpu <span class="m">1</span>
+
+  <span class="c1"># use multi-gpu</span>
+  $ ./run.sh --ngpu <span class="m">3</span>
+
+  <span class="c1"># if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows</span>
+  <span class="c1"># (Note that if you use slurm, this specification is not needed)</span>
+  $ <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1,2 ./run.sh --ngpu <span class="m">3</span>
+
+  <span class="c1"># use cpu</span>
+  $ ./run.sh --ngpu <span class="m">0</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Default setup uses a single GPU (<code class="docutils literal notranslate"><span class="pre">--ngpu</span> <span class="pre">1</span></code>).</p></li>
+</ul>
+</li>
+<li><p>ASR decoding:
+ESPnet also supports the GPU-based decoding for fast recognition.</p>
+<ul>
+<li><p>Please manually remove the following lines in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1">#### use CPU for decoding</span>
+<span class="nv">ngpu</span><span class="o">=</span><span class="m">0</span>
+</pre></div>
+</div>
+</li>
+<li><p>Set 1 or more values for <code class="docutils literal notranslate"><span class="pre">--batchsize</span></code> option in <code class="docutils literal notranslate"><span class="pre">asr_recog.py</span></code> to enable GPU decoding</p></li>
+<li><p>And execute the script (e.g., <code class="docutils literal notranslate"><span class="pre">run.sh</span> <span class="pre">--stage</span> <span class="pre">5</span> <span class="pre">--ngpu</span> <span class="pre">1</span></code>)</p></li>
+<li><p>You’ll achieve significant speed improvement by using the GPU decoding</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="multiple-gpu-tips">
+<h2>Multiple GPU TIPs<a class="headerlink" href="#multiple-gpu-tips" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Note that if you want to use multiple GPUs, the installation of <a class="reference external" href="https://developer.nvidia.com/nccl">nccl</a> is required before setup.</p></li>
+<li><p>Currently, espnet1 only supports multiple GPU training within a single node. The distributed setup across multiple nodes is only supported in <a class="reference external" href="https://espnet.github.io/espnet/espnet2_distributed.html">espnet2</a>.</p></li>
+<li><p>We don’t support multiple GPU inference. Instead, please split the recognition task for multiple jobs and distribute these split jobs to multiple GPUs.</p></li>
+<li><p>If you could not get enough speed improvement with multiple GPUs, you should first check the GPU usage by <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span></code>. If the GPU-Util percentage is low, the bottleneck would come from the disk access. You can apply data prefetching by <code class="docutils literal notranslate"><span class="pre">--n-iter-processes</span> <span class="pre">2</span></code> in your <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> to mitigate the problem. Note that this data prefetching consumes a lot of CPU memory, so please be careful when you increase the number of processes.</p></li>
+</ul>
+</div>
+<div class="section" id="start-from-the-middle-stage-or-stop-at-specified-stage">
+<h2>Start from the middle stage or stop at specified stage<a class="headerlink" href="#start-from-the-middle-stage-or-stop-at-specified-stage" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">run.sh</span></code> has multiple stages including data prepration, traning, and etc., so you may likely want to start
+from the specified stage if some stages are failed by some reason for example.</p>
+<p>You can start from specified stage as following and stop the process at the specifed stage:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start from 3rd stage and stop at 5th stage</span>
+$ ./run.sh --stage <span class="m">3</span> --stop-stage <span class="m">5</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ctc-attention-and-hybrid-ctc-attention">
+<h2>CTC, attention, and hybrid CTC/attention<a class="headerlink" href="#ctc-attention-and-hybrid-ctc-attention" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet can easily switch the model’s training/decoding mode from CTC, attention, and hybrid CTC/attention.</p>
+<p>Each mode can be trained by specifying <code class="docutils literal notranslate"><span class="pre">mtlalpha</span></code> in the <a class="reference external" href="https://github.com/espnet/espnet/blob/7dc9da2f07c54b4b0e878d8ef219fcd4d16a5bec/doc/tutorial.md#changing-the-training-configuration">training configuration</a>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># hybrid CTC/attention (default)</span>
+mtlalpha: <span class="m">0</span>.3
+
+<span class="c1"># CTC</span>
+mtlalpha: <span class="m">1</span>.0
+
+<span class="c1"># attention</span>
+mtlalpha: <span class="m">0</span>.0
+</pre></div>
+</div>
+<p>Decoding for each mode can be done using the following decoding configurations:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># hybrid CTC/attention (default)</span>
+ctc-weight: <span class="m">0</span>.3
+beam-size: <span class="m">10</span>
+
+<span class="c1"># CTC</span>
+ctc-weight: <span class="m">1</span>.0
+<span class="c1">## for best path decoding</span>
+api: v1 <span class="c1"># default setting (can be omitted)</span>
+<span class="c1">## for prefix search decoding w/ beam search</span>
+api: v2
+beam-size: <span class="m">10</span>
+
+<span class="c1"># attention</span>
+ctc-weight: <span class="m">0</span>.0
+beam-size: <span class="m">10</span>
+maxlenratio: <span class="m">0</span>.8
+minlenratio: <span class="m">0</span>.3
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The CTC mode does not compute the validation accuracy, and the optimum model is selected with its loss value
+(i.e., <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">./run.sh</span> <span class="pre">--recog_model</span> <span class="pre">model.loss.best</span></code>).</p></li>
+<li><p>The CTC decoding adopts the best path decoding by default, which simply outputs the most probable label at every time step. The prefix search deocding with beam search is also supported in <a class="reference external" href="https://espnet.github.io/espnet/apis/espnet_bin.html?highlight=api#asr-recog-py">beam search API v2</a>.</p></li>
+<li><p>The pure attention mode requires to set the maximum and minimum hypothesis length (<code class="docutils literal notranslate"><span class="pre">--maxlenratio</span></code> and <code class="docutils literal notranslate"><span class="pre">--minlenratio</span></code>), appropriately. In general, if you have more insertion errors, you can decrease the <code class="docutils literal notranslate"><span class="pre">maxlenratio</span></code> value, while if you have more deletion errors you can increase the <code class="docutils literal notranslate"><span class="pre">minlenratio</span></code> value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.</p></li>
+<li><p>About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics.</p></li>
+</ul>
+</div>
+<div class="section" id="transducer">
+<h2>Transducer<a class="headerlink" href="#transducer" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet also supports transducer-based models.
+To switch to transducer mode, the following should be set in the training config:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">criterion</span><span class="p">:</span> <span class="n">loss</span>
+<span class="n">model</span><span class="o">-</span><span class="n">module</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr_transducer:E2E&quot;</span>
+</pre></div>
+</div>
+<p>Several transducer architectures are currently available:</p>
+<ul class="simple">
+<li><p>RNN-Transducer (default)</p></li>
+<li><p>Custom-Transducer (<code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">custom</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">custom</span></code>)</p></li>
+<li><p>Mixed Custom/RNN-Transducer (e.g: <code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">custom</span></code> with <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">lstm</span></code>)</p></li>
+</ul>
+<p>The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, <code class="docutils literal notranslate"><span class="pre">etype</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype</span></code> in training config. If <code class="docutils literal notranslate"><span class="pre">custom</span></code> is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.</p>
+<p>While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a customizable architecture definition for transducer is different:</p>
+<ol>
+<li><p>Each blocks (or layers) for both network part should be specified individually through <code class="docutils literal notranslate"><span class="pre">enc-block-arch</span></code> or/and <code class="docutils literal notranslate"><span class="pre">dec-block-arch</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># e.g: TDNN-Transformer encoder</span>
+ <span class="n">etype</span><span class="p">:</span> <span class="n">custom</span>
+ <span class="n">enc</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">arch</span><span class="p">:</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">tdnn</span>
+           <span class="n">idim</span><span class="p">:</span> <span class="mi">512</span>
+           <span class="n">odim</span><span class="p">:</span> <span class="mi">320</span>
+           <span class="n">ctx_size</span><span class="p">:</span> <span class="mi">3</span>
+           <span class="n">dilation</span><span class="p">:</span> <span class="mi">1</span>
+           <span class="n">stride</span><span class="p">:</span> <span class="mi">1</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">transformer</span>
+           <span class="n">d_hidden</span><span class="p">:</span> <span class="mi">320</span>
+           <span class="n">d_ff</span><span class="p">:</span> <span class="mi">320</span>
+           <span class="n">heads</span><span class="p">:</span> <span class="mi">4</span>
+</pre></div>
+</div>
+</li>
+<li><p>Each part has different allowed block type: <code class="docutils literal notranslate"><span class="pre">tdnn</span></code>, <code class="docutils literal notranslate"><span class="pre">conformer</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code> for encoder and <code class="docutils literal notranslate"><span class="pre">causal-conv1d</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code> for decoder. For each block type, a set of parameters are needed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> # TDNN
+ - type: tdnn
+   idim: input dimension
+   odim: output dimension
+   ctx_size: size of the context window
+   dilation: parameter to control the stride of elements within the neighborhood
+   stride: stride of the sliding blocks
+   [optional: dropout-rate]
+
+ # Transformer
+ - type: transformer
+   d_hidden: input/output dimension
+   d_ff: feed-forward hidden dimension
+   heads: number of heads in multi-head attention
+   [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+
+ # Conformer
+ - type: conformer
+   d_hidden: input/output dimension
+   d_ff: feed-forward hidden dimension
+   heads: number of heads in multi-head attention
+   macaron_style: wheter to use macaron style
+   use_conv_mod: whether to use convolutional module
+   conv_mod_kernel: number of kernel in convolutional module (optional if `use_conv_mod=True`)
+   [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+
+ # Causal Conv1d
+ - type: causal-conv1d
+   idim: input dimension
+   odim: output dimension
+   kernel_size: size of convolving kernel
+   stride: stride of the convolution
+   dilation: spacing between the kernel points
+</pre></div>
+</div>
+</li>
+<li><p>Each specified block(s) for each network part can be repeated by specifying the number of duplications through <code class="docutils literal notranslate"><span class="pre">enc-block-repeat</span></code> or <code class="docutils literal notranslate"><span class="pre">dec-block-repeat</span></code> parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># e.g.: 2x (Causal-Conv1d + Transformer) decoder</span>
+ <span class="n">dtype</span><span class="p">:</span> <span class="n">transformer</span>
+ <span class="n">dec</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">arch</span><span class="p">:</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">causal</span><span class="o">-</span><span class="n">conv1d</span>
+           <span class="n">idim</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">odim</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">kernel_size</span><span class="p">:</span> <span class="mi">5</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">transformer</span>
+           <span class="n">d_hidden</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">d_ff</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">heads</span><span class="p">:</span> <span class="mi">4</span>
+           <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="mf">0.1</span>
+           <span class="n">att</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="mf">0.4</span>
+ <span class="n">dec</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">repeat</span><span class="p">:</span> <span class="mi">2</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>For more information about the customizable architecture, please refer to <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer">vivos config examples</a> which cover all cases.</p>
+<p>Various decoding algorithms are also available for transducer by setting <code class="docutils literal notranslate"><span class="pre">search-type</span></code> parameter in decode config:</p>
+<ul class="simple">
+<li><p>Default beam search (<code class="docutils literal notranslate"><span class="pre">default</span></code>)</p></li>
+<li><p>Time-synchronous decoding (<code class="docutils literal notranslate"><span class="pre">tsd</span></code>)</p></li>
+<li><p>Alignment-length decoding (<code class="docutils literal notranslate"><span class="pre">alsd</span></code>)</p></li>
+<li><p>N-step Constrained beam search (<code class="docutils literal notranslate"><span class="pre">nsc</span></code>)</p></li>
+</ul>
+<p>All algorithms share a common parameter to control beam size (<code class="docutils literal notranslate"><span class="pre">beam-size</span></code>) but each ones have its own parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Default beam search</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">default</span>
+    <span class="n">score</span><span class="o">-</span><span class="n">norm</span><span class="o">-</span><span class="n">transducer</span><span class="p">:</span> <span class="n">normalize</span> <span class="n">final</span> <span class="n">scores</span> <span class="n">by</span> <span class="n">length</span>
+
+    <span class="c1"># Time-synchronous decoding</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">tsd</span>
+    <span class="nb">max</span><span class="o">-</span><span class="n">sym</span><span class="o">-</span><span class="n">exp</span><span class="p">:</span> <span class="n">number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">symbol</span> <span class="n">expansions</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span>
+
+    <span class="c1"># Alignement-length decoding</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">alsd</span>
+    <span class="n">u</span><span class="o">-</span><span class="nb">max</span><span class="p">:</span> <span class="n">maximum</span> <span class="n">output</span> <span class="n">sequence</span> <span class="n">length</span>
+
+    <span class="c1"># N-step Constrained beam search</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">nsc</span>
+    <span class="n">nstep</span><span class="p">:</span> <span class="n">number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">expansion</span> <span class="n">steps</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span>
+           <span class="p">(</span><span class="n">N</span> <span class="n">exp</span><span class="o">.</span> <span class="n">step</span> <span class="o">=</span> <span class="n">N</span> <span class="n">symbol</span> <span class="n">expansion</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span><span class="p">:</span> <span class="n">maximum</span> <span class="n">prefix</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="n">search</span>
+</pre></div>
+</div>
+<p>Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.</p>
+<p>IMPORTANT (temporary) note: ALSD, TSD and NSC have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference part for transducer will be replaced by our own torch lib.</p>
+<p>The algorithm references can be found in <a class="reference external" href="https://github.com/espnet/espnet/tree/master/espnet/nets/beam_search_transducer.py">methods documentation</a>. For more information about decoding usage, refer to <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer">vivos config examples</a>.</p>
+<p>Additional notes:</p>
+<ul class="simple">
+<li><p>Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., –recog_model model.loss.best).</p></li>
+<li><p>There are several differences between MTL and transducer training/decoding options. The users should refer to <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py</span></code> for an overview.</p></li>
+<li><p>RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (<code class="docutils literal notranslate"><span class="pre">predictor.*</span></code>) will be matched to AM state dict keys (<code class="docutils literal notranslate"><span class="pre">dec.*</span></code>).</p></li>
+<li><p>Transformer-decoder pre-initialization using a transformer LM is not supported yet.</p></li>
+<li><p>Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.</p></li>
+<li><p>Customizable architecture is a in-progress work and will be eventually extended to RNN. Please report any encountered error or usage issue.</p></li>
+</ul>
+</div>
+<div class="section" id="changing-the-training-configuration">
+<h2>Changing the training configuration<a class="headerlink" href="#changing-the-training-configuration" title="Permalink to this headline">¶</a></h2>
+<p>The default configurations for training and decoding are written in <code class="docutils literal notranslate"><span class="pre">conf/train.yaml</span></code> and <code class="docutils literal notranslate"><span class="pre">conf/decode.yaml</span></code> respectively.  It can be overwritten by specific arguments: e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g.</span>
+asr_train.py --config conf/train.yaml --batch-size <span class="m">24</span>
+<span class="c1"># e.g.--config2 and --config3 are also provided and the latter option can overwrite the former.</span>
+asr_train.py --config conf/train.yaml --config2 conf/new.yaml
+</pre></div>
+</div>
+<p>In this way, you need to edit <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> and it might be inconvenient sometimes.
+Instead of giving arguments directly, we recommend you to modify the yaml file and give it to <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g.</span>
+./run.sh --train-config conf/train_modified.yaml
+<span class="c1"># e.g.</span>
+./run.sh --train-config conf/train_modified.yaml --decode-config conf/decode_modified.yaml
+</pre></div>
+</div>
+<p>We also provide a utility to generate a yaml file from the input yaml file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g. You can give any parameters as &#39;-a key=value&#39; and &#39;-a&#39; is repeatable.</span>
+<span class="c1">#      This generates new file at &#39;conf/train_batch-size24_epochs10.yaml&#39;</span>
+./run.sh --train-config <span class="k">$(</span>change_yaml.py conf/train.yaml -a batch-size<span class="o">=</span><span class="m">24</span> -a <span class="nv">epochs</span><span class="o">=</span><span class="m">10</span><span class="k">)</span>
+<span class="c1"># e.g. &#39;-o&#39; option specifies the output file name instead of auto named file.</span>
+./run.sh --train-config <span class="k">$(</span>change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size<span class="o">=</span><span class="m">24</span><span class="k">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="how-to-set-minibatch">
+<h2>How to set minibatch<a class="headerlink" href="#how-to-set-minibatch" title="Permalink to this headline">¶</a></h2>
+<p>From espnet v0.4.0, we have three options in <code class="docutils literal notranslate"><span class="pre">--batch-count</span></code> to specify minibatch size (see <code class="docutils literal notranslate"><span class="pre">espnet.utils.batchfy</span></code> for implementation);</p>
+<ol>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">seq</span> <span class="pre">--batch-seqs</span> <span class="pre">32</span> <span class="pre">--batch-seq-maxlen-in</span> <span class="pre">800</span> <span class="pre">--batch-seq-maxlen-out</span> <span class="pre">150</span></code>.</p>
+<p>This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">bin</span> <span class="pre">--batch-bins</span> <span class="pre">100000</span></code>.</p>
+<p>This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., <code class="docutils literal notranslate"><span class="pre">max(ilen)</span> <span class="pre">*</span> <span class="pre">idim</span> <span class="pre">+</span> <span class="pre">max(olen)</span> <span class="pre">*</span> <span class="pre">odim</span></code>).
+Basically, this option makes training iteration faster than <code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">seq</span></code>. If you already has the best <code class="docutils literal notranslate"><span class="pre">--batch-seqs</span> <span class="pre">x</span></code> config, try <code class="docutils literal notranslate"><span class="pre">--batch-bins</span> <span class="pre">$((x</span> <span class="pre">*</span> <span class="pre">(mean(ilen)</span> <span class="pre">*</span> <span class="pre">idim</span> <span class="pre">+</span> <span class="pre">mean(olen)</span> <span class="pre">*</span> <span class="pre">odim)))</span></code>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">frame</span> <span class="pre">--batch-frames-in</span> <span class="pre">800</span> <span class="pre">--batch-frames-out</span> <span class="pre">100</span> <span class="pre">--batch-frames-inout</span> <span class="pre">900</span></code>.</p>
+<p>This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of <code class="docutils literal notranslate"><span class="pre">--batch-frames-xxx</span></code> partially. Like <code class="docutils literal notranslate"><span class="pre">--batch-bins</span></code>, this option makes training iteration faster than <code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">seq</span></code>. If you already has the best <code class="docutils literal notranslate"><span class="pre">--batch-seqs</span> <span class="pre">x</span></code> config, try <code class="docutils literal notranslate"><span class="pre">--batch-frames-in</span> <span class="pre">$((x</span> <span class="pre">*</span> <span class="pre">(mean(ilen)</span> <span class="pre">*</span> <span class="pre">idim))</span> <span class="pre">--batch-frames-out</span> <span class="pre">$((x</span> <span class="pre">*</span> <span class="pre">mean(olen)</span> <span class="pre">*</span> <span class="pre">odim))</span></code>.</p>
+</li>
+</ol>
+</div>
+<div class="section" id="how-to-use-finetuning">
+<h2>How to use finetuning<a class="headerlink" href="#how-to-use-finetuning" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet currently supports two finetuning operations: transfer learning and freezing.
+We expect the user to define the following options in its main training config (e.g.: conf/train*.yaml). If needed, they can be directly passed to <code class="docutils literal notranslate"><span class="pre">(asr|tts|vc)_train.py</span></code> by adding the prefix <code class="docutils literal notranslate"><span class="pre">--</span></code> to the options.</p>
+<div class="section" id="transfer-learning">
+<h3>Transfer learning<a class="headerlink" href="#transfer-learning" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>Transfer learning option is split between encoder initialization (<code class="docutils literal notranslate"><span class="pre">enc-init</span></code>) and decoder initialization (<code class="docutils literal notranslate"><span class="pre">dec-init</span></code>). However, the same model can be specified for both options.</p></li>
+<li><p>Each option takes a snapshot path (e.g.: <code class="docutils literal notranslate"><span class="pre">[espnet_model_path]/results/snapshot.ep.1</span></code>) or model path (e.g.: <code class="docutils literal notranslate"><span class="pre">[espnet_model_path]/results/model.loss.best</span></code>) as argument.</p></li>
+<li><p>Additionally, a list of encoder and decoder modules (separated by a comma) can also be specified to control the modules to transfer with the options <code class="docutils literal notranslate"><span class="pre">enc-init-mods</span></code> and <code class="docutils literal notranslate"><span class="pre">dec-init-mods</span></code>.</p></li>
+<li><p>For each specified module, we only expect a partial match with the start of the target model module name. Thus, multiple modules can be specified with the same key if they share a common prefix.</p>
+<blockquote>
+<div><p>Mandatory: <code class="docutils literal notranslate"><span class="pre">enc-init:</span> <span class="pre">/home/usr/espnet/egs/vivos/asr1/exp/train_nodev_pytorch_train/results/model.loss.best</span></code> -&gt; specify a pre-trained model on VIVOS for transfer learning.<br />&gt; Example 1: <code class="docutils literal notranslate"><span class="pre">enc-init-mods:</span> <span class="pre">'enc.'</span></code> -&gt; transfer all encoder parameters.<br />&gt; Example 2: <code class="docutils literal notranslate"><span class="pre">enc-init-mods:</span> <span class="pre">'enc.embed.,enc.0.'</span></code> -&gt; transfer encoder embedding layer and first layer parameters.</p>
+</div></blockquote>
+</li>
+</ul>
+</div>
+<div class="section" id="freezing">
+<h3>Freezing<a class="headerlink" href="#freezing" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>Freezing option can be enabled with <code class="docutils literal notranslate"><span class="pre">freeze-mods</span></code>, (<code class="docutils literal notranslate"><span class="pre">freeze_param</span></code> in espnet2).</p></li>
+<li><p>The option take a list of model modules (separated by a comma) as argument. As previously, we do not expect a complete match for the specified modules.</p>
+<blockquote>
+<div><p>Example 1: <code class="docutils literal notranslate"><span class="pre">freeze-mods:</span> <span class="pre">'enc.embed.'</span></code> -&gt; freeze encoder embedding layer parameters.<br />Example 2: <code class="docutils literal notranslate"><span class="pre">freeze-mods:</span> <span class="pre">'dec.embed,dec.0.'</span></code> -&gt; freeze decoder embedding layer and first layer parameters.
+Example 3 (espnet2): <code class="docutils literal notranslate"><span class="pre">freeze_param:</span> <span class="pre">'encoder.embed'</span></code> -&gt; freeze encoder embedding layer parameters.</p>
+</div></blockquote>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="important-notes">
+<h2>Important notes<a class="headerlink" href="#important-notes" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Given a pre-trained source model, the modules specified for transfer learning are expected to have the same parameters (i.e.: layers and units) as the target model modules.</p></li>
+<li><p>We also support initialization with a pre-trained RNN LM for the RNN-transducer decoder.</p></li>
+<li><p>RNN models use different key names for encoder and decoder parts compared to Transformer, Conformer or Custom models:</p>
+<ul>
+<li><p>RNN model use <code class="docutils literal notranslate"><span class="pre">enc.</span></code> for encoder part and <code class="docutils literal notranslate"><span class="pre">dec.</span></code> for decoder part.</p></li>
+<li><p>Transformer/Conformer/Custom model use <code class="docutils literal notranslate"><span class="pre">encoder.</span></code> for encoder part and <code class="docutils literal notranslate"><span class="pre">decoder.</span></code> for decoder part.</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="known-issues">
+<h2>Known issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="error-due-to-acs-multiple-gpus">
+<h3>Error due to ACS (Multiple GPUs)<a class="headerlink" href="#error-due-to-acs-multiple-gpus" title="Permalink to this headline">¶</a></h3>
+<p>When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
+Larger discussions can be found at: <a class="reference external" href="https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26">link1</a> <a class="reference external" href="https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/">link2</a> <a class="reference external" href="https://github.com/pytorch/pytorch/issues/1637">link3</a>.
+To disable the PCI Express ACS follow instructions written <a class="reference external" href="https://github.com/NVIDIA/caffe/issues/10">here</a>. You need to have a ROOT user access or request to your administrator for it.</p>
+</div>
+<div class="section" id="error-due-to-matplotlib">
+<h3>Error due to matplotlib<a class="headerlink" href="#error-due-to-matplotlib" title="Permalink to this headline">¶</a></h3>
+<p>If you have the following error (or other numpy related errors),</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="ne">RuntimeError</span><span class="p">:</span> <span class="n">module</span> <span class="n">compiled</span> <span class="n">against</span> <span class="n">API</span> <span class="n">version</span> <span class="mh">0xc</span> <span class="n">but</span> <span class="n">this</span> <span class="n">version</span> <span class="n">of</span> <span class="n">numpy</span> <span class="ow">is</span> <span class="mh">0xb</span>
+<span class="ne">Exception</span> <span class="ow">in</span> <span class="n">main</span> <span class="n">training</span> <span class="n">loop</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">multiarray</span> <span class="n">failed</span> <span class="n">to</span> <span class="kn">import</span>
+<span class="nn">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+<span class="p">;</span>
+<span class="p">:</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_path</span><span class="p">,</span> <span class="n">rcParams</span>
+<span class="ne">ImportError</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">multiarray</span> <span class="n">failed</span> <span class="n">to</span> <span class="kn">import</span>
+</pre></div>
+</div>
+<p>Then, please reinstall matplotlib with the following command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> egs/an4/asr1
+$ . ./path.sh
+$ pip install pip --upgrade<span class="p">;</span> pip uninstall matplotlib<span class="p">;</span> pip --no-cache-dir install matplotlib
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="chainer-and-pytorch-backends">
+<h2>Chainer and Pytorch backends<a class="headerlink" href="#chainer-and-pytorch-backends" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th></th>
+<th align="center">Chainer</th>
+<th align="center">Pytorch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Performance</td>
+<td align="center">◎</td>
+<td align="center">◎</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td align="center">○</td>
+<td align="center">◎</td>
+</tr>
+<tr>
+<td>Multi-GPU</td>
+<td align="center">supported</td>
+<td align="center">supported</td>
+</tr>
+<tr>
+<td>VGG-like encoder</td>
+<td align="center">supported</td>
+<td align="center">supported</td>
+</tr>
+<tr>
+<td>Transformer</td>
+<td align="center">supported</td>
+<td align="center">supported</td>
+</tr>
+<tr>
+<td>RNNLM integration</td>
+<td align="center">supported</td>
+<td align="center">supported</td>
+</tr>
+<tr>
+<td>#Attention types</td>
+<td align="center">3 (no attention, dot, location)</td>
+<td align="center">12 including variants of multihead</td>
+</tr>
+<tr>
+<td>TTS recipe support</td>
+<td align="center">no support</td>
+<td align="center">supported</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="parallelization.html" class="btn btn-neutral float-right" title="Using Job scheduling system" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

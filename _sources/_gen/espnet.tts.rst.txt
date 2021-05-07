@@ -1,0 +1,38 @@
+
+espnet.tts package
+==================
+Initialize sub package.
+
+
+.. _espnet.tts.__init__:
+
+espnet.tts.__init__
+-------------------
+
+.. automodule:: espnet.tts.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.tts.pytorch_backend.tts:
+
+espnet.tts.pytorch_backend.tts
+------------------------------
+
+.. automodule:: espnet.tts.pytorch_backend.tts
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.tts.pytorch_backend.__init__:
+
+espnet.tts.pytorch_backend.__init__
+-----------------------------------
+
+.. automodule:: espnet.tts.pytorch_backend.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

@@ -1,0 +1,898 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.chainer_backend.e2e_asr_transformer &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.chainer_backend.e2e_asr_transformer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.chainer_backend.e2e_asr_transformer</h1><div class="highlight"><pre>
+<span></span><span class="c1"># encoding: utf-8</span>
+<span class="sd">&quot;&quot;&quot;Transformer-based model for End-to-end ASR.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
+<span class="kn">from</span> <span class="nn">distutils.util</span> <span class="kn">import</span> <span class="n">strtobool</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">reporter</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.asr_interface</span> <span class="kn">import</span> <span class="n">ChainerASRInterface</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.attention</span> <span class="kn">import</span> <span class="n">MultiHeadAttention</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer</span> <span class="kn">import</span> <span class="n">ctc</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.decoder</span> <span class="kn">import</span> <span class="n">Decoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.label_smoothing_loss</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LabelSmoothingLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.training</span> <span class="kn">import</span> <span class="n">CustomConverter</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.training</span> <span class="kn">import</span> <span class="n">CustomUpdater</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.training</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CustomParallelUpdater</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.ctc_prefix_score</span> <span class="kn">import</span> <span class="n">CTCPrefixScore</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">end_detect</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">ErrorCalculator</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.plot</span> <span class="kn">import</span> <span class="n">PlotAttentionReport</span>
+
+
+<span class="n">CTC_SCORING_RATIO</span> <span class="o">=</span> <span class="mf">1.5</span>
+<span class="n">MAX_DECODER_OUTPUT</span> <span class="o">=</span> <span class="mi">5</span>
+
+
+<div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">ChainerASRInterface</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;E2E module.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        idim (int): Input dimmensions.</span>
+<span class="sd">        odim (int): Output dimmensions.</span>
+<span class="sd">        args (Namespace): Training config.</span>
+<span class="sd">        ignore_id (int, optional): Id for ignoring a character.</span>
+<span class="sd">        flag_return (bool, optional): If true, return a list with (loss,</span>
+<span class="sd">        loss_ctc, loss_att, acc) in forward. Otherwise, return loss.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Customize flags for transformer setup.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parser (Namespace): Training config.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;transformer model setting&quot;</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--transformer-init&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;pytorch&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;how to initialize transformer parameters&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--transformer-input-layer&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;conv2d&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;conv2d&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;embed&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;transformer input layer type&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--transformer-attn-dropout-rate&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;dropout in transformer attention. use --dropout-rate if None is set&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--transformer-lr&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Initial value of learning rate&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--transformer-warmup-steps&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">25000</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;optimizer warmup steps&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--transformer-length-normalized-loss&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;normalize loss by length&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dropout-rate&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout rate for the encoder&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Encoder</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--elayers&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of encoder layers (for shared recognition part &quot;</span>
+            <span class="s2">&quot;in multi-speaker asr mode)&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--eunits&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-u&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of encoder hidden units&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Attention</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--adim&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">320</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of attention transformation dimensions&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--aheads&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of heads for multi head attention&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Decoder</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dlayers&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of decoder layers&quot;</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dunits&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">320</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of decoder hidden units&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.get_total_subsampling_factor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">flag_return</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the transformer.&quot;&quot;&quot;</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;mtlalpha must be [0,1]&quot;</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_label_smoothing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">char_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_space</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_blank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_emb</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span> <span class="o">**</span> <span class="mf">0.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span> <span class="o">=</span> <span class="n">get_subsample</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="n">arch</span><span class="o">=</span><span class="s2">&quot;transformer&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span>
+                <span class="n">attention_dim</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">attention_heads</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">aheads</span><span class="p">,</span>
+                <span class="n">linear_units</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">eunits</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">transformer_input_layer</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">,</span>
+                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">,</span>
+                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span><span class="p">,</span>
+                <span class="n">initialW</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">initialW</span><span class="p">,</span>
+                <span class="n">initial_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">initialB</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Decoder</span><span class="p">(</span>
+                <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">initialW</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">initialB</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">lsm_weight</span><span class="p">,</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">char_list</span><span class="p">),</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">transformer_length_normalized_loss</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin&quot;</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using chainer CTC implementation&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span><span class="o">.</span><span class="n">CTC</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;warpctc&quot;</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using warpctc CTC implementation&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span><span class="o">.</span><span class="n">WarpCTC</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s1">&#39;ctc_type must be &quot;builtin&quot; or &quot;warpctc&quot;: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flag_return</span> <span class="o">=</span> <span class="n">flag_return</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">report_cer</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">report_wer</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ErrorCalculator</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">char_list</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">sym_space</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">sym_blank</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">report_cer</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">report_wer</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;Namespace&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">args</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="s2">&quot;verbose&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span>
+
+<div class="viewcode-block" id="E2E.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the Weight according to the give initialize-type.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            args (Namespace): Transformer config.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">type_init</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_init</span>
+        <span class="k">if</span> <span class="n">type_init</span> <span class="o">==</span> <span class="s2">&quot;lecun_uniform&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using LeCunUniform as Parameter initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">LeCunUniform</span>
+        <span class="k">elif</span> <span class="n">type_init</span> <span class="o">==</span> <span class="s2">&quot;lecun_normal&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using LeCunNormal as Parameter initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">LeCunNormal</span>
+        <span class="k">elif</span> <span class="n">type_init</span> <span class="o">==</span> <span class="s2">&quot;gorot_uniform&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using GlorotUniform as Parameter initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">GlorotUniform</span>
+        <span class="k">elif</span> <span class="n">type_init</span> <span class="o">==</span> <span class="s2">&quot;gorot_normal&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using GlorotNormal as Parameter initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">GlorotNormal</span>
+        <span class="k">elif</span> <span class="n">type_init</span> <span class="o">==</span> <span class="s2">&quot;he_uniform&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using HeUniform as Parameter initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">HeUniform</span>
+        <span class="k">elif</span> <span class="n">type_init</span> <span class="o">==</span> <span class="s2">&quot;he_normal&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using HeNormal as Parameter initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">HeNormal</span>
+        <span class="k">elif</span> <span class="n">type_init</span> <span class="o">==</span> <span class="s2">&quot;pytorch&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using Pytorch initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Uniform</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using Chainer default as Parameter initializer&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialW</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Uniform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialB</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Uniform</span></div>
+
+<div class="viewcode-block" id="E2E.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">calculate_attentions</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)</span>
+<span class="sd">            ilens (chainer.Variable): Batch of length of each input batch. (B,)</span>
+<span class="sd">            ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)</span>
+<span class="sd">            calculate_attentions (bool): If true, return value is the output of encoder.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: Training loss.</span>
+<span class="sd">            float (optional): Training loss for ctc.</span>
+<span class="sd">            float (optional): Training loss for attention.</span>
+<span class="sd">            float (optional): Accuracy.</span>
+<span class="sd">            chainer.Variable (Optional): Output of the encoder.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span>
+
+        <span class="c1"># 1. Encoder</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">,</span> <span class="n">ilens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+
+        <span class="c1"># 2. CTC loss</span>
+        <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">loss_ctc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys_pad</span><span class="p">]</span>
+            <span class="n">loss_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">_ys</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">no_backprop_mode</span><span class="p">():</span>
+                    <span class="n">ys_hat</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+                <span class="n">cer_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">is_ctc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># 3. Decoder</span>
+        <span class="k">if</span> <span class="n">calculate_attentions</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_attentions</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">)</span>
+
+        <span class="c1"># 4. Attention Loss</span>
+        <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">loss_att</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Make target</span>
+            <span class="n">eos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">],</span> <span class="s2">&quot;i&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">no_backprop_mode</span><span class="p">():</span>
+                <span class="n">ys_pad_out</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">y</span><span class="p">,</span> <span class="n">eos</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys_pad</span><span class="p">]</span>
+                <span class="n">ys_pad_out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">ys_pad_out</span><span class="p">,</span> <span class="n">padding</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">ys_pad_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ys_pad_out</span><span class="p">)</span>
+
+            <span class="n">loss_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">ys_pad_out</span><span class="p">)</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">accuracy</span><span class="p">(</span>
+                <span class="n">ys</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">),</span> <span class="n">ys_pad_out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">ignore_label</span><span class="o">=-</span><span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">chainer</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">train</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_att</span>
+            <span class="n">loss_att_data</span> <span class="o">=</span> <span class="n">loss_att</span><span class="o">.</span><span class="n">data</span>
+            <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_ctc</span>
+            <span class="n">loss_att_data</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="n">loss_ctc</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
+            <span class="n">loss_att_data</span> <span class="o">=</span> <span class="n">loss_att</span><span class="o">.</span><span class="n">data</span>
+            <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="n">loss_ctc</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">loss_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">data</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">loss_data</span><span class="p">):</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss_ctc&quot;</span><span class="p">:</span> <span class="n">loss_ctc_data</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss_att&quot;</span><span class="p">:</span> <span class="n">loss_att_data</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;acc&quot;</span><span class="p">:</span> <span class="n">acc</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+
+            <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;cer_ctc&quot;</span><span class="p">:</span> <span class="n">cer_ctc</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;cer&quot;</span><span class="p">:</span> <span class="n">cer</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;wer&quot;</span><span class="p">:</span> <span class="n">wer</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;mtl loss:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">loss_data</span><span class="p">))</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">loss_data</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;loss (=</span><span class="si">%f</span><span class="s2">) is not correct&quot;</span><span class="p">,</span> <span class="n">loss_data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flag_return</span><span class="p">:</span>
+            <span class="n">loss_ctc</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
+
+<div class="viewcode-block" id="E2E.calculate_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.calculate_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate Attentions.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="E2E.recognize"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_block</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E recognition function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (ndarray): Input acouctic feature (B, T, D) or (T, D).</span>
+<span class="sd">            recog_args (Namespace): Argment namespace contraining options.</span>
+<span class="sd">            char_list (List[str]): List of characters.</span>
+<span class="sd">            rnnlm (chainer.Chain): Language model module defined at</span>
+<span class="sd">            `espnet.lm.chainer_backend.lm`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List: N-best decoding results.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">no_backprop_mode</span><span class="p">(),</span> <span class="n">chainer</span><span class="o">.</span><span class="n">using_config</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="c1"># 1. encoder</span>
+            <span class="n">ilens</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_block</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span>
+            <span class="n">xs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x_block</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">ilens</span><span class="p">)</span>
+
+            <span class="c1"># calculate log P(z_t|X) for CTC scores</span>
+            <span class="k">if</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">lpz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">))</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lpz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># 2. decoder</span>
+            <span class="k">if</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">lm_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">rnnlm</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recognize_beam</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">lpz</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="E2E.recognize_beam"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.recognize_beam">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_beam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">lpz</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E beam search.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            h (ndarray): Encoder ouput features (B, T, D) or (T, D).</span>
+<span class="sd">            lpz (ndarray): Log probabilities from CTC.</span>
+<span class="sd">            recog_args (Namespace): Argment namespace contraining options.</span>
+<span class="sd">            char_list (List[str]): List of characters.</span>
+<span class="sd">            rnnlm (chainer.Chain): Language model module defined at</span>
+<span class="sd">            `espnet.lm.chainer_backend.lm`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List: N-best decoding results.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;input lengths: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="c1"># initialization</span>
+        <span class="n">n_len</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">xp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span>
+        <span class="n">h_mask</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_len</span><span class="p">))</span>
+
+        <span class="c1"># search parms</span>
+        <span class="n">beam</span> <span class="o">=</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">beam_size</span>
+        <span class="n">penalty</span> <span class="o">=</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">penalty</span>
+        <span class="n">ctc_weight</span> <span class="o">=</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">ctc_weight</span>
+
+        <span class="c1"># prepare sos</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span>
+        <span class="k">if</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">maxlenratio</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">maxlen</span> <span class="o">=</span> <span class="n">n_len</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">recog_args</span><span class="o">.</span><span class="n">maxlenratio</span> <span class="o">*</span> <span class="n">n_len</span><span class="p">))</span>
+        <span class="n">minlen</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">recog_args</span><span class="o">.</span><span class="n">minlenratio</span> <span class="o">*</span> <span class="n">n_len</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;max output length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxlen</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;min output length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">minlen</span><span class="p">))</span>
+
+        <span class="c1"># initialize hypothesis</span>
+        <span class="k">if</span> <span class="n">rnnlm</span><span class="p">:</span>
+            <span class="n">hyp</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;yseq&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">y</span><span class="p">],</span> <span class="s2">&quot;rnnlm_prev&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hyp</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;yseq&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">y</span><span class="p">]}</span>
+
+        <span class="k">if</span> <span class="n">lpz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ctc_prefix_score</span> <span class="o">=</span> <span class="n">CTCPrefixScore</span><span class="p">(</span><span class="n">lpz</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">)</span>
+            <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;ctc_state_prev&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctc_prefix_score</span><span class="o">.</span><span class="n">initial_state</span><span class="p">()</span>
+            <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;ctc_score_prev&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="c1"># pre-pruning based on attention scores</span>
+                <span class="n">ctc_beam</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">lpz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">beam</span> <span class="o">*</span> <span class="n">CTC_SCORING_RATIO</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ctc_beam</span> <span class="o">=</span> <span class="n">lpz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">hyps</span> <span class="o">=</span> <span class="p">[</span><span class="n">hyp</span><span class="p">]</span>
+        <span class="n">ended_hyps</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">maxlen</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;position &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+            <span class="n">hyps_best_kept</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">:</span>
+                <span class="n">ys</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">h_mask</span><span class="p">)</span>
+
+                <span class="c1"># get nbest local scores and their ids</span>
+                <span class="n">local_att_scores</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">out</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">if</span> <span class="n">rnnlm</span><span class="p">:</span>
+                    <span class="n">rnnlm_state</span><span class="p">,</span> <span class="n">local_lm_scores</span> <span class="o">=</span> <span class="n">rnnlm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
+                        <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;rnnlm_prev&quot;</span><span class="p">],</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">local_scores</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">local_att_scores</span> <span class="o">+</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">lm_weight</span> <span class="o">*</span> <span class="n">local_lm_scores</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">local_scores</span> <span class="o">=</span> <span class="n">local_att_scores</span>
+
+                <span class="k">if</span> <span class="n">lpz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">local_best_ids</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">local_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span>
+                        <span class="p">:</span><span class="n">ctc_beam</span>
+                    <span class="p">]</span>
+                    <span class="n">ctc_scores</span><span class="p">,</span> <span class="n">ctc_states</span> <span class="o">=</span> <span class="n">ctc_prefix_score</span><span class="p">(</span>
+                        <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">],</span> <span class="n">local_best_ids</span><span class="p">,</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;ctc_state_prev&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">local_scores</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">local_att_scores</span><span class="p">[</span>
+                        <span class="p">:,</span> <span class="n">local_best_ids</span>
+                    <span class="p">]</span> <span class="o">+</span> <span class="n">ctc_weight</span> <span class="o">*</span> <span class="p">(</span><span class="n">ctc_scores</span> <span class="o">-</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;ctc_score_prev&quot;</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">rnnlm</span><span class="p">:</span>
+                        <span class="n">local_scores</span> <span class="o">+=</span> <span class="p">(</span>
+                            <span class="n">recog_args</span><span class="o">.</span><span class="n">lm_weight</span> <span class="o">*</span> <span class="n">local_lm_scores</span><span class="p">[:,</span> <span class="n">local_best_ids</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="n">joint_best_ids</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">local_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="n">beam</span><span class="p">]</span>
+                    <span class="n">local_best_scores</span> <span class="o">=</span> <span class="n">local_scores</span><span class="p">[:,</span> <span class="n">joint_best_ids</span><span class="p">]</span>
+                    <span class="n">local_best_ids</span> <span class="o">=</span> <span class="n">local_best_ids</span><span class="p">[</span><span class="n">joint_best_ids</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">local_best_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">local_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span>
+                        <span class="p">:</span><span class="n">beam</span>
+                    <span class="p">]</span>
+                    <span class="n">local_best_scores</span> <span class="o">=</span> <span class="n">local_scores</span><span class="p">[:,</span> <span class="n">local_best_ids</span><span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">beam</span><span class="p">):</span>
+                    <span class="n">new_hyp</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">local_best_scores</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+                    <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]))</span>
+                    <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">][:</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">])]</span> <span class="o">=</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]</span>
+                    <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">][</span><span class="nb">len</span><span class="p">(</span><span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">])]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">local_best_ids</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">rnnlm</span><span class="p">:</span>
+                        <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;rnnlm_prev&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnlm_state</span>
+                    <span class="k">if</span> <span class="n">lpz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;ctc_state_prev&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctc_states</span><span class="p">[</span><span class="n">joint_best_ids</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+                        <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;ctc_score_prev&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctc_scores</span><span class="p">[</span><span class="n">joint_best_ids</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+                    <span class="n">hyps_best_kept</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_hyp</span><span class="p">)</span>
+
+                <span class="n">hyps_best_kept</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                    <span class="n">hyps_best_kept</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
+
+            <span class="c1"># sort and get nbest</span>
+            <span class="n">hyps</span> <span class="o">=</span> <span class="n">hyps_best_kept</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;number of pruned hypothesis: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">char_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;best hypo: &quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;yseq&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:]])</span>
+                    <span class="o">+</span> <span class="s2">&quot; score: &quot;</span>
+                    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;score&quot;</span><span class="p">])</span>
+                <span class="p">)</span>
+
+            <span class="c1"># add eos in the final loop to avoid that there are no ended hyps</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adding &lt;eos&gt; in the last postion in the loop&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">:</span>
+                    <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">)</span>
+
+            <span class="c1"># add ended hypothes to a final list, and removed them from current hypothes</span>
+            <span class="c1"># (this will be a probmlem, number of hyps &lt; beam)</span>
+            <span class="n">remained_hyps</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">:</span>
+                    <span class="c1"># only store the sequence that has more than minlen outputs</span>
+                    <span class="c1"># also add penalty</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">minlen</span><span class="p">:</span>
+                        <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">penalty</span>
+                        <span class="k">if</span> <span class="n">rnnlm</span><span class="p">:</span>  <span class="c1"># Word LM needs to add final &lt;eos&gt; score</span>
+                            <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">lm_weight</span> <span class="o">*</span> <span class="n">rnnlm</span><span class="o">.</span><span class="n">final</span><span class="p">(</span>
+                                <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;rnnlm_prev&quot;</span><span class="p">]</span>
+                            <span class="p">)</span>
+                        <span class="n">ended_hyps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">remained_hyps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
+
+            <span class="c1"># end detection</span>
+            <span class="k">if</span> <span class="n">end_detect</span><span class="p">(</span><span class="n">ended_hyps</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="ow">and</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">maxlenratio</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;end detected at </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="n">hyps</span> <span class="o">=</span> <span class="n">remained_hyps</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;remained hypothes: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no hypothesis. Finish decoding.&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">char_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="s2">&quot;hypo: &quot;</span> <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:]])</span>
+                    <span class="p">)</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;number of ended hypothes: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ended_hyps</span><span class="p">)))</span>
+
+        <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">ended_hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>  <span class="c1"># [:min(len(ended_hyps), recog_args.nbest)]</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span>
+        <span class="c1"># check number of hypotheis</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;there is no N-best results, perform recognition &quot;</span>
+                <span class="s2">&quot;again with smaller minlenratio.&quot;</span>
+            <span class="p">)</span>
+            <span class="c1"># should copy becasuse Namespace will be overwritten globally</span>
+            <span class="n">recog_args</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">recog_args</span><span class="p">))</span>
+            <span class="n">recog_args</span><span class="o">.</span><span class="n">minlenratio</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">minlenratio</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recognize_beam</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">lpz</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;total log probability: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;score&quot;</span><span class="p">]))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;normalized log probability: &quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;yseq&quot;</span><span class="p">]))</span>
+        <span class="p">)</span>
+        <span class="c1"># remove sos</span>
+        <span class="k">return</span> <span class="n">nbest_hyps</span></div>
+
+<div class="viewcode-block" id="E2E.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs (List[tuple()]): List of padded input sequences.</span>
+<span class="sd">                [(T1, idim), (T2, idim), ...]</span>
+<span class="sd">            ilens (ndarray): Batch of lengths of input sequences. (B)</span>
+<span class="sd">            ys (List): List of character id sequence tensor. [(L1), (L2), (L3), ...]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float ndarray: Attention weights. (B, Lmax, Tmax)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">chainer</span><span class="o">.</span><span class="n">no_backprop_mode</span><span class="p">():</span>
+            <span class="bp">self</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">calculate_attentions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">namedlinks</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">MultiHeadAttention</span><span class="p">):</span>
+                <span class="n">var</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">attn</span>
+                <span class="n">var</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">()</span>
+                <span class="n">_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+                <span class="n">ret</span><span class="p">[</span><span class="n">_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Attention plot function.</span>
+
+<span class="sd">        Redirects to PlotAttentionReport</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PlotAttentionReport</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">PlotAttentionReport</span>
+
+<div class="viewcode-block" id="E2E.custom_converter"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.custom_converter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">custom_converter</span><span class="p">(</span><span class="n">subsampling_factor</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get customconverter of the model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">CustomConverter</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="E2E.custom_updater"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.custom_updater">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">custom_updater</span><span class="p">(</span><span class="n">iters</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get custom_updater of the model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">CustomUpdater</span><span class="p">(</span>
+            <span class="n">iters</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="n">accum_grad</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="E2E.custom_parallel_updater"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.custom_parallel_updater">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">custom_parallel_updater</span><span class="p">(</span><span class="n">iters</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">devices</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get custom_parallel_updater of the model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">CustomParallelUpdater</span><span class="p">(</span>
+            <span class="n">iters</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">converter</span><span class="o">=</span><span class="n">converter</span><span class="p">,</span>
+            <span class="n">devices</span><span class="o">=</span><span class="n">devices</span><span class="p">,</span>
+            <span class="n">accum_grad</span><span class="o">=</span><span class="n">accum_grad</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

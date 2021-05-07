@@ -1,0 +1,412 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Docker &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ESPnet2" href="espnet2_tutorial.html" />
+    <link rel="prev" title="FAQ" href="faq.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Docker</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#execute-in-docker">Execute in docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-2-recipes">ESPnet 2 Recipes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-gpu-based-containers">Using GPU-based containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-cpu-based-container">Using CPU-based container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#local-builds">Local builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#deprecated">Deprecated</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tags">Tags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ubuntu-18-04">Ubuntu 18.04</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Docker</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/docker.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="docker">
+<h1>Docker<a class="headerlink" href="#docker" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="execute-in-docker">
+<h2>Execute in docker<a class="headerlink" href="#execute-in-docker" title="Permalink to this headline">¶</a></h2>
+<p>To work inside a docker container, execute <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> located inside the docker directory.
+It will download the requested image and build a container to execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
+$ ./run.sh --docker-gpu <span class="m">0</span> --docker-egs chime4/asr1 --docker-folders /export/corpora4/CHiME4/CHiME3 --dlayers <span class="m">1</span> --ngpu <span class="m">1</span>
+</pre></div>
+</div>
+<p>Optionally, you can set the CUDA version with the arguments <code class="docutils literal notranslate"><span class="pre">--docker-cuda</span></code> respectively (default version set at CUDA=9.1). The docker container can be built based on the CUDA installed in your computer if you empty this arguments.
+By default, all GPU-based images are built with NCCL v2 and CUDNN v7.
+The arguments required for the docker configuration have a prefix “–docker” (e.g., <code class="docutils literal notranslate"><span class="pre">--docker-gpu</span></code>, <code class="docutils literal notranslate"><span class="pre">--docker-egs</span></code>, <code class="docutils literal notranslate"><span class="pre">--docker-folders</span></code>). <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> accept all normal ESPnet arguments, which must be followed by these docker arguments.
+All docker containers are executed using the same user as your login account. If you want to run the docker in root access, add the flag <code class="docutils literal notranslate"><span class="pre">--is-root</span></code> to command line. In addition, you can pass any enviroment variable using <code class="docutils literal notranslate"><span class="pre">--docker-env</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">--docker-env</span> <span class="pre">&quot;foo=path&quot;</span></code>)</p>
+</div>
+<div class="section" id="espnet-2-recipes">
+<h2>ESPnet 2 Recipes<a class="headerlink" href="#espnet-2-recipes" title="Permalink to this headline">¶</a></h2>
+<p>To work with recipes of ESPnet 2, you will need to add the flag <code class="docutils literal notranslate"><span class="pre">--is-egs2</span></code> to the command line:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
+$ ./run.sh --docker-gpu <span class="m">0</span> --is-egs2 --docker-egs an4/asr1 --ngpu1
+</pre></div>
+</div>
+<p>Remember to add the flag before the arguments you want to pass to the recipe <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> file.</p>
+</div>
+<div class="section" id="using-gpu-based-containers">
+<h2>Using GPU-based containers<a class="headerlink" href="#using-gpu-based-containers" title="Permalink to this headline">¶</a></h2>
+<p>You can run any bash script implemented in the egs folder using <code class="docutils literal notranslate"><span class="pre">--docker-cmd</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
+$ ./run.sh --docker-gpu <span class="m">0</span> --docker-egs chime4/asr1 --docker-cmd foo.sh --arg_1 &lt;arg_1&gt; --arg_2 &lt;arg_2&gt;
+</pre></div>
+</div>
+<p>The arguments for the desired script should follow the docker arguments. <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> is the default script to be executed.</p>
+<p>Multiple GPUs should be specified with the following options:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
+$ ./run.sh --docker-gpu <span class="m">0</span>,1,2 --docker-egs chime5/asr1 --docker-folders /export/corpora4/CHiME5 --ngpu <span class="m">3</span>
+</pre></div>
+</div>
+<p>Note that all experimental files and results are created under the normal example directories (<code class="docutils literal notranslate"><span class="pre">egs/&lt;example&gt;/</span></code>).</p>
+<p>Multiple folders and environment variables should be specified with commas and without spaces:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
+$ ./run.sh --docker-gpu <span class="m">0</span> --docker-egs chime4/asr1 --docker-folders /export/corpus/CHiME4,/export/corpus/LDC/LDC93S6B,/export/corpus/LDC/LDC94S13B --docker-env <span class="s2">&quot;CHIME4_CORPUS=/export/corpus/CHiME4/CHiME3,WSJ0_CORPUS=/export/corpus/LDC/LDC93S6B,WSJ1_CORPUS=/export/corpus/LDC/LDC94S13B&quot;</span> --ngpu <span class="m">1</span>
+</pre></div>
+</div>
+<p>Remember that for some recipes, you first need to download the Corpus before running the experiments, such as CHiME, WSJ, and LDC corporas. You will need to set the directories where these were downloaded and replace them in the recipe (e.g.: <code class="docutils literal notranslate"><span class="pre">CHIME4_CORPUS=/&lt;dir_where_chime4_was_downloaded&gt;/CHiME4/CHiME3</span></code>)</p>
+</div>
+<div class="section" id="using-cpu-based-container">
+<h2>Using CPU-based container<a class="headerlink" href="#using-cpu-based-container" title="Permalink to this headline">¶</a></h2>
+<p>You can train a model in CPU using the following command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
+$ ./run.sh --docker-gpu -1 --docker-egs an4/asr1 --ngpu <span class="m">0</span>
+</pre></div>
+</div>
+<p>The script will build a docker if your are using a <code class="docutils literal notranslate"><span class="pre">user</span></code> different from <code class="docutils literal notranslate"><span class="pre">root</span></code> user. To use containers with <code class="docutils literal notranslate"><span class="pre">root</span></code> access
+add the flag <code class="docutils literal notranslate"><span class="pre">--is-root</span></code> to the command line.</p>
+</div>
+<div class="section" id="local-builds">
+<h2>Local builds<a class="headerlink" href="#local-builds" title="Permalink to this headline">¶</a></h2>
+<p>When building the docker container on a local machine, the espnet source is downloaded from the github espnet master branch.
+However, in some cases, “local” builds are preferable, that are built based on the source code from the local repository:</p>
+<ol class="simple">
+<li><p>After writing own modifications on the espnet code, the build environment, etc., and to test it in the docker container. Prebuilt docker containers do not import these.</p></li>
+<li><p>Reproducability: It is possible to go back to an espnet version at a certain commit and test the neural network with an older version of a library.</p></li>
+</ol>
+<p>The script <code class="docutils literal notranslate"><span class="pre">build.sh</span></code> supports making local builds for this purpose. During the docker build process, the local espnet source code is imported through a git archive based on git HEAD (the previous commit), and copied over within a file.</p>
+<p>For example, a local build that the base image from Docker Hub (<code class="docutils literal notranslate"><span class="pre">espnet/espnet:runtime</span></code>, based on Ubuntu 16), that already contains a kaldi installation, using Cuda 10.0:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">build</span><span class="o">.</span><span class="n">sh</span> <span class="n">local</span> <span class="mf">10.0</span>
+</pre></div>
+</div>
+<p>Also, docker images can also be built based on the Ubuntu version specified in <code class="docutils literal notranslate"><span class="pre">prebuilt/runtime/Dockerfile</span></code> (currently set to Ubuntu 18.04), in this example case using the cpu:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">build</span><span class="o">.</span><span class="n">sh</span> <span class="n">fully_local</span> <span class="n">cpu</span>
+</pre></div>
+</div>
+<p>Local container builds then are started by adding the flag <code class="docutils literal notranslate"><span class="pre">--is-local</span></code> when using <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>, e.g., for the Cuda 10.0 image:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --is-local --docker_cuda 10.0 --docker_gpu 0 ...
+</pre></div>
+</div>
+</div>
+<div class="section" id="deprecated">
+<h2>Deprecated<a class="headerlink" href="#deprecated" title="Permalink to this headline">¶</a></h2>
+<p>Containers build on ubuntu-16.04 will be deprecated and no longer receive support. However, these container will remain in Docker Hub.
+To use containers with ubuntu 16.04, empty the flag <code class="docutils literal notranslate"><span class="pre">--docker_os</span></code>.</p>
+</div>
+<div class="section" id="tags">
+<h2>Tags<a class="headerlink" href="#tags" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Runtime: Base image for ESPnet. It includes libraries and Kaldi installation.</p></li>
+<li><p>CPU: Image to execute only in CPU.</p></li>
+<li><p>GPU: Image to execute examples with GPU support.</p></li>
+</ul>
+</div>
+<div class="section" id="ubuntu-18-04">
+<h2>Ubuntu 18.04<a class="headerlink" href="#ubuntu-18-04" title="Permalink to this headline">¶</a></h2>
+<p>Pytorch 1.3.1, No warp-ctc:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/10.1/cudnn7/Dockerfile"><code class="docutils literal notranslate"><span class="pre">cuda10.1-cudnn7</span></code> (<em>docker/prebuilt/gpu/10.1/cudnn7/Dockerfile</em>)</a></p></li>
+</ul>
+<p>Pytorch 1.0.1, warp-ctc:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/10.0/cudnn7/Dockerfile"><code class="docutils literal notranslate"><span class="pre">cuda10.0-cudnn7</span></code> (<em>docker/prebuilt/gpu/10.0/cudnn7/Dockerfile</em>)</a></p></li>
+<li><p><a class="reference external" href="https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/Dockerfile"><code class="docutils literal notranslate"><span class="pre">cpu-u18</span></code> (<em>docker/prebuilt/devel/Dockerfile</em>)</a></p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2_tutorial.html" class="btn btn-neutral float-right" title="ESPnet2" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="faq.html" class="btn btn-neutral float-left" title="FAQ" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,1061 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Speech Recognition (Library) &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Text-to-Speech (Recipe)" href="tts_cli.html" />
+    <link rel="prev" title="Speech Recognition (Recipe)" href="asr_cli.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Speech Recognition (Library)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ESPnet-data-preparation">ESPnet data preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Kaldi-style-directories">Kaldi-style directories</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ESPnet-as-a-library">ESPnet as a library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Load-train/dev-dataset-(1/4)">Load train/dev dataset (1/4)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Create-minibatches-(2/4)">Create minibatches (2/4)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Build-neural-networks-(3/4)">Build neural networks (3/4)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Update-neural-networks-by-iterating-datasets-(4/4)">Update neural networks by iterating datasets (4/4)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Recognize-speech">Recognize speech</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Speech Recognition (Library)</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/notebook/asr_library.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="Speech-Recognition-(Library)">
+<h1>Speech Recognition (Library)<a class="headerlink" href="#Speech-Recognition-(Library)" title="Permalink to this headline">¶</a></h1>
+<p>This example shows you a practical ASR example using ESPnet as a command line interface and library.</p>
+<p>See also</p>
+<ul class="simple">
+<li><p>run in <a class="reference external" href="https://colab.research.google.com/github/espnet/notebook/blob/master/asr_library.ipynb">colab</a></p></li>
+<li><p>documetation <a class="reference external" href="https://espnet.github.io/espnet/">https://espnet.github.io/espnet/</a></p></li>
+<li><p>github <a class="reference external" href="https://github.com/espnet">https://github.com/espnet</a></p></li>
+</ul>
+<p>Author: <a class="reference external" href="https://github.com/ShigekiKarita">Shigeki Karita</a></p>
+<div class="section" id="Installation">
+<h2>Installation<a class="headerlink" href="#Installation" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet depends on Kaldi ASR toolkit and Warp-CTC. This cell will take a few minutes.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># TODO(karita): put these lines in ./espnet/tools/setup_colab.sh
+# OS setup
+!sudo apt-get install bc tree
+!cat /etc/os-release
+
+# espnet setup
+!git clone https://github.com/espnet/espnet
+!cd espnet; pip install -e .
+!mkdir espnet/tools/venv/bin; touch espnet/tools/venv/bin/activate
+
+# warp ctc setup
+!git clone https://github.com/espnet/warp-ctc -b pytorch-1.1
+!cd warp-ctc &amp;&amp; mkdir build &amp;&amp; cd build &amp;&amp; cmake .. &amp;&amp; make -j4
+!cd warp-ctc/pytorch_binding &amp;&amp; python setup.py install
+
+# kaldi setup
+!cd ./espnet/tools; git clone https://github.com/kaldi-asr/kaldi
+!echo &quot;&quot; &gt; ./espnet/tools/kaldi/tools/extras/check_dependencies.sh # ignore check
+!chmod +x ./espnet/tools/kaldi/tools/extras/check_dependencies.sh
+!cd ./espnet/tools/kaldi/tools; make sph2pipe sclite
+!rm -rf espnet/tools/kaldi/tools/python
+![ ! -e ubuntu16-featbin.tar.gz ] &amp;&amp; wget https://18-198329952-gh.circle-artifacts.com/0/home/circleci/repo/ubuntu16-featbin.tar.gz
+!tar -xf ./ubuntu16-featbin.tar.gz
+!cp featbin/* espnet/tools/kaldi/src/featbin/
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="ESPnet-data-preparation">
+<h2>ESPnet data preparation<a class="headerlink" href="#ESPnet-data-preparation" title="Permalink to this headline">¶</a></h2>
+<p>You can use the end-to-end script <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> for reproducing systems reported in <code class="docutils literal notranslate"><span class="pre">espnet/egs/*/asr1/RESULTS.md</span></code>. Typically, we organize <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> with several stages:</p>
+<ol class="arabic simple" start="0">
+<li><p>Data download (if available)</p></li>
+<li><p>Kaldi-style data preparation</p></li>
+<li><p>Dump useful data for traning (e.g., JSON, HDF5, etc)</p></li>
+<li><p>Lanuage model training</p></li>
+<li><p>ASR model training</p></li>
+<li><p>Decoding and evaluation</p></li>
+</ol>
+<p>For example, if you add <code class="docutils literal notranslate"><span class="pre">--stop-stage</span> <span class="pre">2</span></code>, you can stop the script before neural network training.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!cd espnet/egs/an4/asr1; ./run.sh  --ngpu 1 --stop-stage 2
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Kaldi-style-directories">
+<h2>Kaldi-style directories<a class="headerlink" href="#Kaldi-style-directories" title="Permalink to this headline">¶</a></h2>
+<p>Always we organize each recipe placed in <code class="docutils literal notranslate"><span class="pre">egs/xxx/asr1</span></code> in Kaldi way. For example, the important directories are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">conf/</span></code>: kaldi configurations, e.g., speech feature</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data/</span></code>: almost raw <a class="reference external" href="https://kaldi-asr.org/doc/data_prep.html">data prepared by Kaldi</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exp/</span></code>: intermidiate files through experiments, e.g., log files, model parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fbank/</span></code>: speech feature binary files, e.g., <a class="reference external" href="https://kaldi-asr.org/doc/io.html">ark, scp</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dump/</span></code>: ESPnet meta data for tranining, e.g., json, hdf5</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">local/</span></code>: corpus specific data preparation scripts</p></li>
+<li><p><a class="reference external" href="https://github.com/kaldi-asr/kaldi/tree/master/egs/wsj/s5/steps">steps/</a>, <a class="reference external" href="https://github.com/kaldi-asr/kaldi/tree/master/egs/wsj/s5/utils">utils/</a>: Kaldi’s helper scripts</p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!tree -L 1
+!ls data/train
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+.
+├── espnet
+├── featbin
+├── sample_data
+├── ubuntu16-featbin.tar.gz
+└── warp-ctc
+
+4 directories, 1 file
+ls: cannot access &#39;data/train&#39;: No such file or directory
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="ESPnet-as-a-library">
+<h2>ESPnet as a library<a class="headerlink" href="#ESPnet-as-a-library" title="Permalink to this headline">¶</a></h2>
+<p>Here we use ESPnet as a library to create a simple Python snippet for speech recognition. ESPnet ‘s training script’<code class="docutils literal notranslate"><span class="pre">asr_train.py</span></code> has three parts:</p>
+<ol class="arabic simple">
+<li><p>Load train/dev dataset</p></li>
+<li><p>Create minibatches</p></li>
+<li><p>Build neural networks</p></li>
+<li><p>Update neural networks by iterating datasets</p></li>
+</ol>
+<p>Let’s implement these procedures from scratch!</p>
+<div class="section" id="Load-train/dev-dataset-(1/4)">
+<h3>Load train/dev dataset (1/4)<a class="headerlink" href="#Load-train/dev-dataset-(1/4)" title="Permalink to this headline">¶</a></h3>
+<p>First, we will check how <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> organized the JSON files and load the pair of the speech feature and its transcription.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import json
+import matplotlib.pyplot as plt
+import kaldiio
+
+root = &quot;espnet/egs/an4/asr1&quot;
+with open(root + &quot;/dump/train_nodev/deltafalse/data.json&quot;, &quot;r&quot;) as f:
+  train_json = json.load(f)[&quot;utts&quot;]
+with open(root + &quot;/dump/train_dev/deltafalse/data.json&quot;, &quot;r&quot;) as f:
+  dev_json = json.load(f)[&quot;utts&quot;]
+
+# the first training data for speech recognition
+key, info = next(iter(train_json.items()))
+
+# plot the 80-dim fbank + 3-dim pitch speech feature
+fbank = kaldiio.load_mat(info[&quot;input&quot;][0][&quot;feat&quot;])
+plt.matshow(fbank.T[::-1])
+plt.title(key + &quot;: &quot; + info[&quot;output&quot;][0][&quot;text&quot;])
+
+# print the key-value pair
+key, info
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;fkai-an311-b&#39;,
+ {&#39;input&#39;: [{&#39;feat&#39;: &#39;/content/espnet/egs/an4/asr1/dump/train_nodev/deltafalse/feats.1.ark:13&#39;,
+    &#39;name&#39;: &#39;input1&#39;,
+    &#39;shape&#39;: [308, 83]}],
+  &#39;output&#39;: [{&#39;name&#39;: &#39;target1&#39;,
+    &#39;shape&#39;: [26, 30],
+    &#39;text&#39;: &#39;ERASE I S L F THIRTY EIGHT&#39;,
+    &#39;token&#39;: &#39;E R A S E &lt;space&gt; I &lt;space&gt; S &lt;space&gt; L &lt;space&gt; F &lt;space&gt; T H I R T Y &lt;space&gt; E I G H T&#39;,
+    &#39;tokenid&#39;: &#39;7 20 3 21 7 2 11 2 21 2 14 2 8 2 22 10 11 20 22 27 2 7 11 9 10 22&#39;}],
+  &#39;utt2spk&#39;: &#39;fkai&#39;})
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_asr_library_7_1.png" src="../_images/notebook_asr_library_7_1.png" />
+</div>
+</div>
+</div>
+<div class="section" id="Create-minibatches-(2/4)">
+<h3>Create minibatches (2/4)<a class="headerlink" href="#Create-minibatches-(2/4)" title="Permalink to this headline">¶</a></h3>
+<p>To parallelize neural network training, we create minibatches that containes several sequence pairs by splitting datasets.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>from espnet.utils.training.batchfy import make_batchset
+
+batch_size = 32
+trainset = make_batchset(train_json, batch_size)
+devset = make_batchset(dev_json, batch_size)
+assert len(devset[0]) == batch_size
+devset[0][:3]
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[(&#39;fbbh-an89-b&#39;,
+  {&#39;input&#39;: [{&#39;feat&#39;: &#39;/content/espnet/egs/an4/asr1/dump/train_dev/deltafalse/feats.1.ark:257878&#39;,
+     &#39;name&#39;: &#39;input1&#39;,
+     &#39;shape&#39;: [638, 83]}],
+   &#39;output&#39;: [{&#39;name&#39;: &#39;target1&#39;,
+     &#39;shape&#39;: [40, 30],
+     &#39;text&#39;: &#39;RUBOUT T G J W B SEVENTY NINE FIFTY NINE&#39;,
+     &#39;token&#39;: &#39;R U B O U T &lt;space&gt; T &lt;space&gt; G &lt;space&gt; J &lt;space&gt; W &lt;space&gt; B &lt;space&gt; S E V E N T Y &lt;space&gt; N I N E &lt;space&gt; F I F T Y &lt;space&gt; N I N E&#39;,
+     &#39;tokenid&#39;: &#39;20 23 4 17 23 22 2 22 2 9 2 12 2 25 2 4 2 21 7 24 7 16 22 27 2 16 11 16 7 2 8 11 8 22 27 2 16 11 16 7&#39;}],
+   &#39;utt2spk&#39;: &#39;fbbh&#39;}),
+ (&#39;fejs-cen4-b&#39;,
+  {&#39;input&#39;: [{&#39;feat&#39;: &#39;/content/espnet/egs/an4/asr1/dump/train_dev/deltafalse/feats.4.ark:106716&#39;,
+     &#39;name&#39;: &#39;input1&#39;,
+     &#39;shape&#39;: [528, 83]}],
+   &#39;output&#39;: [{&#39;name&#39;: &#39;target1&#39;,
+     &#39;shape&#39;: [23, 30],
+     &#39;text&#39;: &#39;F I N D L E Y D R I V E&#39;,
+     &#39;token&#39;: &#39;F &lt;space&gt; I &lt;space&gt; N &lt;space&gt; D &lt;space&gt; L &lt;space&gt; E &lt;space&gt; Y &lt;space&gt; D &lt;space&gt; R &lt;space&gt; I &lt;space&gt; V &lt;space&gt; E&#39;,
+     &#39;tokenid&#39;: &#39;8 2 11 2 16 2 6 2 14 2 7 2 27 2 6 2 20 2 11 2 24 2 7&#39;}],
+   &#39;utt2spk&#39;: &#39;fejs&#39;}),
+ (&#39;ffmm-cen2-b&#39;,
+  {&#39;input&#39;: [{&#39;feat&#39;: &#39;/content/espnet/egs/an4/asr1/dump/train_dev/deltafalse/feats.5.ark:52535&#39;,
+     &#39;name&#39;: &#39;input1&#39;,
+     &#39;shape&#39;: [498, 83]}],
+   &#39;output&#39;: [{&#39;name&#39;: &#39;target1&#39;,
+     &#39;shape&#39;: [21, 30],
+     &#39;text&#39;: &#39;F R A N C E S M A R Y&#39;,
+     &#39;token&#39;: &#39;F &lt;space&gt; R &lt;space&gt; A &lt;space&gt; N &lt;space&gt; C &lt;space&gt; E &lt;space&gt; S &lt;space&gt; M &lt;space&gt; A &lt;space&gt; R &lt;space&gt; Y&#39;,
+     &#39;tokenid&#39;: &#39;8 2 20 2 3 2 16 2 5 2 7 2 21 2 15 2 3 2 20 2 27&#39;}],
+   &#39;utt2spk&#39;: &#39;ffmm&#39;})]
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Build-neural-networks-(3/4)">
+<h3>Build neural networks (3/4)<a class="headerlink" href="#Build-neural-networks-(3/4)" title="Permalink to this headline">¶</a></h3>
+<p>For simplicity, we use a predefined model: <a class="reference external" href="https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf">Transformer</a>.</p>
+<p>NOTE: You can also use your custom model in command line tools as <code class="docutils literal notranslate"><span class="pre">asr_train.py</span> <span class="pre">--model-module</span> <span class="pre">your_module:YourModel</span></code></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import argparse
+from espnet.bin.asr_train import get_parser
+from espnet.nets.pytorch_backend.e2e_asr import E2E
+
+parser = get_parser()
+parser = E2E.add_arguments(parser)
+config = parser.parse_args([
+    &quot;--mtlalpha&quot;, &quot;0.0&quot;,  # weight for cross entropy and CTC loss
+    &quot;--outdir&quot;, &quot;out&quot;, &quot;--dict&quot;, &quot;&quot;])  # TODO: allow no arg
+
+idim = info[&quot;input&quot;][0][&quot;shape&quot;][1]
+odim = info[&quot;output&quot;][0][&quot;shape&quot;][1]
+setattr(config, &quot;char_list&quot;, [])
+model = E2E(idim, odim, config)
+model
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+E2E(
+  (enc): Encoder(
+    (enc): ModuleList(
+      (0): RNNP(
+        (birnn0): LSTM(83, 300, batch_first=True, bidirectional=True)
+        (bt0): Linear(in_features=600, out_features=320, bias=True)
+        (birnn1): LSTM(320, 300, batch_first=True, bidirectional=True)
+        (bt1): Linear(in_features=600, out_features=320, bias=True)
+        (birnn2): LSTM(320, 300, batch_first=True, bidirectional=True)
+        (bt2): Linear(in_features=600, out_features=320, bias=True)
+        (birnn3): LSTM(320, 300, batch_first=True, bidirectional=True)
+        (bt3): Linear(in_features=600, out_features=320, bias=True)
+      )
+    )
+  )
+  (ctc): CTC(
+    (ctc_lo): Linear(in_features=320, out_features=30, bias=True)
+    (ctc_loss): CTCLoss()
+  )
+  (att): ModuleList(
+    (0): AttDot(
+      (mlp_enc): Linear(in_features=320, out_features=320, bias=True)
+      (mlp_dec): Linear(in_features=320, out_features=320, bias=True)
+    )
+  )
+  (dec): Decoder(
+    (embed): Embedding(30, 320)
+    (dropout_emb): Dropout(p=0.0)
+    (decoder): ModuleList(
+      (0): LSTMCell(640, 320)
+    )
+    (dropout_dec): ModuleList(
+      (0): Dropout(p=0.0)
+    )
+    (output): Linear(in_features=320, out_features=30, bias=True)
+    (att): ModuleList(
+      (0): AttDot(
+        (mlp_enc): Linear(in_features=320, out_features=320, bias=True)
+        (mlp_dec): Linear(in_features=320, out_features=320, bias=True)
+      )
+    )
+  )
+)
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Update-neural-networks-by-iterating-datasets-(4/4)">
+<h3>Update neural networks by iterating datasets (4/4)<a class="headerlink" href="#Update-neural-networks-by-iterating-datasets-(4/4)" title="Permalink to this headline">¶</a></h3>
+<p>Finaly, we got the training part.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import numpy
+import torch
+from torch.nn.utils.rnn import pad_sequence
+from torch.nn.utils.clip_grad import clip_grad_norm_
+from torch.utils.data import DataLoader
+
+def collate(minibatch):
+  fbanks = []
+  tokens = []
+  for key, info in minibatch[0]:
+    fbanks.append(torch.tensor(kaldiio.load_mat(info[&quot;input&quot;][0][&quot;feat&quot;])))
+    tokens.append(torch.tensor([int(s) for s in info[&quot;output&quot;][0][&quot;tokenid&quot;].split()]))
+  ilens = torch.tensor([x.shape[0] for x in fbanks])
+  return pad_sequence(fbanks, batch_first=True), ilens, pad_sequence(tokens, batch_first=True)
+
+train_loader = DataLoader(trainset, collate_fn=collate, shuffle=True, pin_memory=True)
+dev_loader = DataLoader(devset, collate_fn=collate, pin_memory=True)
+model.cuda()
+optim = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.98))
+
+n_iter = len(trainset)
+n_epoch = 10
+total_iter = n_iter * n_epoch
+train_acc = []
+valid_acc = []
+for epoch in range(n_epoch):
+  # training
+  acc = []
+  model.train()
+  for data in train_loader:
+    loss = model(*[d.cuda() for d in data])
+    optim.zero_grad()
+    loss.backward()
+    acc.append(model.acc)
+    norm = clip_grad_norm_(model.parameters(), 10.0)
+    optim.step()
+  train_acc.append(numpy.mean(acc))
+
+  # validation
+  acc = []
+  model.eval()
+  for data in dev_loader:
+    model(*[d.cuda() for d in data])
+    acc.append(model.acc)
+  valid_acc.append(numpy.mean(acc))
+  print(f&quot;epoch: {epoch}, train acc: {train_acc[-1]:.3f}, dev acc: {valid_acc[-1]:.3f}&quot;)
+
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+epoch: 0, train acc: 0.566, dev acc: 0.577
+epoch: 1, train acc: 0.715, dev acc: 0.636
+epoch: 2, train acc: 0.750, dev acc: 0.686
+epoch: 3, train acc: 0.774, dev acc: 0.684
+epoch: 4, train acc: 0.778, dev acc: 0.703
+epoch: 5, train acc: 0.795, dev acc: 0.739
+epoch: 6, train acc: 0.796, dev acc: 0.745
+epoch: 7, train acc: 0.801, dev acc: 0.757
+epoch: 8, train acc: 0.807, dev acc: 0.746
+epoch: 9, train acc: 0.814, dev acc: 0.756
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import matplotlib.pyplot as plt
+
+plt.plot(range(len(train_acc)), train_acc, label=&quot;train acc&quot;)
+plt.plot(range(len(valid_acc)), valid_acc, label=&quot;dev acc&quot;)
+plt.grid()
+plt.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7f76f9c22a20&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_asr_library_14_1.png" src="../_images/notebook_asr_library_14_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>torch.save(model.state_dict(), &quot;best.pt&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Recognize-speech">
+<h3>Recognize speech<a class="headerlink" href="#Recognize-speech" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import json
+import matplotlib.pyplot as plt
+import kaldiio
+from espnet.bin.asr_recog import get_parser
+
+# load data
+root = &quot;espnet/egs/an4/asr1&quot;
+with open(root + &quot;/dump/test/deltafalse/data.json&quot;, &quot;r&quot;) as f:
+  test_json = json.load(f)[&quot;utts&quot;]
+
+key, info = list(test_json.items())[10]
+
+# plot the 80-dim fbank + 3-dim pitch speech feature
+fbank = kaldiio.load_mat(info[&quot;input&quot;][0][&quot;feat&quot;])
+plt.matshow(fbank.T[::-1])
+plt.title(key + &quot;: &quot; + info[&quot;output&quot;][0][&quot;text&quot;])
+
+# load token dict
+with open(root + &quot;/data/lang_1char/train_nodev_units.txt&quot;, &quot;r&quot;) as f:
+  token_list = [entry.split()[0] for entry in f]
+token_list.insert(0, &#39;&lt;blank&gt;&#39;)
+token_list.append(&#39;&lt;eos&gt;&#39;)
+
+# recognize speech
+parser = get_parser()
+args = parser.parse_args([
+    &quot;--beam-size&quot;, &quot;1&quot;,
+    &quot;--ctc-weight&quot;, &quot;0&quot;,
+    &quot;--result-label&quot;, &quot;out.json&quot;,
+    &quot;--model&quot;, &quot;&quot;
+])
+model.cpu()
+model.eval()
+
+def to_str(result):
+  return &quot;&quot;.join(token_list[y] for y in result[0][&quot;yseq&quot;]) \
+    .replace(&quot;&lt;eos&gt;&quot;, &quot;&quot;).replace(&quot;&lt;space&gt;&quot;, &quot; &quot;).replace(&quot;&lt;blank&gt;&quot;, &quot;&quot;)
+
+print(&quot;groundtruth:&quot;, info[&quot;output&quot;][0][&quot;text&quot;])
+print(&quot;prediction: &quot;, to_str(model.recognize(fbank, args, token_list)))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+groundtruth: ONE FIVE TWO THREE SIX
+prediction:  ONE FIVE TWO ONE THREE TWO ONE THREE
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebook_asr_library_17_1.png" src="../_images/notebook_asr_library_17_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="tts_cli.html" class="btn btn-neutral float-right" title="Text-to-Speech (Recipe)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="asr_cli.html" class="btn btn-neutral float-left" title="Speech Recognition (Recipe)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,115 @@
+
+espnet.asr package
+==================
+Initialize sub package.
+
+
+.. _espnet.asr.asr_mix_utils:
+
+espnet.asr.asr_mix_utils
+------------------------
+
+.. automodule:: espnet.asr.asr_mix_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.__init__:
+
+espnet.asr.__init__
+-------------------
+
+.. automodule:: espnet.asr.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.asr_utils:
+
+espnet.asr.asr_utils
+--------------------
+
+.. automodule:: espnet.asr.asr_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.chainer_backend.asr:
+
+espnet.asr.chainer_backend.asr
+------------------------------
+
+.. automodule:: espnet.asr.chainer_backend.asr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.chainer_backend.__init__:
+
+espnet.asr.chainer_backend.__init__
+-----------------------------------
+
+.. automodule:: espnet.asr.chainer_backend.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.recog:
+
+espnet.asr.pytorch_backend.recog
+--------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.recog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.asr:
+
+espnet.asr.pytorch_backend.asr
+------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.asr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.asr_mix:
+
+espnet.asr.pytorch_backend.asr_mix
+----------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.asr_mix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.__init__:
+
+espnet.asr.pytorch_backend.__init__
+-----------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.asr_init:
+
+espnet.asr.pytorch_backend.asr_init
+-----------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.asr_init
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

@@ -1,0 +1,1071 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.tts.fastspeech2 &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet2.tts.fastspeech2</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet2.tts.fastspeech2</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2020 Nagoya University (Tomoki Hayashi)</span>
+<span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
+
+<span class="sd">&quot;&quot;&quot;Fastspeech2 related modules for ESPnet2.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Encoder</span> <span class="k">as</span> <span class="n">ConformerEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="n">DurationPredictor</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DurationPredictorLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.length_regulator</span> <span class="kn">import</span> <span class="n">LengthRegulator</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.decoder</span> <span class="kn">import</span> <span class="n">Postnet</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">PositionalEncoding</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">ScaledPositionalEncoding</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Encoder</span> <span class="k">as</span> <span class="n">TransformerEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.abs_tts</span> <span class="kn">import</span> <span class="n">AbsTTS</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.gst.style_encoder</span> <span class="kn">import</span> <span class="n">StyleEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.variance_predictor</span> <span class="kn">import</span> <span class="n">VariancePredictor</span>
+
+
+<div class="viewcode-block" id="FastSpeech2"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2</span><span class="p">(</span><span class="n">AbsTTS</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;FastSpeech2 module.</span>
+
+<span class="sd">    This is a module of FastSpeech2 described in `FastSpeech 2: Fast and</span>
+<span class="sd">    High-Quality End-to-End Text to Speech`_. Instead of quantized pitch and</span>
+<span class="sd">    energy, we use token-averaged value introduced in `FastPitch: Parallel</span>
+<span class="sd">    Text-to-speech with Pitch Prediction`_.</span>
+
+<span class="sd">    .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:</span>
+<span class="sd">        https://arxiv.org/abs/2006.04558</span>
+<span class="sd">    .. _`FastPitch: Parallel Text-to-speech with Pitch Prediction`:</span>
+<span class="sd">        https://arxiv.org/abs/2006.06873</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="c1"># network structure related</span>
+        <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">adim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
+        <span class="n">aheads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">elayers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="n">eunits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1536</span><span class="p">,</span>
+        <span class="n">dlayers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="n">dunits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1536</span><span class="p">,</span>
+        <span class="n">postnet_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">postnet_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+        <span class="n">postnet_filts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">positionwise_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">,</span>
+        <span class="n">positionwise_conv_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">use_scaled_pos_enc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_batch_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">encoder_normalize_before</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">decoder_normalize_before</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">encoder_concat_after</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">decoder_concat_after</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">reduction_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">encoder_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;transformer&quot;</span><span class="p">,</span>
+        <span class="n">decoder_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;transformer&quot;</span><span class="p">,</span>
+        <span class="c1"># only for conformer</span>
+        <span class="n">conformer_rel_pos_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;legacy&quot;</span><span class="p">,</span>
+        <span class="n">conformer_pos_enc_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rel_pos&quot;</span><span class="p">,</span>
+        <span class="n">conformer_self_attn_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rel_selfattn&quot;</span><span class="p">,</span>
+        <span class="n">conformer_activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;swish&quot;</span><span class="p">,</span>
+        <span class="n">use_macaron_style_in_conformer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_cnn_in_conformer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">zero_triu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">conformer_enc_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">,</span>
+        <span class="n">conformer_dec_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">31</span><span class="p">,</span>
+        <span class="c1"># duration predictor</span>
+        <span class="n">duration_predictor_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">duration_predictor_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
+        <span class="n">duration_predictor_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="c1"># energy predictor</span>
+        <span class="n">energy_predictor_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">energy_predictor_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
+        <span class="n">energy_predictor_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">energy_predictor_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">energy_embed_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="n">energy_embed_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">stop_gradient_from_energy_predictor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="c1"># pitch predictor</span>
+        <span class="n">pitch_predictor_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">pitch_predictor_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
+        <span class="n">pitch_predictor_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">pitch_predictor_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">pitch_embed_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="n">pitch_embed_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">stop_gradient_from_pitch_predictor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="c1"># pretrained spk emb</span>
+        <span class="n">spk_embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spk_embed_integration_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;add&quot;</span><span class="p">,</span>
+        <span class="c1"># GST</span>
+        <span class="n">use_gst</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">gst_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">gst_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">gst_conv_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="n">gst_conv_chans_list</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
+        <span class="n">gst_conv_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">gst_conv_stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">gst_gru_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">gst_gru_units</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+        <span class="c1"># training related</span>
+        <span class="n">transformer_enc_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_enc_positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_enc_attn_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_dec_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_dec_positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_dec_attn_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">duration_predictor_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">postnet_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">init_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;xavier_uniform&quot;</span><span class="p">,</span>
+        <span class="n">init_enc_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">init_dec_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize FastSpeech2 module.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># store hyperparameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idim</span> <span class="o">=</span> <span class="n">idim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">=</span> <span class="n">reduction_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder_type</span> <span class="o">=</span> <span class="n">encoder_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">=</span> <span class="n">decoder_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_gradient_from_pitch_predictor</span> <span class="o">=</span> <span class="n">stop_gradient_from_pitch_predictor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_gradient_from_energy_predictor</span> <span class="o">=</span> <span class="n">stop_gradient_from_energy_predictor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span> <span class="o">=</span> <span class="n">use_scaled_pos_enc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_gst</span> <span class="o">=</span> <span class="n">use_gst</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="n">spk_embed_dim</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">=</span> <span class="n">spk_embed_integration_type</span>
+
+        <span class="c1"># use idx 0 as padding idx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># get positional encoding class</span>
+        <span class="n">pos_enc_class</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">ScaledPositionalEncoding</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span> <span class="k">else</span> <span class="n">PositionalEncoding</span>
+        <span class="p">)</span>
+
+        <span class="c1"># check relative positional encoding compatibility</span>
+        <span class="k">if</span> <span class="s2">&quot;conformer&quot;</span> <span class="ow">in</span> <span class="p">[</span><span class="n">encoder_type</span><span class="p">,</span> <span class="n">decoder_type</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">conformer_rel_pos_type</span> <span class="o">==</span> <span class="s2">&quot;legacy&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">conformer_pos_enc_layer_type</span> <span class="o">==</span> <span class="s2">&quot;rel_pos&quot;</span><span class="p">:</span>
+                    <span class="n">conformer_pos_enc_layer_type</span> <span class="o">=</span> <span class="s2">&quot;legacy_rel_pos&quot;</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;Fallback to conformer_pos_enc_layer_type = &#39;legacy_rel_pos&#39; &quot;</span>
+                        <span class="s2">&quot;due to the compatibility. If you want to use the new one, &quot;</span>
+                        <span class="s2">&quot;please use conformer_pos_enc_layer_type = &#39;latest&#39;.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">conformer_self_attn_layer_type</span> <span class="o">==</span> <span class="s2">&quot;rel_selfattn&quot;</span><span class="p">:</span>
+                    <span class="n">conformer_self_attn_layer_type</span> <span class="o">=</span> <span class="s2">&quot;legacy_rel_selfattn&quot;</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;Fallback to &quot;</span>
+                        <span class="s2">&quot;conformer_self_attn_layer_type = &#39;legacy_rel_selfattn&#39; &quot;</span>
+                        <span class="s2">&quot;due to the compatibility. If you want to use the new one, &quot;</span>
+                        <span class="s2">&quot;please use conformer_pos_enc_layer_type = &#39;latest&#39;.&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">conformer_rel_pos_type</span> <span class="o">==</span> <span class="s2">&quot;latest&quot;</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">conformer_pos_enc_layer_type</span> <span class="o">!=</span> <span class="s2">&quot;legacy_rel_pos&quot;</span>
+                <span class="k">assert</span> <span class="n">conformer_self_attn_layer_type</span> <span class="o">!=</span> <span class="s2">&quot;legacy_rel_selfattn&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown rel_pos_type: </span><span class="si">{</span><span class="n">conformer_rel_pos_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># define encoder</span>
+        <span class="n">encoder_input_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
+            <span class="n">num_embeddings</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">encoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span>
+                <span class="n">attention_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">attention_heads</span><span class="o">=</span><span class="n">aheads</span><span class="p">,</span>
+                <span class="n">linear_units</span><span class="o">=</span><span class="n">eunits</span><span class="p">,</span>
+                <span class="n">num_blocks</span><span class="o">=</span><span class="n">elayers</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="n">encoder_input_layer</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_dropout_rate</span><span class="p">,</span>
+                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_positional_dropout_rate</span><span class="p">,</span>
+                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_attn_dropout_rate</span><span class="p">,</span>
+                <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">pos_enc_class</span><span class="p">,</span>
+                <span class="n">normalize_before</span><span class="o">=</span><span class="n">encoder_normalize_before</span><span class="p">,</span>
+                <span class="n">concat_after</span><span class="o">=</span><span class="n">encoder_concat_after</span><span class="p">,</span>
+                <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
+                <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">encoder_type</span> <span class="o">==</span> <span class="s2">&quot;conformer&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">ConformerEncoder</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span>
+                <span class="n">attention_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">attention_heads</span><span class="o">=</span><span class="n">aheads</span><span class="p">,</span>
+                <span class="n">linear_units</span><span class="o">=</span><span class="n">eunits</span><span class="p">,</span>
+                <span class="n">num_blocks</span><span class="o">=</span><span class="n">elayers</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="n">encoder_input_layer</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_dropout_rate</span><span class="p">,</span>
+                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_positional_dropout_rate</span><span class="p">,</span>
+                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_attn_dropout_rate</span><span class="p">,</span>
+                <span class="n">normalize_before</span><span class="o">=</span><span class="n">encoder_normalize_before</span><span class="p">,</span>
+                <span class="n">concat_after</span><span class="o">=</span><span class="n">encoder_concat_after</span><span class="p">,</span>
+                <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
+                <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
+                <span class="n">macaron_style</span><span class="o">=</span><span class="n">use_macaron_style_in_conformer</span><span class="p">,</span>
+                <span class="n">pos_enc_layer_type</span><span class="o">=</span><span class="n">conformer_pos_enc_layer_type</span><span class="p">,</span>
+                <span class="n">selfattention_layer_type</span><span class="o">=</span><span class="n">conformer_self_attn_layer_type</span><span class="p">,</span>
+                <span class="n">activation_type</span><span class="o">=</span><span class="n">conformer_activation_type</span><span class="p">,</span>
+                <span class="n">use_cnn_module</span><span class="o">=</span><span class="n">use_cnn_in_conformer</span><span class="p">,</span>
+                <span class="n">cnn_module_kernel</span><span class="o">=</span><span class="n">conformer_enc_kernel_size</span><span class="p">,</span>
+                <span class="n">zero_triu</span><span class="o">=</span><span class="n">zero_triu</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">encoder_type</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># define GST</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gst</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gst</span> <span class="o">=</span> <span class="n">StyleEncoder</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="n">odim</span><span class="p">,</span>  <span class="c1"># the input is mel-spectrogram</span>
+                <span class="n">gst_tokens</span><span class="o">=</span><span class="n">gst_tokens</span><span class="p">,</span>
+                <span class="n">gst_token_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">gst_heads</span><span class="o">=</span><span class="n">gst_heads</span><span class="p">,</span>
+                <span class="n">conv_layers</span><span class="o">=</span><span class="n">gst_conv_layers</span><span class="p">,</span>
+                <span class="n">conv_chans_list</span><span class="o">=</span><span class="n">gst_conv_chans_list</span><span class="p">,</span>
+                <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">gst_conv_kernel_size</span><span class="p">,</span>
+                <span class="n">conv_stride</span><span class="o">=</span><span class="n">gst_conv_stride</span><span class="p">,</span>
+                <span class="n">gru_layers</span><span class="o">=</span><span class="n">gst_gru_layers</span><span class="p">,</span>
+                <span class="n">gru_units</span><span class="o">=</span><span class="n">gst_gru_units</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># define additional projection for speaker embedding</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span><span class="p">,</span> <span class="n">adim</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span><span class="p">,</span> <span class="n">adim</span><span class="p">)</span>
+
+        <span class="c1"># define duration predictor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration_predictor</span> <span class="o">=</span> <span class="n">DurationPredictor</span><span class="p">(</span>
+            <span class="n">idim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+            <span class="n">n_layers</span><span class="o">=</span><span class="n">duration_predictor_layers</span><span class="p">,</span>
+            <span class="n">n_chans</span><span class="o">=</span><span class="n">duration_predictor_chans</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">duration_predictor_kernel_size</span><span class="p">,</span>
+            <span class="n">dropout_rate</span><span class="o">=</span><span class="n">duration_predictor_dropout_rate</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># define pitch predictor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pitch_predictor</span> <span class="o">=</span> <span class="n">VariancePredictor</span><span class="p">(</span>
+            <span class="n">idim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+            <span class="n">n_layers</span><span class="o">=</span><span class="n">pitch_predictor_layers</span><span class="p">,</span>
+            <span class="n">n_chans</span><span class="o">=</span><span class="n">pitch_predictor_chans</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">pitch_predictor_kernel_size</span><span class="p">,</span>
+            <span class="n">dropout_rate</span><span class="o">=</span><span class="n">pitch_predictor_dropout</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># NOTE(kan-bayashi): We use continuous pitch + FastPitch style avg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pitch_embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">pitch_embed_kernel_size</span><span class="p">,</span>
+                <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">pitch_embed_kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">pitch_embed_dropout</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># define energy predictor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_predictor</span> <span class="o">=</span> <span class="n">VariancePredictor</span><span class="p">(</span>
+            <span class="n">idim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+            <span class="n">n_layers</span><span class="o">=</span><span class="n">energy_predictor_layers</span><span class="p">,</span>
+            <span class="n">n_chans</span><span class="o">=</span><span class="n">energy_predictor_chans</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">energy_predictor_kernel_size</span><span class="p">,</span>
+            <span class="n">dropout_rate</span><span class="o">=</span><span class="n">energy_predictor_dropout</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># NOTE(kan-bayashi): We use continuous enegy + FastPitch style avg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">energy_embed_kernel_size</span><span class="p">,</span>
+                <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">energy_embed_kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">energy_embed_dropout</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># define length regulator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span> <span class="o">=</span> <span class="n">LengthRegulator</span><span class="p">()</span>
+
+        <span class="c1"># define decoder</span>
+        <span class="c1"># NOTE: we use encoder as decoder</span>
+        <span class="c1"># because fastspeech&#39;s decoder is the same as encoder</span>
+        <span class="k">if</span> <span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">attention_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">attention_heads</span><span class="o">=</span><span class="n">aheads</span><span class="p">,</span>
+                <span class="n">linear_units</span><span class="o">=</span><span class="n">dunits</span><span class="p">,</span>
+                <span class="n">num_blocks</span><span class="o">=</span><span class="n">dlayers</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_dropout_rate</span><span class="p">,</span>
+                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_positional_dropout_rate</span><span class="p">,</span>
+                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_attn_dropout_rate</span><span class="p">,</span>
+                <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">pos_enc_class</span><span class="p">,</span>
+                <span class="n">normalize_before</span><span class="o">=</span><span class="n">decoder_normalize_before</span><span class="p">,</span>
+                <span class="n">concat_after</span><span class="o">=</span><span class="n">decoder_concat_after</span><span class="p">,</span>
+                <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
+                <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;conformer&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">ConformerEncoder</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">attention_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">attention_heads</span><span class="o">=</span><span class="n">aheads</span><span class="p">,</span>
+                <span class="n">linear_units</span><span class="o">=</span><span class="n">dunits</span><span class="p">,</span>
+                <span class="n">num_blocks</span><span class="o">=</span><span class="n">dlayers</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_dropout_rate</span><span class="p">,</span>
+                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_positional_dropout_rate</span><span class="p">,</span>
+                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_attn_dropout_rate</span><span class="p">,</span>
+                <span class="n">normalize_before</span><span class="o">=</span><span class="n">decoder_normalize_before</span><span class="p">,</span>
+                <span class="n">concat_after</span><span class="o">=</span><span class="n">decoder_concat_after</span><span class="p">,</span>
+                <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
+                <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
+                <span class="n">macaron_style</span><span class="o">=</span><span class="n">use_macaron_style_in_conformer</span><span class="p">,</span>
+                <span class="n">pos_enc_layer_type</span><span class="o">=</span><span class="n">conformer_pos_enc_layer_type</span><span class="p">,</span>
+                <span class="n">selfattention_layer_type</span><span class="o">=</span><span class="n">conformer_self_attn_layer_type</span><span class="p">,</span>
+                <span class="n">activation_type</span><span class="o">=</span><span class="n">conformer_activation_type</span><span class="p">,</span>
+                <span class="n">use_cnn_module</span><span class="o">=</span><span class="n">use_cnn_in_conformer</span><span class="p">,</span>
+                <span class="n">cnn_module_kernel</span><span class="o">=</span><span class="n">conformer_dec_kernel_size</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">decoder_type</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># define final projection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">odim</span> <span class="o">*</span> <span class="n">reduction_factor</span><span class="p">)</span>
+
+        <span class="c1"># define postnet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">postnet_layers</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">else</span> <span class="n">Postnet</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span>
+                <span class="n">odim</span><span class="o">=</span><span class="n">odim</span><span class="p">,</span>
+                <span class="n">n_layers</span><span class="o">=</span><span class="n">postnet_layers</span><span class="p">,</span>
+                <span class="n">n_chans</span><span class="o">=</span><span class="n">postnet_chans</span><span class="p">,</span>
+                <span class="n">n_filts</span><span class="o">=</span><span class="n">postnet_filts</span><span class="p">,</span>
+                <span class="n">use_batch_norm</span><span class="o">=</span><span class="n">use_batch_norm</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">postnet_dropout_rate</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># initialize parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset_parameters</span><span class="p">(</span>
+            <span class="n">init_type</span><span class="o">=</span><span class="n">init_type</span><span class="p">,</span>
+            <span class="n">init_enc_alpha</span><span class="o">=</span><span class="n">init_enc_alpha</span><span class="p">,</span>
+            <span class="n">init_dec_alpha</span><span class="o">=</span><span class="n">init_dec_alpha</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># define criterions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">FastSpeech2Loss</span><span class="p">(</span>
+            <span class="n">use_masking</span><span class="o">=</span><span class="n">use_masking</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="n">use_weighted_masking</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="FastSpeech2.forward"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">durations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">durations_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">energy_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (LongTensor): Batch of padded token ids (B, Tmax).</span>
+<span class="sd">            text_lengths (LongTensor): Batch of lengths of each input (B,).</span>
+<span class="sd">            speech (Tensor): Batch of padded target features (B, Lmax, odim).</span>
+<span class="sd">            speech_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
+<span class="sd">            durations (LongTensor): Batch of padded durations (B, Tmax + 1).</span>
+<span class="sd">            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).</span>
+<span class="sd">            pitch (Tensor): Batch of padded token-averaged pitch (B, Tmax + 1, 1).</span>
+<span class="sd">            pitch_lengths (LongTensor): Batch of pitch lengths (B, Tmax + 1).</span>
+<span class="sd">            energy (Tensor): Batch of padded token-averaged energy (B, Tmax + 1, 1).</span>
+<span class="sd">            energy_lengths (LongTensor): Batch of energy lengths (B, Tmax + 1).</span>
+<span class="sd">            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Loss scalar value.</span>
+<span class="sd">            Dict: Statistics to be monitored.</span>
+<span class="sd">            Tensor: Weight value.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">durations</span> <span class="o">=</span> <span class="n">durations</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">durations_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">pitch</span> <span class="o">=</span> <span class="n">pitch</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">pitch_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">energy</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">energy_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Add eos at the last of sequence</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">text_lengths</span><span class="p">):</span>
+            <span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="n">text_lengths</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">energy</span>
+        <span class="n">olens</span> <span class="o">=</span> <span class="n">speech_lengths</span>
+
+        <span class="c1"># forward propagation</span>
+        <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
+            <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span> <span class="n">is_inference</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="c1"># modify mod part of groundtruth</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">olens</span> <span class="o">=</span> <span class="n">olens</span><span class="o">.</span><span class="n">new</span><span class="p">([</span><span class="n">olen</span> <span class="o">-</span> <span class="n">olen</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="k">for</span> <span class="n">olen</span> <span class="ow">in</span> <span class="n">olens</span><span class="p">])</span>
+            <span class="n">max_olen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_olen</span><span class="p">]</span>
+
+        <span class="c1"># calculate loss</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">after_outs</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># calculate loss</span>
+        <span class="n">l1_loss</span><span class="p">,</span> <span class="n">duration_loss</span><span class="p">,</span> <span class="n">pitch_loss</span><span class="p">,</span> <span class="n">energy_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span>
+            <span class="n">after_outs</span><span class="o">=</span><span class="n">after_outs</span><span class="p">,</span>
+            <span class="n">before_outs</span><span class="o">=</span><span class="n">before_outs</span><span class="p">,</span>
+            <span class="n">d_outs</span><span class="o">=</span><span class="n">d_outs</span><span class="p">,</span>
+            <span class="n">p_outs</span><span class="o">=</span><span class="n">p_outs</span><span class="p">,</span>
+            <span class="n">e_outs</span><span class="o">=</span><span class="n">e_outs</span><span class="p">,</span>
+            <span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span>
+            <span class="n">ds</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
+            <span class="n">ps</span><span class="o">=</span><span class="n">ps</span><span class="p">,</span>
+            <span class="n">es</span><span class="o">=</span><span class="n">es</span><span class="p">,</span>
+            <span class="n">ilens</span><span class="o">=</span><span class="n">ilens</span><span class="p">,</span>
+            <span class="n">olens</span><span class="o">=</span><span class="n">olens</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">l1_loss</span> <span class="o">+</span> <span class="n">duration_loss</span> <span class="o">+</span> <span class="n">pitch_loss</span> <span class="o">+</span> <span class="n">energy_loss</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">l1_loss</span><span class="o">=</span><span class="n">l1_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">duration_loss</span><span class="o">=</span><span class="n">duration_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">pitch_loss</span><span class="o">=</span><span class="n">pitch_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">energy_loss</span><span class="o">=</span><span class="n">energy_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># report extra information</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">encoder_alpha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">decoder_alpha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
+
+    <span class="k">def</span> <span class="nf">_forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">olens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">es</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="c1"># forward encoder</span>
+        <span class="n">x_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span>
+        <span class="n">hs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">x_masks</span><span class="p">)</span>  <span class="c1"># (B, Tmax, adim)</span>
+
+        <span class="c1"># integrate with GST</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gst</span><span class="p">:</span>
+            <span class="n">style_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gst</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">style_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># integrate speaker embedding</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integrate_with_spk_embed</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span><span class="p">)</span>
+
+        <span class="c1"># forward duration predictor and variance predictors</span>
+        <span class="n">d_masks</span> <span class="o">=</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_gradient_from_pitch_predictor</span><span class="p">:</span>
+            <span class="n">p_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_predictor</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">d_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_predictor</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_gradient_from_energy_predictor</span><span class="p">:</span>
+            <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_predictor</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">d_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_predictor</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">is_inference</span><span class="p">:</span>
+            <span class="n">d_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_predictor</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="p">)</span>  <span class="c1"># (B, Tmax)</span>
+            <span class="c1"># use prediction in inference</span>
+            <span class="n">p_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_embed</span><span class="p">(</span><span class="n">p_outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">e_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_embed</span><span class="p">(</span><span class="n">e_outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">e_embs</span> <span class="o">+</span> <span class="n">p_embs</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>  <span class="c1"># (B, Lmax, adim)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_predictor</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="p">)</span>
+            <span class="c1"># use groundtruth in training</span>
+            <span class="n">p_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_embed</span><span class="p">(</span><span class="n">ps</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">e_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_embed</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">e_embs</span> <span class="o">+</span> <span class="n">p_embs</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>  <span class="c1"># (B, Lmax, adim)</span>
+
+        <span class="c1"># forward decoder</span>
+        <span class="k">if</span> <span class="n">olens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_inference</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">olens_in</span> <span class="o">=</span> <span class="n">olens</span><span class="o">.</span><span class="n">new</span><span class="p">([</span><span class="n">olen</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="k">for</span> <span class="n">olen</span> <span class="ow">in</span> <span class="n">olens</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">olens_in</span> <span class="o">=</span> <span class="n">olens</span>
+            <span class="n">h_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_mask</span><span class="p">(</span><span class="n">olens_in</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">h_masks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># (B, Lmax, adim)</span>
+        <span class="n">before_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span>
+        <span class="p">)</span>  <span class="c1"># (B, Lmax, odim)</span>
+
+        <span class="c1"># postnet -&gt; (B, Lmax//r * r, odim)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">after_outs</span> <span class="o">=</span> <span class="n">before_outs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">after_outs</span> <span class="o">=</span> <span class="n">before_outs</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span><span class="p">(</span>
+                <span class="n">before_outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span>
+
+<div class="viewcode-block" id="FastSpeech2.inference"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">durations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (LongTensor): Input sequence of characters (T,).</span>
+<span class="sd">            speech (Tensor, optional): Feature sequence to extract style (N, idim).</span>
+<span class="sd">            spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).</span>
+<span class="sd">            durations (LongTensor, optional): Groundtruth of duration (T + 1,).</span>
+<span class="sd">            pitch (Tensor, optional): Groundtruth of token-averaged pitch (T + 1, 1).</span>
+<span class="sd">            energy (Tensor, optional): Groundtruth of token-averaged energy (T + 1, 1).</span>
+<span class="sd">            alpha (float, optional): Alpha to control the speed.</span>
+<span class="sd">            use_teacher_forcing (bool, optional): Whether to use teacher forcing.</span>
+<span class="sd">                If true, groundtruth of duration, pitch and energy will be used.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Output sequence of features (L, odim).</span>
+<span class="sd">            None: Dummy for compatibility.</span>
+<span class="sd">            None: Dummy for compatibility.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">text</span><span class="p">,</span> <span class="n">speech</span>
+        <span class="n">spemb</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">e</span> <span class="o">=</span> <span class="n">spembs</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">energy</span>
+
+        <span class="c1"># add eos at the last of sequence</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">)</span>
+
+        <span class="c1"># setup batch axis</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">spemb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">spembs</span> <span class="o">=</span> <span class="n">spemb</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_teacher_forcing</span><span class="p">:</span>
+            <span class="c1"># use groundtruth of duration, pitch, and energy</span>
+            <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">e</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
+                <span class="n">xs</span><span class="p">,</span>
+                <span class="n">ilens</span><span class="p">,</span>
+                <span class="n">ys</span><span class="p">,</span>
+                <span class="n">ds</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
+                <span class="n">ps</span><span class="o">=</span><span class="n">ps</span><span class="p">,</span>
+                <span class="n">es</span><span class="o">=</span><span class="n">es</span><span class="p">,</span>
+                <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+            <span class="p">)</span>  <span class="c1"># (1, L, odim)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
+                <span class="n">xs</span><span class="p">,</span>
+                <span class="n">ilens</span><span class="p">,</span>
+                <span class="n">ys</span><span class="p">,</span>
+                <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">is_inference</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+            <span class="p">)</span>  <span class="c1"># (1, L, odim)</span>
+
+        <span class="k">return</span> <span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).</span>
+<span class="sd">            spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
+            <span class="c1"># apply projection and then add to hidden states</span>
+            <span class="n">spembs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">spembs</span><span class="p">))</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">spembs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;concat&quot;</span><span class="p">:</span>
+            <span class="c1"># concat hidden states with spk embeds and then apply projection</span>
+            <span class="n">spembs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">spembs</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">hs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;support only add or concat.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hs</span>
+
+    <span class="k">def</span> <span class="nf">_source_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Make masks for self-attention.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ilens (LongTensor): Batch of lengths (B,).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Mask tensor for self-attention.</span>
+<span class="sd">                dtype=torch.uint8 in PyTorch 1.2-</span>
+<span class="sd">                dtype=torch.bool in PyTorch 1.2+ (including 1.2)</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; ilens = [5, 3]</span>
+<span class="sd">            &gt;&gt;&gt; self._source_mask(ilens)</span>
+<span class="sd">            tensor([[[1, 1, 1, 1, 1],</span>
+<span class="sd">                     [1, 1, 1, 0, 0]]], dtype=torch.uint8)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_reset_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">init_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">init_enc_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">init_dec_alpha</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">):</span>
+        <span class="c1"># initialize parameters</span>
+        <span class="k">if</span> <span class="n">init_type</span> <span class="o">!=</span> <span class="s2">&quot;pytorch&quot;</span><span class="p">:</span>
+            <span class="n">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_type</span><span class="p">)</span>
+
+        <span class="c1"># initialize alpha in scaled positional encoding</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_enc_alpha</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_dec_alpha</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FastSpeech2Loss"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2Loss">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2Loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Loss function module for FastSpeech2.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer loss module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            use_masking (bool):</span>
+<span class="sd">                Whether to apply masking for padded part in loss calculation.</span>
+<span class="sd">            use_weighted_masking (bool):</span>
+<span class="sd">                Whether to weighted masking in loss calculation.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">assert</span> <span class="p">(</span><span class="n">use_masking</span> <span class="o">!=</span> <span class="n">use_weighted_masking</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">use_masking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_masking</span> <span class="o">=</span> <span class="n">use_masking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_weighted_masking</span> <span class="o">=</span> <span class="n">use_weighted_masking</span>
+
+        <span class="c1"># define criterions</span>
+        <span class="n">reduction</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_weighted_masking</span> <span class="k">else</span> <span class="s2">&quot;mean&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l1_criterion</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mse_criterion</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration_criterion</span> <span class="o">=</span> <span class="n">DurationPredictorLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FastSpeech2Loss.forward"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2Loss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">after_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">before_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">d_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">p_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">e_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">es</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">olens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).</span>
+<span class="sd">            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).</span>
+<span class="sd">            d_outs (LongTensor): Batch of outputs of duration predictor (B, Tmax).</span>
+<span class="sd">            p_outs (Tensor): Batch of outputs of pitch predictor (B, Tmax, 1).</span>
+<span class="sd">            e_outs (Tensor): Batch of outputs of energy predictor (B, Tmax, 1).</span>
+<span class="sd">            ys (Tensor): Batch of target features (B, Lmax, odim).</span>
+<span class="sd">            ds (LongTensor): Batch of durations (B, Tmax).</span>
+<span class="sd">            ps (Tensor): Batch of target token-averaged pitch (B, Tmax, 1).</span>
+<span class="sd">            es (Tensor): Batch of target token-averaged energy (B, Tmax, 1).</span>
+<span class="sd">            ilens (LongTensor): Batch of the lengths of each input (B,).</span>
+<span class="sd">            olens (LongTensor): Batch of the lengths of each target (B,).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: L1 loss value.</span>
+<span class="sd">            Tensor: Duration predictor loss value.</span>
+<span class="sd">            Tensor: Pitch predictor loss value.</span>
+<span class="sd">            Tensor: Energy predictor loss value.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># apply mask to remove padded part</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_masking</span><span class="p">:</span>
+            <span class="n">out_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">before_outs</span> <span class="o">=</span> <span class="n">before_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">after_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">after_outs</span> <span class="o">=</span> <span class="n">after_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span>
+            <span class="n">duration_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">d_outs</span> <span class="o">=</span> <span class="n">d_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">duration_masks</span><span class="p">)</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">duration_masks</span><span class="p">)</span>
+            <span class="n">pitch_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">p_outs</span> <span class="o">=</span> <span class="n">p_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
+            <span class="n">e_outs</span> <span class="o">=</span> <span class="n">e_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
+            <span class="n">ps</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
+            <span class="n">es</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
+
+        <span class="c1"># calculate loss</span>
+        <span class="n">l1_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1_criterion</span><span class="p">(</span><span class="n">before_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">after_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">l1_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1_criterion</span><span class="p">(</span><span class="n">after_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
+        <span class="n">duration_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_criterion</span><span class="p">(</span><span class="n">d_outs</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
+        <span class="n">pitch_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mse_criterion</span><span class="p">(</span><span class="n">p_outs</span><span class="p">,</span> <span class="n">ps</span><span class="p">)</span>
+        <span class="n">energy_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mse_criterion</span><span class="p">(</span><span class="n">e_outs</span><span class="p">,</span> <span class="n">es</span><span class="p">)</span>
+
+        <span class="c1"># make weighted mask and apply it</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_weighted_masking</span><span class="p">:</span>
+            <span class="n">out_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">out_weights</span> <span class="o">=</span> <span class="n">out_masks</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="n">out_masks</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="n">out_weights</span> <span class="o">/=</span> <span class="n">ys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">ys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">duration_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">duration_weights</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">duration_masks</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="n">duration_masks</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">duration_weights</span> <span class="o">/=</span> <span class="n">ds</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># apply weight</span>
+            <span class="n">l1_loss</span> <span class="o">=</span> <span class="n">l1_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">out_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">duration_loss</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">duration_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">duration_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">duration_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">pitch_masks</span> <span class="o">=</span> <span class="n">duration_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">pitch_weights</span> <span class="o">=</span> <span class="n">duration_weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">pitch_loss</span> <span class="o">=</span> <span class="n">pitch_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">pitch_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">energy_loss</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">energy_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">pitch_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">l1_loss</span><span class="p">,</span> <span class="n">duration_loss</span><span class="p">,</span> <span class="n">pitch_loss</span><span class="p">,</span> <span class="n">energy_loss</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

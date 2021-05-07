@@ -1,0 +1,605 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Distributed training &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Speech Recognition (Recipe)" href="notebook/asr_cli.html" />
+    <link rel="prev" title="Task class and data input system for training" href="espnet2_task.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Distributed training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#single-node-with-4gpus-with-distributed-mode">Single node with 4GPUs with distributed mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#to-enable-sharded-training">To enable sharded training</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#host-and-2gpus-for-each-host-with-multiprocessing-distributed-mode">2Host and 2GPUs for each host with multiprocessing distributed mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#rank-and-world-size">RANK and WORLD_SIZE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#about-init-method">About init method</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#hosts-which-have-2gpus-and-1gpu-respectively">2Hosts which have 2GPUs and 1GPU respectively</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hosts-and-2gpus-for-each-node-using-slurm-with-multiprocessing-distributed">2Hosts and 2GPUs for each node using <code class="docutils literal notranslate"><span class="pre">Slurm</span></code> with multiprocessing distributed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpus-with-3nodes-using-slurm">5GPUs with 3nodes using <code class="docutils literal notranslate"><span class="pre">Slurm</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hosts-and-2gpus-for-each-node-using-mpi-with-multiprocessing-distributed">2Hosts and 2GPUs for each node using <code class="docutils literal notranslate"><span class="pre">MPI</span></code> with multiprocessing distributed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-launch"><code class="docutils literal notranslate"><span class="pre">espnet2.bin.launch</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting-for-nccl-with-ethernet-case">Troubleshooting for NCCL with Ethernet case</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-rules-of-nccl-socket-ifname">The rules of <code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Distributed training</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/espnet2_distributed.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="distributed-training">
+<h1>Distributed training<a class="headerlink" href="#distributed-training" title="Permalink to this headline">¶</a></h1>
+<p>ESPnet2 provides some kinds of data-parallel distributed training.</p>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th></th>
+<th>DP/DDP</th>
+<th>Single/Multi host</th>
+<th>Option</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multi-processing with single host</td>
+<td>DistributedDataParallel</td>
+<td>Single</td>
+<td>--ngpu <code>N-GPU</code> --multiprocessing_distributed true</td>
+</tr>
+<tr>
+<td>Multi-threading with single host</td>
+<td>DataParallel</td>
+<td>Single</td>
+<td>--ngpu <code>N-GPU</code> --multiprocessing_distributed false</td>
+</tr>
+<tr>
+<td>Multi-processing with <code>N-HOST</code> jobs with <code>N-GPU</code> for each host (=<code>N-HOST</code>x<code>N-GPU</code> nodes)</td>
+<td>DistributedDataParallel</td>
+<td>Multi</td>
+<td>--dist_world_size <code>N-HOST</code> --ngpu <code>N-GPU</code> --multiprocessing_distributed true</td>
+</tr>
+<tr>
+<td>Multi-threading with <code>N-HOST</code> jobs with <code>N-GPU</code> for each host (=<code>N-HOST</code>x<code>N-GPU</code> nodes)</td>
+<td>DistributedDataParallel</td>
+<td>Multi</td>
+<td>--dist_world_size <code>N-HOST</code> --ngpu <code>N-GPU</code> --multiprocessing_distributed false</td>
+</tr>
+<tr>
+<td><code>N-NODE</code> jobs with <code>1-GPU</code> for each node</td>
+<td>DistributedDataParallel</td>
+<td>Single/Multi</td>
+<td>--dist_world_size <code>N-NODE</code> --ngpu 1</td>
+</tr>
+</tbody>
+</table><div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="single-node-with-4gpus-with-distributed-mode">
+<h3>Single node with 4GPUs with distributed mode<a class="headerlink" href="#single-node-with-4gpus-with-distributed-mode" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% python -m espnet2.bin.asr_train --ngpu <span class="m">4</span> --multiprocessing_distributed <span class="nb">true</span>
+</pre></div>
+</div>
+<p>You can disable distributed mode and switch to threading based data parallel as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% python -m espnet2.bin.asr_train --ngpu <span class="m">4</span> --multiprocessing_distributed <span class="nb">false</span>
+</pre></div>
+</div>
+<p>If you meet some errors with distributed mode, please try single gpu mode or multi-GPUs with <code class="docutils literal notranslate"><span class="pre">--multiprocessing_distributed</span> <span class="pre">false</span></code> before reporting the issue.</p>
+</div>
+<div class="section" id="to-enable-sharded-training">
+<h3>To enable sharded training<a class="headerlink" href="#to-enable-sharded-training" title="Permalink to this headline">¶</a></h3>
+<p>We supports sharded training provided by <a class="reference external" href="https://github.com/facebookresearch/fairscale">fairscale</a></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% python -m espnet2.bin.asr_train --ngpu <span class="m">4</span> --multiprocessing_distributed <span class="nb">true</span> --sharded_ddp <span class="nb">true</span>
+</pre></div>
+</div>
+<p>Note that the other features of fairscale are not supported now.</p>
+</div>
+<div class="section" id="host-and-2gpus-for-each-host-with-multiprocessing-distributed-mode">
+<h3>2Host and 2GPUs for each host with multiprocessing distributed mode<a class="headerlink" href="#host-and-2gpus-for-each-host-with-multiprocessing-distributed-mode" title="Permalink to this headline">¶</a></h3>
+<p>Note that multiprocessing distributed mode assumes the same number of GPUs for each node.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>host1<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
+    --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
+    --ngpu <span class="m">2</span> <span class="se">\</span>
+    --dist_rank <span class="m">0</span>  <span class="se">\</span>
+    --dist_world_size <span class="m">2</span>  <span class="se">\</span>
+    --dist_master_addr host1  <span class="se">\</span>
+    --dist_master_port &lt;any-free-port&gt;
+<span class="o">(</span>host2<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
+    --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
+    --ngpu <span class="m">2</span> <span class="se">\</span>
+    --dist_rank <span class="m">1</span>  <span class="se">\</span>
+    --dist_world_size <span class="m">2</span>  <span class="se">\</span>
+    --dist_master_addr host1  <span class="se">\</span>
+    --dist_master_port &lt;any-free-port&gt;
+</pre></div>
+</div>
+<div class="section" id="rank-and-world-size">
+<h4>RANK and WORLD_SIZE<a class="headerlink" href="#rank-and-world-size" title="Permalink to this headline">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">--dist_rank</span></code> and <code class="docutils literal notranslate"><span class="pre">--dist_world_size</span></code> indicate <code class="docutils literal notranslate"><span class="pre">RANK</span></code> and <code class="docutils literal notranslate"><span class="pre">WORLD_SIZE</span></code> in terms of MPI;
+i.e., they indicate the id of each processe and the number of processes respectively.
+They can be also specified by the environment variables <code class="docutils literal notranslate"><span class="pre">${RANK}</span></code> and <code class="docutils literal notranslate"><span class="pre">${WORLD_SIZE}</span></code>.</p>
+</div>
+<div class="section" id="about-init-method">
+<h4>About init method<a class="headerlink" href="#about-init-method" title="Permalink to this headline">¶</a></h4>
+<p>See: https://pytorch.org/docs/stable/distributed.html#tcp-initialization</p>
+<p>There are two ways to initialize and <strong>these methods can be interchanged</strong> in all examples.</p>
+<ul>
+<li><p>TCP initialization</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># These three are equivalent:</span>
+--dist_master_addr &lt;rank0-host&gt; --dist_master_port &lt;any-free-port&gt;
+--dist_init_method <span class="s2">&quot;tcp://&lt;rank0-host&gt;:&lt;any-free-port&gt;&quot;</span>
+<span class="nb">export</span> <span class="nv">MASTER_ADDR</span><span class="o">=</span>&lt;rank0-host&gt; <span class="nv">MASTER_PORT</span><span class="o">=</span>&lt;any-free-port&gt;
+</pre></div>
+</div>
+</li>
+<li><p>Shared file system initialization</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--dist_init_method <span class="s2">&quot;file:///nfs/some/where/filename&quot;</span>
+</pre></div>
+</div>
+<p>This initialization might be failed if the previous file is existing. I recommend you to use a random file name to avoid to reuse it. e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="hosts-which-have-2gpus-and-1gpu-respectively">
+<h3>2Hosts which have 2GPUs and 1GPU respectively<a class="headerlink" href="#hosts-which-have-2gpus-and-1gpu-respectively" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>host1<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
+    --ngpu <span class="m">1</span> <span class="se">\</span>
+    --multiprocessing_distributed <span class="nb">false</span> <span class="se">\</span>
+    --dist_rank <span class="m">0</span>  <span class="se">\</span>
+    --dist_world_size <span class="m">3</span>  <span class="se">\</span>
+    --dist_master_addr host1  <span class="se">\</span>
+    --dist_master_port &lt;any-free-port&gt;
+<span class="o">(</span>host1<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
+    --ngpu <span class="m">1</span> <span class="se">\</span>
+    --multiprocessing_distributed <span class="nb">false</span> <span class="se">\</span>
+    --dist_rank <span class="m">1</span>  <span class="se">\</span>
+    --dist_world_size <span class="m">3</span>  <span class="se">\</span>
+    --dist_master_addr host1  <span class="se">\</span>
+    --dist_master_port &lt;any-free-port&gt;
+<span class="o">(</span>host2<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
+    --ngpu <span class="m">1</span> <span class="se">\</span>
+    --multiprocessing_distributed <span class="nb">false</span> <span class="se">\</span>
+    --dist_rank <span class="m">2</span>  <span class="se">\</span>
+    --dist_world_size <span class="m">3</span>  <span class="se">\</span>
+    --dist_master_addr host1  <span class="se">\</span>
+    --dist_master_port &lt;any-free-port&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="hosts-and-2gpus-for-each-node-using-slurm-with-multiprocessing-distributed">
+<h3>2Hosts and 2GPUs for each node using <code class="docutils literal notranslate"><span class="pre">Slurm</span></code> with multiprocessing distributed<a class="headerlink" href="#hosts-and-2gpus-for-each-node-using-slurm-with-multiprocessing-distributed" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span> % srun -c2 -N2 --gres gpu:2 <span class="se">\</span>
+    python -m espnet2.bin.asr_train --ngpu <span class="m">2</span> --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
+    --dist_launcher slurm <span class="se">\</span>
+    --dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>I recommend shared-file initialization in this case because the host will be determined after submitting the job, therefore we can’t tell the free port number before.</p>
+</div>
+<div class="section" id="gpus-with-3nodes-using-slurm">
+<h3>5GPUs with 3nodes using <code class="docutils literal notranslate"><span class="pre">Slurm</span></code><a class="headerlink" href="#gpus-with-3nodes-using-slurm" title="Permalink to this headline">¶</a></h3>
+<p>(Not tested)</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% srun -n5 -N3 --gpus-per-task <span class="m">1</span> <span class="se">\</span>
+    python -m espnet2.bin.asr_train --ngpu <span class="m">1</span> --multiprocessing_distributed <span class="nb">false</span>  <span class="se">\</span>
+    --dist_launcher slurm <span class="se">\</span>
+    --dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="hosts-and-2gpus-for-each-node-using-mpi-with-multiprocessing-distributed">
+<h3>2Hosts and 2GPUs for each node using <code class="docutils literal notranslate"><span class="pre">MPI</span></code> with multiprocessing distributed<a class="headerlink" href="#hosts-and-2gpus-for-each-node-using-mpi-with-multiprocessing-distributed" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span> % mpirun -np <span class="m">2</span> -host host1,host2 <span class="se">\</span>
+    python -m espnet2.bin.asr_train --ngpu <span class="m">2</span> --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
+    --dist_launcher mpi <span class="se">\</span>
+    --dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="espnet2-bin-launch">
+<h2><code class="docutils literal notranslate"><span class="pre">espnet2.bin.launch</span></code><a class="headerlink" href="#espnet2-bin-launch" title="Permalink to this headline">¶</a></h2>
+<p>Coming soon…</p>
+</div>
+<div class="section" id="troubleshooting-for-nccl-with-ethernet-case">
+<h2>Troubleshooting for NCCL with Ethernet case<a class="headerlink" href="#troubleshooting-for-nccl-with-ethernet-case" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">NCCL</span> <span class="pre">WARN</span> <span class="pre">Connect</span> <span class="pre">to</span> <span class="pre">192.168.1.51&lt;51890&gt;</span> <span class="pre">failed</span> <span class="pre">:</span> <span class="pre">No</span> <span class="pre">route</span> <span class="pre">to</span> <span class="pre">host</span></code></p>
+<ul>
+<li><p>Reason: Firewall?</p></li>
+<li><p>Need to free all ports?</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NCCL</span> <span class="pre">INFO</span> <span class="pre">Call</span> <span class="pre">to</span> <span class="pre">connect</span> <span class="pre">returned</span> <span class="pre">Connection</span> <span class="pre">refused,</span> <span class="pre">retrying</span></code></p>
+<ul>
+<li><p>Reason: NIC is found, but connection is refused?</p></li>
+<li><p>Set  <code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME=&lt;appropriate_interface&gt;</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NCCL</span> <span class="pre">WARN</span> <span class="pre">Bootstrap</span> <span class="pre">:</span> <span class="pre">no</span> <span class="pre">socket</span> <span class="pre">interface</span> <span class="pre">found</span></code></p>
+<ul>
+<li><p>Reason: Any NIC are not found . (Maybe NCCL_SOCKET_IFNAME is incorrect)</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME=&lt;appropriate_interface&gt;</span></code>.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NCCL</span> <span class="pre">WARN</span> <span class="pre">peer</span> <span class="pre">mapping</span> <span class="pre">resources</span> <span class="pre">exhausted</span></code></p>
+<ul>
+<li><p>???</p></li>
+<li><p>https://devtalk.nvidia.com/default/topic/970010/cuda-programming-and-performance/cuda-peer-resources-error-when-running-on-more-than-8-k80s-aws-p2-16xlarge-/post/4994583/#4994583</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="the-rules-of-nccl-socket-ifname">
+<h2>The rules of <code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME</span></code><a class="headerlink" href="#the-rules-of-nccl-socket-ifname" title="Permalink to this headline">¶</a></h2>
+<p>See: https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html</p>
+<ul class="simple">
+<li><p>The default value is  <code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME=^lo,docker</span></code>.</p></li>
+<li><p>Support two syntax: white list or black list</p></li>
+<li><p>White list e.g.: <code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME=eth,em</span></code></p>
+<ul>
+<li><p>It’s enough to specify the prefix only. You don’t need to set it as <code class="docutils literal notranslate"><span class="pre">eth0</span></code>.</p></li>
+</ul>
+</li>
+<li><p>Blacklist e.g.: <code class="docutils literal notranslate"><span class="pre">^virbr,lo,docker</span></code>.</p></li>
+<li><p>If multiple network interfaces are found in your environment, the first is selected.</p>
+<ul>
+<li><p>You can check your environment by <code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> for example. https://www.cyberciti.biz/faq/linux-list-network-interfaces-names-command/</p></li>
+<li><p>Note that <code class="docutils literal notranslate"><span class="pre">lo</span></code> is the first normally, so <code class="docutils literal notranslate"><span class="pre">lo</span></code> must be filtered.</p></li>
+</ul>
+</li>
+</ul>
+<p>My recommended setting for a non-virtual environment</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME=en,eth,em,bond</span></code></p></li>
+<li><p>Or, <code class="docutils literal notranslate"><span class="pre">NCCL_SOCKET_IFNAME=^lo,docker,virbr,vmnet,vboxnet,wl,ww,ppp</span></code></p></li>
+</ul>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th>The prefix of network interface name</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lo</td>
+<td>Loopback.</td>
+</tr>
+<tr>
+<td>eth</td>
+<td>Ethernet. Classically used.</td>
+</tr>
+<tr>
+<td>em</td>
+<td>Ethernet. Dell machine?</td>
+</tr>
+<tr>
+<td>en</td>
+<td>Ethernet (Used in recent Linux. e.g CentOS7)</td>
+</tr>
+<tr>
+<td>wlan</td>
+<td>Wireless</td>
+</tr>
+<tr>
+<td>wl</td>
+<td>Wireless LAN (Used in recent Linux)</td>
+</tr>
+<tr>
+<td>ww</td>
+<td>Wireless wan (Used in recent Linux)</td>
+</tr>
+<tr>
+<td>ib</td>
+<td>IP over IB</td>
+</tr>
+<tr>
+<td>bond</td>
+<td>Bonding of multiple ethernets</td>
+</tr>
+<tr>
+<td>virbr</td>
+<td>Virtual bridge</td>
+</tr>
+<tr>
+<td>docker,vmnet,vboxnet</td>
+<td>Virtual machine</td>
+</tr>
+<tr>
+<td>ppp</td>
+<td>Point to point</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="notebook/asr_cli.html" class="btn btn-neutral float-right" title="Speech Recognition (Recipe)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2_task.html" class="btn btn-neutral float-left" title="Task class and data input system for training" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

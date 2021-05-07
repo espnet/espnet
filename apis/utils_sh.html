@@ -1,0 +1,776 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>bash utility tools &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="python utility tools" href="utils_py.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils_py.html">python utility tools</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">bash utility tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#asr-align-wav-sh">asr_align_wav.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#clean-corpus-sh">clean_corpus.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#convert-fbank-sh">convert_fbank.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data2json-sh">data2json.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#download-from-google-drive-sh">download_from_google_drive.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dump-pcm-sh">dump_pcm.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dump-sh">dump.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#eval-source-separation-sh">eval_source_separation.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feat-to-shape-sh">feat_to_shape.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#generate-wav-sh">generate_wav.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#make-fbank-sh">make_fbank.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#make-stft-sh">make_stft.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pack-model-sh">pack_model.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#recog-wav-sh">recog_wav.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reduce-data-dir-sh">reduce_data_dir.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#remove-longshortdata-sh">remove_longshortdata.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#score-bleu-sh">score_bleu.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#score-sclite-case-sh">score_sclite_case.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#score-sclite-sh">score_sclite.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#score-sclite-wo-dict-sh">score_sclite_wo_dict.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#show-result-sh">show_result.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#speed-perturb-sh">speed_perturb.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#synth-wav-sh">synth_wav.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#translate-wav-sh">translate_wav.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trim-silence-sh">trim_silence.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#update-json-sh">update_json.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spm-decode">spm_decode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spm-encode">spm_encode</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>bash utility tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/apis/utils_sh.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="bash-utility-tools">
+<span id="id1"></span><h1>bash utility tools<a class="headerlink" href="#bash-utility-tools" title="Permalink to this headline">¶</a></h1>
+<p>ESPnet provides several command-line bash tools under <code class="docutils literal notranslate"><span class="pre">utils/</span></code></p>
+<div class="section" id="asr-align-wav-sh">
+<span id="id2"></span><h2>asr_align_wav.sh<a class="headerlink" href="#asr-align-wav-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>No help found.
+</pre></div>
+</div>
+</div>
+<div class="section" id="clean-corpus-sh">
+<span id="id3"></span><h2>clean_corpus.sh<a class="headerlink" href="#clean-corpus-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: clean_corpus.sh [options] &lt;data-dir&gt; &lt;langs&gt;
+e.g.: clean_corpus.sh data/train &quot;en de&quot;
+Options:
+  --maxframes        # number of maximum input frame length
+  --maxchars         # number of maximum character length
+  --utt_extra_files  # extra text files for target sequence
+  --no_feat          # set to True for MT recipe
+</pre></div>
+</div>
+</div>
+<div class="section" id="convert-fbank-sh">
+<span id="id4"></span><h2>convert_fbank.sh<a class="headerlink" href="#convert-fbank-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: convert_fbank.sh [options] &lt;data-dir&gt; [&lt;log-dir&gt; [&lt;fbank-dir&gt;] ]
+e.g.: convert_fbank.sh data/train exp/griffin_lim/train wav
+Note: &lt;log-dir&gt; defaults to &lt;data-dir&gt;/log, and &lt;fbank-dir&gt; defaults to &lt;data-dir&gt;/data
+Options:
+  --nj &lt;nj&gt;                  # number of parallel jobs
+  --fs &lt;fs&gt;                  # sampling rate
+  --fmax &lt;fmax&gt;              # maximum frequency
+  --fmin &lt;fmin&gt;              # minimum frequency
+  --n_fft &lt;n_fft&gt;            # number of FFT points (default=1024)
+  --n_shift &lt;n_shift&gt;        # shift size in point (default=256)
+  --win_length &lt;win_length&gt;  # window length in point (default=)
+  --n_mels &lt;n_mels&gt;          # number of mel basis (default=80)
+  --iters &lt;iters&gt;            # number of Griffin-lim iterations (default=64)
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+</pre></div>
+</div>
+</div>
+<div class="section" id="data2json-sh">
+<span id="id5"></span><h2>data2json.sh<a class="headerlink" href="#data2json-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: data2json.sh &lt;data-dir&gt; &lt;dict&gt;
+e.g. data2json.sh data/train data/lang_1char/train_units.txt
+Options:
+  --nj &lt;nj&gt;                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+  --feat &lt;feat-scp&gt;                                # feat.scp or feat1.scp,feat2.scp,...
+  --oov &lt;oov-word&gt;                                 # Default: &lt;unk&gt;
+  --out &lt;outputfile&gt;                               # If omitted, write in stdout
+  --filetype &lt;mat|hdf5|sound.hdf5&gt;                 # Specify the format of feats file
+  --preprocess-conf &lt;json&gt;                         # Apply preprocess to feats when creating shape.scp
+  --verbose &lt;num&gt;                                  # Default: 0
+</pre></div>
+</div>
+</div>
+<div class="section" id="download-from-google-drive-sh">
+<span id="id6"></span><h2>download_from_google_drive.sh<a class="headerlink" href="#download-from-google-drive-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: download_from_google_drive.sh &lt;share-url&gt; [&lt;download_dir&gt; &lt;file_ext&gt;]
+e.g.: download_from_google_drive.sh https://drive.google.com/open?id=1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg downloads zip
+Options:
+    &lt;download_dir&gt;: directory to save downloaded file. (Default=downloads)
+    &lt;file_ext&gt;: file extension of the file to be downloaded. (Default=zip)
+</pre></div>
+</div>
+</div>
+<div class="section" id="dump-pcm-sh">
+<span id="id7"></span><h2>dump_pcm.sh<a class="headerlink" href="#dump-pcm-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: dump_pcm.sh [options] &lt;data-dir&gt; [&lt;log-dir&gt; [&lt;pcm-dir&gt;] ]
+e.g.: dump_pcm.sh data/train exp/dump_pcm/train pcm
+Note: &lt;log-dir&gt; defaults to &lt;data-dir&gt;/log, and &lt;pcm-dir&gt; defaults to &lt;data-dir&gt;/data
+Options:
+  --nj &lt;nj&gt;                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+  --write-utt2num-frames &lt;true|false&gt;     # If true, write utt2num_frames file.
+  --filetype &lt;mat|hdf5|sound.hdf5&gt;                 # Specify the format of feats file
+</pre></div>
+</div>
+</div>
+<div class="section" id="dump-sh">
+<span id="id8"></span><h2>dump.sh<a class="headerlink" href="#dump-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: dump.sh &lt;scp&gt; &lt;cmvnark&gt; &lt;logdir&gt; &lt;dumpdir&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="eval-source-separation-sh">
+<span id="id9"></span><h2>eval_source_separation.sh<a class="headerlink" href="#eval-source-separation-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: eval_source_separation.sh reffiles enffiles &lt;dir&gt;
+    e.g. eval_source_separation.sh reference.scp enhanced.scp outdir
+
+And also supporting multiple sources:
+    e.g. eval_source_separation.sh &quot;ref1.scp,ref2.scp&quot; &quot;enh1.scp,enh2.scp&quot; outdir
+
+Options:
+  --nj &lt;nj&gt;                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+</pre></div>
+</div>
+</div>
+<div class="section" id="feat-to-shape-sh">
+<span id="id10"></span><h2>feat_to_shape.sh<a class="headerlink" href="#feat-to-shape-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: feat_to_shape.sh [options] &lt;input-scp&gt; &lt;output-scp&gt; [&lt;log-dir&gt;]
+e.g.: feat_to_shape.sh data/train/feats.scp data/train/shape.scp data/train/log
+Options:
+  --nj &lt;nj&gt;                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+  --filetype &lt;mat|hdf5|sound.hdf5&gt;                 # Specify the format of feats file
+  --preprocess-conf &lt;json&gt;                         # Apply preprocess to feats when creating shape.scp
+  --verbose &lt;num&gt;                                  # Default: 0
+</pre></div>
+</div>
+</div>
+<div class="section" id="generate-wav-sh">
+<span id="id11"></span><h2>generate_wav.sh<a class="headerlink" href="#generate-wav-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage:
+  generate_wav.sh [options] &lt;model-path&gt; &lt;data-dir&gt; [&lt;log-dir&gt; [&lt;fbank-dir&gt;] ]
+Example:
+  generate_wav.sh ljspeech.wavenet.ns.v1/checkpoint-1000000.pkl data/train exp/wavenet_vocoder/train wav
+Note:
+  &lt;log-dir&gt; defaults to &lt;data-dir&gt;/log, and &lt;fbank-dir&gt; defaults to &lt;data-dir&gt;/data
+Options:
+  --nj &lt;nj&gt;             # number of parallel jobs
+  --fs &lt;fs&gt;             # sampling rate (default=22050)
+  --n_fft &lt;n_fft&gt;       # number of FFT points (default=1024)
+  --n_shift &lt;n_shift&gt;   # shift size in point (default=256)
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+</pre></div>
+</div>
+</div>
+<div class="section" id="make-fbank-sh">
+<span id="id12"></span><h2>make_fbank.sh<a class="headerlink" href="#make-fbank-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: make_fbank.sh [options] &lt;data-dir&gt; [&lt;log-dir&gt; [&lt;fbank-dir&gt;] ]
+e.g.: make_fbank.sh data/train exp/make_fbank/train mfcc
+Note: &lt;log-dir&gt; defaults to &lt;data-dir&gt;/log, and &lt;fbank-dir&gt; defaults to &lt;data-dir&gt;/data
+Options:
+  --nj &lt;nj&gt;                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+  --filetype &lt;mat|hdf5|sound.hdf5&gt;                 # Specify the format of feats file
+</pre></div>
+</div>
+</div>
+<div class="section" id="make-stft-sh">
+<span id="id13"></span><h2>make_stft.sh<a class="headerlink" href="#make-stft-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: make_stft.sh [options] &lt;data-dir&gt; [&lt;log-dir&gt; [&lt;stft-dir&gt;] ]
+e.g.: make_stft.sh data/train exp/make_stft/train stft
+Note: &lt;log-dir&gt; defaults to &lt;data-dir&gt;/log, and &lt;stft-dir&gt; defaults to &lt;data-dir&gt;/data
+Options:
+  --nj &lt;nj&gt;                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl &lt;queue opts&gt;) # how to run jobs.
+  --filetype &lt;mat|hdf5|sound.hdf5&gt;                 # Specify the format of feats file
+</pre></div>
+</div>
+</div>
+<div class="section" id="pack-model-sh">
+<span id="id14"></span><h2>pack_model.sh<a class="headerlink" href="#pack-model-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: pack_model.sh --lm &lt;lm&gt; --dict &lt;dict&gt; &lt;tr_conf&gt; &lt;dec_conf&gt; &lt;cmvn&gt; &lt;e2e&gt;, for example:
+&lt;lm&gt;:       exp/train_rnnlm/rnnlm.model.best
+&lt;dict&gt;:     data/lang_char
+&lt;tr_conf&gt;:  conf/train.yaml
+&lt;dec_conf&gt;: conf/decode.yaml
+&lt;cmvn&gt;:     data/tr_it/cmvn.ark
+&lt;e2e&gt;:      exp/tr_it_pytorch_train/results/model.last10.avg.best
+</pre></div>
+</div>
+</div>
+<div class="section" id="recog-wav-sh">
+<span id="id15"></span><h2>recog_wav.sh<a class="headerlink" href="#recog-wav-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage:
+    recog_wav.sh [options] &lt;wav_file&gt;
+
+Options:
+    --backend &lt;chainer|pytorch&gt;     # chainer or pytorch (Default: pytorch)
+    --ngpu &lt;ngpu&gt;                   # Number of GPUs (Default: 0)
+    --decode_dir &lt;directory_name&gt;   # Name of directory to store decoding temporary data
+    --models &lt;model_name&gt;           # Model name (e.g. tedlium2.transformer.v1)
+    --cmvn &lt;path&gt;                   # Location of cmvn.ark
+    --lang_model &lt;path&gt;             # Location of language model
+    --recog_model &lt;path&gt;            # Location of E2E model
+    --decode_config &lt;path&gt;          # Location of configuration file
+    --api &lt;api_version&gt;             # API version (v1 or v2, available in only pytorch backend)
+
+Example:
+    # Record audio from microphone input as example.wav
+    rec -c 1 -r 16000 example.wav trim 0 5
+
+    # Decode using model name
+    recog_wav.sh --models tedlium2.transformer.v1 example.wav
+
+    # Decode with streaming mode (only RNN with API v1 is supported)
+    recog_wav.sh --models tedlium2.rnn.v2 --api v1 example.wav
+
+    # Decode using model file
+    recog_wav.sh --cmvn cmvn.ark --lang_model rnnlm.model.best --recog_model model.acc.best --decode_config conf/decode.yaml example.wav
+
+    # Decode with GPU (require batchsize &gt; 0 in configuration file)
+    recog_wav.sh --ngpu 1 example.wav
+
+Available models:
+    - tedlium2.rnn.v1
+    - tedlium2.rnn.v2
+    - tedlium2.transformer.v1
+    - tedlium3.transformer.v1
+    - librispeech.transformer.v1
+    - librispeech.transformer.v1.transformerlm.v1
+    - commonvoice.transformer.v1
+    - csj.transformer.v1
+</pre></div>
+</div>
+</div>
+<div class="section" id="reduce-data-dir-sh">
+<span id="id16"></span><h2>reduce_data_dir.sh<a class="headerlink" href="#reduce-data-dir-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: reduce_data_dir.sh srcdir turnlist destdir
+</pre></div>
+</div>
+</div>
+<div class="section" id="remove-longshortdata-sh">
+<span id="id17"></span><h2>remove_longshortdata.sh<a class="headerlink" href="#remove-longshortdata-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: remove_longshortdata.sh olddatadir newdatadir
+</pre></div>
+</div>
+</div>
+<div class="section" id="score-bleu-sh">
+<span id="id18"></span><h2>score_bleu.sh<a class="headerlink" href="#score-bleu-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>No help found.
+</pre></div>
+</div>
+</div>
+<div class="section" id="score-sclite-case-sh">
+<span id="id19"></span><h2>score_sclite_case.sh<a class="headerlink" href="#score-sclite-case-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>No help found.
+</pre></div>
+</div>
+</div>
+<div class="section" id="score-sclite-sh">
+<span id="id20"></span><h2>score_sclite.sh<a class="headerlink" href="#score-sclite-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: score_sclite.sh &lt;data-dir&gt; &lt;dict&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="score-sclite-wo-dict-sh">
+<span id="id21"></span><h2>score_sclite_wo_dict.sh<a class="headerlink" href="#score-sclite-wo-dict-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: score_sclite_wo_dict.sh &lt;data-dir&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="show-result-sh">
+<span id="id22"></span><h2>show_result.sh<a class="headerlink" href="#show-result-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>No help found.
+</pre></div>
+</div>
+</div>
+<div class="section" id="speed-perturb-sh">
+<span id="id23"></span><h2>speed_perturb.sh<a class="headerlink" href="#speed-perturb-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: speed_perturb.sh [options] &lt;data-dir&gt; &lt;destination-dir&gt; &lt;fbankdir&gt;
+e.g.: speed_perturb.sh data/train en de
+Options:
+  --cases                              # target case information (e.g., lc.rm, lc, tc)
+  --speeds                             # speed used in speed perturbation (e.g., 0.9. 1.0, 1.1)
+  --langs                              # all languages (source + target)
+  --write_utt2num_frames               # write utt2num_frames in steps/make_fbank_pitch.sh
+  --cmd &lt;run.pl|queue.pl &lt;queue opts&gt;&gt; # how to run jobs
+  --nj &lt;nj&gt;                            # number of parallel jobs
+</pre></div>
+</div>
+</div>
+<div class="section" id="synth-wav-sh">
+<span id="id24"></span><h2>synth_wav.sh<a class="headerlink" href="#synth-wav-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage:
+    $ synth_wav.sh &lt;text&gt;
+
+Note:
+    This code does not include text frontend part. Please clean the input
+    text manually. Also, you need to modify feature configuration according
+    to the model. Default setting is for ljspeech models, so if you want to
+    use other pretrained models, please modify the parameters by yourself.
+    For our provided models, you can find them in the tables at
+    https://github.com/espnet/espnet#tts-demo.
+    If you are beginner, instead of this script, I strongly recommend trying
+    the following colab notebook at first, which includes all of the procedure
+    from text frontend, feature generation, and waveform generation.
+    https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb
+
+Example:
+    # make text file and then generate it
+    # (for the default model, ljspeech, we use upper-case char sequence as the input)
+    echo &quot;THIS IS A DEMONSTRATION OF TEXT TO SPEECH.&quot; &gt; example.txt
+    synth_wav.sh example.txt
+
+    # also you can use multiple text
+    echo &quot;THIS IS A DEMONSTRATION OF TEXT TO SPEECH.&quot; &gt; example.txt
+    echo &quot;TEXT TO SPEECH IS A TECHQNIQUE TO CONVERT TEXT INTO SPEECH.&quot; &gt;&gt; example.txt
+    synth_wav.sh example.txt
+
+    # you can specify the pretrained models
+    synth_wav.sh --models ljspeech.transformer.v3 example.txt
+
+    # also you can specify vocoder model
+    synth_wav.sh --vocoder_models ljspeech.wavenet.mol.v2 example.txt
+
+Available models:
+    - ljspeech.tacotron2.v1
+    - ljspeech.tacotron2.v2
+    - ljspeech.tacotron2.v3
+    - ljspeech.transformer.v1
+    - ljspeech.transformer.v2
+    - ljspeech.transformer.v3
+    - ljspeech.fastspeech.v1
+    - ljspeech.fastspeech.v2
+    - ljspeech.fastspeech.v3
+    - libritts.tacotron2.v1
+    - libritts.transformer.v1
+    - jsut.transformer.v1
+    - jsut.tacotron2.v1
+    - csmsc.transformer.v1
+    - csmsc.fastspeech.v3
+
+Available vocoder models:
+    - ljspeech.wavenet.softmax.ns.v1
+    - ljspeech.wavenet.mol.v1
+    - ljspeech.parallel_wavegan.v1
+    - libritts.wavenet.mol.v1
+    - jsut.wavenet.mol.v1
+    - jsut.parallel_wavegan.v1
+    - csmsc.wavenet.mol.v1
+    - csmsc.parallel_wavegan.v1
+
+Model details:
+    | Model name              | Lang | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Input type |
+    | ----------------------- | ---- | ------- | -------------- | ---------------------- | ---------- |
+    | ljspeech.tacotron2.v1   | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.tacotron2.v2   | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.tacotron2.v3   | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.transformer.v1 | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.transformer.v2 | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.transformer.v3 | EN   | 22.05k  | None           | 1024 / 256 / None      | phn        |
+    | ljspeech.fastspeech.v1  | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.fastspeech.v2  | EN   | 22.05k  | None           | 1024 / 256 / None      | char       |
+    | ljspeech.fastspeech.v3  | EN   | 22.05k  | None           | 1024 / 256 / None      | phn        |
+    | libritts.tacotron2.v1   | EN   | 24k     | 80-7600        | 1024 / 256 / None      | char       |
+    | libritts.transformer.v1 | EN   | 24k     | 80-7600        | 1024 / 256 / None      | char       |
+    | jsut.tacotron2          | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | phn        |
+    | jsut.transformer        | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | phn        |
+    | csmsc.transformer.v1    | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin     |
+    | csmsc.fastspeech.v3     | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | pinyin     |
+
+Vocoder model details:
+    | Model name                     | Lang | Fs [Hz] | Mel range [Hz] | FFT / Shift / Win [pt] | Model type       |
+    | ------------------------------ | ---- | ------- | -------------- | ---------------------- | ---------------- |
+    | ljspeech.wavenet.softmax.ns.v1 | EN   | 22.05k  | None           | 1024 / 256 / None      | Softmax WaveNet  |
+    | ljspeech.wavenet.mol.v1        | EN   | 22.05k  | None           | 1024 / 256 / None      | MoL WaveNet      |
+    | ljspeech.parallel_wavegan.v1   | EN   | 22.05k  | None           | 1024 / 256 / None      | Parallel WaveGAN |
+    | libritts.wavenet.mol.v1        | EN   | 24k     | None           | 1024 / 256 / None      | MoL WaveNet      |
+    | jsut.wavenet.mol.v1            | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | MoL WaveNet      |
+    | jsut.parallel_wavegan.v1       | JP   | 24k     | 80-7600        | 2048 / 300 / 1200      | Parallel WaveGAN |
+    | csmsc.wavenet.mol.v1           | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | MoL WaveNet      |
+    | csmsc.parallel_wavegan.v1      | ZH   | 24k     | 80-7600        | 2048 / 300 / 1200      | Parallel WaveGAN |
+</pre></div>
+</div>
+</div>
+<div class="section" id="translate-wav-sh">
+<span id="id25"></span><h2>translate_wav.sh<a class="headerlink" href="#translate-wav-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage:
+    translate_wav.sh [options] &lt;wav_file&gt;
+
+Options:
+    --ngpu &lt;ngpu&gt;                   # Number of GPUs (Default: 0)
+    --decode_dir &lt;directory_name&gt;   # Name of directory to store decoding temporary data
+    --models &lt;model_name&gt;           # Model name (e.g. must_c.transformer.v1.en-fr)
+    --cmvn &lt;path&gt;                   # Location of cmvn.ark
+    --trans_model &lt;path&gt;            # Location of E2E model
+    --decode_config &lt;path&gt;          # Location of configuration file
+    --api &lt;api_version&gt;             # API version (v1 or v2)
+
+Example:
+    # Record audio from microphone input as example.wav
+    rec -c 1 -r 16000 example.wav trim 0 5
+
+    # Decode using model name
+    translate_wav.sh --models must_c.transformer.v1.en-fr example.wav
+
+    # Decode using model file
+    translate_wav.sh --cmvn cmvn.ark --trans_model model.acc.best --decode_config conf/decode.yaml example.wav
+
+    # Decode with GPU (require batchsize &gt; 0 in configuration file)
+    translate_wav.sh --ngpu 1 example.wav
+
+Available models:
+    - must_c.transformer.v1.en-fr
+    - fisher_callhome_spanish.transformer.v1.es-en
+</pre></div>
+</div>
+</div>
+<div class="section" id="trim-silence-sh">
+<span id="id26"></span><h2>trim_silence.sh<a class="headerlink" href="#trim-silence-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: trim_silence.sh [options] &lt;data-dir&gt; &lt;log-dir&gt;
+e.g.: trim_silence.sh data/train exp/trim_silence/train
+Options:
+  --fs &lt;fs&gt;                      # sampling frequency (default=16000)
+  --win_length &lt;win_length&gt;      # window length in point (default=1024)
+  --shift_length &lt;shift_length&gt;  # shift length in point (default=256)
+  --threshold &lt;threshold&gt;        # power threshold in db (default=60)
+  --min_silence &lt;sec&gt;            # minimum silence lenght in sec (default=0.01)
+  --normalize &lt;bit&gt;              # audio bit (default=16)
+  --cmd &lt;cmd&gt;                    # how to run jobs (default=run.pl)
+  --nj &lt;nj&gt;                      # number of parallel jobs (default=32)
+</pre></div>
+</div>
+</div>
+<div class="section" id="update-json-sh">
+<span id="id27"></span><h2>update_json.sh<a class="headerlink" href="#update-json-sh" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Usage: update_json.sh &lt;json&gt; &lt;data-dir&gt; &lt;dict&gt;
+e.g. update_json.sh data/train data/lang_1char/train_units.txt
+Options:
+  --oov &lt;oov-word&gt;                                 # Default: &lt;unk&gt;
+  --verbose &lt;num&gt;                                  # Default: 0
+</pre></div>
+</div>
+</div>
+<div class="section" id="spm-decode">
+<span id="id28"></span><h2>spm_decode<a class="headerlink" href="#spm-decode" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: spm_decode [-h] --model MODEL [--input INPUT]
+                  [--input_format {piece,id}]
+
+optional arguments:
+  --model MODEL         sentencepiece model to use for decoding
+  --input INPUT         input file to decode
+  --input_format {piece,id}
+</pre></div>
+</div>
+</div>
+<div class="section" id="spm-encode">
+<span id="id29"></span><h2>spm_encode<a class="headerlink" href="#spm-encode" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: spm_encode [-h] --model MODEL [--inputs INPUTS [INPUTS ...]]
+                  [--outputs OUTPUTS [OUTPUTS ...]]
+                  [--output_format {piece,id}] [--min-len N] [--max-len N]
+
+optional arguments:
+  --model MODEL         sentencepiece model to use for encoding
+  --inputs INPUTS [INPUTS ...]
+                        input files to filter/encode
+  --outputs OUTPUTS [OUTPUTS ...]
+                        path to save encoded outputs
+  --output_format {piece,id}
+  --min-len N           filter sentence pairs with fewer than N tokens
+  --max-len N           filter sentence pairs with more than N tokens
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="utils_py.html" class="btn btn-neutral float-left" title="python utility tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

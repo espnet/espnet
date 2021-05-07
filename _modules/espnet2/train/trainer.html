@@ -1,0 +1,1039 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.train.trainer &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet2.train.trainer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet2.train.trainer</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">is_dataclass</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">humanfriendly</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+
+<span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
+<span class="kn">from</span> <span class="nn">espnet2.main_funcs.average_nbest_models</span> <span class="kn">import</span> <span class="n">average_nbest_models</span>
+<span class="kn">from</span> <span class="nn">espnet2.main_funcs.calculate_all_attentions</span> <span class="kn">import</span> <span class="n">calculate_all_attentions</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.abs_scheduler</span> <span class="kn">import</span> <span class="n">AbsBatchStepScheduler</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.abs_scheduler</span> <span class="kn">import</span> <span class="n">AbsEpochStepScheduler</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.abs_scheduler</span> <span class="kn">import</span> <span class="n">AbsScheduler</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.abs_scheduler</span> <span class="kn">import</span> <span class="n">AbsValEpochStepScheduler</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.add_gradient_noise</span> <span class="kn">import</span> <span class="n">add_gradient_noise</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.recursive_op</span> <span class="kn">import</span> <span class="n">recursive_average</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.distributed_utils</span> <span class="kn">import</span> <span class="n">DistributedOption</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">Reporter</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">SubReporter</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.build_dataclass</span> <span class="kn">import</span> <span class="n">build_dataclass</span>
+
+<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.1.0&quot;</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">tensorboardX</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.0.1&quot;</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">torch.distributed</span> <span class="kn">import</span> <span class="n">ReduceOp</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">torch.distributed</span> <span class="kn">import</span> <span class="n">reduce_op</span> <span class="k">as</span> <span class="n">ReduceOp</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">ReduceOp</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.6.0&quot;</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">autocast</span>
+    <span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">GradScaler</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Nothing to do if torch&lt;1.6.0</span>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">yield</span>
+
+    <span class="n">GradScaler</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">fairscale</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">fairscale</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="TrainerOptions"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.TrainerOptions">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="k">class</span> <span class="nc">TrainerOptions</span><span class="p">:</span>
+    <span class="n">ngpu</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">resume</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">use_amp</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">train_dtype</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">grad_noise</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">accum_grad</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">grad_clip</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">grad_clip_type</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">log_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">no_forward_run</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">use_tensorboard</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">use_wandb</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">max_epoch</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">sharded_ddp</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">patience</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">keep_nbest_models</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span>
+    <span class="n">early_stopping_criterion</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">best_model_criterion</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+    <span class="n">val_scheduler_criterion</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">unused_parameters</span><span class="p">:</span> <span class="nb">bool</span></div>
+
+
+<div class="viewcode-block" id="Trainer"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer">[docs]</a><span class="k">class</span> <span class="nc">Trainer</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Trainer having a optimizer.</span>
+
+<span class="sd">    If you&#39;d like to use multiple optimizers, then inherit this class</span>
+<span class="sd">    and override the methods if necessary - at least &quot;train_one_epoch()&quot;</span>
+
+<span class="sd">    &gt;&gt;&gt; class TwoOptimizerTrainer(Trainer):</span>
+<span class="sd">    ...     @classmethod</span>
+<span class="sd">    ...     def add_arguments(cls, parser):</span>
+<span class="sd">    ...         ...</span>
+<span class="sd">    ...</span>
+<span class="sd">    ...     @classmethod</span>
+<span class="sd">    ...     def train_one_epoch(cls, model, optimizers, ...):</span>
+<span class="sd">    ...         loss1 = model.model1(...)</span>
+<span class="sd">    ...         loss1.backward()</span>
+<span class="sd">    ...         optimizers[0].step()</span>
+<span class="sd">    ...</span>
+<span class="sd">    ...         loss2 = model.model2(...)</span>
+<span class="sd">    ...         loss2.backward()</span>
+<span class="sd">    ...         optimizers[1].step()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;This class can&#39;t be instantiated.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Trainer.build_options"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer.build_options">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TrainerOptions</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Build options consumed by train(), eval(), and plot_attention()&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">build_dataclass</span><span class="p">(</span><span class="n">TrainerOptions</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trainer.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reserved for future development of another Trainer&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Trainer.resume"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer.resume">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">resume</span><span class="p">(</span>
+        <span class="n">checkpoint</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="n">Reporter</span><span class="p">,</span>
+        <span class="n">optimizers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+        <span class="n">schedulers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">AbsScheduler</span><span class="p">]],</span>
+        <span class="n">scaler</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GradScaler</span><span class="p">],</span>
+        <span class="n">ngpu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">checkpoint</span><span class="p">,</span>
+            <span class="n">map_location</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;cuda:</span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+        <span class="n">reporter</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="s2">&quot;reporter&quot;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">optimizers</span><span class="p">,</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;optimizers&quot;</span><span class="p">]):</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">scheduler</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">schedulers</span><span class="p">,</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;schedulers&quot;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">scheduler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">scheduler</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;scaler&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;scaler state is not found&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">scaler</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="s2">&quot;scaler&quot;</span><span class="p">])</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The training was resumed using </span><span class="si">{</span><span class="n">checkpoint</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trainer.run"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer.run">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">AbsESPnetModel</span><span class="p">,</span>
+        <span class="n">optimizers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+        <span class="n">schedulers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">AbsScheduler</span><span class="p">]],</span>
+        <span class="n">train_iter_factory</span><span class="p">:</span> <span class="n">AbsIterFactory</span><span class="p">,</span>
+        <span class="n">valid_iter_factory</span><span class="p">:</span> <span class="n">AbsIterFactory</span><span class="p">,</span>
+        <span class="n">plot_attention_iter_factory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsIterFactory</span><span class="p">],</span>
+        <span class="n">trainer_options</span><span class="p">,</span>
+        <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Perform training. This method performs the main process of training.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="c1"># NOTE(kamo): Don&#39;t check the type more strictly as far trainer_options</span>
+        <span class="k">assert</span> <span class="n">is_dataclass</span><span class="p">(</span><span class="n">trainer_options</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">trainer_options</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">optimizers</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">schedulers</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">optimizers</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">schedulers</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">keep_nbest_models</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">keep_nbest_models</span> <span class="o">=</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">keep_nbest_models</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">keep_nbest_models</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No keep_nbest_models is given. Change to [1]&quot;</span><span class="p">)</span>
+                <span class="n">trainer_options</span><span class="o">.</span><span class="n">keep_nbest_models</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">keep_nbest_models</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">keep_nbest_models</span><span class="p">)</span>
+
+        <span class="n">output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_amp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.6.0&quot;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Require torch&gt;=1.6.0 for  Automatic Mixed Precision&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">sharded_ddp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fairscale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="s2">&quot;Requiring fairscale. Do &#39;pip install fairscale&#39;&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">scaler</span> <span class="o">=</span> <span class="n">fairscale</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">grad_scaler</span><span class="o">.</span><span class="n">ShardedGradScaler</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">scaler</span> <span class="o">=</span> <span class="n">GradScaler</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">scaler</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">resume</span> <span class="ow">and</span> <span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;checkpoint.pth&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span>
+                <span class="n">checkpoint</span><span class="o">=</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;checkpoint.pth&quot;</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">optimizers</span><span class="o">=</span><span class="n">optimizers</span><span class="p">,</span>
+                <span class="n">schedulers</span><span class="o">=</span><span class="n">schedulers</span><span class="p">,</span>
+                <span class="n">reporter</span><span class="o">=</span><span class="n">reporter</span><span class="p">,</span>
+                <span class="n">scaler</span><span class="o">=</span><span class="n">scaler</span><span class="p">,</span>
+                <span class="n">ngpu</span><span class="o">=</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">ngpu</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">start_epoch</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">get_epoch</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">start_epoch</span> <span class="o">==</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">max_epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The training has already reached at max_epoch: </span><span class="si">{</span><span class="n">start_epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">sharded_ddp</span><span class="p">:</span>
+                <span class="n">dp_model</span> <span class="o">=</span> <span class="n">fairscale</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">data_parallel</span><span class="o">.</span><span class="n">ShardedDataParallel</span><span class="p">(</span>
+                    <span class="n">module</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                    <span class="n">sharded_optimizer</span><span class="o">=</span><span class="n">optimizers</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dp_model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">DistributedDataParallel</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="n">device_ids</span><span class="o">=</span><span class="p">(</span>
+                        <span class="c1"># Perform multi-Process with multi-GPUs</span>
+                        <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">()]</span>
+                        <span class="k">if</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">==</span> <span class="mi">1</span>
+                        <span class="c1"># Perform single-Process with multi-GPUs</span>
+                        <span class="k">else</span> <span class="kc">None</span>
+                    <span class="p">),</span>
+                    <span class="n">output_device</span><span class="o">=</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">==</span> <span class="mi">1</span>
+                        <span class="k">else</span> <span class="kc">None</span>
+                    <span class="p">),</span>
+                    <span class="n">find_unused_parameters</span><span class="o">=</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">unused_parameters</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">dp_model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">DataParallel</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="n">device_ids</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">distributed_option</span><span class="o">.</span><span class="n">ngpu</span><span class="p">)),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># NOTE(kamo): DataParallel also should work with ngpu=1,</span>
+            <span class="c1"># but for debuggability it&#39;s better to keep this block.</span>
+            <span class="n">dp_model</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_tensorboard</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span> <span class="ow">or</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">dist_rank</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="n">summary_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;tensorboard&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">iepoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">max_epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">iepoch</span> <span class="o">!=</span> <span class="n">start_epoch</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">epoch started. Estimated time to finish: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">iepoch</span><span class="p">,</span>
+                        <span class="n">trainer_options</span><span class="o">.</span><span class="n">max_epoch</span><span class="p">,</span>
+                        <span class="n">humanfriendly</span><span class="o">.</span><span class="n">format_timespan</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+                            <span class="o">/</span> <span class="p">(</span><span class="n">iepoch</span> <span class="o">-</span> <span class="n">start_epoch</span><span class="p">)</span>
+                            <span class="o">*</span> <span class="p">(</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">max_epoch</span> <span class="o">-</span> <span class="n">iepoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iepoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">max_epoch</span><span class="si">}</span><span class="s2">epoch started&quot;</span><span class="p">)</span>
+            <span class="n">set_all_random_seed</span><span class="p">(</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">seed</span> <span class="o">+</span> <span class="n">iepoch</span><span class="p">)</span>
+
+            <span class="n">reporter</span><span class="o">.</span><span class="n">set_epoch</span><span class="p">(</span><span class="n">iepoch</span><span class="p">)</span>
+            <span class="c1"># 1. Train and validation for one-epoch</span>
+            <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sub_reporter</span><span class="p">:</span>
+                <span class="n">all_steps_are_invalid</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">train_one_epoch</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="n">dp_model</span><span class="p">,</span>
+                    <span class="n">optimizers</span><span class="o">=</span><span class="n">optimizers</span><span class="p">,</span>
+                    <span class="n">schedulers</span><span class="o">=</span><span class="n">schedulers</span><span class="p">,</span>
+                    <span class="n">iterator</span><span class="o">=</span><span class="n">train_iter_factory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">iepoch</span><span class="p">),</span>
+                    <span class="n">reporter</span><span class="o">=</span><span class="n">sub_reporter</span><span class="p">,</span>
+                    <span class="n">scaler</span><span class="o">=</span><span class="n">scaler</span><span class="p">,</span>
+                    <span class="n">summary_writer</span><span class="o">=</span><span class="n">summary_writer</span><span class="p">,</span>
+                    <span class="n">options</span><span class="o">=</span><span class="n">trainer_options</span><span class="p">,</span>
+                    <span class="n">distributed_option</span><span class="o">=</span><span class="n">distributed_option</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;valid&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sub_reporter</span><span class="p">:</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">validate_one_epoch</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="n">dp_model</span><span class="p">,</span>
+                    <span class="n">iterator</span><span class="o">=</span><span class="n">valid_iter_factory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">iepoch</span><span class="p">),</span>
+                    <span class="n">reporter</span><span class="o">=</span><span class="n">sub_reporter</span><span class="p">,</span>
+                    <span class="n">options</span><span class="o">=</span><span class="n">trainer_options</span><span class="p">,</span>
+                    <span class="n">distributed_option</span><span class="o">=</span><span class="n">distributed_option</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span> <span class="ow">or</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">dist_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># att_plot doesn&#39;t support distributed</span>
+                <span class="k">if</span> <span class="n">plot_attention_iter_factory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;att_plot&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sub_reporter</span><span class="p">:</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">plot_attention</span><span class="p">(</span>
+                            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                            <span class="n">output_dir</span><span class="o">=</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;att_ws&quot;</span><span class="p">,</span>
+                            <span class="n">summary_writer</span><span class="o">=</span><span class="n">summary_writer</span><span class="p">,</span>
+                            <span class="n">iterator</span><span class="o">=</span><span class="n">plot_attention_iter_factory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">iepoch</span><span class="p">),</span>
+                            <span class="n">reporter</span><span class="o">=</span><span class="n">sub_reporter</span><span class="p">,</span>
+                            <span class="n">options</span><span class="o">=</span><span class="n">trainer_options</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+            <span class="c1"># 2. LR Scheduler step</span>
+            <span class="k">for</span> <span class="n">scheduler</span> <span class="ow">in</span> <span class="n">schedulers</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">AbsValEpochStepScheduler</span><span class="p">):</span>
+                    <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                        <span class="n">reporter</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="o">*</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">val_scheduler_criterion</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">AbsEpochStepScheduler</span><span class="p">):</span>
+                    <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">sharded_ddp</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">optimizer</span> <span class="ow">in</span> <span class="n">optimizers</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">fairscale</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">oss</span><span class="o">.</span><span class="n">OSS</span><span class="p">):</span>
+                        <span class="n">optimizer</span><span class="o">.</span><span class="n">consolidate_state_dict</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span> <span class="ow">or</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">dist_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># 3. Report the results</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">reporter</span><span class="o">.</span><span class="n">log_message</span><span class="p">())</span>
+                <span class="n">reporter</span><span class="o">.</span><span class="n">matplotlib_plot</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">summary_writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">reporter</span><span class="o">.</span><span class="n">tensorboard_add_scalar</span><span class="p">(</span><span class="n">summary_writer</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_wandb</span><span class="p">:</span>
+                    <span class="n">reporter</span><span class="o">.</span><span class="n">wandb_log</span><span class="p">()</span>
+
+                <span class="c1"># 4. Save/Update the checkpoint</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+                        <span class="s2">&quot;reporter&quot;</span><span class="p">:</span> <span class="n">reporter</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+                        <span class="s2">&quot;optimizers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">optimizers</span><span class="p">],</span>
+                        <span class="s2">&quot;schedulers&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="n">s</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">schedulers</span>
+                        <span class="p">],</span>
+                        <span class="s2">&quot;scaler&quot;</span><span class="p">:</span> <span class="n">scaler</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span> <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="p">},</span>
+                    <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;checkpoint.pth&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="c1"># 5. Save the model and update the link to the best model</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iepoch</span><span class="si">}</span><span class="s2">epoch.pth&quot;</span><span class="p">)</span>
+
+                <span class="c1"># Creates a sym link latest.pth -&gt; {iepoch}epoch.pth</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;latest.pth&quot;</span>
+                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_symlink</span><span class="p">()</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">symlink_to</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iepoch</span><span class="si">}</span><span class="s2">epoch.pth&quot;</span><span class="p">)</span>
+
+                <span class="n">_improved</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">_phase</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">_mode</span> <span class="ow">in</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">best_model_criterion</span><span class="p">:</span>
+                    <span class="c1"># e.g. _phase, k, _mode = &quot;train&quot;, &quot;loss&quot;, &quot;min&quot;</span>
+                    <span class="k">if</span> <span class="n">reporter</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="n">_phase</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                        <span class="n">best_epoch</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">get_best_epoch</span><span class="p">(</span><span class="n">_phase</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">_mode</span><span class="p">)</span>
+                        <span class="c1"># Creates sym links if it&#39;s the best result</span>
+                        <span class="k">if</span> <span class="n">best_epoch</span> <span class="o">==</span> <span class="n">iepoch</span><span class="p">:</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_phase</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">.best.pth&quot;</span>
+                            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_symlink</span><span class="p">()</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                                <span class="n">p</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+                            <span class="n">p</span><span class="o">.</span><span class="n">symlink_to</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iepoch</span><span class="si">}</span><span class="s2">epoch.pth&quot;</span><span class="p">)</span>
+                            <span class="n">_improved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_phase</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_improved</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;There are no improvements in this epoch&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;The best model has been updated: &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_improved</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># 6. Remove the model files excluding n-best epoch and latest epoch</span>
+                <span class="n">_removed</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="c1"># Get the union set of the n-best among multiple criterion</span>
+                <span class="n">nbests</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
+                    <span class="o">*</span><span class="p">[</span>
+                        <span class="nb">set</span><span class="p">(</span><span class="n">reporter</span><span class="o">.</span><span class="n">sort_epochs</span><span class="p">(</span><span class="n">ph</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">m</span><span class="p">)[:</span><span class="n">keep_nbest_models</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">ph</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">best_model_criterion</span>
+                        <span class="k">if</span> <span class="n">reporter</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="n">ph</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">iepoch</span><span class="p">):</span>
+                    <span class="n">p</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">epoch.pth&quot;</span>
+                    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">e</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">nbests</span><span class="p">:</span>
+                        <span class="n">p</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+                        <span class="n">_removed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_removed</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;The model files were removed: &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_removed</span><span class="p">))</span>
+
+            <span class="c1"># 7. If any updating haven&#39;t happened, stops the training</span>
+            <span class="k">if</span> <span class="n">all_steps_are_invalid</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The gradients at all steps are invalid in this epoch. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Something seems wrong. This training was stopped at </span><span class="si">{</span><span class="n">iepoch</span><span class="si">}</span><span class="s2">epoch&quot;</span>
+                <span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="c1"># 8. Check early stopping</span>
+            <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">patience</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">reporter</span><span class="o">.</span><span class="n">check_early_stopping</span><span class="p">(</span>
+                    <span class="n">trainer_options</span><span class="o">.</span><span class="n">patience</span><span class="p">,</span> <span class="o">*</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">early_stopping_criterion</span>
+                <span class="p">):</span>
+                    <span class="k">break</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The training was finished at </span><span class="si">{</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">max_epoch</span><span class="si">}</span><span class="s2"> epochs &quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span> <span class="ow">or</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">dist_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Generated n-best averaged model</span>
+            <span class="n">average_nbest_models</span><span class="p">(</span>
+                <span class="n">reporter</span><span class="o">=</span><span class="n">reporter</span><span class="p">,</span>
+                <span class="n">output_dir</span><span class="o">=</span><span class="n">output_dir</span><span class="p">,</span>
+                <span class="n">best_model_criterion</span><span class="o">=</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">best_model_criterion</span><span class="p">,</span>
+                <span class="n">nbest</span><span class="o">=</span><span class="n">keep_nbest_models</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trainer.train_one_epoch"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer.train_one_epoch">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">train_one_epoch</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">iterator</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
+        <span class="n">optimizers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+        <span class="n">schedulers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">AbsScheduler</span><span class="p">]],</span>
+        <span class="n">scaler</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GradScaler</span><span class="p">],</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="n">SubReporter</span><span class="p">,</span>
+        <span class="n">summary_writer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SummaryWriter</span><span class="p">],</span>
+        <span class="n">options</span><span class="p">:</span> <span class="n">TrainerOptions</span><span class="p">,</span>
+        <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="n">grad_noise</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">grad_noise</span>
+        <span class="n">accum_grad</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">accum_grad</span>
+        <span class="n">grad_clip</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">grad_clip</span>
+        <span class="n">grad_clip_type</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">grad_clip_type</span>
+        <span class="n">log_interval</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">log_interval</span>
+        <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>
+        <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
+        <span class="n">use_wandb</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">use_wandb</span>
+        <span class="n">distributed</span> <span class="o">=</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span>
+
+        <span class="k">if</span> <span class="n">log_interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">log_interval</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span> <span class="o">//</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">log_interval</span> <span class="o">=</span> <span class="mi">100</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="n">all_steps_are_invalid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># [For distributed] Because iteration counts are not always equals between</span>
+        <span class="c1"># processes, send stop-flag to the other processes if iterator is finished</span>
+        <span class="n">iterator_stop</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">iiter</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">measure_iter_time</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="s2">&quot;iter_time&quot;</span><span class="p">),</span> <span class="mi">1</span>
+        <span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">iterator_stop</span><span class="p">,</span> <span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">iterator_stop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">no_forward_run</span><span class="p">:</span>
+                <span class="n">all_steps_are_invalid</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">continue</span>
+
+            <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">measure_time</span><span class="p">(</span><span class="s2">&quot;forward_time&quot;</span><span class="p">):</span>
+                    <span class="n">retval</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+
+                    <span class="c1"># Note(kamo):</span>
+                    <span class="c1"># Supporting two patterns for the returned value from the model</span>
+                    <span class="c1">#   a. dict type</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                        <span class="n">loss</span> <span class="o">=</span> <span class="n">retval</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span>
+                        <span class="n">stats</span> <span class="o">=</span> <span class="n">retval</span><span class="p">[</span><span class="s2">&quot;stats&quot;</span><span class="p">]</span>
+                        <span class="n">weight</span> <span class="o">=</span> <span class="n">retval</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>
+                        <span class="n">optim_idx</span> <span class="o">=</span> <span class="n">retval</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;optim_idx&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">optim_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optim_idx</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optim_idx</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                                    <span class="s2">&quot;optim_idx must be int or 1dim torch.Tensor, &quot;</span>
+                                    <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">optim_idx</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                                <span class="p">)</span>
+                            <span class="k">if</span> <span class="n">optim_idx</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                                    <span class="s2">&quot;optim_idx must be int or 1dim torch.Tensor, &quot;</span>
+                                    <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="n">optim_idx</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span><span class="si">}</span><span class="s2">dim tensor&quot;</span>
+                                <span class="p">)</span>
+                            <span class="k">if</span> <span class="n">optim_idx</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">optim_idx</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">optim_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                                            <span class="s2">&quot;optim_idx must be 1dim tensor &quot;</span>
+                                            <span class="s2">&quot;having same values for all entries&quot;</span>
+                                        <span class="p">)</span>
+                                <span class="n">optim_idx</span> <span class="o">=</span> <span class="n">optim_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">optim_idx</span> <span class="o">=</span> <span class="n">optim_idx</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+                    <span class="c1">#   b. tuple or list type</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">retval</span>
+                        <span class="n">optim_idx</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+                <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">distributed</span><span class="p">:</span>
+                    <span class="c1"># Apply weighted averaging for loss and stats</span>
+                    <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">loss</span> <span class="o">*</span> <span class="n">weight</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+                    <span class="c1"># if distributed, this method can also apply all_reduce()</span>
+                    <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">recursive_average</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">distributed</span><span class="p">)</span>
+
+                    <span class="c1"># Now weight is summation over all workers</span>
+                    <span class="n">loss</span> <span class="o">/=</span> <span class="n">weight</span>
+                <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
+                    <span class="c1"># NOTE(kamo): Multiply world_size because DistributedDataParallel</span>
+                    <span class="c1"># automatically normalizes the gradient by world_size.</span>
+                    <span class="n">loss</span> <span class="o">*=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+
+                <span class="n">loss</span> <span class="o">/=</span> <span class="n">accum_grad</span>
+
+            <span class="n">reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">measure_time</span><span class="p">(</span><span class="s2">&quot;backward_time&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Scales loss.  Calls backward() on scaled loss</span>
+                    <span class="c1"># to create scaled gradients.</span>
+                    <span class="c1"># Backward passes under autocast are not recommended.</span>
+                    <span class="c1"># Backward ops run in the same dtype autocast chose</span>
+                    <span class="c1"># for corresponding forward ops.</span>
+                    <span class="n">scaler</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">iiter</span> <span class="o">%</span> <span class="n">accum_grad</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Unscales the gradients of optimizer&#39;s assigned params in-place</span>
+                    <span class="k">for</span> <span class="n">iopt</span><span class="p">,</span> <span class="n">optimizer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optimizers</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">optim_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">iopt</span> <span class="o">!=</span> <span class="n">optim_idx</span><span class="p">:</span>
+                            <span class="k">continue</span>
+                        <span class="n">scaler</span><span class="o">.</span><span class="n">unscale_</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+
+                <span class="c1"># gradient noise injection</span>
+                <span class="k">if</span> <span class="n">grad_noise</span><span class="p">:</span>
+                    <span class="n">add_gradient_noise</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="n">reporter</span><span class="o">.</span><span class="n">get_total_count</span><span class="p">(),</span>
+                        <span class="n">duration</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                        <span class="n">eta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                        <span class="n">scale_factor</span><span class="o">=</span><span class="mf">0.55</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># compute the gradient norm to check if it is normal or not</span>
+                <span class="n">grad_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+                    <span class="n">max_norm</span><span class="o">=</span><span class="n">grad_clip</span><span class="p">,</span>
+                    <span class="n">norm_type</span><span class="o">=</span><span class="n">grad_clip_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="c1"># PyTorch&lt;=1.4, clip_grad_norm_ returns float value</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad_norm</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                    <span class="n">grad_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">grad_norm</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">grad_norm</span><span class="p">):</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;The grad norm is </span><span class="si">{</span><span class="n">grad_norm</span><span class="si">}</span><span class="s2">. Skipping updating the model.&quot;</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># Must invoke scaler.update() if unscale_() is used in the iteration</span>
+                    <span class="c1"># to avoid the following error:</span>
+                    <span class="c1">#   RuntimeError: unscale_() has already been called</span>
+                    <span class="c1">#   on this optimizer since the last update().</span>
+                    <span class="c1"># Note that if the gradient has inf/nan values,</span>
+                    <span class="c1"># scaler.step skips optimizer.step().</span>
+                    <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">iopt</span><span class="p">,</span> <span class="n">optimizer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optimizers</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">optim_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">iopt</span> <span class="o">!=</span> <span class="n">optim_idx</span><span class="p">:</span>
+                                <span class="k">continue</span>
+                            <span class="n">scaler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+                            <span class="n">scaler</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">all_steps_are_invalid</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">measure_time</span><span class="p">(</span><span class="s2">&quot;optim_step_time&quot;</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">iopt</span><span class="p">,</span> <span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                            <span class="nb">zip</span><span class="p">(</span><span class="n">optimizers</span><span class="p">,</span> <span class="n">schedulers</span><span class="p">)</span>
+                        <span class="p">):</span>
+                            <span class="k">if</span> <span class="n">optim_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">iopt</span> <span class="o">!=</span> <span class="n">optim_idx</span><span class="p">:</span>
+                                <span class="k">continue</span>
+                            <span class="k">if</span> <span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="c1"># scaler.step() first unscales the gradients of</span>
+                                <span class="c1"># the optimizer&#39;s assigned params.</span>
+                                <span class="n">scaler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+                                <span class="c1"># Updates the scale for next iteration.</span>
+                                <span class="n">scaler</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">AbsBatchStepScheduler</span><span class="p">):</span>
+                                <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+                            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+
+                <span class="c1"># Register lr and train/load time[sec/step],</span>
+                <span class="c1"># where step refers to accum_grad * mini-batch</span>
+                <span class="n">reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+                    <span class="nb">dict</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="sa">f</span><span class="s2">&quot;optim</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">_lr</span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">pg</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span>
+                            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">optimizer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optimizers</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">pg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="s2">&quot;lr&quot;</span> <span class="ow">in</span> <span class="n">pg</span>
+                        <span class="p">},</span>
+                        <span class="n">train_time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+            <span class="c1"># NOTE(kamo): Call log_message() after next()</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">iiter</span> <span class="o">%</span> <span class="n">log_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">reporter</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="o">-</span><span class="n">log_interval</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">summary_writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">reporter</span><span class="o">.</span><span class="n">tensorboard_add_scalar</span><span class="p">(</span><span class="n">summary_writer</span><span class="p">,</span> <span class="o">-</span><span class="n">log_interval</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">use_wandb</span><span class="p">:</span>
+                    <span class="n">reporter</span><span class="o">.</span><span class="n">wandb_log</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
+                <span class="n">iterator_stop</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">iterator_stop</span><span class="p">,</span> <span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">all_steps_are_invalid</span></div>
+
+<div class="viewcode-block" id="Trainer.validate_one_epoch"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer.validate_one_epoch">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">validate_one_epoch</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">iterator</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="n">SubReporter</span><span class="p">,</span>
+        <span class="n">options</span><span class="p">:</span> <span class="n">TrainerOptions</span><span class="p">,</span>
+        <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
+        <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>
+        <span class="n">distributed</span> <span class="o">=</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="c1"># [For distributed] Because iteration counts are not always equals between</span>
+        <span class="c1"># processes, send stop-flag to the other processes if iterator is finished</span>
+        <span class="n">iterator_stop</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">iterator_stop</span><span class="p">,</span> <span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">iterator_stop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">no_forward_run</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">retval</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">stats</span> <span class="o">=</span> <span class="n">retval</span><span class="p">[</span><span class="s2">&quot;stats&quot;</span><span class="p">]</span>
+                <span class="n">weight</span> <span class="o">=</span> <span class="n">retval</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">retval</span>
+            <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">distributed</span><span class="p">:</span>
+                <span class="c1"># Apply weighted averaging for stats.</span>
+                <span class="c1"># if distributed, this method can also apply all_reduce()</span>
+                <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">recursive_average</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">distributed</span><span class="p">)</span>
+
+            <span class="n">reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
+                <span class="n">iterator_stop</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">iterator_stop</span><span class="p">,</span> <span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trainer.plot_attention"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.abs_task.Trainer.plot_attention">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">plot_attention</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span>
+        <span class="n">summary_writer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SummaryWriter</span><span class="p">],</span>
+        <span class="n">iterator</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="n">SubReporter</span><span class="p">,</span>
+        <span class="n">options</span><span class="p">:</span> <span class="n">TrainerOptions</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="kn">import</span> <span class="nn">matplotlib</span>
+
+        <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
+        <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>
+
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="kn">from</span> <span class="nn">matplotlib.ticker</span> <span class="kn">import</span> <span class="n">MaxNLocator</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ids</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">values</span><span class="p">()))),</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">no_forward_run</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># 1. Forwarding model and gathering all attentions</span>
+            <span class="c1">#    calculate_all_attentions() uses single gpu only.</span>
+            <span class="n">att_dict</span> <span class="o">=</span> <span class="n">calculate_all_attentions</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+
+            <span class="c1"># 2. Plot attentions: This part is slow due to matplotlib</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">att_list</span> <span class="ow">in</span> <span class="n">att_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">att_list</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">id_</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">att_list</span><span class="p">):</span>
+
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                        <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+                    <span class="k">if</span> <span class="n">att_w</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">att_w</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="ow">or</span> <span class="n">att_w</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Must be 2 or 3 dimension: </span><span class="si">{</span><span class="n">att_w</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                    <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="p">))</span>
+                    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="mf">1.3</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">1.3</span><span class="p">))</span>
+                    <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">axes</span><span class="p">]</span>
+
+                    <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">aw</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">aw</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">id_</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Input&quot;</span><span class="p">)</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Output&quot;</span><span class="p">)</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+                    <span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">p</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="n">id_</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">reporter</span><span class="o">.</span><span class="n">get_epoch</span><span class="p">()</span><span class="si">}</span><span class="s2">ep.png&quot;</span>
+                        <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">summary_writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">summary_writer</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">id_</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">reporter</span><span class="o">.</span><span class="n">get_epoch</span><span class="p">()</span>
+                        <span class="p">)</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">next</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,921 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.enh.espnet_model &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet2.enh.espnet_model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet2.enh.espnet_model</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+
+<span class="kn">from</span> <span class="nn">espnet2.enh.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.encoder.conv_encoder</span> <span class="kn">import</span> <span class="n">ConvEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.separator.abs_separator</span> <span class="kn">import</span> <span class="n">AbsSeparator</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+
+
+<span class="n">is_torch_1_3_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.3.0&quot;</span><span class="p">)</span>
+<span class="n">ALL_LOSS_TYPES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="c1"># mse_loss(predicted_mask, target_label)</span>
+    <span class="s2">&quot;mask_mse&quot;</span><span class="p">,</span>
+    <span class="c1"># mse_loss(enhanced_magnitude_spectrum, target_magnitude_spectrum)</span>
+    <span class="s2">&quot;magnitude&quot;</span><span class="p">,</span>
+    <span class="c1"># mse_loss(enhanced_complex_spectrum, target_complex_spectrum)</span>
+    <span class="s2">&quot;spectrum&quot;</span><span class="p">,</span>
+    <span class="c1"># log_mse_loss(enhanced_complex_spectrum, target_complex_spectrum)</span>
+    <span class="s2">&quot;spectrum_log&quot;</span><span class="p">,</span>
+    <span class="c1"># si_snr(enhanced_waveform, target_waveform)</span>
+    <span class="s2">&quot;si_snr&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span><span class="o">.</span><span class="n">eps</span>
+
+
+<div class="viewcode-block" id="ESPnetEnhancementModel"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetEnhancementModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Speech enhancement or separation Frontend model&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
+        <span class="n">separator</span><span class="p">:</span> <span class="n">AbsSeparator</span><span class="p">,</span>
+        <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
+        <span class="n">stft_consistency</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mask_mse&quot;</span><span class="p">,</span>
+        <span class="n">mask_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">separator</span> <span class="o">=</span> <span class="n">separator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">separator</span><span class="o">.</span><span class="n">num_spk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;num_noise_type&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">loss_type</span> <span class="o">!=</span> <span class="s2">&quot;si_snr&quot;</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">ConvEncoder</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">loss_type</span><span class="si">}</span><span class="s2"> is not supported with </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ConvEncoder</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># get mask type for TF-domain models (only used when loss_type=&quot;mask_*&quot;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">=</span> <span class="n">mask_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="n">mask_type</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="c1"># get loss type for model training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">=</span> <span class="n">loss_type</span>
+        <span class="c1"># whether to compute the TF-domain loss while enforcing STFT consistency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stft_consistency</span> <span class="o">=</span> <span class="n">stft_consistency</span>
+
+        <span class="k">if</span> <span class="n">stft_consistency</span> <span class="ow">and</span> <span class="n">loss_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mask_mse&quot;</span><span class="p">,</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;stft_consistency will not work when &#39;</span><span class="si">{</span><span class="n">loss_type</span><span class="si">}</span><span class="s2">&#39; loss is used&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="ow">in</span> <span class="n">ALL_LOSS_TYPES</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span>
+        <span class="c1"># for multi-channel signal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;ref_channel&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_create_mask_label</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">,</span> <span class="n">ref_spec</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IAM&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create mask label.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mix_spec: ComplexTensor(B, T, F)</span>
+<span class="sd">            ref_spec: List[ComplexTensor(B, T, F), ...]</span>
+<span class="sd">            mask_type: str</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            labels: List[Tensor(B, T, F), ...] or List[ComplexTensor(B, T, F), ...]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Must be upper case</span>
+        <span class="k">assert</span> <span class="n">mask_type</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="s2">&quot;IBM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;IRM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;IAM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;PSM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;NPSM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;PSM^2&quot;</span><span class="p">,</span>
+        <span class="p">],</span> <span class="sa">f</span><span class="s2">&quot;mask type </span><span class="si">{</span><span class="n">mask_type</span><span class="si">}</span><span class="s2"> not supported&quot;</span>
+        <span class="n">mask_label</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;IBM&quot;</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">]</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="n">flags</span><span class="p">)</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;IRM&quot;</span><span class="p">:</span>
+                <span class="c1"># TODO(Wangyou): need to fix this,</span>
+                <span class="c1">#  as noise referecens are provided separately</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(([</span><span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">]))</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;IAM&quot;</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;PSM&quot;</span> <span class="ow">or</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;NPSM&quot;</span><span class="p">:</span>
+                <span class="n">phase_r</span> <span class="o">=</span> <span class="n">r</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+                <span class="n">phase_mix</span> <span class="o">=</span> <span class="n">mix_spec</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+                <span class="c1"># cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)</span>
+                <span class="n">cos_theta</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">phase_r</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">phase_mix</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="n">phase_r</span><span class="o">.</span><span class="n">imag</span> <span class="o">*</span> <span class="n">phase_mix</span><span class="o">.</span><span class="n">imag</span>
+                <span class="p">)</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">))</span> <span class="o">*</span> <span class="n">cos_theta</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">mask</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;NPSM&quot;</span>
+                    <span class="k">else</span> <span class="n">mask</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;PSM^2&quot;</span><span class="p">:</span>
+                <span class="c1"># This is for training beamforming masks</span>
+                <span class="n">phase_r</span> <span class="o">=</span> <span class="n">r</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+                <span class="n">phase_mix</span> <span class="o">=</span> <span class="n">mix_spec</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+                <span class="c1"># cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)</span>
+                <span class="n">cos_theta</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">phase_r</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">phase_mix</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="n">phase_r</span><span class="o">.</span><span class="n">imag</span> <span class="o">*</span> <span class="n">phase_mix</span><span class="o">.</span><span class="n">imag</span>
+                <span class="p">)</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">))</span> <span class="o">*</span> <span class="n">cos_theta</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mask type </span><span class="si">{</span><span class="n">mask_type</span><span class="si">}</span><span class="s2"> not supported&quot;</span>
+            <span class="n">mask_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mask_label</span>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech_mix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_mix_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            speech_mix: (Batch, samples) or (Batch, samples, channels)</span>
+<span class="sd">            speech_ref: (Batch, num_speaker, samples)</span>
+<span class="sd">                        or (Batch, num_speaker, samples, channels)</span>
+<span class="sd">            speech_mix_lengths: (Batch,), default None for chunk interator,</span>
+<span class="sd">                            because the chunk-iterator does not have the</span>
+<span class="sd">                            speech_lengths returned. see in</span>
+<span class="sd">                            espnet2/iterators/chunk_iter_factory.py</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># clean speech signal of each speaker</span>
+        <span class="n">speech_ref</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;speech_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="c1"># (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)</span>
+        <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;noise_ref1&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="c1"># noise signal (optional, required when using</span>
+            <span class="c1"># frontend models with beamformering)</span>
+            <span class="n">noise_ref</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;noise_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="c1"># (Batch, num_noise_type, samples) or</span>
+            <span class="c1"># (Batch, num_noise_type, samples, channels)</span>
+            <span class="n">noise_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">noise_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">noise_ref</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># dereverberated (noisy) signal</span>
+        <span class="c1"># (optional, only used for frontend models with WPE)</span>
+        <span class="k">if</span> <span class="s2">&quot;dereverb_ref1&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="c1"># noise signal (optional, required when using</span>
+            <span class="c1"># frontend models with beamformering)</span>
+            <span class="n">dereverb_speech_ref</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kwargs</span>
+            <span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="n">dereverb_speech_ref</span>
+            <span class="p">)</span>
+            <span class="c1"># (Batch, N, samples) or (Batch, N, samples, channels)</span>
+            <span class="n">dereverb_speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dereverb_speech_ref</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">speech_lengths</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">speech_mix_lengths</span>
+            <span class="k">if</span> <span class="n">speech_mix_lengths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="n">speech_mix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1"># Check that batch_size is unified</span>
+        <span class="k">assert</span> <span class="n">speech_mix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">speech_ref</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span>
+            <span class="n">speech_mix</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">speech_ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># for data-parallel</span>
+        <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">speech_ref</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+        <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+
+        <span class="n">loss</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="n">others</span><span class="p">,</span> <span class="n">out_lengths</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_loss</span><span class="p">(</span>
+            <span class="n">speech_mix</span><span class="p">,</span>
+            <span class="n">speech_lengths</span><span class="p">,</span>
+            <span class="n">speech_ref</span><span class="p">,</span>
+            <span class="n">dereverb_speech_ref</span><span class="o">=</span><span class="n">dereverb_speech_ref</span><span class="p">,</span>
+            <span class="n">noise_ref</span><span class="o">=</span><span class="n">noise_ref</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># add stats for logging</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">!=</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                <span class="n">si_snr</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">speech_pre</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">speech_pre</span><span class="p">]</span>
+                <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">speech_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="c1"># For si_snr loss, only select one channel as the reference</span>
+                    <span class="n">speech_ref</span> <span class="o">=</span> <span class="p">[</span><span class="n">sr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">]</span> <span class="k">for</span> <span class="n">sr</span> <span class="ow">in</span> <span class="n">speech_ref</span><span class="p">]</span>
+                <span class="c1"># compute si-snr loss</span>
+                <span class="n">si_snr_loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
+                    <span class="n">speech_ref</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">si_snr_loss</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="n">perm</span>
+                <span class="p">)</span>
+                <span class="n">si_snr</span> <span class="o">=</span> <span class="o">-</span><span class="n">si_snr_loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+            <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">si_snr</span><span class="o">=</span><span class="n">si_snr</span><span class="p">,</span>
+                <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">si_snr</span><span class="o">=-</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+
+        <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
+
+    <span class="k">def</span> <span class="nf">_compute_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech_mix</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">,</span>
+        <span class="n">speech_ref</span><span class="p">,</span>
+        <span class="n">dereverb_speech_ref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">noise_ref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cal_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute loss according to self.loss_type.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            speech_mix: (Batch, samples) or (Batch, samples, channels)</span>
+<span class="sd">            speech_lengths: (Batch,), default None for chunk interator,</span>
+<span class="sd">                            because the chunk-iterator does not have the</span>
+<span class="sd">                            speech_lengths returned. see in</span>
+<span class="sd">                            espnet2/iterators/chunk_iter_factory.py</span>
+<span class="sd">            speech_ref: (Batch, num_speaker, samples)</span>
+<span class="sd">                        or (Batch, num_speaker, samples, channels)</span>
+<span class="sd">            dereverb_speech_ref: (Batch, N, samples)</span>
+<span class="sd">                        or (Batch, num_speaker, samples, channels)</span>
+<span class="sd">            noise_ref: (Batch, num_noise_type, samples)</span>
+<span class="sd">                        or (Batch, num_speaker, samples, channels)</span>
+<span class="sd">            cal_loss: whether to calculate enh loss, defualt is True</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (torch.Tensor) speech enhancement loss</span>
+<span class="sd">            speech_pre: (List[torch.Tensor] or List[ComplexTensor])</span>
+<span class="sd">                        enhanced speech or spectrum(s)</span>
+<span class="sd">            others: (OrderedDict) estimated masks or None</span>
+<span class="sd">            output_lengths: (Batch,)</span>
+<span class="sd">            perm: () best permutation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">feature_mix</span><span class="p">,</span> <span class="n">flens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="n">feature_pre</span><span class="p">,</span> <span class="n">flens</span><span class="p">,</span> <span class="n">others</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">(</span><span class="n">feature_mix</span><span class="p">,</span> <span class="n">flens</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">!=</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">:</span>
+            <span class="n">spectrum_mix</span> <span class="o">=</span> <span class="n">feature_mix</span>
+            <span class="n">spectrum_pre</span> <span class="o">=</span> <span class="n">feature_pre</span>
+            <span class="c1"># predict separated speech and masks</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stft_consistency</span><span class="p">:</span>
+                <span class="c1"># pseudo STFT -&gt; time-domain -&gt; STFT (compute loss)</span>
+                <span class="n">tmp_t_domain</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">spectrum_pre</span>
+                <span class="p">]</span>
+                <span class="n">spectrum_pre</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">tmp_t_domain</span>
+                <span class="p">]</span>
+                <span class="k">pass</span>
+
+            <span class="k">if</span> <span class="n">spectrum_pre</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">spectrum_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ComplexTensor</span>
+            <span class="p">):</span>
+                <span class="n">spectrum_pre</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">ComplexTensor</span><span class="p">(</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">spectrum_pre</span>
+                <span class="p">]</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">cal_loss</span><span class="p">:</span>
+                <span class="n">loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+                <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">spectrum_pre</span><span class="p">,</span> <span class="n">others</span><span class="p">,</span> <span class="n">flens</span><span class="p">,</span> <span class="n">perm</span>
+
+            <span class="c1"># prepare reference speech and reference spectrum</span>
+            <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]</span>
+            <span class="n">spectrum_ref</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">sr</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">sr</span> <span class="ow">in</span> <span class="n">speech_ref</span><span class="p">]</span>
+
+            <span class="c1"># compute TF masking loss</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;magnitude&quot;</span><span class="p">:</span>
+                <span class="c1"># compute loss on magnitude spectrum</span>
+                <span class="k">assert</span> <span class="n">spectrum_pre</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="n">magnitude_pre</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">ps</span> <span class="o">+</span> <span class="mf">1e-15</span><span class="p">)</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">spectrum_pre</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">spectrum_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">magnitude_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">():</span>
+                    <span class="c1"># only select one channel as the reference</span>
+                    <span class="n">magnitude_ref</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="nb">abs</span><span class="p">(</span><span class="n">sr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span> <span class="p">:])</span> <span class="k">for</span> <span class="n">sr</span> <span class="ow">in</span> <span class="n">spectrum_ref</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">magnitude_ref</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">sr</span><span class="p">)</span> <span class="k">for</span> <span class="n">sr</span> <span class="ow">in</span> <span class="n">spectrum_ref</span><span class="p">]</span>
+
+                <span class="n">tf_loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
+                    <span class="n">magnitude_ref</span><span class="p">,</span> <span class="n">magnitude_pre</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf_mse_loss</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;spectrum&quot;</span><span class="p">):</span>
+                <span class="c1"># compute loss on complex spectrum</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;spectrum&quot;</span><span class="p">:</span>
+                    <span class="n">loss_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf_mse_loss</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;spectrum_log&quot;</span><span class="p">:</span>
+                    <span class="n">loss_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf_log_mse_loss</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported loss type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span><span class="p">)</span>
+
+                <span class="k">assert</span> <span class="n">spectrum_pre</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">spectrum_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">spectrum_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">():</span>
+                    <span class="c1"># only select one channel as the reference</span>
+                    <span class="n">spectrum_ref</span> <span class="o">=</span> <span class="p">[</span><span class="n">sr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">sr</span> <span class="ow">in</span> <span class="n">spectrum_ref</span><span class="p">]</span>
+
+                <span class="n">tf_loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
+                    <span class="n">spectrum_ref</span><span class="p">,</span> <span class="n">spectrum_pre</span><span class="p">,</span> <span class="n">loss_func</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;mask_mse&quot;</span><span class="p">:</span>
+                    <span class="n">loss_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf_mse_loss</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported loss type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span><span class="p">)</span>
+
+                <span class="k">assert</span> <span class="n">others</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="n">mask_pre_</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">others</span><span class="p">[</span><span class="s2">&quot;mask_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                <span class="p">]</span>
+
+                <span class="c1"># prepare ideal masks</span>
+                <span class="n">mask_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_mask_label</span><span class="p">(</span>
+                    <span class="n">spectrum_mix</span><span class="p">,</span> <span class="n">spectrum_ref</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span>
+                <span class="p">)</span>
+
+                <span class="c1"># compute TF masking loss</span>
+                <span class="n">tf_loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span><span class="n">mask_ref</span><span class="p">,</span> <span class="n">mask_pre_</span><span class="p">,</span> <span class="n">loss_func</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="s2">&quot;mask_dereverb1&quot;</span> <span class="ow">in</span> <span class="n">others</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">dereverb_speech_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;No dereverberated reference for training!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                            <span class="s1">&#39;Please specify &quot;--use_dereverb_ref true&quot; in run.sh&#39;</span>
+                        <span class="p">)</span>
+
+                    <span class="n">mask_wpe_pre</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">others</span><span class="p">[</span><span class="s2">&quot;mask_dereverb</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                        <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s2">&quot;mask_dereverb</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">others</span>
+                    <span class="p">]</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask_wpe_pre</span><span class="p">)</span> <span class="o">==</span> <span class="n">dereverb_speech_ref</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">mask_wpe_pre</span><span class="p">),</span>
+                        <span class="n">dereverb_speech_ref</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="n">dereverb_speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">dereverb_spectrum_ref</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">dr</span> <span class="ow">in</span> <span class="n">dereverb_speech_ref</span>
+                    <span class="p">]</span>
+                    <span class="n">dereverb_mask_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_mask_label</span><span class="p">(</span>
+                        <span class="n">spectrum_mix</span><span class="p">,</span> <span class="n">dereverb_spectrum_ref</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span>
+                    <span class="p">)</span>
+
+                    <span class="n">tf_dereverb_loss</span><span class="p">,</span> <span class="n">perm_d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
+                        <span class="n">dereverb_mask_ref</span><span class="p">,</span> <span class="n">mask_wpe_pre</span><span class="p">,</span> <span class="n">loss_func</span>
+                    <span class="p">)</span>
+                    <span class="n">tf_loss</span> <span class="o">=</span> <span class="n">tf_loss</span> <span class="o">+</span> <span class="n">tf_dereverb_loss</span>
+
+                <span class="k">if</span> <span class="s2">&quot;mask_noise1&quot;</span> <span class="ow">in</span> <span class="n">others</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">noise_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;No noise reference for training!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                            <span class="s1">&#39;Please specify &quot;--use_noise_ref true&quot; in run.sh&#39;</span>
+                        <span class="p">)</span>
+
+                    <span class="n">noise_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">noise_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">noise_spectrum_ref</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">nr</span> <span class="ow">in</span> <span class="n">noise_ref</span>
+                    <span class="p">]</span>
+                    <span class="n">noise_mask_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_mask_label</span><span class="p">(</span>
+                        <span class="n">spectrum_mix</span><span class="p">,</span> <span class="n">noise_spectrum_ref</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span>
+                    <span class="p">)</span>
+
+                    <span class="n">mask_noise_pre</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">others</span><span class="p">[</span><span class="s2">&quot;mask_noise</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span><span class="p">)</span>
+                    <span class="p">]</span>
+                    <span class="n">tf_noise_loss</span><span class="p">,</span> <span class="n">perm_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
+                        <span class="n">noise_mask_ref</span><span class="p">,</span> <span class="n">mask_noise_pre</span><span class="p">,</span> <span class="n">loss_func</span>
+                    <span class="p">)</span>
+                    <span class="n">tf_loss</span> <span class="o">=</span> <span class="n">tf_loss</span> <span class="o">+</span> <span class="n">tf_noise_loss</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported loss type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span><span class="p">)</span>
+
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">tf_loss</span>
+            <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">spectrum_pre</span><span class="p">,</span> <span class="n">others</span><span class="p">,</span> <span class="n">flens</span><span class="p">,</span> <span class="n">perm</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">speech_pre</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">feature_pre</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">cal_loss</span><span class="p">:</span>
+                <span class="n">loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+                <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">perm</span>
+
+            <span class="c1"># speech_pre: list[(batch, sample)]</span>
+            <span class="k">assert</span> <span class="n">speech_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">speech_ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="c1"># For si_snr loss of multi-channel input,</span>
+                <span class="c1"># only select one channel as the reference</span>
+                <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">speech_ref</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">]</span>
+            <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># compute si-snr loss</span>
+            <span class="n">si_snr_loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
+                <span class="n">speech_ref</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">si_snr_loss_zeromean</span>
+            <span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">si_snr_loss</span>
+
+            <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">perm</span>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.tf_mse_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_mse_loss">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">tf_mse_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;time-frequency MSE loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">            inf: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_torch_1_3_plus</span><span class="p">:</span>
+            <span class="c1"># in case of binary masks</span>
+            <span class="n">ref</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">inf</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">-</span> <span class="n">inf</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">mseloss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">mseloss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mseloss</span></div>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.tf_log_mse_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_log_mse_loss">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">tf_log_mse_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;time-frequency log-MSE loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">            inf: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_torch_1_3_plus</span><span class="p">:</span>
+            <span class="c1"># in case of binary masks</span>
+            <span class="n">ref</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">inf</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">-</span> <span class="n">inf</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
+            <span class="n">log_mse_loss</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">log_mse_loss</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">log_mse_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">log_mse_loss</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span> <span class="o">*</span> <span class="mi">10</span>
+        <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">log_mse_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">log_mse_loss</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span> <span class="o">*</span> <span class="mi">10</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">log_mse_loss</span></div>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.tf_l1_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_l1_loss">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">tf_l1_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;time-frequency L1 loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">            inf: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_torch_1_3_plus</span><span class="p">:</span>
+            <span class="c1"># in case of binary masks</span>
+            <span class="n">ref</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">inf</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
+            <span class="n">l1loss</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ref</span> <span class="o">-</span> <span class="n">inf</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">l1loss</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ref</span> <span class="o">-</span> <span class="n">inf</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">l1loss</span> <span class="o">=</span> <span class="n">l1loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">l1loss</span> <span class="o">=</span> <span class="n">l1loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">l1loss</span></div>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.si_snr_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.si_snr_loss">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">si_snr_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;SI-SNR loss</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, samples)</span>
+<span class="sd">            inf: (Batch, samples)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">inf</span> <span class="o">=</span> <span class="n">inf</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">s_target</span> <span class="o">=</span> <span class="p">(</span><span class="n">ref</span> <span class="o">*</span> <span class="n">inf</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">ref</span>
+        <span class="n">e_noise</span> <span class="o">=</span> <span class="n">inf</span> <span class="o">-</span> <span class="n">s_target</span>
+
+        <span class="n">si_snr</span> <span class="o">=</span> <span class="mi">20</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">s_target</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="n">EPS</span><span class="p">))</span>
+            <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e_noise</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="n">EPS</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">si_snr</span></div>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.si_snr_loss_zeromean"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.si_snr_loss_zeromean">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">si_snr_loss_zeromean</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;SI-SNR loss with zero-mean in pre-processing.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, samples)</span>
+<span class="sd">            inf: (Batch, samples)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="c1"># mask padding position along T</span>
+
+        <span class="c1"># Step 1. Zero-mean norm</span>
+        <span class="n">mean_target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">/</span> <span class="n">T</span>
+        <span class="n">mean_estimate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">/</span> <span class="n">T</span>
+        <span class="n">zero_mean_target</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">-</span> <span class="n">mean_target</span>
+        <span class="n">zero_mean_estimate</span> <span class="o">=</span> <span class="n">inf</span> <span class="o">-</span> <span class="n">mean_estimate</span>
+
+        <span class="c1"># Step 2. SI-SNR with order</span>
+        <span class="c1"># reshape to use broadcast</span>
+        <span class="n">s_target</span> <span class="o">=</span> <span class="n">zero_mean_target</span>  <span class="c1"># [B, T]</span>
+        <span class="n">s_estimate</span> <span class="o">=</span> <span class="n">zero_mean_estimate</span>  <span class="c1"># [B, T]</span>
+        <span class="c1"># s_target = &lt;s&#39;, s&gt;s / ||s||^2</span>
+        <span class="n">pair_wise_dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">s_estimate</span> <span class="o">*</span> <span class="n">s_target</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># [B, 1]</span>
+        <span class="n">s_target_energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">s_target</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span>  <span class="c1"># [B, 1]</span>
+        <span class="n">pair_wise_proj</span> <span class="o">=</span> <span class="n">pair_wise_dot</span> <span class="o">*</span> <span class="n">s_target</span> <span class="o">/</span> <span class="n">s_target_energy</span>  <span class="c1"># [B, T]</span>
+        <span class="c1"># e_noise = s&#39; - s_target</span>
+        <span class="n">e_noise</span> <span class="o">=</span> <span class="n">s_estimate</span> <span class="o">-</span> <span class="n">pair_wise_proj</span>  <span class="c1"># [B, T]</span>
+
+        <span class="c1"># SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)</span>
+        <span class="n">pair_wise_si_snr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pair_wise_proj</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">e_noise</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span>
+        <span class="p">)</span>
+        <span class="c1"># print(&#39;pair_si_snr&#39;,pair_wise_si_snr[0,:])</span>
+        <span class="n">pair_wise_si_snr</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">pair_wise_si_snr</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>  <span class="c1"># [B]</span>
+        <span class="c1"># print(pair_wise_si_snr)</span>
+
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">pair_wise_si_snr</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_permutation_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">criterion</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The basic permutation loss function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk</span>
+<span class="sd">            inf (List[torch.Tensor]): [(batch, ...), ...]</span>
+<span class="sd">            criterion (function): Loss function</span>
+<span class="sd">            perm (torch.Tensor): specified permutation (batch, num_spk)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss (torch.Tensor): minimum loss with the best permutation (batch)</span>
+<span class="sd">            perm (torch.Tensor): permutation for inf (batch, num_spk)</span>
+<span class="sd">                                 e.g. tensor([[1, 0, 2], [0, 1, 2]])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">))</span>
+        <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">pair_loss</span><span class="p">(</span><span class="n">permutation</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">criterion</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">inf</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">permutation</span><span class="p">)]</span>
+            <span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">permutation</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">perm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
+            <span class="n">all_permutations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)))</span>
+            <span class="n">losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">pair_loss</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">all_permutations</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">losses</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">all_permutations</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="n">perm</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="n">criterion</span><span class="p">(</span>
+                                <span class="n">ref</span><span class="p">[</span><span class="n">s</span><span class="p">][</span><span class="n">batch</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">inf</span><span class="p">[</span><span class="n">t</span><span class="p">][</span><span class="n">batch</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="p">)</span>
+                            <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                        <span class="p">]</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">batch</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">perm</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">perm</span>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.collect_feats"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.collect_feats">[docs]</a>    <span class="k">def</span> <span class="nf">collect_feats</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">speech_mix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_mix_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="c1"># for data-parallel</span>
+        <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_mix_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+
+        <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="p">,</span> <span class="n">speech_mix_lengths</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;feats&quot;</span><span class="p">:</span> <span class="n">feats</span><span class="p">,</span> <span class="s2">&quot;feats_lengths&quot;</span><span class="p">:</span> <span class="n">feats_lengths</span><span class="p">}</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

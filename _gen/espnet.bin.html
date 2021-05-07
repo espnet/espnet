@@ -1,0 +1,585 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.bin package &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet.scheduler package" href="espnet.scheduler.html" />
+    <link rel="prev" title="espnet.transform package" href="espnet.transform.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.bin package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-asr-recog">espnet.bin.asr_recog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-st-trans">espnet.bin.st_trans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-asr-train">espnet.bin.asr_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-asr-enhance">espnet.bin.asr_enhance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-asr-align">espnet.bin.asr_align</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-tts-train">espnet.bin.tts_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-lm-train">espnet.bin.lm_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-mt-train">espnet.bin.mt_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-vc-train">espnet.bin.vc_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-st-train">espnet.bin.st_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-tts-decode">espnet.bin.tts_decode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-mt-trans">espnet.bin.mt_trans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-init">espnet.bin.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-bin-vc-decode">espnet.bin.vc_decode</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet.bin package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet.bin.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet-bin-package">
+<h1>espnet.bin package<a class="headerlink" href="#espnet-bin-package" title="Permalink to this headline">¶</a></h1>
+<p>Initialize sub package.</p>
+<div class="section" id="espnet-bin-asr-recog">
+<span id="id1"></span><h2>espnet.bin.asr_recog<a class="headerlink" href="#espnet-bin-asr-recog" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.asr_recog"></span><p>End-to-end speech recognition model decoding script.</p>
+<dl class="function">
+<dt id="espnet.bin.asr_recog.get_parser">
+<code class="sig-prename descclassname">espnet.bin.asr_recog.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_recog.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_recog.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.asr_recog.main">
+<code class="sig-prename descclassname">espnet.bin.asr_recog.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_recog.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_recog.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the main decoding function.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-st-trans">
+<span id="id2"></span><h2>espnet.bin.st_trans<a class="headerlink" href="#espnet-bin-st-trans" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.st_trans"></span><p>End-to-end speech translation model decoding script.</p>
+<dl class="function">
+<dt id="espnet.bin.st_trans.get_parser">
+<code class="sig-prename descclassname">espnet.bin.st_trans.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/st_trans.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.st_trans.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.st_trans.main">
+<code class="sig-prename descclassname">espnet.bin.st_trans.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/st_trans.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.st_trans.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the main decoding function.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-asr-train">
+<span id="id3"></span><h2>espnet.bin.asr_train<a class="headerlink" href="#espnet-bin-asr-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.asr_train"></span><p>Automatic speech recognition model training script.</p>
+<dl class="function">
+<dt id="espnet.bin.asr_train.get_parser">
+<code class="sig-prename descclassname">espnet.bin.asr_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><em class="sig-param">parser=None</em>, <em class="sig-param">required=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.asr_train.main">
+<code class="sig-prename descclassname">espnet.bin.asr_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd_args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the main training function.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-asr-enhance">
+<span id="id4"></span><h2>espnet.bin.asr_enhance<a class="headerlink" href="#espnet-bin-asr-enhance" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.asr_enhance"></span><dl class="function">
+<dt id="espnet.bin.asr_enhance.get_parser">
+<code class="sig-prename descclassname">espnet.bin.asr_enhance.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_enhance.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_enhance.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.asr_enhance.main">
+<code class="sig-prename descclassname">espnet.bin.asr_enhance.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_enhance.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_enhance.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-asr-align">
+<span id="id5"></span><h2>espnet.bin.asr_align<a class="headerlink" href="#espnet-bin-asr-align" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.asr_align"></span><p>This program performs CTC segmentation to align utterances within audio files.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><dl class="simple">
+<dt><cite>–data-json</cite>:</dt><dd><p>A json containing list of utterances and audio files</p>
+</dd>
+<dt><cite>–model</cite>:</dt><dd><p>An already trained ASR model</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="simple">
+<dt><cite>–output</cite>:</dt><dd><p>A plain <cite>segments</cite> file with utterance positions in the audio files.</p>
+</dd>
+</dl>
+</dd>
+<dt>Selected parameters:</dt><dd><dl class="simple">
+<dt><cite>–min-window-size</cite>:</dt><dd><p>Minimum window size considered for a single utterance. The current default value
+should be OK in most cases. Larger values might give better results; too large
+values cause IndexErrors.</p>
+</dd>
+<dt><cite>–subsampling-factor</cite>:</dt><dd><p>If the encoder sub-samples its input, the number of frames at the CTC layer is
+reduced by this factor.</p>
+</dd>
+<dt><cite>–frame-duration</cite>:</dt><dd><p>This is the non-overlapping duration of a single frame in milliseconds (the
+inverse of frames per millisecond).</p>
+</dd>
+<dt><cite>–set-blank</cite>:</dt><dd><p>In the rare case that the blank token has not the index 0 in the character
+dictionary, this parameter sets the index of the blank token.</p>
+</dd>
+<dt><cite>–gratis-blank</cite>:</dt><dd><p>Sets the transition cost for blank tokens to zero. Useful if there are longer
+unrelated segments between segments.</p>
+</dd>
+<dt><cite>–replace-spaces-with-blanks</cite>:</dt><dd><p>Spaces are replaced with blanks. Helps to model pauses between words. May
+increase length of ground truth. May lead to misaligned segments when combined
+with the option <cite>–gratis-blank</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="function">
+<dt id="espnet.bin.asr_align.ctc_align">
+<code class="sig-prename descclassname">espnet.bin.asr_align.</code><code class="sig-name descname">ctc_align</code><span class="sig-paren">(</span><em class="sig-param">args</em>, <em class="sig-param">device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_align.html#ctc_align"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_align.ctc_align" title="Permalink to this definition">¶</a></dt>
+<dd><p>ESPnet-specific interface for CTC segmentation.</p>
+<p>Parses configuration, infers the CTC posterior probabilities,
+and then aligns start and end of utterances using CTC segmentation.
+Results are written to the output file given in the args.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – given configuration</p></li>
+<li><p><strong>device</strong> – for inference; one of [‘cuda’, ‘cpu’]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>0 on success</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.asr_align.get_parser">
+<code class="sig-prename descclassname">espnet.bin.asr_align.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_align.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_align.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.asr_align.main">
+<code class="sig-prename descclassname">espnet.bin.asr_align.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/asr_align.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.asr_align.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the main decoding function.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-tts-train">
+<span id="id6"></span><h2>espnet.bin.tts_train<a class="headerlink" href="#espnet-bin-tts-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.tts_train"></span><p>Text-to-speech model training script.</p>
+<dl class="function">
+<dt id="espnet.bin.tts_train.get_parser">
+<code class="sig-prename descclassname">espnet.bin.tts_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/tts_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.tts_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parser of training arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.tts_train.main">
+<code class="sig-prename descclassname">espnet.bin.tts_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd_args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/tts_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.tts_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run training.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-lm-train">
+<span id="id7"></span><h2>espnet.bin.lm_train<a class="headerlink" href="#espnet-bin-lm-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.lm_train"></span><p>Language model training script.</p>
+<dl class="function">
+<dt id="espnet.bin.lm_train.get_parser">
+<code class="sig-prename descclassname">espnet.bin.lm_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><em class="sig-param">parser=None</em>, <em class="sig-param">required=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/lm_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.lm_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parser.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.lm_train.main">
+<code class="sig-prename descclassname">espnet.bin.lm_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd_args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/lm_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.lm_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train LM.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-mt-train">
+<span id="id8"></span><h2>espnet.bin.mt_train<a class="headerlink" href="#espnet-bin-mt-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.mt_train"></span><p>Neural machine translation model training script.</p>
+<dl class="function">
+<dt id="espnet.bin.mt_train.get_parser">
+<code class="sig-prename descclassname">espnet.bin.mt_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><em class="sig-param">parser=None</em>, <em class="sig-param">required=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/mt_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.mt_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.mt_train.main">
+<code class="sig-prename descclassname">espnet.bin.mt_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd_args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/mt_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.mt_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the main training function.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-vc-train">
+<span id="id9"></span><h2>espnet.bin.vc_train<a class="headerlink" href="#espnet-bin-vc-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.vc_train"></span><p>Voice conversion model training script.</p>
+<dl class="function">
+<dt id="espnet.bin.vc_train.get_parser">
+<code class="sig-prename descclassname">espnet.bin.vc_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/vc_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.vc_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parser of training arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.vc_train.main">
+<code class="sig-prename descclassname">espnet.bin.vc_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd_args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/vc_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.vc_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run training.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-st-train">
+<span id="id10"></span><h2>espnet.bin.st_train<a class="headerlink" href="#espnet-bin-st-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.st_train"></span><p>End-to-end speech translation model training script.</p>
+<dl class="function">
+<dt id="espnet.bin.st_train.get_parser">
+<code class="sig-prename descclassname">espnet.bin.st_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><em class="sig-param">parser=None</em>, <em class="sig-param">required=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/st_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.st_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.st_train.main">
+<code class="sig-prename descclassname">espnet.bin.st_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd_args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/st_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.st_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the main training function.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-tts-decode">
+<span id="id11"></span><h2>espnet.bin.tts_decode<a class="headerlink" href="#espnet-bin-tts-decode" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.tts_decode"></span><p>TTS decoding script.</p>
+<dl class="function">
+<dt id="espnet.bin.tts_decode.get_parser">
+<code class="sig-prename descclassname">espnet.bin.tts_decode.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/tts_decode.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.tts_decode.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parser of decoding arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.tts_decode.main">
+<code class="sig-prename descclassname">espnet.bin.tts_decode.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/tts_decode.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.tts_decode.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run deocding.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-mt-trans">
+<span id="id12"></span><h2>espnet.bin.mt_trans<a class="headerlink" href="#espnet-bin-mt-trans" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.mt_trans"></span><p>Neural machine translation model decoding script.</p>
+<dl class="function">
+<dt id="espnet.bin.mt_trans.get_parser">
+<code class="sig-prename descclassname">espnet.bin.mt_trans.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/mt_trans.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.mt_trans.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get default arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.mt_trans.main">
+<code class="sig-prename descclassname">espnet.bin.mt_trans.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/mt_trans.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.mt_trans.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the main decoding function.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-bin-init">
+<span id="id13"></span><h2>espnet.bin.__init__<a class="headerlink" href="#espnet-bin-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.__init__"></span><p>Initialize sub package.</p>
+</div>
+<div class="section" id="espnet-bin-vc-decode">
+<span id="id14"></span><h2>espnet.bin.vc_decode<a class="headerlink" href="#espnet-bin-vc-decode" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.bin.vc_decode"></span><p>VC decoding script.</p>
+<dl class="function">
+<dt id="espnet.bin.vc_decode.get_parser">
+<code class="sig-prename descclassname">espnet.bin.vc_decode.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/vc_decode.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.vc_decode.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parser of decoding arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.bin.vc_decode.main">
+<code class="sig-prename descclassname">espnet.bin.vc_decode.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/bin/vc_decode.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.bin.vc_decode.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run deocding.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet.scheduler.html" class="btn btn-neutral float-right" title="espnet.scheduler package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet.transform.html" class="btn btn-neutral float-left" title="espnet.transform package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

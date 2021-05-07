@@ -1,0 +1,803 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.pytorch_backend.transducer.rnn_encoder &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.pytorch_backend.transducer.rnn_encoder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.pytorch_backend.transducer.rnn_encoder</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;RNN encoder implementation for transducer-based models.</span>
+
+<span class="sd">These classes are based on the ones in espnet.nets.pytorch_backend.rnn.encoders,</span>
+<span class="sd">and modified to output intermediate layers representation based on a list of</span>
+<span class="sd">layers given as input. These additional outputs are intended to be used with</span>
+<span class="sd">auxiliary tasks.</span>
+<span class="sd">It should be noted that, here, RNN class rely on a stack of 1-layer LSTM instead</span>
+<span class="sd">of a multi-layer LSTM for that purpose.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pack_padded_sequence</span>
+<span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_packed_sequence</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">get_vgg2l_odim</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
+
+
+<div class="viewcode-block" id="RNNP"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.RNNP">[docs]</a><span class="k">class</span> <span class="nc">RNNP</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;RNN with projection layer module.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        idim: Dimension of inputs</span>
+<span class="sd">        elayers: Dimension of encoder layers</span>
+<span class="sd">        cdim: Number of units (results in cdim * 2 if bidirectional)</span>
+<span class="sd">        hdim: Number of projection units</span>
+<span class="sd">        subsample: List of subsampling number</span>
+<span class="sd">        dropout: Dropout rate</span>
+<span class="sd">        typ: RNN type</span>
+<span class="sd">        aux_task_layer_list: List of layer ids for intermediate output</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">elayers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">cdim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">hdim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">subsample</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">typ</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;blstm&quot;</span><span class="p">,</span>
+        <span class="n">aux_task_layer_list</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize RNNP module.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RNNP</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">bidir</span> <span class="o">=</span> <span class="n">typ</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;b&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">elayers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">inputdim</span> <span class="o">=</span> <span class="n">idim</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inputdim</span> <span class="o">=</span> <span class="n">hdim</span>
+
+            <span class="n">RNN</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span> <span class="k">if</span> <span class="s2">&quot;lstm&quot;</span> <span class="ow">in</span> <span class="n">typ</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRU</span>
+            <span class="n">rnn</span> <span class="o">=</span> <span class="n">RNN</span><span class="p">(</span>
+                <span class="n">inputdim</span><span class="p">,</span> <span class="n">cdim</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="n">bidir</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%s%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;birnn&quot;</span> <span class="k">if</span> <span class="n">bidir</span> <span class="k">else</span> <span class="s2">&quot;rnn&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">rnn</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">bidir</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;bt</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cdim</span><span class="p">,</span> <span class="n">hdim</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;bt</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">cdim</span><span class="p">,</span> <span class="n">hdim</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">elayers</span> <span class="o">=</span> <span class="n">elayers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdim</span> <span class="o">=</span> <span class="n">cdim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span> <span class="o">=</span> <span class="n">subsample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">typ</span> <span class="o">=</span> <span class="n">typ</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bidir</span> <span class="o">=</span> <span class="n">bidir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span> <span class="o">=</span> <span class="n">aux_task_layer_list</span>
+
+<div class="viewcode-block" id="RNNP.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.RNNP.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">xs_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">prev_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;RNNP forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs_pad: Batch of padded input sequences (B, Tmax, idim)</span>
+<span class="sd">            ilens: Batch of lengths of input sequences (B)</span>
+<span class="sd">            prev_state: Batch of previous RNN states</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            : Batch of padded output sequences (B, Tmax, hdim)</span>
+<span class="sd">                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, hdim)])</span>
+<span class="sd">            : Batch of lengths of output sequences (B)</span>
+<span class="sd">            : Batch of hidden state sequences (B, Tmax, hdim)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; input lengths: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ilens</span><span class="p">))</span>
+
+        <span class="n">aux_xs_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">elayer_states</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elayers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ilens</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">ilens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span>
+
+            <span class="n">xs_pack</span> <span class="o">=</span> <span class="n">pack_padded_sequence</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">rnn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;birnn&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bidir</span> <span class="k">else</span> <span class="s2">&quot;rnn&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">layer</span><span class="p">))</span>
+            <span class="n">rnn</span><span class="o">.</span><span class="n">flatten_parameters</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">prev_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rnn</span><span class="o">.</span><span class="n">bidirectional</span><span class="p">:</span>
+                <span class="n">prev_state</span> <span class="o">=</span> <span class="n">reset_backward_rnn_state</span><span class="p">(</span><span class="n">prev_state</span><span class="p">)</span>
+
+            <span class="n">ys</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="n">rnn</span><span class="p">(</span>
+                <span class="n">xs_pack</span><span class="p">,</span> <span class="n">hx</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">prev_state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_state</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">elayer_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+
+            <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ilens</span> <span class="o">=</span> <span class="n">pad_packed_sequence</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">sub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">[</span><span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">sub</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[:,</span> <span class="p">::</span><span class="n">sub</span><span class="p">]</span>
+                <span class="n">ilens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">sub</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ilens</span><span class="p">])</span>
+
+            <span class="n">projection_layer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;bt</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">)</span>
+            <span class="n">projected</span> <span class="o">=</span> <span class="n">projection_layer</span><span class="p">(</span><span class="n">ys_pad</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+            <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">projected</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">ys_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span><span class="p">:</span>
+                <span class="n">aux_xs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">layer</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">elayers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">aux_xs_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">aux_xs_list</span><span class="p">),</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">elayer_states</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">elayer_states</span></div></div>
+
+
+<div class="viewcode-block" id="RNN"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.RNN">[docs]</a><span class="k">class</span> <span class="nc">RNN</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;RNN module.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        idim: Dimension of inputs</span>
+<span class="sd">        elayers: Number of encoder layers</span>
+<span class="sd">        cdim: Number of rnn units (resulted in cdim * 2 if bidirectional)</span>
+<span class="sd">        hdim: Number of final projection units</span>
+<span class="sd">        dropout: Dropout rate</span>
+<span class="sd">        typ: The RNN type</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">elayers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">cdim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">hdim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">typ</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;blstm&quot;</span><span class="p">,</span>
+        <span class="n">aux_task_layer_list</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize RNN module.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">bidir</span> <span class="o">=</span> <span class="n">typ</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;b&quot;</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">elayers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">inputdim</span> <span class="o">=</span> <span class="n">idim</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inputdim</span> <span class="o">=</span> <span class="n">cdim</span>
+
+            <span class="n">layer_type</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span> <span class="k">if</span> <span class="s2">&quot;lstm&quot;</span> <span class="ow">in</span> <span class="n">typ</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRU</span>
+            <span class="n">rnn</span> <span class="o">=</span> <span class="n">layer_type</span><span class="p">(</span>
+                <span class="n">inputdim</span><span class="p">,</span> <span class="n">cdim</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="n">bidir</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%s%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;birnn&quot;</span> <span class="k">if</span> <span class="n">bidir</span> <span class="k">else</span> <span class="s2">&quot;rnn&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">rnn</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">elayers</span> <span class="o">=</span> <span class="n">elayers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdim</span> <span class="o">=</span> <span class="n">cdim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hdim</span> <span class="o">=</span> <span class="n">hdim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">typ</span> <span class="o">=</span> <span class="n">typ</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bidir</span> <span class="o">=</span> <span class="n">bidir</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">l_last</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">cdim</span><span class="p">,</span> <span class="n">hdim</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span> <span class="o">=</span> <span class="n">aux_task_layer_list</span>
+
+<div class="viewcode-block" id="RNN.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.RNN.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">xs_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">prev_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;RNN forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs_pad: Batch of padded input sequences (B, Tmax, idim)</span>
+<span class="sd">            ilens: Batch of lengths of input sequences (B)</span>
+<span class="sd">            prev_state: Batch of previous RNN states</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            : Batch of padded output sequences (B, Tmax, hdim)</span>
+<span class="sd">                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, hdim)])</span>
+<span class="sd">            : Batch of lengths of output sequences (B)</span>
+<span class="sd">            : Batch of hidden state sequences (B, Tmax, hdim)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; input lengths: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ilens</span><span class="p">))</span>
+
+        <span class="n">aux_xs_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">elayer_states</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elayers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ilens</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">ilens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span>
+
+            <span class="n">xs_pack</span> <span class="o">=</span> <span class="n">pack_padded_sequence</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">rnn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;birnn&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bidir</span> <span class="k">else</span> <span class="s2">&quot;rnn&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">layer</span><span class="p">))</span>
+            <span class="n">rnn</span><span class="o">.</span><span class="n">flatten_parameters</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">prev_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rnn</span><span class="o">.</span><span class="n">bidirectional</span><span class="p">:</span>
+                <span class="n">prev_state</span> <span class="o">=</span> <span class="n">reset_backward_rnn_state</span><span class="p">(</span><span class="n">prev_state</span><span class="p">)</span>
+
+            <span class="n">xs</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="n">rnn</span><span class="p">(</span>
+                <span class="n">xs_pack</span><span class="p">,</span> <span class="n">hx</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">prev_state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_state</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">elayer_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+
+            <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span> <span class="o">=</span> <span class="n">pad_packed_sequence</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bidir</span><span class="p">:</span>
+                <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdim</span><span class="p">]</span> <span class="o">+</span> <span class="n">xs_pad</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdim</span> <span class="p">:]</span>
+
+            <span class="k">if</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span><span class="p">:</span>
+                <span class="n">aux_projected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">l_last</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+                <span class="p">)</span>
+                <span class="n">aux_xs_pad</span> <span class="o">=</span> <span class="n">aux_projected</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="n">aux_xs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aux_xs_pad</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">layer</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">elayers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">xs_pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
+
+        <span class="n">projected</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">l_last</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+        <span class="p">)</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">projected</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">aux_xs_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">aux_xs_list</span><span class="p">),</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">elayer_states</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">elayer_states</span></div></div>
+
+
+<div class="viewcode-block" id="reset_backward_rnn_state"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.reset_backward_rnn_state">[docs]</a><span class="k">def</span> <span class="nf">reset_backward_rnn_state</span><span class="p">(</span>
+    <span class="n">states</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Set backward BRNN states to zeroes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        states: RNN states</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        states: RNN states with backward set to zeroes</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">states</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="n">states</span></div>
+
+
+<div class="viewcode-block" id="VGG2L"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.VGG2L">[docs]</a><span class="k">class</span> <span class="nc">VGG2L</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;VGG-like module.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        in_channel: number of input channels</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize VGG-like module.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VGG2L</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># CNN layer (VGG motivated)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channel</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1_2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2_2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_channel</span> <span class="o">=</span> <span class="n">in_channel</span>
+
+<div class="viewcode-block" id="VGG2L.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.VGG2L.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;VGG2L forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs_pad: Batch of padded input sequences (B, Tmax, D)</span>
+<span class="sd">            ilens: Batch of lengths of input sequences (B)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            : Batch of padded output sequences (B, Tmax // 4, 128 * D // 4)</span>
+<span class="sd">            : Batch of lengths of output sequences (B)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; input lengths: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ilens</span><span class="p">))</span>
+
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">in_channel</span><span class="p">,</span>
+            <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_channel</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1_1</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">))</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1_2</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">))</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ceil_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2_1</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">))</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2_2</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">))</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ceil_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ilens</span><span class="p">):</span>
+            <span class="n">ilens</span> <span class="o">=</span> <span class="n">ilens</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ilens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ilens</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">ilens</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ilens</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="Encoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.Encoder">[docs]</a><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Encoder module.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        etype: Type of encoder network</span>
+<span class="sd">        idim: Number of dimensions of encoder network</span>
+<span class="sd">        elayers: Number of layers of encoder network</span>
+<span class="sd">        eunits: Number of RNN units of encoder network</span>
+<span class="sd">        eprojs: Number of projection units of encoder network</span>
+<span class="sd">        subsample: List of subsampling numbers</span>
+<span class="sd">        dropout: Dropout rate</span>
+<span class="sd">        in_channel: Number of input channels</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">etype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">elayers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">eunits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">eprojs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">subsample</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">in_channel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">aux_task_layer_list</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize Encoder module.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Encoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">typ</span> <span class="o">=</span> <span class="n">etype</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;vgg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">typ</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;lstm&quot;</span><span class="p">,</span> <span class="s2">&quot;gru&quot;</span><span class="p">,</span> <span class="s2">&quot;blstm&quot;</span><span class="p">,</span> <span class="s2">&quot;bgru&quot;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error: need to specify an appropriate encoder architecture&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">etype</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;vgg&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">etype</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">VGG2L</span><span class="p">(</span><span class="n">in_channel</span><span class="p">),</span>
+                        <span class="n">RNNP</span><span class="p">(</span>
+                            <span class="n">get_vgg2l_odim</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">in_channel</span><span class="o">=</span><span class="n">in_channel</span><span class="p">),</span>
+                            <span class="n">elayers</span><span class="p">,</span>
+                            <span class="n">eunits</span><span class="p">,</span>
+                            <span class="n">eprojs</span><span class="p">,</span>
+                            <span class="n">subsample</span><span class="p">,</span>
+                            <span class="n">dropout</span><span class="p">,</span>
+                            <span class="n">typ</span><span class="o">=</span><span class="n">typ</span><span class="p">,</span>
+                            <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use CNN-VGG + &quot;</span> <span class="o">+</span> <span class="n">typ</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;P for encoder&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">VGG2L</span><span class="p">(</span><span class="n">in_channel</span><span class="p">),</span>
+                        <span class="n">RNN</span><span class="p">(</span>
+                            <span class="n">get_vgg2l_odim</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">in_channel</span><span class="o">=</span><span class="n">in_channel</span><span class="p">),</span>
+                            <span class="n">elayers</span><span class="p">,</span>
+                            <span class="n">eunits</span><span class="p">,</span>
+                            <span class="n">eprojs</span><span class="p">,</span>
+                            <span class="n">dropout</span><span class="p">,</span>
+                            <span class="n">typ</span><span class="o">=</span><span class="n">typ</span><span class="p">,</span>
+                            <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use CNN-VGG + &quot;</span> <span class="o">+</span> <span class="n">typ</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot; for encoder&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">etype</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">RNNP</span><span class="p">(</span>
+                            <span class="n">idim</span><span class="p">,</span>
+                            <span class="n">elayers</span><span class="p">,</span>
+                            <span class="n">eunits</span><span class="p">,</span>
+                            <span class="n">eprojs</span><span class="p">,</span>
+                            <span class="n">subsample</span><span class="p">,</span>
+                            <span class="n">dropout</span><span class="p">,</span>
+                            <span class="n">typ</span><span class="o">=</span><span class="n">typ</span><span class="p">,</span>
+                            <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">typ</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot; with every-layer projection for encoder&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">RNN</span><span class="p">(</span>
+                            <span class="n">idim</span><span class="p">,</span>
+                            <span class="n">elayers</span><span class="p">,</span>
+                            <span class="n">eunits</span><span class="p">,</span>
+                            <span class="n">eprojs</span><span class="p">,</span>
+                            <span class="n">dropout</span><span class="p">,</span>
+                            <span class="n">typ</span><span class="o">=</span><span class="n">typ</span><span class="p">,</span>
+                            <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">typ</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot; without projection for encoder&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">=</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="Encoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.Encoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">prev_states</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Forward encoder.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs_pad: Batch of padded input sequences (B, Tmax, idim)</span>
+<span class="sd">            ilens: Batch of lengths of input sequences (B)</span>
+<span class="sd">            prev_state: Batch of previous encoder hidden states (B, ??)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            : Batch of padded output sequences (B, Tmax, hdim)</span>
+<span class="sd">                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, hdim)])</span>
+<span class="sd">            : Batch of lengths of output sequences (B)</span>
+<span class="sd">            : Batch of hidden state sequences (B, Tmax, hdim)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prev_states</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prev_states</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_states</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">)</span>
+
+        <span class="n">current_states</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">module</span><span class="p">,</span> <span class="n">prev_state</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">,</span> <span class="n">prev_states</span><span class="p">):</span>
+            <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span>
+                <span class="n">xs_pad</span><span class="p">,</span>
+                <span class="n">ilens</span><span class="p">,</span>
+                <span class="n">prev_state</span><span class="o">=</span><span class="n">prev_state</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">current_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">final_xs_pad</span><span class="p">,</span> <span class="n">aux_xs_list</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xs_pad</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">final_xs_pad</span><span class="p">,</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+            <span class="n">aux_xs_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">aux_xs_list</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">final_xs_pad</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                    <span class="n">aux_xs_list</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">ilens</span><span class="p">,</span>
+                <span class="n">current_states</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">current_states</span></div></div>
+
+
+<div class="viewcode-block" id="encoder_for"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.encoder_for">[docs]</a><span class="k">def</span> <span class="nf">encoder_for</span><span class="p">(</span>
+    <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+    <span class="n">idim</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span>
+    <span class="n">subsample</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">aux_task_layer_list</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Instantiate an encoder module given the program arguments.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        args: The model arguments</span>
+<span class="sd">        idim: Dimension of inputs or list of dimensions of inputs for each encoder</span>
+<span class="sd">        subsample: subsample factors or list of subsample factors for each encoder</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        : The encoder module or list of encoder modules</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Encoder</span><span class="p">(</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">etype</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">elayers</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">eunits</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">eprojs</span><span class="p">,</span>
+        <span class="n">subsample</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">,</span>
+        <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

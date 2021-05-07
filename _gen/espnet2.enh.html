@@ -1,0 +1,2082 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.enh package &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.utils package" href="espnet2.utils.html" />
+    <link rel="prev" title="espnet2.schedulers package" href="espnet2.schedulers.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.enh package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-espnet-model">espnet2.enh.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-abs-enh">espnet2.enh.abs_enh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-init">espnet2.enh.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-encoder-null-encoder">espnet2.enh.encoder.null_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-encoder-conv-encoder">espnet2.enh.encoder.conv_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-encoder-stft-encoder">espnet2.enh.encoder.stft_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-encoder-abs-encoder">espnet2.enh.encoder.abs_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-decoder-conv-decoder">espnet2.enh.decoder.conv_decoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-decoder-stft-decoder">espnet2.enh.decoder.stft_decoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-decoder-abs-decoder">espnet2.enh.decoder.abs_decoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-decoder-null-decoder">espnet2.enh.decoder.null_decoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dprnn">espnet2.enh.layers.dprnn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dnn-beamformer">espnet2.enh.layers.dnn_beamformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-tcn">espnet2.enh.layers.tcn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-mask-estimator">espnet2.enh.layers.mask_estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-beamformer">espnet2.enh.layers.beamformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dnn-wpe">espnet2.enh.layers.dnn_wpe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-init">espnet2.enh.layers.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-dprnn-separator">espnet2.enh.separator.dprnn_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-asteroid-models">espnet2.enh.separator.asteroid_models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-abs-separator">espnet2.enh.separator.abs_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-neural-beamformer">espnet2.enh.separator.neural_beamformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-transformer-separator">espnet2.enh.separator.transformer_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-conformer-separator">espnet2.enh.separator.conformer_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-tcn-separator">espnet2.enh.separator.tcn_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-rnn-separator">espnet2.enh.separator.rnn_separator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet2.enh package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet2.enh.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet2-enh-package">
+<h1>espnet2.enh package<a class="headerlink" href="#espnet2-enh-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="espnet2-enh-espnet-model">
+<span id="id1"></span><h2>espnet2.enh.espnet_model<a class="headerlink" href="#espnet2-enh-espnet-model" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.espnet_model"></span><dl class="class">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model.</code><code class="sig-name descname">ESPnetEnhancementModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder</em>, <em class="sig-param">separator: espnet2.enh.separator.abs_separator.AbsSeparator</em>, <em class="sig-param">decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">stft_consistency: bool = False</em>, <em class="sig-param">loss_type: str = 'mask_mse'</em>, <em class="sig-param">mask_type: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
+<p>Speech enhancement or separation Frontend model</p>
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.collect_feats">
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">speech_mix: torch.Tensor</em>, <em class="sig-param">speech_mix_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech_mix: torch.Tensor</em>, <em class="sig-param">speech_mix_lengths: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Frontend + Encoder + Decoder + Calc loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>speech_mix</strong> – (Batch, samples) or (Batch, samples, channels)</p></li>
+<li><p><strong>speech_ref</strong> – (Batch, num_speaker, samples)
+or (Batch, num_speaker, samples, channels)</p></li>
+<li><p><strong>speech_mix_lengths</strong> – (Batch,), default None for chunk interator,
+because the chunk-iterator does not have the
+speech_lengths returned. see in
+espnet2/iterators/chunk_iter_factory.py</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.si_snr_loss">
+<em class="property">static </em><code class="sig-name descname">si_snr_loss</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">inf</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.si_snr_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.si_snr_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>SI-SNR loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – (Batch, samples)</p></li>
+<li><p><strong>inf</strong> – (Batch, samples)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.si_snr_loss_zeromean">
+<em class="property">static </em><code class="sig-name descname">si_snr_loss_zeromean</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">inf</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.si_snr_loss_zeromean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.si_snr_loss_zeromean" title="Permalink to this definition">¶</a></dt>
+<dd><p>SI-SNR loss with zero-mean in pre-processing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – (Batch, samples)</p></li>
+<li><p><strong>inf</strong> – (Batch, samples)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_l1_loss">
+<em class="property">static </em><code class="sig-name descname">tf_l1_loss</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">inf</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.tf_l1_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_l1_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>time-frequency L1 loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – (Batch, T, F) or (Batch, T, C, F)</p></li>
+<li><p><strong>inf</strong> – (Batch, T, F) or (Batch, T, C, F)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_log_mse_loss">
+<em class="property">static </em><code class="sig-name descname">tf_log_mse_loss</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">inf</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.tf_log_mse_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_log_mse_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>time-frequency log-MSE loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – (Batch, T, F) or (Batch, T, C, F)</p></li>
+<li><p><strong>inf</strong> – (Batch, T, F) or (Batch, T, C, F)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_mse_loss">
+<em class="property">static </em><code class="sig-name descname">tf_mse_loss</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">inf</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.tf_mse_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_mse_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>time-frequency MSE loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – (Batch, T, F) or (Batch, T, C, F)</p></li>
+<li><p><strong>inf</strong> – (Batch, T, F) or (Batch, T, C, F)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-abs-enh">
+<span id="id2"></span><h2>espnet2.enh.abs_enh<a class="headerlink" href="#espnet2-enh-abs-enh" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.abs_enh"></span><dl class="class">
+<dt id="espnet2.enh.abs_enh.AbsEnhancement">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.abs_enh.</code><code class="sig-name descname">AbsEnhancement</code><a class="reference internal" href="../_modules/espnet2/enh/abs_enh.html#AbsEnhancement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.abs_enh.AbsEnhancement" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.enh.abs_enh.AbsEnhancement.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/abs_enh.html#AbsEnhancement.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.abs_enh.AbsEnhancement.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.abs_enh.AbsEnhancement.forward_rawwav">
+<em class="property">abstract </em><code class="sig-name descname">forward_rawwav</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/abs_enh.html#AbsEnhancement.forward_rawwav"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.abs_enh.AbsEnhancement.forward_rawwav" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-init">
+<span id="id3"></span><h2>espnet2.enh.__init__<a class="headerlink" href="#espnet2-enh-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.__init__"></span></div>
+<div class="section" id="espnet2-enh-encoder-null-encoder">
+<span id="id4"></span><h2>espnet2.enh.encoder.null_encoder<a class="headerlink" href="#espnet2-enh-encoder-null-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.encoder.null_encoder"></span><dl class="class">
+<dt id="espnet2.enh.encoder.null_encoder.NullEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.encoder.null_encoder.</code><code class="sig-name descname">NullEncoder</code><a class="reference internal" href="../_modules/espnet2/enh/encoder/null_encoder.html#NullEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.null_encoder.NullEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder" title="espnet2.enh.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Null encoder.</p>
+<dl class="method">
+<dt id="espnet2.enh.encoder.null_encoder.NullEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/null_encoder.html#NullEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.null_encoder.NullEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – mixed speech [Batch, sample]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.encoder.null_encoder.NullEncoder.output_dim">
+<em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#espnet2.enh.encoder.null_encoder.NullEncoder.output_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-encoder-conv-encoder">
+<span id="id5"></span><h2>espnet2.enh.encoder.conv_encoder<a class="headerlink" href="#espnet2-enh-encoder-conv-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.encoder.conv_encoder"></span><dl class="class">
+<dt id="espnet2.enh.encoder.conv_encoder.ConvEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.encoder.conv_encoder.</code><code class="sig-name descname">ConvEncoder</code><span class="sig-paren">(</span><em class="sig-param">channel: int</em>, <em class="sig-param">kernel_size: int</em>, <em class="sig-param">stride: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/conv_encoder.html#ConvEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.conv_encoder.ConvEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder" title="espnet2.enh.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Convolutional encoder for speech enhancement and separation</p>
+<dl class="method">
+<dt id="espnet2.enh.encoder.conv_encoder.ConvEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/conv_encoder.html#ConvEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.conv_encoder.ConvEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – mixed speech [Batch, sample]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>mixed feature after encoder [Batch, flens, channel]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>feature (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.encoder.conv_encoder.ConvEncoder.output_dim">
+<em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#espnet2.enh.encoder.conv_encoder.ConvEncoder.output_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-encoder-stft-encoder">
+<span id="id6"></span><h2>espnet2.enh.encoder.stft_encoder<a class="headerlink" href="#espnet2-enh-encoder-stft-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.encoder.stft_encoder"></span><dl class="class">
+<dt id="espnet2.enh.encoder.stft_encoder.STFTEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.encoder.stft_encoder.</code><code class="sig-name descname">STFTEncoder</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/stft_encoder.html#STFTEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.stft_encoder.STFTEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder" title="espnet2.enh.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>STFT encoder for speech enhancement and separation</p>
+<dl class="method">
+<dt id="espnet2.enh.encoder.stft_encoder.STFTEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/stft_encoder.html#STFTEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.stft_encoder.STFTEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – mixed speech [Batch, sample]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>(Batch, Frames, Freq)</dt><dd><p>or (Batch, Frames, Channels, Freq)</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>stft spectrum (torch.ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.encoder.stft_encoder.STFTEncoder.output_dim">
+<em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#espnet2.enh.encoder.stft_encoder.STFTEncoder.output_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-encoder-abs-encoder">
+<span id="id7"></span><h2>espnet2.enh.encoder.abs_encoder<a class="headerlink" href="#espnet2-enh-encoder-abs-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.encoder.abs_encoder"></span><dl class="class">
+<dt id="espnet2.enh.encoder.abs_encoder.AbsEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.encoder.abs_encoder.</code><code class="sig-name descname">AbsEncoder</code><a class="reference internal" href="../_modules/espnet2/enh/encoder/abs_encoder.html#AbsEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.enh.encoder.abs_encoder.AbsEncoder.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/encoder/abs_encoder.html#AbsEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.encoder.abs_encoder.AbsEncoder.output_dim">
+<em class="property">abstract property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder.output_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-decoder-conv-decoder">
+<span id="id8"></span><h2>espnet2.enh.decoder.conv_decoder<a class="headerlink" href="#espnet2-enh-decoder-conv-decoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.decoder.conv_decoder"></span><dl class="class">
+<dt id="espnet2.enh.decoder.conv_decoder.ConvDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.conv_decoder.</code><code class="sig-name descname">ConvDecoder</code><span class="sig-paren">(</span><em class="sig-param">channel: int</em>, <em class="sig-param">kernel_size: int</em>, <em class="sig-param">stride: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/conv_decoder.html#ConvDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.conv_decoder.ConvDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder" title="espnet2.enh.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.decoder.abs_decoder.AbsDecoder</span></code></a></p>
+<p>Transposed Convolutional decoder for speech enhancement and separation</p>
+<dl class="method">
+<dt id="espnet2.enh.decoder.conv_decoder.ConvDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/conv_decoder.html#ConvDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.conv_decoder.ConvDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<p>Args:
+input (torch.Tensor): spectrum [Batch, T, F]
+ilens (torch.Tensor): input lengths [Batch]</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-decoder-stft-decoder">
+<span id="id9"></span><h2>espnet2.enh.decoder.stft_decoder<a class="headerlink" href="#espnet2-enh-decoder-stft-decoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.decoder.stft_decoder"></span><dl class="class">
+<dt id="espnet2.enh.decoder.stft_decoder.STFTDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.stft_decoder.</code><code class="sig-name descname">STFTDecoder</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/stft_decoder.html#STFTDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.stft_decoder.STFTDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder" title="espnet2.enh.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.decoder.abs_decoder.AbsDecoder</span></code></a></p>
+<p>STFT decoder for speech enhancement and separation</p>
+<dl class="method">
+<dt id="espnet2.enh.decoder.stft_decoder.STFTDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/stft_decoder.html#STFTDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.stft_decoder.STFTDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>ComplexTensor</em>) – spectrum [Batch, T, F]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-decoder-abs-decoder">
+<span id="id10"></span><h2>espnet2.enh.decoder.abs_decoder<a class="headerlink" href="#espnet2-enh-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.decoder.abs_decoder"></span><dl class="class">
+<dt id="espnet2.enh.decoder.abs_decoder.AbsDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.abs_decoder.</code><code class="sig-name descname">AbsDecoder</code><a class="reference internal" href="../_modules/espnet2/enh/decoder/abs_decoder.html#AbsDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.enh.decoder.abs_decoder.AbsDecoder.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/decoder/abs_decoder.html#AbsDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-decoder-null-decoder">
+<span id="id11"></span><h2>espnet2.enh.decoder.null_decoder<a class="headerlink" href="#espnet2-enh-decoder-null-decoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.decoder.null_decoder"></span><dl class="class">
+<dt id="espnet2.enh.decoder.null_decoder.NullDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.null_decoder.</code><code class="sig-name descname">NullDecoder</code><a class="reference internal" href="../_modules/espnet2/enh/decoder/null_decoder.html#NullDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.null_decoder.NullDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder" title="espnet2.enh.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.decoder.abs_decoder.AbsDecoder</span></code></a></p>
+<p>Null decoder, return the same args.</p>
+<dl class="method">
+<dt id="espnet2.enh.decoder.null_decoder.NullDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/null_decoder.html#NullDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.null_decoder.NullDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward. The input should be the waveform already.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – wav [Batch, sample]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-layers-dprnn">
+<span id="id12"></span><h2>espnet2.enh.layers.dprnn<a class="headerlink" href="#espnet2-enh-layers-dprnn" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.dprnn"></span><dl class="class">
+<dt id="espnet2.enh.layers.dprnn.DPRNN">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dprnn.</code><code class="sig-name descname">DPRNN</code><span class="sig-paren">(</span><em class="sig-param">rnn_type</em>, <em class="sig-param">input_size</em>, <em class="sig-param">hidden_size</em>, <em class="sig-param">output_size</em>, <em class="sig-param">dropout=0</em>, <em class="sig-param">num_layers=1</em>, <em class="sig-param">bidirectional=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#DPRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.DPRNN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Deep dual-path RNN.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rnn_type</strong> – string, select from ‘RNN’, ‘LSTM’ and ‘GRU’.</p></li>
+<li><p><strong>input_size</strong> – int, dimension of the input feature. The input should have shape
+(batch, seq_len, input_size).</p></li>
+<li><p><strong>hidden_size</strong> – int, dimension of the hidden state.</p></li>
+<li><p><strong>output_size</strong> – int, dimension of the output size.</p></li>
+<li><p><strong>dropout</strong> – float, dropout ratio. Default is 0.</p></li>
+<li><p><strong>num_layers</strong> – int, number of stacked RNN layers. Default is 1.</p></li>
+<li><p><strong>bidirectional</strong> – bool, whether the RNN layers are bidirectional. Default is True.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.layers.dprnn.DPRNN.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#DPRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.DPRNN.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.dprnn.SingleRNN">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dprnn.</code><code class="sig-name descname">SingleRNN</code><span class="sig-paren">(</span><em class="sig-param">rnn_type</em>, <em class="sig-param">input_size</em>, <em class="sig-param">hidden_size</em>, <em class="sig-param">dropout=0</em>, <em class="sig-param">bidirectional=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#SingleRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.SingleRNN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Container module for a single RNN layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rnn_type</strong> – string, select from ‘RNN’, ‘LSTM’ and ‘GRU’.</p></li>
+<li><p><strong>input_size</strong> – int, dimension of the input feature. The input should have shape
+(batch, seq_len, input_size).</p></li>
+<li><p><strong>hidden_size</strong> – int, dimension of the hidden state.</p></li>
+<li><p><strong>dropout</strong> – float, dropout ratio. Default is 0.</p></li>
+<li><p><strong>bidirectional</strong> – bool, whether the RNN layers are bidirectional. Default is False.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.layers.dprnn.SingleRNN.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#SingleRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.SingleRNN.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.dprnn.merge_feature">
+<code class="sig-prename descclassname">espnet2.enh.layers.dprnn.</code><code class="sig-name descname">merge_feature</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">rest</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#merge_feature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.merge_feature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.dprnn.split_feature">
+<code class="sig-prename descclassname">espnet2.enh.layers.dprnn.</code><code class="sig-name descname">split_feature</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">segment_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#split_feature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.split_feature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-layers-dnn-beamformer">
+<span id="id13"></span><h2>espnet2.enh.layers.dnn_beamformer<a class="headerlink" href="#espnet2-enh-layers-dnn-beamformer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.dnn_beamformer"></span><dl class="class">
+<dt id="espnet2.enh.layers.dnn_beamformer.AttentionReference">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnn_beamformer.</code><code class="sig-name descname">AttentionReference</code><span class="sig-paren">(</span><em class="sig-param">bidim</em>, <em class="sig-param">att_dim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#AttentionReference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.AttentionReference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.dnn_beamformer.AttentionReference.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">psd_in: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.LongTensor</em>, <em class="sig-param">scaling: float = 2.0</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.LongTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#AttentionReference.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.AttentionReference.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention-based reference forward function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_in</strong> (<em>ComplexTensor</em>) – (B, F, C, C)</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – (B,)</p></li>
+<li><p><strong>scaling</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, C)
+ilens (torch.Tensor): (B,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>u (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.dnn_beamformer.DNN_Beamformer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnn_beamformer.</code><code class="sig-name descname">DNN_Beamformer</code><span class="sig-paren">(</span><em class="sig-param">bidim</em>, <em class="sig-param">btype: str = 'blstmp'</em>, <em class="sig-param">blayers: int = 3</em>, <em class="sig-param">bunits: int = 300</em>, <em class="sig-param">bprojs: int = 320</em>, <em class="sig-param">num_spk: int = 1</em>, <em class="sig-param">use_noise_mask: bool = True</em>, <em class="sig-param">nonlinear: str = 'sigmoid'</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">badim: int = 320</em>, <em class="sig-param">ref_channel: int = -1</em>, <em class="sig-param">beamformer_type: str = 'mvdr_souden'</em>, <em class="sig-param">rtf_iterations: int = 2</em>, <em class="sig-param">eps: float = 1e-06</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">mask_flooring: bool = False</em>, <em class="sig-param">flooring_thres: float = 1e-06</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">btaps: int = 5</em>, <em class="sig-param">bdelay: int = 3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>DNN mask based Beamformer.</p>
+<dl class="simple">
+<dt>Citation:</dt><dd><p>Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;
+<a class="reference external" href="http://proceedings.mlr.press/v70/ochiai17a/ochiai17a.pdf">http://proceedings.mlr.press/v70/ochiai17a/ochiai17a.pdf</a></p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">data: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.LongTensor</em>, <em class="sig-param">powers: Optional[List[torch.Tensor]] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch_complex.tensor.ComplexTensor, torch.LongTensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>DNN_Beamformer forward function.</p>
+<dl class="simple">
+<dt>Notation:</dt><dd><p>B: Batch
+C: Channel
+T: Time or Sequence length
+F: Freq</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>ComplexTensor</em>) – (B, T, C, F)</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – (B,)</p></li>
+<li><p><strong>powers</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>] or </em><em>None</em>) – used for wMPDR or WPD (B, F, T)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, T, F)
+ilens (torch.Tensor): (B,)
+masks (torch.Tensor): (B, T, C, F)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>enhanced (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.predict_mask">
+<code class="sig-name descname">predict_mask</code><span class="sig-paren">(</span><em class="sig-param">data: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.LongTensor</em><span class="sig-paren">)</span> &#x2192; Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer.predict_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.predict_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict masks for beamforming.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>ComplexTensor</em>) – (B, T, C, F), double precision</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – (B,)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, T, C, F)
+ilens (torch.Tensor): (B,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masks (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-layers-tcn">
+<span id="id14"></span><h2>espnet2.enh.layers.tcn<a class="headerlink" href="#espnet2-enh-layers-tcn" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.tcn"></span><dl class="class">
+<dt id="espnet2.enh.layers.tcn.ChannelwiseLayerNorm">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">ChannelwiseLayerNorm</code><span class="sig-paren">(</span><em class="sig-param">channel_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#ChannelwiseLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.ChannelwiseLayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Channel-wise Layer Normalization (cLN).</p>
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.ChannelwiseLayerNorm.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#ChannelwiseLayerNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.ChannelwiseLayerNorm.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>y</strong> – [M, N, K], M is batch size, N is channel size, K is length</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[M, N, K]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>cLN_y</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.ChannelwiseLayerNorm.reset_parameters">
+<code class="sig-name descname">reset_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#ChannelwiseLayerNorm.reset_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.ChannelwiseLayerNorm.reset_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.tcn.Chomp1d">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">Chomp1d</code><span class="sig-paren">(</span><em class="sig-param">chomp_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#Chomp1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.Chomp1d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>To ensure the output length is the same as the input.</p>
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.Chomp1d.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#Chomp1d.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.Chomp1d.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – [M, H, Kpad]</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[M, H, K]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.tcn.DepthwiseSeparableConv">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">DepthwiseSeparableConv</code><span class="sig-paren">(</span><em class="sig-param">in_channels</em>, <em class="sig-param">out_channels</em>, <em class="sig-param">kernel_size</em>, <em class="sig-param">stride</em>, <em class="sig-param">padding</em>, <em class="sig-param">dilation</em>, <em class="sig-param">norm_type='gLN'</em>, <em class="sig-param">causal=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#DepthwiseSeparableConv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.DepthwiseSeparableConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.DepthwiseSeparableConv.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#DepthwiseSeparableConv.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.DepthwiseSeparableConv.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – [M, H, K]</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[M, B, K]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>result</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.tcn.GlobalLayerNorm">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">GlobalLayerNorm</code><span class="sig-paren">(</span><em class="sig-param">channel_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#GlobalLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.GlobalLayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Global Layer Normalization (gLN).</p>
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.GlobalLayerNorm.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#GlobalLayerNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.GlobalLayerNorm.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>y</strong> – [M, N, K], M is batch size, N is channel size, K is length</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[M, N, K]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>gLN_y</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.GlobalLayerNorm.reset_parameters">
+<code class="sig-name descname">reset_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#GlobalLayerNorm.reset_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.GlobalLayerNorm.reset_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.tcn.TemporalBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">TemporalBlock</code><span class="sig-paren">(</span><em class="sig-param">in_channels</em>, <em class="sig-param">out_channels</em>, <em class="sig-param">kernel_size</em>, <em class="sig-param">stride</em>, <em class="sig-param">padding</em>, <em class="sig-param">dilation</em>, <em class="sig-param">norm_type='gLN'</em>, <em class="sig-param">causal=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.TemporalBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – [M, B, K]</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[M, B, K]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.tcn.TemporalConvNet">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">TemporalConvNet</code><span class="sig-paren">(</span><em class="sig-param">N</em>, <em class="sig-param">B</em>, <em class="sig-param">H</em>, <em class="sig-param">P</em>, <em class="sig-param">X</em>, <em class="sig-param">R</em>, <em class="sig-param">C</em>, <em class="sig-param">norm_type='gLN'</em>, <em class="sig-param">causal=False</em>, <em class="sig-param">mask_nonlinear='relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalConvNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalConvNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Basic Module of tasnet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> – Number of filters in autoencoder</p></li>
+<li><p><strong>B</strong> – Number of channels in bottleneck 1 * 1-conv block</p></li>
+<li><p><strong>H</strong> – Number of channels in convolutional blocks</p></li>
+<li><p><strong>P</strong> – Kernel size in convolutional blocks</p></li>
+<li><p><strong>X</strong> – Number of convolutional blocks in each repeat</p></li>
+<li><p><strong>R</strong> – Number of repeats</p></li>
+<li><p><strong>C</strong> – Number of speakers</p></li>
+<li><p><strong>norm_type</strong> – BN, gLN, cLN</p></li>
+<li><p><strong>causal</strong> – causal or non-causal</p></li>
+<li><p><strong>mask_nonlinear</strong> – use which non-linear function to generate mask</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.layers.tcn.TemporalConvNet.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">mixture_w</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalConvNet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalConvNet.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keep this API same with TasNet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mixture_w</strong> – [M, N, K], M is batch size</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[M, C, N, K]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>est_mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.tcn.check_nonlinear">
+<code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">check_nonlinear</code><span class="sig-paren">(</span><em class="sig-param">nolinear_type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#check_nonlinear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.check_nonlinear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.tcn.chose_norm">
+<code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">chose_norm</code><span class="sig-paren">(</span><em class="sig-param">norm_type</em>, <em class="sig-param">channel_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#chose_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.chose_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>The input of normalization will be (M, C, K), where M is batch size.</p>
+<p>C is channel size and K is sequence length.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-layers-mask-estimator">
+<span id="id15"></span><h2>espnet2.enh.layers.mask_estimator<a class="headerlink" href="#espnet2-enh-layers-mask-estimator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.mask_estimator"></span><dl class="class">
+<dt id="espnet2.enh.layers.mask_estimator.MaskEstimator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.mask_estimator.</code><code class="sig-name descname">MaskEstimator</code><span class="sig-paren">(</span><em class="sig-param">type</em>, <em class="sig-param">idim</em>, <em class="sig-param">layers</em>, <em class="sig-param">units</em>, <em class="sig-param">projs</em>, <em class="sig-param">dropout</em>, <em class="sig-param">nmask=1</em>, <em class="sig-param">nonlinear='sigmoid'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/mask_estimator.html#MaskEstimator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.mask_estimator.MaskEstimator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.mask_estimator.MaskEstimator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.LongTensor</em><span class="sig-paren">)</span> &#x2192; Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/mask_estimator.html#MaskEstimator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.mask_estimator.MaskEstimator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mask estimator forward function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> – (B, F, C, T)</p></li>
+<li><p><strong>ilens</strong> – (B,)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The hidden vector (B, F, C, T)
+masks: A tuple of the masks. (B, F, C, T)
+ilens: (B,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>hs (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-layers-beamformer">
+<span id="id16"></span><h2>espnet2.enh.layers.beamformer<a class="headerlink" href="#espnet2-enh-layers-beamformer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.beamformer"></span><dl class="function">
+<dt id="espnet2.enh.layers.beamformer.complex_norm">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">complex_norm</code><span class="sig-paren">(</span><em class="sig-param">c: torch_complex.tensor.ComplexTensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#complex_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.complex_norm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.filter_minimum_gain_like">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">filter_minimum_gain_like</code><span class="sig-paren">(</span><em class="sig-param">G_min</em>, <em class="sig-param">w</em>, <em class="sig-param">y</em>, <em class="sig-param">alpha=None</em>, <em class="sig-param">k: float = 10.0</em>, <em class="sig-param">eps: float = 2.220446049250313e-16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#filter_minimum_gain_like"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.filter_minimum_gain_like" title="Permalink to this definition">¶</a></dt>
+<dd><p>Approximate a minimum gain operation.</p>
+<p>speech_estimate = alpha w^H y + (1 - alpha) G_min Y,
+where alpha = 1 / (1 + exp(-2 k x)), x = w^H y - G_min Y</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G_min</strong> (<em>float</em>) – minimum gain</p></li>
+<li><p><strong>w</strong> (<em>ComplexTensor</em>) – filter coefficients (…, L, N)</p></li>
+<li><p><strong>y</strong> (<em>ComplexTensor</em>) – buffered and stacked input (…, L, N)</p></li>
+<li><p><strong>alpha</strong> – mixing factor</p></li>
+<li><p><strong>k</strong> (<em>float</em>) – scaling in tanh-like function</p></li>
+<li><p><strong>esp</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>minimum gain-filtered output
+alpha (float): optional</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_WPD_filter">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_WPD_filter</code><span class="sig-paren">(</span><em class="sig-param">Phi: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">Rf: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">reference_vector: torch.Tensor</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">eps: float = 1e-08</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_WPD_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_WPD_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the WPD vector.</p>
+<blockquote>
+<div><p>WPD is the Weighted Power minimization Distortionless response
+convolutional beamformer. As follows:</p>
+<p>h = (Rf^-1 &#64; Phi_{xx}) / tr[(Rf^-1) &#64; Phi_{xx}] &#64; u</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Reference:</dt><dd><p>T. Nakatani and K. Kinoshita, “A Unified Convolutional Beamformer
+for Simultaneous Denoising and Dereverberation,” in IEEE Signal
+Processing Letters, vol. 26, no. 6, pp. 903-907, June 2019, doi:
+10.1109/LSP.2019.2911179.
+<a class="reference external" href="https://ieeexplore.ieee.org/document/8691481">https://ieeexplore.ieee.org/document/8691481</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Phi</strong> (<em>ComplexTensor</em>) – (B, F, (btaps+1) * C, (btaps+1) * C)
+is the PSD of zero-padded speech [x^T(t,f) 0 … 0]^T.</p></li>
+<li><p><strong>Rf</strong> (<em>ComplexTensor</em>) – (B, F, (btaps+1) * C, (btaps+1) * C)
+is the power normalized spatio-temporal covariance matrix.</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em>) – (B, (btaps+1) * C)
+is the reference_vector.</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, F, (btaps + 1) * C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>filter_matrix (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_WPD_filter_v2">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_WPD_filter_v2</code><span class="sig-paren">(</span><em class="sig-param">Phi: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">Rf: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">reference_vector: torch.Tensor</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">eps: float = 1e-08</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_WPD_filter_v2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_WPD_filter_v2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the WPD vector (v2).</p>
+<blockquote>
+<div><dl class="simple">
+<dt>This implementaion is more efficient than <cite>get_WPD_filter</cite> as</dt><dd><p>it skips unnecessary computation with zeros.</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Phi</strong> (<em>ComplexTensor</em>) – (B, F, C, C)
+is speech PSD.</p></li>
+<li><p><strong>Rf</strong> (<em>ComplexTensor</em>) – (B, F, (btaps+1) * C, (btaps+1) * C)
+is the power normalized spatio-temporal covariance matrix.</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em>) – (B, C)
+is the reference_vector.</p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, F, (btaps+1) * C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>filter_matrix (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_WPD_filter_with_rtf">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_WPD_filter_with_rtf</code><span class="sig-paren">(</span><em class="sig-param">psd_observed_bar: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">psd_speech: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">psd_noise: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">iterations: int = 3</em>, <em class="sig-param">reference_vector: Union[int</em>, <em class="sig-param">torch.Tensor</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">normalize_ref_channel: Optional[int] = None</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">eps: float = 1e-15</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_WPD_filter_with_rtf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_WPD_filter_with_rtf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the WPD vector calculated with RTF.</p>
+<blockquote>
+<div><p>WPD is the Weighted Power minimization Distortionless response
+convolutional beamformer. As follows:</p>
+<p>h = (Rf^-1 &#64; vbar) / (vbar^H &#64; R^-1 &#64; vbar)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Reference:</dt><dd><p>T. Nakatani and K. Kinoshita, “A Unified Convolutional Beamformer
+for Simultaneous Denoising and Dereverberation,” in IEEE Signal
+Processing Letters, vol. 26, no. 6, pp. 903-907, June 2019, doi:
+10.1109/LSP.2019.2911179.
+<a class="reference external" href="https://ieeexplore.ieee.org/document/8691481">https://ieeexplore.ieee.org/document/8691481</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_observed_bar</strong> (<em>ComplexTensor</em>) – stacked observation covariance matrix</p></li>
+<li><p><strong>psd_speech</strong> (<em>ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_noise</strong> (<em>ComplexTensor</em>) – noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>iterations</strong> (<em>int</em>) – number of iterations in power method</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
+<li><p><strong>normalize_ref_channel</strong> (<em>int</em>) – reference channel for normalizing the RTF</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamform_vector (ComplexTensor)r</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_adjacent">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_adjacent</code><span class="sig-paren">(</span><em class="sig-param">spec: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">filter_length: int = 5</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_adjacent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_adjacent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zero-pad and unfold stft, i.e.,</p>
+<p>add zeros to the beginning so that, using the multi-frame signal model,
+there will be as many output frames as input frames.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spec</strong> (<em>ComplexTensor</em>) – input spectrum (B, F, T)</p></li>
+<li><p><strong>filter_length</strong> (<em>int</em>) – length for frame extension</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output spectrum (B, F, T, filter_length)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ret (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_adjacent_th">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_adjacent_th</code><span class="sig-paren">(</span><em class="sig-param">spec: torch.Tensor</em>, <em class="sig-param">filter_length: int = 5</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_adjacent_th"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_adjacent_th" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zero-pad and unfold stft, i.e.,</p>
+<p>add zeros to the beginning so that, using the multi-frame signal model,
+there will be as many output frames as input frames.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spec</strong> (<em>torch.Tensor</em>) – input spectrum (B, F, T, 2)</p></li>
+<li><p><strong>filter_length</strong> (<em>int</em>) – length for frame extension</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output spectrum (B, F, T, filter_length, 2)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_covariances">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_covariances</code><span class="sig-paren">(</span><em class="sig-param">Y: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">inverse_power: torch.Tensor</em>, <em class="sig-param">bdelay: int</em>, <em class="sig-param">btaps: int</em>, <em class="sig-param">get_vector: bool = False</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_covariances"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_covariances" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Calculates the power normalized spatio-temporal covariance</dt><dd><p>matrix of the framed signal.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Y</strong> – Complext STFT signal with shape (B, F, C, T)</p></li>
+<li><p><strong>inverse_power</strong> – Weighting factor with shape (B, F, T)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, F, (btaps+1) * C, (btaps+1) * C)
+Correlation vector: (B, F, btaps + 1, C, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Correlation matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_mfmvdr_vector">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_mfmvdr_vector</code><span class="sig-paren">(</span><em class="sig-param">gammax</em>, <em class="sig-param">Phi</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">eps: float = 2.220446049250313e-16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_mfmvdr_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_mfmvdr_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute conventional MFMPDR/MFMVDR filter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gammax</strong> (<em>ComplexTensor</em>) – (…, L, N)</p></li>
+<li><p><strong>Phi</strong> (<em>ComplexTensor</em>) – (…, L, N, N)</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, L, N)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamforming_vector (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_mvdr_vector">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_mvdr_vector</code><span class="sig-paren">(</span><em class="sig-param">psd_s: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">psd_n: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">reference_vector: torch.Tensor</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">eps: float = 1e-08</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_mvdr_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_mvdr_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the MVDR (Minimum Variance Distortionless Response) vector:</p>
+<blockquote>
+<div><p>h = (Npsd^-1 &#64; Spsd) / (Tr(Npsd^-1 &#64; Spsd)) &#64; u</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Reference:</dt><dd><p>On optimal frequency-domain multichannel linear filtering
+for noise reduction; M. Souden et al., 2010;
+<a class="reference external" href="https://ieeexplore.ieee.org/document/5089420">https://ieeexplore.ieee.org/document/5089420</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_s</strong> (<em>ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_n</strong> (<em>ComplexTensor</em>) – observation/noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em>) – (…, C)</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamform_vector (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_mvdr_vector_with_rtf">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_mvdr_vector_with_rtf</code><span class="sig-paren">(</span><em class="sig-param">psd_n: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">psd_speech: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">psd_noise: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">iterations: int = 3</em>, <em class="sig-param">reference_vector: Union[int</em>, <em class="sig-param">torch.Tensor</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">normalize_ref_channel: Optional[int] = None</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">eps: float = 1e-08</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_mvdr_vector_with_rtf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_mvdr_vector_with_rtf" title="Permalink to this definition">¶</a></dt>
+<dd><dl>
+<dt>Return the MVDR (Minimum Variance Distortionless Response) vector</dt><dd><p>calculated with RTF:</p>
+<p>h = (Npsd^-1 &#64; rtf) / (rtf^H &#64; Npsd^-1 &#64; rtf)</p>
+</dd>
+<dt>Reference:</dt><dd><p>On optimal frequency-domain multichannel linear filtering
+for noise reduction; M. Souden et al., 2010;
+<a class="reference external" href="https://ieeexplore.ieee.org/document/5089420">https://ieeexplore.ieee.org/document/5089420</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_n</strong> (<em>ComplexTensor</em>) – observation/noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_speech</strong> (<em>ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_noise</strong> (<em>ComplexTensor</em>) – noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>iterations</strong> (<em>int</em>) – number of iterations in power method</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
+<li><p><strong>normalize_ref_channel</strong> (<em>int</em>) – reference channel for normalizing the RTF</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamform_vector (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_rtf">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_rtf</code><span class="sig-paren">(</span><em class="sig-param">psd_speech: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">psd_noise: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">reference_vector: Union[int</em>, <em class="sig-param">torch.Tensor</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">iterations: int = 3</em>, <em class="sig-param">use_torch_solver: bool = True</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_rtf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_rtf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the relative transfer function (RTF) using the power method.</p>
+<dl class="simple">
+<dt>Algorithm:</dt><dd><ol class="arabic simple">
+<li><p>rtf = reference_vector</p></li>
+<li><dl class="simple">
+<dt>for i in range(iterations):</dt><dd><p>rtf = (psd_noise^-1 &#64; psd_speech) &#64; rtf
+rtf = rtf / ||rtf||_2  # this normalization can be skipped</p>
+</dd>
+</dl>
+</li>
+<li><p>rtf = psd_noise &#64; rtf</p></li>
+<li><p>rtf = rtf / rtf[…, ref_channel, :]</p></li>
+</ol>
+</dd>
+</dl>
+<p>Note: 4) Normalization at the reference channel is not performed here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_speech</strong> (<em>ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_noise</strong> (<em>ComplexTensor</em>) – noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
+<li><p><strong>iterations</strong> (<em>int</em>) – number of iterations in power method</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C, 1)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>rtf (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.minimum_gain_like">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">minimum_gain_like</code><span class="sig-paren">(</span><em class="sig-param">G_min</em>, <em class="sig-param">Y</em>, <em class="sig-param">filtered_input</em>, <em class="sig-param">alpha=None</em>, <em class="sig-param">k: float = 10.0</em>, <em class="sig-param">eps: float = 2.220446049250313e-16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#minimum_gain_like"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.minimum_gain_like" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.perform_WPD_filtering">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">perform_WPD_filtering</code><span class="sig-paren">(</span><em class="sig-param">filter_matrix: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">Y: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">bdelay: int</em>, <em class="sig-param">btaps: int</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#perform_WPD_filtering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.perform_WPD_filtering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform WPD filtering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filter_matrix</strong> – Filter matrix (B, F, (btaps + 1) * C)</p></li>
+<li><p><strong>Y</strong> – Complex STFT signal with shape (B, F, C, T)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, F, T)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>enhanced (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.signal_framing">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">signal_framing</code><span class="sig-paren">(</span><em class="sig-param">signal: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], frame_length: int, frame_step: int, bdelay: int, do_padding: bool = False, pad_value: int = 0, indices: List = None</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, torch_complex.tensor.ComplexTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#signal_framing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.signal_framing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expand <cite>signal</cite> into several frames, with each frame of length <cite>frame_length</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signal</strong> – (…, T)</p></li>
+<li><p><strong>frame_length</strong> – length of each segment</p></li>
+<li><p><strong>frame_step</strong> – step for selecting frames</p></li>
+<li><p><strong>bdelay</strong> – delay for WPD</p></li>
+<li><p><strong>do_padding</strong> – whether or not to pad the input signal at the beginning
+of the time dimension</p></li>
+<li><p><strong>pad_value</strong> – value to fill in the padding</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>if do_padding: (…, T, frame_length)
+else:          (…, T - bdelay - frame_length + 2, frame_length)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.tik_reg">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">tik_reg</code><span class="sig-paren">(</span><em class="sig-param">mat: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">reg: float = 1e-08</em>, <em class="sig-param">eps: float = 1e-08</em><span class="sig-paren">)</span> &#x2192; torch_complex.tensor.ComplexTensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#tik_reg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.tik_reg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform Tikhonov regularization (only modifying real part).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mat</strong> (<em>ComplexTensor</em>) – input matrix (…, C, C)</p></li>
+<li><p><strong>reg</strong> (<em>float</em>) – regularization factor</p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>regularized matrix (…, C, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ret (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.vector_to_Hermitian">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">vector_to_Hermitian</code><span class="sig-paren">(</span><em class="sig-param">vec</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#vector_to_Hermitian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.vector_to_Hermitian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a Hermitian matrix from a vector of N**2 independent
+real-valued elements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>vec</strong> (<em>torch.Tensor</em>) – (…, N ** 2)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, N, N)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mat (ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-layers-dnn-wpe">
+<span id="id17"></span><h2>espnet2.enh.layers.dnn_wpe<a class="headerlink" href="#espnet2-enh-layers-dnn-wpe" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.dnn_wpe"></span><dl class="class">
+<dt id="espnet2.enh.layers.dnn_wpe.DNN_WPE">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnn_wpe.</code><code class="sig-name descname">DNN_WPE</code><span class="sig-paren">(</span><em class="sig-param">wtype: str = 'blstmp'</em>, <em class="sig-param">widim: int = 257</em>, <em class="sig-param">wlayers: int = 3</em>, <em class="sig-param">wunits: int = 300</em>, <em class="sig-param">wprojs: int = 320</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">taps: int = 5</em>, <em class="sig-param">delay: int = 3</em>, <em class="sig-param">use_dnn_mask: bool = True</em>, <em class="sig-param">nmask: int = 1</em>, <em class="sig-param">nonlinear: str = 'sigmoid'</em>, <em class="sig-param">iterations: int = 1</em>, <em class="sig-param">normalization: bool = False</em>, <em class="sig-param">eps: float = 1e-06</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">mask_flooring: bool = False</em>, <em class="sig-param">flooring_thres: float = 1e-06</em>, <em class="sig-param">use_torch_solver: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_wpe.html#DNN_WPE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_wpe.DNN_WPE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.dnn_wpe.DNN_WPE.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">data: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.LongTensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch_complex.tensor.ComplexTensor, torch.LongTensor, torch_complex.tensor.ComplexTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_wpe.html#DNN_WPE.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_wpe.DNN_WPE.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>DNN_WPE forward function.</p>
+<dl class="simple">
+<dt>Notation:</dt><dd><p>B: Batch
+C: Channel
+T: Time or Sequence length
+F: Freq or Some dimension of the feature vector</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – (B, T, C, F)</p></li>
+<li><p><strong>ilens</strong> – (B,)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, T, C, F)
+ilens: (B,)
+masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
+power (List[torch.Tensor]): (B, F, T)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>enhanced (torch.Tensor or List[torch.Tensor])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.dnn_wpe.DNN_WPE.predict_mask">
+<code class="sig-name descname">predict_mask</code><span class="sig-paren">(</span><em class="sig-param">data: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.LongTensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.LongTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_wpe.html#DNN_WPE.predict_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_wpe.DNN_WPE.predict_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict mask for WPE dereverberation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>ComplexTensor</em>) – (B, T, C, F), double precision</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – (B,)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, T, C, F)
+ilens (torch.Tensor): (B,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masks (torch.Tensor or List[torch.Tensor])</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-layers-init">
+<span id="id18"></span><h2>espnet2.enh.layers.__init__<a class="headerlink" href="#espnet2-enh-layers-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.__init__"></span></div>
+<div class="section" id="espnet2-enh-separator-dprnn-separator">
+<span id="id19"></span><h2>espnet2.enh.separator.dprnn_separator<a class="headerlink" href="#espnet2-enh-separator-dprnn-separator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.dprnn_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.dprnn_separator.DPRNNSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.dprnn_separator.</code><code class="sig-name descname">DPRNNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">bidirectional: bool = True</em>, <em class="sig-param">num_spk: int = 2</em>, <em class="sig-param">nonlinear: str = 'relu'</em>, <em class="sig-param">layer: int = 3</em>, <em class="sig-param">unit: int = 512</em>, <em class="sig-param">segment_size: int = 20</em>, <em class="sig-param">dropout: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/dprnn_separator.html#DPRNNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.dprnn_separator.DPRNNSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Dual-Path RNN (DPRNN) Separator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – input feature dimension</p></li>
+<li><p><strong>rnn_type</strong> – string, select from ‘RNN’, ‘LSTM’ and ‘GRU’.</p></li>
+<li><p><strong>bidirectional</strong> – bool, whether the inter-chunk RNN layers are bidirectional.</p></li>
+<li><p><strong>num_spk</strong> – number of speakers</p></li>
+<li><p><strong>nonlinear</strong> – the nonlinear function for mask estimation,
+select from ‘relu’, ‘tanh’, ‘sigmoid’</p></li>
+<li><p><strong>layer</strong> – int, number of stacked RNN layers. Default is 3.</p></li>
+<li><p><strong>unit</strong> – int, dimension of the hidden state.</p></li>
+<li><p><strong>segment_size</strong> – dual-path segment size</p></li>
+<li><p><strong>dropout</strong> – float, dropout ratio. Default is 0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.dprnn_separator.DPRNNSeparator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/dprnn_separator.html#DPRNNSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.dprnn_separator.DPRNNSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded feature [B, T, N]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>[(B, T, N), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, Frames, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masked (List[Union(torch.Tensor, ComplexTensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.dprnn_separator.DPRNNSeparator.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.dprnn_separator.DPRNNSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-separator-asteroid-models">
+<span id="id20"></span><h2>espnet2.enh.separator.asteroid_models<a class="headerlink" href="#espnet2-enh-separator-asteroid-models" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.asteroid_models"></span><dl class="class">
+<dt id="espnet2.enh.separator.asteroid_models.AsteroidModel_Converter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.asteroid_models.</code><code class="sig-name descname">AsteroidModel_Converter</code><span class="sig-paren">(</span><em class="sig-param">encoder_output_dim: int</em>, <em class="sig-param">model_name: str</em>, <em class="sig-param">num_spk: int</em>, <em class="sig-param">pretrained_path: str = ''</em>, <em class="sig-param">loss_type: str = 'si_snr'</em>, <em class="sig-param">**model_related_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/asteroid_models.html#AsteroidModel_Converter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.asteroid_models.AsteroidModel_Converter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>The class to convert the models from asteroid to AbsSeprator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_output_dim</strong> – input feature dimension, deafult=1 after the NullEncoder</p></li>
+<li><p><strong>num_spk</strong> – number of speakers</p></li>
+<li><p><strong>loss_type</strong> – loss type of enhancement</p></li>
+<li><p><strong>model_name</strong> – Asteroid model names, e.g. ConvTasNet, DPTNet. Refers to
+<a class="reference external" href="https://github.com/asteroid-team/asteroid/">https://github.com/asteroid-team/asteroid/</a>
+blob/master/asteroid/models/__init__.py</p></li>
+<li><p><strong>pretrained_path</strong> – the name of pretrained model from Asteroid in HF hub.
+Refers to: <a class="reference external" href="https://github.com/asteroid-team/asteroid/">https://github.com/asteroid-team/asteroid/</a>
+blob/master/docs/source/readmes/pretrained_models.md and
+<a class="reference external" href="https://huggingface.co/models?filter=asteroid">https://huggingface.co/models?filter=asteroid</a></p></li>
+<li><p><strong>model_related_kwargs</strong> – more args towards each specific asteroid model.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/asteroid_models.html#AsteroidModel_Converter.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whole forward of asteroid models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – Raw Waveforms [B, T]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [B]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>[(B, T), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, T),
+‘mask_spk2’: torch.Tensor(Batch, T),
+…
+‘mask_spkn’: torch.Tensor(Batch, T),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>estimated Waveforms(List[Union(torch.Tensor])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.forward_rawwav">
+<code class="sig-name descname">forward_rawwav</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/separator/asteroid_models.html#AsteroidModel_Converter.forward_rawwav"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.forward_rawwav" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output with waveforms.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-separator-abs-separator">
+<span id="id21"></span><h2>espnet2.enh.separator.abs_separator<a class="headerlink" href="#espnet2-enh-separator-abs-separator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.abs_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.abs_separator.AbsSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.abs_separator.</code><code class="sig-name descname">AbsSeparator</code><a class="reference internal" href="../_modules/espnet2/enh/separator/abs_separator.html#AbsSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.enh.separator.abs_separator.AbsSeparator.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[Tuple[torch.Tensor], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/abs_separator.html#AbsSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.abs_separator.AbsSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.abs_separator.AbsSeparator.num_spk">
+<em class="property">abstract property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.abs_separator.AbsSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-separator-neural-beamformer">
+<span id="id22"></span><h2>espnet2.enh.separator.neural_beamformer<a class="headerlink" href="#espnet2-enh-separator-neural-beamformer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.neural_beamformer"></span><dl class="class">
+<dt id="espnet2.enh.separator.neural_beamformer.NeuralBeamformer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.neural_beamformer.</code><code class="sig-name descname">NeuralBeamformer</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 1</em>, <em class="sig-param">loss_type: str = 'mask_mse'</em>, <em class="sig-param">use_wpe: bool = False</em>, <em class="sig-param">wnet_type: str = 'blstmp'</em>, <em class="sig-param">wlayers: int = 3</em>, <em class="sig-param">wunits: int = 300</em>, <em class="sig-param">wprojs: int = 320</em>, <em class="sig-param">wdropout_rate: float = 0.0</em>, <em class="sig-param">taps: int = 5</em>, <em class="sig-param">delay: int = 3</em>, <em class="sig-param">use_dnn_mask_for_wpe: bool = True</em>, <em class="sig-param">wnonlinear: str = 'crelu'</em>, <em class="sig-param">multi_source_wpe: bool = True</em>, <em class="sig-param">wnormalization: bool = False</em>, <em class="sig-param">use_beamformer: bool = True</em>, <em class="sig-param">bnet_type: str = 'blstmp'</em>, <em class="sig-param">blayers: int = 3</em>, <em class="sig-param">bunits: int = 300</em>, <em class="sig-param">bprojs: int = 320</em>, <em class="sig-param">badim: int = 320</em>, <em class="sig-param">ref_channel: int = -1</em>, <em class="sig-param">use_noise_mask: bool = True</em>, <em class="sig-param">bnonlinear: str = 'sigmoid'</em>, <em class="sig-param">beamformer_type: str = 'mvdr_souden'</em>, <em class="sig-param">rtf_iterations: int = 2</em>, <em class="sig-param">bdropout_rate: float = 0.0</em>, <em class="sig-param">shared_power: bool = True</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps_wpe: float = 1e-07</em>, <em class="sig-param">diag_eps_bf: float = 1e-07</em>, <em class="sig-param">mask_flooring: bool = False</em>, <em class="sig-param">flooring_thres_wpe: float = 1e-06</em>, <em class="sig-param">flooring_thres_bf: float = 1e-06</em>, <em class="sig-param">use_torch_solver: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/neural_beamformer.html#NeuralBeamformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.neural_beamformer.NeuralBeamformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.enh.separator.neural_beamformer.NeuralBeamformer.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch_complex.tensor.ComplexTensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[List[torch_complex.tensor.ComplexTensor], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/neural_beamformer.html#NeuralBeamformer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.neural_beamformer.NeuralBeamformer.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>ComplexTensor</em>) – mixed speech [Batch, Frames, Channel, Freq]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>List[ComplexTensor]
+output lengths
+other predcited data: OrderedDict[</p>
+<blockquote>
+<div><p>’dereverb1’: ComplexTensor(Batch, Frames, Channel, Freq),
+‘mask_dereverb1’: torch.Tensor(Batch, Frames, Channel, Freq),
+‘mask_noise1’: torch.Tensor(Batch, Frames, Channel, Freq),
+‘mask_spk1’: torch.Tensor(Batch, Frames, Channel, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Channel, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Channel, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>enhanced speech (single-channel)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.neural_beamformer.NeuralBeamformer.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.neural_beamformer.NeuralBeamformer.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-separator-transformer-separator">
+<span id="id23"></span><h2>espnet2.enh.separator.transformer_separator<a class="headerlink" href="#espnet2-enh-separator-transformer-separator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.transformer_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.transformer_separator.TransformerSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.transformer_separator.</code><code class="sig-name descname">TransformerSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 2</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">layers: int = 6</em>, <em class="sig-param">linear_units: int = 1536</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">normalize_before: bool = False</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.1</em>, <em class="sig-param">use_scaled_pos_enc: bool = True</em>, <em class="sig-param">nonlinear: str = 'relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/transformer_separator.html#TransformerSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.transformer_separator.TransformerSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Transformer separator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – input feature dimension</p></li>
+<li><p><strong>num_spk</strong> – number of speakers</p></li>
+<li><p><strong>adim</strong> (<em>int</em>) – Dimention of attention.</p></li>
+<li><p><strong>aheads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
+<li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – The number of transformer blocks.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>attention_dropout_rate</strong> (<em>float</em>) – Dropout rate in attention.</p></li>
+<li><p><strong>positional_dropout_rate</strong> (<em>float</em>) – Dropout rate after adding
+positional encoding.</p></li>
+<li><p><strong>normalize_before</strong> (<em>bool</em>) – Whether to use layer_norm before the first block.</p></li>
+<li><p><strong>concat_after</strong> (<em>bool</em>) – Whether to concat attention layer’s input and output.
+if True, additional linear will be applied.
+i.e. x -&gt; x + linear(concat(x, att(x)))
+if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>positionwise_layer_type</strong> (<em>str</em>) – “linear”, “conv1d”, or “conv1d-linear”.</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> (<em>int</em>) – Kernel size of
+positionwise conv1d layer.</p></li>
+<li><p><strong>use_scaled_pos_enc</strong> (<em>bool</em>) – use scaled positional encoding or not</p></li>
+<li><p><strong>nonlinear</strong> – the nonlinear function for mask estimation,
+select from ‘relu’, ‘tanh’, ‘sigmoid’</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.transformer_separator.TransformerSeparator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/transformer_separator.html#TransformerSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.transformer_separator.TransformerSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded feature [B, T, N]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>[(B, T, N), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, Frames, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masked (List[Union(torch.Tensor, ComplexTensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.transformer_separator.TransformerSeparator.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.transformer_separator.TransformerSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-separator-conformer-separator">
+<span id="id24"></span><h2>espnet2.enh.separator.conformer_separator<a class="headerlink" href="#espnet2-enh-separator-conformer-separator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.conformer_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.conformer_separator.ConformerSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.conformer_separator.</code><code class="sig-name descname">ConformerSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 2</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">layers: int = 6</em>, <em class="sig-param">linear_units: int = 1536</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">normalize_before: bool = False</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">input_layer: str = 'linear'</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.1</em>, <em class="sig-param">nonlinear: str = 'relu'</em>, <em class="sig-param">conformer_pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">conformer_self_attn_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">conformer_activation_type: str = 'swish'</em>, <em class="sig-param">use_macaron_style_in_conformer: bool = True</em>, <em class="sig-param">use_cnn_in_conformer: bool = True</em>, <em class="sig-param">conformer_enc_kernel_size: int = 7</em>, <em class="sig-param">padding_idx: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/conformer_separator.html#ConformerSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.conformer_separator.ConformerSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Conformer separator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – input feature dimension</p></li>
+<li><p><strong>num_spk</strong> – number of speakers</p></li>
+<li><p><strong>adim</strong> (<em>int</em>) – Dimention of attention.</p></li>
+<li><p><strong>aheads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
+<li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – The number of transformer blocks.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>input_layer</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>torch.nn.Module</em><em>]</em>) – Input layer type.</p></li>
+<li><p><strong>attention_dropout_rate</strong> (<em>float</em>) – Dropout rate in attention.</p></li>
+<li><p><strong>positional_dropout_rate</strong> (<em>float</em>) – Dropout rate after adding
+positional encoding.</p></li>
+<li><p><strong>normalize_before</strong> (<em>bool</em>) – Whether to use layer_norm before the first block.</p></li>
+<li><p><strong>concat_after</strong> (<em>bool</em>) – Whether to concat attention layer’s input and output.
+if True, additional linear will be applied.
+i.e. x -&gt; x + linear(concat(x, att(x)))
+if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>conformer_pos_enc_layer_type</strong> (<em>str</em>) – Encoder positional encoding layer type.</p></li>
+<li><p><strong>conformer_self_attn_layer_type</strong> (<em>str</em>) – Encoder attention layer type.</p></li>
+<li><p><strong>conformer_activation_type</strong> (<em>str</em>) – Encoder activation function type.</p></li>
+<li><p><strong>positionwise_layer_type</strong> (<em>str</em>) – “linear”, “conv1d”, or “conv1d-linear”.</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> (<em>int</em>) – Kernel size of
+positionwise conv1d layer.</p></li>
+<li><p><strong>use_macaron_style_in_conformer</strong> (<em>bool</em>) – Whether to use macaron style for
+positionwise layer.</p></li>
+<li><p><strong>use_cnn_in_conformer</strong> (<em>bool</em>) – Whether to use convolution module.</p></li>
+<li><p><strong>conformer_enc_kernel_size</strong> (<em>int</em>) – Kernerl size of convolution module.</p></li>
+<li><p><strong>padding_idx</strong> (<em>int</em>) – Padding idx for input_layer=embed.</p></li>
+<li><p><strong>nonlinear</strong> – the nonlinear function for mask estimation,
+select from ‘relu’, ‘tanh’, ‘sigmoid’</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.conformer_separator.ConformerSeparator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/conformer_separator.html#ConformerSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.conformer_separator.ConformerSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded feature [B, T, N]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>[(B, T, N), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, Frames, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masked (List[Union(torch.Tensor, ComplexTensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.conformer_separator.ConformerSeparator.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.conformer_separator.ConformerSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-separator-tcn-separator">
+<span id="id25"></span><h2>espnet2.enh.separator.tcn_separator<a class="headerlink" href="#espnet2-enh-separator-tcn-separator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.tcn_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.tcn_separator.TCNSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tcn_separator.</code><code class="sig-name descname">TCNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 2</em>, <em class="sig-param">layer: int = 8</em>, <em class="sig-param">stack: int = 3</em>, <em class="sig-param">bottleneck_dim: int = 128</em>, <em class="sig-param">hidden_dim: int = 512</em>, <em class="sig-param">kernel: int = 3</em>, <em class="sig-param">causal: bool = False</em>, <em class="sig-param">norm_type: str = 'gLN'</em>, <em class="sig-param">nonlinear: str = 'relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tcn_separator.html#TCNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tcn_separator.TCNSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Temporal Convolution Separator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – input feature dimension</p></li>
+<li><p><strong>num_spk</strong> – number of speakers</p></li>
+<li><p><strong>layer</strong> – int, number of layers in each stack.</p></li>
+<li><p><strong>stack</strong> – int, number of stacks</p></li>
+<li><p><strong>bottleneck_dim</strong> – bottleneck dimension</p></li>
+<li><p><strong>hidden_dim</strong> – number of convolution channel</p></li>
+<li><p><strong>kernel</strong> – int, kernel size.</p></li>
+<li><p><strong>causal</strong> – bool, defalut False.</p></li>
+<li><p><strong>norm_type</strong> – str, choose from ‘BN’, ‘gLN’, ‘cLN’</p></li>
+<li><p><strong>nonlinear</strong> – the nonlinear function for mask estimation,
+select from ‘relu’, ‘tanh’, ‘sigmoid’</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.tcn_separator.TCNSeparator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/tcn_separator.html#TCNSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tcn_separator.TCNSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded feature [B, T, N]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>[(B, T, N), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, Frames, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masked (List[Union(torch.Tensor, ComplexTensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.tcn_separator.TCNSeparator.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.tcn_separator.TCNSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-enh-separator-rnn-separator">
+<span id="id26"></span><h2>espnet2.enh.separator.rnn_separator<a class="headerlink" href="#espnet2-enh-separator-rnn-separator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.rnn_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.rnn_separator.RNNSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.rnn_separator.</code><code class="sig-name descname">RNNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">rnn_type: str = 'blstm'</em>, <em class="sig-param">num_spk: int = 2</em>, <em class="sig-param">nonlinear: str = 'sigmoid'</em>, <em class="sig-param">layer: int = 3</em>, <em class="sig-param">unit: int = 512</em>, <em class="sig-param">dropout: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/rnn_separator.html#RNNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.rnn_separator.RNNSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>RNN Separator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – input feature dimension</p></li>
+<li><p><strong>rnn_type</strong> – string, select from ‘blstm’, ‘lstm’ etc.</p></li>
+<li><p><strong>bidirectional</strong> – bool, whether the inter-chunk RNN layers are bidirectional.</p></li>
+<li><p><strong>num_spk</strong> – number of speakers</p></li>
+<li><p><strong>nonlinear</strong> – the nonlinear function for mask estimation,
+select from ‘relu’, ‘tanh’, ‘sigmoid’</p></li>
+<li><p><strong>layer</strong> – int, number of stacked RNN layers. Default is 3.</p></li>
+<li><p><strong>unit</strong> – int, dimension of the hidden state.</p></li>
+<li><p><strong>dropout</strong> – float, dropout ratio. Default is 0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.rnn_separator.RNNSeparator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/rnn_separator.html#RNNSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.rnn_separator.RNNSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded feature [B, T, N]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>[(B, T, N), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, Frames, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>masked (List[Union(torch.Tensor, ComplexTensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.rnn_separator.RNNSeparator.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.rnn_separator.RNNSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2.utils.html" class="btn btn-neutral float-right" title="espnet2.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2.schedulers.html" class="btn btn-neutral float-left" title="espnet2.schedulers package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

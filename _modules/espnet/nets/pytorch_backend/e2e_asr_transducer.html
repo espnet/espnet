@@ -1,0 +1,844 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.pytorch_backend.e2e_asr_transducer &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.pytorch_backend.e2e_asr_transducer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.pytorch_backend.e2e_asr_transducer</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Transducer speech recognition model (pytorch).&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">asdict</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.ctc</span> <span class="kn">import</span> <span class="n">ctc_for</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.arguments</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">add_encoder_general_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_rnn_encoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_custom_encoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_decoder_general_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_rnn_decoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_custom_decoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_custom_training_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_transducer_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_auxiliary_task_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.auxiliary_task</span> <span class="kn">import</span> <span class="n">AuxiliaryTask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.custom_decoder</span> <span class="kn">import</span> <span class="n">CustomDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.custom_encoder</span> <span class="kn">import</span> <span class="n">CustomEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.error_calculator</span> <span class="kn">import</span> <span class="n">ErrorCalculator</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.initializer</span> <span class="kn">import</span> <span class="n">initializer</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.loss</span> <span class="kn">import</span> <span class="n">TransLoss</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.rnn_decoder</span> <span class="kn">import</span> <span class="n">DecoderRNNT</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.rnn_encoder</span> <span class="kn">import</span> <span class="n">encoder_for</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">prepare_loss_inputs</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">valid_aux_task_layer_list</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">RelPositionMultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.label_smoothing_loss</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LabelSmoothingLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">target_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.plot</span> <span class="kn">import</span> <span class="n">PlotAttentionReport</span>
+<span class="kn">from</span> <span class="nn">espnet.utils.fill_missing_args</span> <span class="kn">import</span> <span class="n">fill_missing_args</span>
+
+
+<div class="viewcode-block" id="Reporter"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.Reporter">[docs]</a><span class="k">class</span> <span class="nc">Reporter</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A chainer reporter wrapper for transducer models.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Reporter.report"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.Reporter.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">loss</span><span class="p">,</span>
+        <span class="n">loss_trans</span><span class="p">,</span>
+        <span class="n">loss_ctc</span><span class="p">,</span>
+        <span class="n">loss_lm</span><span class="p">,</span>
+        <span class="n">loss_aux_trans</span><span class="p">,</span>
+        <span class="n">loss_aux_symm_kl</span><span class="p">,</span>
+        <span class="n">cer</span><span class="p">,</span>
+        <span class="n">wer</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Instantiate reporter attributes.&quot;&quot;&quot;</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">loss</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss_trans&quot;</span><span class="p">:</span> <span class="n">loss_trans</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss_ctc&quot;</span><span class="p">:</span> <span class="n">loss_ctc</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss_lm&quot;</span><span class="p">:</span> <span class="n">loss_lm</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss_aux_trans&quot;</span><span class="p">:</span> <span class="n">loss_aux_trans</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;loss_aux_symm_kl&quot;</span><span class="p">:</span> <span class="n">loss_aux_symm_kl</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;cer&quot;</span><span class="p">:</span> <span class="n">cer</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">({</span><span class="s2">&quot;wer&quot;</span><span class="p">:</span> <span class="n">wer</span><span class="p">},</span> <span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;loss:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">loss</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">ASRInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;E2E module for transducer models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        idim (int): dimension of inputs</span>
+<span class="sd">        odim (int): dimension of outputs</span>
+<span class="sd">        args (Namespace): argument Namespace containing options</span>
+<span class="sd">        ignore_id (int): padding symbol id</span>
+<span class="sd">        blank_id (int): blank symbol id</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for transducer model.&quot;&quot;&quot;</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">encoder_add_general_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">encoder_add_rnn_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">encoder_add_custom_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+
+        <span class="n">E2E</span><span class="o">.</span><span class="n">decoder_add_general_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">decoder_add_rnn_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">decoder_add_custom_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+
+        <span class="n">E2E</span><span class="o">.</span><span class="n">training_add_custom_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">transducer_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">auxiliary_task_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.encoder_add_general_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.encoder_add_general_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">encoder_add_general_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add general arguments for encoder.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Encoder general arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_encoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.encoder_add_rnn_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.encoder_add_rnn_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">encoder_add_rnn_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for RNN encoder.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;RNN encoder arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_rnn_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.encoder_add_custom_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.encoder_add_custom_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">encoder_add_custom_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for Custom encoder.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Custom encoder arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_custom_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.decoder_add_general_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.decoder_add_general_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">decoder_add_general_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add general arguments for decoder.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Decoder general arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_decoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.decoder_add_rnn_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.decoder_add_rnn_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">decoder_add_rnn_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for RNN decoder.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;RNN decoder arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_rnn_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.decoder_add_custom_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.decoder_add_custom_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">decoder_add_custom_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for Custom decoder.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Custom decoder arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_custom_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.training_add_custom_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.training_add_custom_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">training_add_custom_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for Custom architecture training.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Training arguments for custom archictecture&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_custom_training_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.transducer_add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.transducer_add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">transducer_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for transducer model.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Transducer model arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_transducer_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.auxiliary_task_add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.auxiliary_task_add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">auxiliary_task_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for auxiliary task.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Auxiliary task arguments&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">add_auxiliary_task_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get attention plot class.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">PlotAttentionReport</span>
+
+<div class="viewcode-block" id="E2E.get_total_subsampling_factor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">etype</span> <span class="o">==</span> <span class="s2">&quot;custom&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">blank_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Construct an E2E object for transducer model.&quot;&quot;&quot;</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="n">fill_missing_args</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_rnnt</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transducer_weight</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">transducer_weight</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_task</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">True</span> <span class="k">if</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">aux_task_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">training</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_ctc</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">aux_ctc</span> <span class="ow">and</span> <span class="n">training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_ctc_weight</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">aux_ctc_weight</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_cross_entropy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">aux_cross_entropy</span> <span class="ow">and</span> <span class="n">training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_cross_entropy_weight</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">aux_cross_entropy_weight</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_task</span><span class="p">:</span>
+            <span class="n">n_layers</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">enc_block_arch</span><span class="p">)</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">enc_block_repeat</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">enc_block_arch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">elayers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">aux_task_layer_list</span> <span class="o">=</span> <span class="n">valid_aux_task_layer_list</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+                <span class="n">n_layers</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">aux_task_layer_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">etype</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">enc_block_arch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;When specifying custom encoder type, --enc-block-arch&quot;</span>
+                    <span class="s2">&quot;should also be specified in training config. See&quot;</span>
+                    <span class="s2">&quot;egs/vivos/asr1/conf/transducer/train_*.yaml for more info.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span> <span class="o">=</span> <span class="n">get_subsample</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="n">arch</span><span class="o">=</span><span class="s2">&quot;transformer&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">CustomEncoder</span><span class="p">(</span>
+                <span class="n">idim</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">enc_block_arch</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">custom_enc_input_layer</span><span class="p">,</span>
+                <span class="n">repeat_block</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">enc_block_repeat</span><span class="p">,</span>
+                <span class="n">self_attn_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">custom_enc_self_attn_type</span><span class="p">,</span>
+                <span class="n">positional_encoding_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">custom_enc_positional_encoding_type</span><span class="p">,</span>
+                <span class="n">positionwise_activation_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">custom_enc_pw_activation_type</span><span class="p">,</span>
+                <span class="n">conv_mod_activation_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">custom_enc_conv_mod_activation_type</span><span class="p">,</span>
+                <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">encoder_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">enc_out</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">most_dom_list</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">enc_block_arch</span><span class="p">[:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span> <span class="o">=</span> <span class="n">get_subsample</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="n">arch</span><span class="o">=</span><span class="s2">&quot;rnn-t&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">encoder_for</span><span class="p">(</span>
+                <span class="n">args</span><span class="p">,</span>
+                <span class="n">idim</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">,</span>
+                <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="n">aux_task_layer_list</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">encoder_out</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">eprojs</span>
+
+        <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dec_block_arch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;When specifying custom decoder type, --dec-block-arch&quot;</span>
+                    <span class="s2">&quot;should also be specified in training config. See&quot;</span>
+                    <span class="s2">&quot;egs/vivos/asr1/conf/transducer/train_*.yaml for more info.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">CustomDecoder</span><span class="p">(</span>
+                <span class="n">odim</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">dec_block_arch</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">custom_dec_input_layer</span><span class="p">,</span>
+                <span class="n">repeat_block</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dec_block_repeat</span><span class="p">,</span>
+                <span class="n">positionwise_activation_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">custom_dec_pw_activation_type</span><span class="p">,</span>
+                <span class="n">dropout_rate_embed</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dropout_rate_embed_decoder</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">decoder_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">dunits</span>
+
+            <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">etype</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">most_dom_list</span> <span class="o">+=</span> <span class="n">args</span><span class="o">.</span><span class="n">dec_block_arch</span><span class="p">[:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">most_dom_list</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dec_block_arch</span><span class="p">[:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="n">DecoderRNNT</span><span class="p">(</span>
+                <span class="n">odim</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">dlayers</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span>
+                <span class="n">blank_id</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">dec_embed_dim</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate_decoder</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate_embed_decoder</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">decoder_out</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dunits</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span> <span class="o">=</span> <span class="n">JointNetwork</span><span class="p">(</span>
+            <span class="n">odim</span><span class="p">,</span> <span class="n">encoder_out</span><span class="p">,</span> <span class="n">decoder_out</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">joint_dim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">joint_activation_type</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;most_dom_list&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">most_dom_dim</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">Counter</span><span class="p">(</span>
+                    <span class="n">d</span><span class="p">[</span><span class="s2">&quot;d_hidden&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">most_dom_list</span> <span class="k">if</span> <span class="s2">&quot;d_hidden&quot;</span> <span class="ow">in</span> <span class="n">d</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">most_common</span><span class="p">(),</span>
+                <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">etype</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">etype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="n">blank_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_space</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_blank</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_parameters</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">TransLoss</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">trans_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">)</span>
+
+            <span class="n">decoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;custom&quot;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span>
+
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">report_cer</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">report_wer</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ErrorCalculator</span><span class="p">(</span>
+                    <span class="n">decoder</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">char_list</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">sym_space</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">sym_blank</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">report_cer</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">report_wer</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_task</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">auxiliary_task</span> <span class="o">=</span> <span class="n">AuxiliaryTask</span><span class="p">(</span>
+                    <span class="n">decoder</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">aux_task_type</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">aux_task_weight</span><span class="p">,</span>
+                    <span class="n">encoder_out</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">joint_dim</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_ctc</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">aux_ctc</span> <span class="o">=</span> <span class="n">ctc_for</span><span class="p">(</span>
+                    <span class="n">Namespace</span><span class="p">(</span>
+                        <span class="n">num_encs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">eprojs</span><span class="o">=</span><span class="n">encoder_out</span><span class="p">,</span>
+                        <span class="n">dropout_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">aux_ctc_dropout_rate</span><span class="p">,</span>
+                        <span class="n">ctc_type</span><span class="o">=</span><span class="s2">&quot;warpctc&quot;</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">odim</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_cross_entropy</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">aux_decoder_output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">,</span> <span class="n">odim</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">aux_cross_entropy</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
+                    <span class="n">odim</span><span class="p">,</span> <span class="n">ignore_id</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">aux_cross_entropy_smoothing</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rnnlm</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="E2E.default_parameters"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.default_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">default_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize/reset parameters for transducer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            args (Namespace): argument Namespace containing options</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">initializer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="E2E.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs_pad (torch.Tensor): batch of padded source sequences (B, Tmax, idim)</span>
+<span class="sd">            ilens (torch.Tensor): batch of lengths of input sequences (B)</span>
+<span class="sd">            ys_pad (torch.Tensor): batch of padded target sequences (B, Lmax)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            loss (torch.Tensor): transducer loss value</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># 1. encoder</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[:,</span> <span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">ilens</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">etype</span><span class="p">:</span>
+            <span class="n">src_mask</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="n">_hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">src_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_task</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">aux_hs_pad</span> <span class="o">=</span> <span class="n">_hs_pad</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">_hs_pad</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">aux_hs_pad</span> <span class="o">=</span> <span class="n">_hs_pad</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># 1.5. transducer preparation related</span>
+        <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">pred_len</span><span class="p">,</span> <span class="n">target_len</span> <span class="o">=</span> <span class="n">prepare_loss_inputs</span><span class="p">(</span>
+            <span class="n">ys_pad</span><span class="p">,</span> <span class="n">hs_mask</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 2. decoder</span>
+        <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+            <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">target_mask</span><span class="p">(</span><span class="n">ys_in_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">)</span>
+            <span class="n">pred_pad</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_mask</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pred_pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">)</span>
+
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span><span class="p">(</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">pred_pad</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># 3. loss computation</span>
+        <span class="n">loss_trans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">pred_len</span><span class="p">,</span> <span class="n">target_len</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_task</span> <span class="ow">and</span> <span class="n">aux_hs_pad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">loss_aux_trans</span><span class="p">,</span> <span class="n">loss_aux_symm_kl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auxiliary_task</span><span class="p">(</span>
+                <span class="n">aux_hs_pad</span><span class="p">,</span> <span class="n">pred_pad</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">pred_len</span><span class="p">,</span> <span class="n">target_len</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss_aux_trans</span><span class="p">,</span> <span class="n">loss_aux_symm_kl</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_ctc</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">etype</span><span class="p">:</span>
+                <span class="n">hs_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">IntTensor</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hs_mask</span><span class="p">],</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">hs_mask</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="n">loss_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_ctc_weight</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_ctc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss_ctc</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_aux_cross_entropy</span><span class="p">:</span>
+            <span class="n">loss_lm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_cross_entropy_weight</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_cross_entropy</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">aux_decoder_output</span><span class="p">(</span><span class="n">pred_pad</span><span class="p">),</span> <span class="n">ys_out_pad</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss_lm</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">loss_trans</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">transducer_weight</span> <span class="o">*</span> <span class="p">(</span><span class="n">loss_aux_trans</span> <span class="o">+</span> <span class="n">loss_aux_symm_kl</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">loss_ctc</span>
+            <span class="o">+</span> <span class="n">loss_lm</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="n">loss_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+        <span class="c1"># 4. compute cer/wer</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">loss_data</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">(</span>
+                <span class="n">loss_data</span><span class="p">,</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">loss_trans</span><span class="p">),</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">loss_ctc</span><span class="p">),</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">loss_lm</span><span class="p">),</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">loss_aux_trans</span><span class="p">),</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">loss_aux_symm_kl</span><span class="p">),</span>
+                <span class="n">cer</span><span class="p">,</span>
+                <span class="n">wer</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;loss (=</span><span class="si">%f</span><span class="s2">) is not correct&quot;</span><span class="p">,</span> <span class="n">loss_data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
+
+<div class="viewcode-block" id="E2E.encode_custom"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.encode_custom">[docs]</a>    <span class="k">def</span> <span class="nf">encode_custom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Encode acoustic features.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (ndarray): input acoustic feature (T, D)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            x (torch.Tensor): encoded features (T, D_enc)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">enc_output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">enc_output</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="E2E.encode_rnn"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.encode_rnn">[docs]</a>    <span class="k">def</span> <span class="nf">encode_rnn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Encode acoustic features.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (ndarray): input acoustic feature (T, D)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            x (torch.Tensor): encoded features (T, D_enc)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
+
+        <span class="n">ilens</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[::</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:]</span>
+
+        <span class="n">h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">hs</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">hs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hs</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="E2E.recognize"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">beam_search</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Recognize input features.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (ndarray): input acoustic feature (T, D)</span>
+<span class="sd">            beam_search (class): beam search class</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            nbest_hyps (list): n-best decoding results</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">etype</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_custom</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_rnn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">beam_search</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">asdict</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nbest_hyps</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="E2E.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs_pad (torch.Tensor): batch of padded input sequences (B, Tmax, idim)</span>
+<span class="sd">            ilens (torch.Tensor): batch of lengths of input sequences (B)</span>
+<span class="sd">            ys_pad (torch.Tensor):</span>
+<span class="sd">                batch of padded character id sequence tensor (B, Lmax)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ret (ndarray): attention weights with the following shape,</span>
+<span class="sd">                1) multi-head case =&gt; attention weights (B, H, Lmax, Tmax),</span>
+<span class="sd">                2) other case =&gt; attention weights (B, Lmax, Tmax).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">etype</span> <span class="ow">and</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">MultiHeadedAttention</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+                    <span class="n">m</span><span class="p">,</span> <span class="n">RelPositionMultiHeadedAttention</span>
+                <span class="p">):</span>
+                    <span class="n">ret</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

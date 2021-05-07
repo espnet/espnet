@@ -1,0 +1,1192 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ESPnet real time E2E-TTS demonstration &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ESPnet Speech Translation Demonstration" href="st_demo.html" />
+    <link rel="prev" title="Pretrained Model" href="pretrained.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ESPnet real time E2E-TTS demonstration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#English-demo">English demo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Download-pretrained-feature-generation-model">Download pretrained feature generation model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#(a)-Tacotron2">(a) Tacotron2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#(b)-Transformer">(b) Transformer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#(c)-FastSpeech">(c) FastSpeech</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Download-pretrained-vocoder-model">Download pretrained vocoder model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#(a)-Parallel-WaveGAN">(a) Parallel WaveGAN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#(b)-MelGAN">(b) MelGAN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#(c)-Multi-band-MelGAN">(c) Multi-band MelGAN</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Synthesis">Synthesis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Japanese-demo">Japanese demo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Install-Japanese-dependencies">Install Japanese dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Download-pretrained-models">Download pretrained models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#(a)-Tacotron-2">(a) Tacotron 2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">(b) Transformer</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Synthesis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Mandarin-demo">Mandarin demo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Install-Mandarin-dependencies">Install Mandarin dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Download pretrained models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#(a)-Transformer">(a) Transformer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#(b)-FastSpeech">(b) FastSpeech</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Synthesis</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>ESPnet real time E2E-TTS demonstration</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/notebook/tts_realtime_demo.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<p><a class="reference external" href="https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></p>
+<div class="section" id="ESPnet-real-time-E2E-TTS-demonstration">
+<h1>ESPnet real time E2E-TTS demonstration<a class="headerlink" href="#ESPnet-real-time-E2E-TTS-demonstration" title="Permalink to this headline">¶</a></h1>
+<p>This notebook provides a demonstration of the realtime E2E-TTS using ESPnet-TTS and ParallelWaveGAN (+ MelGAN).</p>
+<ul class="simple">
+<li><p>ESPnet: <a class="reference external" href="https://github.com/espnet/espnet">https://github.com/espnet/espnet</a></p></li>
+<li><p>ParallelWaveGAN: <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a></p></li>
+</ul>
+<p>Author: Tomoki Hayashi ([&#64;kan-bayashi](<a class="reference external" href="https://github.com/kan-bayashi">https://github.com/kan-bayashi</a>))</p>
+<div class="section" id="Install">
+<h2>Install<a class="headerlink" href="#Install" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># install minimal components
+!pip install -q parallel_wavegan PyYaml unidecode ConfigArgparse g2p_en espnet_tts_frontend
+!git clone -q https://github.com/espnet/espnet.git
+!cd espnet &amp;&amp; git fetch &amp;&amp; git checkout -b v.0.9.1 refs/tags/v.0.9.1
+</pre></div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="English-demo">
+<h2>English demo<a class="headerlink" href="#English-demo" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="Download-pretrained-feature-generation-model">
+<h3>Download pretrained feature generation model<a class="headerlink" href="#Download-pretrained-feature-generation-model" title="Permalink to this headline">¶</a></h3>
+<p>You can select one from three models. Please only run the seletected model cells.</p>
+<div class="section" id="(a)-Tacotron2">
+<h4>(a) Tacotron2<a class="headerlink" href="#(a)-Tacotron2" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained model
+import os
+if not os.path.exists(&quot;downloads/en/tacotron2&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1lFfeyewyOsxaNO-DEWy9iSz6qB9ZS1UR downloads/en/tacotron2 tar.gz
+
+# set path
+trans_type = &quot;phn&quot;
+dict_path = &quot;downloads/en/tacotron2/data/lang_1phn/phn_train_no_dev_units.txt&quot;
+model_path = &quot;downloads/en/tacotron2/exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v3/results/model.last1.avg.best&quot;
+
+print(&quot;sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="(b)-Transformer">
+<h4>(b) Transformer<a class="headerlink" href="#(b)-Transformer" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained model
+import os
+if not os.path.exists(&quot;downloads/en/transformer&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1z8KSOWVBjK-_Ws4RxVN4NTx-Buy03-7c downloads/en/transformer tar.gz
+
+# set path
+trans_type = &quot;phn&quot;
+dict_path = &quot;downloads/en/transformer/data/lang_1phn/phn_train_no_dev_units.txt&quot;
+model_path = &quot;downloads/en/transformer/exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v3.single/results/model.last1.avg.best&quot;
+
+print(&quot;sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="(c)-FastSpeech">
+<h4>(c) FastSpeech<a class="headerlink" href="#(c)-FastSpeech" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained model
+import os
+if not os.path.exists(&quot;downloads/en/fastspeech&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1P9I4qag8wAcJiTCPawt6WCKBqUfJFtFp downloads/en/fastspeech tar.gz
+
+# set path
+trans_type = &quot;phn&quot;
+dict_path = &quot;downloads/en/fastspeech/data/lang_1phn/phn_train_no_dev_units.txt&quot;
+model_path = &quot;downloads/en/fastspeech/exp/phn_train_no_dev_pytorch_train_tacotron2.v3_fastspeech.v4.single/results/model.last1.avg.best&quot;
+
+print(&quot;Sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="Download-pretrained-vocoder-model">
+<h3>Download pretrained vocoder model<a class="headerlink" href="#Download-pretrained-vocoder-model" title="Permalink to this headline">¶</a></h3>
+<p>You can select one from two models. Please only run the seletected model cells.</p>
+<div class="section" id="(a)-Parallel-WaveGAN">
+<h4>(a) Parallel WaveGAN<a class="headerlink" href="#(a)-Parallel-WaveGAN" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained model
+import os
+if not os.path.exists(&quot;downloads/en/parallel_wavegan&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1Grn7X9wD35UcDJ5F7chwdTqTa4U7DeVB downloads/en/parallel_wavegan tar.gz
+
+# set path
+vocoder_path = &quot;downloads/en/parallel_wavegan/ljspeech.parallel_wavegan.v2/checkpoint-400000steps.pkl&quot;
+
+print(&quot;Sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="(b)-MelGAN">
+<h4>(b) MelGAN<a class="headerlink" href="#(b)-MelGAN" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained model
+import os
+if not os.path.exists(&quot;downloads/en/melgan&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1_a8faVA5OGCzIcJNw4blQYjfG4oA9VEt downloads/en/melgan tar.gz
+
+# set path
+vocoder_path = &quot;downloads/en/melgan/train_nodev_ljspeech_melgan.v3.long/checkpoint-4000000steps.pkl&quot;
+
+print(&quot;Sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="(c)-Multi-band-MelGAN">
+<h4>(c) Multi-band MelGAN<a class="headerlink" href="#(c)-Multi-band-MelGAN" title="Permalink to this headline">¶</a></h4>
+<p>This is an <strong>EXPERIMENTAL</strong> model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained model
+import os
+if not os.path.exists(&quot;downloads/en/mb-melgan&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1rGG5y15uy4WZ-lJy8NPVTkmB_6VhC20V downloads/en/mb-melgan tar.gz
+
+# set path
+vocoder_path = &quot;downloads/en/mb-melgan/train_nodev_ljspeech_multi_band_melgan.v1/checkpoint-1000000steps.pkl&quot;
+
+print(&quot;Sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="Setup">
+<h3>Setup<a class="headerlink" href="#Setup" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># add path
+import sys
+sys.path.append(&quot;espnet&quot;)
+
+# define device
+import torch
+device = torch.device(&quot;cuda&quot;)
+
+# define E2E-TTS model
+from argparse import Namespace
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import torch_load
+from espnet.utils.dynamic_import import dynamic_import
+idim, odim, train_args = get_model_conf(model_path)
+model_class = dynamic_import(train_args.model_module)
+model = model_class(idim, odim, train_args)
+torch_load(model_path, model)
+model = model.eval().to(device)
+inference_args = Namespace(**{
+    &quot;threshold&quot;: 0.5,&quot;minlenratio&quot;: 0.0, &quot;maxlenratio&quot;: 10.0,
+    # Only for Tacotron 2
+    &quot;use_attention_constraint&quot;: True, &quot;backward_window&quot;: 1,&quot;forward_window&quot;:3,
+    # Only for fastspeech (lower than 1.0 is faster speech, higher than 1.0 is slower speech)
+    &quot;fastspeech_alpha&quot;: 1.0,
+    })
+
+# define neural vocoder
+from parallel_wavegan.utils import load_model
+fs = 22050
+vocoder = load_model(vocoder_path)
+vocoder.remove_weight_norm()
+vocoder = vocoder.eval().to(device)
+
+# define text frontend
+from tacotron_cleaner.cleaners import custom_english_cleaners
+from g2p_en import G2p
+with open(dict_path) as f:
+    lines = f.readlines()
+lines = [line.replace(&quot;\n&quot;, &quot;&quot;).split(&quot; &quot;) for line in lines]
+char_to_id = {c: int(i) for c, i in lines}
+g2p = G2p()
+def frontend(text):
+    &quot;&quot;&quot;Clean text and then convert to id sequence.&quot;&quot;&quot;
+    text = custom_english_cleaners(text)
+
+    if trans_type == &quot;phn&quot;:
+        text = filter(lambda s: s != &quot; &quot;, g2p(text))
+        text = &quot; &quot;.join(text)
+        print(f&quot;Cleaned text: {text}&quot;)
+        charseq = text.split(&quot; &quot;)
+    else:
+        print(f&quot;Cleaned text: {text}&quot;)
+        charseq = list(text)
+    idseq = []
+    for c in charseq:
+        if c.isspace():
+            idseq += [char_to_id[&quot;&lt;space&gt;&quot;]]
+        elif c not in char_to_id.keys():
+            idseq += [char_to_id[&quot;&lt;unk&gt;&quot;]]
+        else:
+            idseq += [char_to_id[c]]
+    idseq += [idim - 1]  # &lt;eos&gt;
+    return torch.LongTensor(idseq).view(-1).to(device)
+
+import nltk
+nltk.download(&#39;punkt&#39;)
+print(&quot;Now ready to synthesize!&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Synthesis">
+<h3>Synthesis<a class="headerlink" href="#Synthesis" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import time
+print(&quot;Input your favorite sentence in English!&quot;)
+input_text = input()
+with torch.no_grad():
+    start = time.time()
+    x = frontend(input_text)
+    c, _, _ = model.inference(x, inference_args)
+    y = vocoder.inference(c)
+rtf = (time.time() - start) / (len(y) / fs)
+print(f&quot;RTF = {rtf:5f}&quot;)
+
+from IPython.display import display, Audio
+display(Audio(y.view(-1).cpu().numpy(), rate=fs))
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="Japanese-demo">
+<h2>Japanese demo<a class="headerlink" href="#Japanese-demo" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="Install-Japanese-dependencies">
+<h3>Install Japanese dependencies<a class="headerlink" href="#Install-Japanese-dependencies" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># install dependency
+!mkdir tools &amp;&amp; cd tools &amp;&amp; git clone https://github.com/r9y9/hts_engine_API.git
+!cd tools/hts_engine_API/src &amp;&amp; ./waf configure &amp;&amp; ./waf build install
+!cd tools &amp;&amp; git clone https://github.com/r9y9/open_jtalk.git
+!mkdir -p tools/open_jtalk/src/build &amp;&amp; cd tools/open_jtalk/src/build &amp;&amp; cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON .. &amp;&amp; make install
+!cp tools/open_jtalk/src/build/*.so* /usr/lib64-nvidia
+!cd tools &amp;&amp; git clone https://github.com/r9y9/pyopenjtalk.git
+!cd tools/pyopenjtalk &amp;&amp; pip install .
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Download-pretrained-models">
+<h3>Download pretrained models<a class="headerlink" href="#Download-pretrained-models" title="Permalink to this headline">¶</a></h3>
+<p>Here we select Tacotron2 or Transformer. The vocoder model is Parallel WaveGAN.</p>
+<div class="section" id="(a)-Tacotron-2">
+<h4>(a) Tacotron 2<a class="headerlink" href="#(a)-Tacotron-2" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained models
+import os
+if not os.path.exists(&quot;downloads/jp/tacotron2&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM downloads/jp/tacotron2 tar.gz
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t downloads/jp/tacotron2 tar.gz
+
+# set path
+dict_path = &quot;downloads/jp/tacotron2/data/lang_1phn/train_no_dev_units.txt&quot;
+model_path = &quot;downloads/jp/tacotron2/exp/train_no_dev_pytorch_train_pytorch_tacotron2_phn/results/model.last1.avg.best&quot;
+vocoder_path = &quot;downloads/jp/tacotron2/jsut.parallel_wavegan.v1/checkpoint-400000steps.pkl&quot;
+
+print(&quot;sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="id1">
+<h4>(b) Transformer<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained models
+import os
+if not os.path.exists(&quot;downloads/jp/transformer&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM downloads/jp/transformer tar.gz
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD downloads/jp/transformer tar.gz
+
+# set path
+dict_path = &quot;downloads/jp/transformer/data/lang_1phn/train_no_dev_units.txt&quot;
+model_path = &quot;downloads/jp/transformer/exp/train_no_dev_pytorch_train_pytorch_transformer_phn/results/model.last1.avg.best&quot;
+vocoder_path = &quot;downloads/jp/transformer/jsut.parallel_wavegan.v1/checkpoint-400000steps.pkl&quot;
+
+print(&quot;sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>Setup<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># add path
+import sys
+sys.path.append(&quot;espnet&quot;)
+
+# define device
+import torch
+device = torch.device(&quot;cuda&quot;)
+
+# define E2E-TTS model
+from argparse import Namespace
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import torch_load
+from espnet.utils.dynamic_import import dynamic_import
+idim, odim, train_args = get_model_conf(model_path)
+model_class = dynamic_import(train_args.model_module)
+model = model_class(idim, odim, train_args)
+torch_load(model_path, model)
+model = model.eval().to(device)
+inference_args = Namespace(**{&quot;threshold&quot;: 0.5, &quot;minlenratio&quot;: 0.0, &quot;maxlenratio&quot;: 10.0})
+
+# define neural vocoder
+from parallel_wavegan.utils import load_model
+fs = 24000
+vocoder = load_model(vocoder_path)
+vocoder.remove_weight_norm()
+vocoder = vocoder.eval().to(device)
+
+# define text frontend
+import pyopenjtalk
+with open(dict_path) as f:
+    lines = f.readlines()
+lines = [line.replace(&quot;\n&quot;, &quot;&quot;).split(&quot; &quot;) for line in lines]
+char_to_id = {c: int(i) for c, i in lines}
+def frontend(text):
+    &quot;&quot;&quot;Clean text and then convert to id sequence.&quot;&quot;&quot;
+    text = pyopenjtalk.g2p(text, kana=False)
+    print(f&quot;Cleaned text: {text}&quot;)
+    charseq = text.split(&quot; &quot;)
+    idseq = []
+    for c in charseq:
+        if c.isspace():
+            idseq += [char_to_id[&quot;&lt;space&gt;&quot;]]
+        elif c not in char_to_id.keys():
+            idseq += [char_to_id[&quot;&lt;unk&gt;&quot;]]
+        else:
+            idseq += [char_to_id[c]]
+    idseq += [idim - 1]  # &lt;eos&gt;
+    return torch.LongTensor(idseq).view(-1).to(device)
+
+frontend(&quot;初回の辞書のインストールが必要です&quot;)
+print(&quot;Now ready to synthesize!&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="id3">
+<h3>Synthesis<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import time
+print(&quot;日本語で好きな文章を入力してください&quot;)
+input_text = input()
+
+with torch.no_grad():
+    start = time.time()
+    x = frontend(input_text)
+    c, _, _ = model.inference(x, inference_args)
+    y = vocoder.inference(c)
+rtf = (time.time() - start) / (len(y) / fs)
+print(f&quot;RTF = {rtf:5f}&quot;)
+
+from IPython.display import display, Audio
+display(Audio(y.view(-1).cpu().numpy(), rate=fs))
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="Mandarin-demo">
+<h2>Mandarin demo<a class="headerlink" href="#Mandarin-demo" title="Permalink to this headline">¶</a></h2>
+<p><strong>IMPORTANT NOTE</strong>: The author cannot understand Mandarin. The text front-end part might have some bugs.</p>
+<div class="section" id="Install-Mandarin-dependencies">
+<h3>Install Mandarin dependencies<a class="headerlink" href="#Install-Mandarin-dependencies" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>!pip install pypinyin
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="id4">
+<h3>Download pretrained models<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>You can select Transformer or FastSpeech.</p>
+<div class="section" id="(a)-Transformer">
+<h4>(a) Transformer<a class="headerlink" href="#(a)-Transformer" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained models
+import os
+if not os.path.exists(&quot;downloads/zh/transformer&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy downloads/zh/transformer tar.gz
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ downloads/zh/transformer tar.gz
+
+# set path
+dict_path = &quot;downloads/zh/transformer/data/lang_phn/train_no_dev_units.txt&quot;
+model_path = &quot;downloads/zh/transformer/exp/train_no_dev_pytorch_train_pytorch_transformer.v1.single/results/model.last1.avg.best&quot;
+vocoder_path = &quot;downloads/zh/transformer/csmsc.parallel_wavegan.v1/checkpoint-400000steps.pkl&quot;
+
+print(&quot;sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="(b)-FastSpeech">
+<h4>(b) FastSpeech<a class="headerlink" href="#(b)-FastSpeech" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># download pretrained models
+import os
+if not os.path.exists(&quot;downloads/zh/fastspeech&quot;):
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy downloads/zh/fastspeech tar.gz
+    !./espnet/utils/download_from_google_drive.sh \
+        https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R downloads/zh/fastspeech tar.gz
+
+# set path
+dict_path = &quot;downloads/zh/fastspeech/data/lang_phn/train_no_dev_units.txt&quot;
+model_path = &quot;downloads/zh/fastspeech/exp/train_no_dev_pytorch_train_fastspeech.v3.single/results/model.last1.avg.best&quot;
+vocoder_path = &quot;downloads/zh/fastspeech/csmsc.parallel_wavegan.v1/checkpoint-400000steps.pkl&quot;
+
+print(&quot;sucessfully finished download.&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="id5">
+<h3>Setup<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span># add path
+import sys
+sys.path.append(&quot;espnet&quot;)
+
+# define device
+import torch
+device = torch.device(&quot;cuda&quot;)
+
+# define E2E-TTS model
+from argparse import Namespace
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import torch_load
+from espnet.utils.dynamic_import import dynamic_import
+idim, odim, train_args = get_model_conf(model_path)
+model_class = dynamic_import(train_args.model_module)
+model = model_class(idim, odim, train_args)
+torch_load(model_path, model)
+model = model.eval().to(device)
+inference_args = Namespace(**{&quot;threshold&quot;: 0.5, &quot;minlenratio&quot;: 0.0, &quot;maxlenratio&quot;: 10.0})
+
+# define neural vocoder
+from parallel_wavegan.utils import load_model
+fs = 24000
+vocoder = load_model(vocoder_path)
+vocoder.remove_weight_norm()
+vocoder = vocoder.eval().to(device)
+
+# define text frontend
+from pypinyin import pinyin, Style
+from pypinyin.style._utils import get_initials, get_finals
+with open(dict_path) as f:
+    lines = f.readlines()
+lines = [line.replace(&quot;\n&quot;, &quot;&quot;).split(&quot; &quot;) for line in lines]
+char_to_id = {c: int(i) for c, i in lines}
+def frontend(text):
+    &quot;&quot;&quot;Clean text and then convert to id sequence.&quot;&quot;&quot;
+    text = pinyin(text, style=Style.TONE3)
+    text = [c[0] for c in text]
+    print(f&quot;Cleaned text: {text}&quot;)
+    idseq = []
+    for x in text:
+        c_init = get_initials(x, strict=True)
+        c_final = get_finals(x, strict=True)
+        for c in [c_init, c_final]:
+            if len(c) == 0:
+                continue
+            c = c.replace(&quot;ü&quot;, &quot;v&quot;)
+            c = c.replace(&quot;ui&quot;, &quot;uei&quot;)
+            c = c.replace(&quot;un&quot;, &quot;uen&quot;)
+            c = c.replace(&quot;iu&quot;, &quot;iou&quot;)
+            # Special rule: &quot;e5n&quot; -&gt; &quot;en5&quot;
+            if &quot;5&quot; in c:
+                c = c.replace(&quot;5&quot;, &quot;&quot;) + &quot;5&quot;
+            if c not in char_to_id.keys():
+                print(f&quot;WARN: {c} is not included in dict.&quot;)
+                idseq += [char_to_id[&quot;&lt;unk&gt;&quot;]]
+            else:
+                idseq += [char_to_id[c]]
+    idseq += [idim - 1]  # &lt;eos&gt;
+    return torch.LongTensor(idseq).view(-1).to(device)
+
+print(&quot;now ready to synthesize!&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="id6">
+<h3>Synthesis<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre>
+<span></span>import time
+print(&quot;請用中文輸入您喜歡的句子!&quot;)
+input_text = input()
+
+with torch.no_grad():
+    start = time.time()
+    x = frontend(input_text)
+    c, _, _ = model.inference(x, inference_args)
+    y = vocoder.inference(c)
+rtf = (time.time() - start) / (len(y) / fs)
+print(f&quot;RTF = {rtf:5f}&quot;)
+
+from IPython.display import display, Audio
+display(Audio(y.view(-1).cpu().numpy(), rate=fs))
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="st_demo.html" class="btn btn-neutral float-right" title="ESPnet Speech Translation Demonstration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="pretrained.html" class="btn btn-neutral float-left" title="Pretrained Model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

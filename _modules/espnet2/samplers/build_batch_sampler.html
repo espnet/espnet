@@ -1,0 +1,435 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.samplers.build_batch_sampler &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet2.samplers.build_batch_sampler</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet2.samplers.build_batch_sampler</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_return_type</span>
+
+<span class="kn">from</span> <span class="nn">espnet2.samplers.abs_sampler</span> <span class="kn">import</span> <span class="n">AbsSampler</span>
+<span class="kn">from</span> <span class="nn">espnet2.samplers.folded_batch_sampler</span> <span class="kn">import</span> <span class="n">FoldedBatchSampler</span>
+<span class="kn">from</span> <span class="nn">espnet2.samplers.length_batch_sampler</span> <span class="kn">import</span> <span class="n">LengthBatchSampler</span>
+<span class="kn">from</span> <span class="nn">espnet2.samplers.num_elements_batch_sampler</span> <span class="kn">import</span> <span class="n">NumElementsBatchSampler</span>
+<span class="kn">from</span> <span class="nn">espnet2.samplers.sorted_batch_sampler</span> <span class="kn">import</span> <span class="n">SortedBatchSampler</span>
+<span class="kn">from</span> <span class="nn">espnet2.samplers.unsorted_batch_sampler</span> <span class="kn">import</span> <span class="n">UnsortedBatchSampler</span>
+
+
+<span class="n">BATCH_TYPES</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">unsorted</span><span class="o">=</span><span class="s2">&quot;UnsortedBatchSampler has nothing in paticular feature and &quot;</span>
+    <span class="s2">&quot;just creates mini-batches which has constant batch_size. &quot;</span>
+    <span class="s2">&quot;This sampler doesn&#39;t require any length &quot;</span>
+    <span class="s2">&quot;information for each feature. &quot;</span>
+    <span class="s2">&quot;&#39;key_file&#39; is just a text file which describes each sample name.&quot;</span>
+    <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_a</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_b</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_c</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;The fist column is referred, so &#39;shape file&#39; can be used, too.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_a 100,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_b 400,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_c 512,80</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="nb">sorted</span><span class="o">=</span><span class="s2">&quot;SortedBatchSampler sorts samples by the length of the first input &quot;</span>
+    <span class="s2">&quot; in order to make each sample in a mini-batch has close length. &quot;</span>
+    <span class="s2">&quot;This sampler requires a text file which describes the length for each sample &quot;</span>
+    <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_a 1000</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_b 1453</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_c 1241</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;The first element of feature dimensions is referred, &quot;</span>
+    <span class="s2">&quot;so &#39;shape_file&#39; can be also used.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_a 1000,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_b 1453,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_c 1241,80</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">folded</span><span class="o">=</span><span class="s2">&quot;FoldedBatchSampler supports variable batch_size. &quot;</span>
+    <span class="s2">&quot;The batch_size is decided by</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    batch_size = base_batch_size // (L // fold_length)</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;L is referred to the largest length of samples in the mini-batch. &quot;</span>
+    <span class="s2">&quot;This samples requires length information as same as SortedBatchSampler</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">length</span><span class="o">=</span><span class="s2">&quot;LengthBatchSampler supports variable batch_size. &quot;</span>
+    <span class="s2">&quot;This sampler makes mini-batches which have same number of &#39;bins&#39; as possible &quot;</span>
+    <span class="s2">&quot;counting by the total lengths of each feature in the mini-batch. &quot;</span>
+    <span class="s2">&quot;This sampler requires a text file which describes the length for each sample. &quot;</span>
+    <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_a 1000</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_b 1453</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_c 1241</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;The first element of feature dimensions is referred, &quot;</span>
+    <span class="s2">&quot;so &#39;shape_file&#39; can be also used.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_a 1000,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_b 1453,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_c 1241,80</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">numel</span><span class="o">=</span><span class="s2">&quot;NumElementsBatchSampler supports variable batch_size. &quot;</span>
+    <span class="s2">&quot;Just like LengthBatchSampler, this sampler makes mini-batches&quot;</span>
+    <span class="s2">&quot; which have same number of &#39;bins&#39; as possible &quot;</span>
+    <span class="s2">&quot;counting by the total number of elements of each feature &quot;</span>
+    <span class="s2">&quot;instead of the length. &quot;</span>
+    <span class="s2">&quot;Thus this sampler requires the full information of the dimension of the features. &quot;</span>
+    <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_a 1000,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_b 1453,80</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;    utterance_id_c 1241,80</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="build_batch_sampler"><a class="viewcode-back" href="../../../_gen/espnet2.samplers.html#espnet2.samplers.build_batch_sampler.build_batch_sampler">[docs]</a><span class="k">def</span> <span class="nf">build_batch_sampler</span><span class="p">(</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">batch_bins</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">shape_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="n">sort_in_batch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;descending&quot;</span><span class="p">,</span>
+    <span class="n">sort_batch</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ascending&quot;</span><span class="p">,</span>
+    <span class="n">drop_last</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">min_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">fold_lengths</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">padding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">utt2category_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsSampler</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to instantiate BatchSampler.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        type: mini-batch type. &quot;unsorted&quot;, &quot;sorted&quot;, &quot;folded&quot;, &quot;numel&quot;, or, &quot;length&quot;</span>
+<span class="sd">        batch_size: The mini-batch size. Used for &quot;unsorted&quot;, &quot;sorted&quot;, &quot;folded&quot; mode</span>
+<span class="sd">        batch_bins: Used for &quot;numel&quot; model</span>
+<span class="sd">        shape_files: Text files describing the length and dimension</span>
+<span class="sd">            of each features. e.g. uttA 1330,80</span>
+<span class="sd">        sort_in_batch:</span>
+<span class="sd">        sort_batch:</span>
+<span class="sd">        drop_last:</span>
+<span class="sd">        min_batch_size:  Used for &quot;numel&quot; or &quot;folded&quot; mode</span>
+<span class="sd">        fold_lengths: Used for &quot;folded&quot; mode</span>
+<span class="sd">        padding: Whether sequences are input as a padded tensor or not.</span>
+<span class="sd">            used for &quot;numel&quot; mode</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape_files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No shape file are given&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">&quot;unsorted&quot;</span><span class="p">:</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">UnsortedBatchSampler</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">key_file</span><span class="o">=</span><span class="n">shape_files</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">&quot;sorted&quot;</span><span class="p">:</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">SortedBatchSampler</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">shape_file</span><span class="o">=</span><span class="n">shape_files</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">sort_in_batch</span><span class="o">=</span><span class="n">sort_in_batch</span><span class="p">,</span>
+            <span class="n">sort_batch</span><span class="o">=</span><span class="n">sort_batch</span><span class="p">,</span>
+            <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">&quot;folded&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fold_lengths</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape_files</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The number of fold_lengths must be equal to &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;the number of shape_files: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">fold_lengths</span><span class="p">)</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">shape_files</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">FoldedBatchSampler</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">shape_files</span><span class="o">=</span><span class="n">shape_files</span><span class="p">,</span>
+            <span class="n">fold_lengths</span><span class="o">=</span><span class="n">fold_lengths</span><span class="p">,</span>
+            <span class="n">sort_in_batch</span><span class="o">=</span><span class="n">sort_in_batch</span><span class="p">,</span>
+            <span class="n">sort_batch</span><span class="o">=</span><span class="n">sort_batch</span><span class="p">,</span>
+            <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">,</span>
+            <span class="n">min_batch_size</span><span class="o">=</span><span class="n">min_batch_size</span><span class="p">,</span>
+            <span class="n">utt2category_file</span><span class="o">=</span><span class="n">utt2category_file</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">&quot;numel&quot;</span><span class="p">:</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">NumElementsBatchSampler</span><span class="p">(</span>
+            <span class="n">batch_bins</span><span class="o">=</span><span class="n">batch_bins</span><span class="p">,</span>
+            <span class="n">shape_files</span><span class="o">=</span><span class="n">shape_files</span><span class="p">,</span>
+            <span class="n">sort_in_batch</span><span class="o">=</span><span class="n">sort_in_batch</span><span class="p">,</span>
+            <span class="n">sort_batch</span><span class="o">=</span><span class="n">sort_batch</span><span class="p">,</span>
+            <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+            <span class="n">min_batch_size</span><span class="o">=</span><span class="n">min_batch_size</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">&quot;length&quot;</span><span class="p">:</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">LengthBatchSampler</span><span class="p">(</span>
+            <span class="n">batch_bins</span><span class="o">=</span><span class="n">batch_bins</span><span class="p">,</span>
+            <span class="n">shape_files</span><span class="o">=</span><span class="n">shape_files</span><span class="p">,</span>
+            <span class="n">sort_in_batch</span><span class="o">=</span><span class="n">sort_in_batch</span><span class="p">,</span>
+            <span class="n">sort_batch</span><span class="o">=</span><span class="n">sort_batch</span><span class="p">,</span>
+            <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+            <span class="n">min_batch_size</span><span class="o">=</span><span class="n">min_batch_size</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: </span><span class="si">{</span><span class="nb">type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">retval</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

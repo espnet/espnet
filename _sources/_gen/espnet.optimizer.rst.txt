@@ -1,0 +1,60 @@
+
+espnet.optimizer package
+========================
+Initialize sub package.
+
+
+.. _espnet.optimizer.pytorch:
+
+espnet.optimizer.pytorch
+------------------------
+
+.. automodule:: espnet.optimizer.pytorch
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.optimizer.parser:
+
+espnet.optimizer.parser
+-----------------------
+
+.. automodule:: espnet.optimizer.parser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.optimizer.chainer:
+
+espnet.optimizer.chainer
+------------------------
+
+.. automodule:: espnet.optimizer.chainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.optimizer.factory:
+
+espnet.optimizer.factory
+------------------------
+
+.. automodule:: espnet.optimizer.factory
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.optimizer.__init__:
+
+espnet.optimizer.__init__
+-------------------------
+
+.. automodule:: espnet.optimizer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

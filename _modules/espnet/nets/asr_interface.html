@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.asr_interface &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.asr_interface</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.asr_interface</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;ASR Interface module.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="kn">from</span> <span class="nn">espnet.bin.asr_train</span> <span class="kn">import</span> <span class="n">get_parser</span>
+<span class="kn">from</span> <span class="nn">espnet.utils.dynamic_import</span> <span class="kn">import</span> <span class="n">dynamic_import</span>
+<span class="kn">from</span> <span class="nn">espnet.utils.fill_missing_args</span> <span class="kn">import</span> <span class="n">fill_missing_args</span>
+
+
+<div class="viewcode-block" id="ASRInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface">[docs]</a><span class="k">class</span> <span class="nc">ASRInterface</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;ASR Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ASRInterface.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments to parser.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="ASRInterface.build"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.build">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): The number of an input feature dim.</span>
+<span class="sd">            odim (int): The number of output vocab.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ASRinterface: A new instance of ASRInterface.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">get_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">fill_missing_args</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">wrap</span><span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">fill_missing_args</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ASRInterface.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute loss for training.</span>
+
+<span class="sd">        :param xs:</span>
+<span class="sd">            For pytorch, batch of padded source sequences torch.Tensor (B, Tmax, idim)</span>
+<span class="sd">            For chainer, list of source sequences chainer.Variable</span>
+<span class="sd">        :param ilens: batch of lengths of source sequences (B)</span>
+<span class="sd">            For pytorch, torch.Tensor</span>
+<span class="sd">            For chainer, list of int</span>
+<span class="sd">        :param ys:</span>
+<span class="sd">            For pytorch, batch of padded source sequences torch.Tensor (B, Lmax)</span>
+<span class="sd">            For chainer, list of source sequences chainer.Variable</span>
+<span class="sd">        :return: loss value</span>
+<span class="sd">        :rtype: torch.Tensor for pytorch, chainer.Variable for chainer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;forward method is not implemented&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ASRInterface.recognize"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Recognize x for evaluation.</span>
+
+<span class="sd">        :param ndarray x: input acouctic feature (B, T, D) or (T, D)</span>
+<span class="sd">        :param namespace recog_args: argment namespace contraining options</span>
+<span class="sd">        :param list char_list: list of characters</span>
+<span class="sd">        :param torch.nn.Module rnnlm: language model module</span>
+<span class="sd">        :return: N-best decoding results</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;recognize method is not implemented&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ASRInterface.recognize_batch"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.recognize_batch">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Beam search implementation for batch.</span>
+
+<span class="sd">        :param torch.Tensor x: encoder hidden state sequences (B, Tmax, Henc)</span>
+<span class="sd">        :param namespace recog_args: argument namespace containing options</span>
+<span class="sd">        :param list char_list: list of characters</span>
+<span class="sd">        :param torch.nn.Module rnnlm: language model module</span>
+<span class="sd">        :return: N-best decoding results</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Batch decoding is not supported yet.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ASRInterface.calculate_all_attentions"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Caluculate attention.</span>
+
+<span class="sd">        :param list xs: list of padded input sequences [(T1, idim), (T2, idim), ...]</span>
+<span class="sd">        :param ndarray ilens: batch of lengths of input sequences (B)</span>
+<span class="sd">        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]</span>
+<span class="sd">        :return: attention weights (B, Lmax, Tmax)</span>
+<span class="sd">        :rtype: float ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;calculate_all_attentions method is not implemented&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ASRInterface.calculate_all_ctc_probs"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.calculate_all_ctc_probs">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Caluculate CTC probability.</span>
+
+<span class="sd">        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]</span>
+<span class="sd">        :param ndarray ilens: batch of lengths of input sequences (B)</span>
+<span class="sd">        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]</span>
+<span class="sd">        :return: CTC probabilities (B, Tmax, vocab)</span>
+<span class="sd">        :rtype: float ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;calculate_all_ctc_probs method is not implemented&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get attention plot class.&quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">PlotAttentionReport</span>
+
+        <span class="k">return</span> <span class="n">PlotAttentionReport</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ctc_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get CTC plot class.&quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">PlotCTCReport</span>
+
+        <span class="k">return</span> <span class="n">PlotCTCReport</span>
+
+<div class="viewcode-block" id="ASRInterface.get_total_subsampling_factor"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;get_total_subsampling_factor method is not implemented&quot;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ASRInterface.encode"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feat</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Encode feature in `beam_search` (optional).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (numpy.ndarray): input feature (T, D)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor for pytorch, chainer.Variable for chainer:</span>
+<span class="sd">                encoded feature (T, D)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;encode method is not implemented&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ASRInterface.scorers"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.scorers">[docs]</a>    <span class="k">def</span> <span class="nf">scorers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get scorers for `beam_search` (optional).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, ScorerInterface]: dict of `ScorerInterface` objects</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;decoders method is not implemented&quot;</span><span class="p">)</span></div></div>
+
+
+<span class="n">predefined_asr</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;pytorch&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;rnn&quot;</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr:E2E&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transducer&quot;</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr_transducer:E2E&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transformer&quot;</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr_transformer:E2E&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;conformer&quot;</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr_conformer:E2E&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;chainer&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;rnn&quot;</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.chainer_backend.e2e_asr:E2E&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transformer&quot;</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.chainer_backend.e2e_asr_transformer:E2E&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="dynamic_import_asr"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.dynamic_import_asr">[docs]</a><span class="k">def</span> <span class="nf">dynamic_import_asr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Import ASR models dynamically.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        module (str): module_name:class_name or alias in `predefined_asr`</span>
+<span class="sd">        backend (str): NN backend. e.g., pytorch, chainer</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        type: ASR class</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_class</span> <span class="o">=</span> <span class="n">dynamic_import</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">predefined_asr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="nb">dict</span><span class="p">()))</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span>
+        <span class="n">model_class</span><span class="p">,</span> <span class="n">ASRInterface</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2"> does not implement ASRInterface&quot;</span>
+    <span class="k">return</span> <span class="n">model_class</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

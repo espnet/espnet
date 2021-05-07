@@ -1,0 +1,548 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.chainer_backend.rnn.attentions &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.chainer_backend.rnn.attentions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.chainer_backend.rnn.attentions</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">chainer.links</span> <span class="k">as</span> <span class="nn">L</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="c1"># dot product based attention</span>
+<div class="viewcode-block" id="AttDot"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttDot">[docs]</a><span class="k">class</span> <span class="nc">AttDot</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute attention based on dot product.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        eprojs (int | None): Dimension of input vectors from encoder.</span>
+<span class="sd">        dunits (int | None): Dimension of input vectors for decoder.</span>
+<span class="sd">        att_dim (int): Dimension of input vectors for attention.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AttDot</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mlp_enc</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mlp_dec</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span> <span class="o">=</span> <span class="n">dunits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eprojs</span> <span class="o">=</span> <span class="n">eprojs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att_dim</span> <span class="o">=</span> <span class="n">att_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="AttDot.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttDot.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute AttDot forward layer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            enc_hs (chainer.Variable | N-dimensional array):</span>
+<span class="sd">                Input variable from encoder.</span>
+<span class="sd">            dec_z (chainer.Variable | N-dimensional array): Input variable of decoder.</span>
+<span class="sd">            scaling (float): Scaling weight to make attention sharp.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            chainer.Variable: Weighted sum over flames.</span>
+<span class="sd">            chainer.Variable: Attention weight.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc_hs</span><span class="p">)</span>
+        <span class="c1"># pre-compute all h outside the decoder loop</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">enc_hs</span><span class="p">)</span>  <span class="c1"># utt x frame x hdim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># utt x frame x att_dim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlp_enc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="p">,</span> <span class="n">n_batch_axes</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">dec_z</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dec_z</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dec_z</span> <span class="o">=</span> <span class="n">dec_z</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">)</span>
+
+        <span class="c1"># &lt;phi (h_t), psi (s)&gt; for all t</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlp_dec</span><span class="p">(</span><span class="n">dec_z</span><span class="p">)),</span> <span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span><span class="o">.</span><span class="n">shape</span>
+        <span class="p">)</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">*</span> <span class="n">u</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># utt x frame</span>
+        <span class="c1"># Applying a minus-large-number filter</span>
+        <span class="c1"># to make a probability value zero for a padded area</span>
+        <span class="c1"># simply degrades the performance, and I gave up this implementation</span>
+        <span class="c1"># Apply a scaling to make an attention sharp</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scaling</span> <span class="o">*</span> <span class="n">e</span><span class="p">)</span>
+        <span class="c1"># weighted sum over flames</span>
+        <span class="c1"># utt x hdim</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">*</span> <span class="n">F</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">c</span><span class="p">,</span> <span class="n">w</span></div>
+
+
+<span class="c1"># location based attention</span>
+<div class="viewcode-block" id="AttLoc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttLoc">[docs]</a><span class="k">class</span> <span class="nc">AttLoc</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute location-based attention.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        eprojs (int | None): Dimension of input vectors from encoder.</span>
+<span class="sd">        dunits (int | None): Dimension of input vectors for decoder.</span>
+<span class="sd">        att_dim (int): Dimension of input vectors for attention.</span>
+<span class="sd">        aconv_chans (int): Number of channels of output arrays from convolutional layer.</span>
+<span class="sd">        aconv_filts (int): Size of filters of convolutional layer.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">,</span> <span class="n">aconv_chans</span><span class="p">,</span> <span class="n">aconv_filts</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AttLoc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mlp_enc</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mlp_dec</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mlp_att</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">aconv_chans</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loc_conv</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Convolution2D</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="n">aconv_chans</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">aconv_filts</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">pad</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">aconv_filts</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gvec</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">att_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span> <span class="o">=</span> <span class="n">dunits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eprojs</span> <span class="o">=</span> <span class="n">eprojs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att_dim</span> <span class="o">=</span> <span class="n">att_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aconv_chans</span> <span class="o">=</span> <span class="n">aconv_chans</span>
+
+<div class="viewcode-block" id="AttLoc.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttLoc.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute AttLoc forward layer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            enc_hs (chainer.Variable | N-dimensional array):</span>
+<span class="sd">                Input variable from encoders.</span>
+<span class="sd">            dec_z (chainer.Variable | N-dimensional array): Input variable of decoder.</span>
+<span class="sd">            att_prev (chainer.Variable | None): Attention weight.</span>
+<span class="sd">            scaling (float): Scaling weight to make attention sharp.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            chainer.Variable: Weighted sum over flames.</span>
+<span class="sd">            chainer.Variable: Attention weight.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc_hs</span><span class="p">)</span>
+        <span class="c1"># pre-compute all h outside the decoder loop</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">enc_hs</span><span class="p">)</span>  <span class="c1"># utt x frame x hdim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># utt x frame x att_dim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_enc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="p">,</span> <span class="n">n_batch_axes</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dec_z</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dec_z</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dec_z</span> <span class="o">=</span> <span class="n">dec_z</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">)</span>
+
+        <span class="c1"># initialize attention weight with uniform dist.</span>
+        <span class="k">if</span> <span class="n">att_prev</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">hh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">hh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">hh</span> <span class="ow">in</span> <span class="n">enc_hs</span>
+            <span class="p">]</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="p">[</span><span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">att</span><span class="p">)</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="n">att_prev</span><span class="p">]</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">att_prev</span><span class="p">)</span>
+
+        <span class="c1"># att_prev: utt x frame -&gt; utt x 1 x 1 x frame</span>
+        <span class="c1"># -&gt; utt x att_conv_chans x 1 x frame</span>
+        <span class="n">att_conv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loc_conv</span><span class="p">(</span><span class="n">att_prev</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span><span class="p">))</span>
+        <span class="c1"># att_conv: utt x att_conv_chans x 1 x frame -&gt; utt x frame x att_conv_chans</span>
+        <span class="n">att_conv</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">att_conv</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># att_conv: utt x frame x att_conv_chans -&gt; utt x frame x att_dim</span>
+        <span class="n">att_conv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_att</span><span class="p">(</span><span class="n">att_conv</span><span class="p">,</span> <span class="n">n_batch_axes</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># dec_z_tiled: utt x frame x att_dim</span>
+        <span class="n">dec_z_tiled</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlp_dec</span><span class="p">(</span><span class="n">dec_z</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span><span class="o">.</span><span class="n">shape</span>
+        <span class="p">)</span>
+
+        <span class="c1"># dot with gvec</span>
+        <span class="c1"># utt x frame x att_dim -&gt; utt x frame</span>
+        <span class="c1"># TODO(watanabe) use batch_matmul</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gvec</span><span class="p">(</span>
+                <span class="n">F</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">att_conv</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">+</span> <span class="n">dec_z_tiled</span><span class="p">),</span> <span class="n">n_batch_axes</span><span class="o">=</span><span class="mi">2</span>
+            <span class="p">),</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Applying a minus-large-number filter</span>
+        <span class="c1"># to make a probability value zero for a padded area</span>
+        <span class="c1"># simply degrades the performance, and I gave up this implementation</span>
+        <span class="c1"># Apply a scaling to make an attention sharp</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scaling</span> <span class="o">*</span> <span class="n">e</span><span class="p">)</span>
+
+        <span class="c1"># weighted sum over flames</span>
+        <span class="c1"># utt x hdim</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">*</span> <span class="n">F</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">c</span><span class="p">,</span> <span class="n">w</span></div>
+
+
+<div class="viewcode-block" id="NoAtt"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.NoAtt">[docs]</a><span class="k">class</span> <span class="nc">NoAtt</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute non-attention layer.</span>
+
+<span class="sd">    This layer is a dummy attention layer to be compatible with other</span>
+<span class="sd">    attention-based models.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoAtt</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="NoAtt.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.NoAtt.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute NoAtt forward layer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            enc_hs (chainer.Variable | N-dimensional array):</span>
+<span class="sd">                Input variable from encoders.</span>
+<span class="sd">            dec_z: Dummy.</span>
+<span class="sd">            att_prev (chainer.Variable | None): Attention weight.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            chainer.Variable: Sum over flames.</span>
+<span class="sd">            chainer.Variable: Attention weight.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># pre-compute all h outside the decoder loop</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">enc_hs</span><span class="p">)</span>  <span class="c1"># utt x frame x hdim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># initialize attention weight with uniform dist.</span>
+        <span class="k">if</span> <span class="n">att_prev</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">hh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">hh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">hh</span> <span class="ow">in</span> <span class="n">enc_hs</span>
+            <span class="p">]</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="p">[</span><span class="n">chainer</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">att</span><span class="p">)</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="n">att_prev</span><span class="p">]</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">att_prev</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span>
+                <span class="o">*</span> <span class="n">F</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">att_prev</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">att_prev</span></div>
+
+
+<div class="viewcode-block" id="att_for"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.att_for">[docs]</a><span class="k">def</span> <span class="nf">att_for</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an attention layer given the program arguments.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        args (Namespace): The arguments.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        chainer.Chain: The corresponding attention module.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">atype</span> <span class="o">==</span> <span class="s2">&quot;dot&quot;</span><span class="p">:</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="n">AttDot</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">atype</span> <span class="o">==</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="n">AttLoc</span><span class="p">(</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">aconv_chans</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">aconv_filts</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">atype</span> <span class="o">==</span> <span class="s2">&quot;noatt&quot;</span><span class="p">:</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="n">NoAtt</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;chainer supports only noatt, dot, and location attention.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">att</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

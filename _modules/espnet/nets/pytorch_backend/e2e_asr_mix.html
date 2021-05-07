@@ -1,0 +1,1095 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.pytorch_backend.e2e_asr_mix &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.pytorch_backend.e2e_asr_mix</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.pytorch_backend.e2e_asr_mix</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script is used to construct End-to-End models of multi-speaker ASR.</span>
+
+<span class="sd">Copyright 2017 Johns Hopkins University (Shinji Watanabe)</span>
+<span class="sd"> Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">editdistance</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">get_vgg2l_odim</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">label_smoothing_dist</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.ctc</span> <span class="kn">import</span> <span class="n">ctc_for</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_asr</span> <span class="kn">import</span> <span class="n">E2E</span> <span class="k">as</span> <span class="n">E2EASR</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_asr</span> <span class="kn">import</span> <span class="n">Reporter</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.feature_transform</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">feature_transform_for</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.frontend</span> <span class="kn">import</span> <span class="n">frontend_for</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.initialization</span> <span class="kn">import</span> <span class="n">lecun_normal_init_parameters</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.initialization</span> <span class="kn">import</span> <span class="n">set_forget_bias_to_one</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">pad_list</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_torch_tensor</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">att_for</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.decoders</span> <span class="kn">import</span> <span class="n">decoder_for</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">encoder_for</span> <span class="k">as</span> <span class="n">encoder_for_single</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNNP</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">VGG2L</span>
+
+<span class="n">CTC_LOSS_THRESHOLD</span> <span class="o">=</span> <span class="mi">10000</span>
+
+
+<div class="viewcode-block" id="PIT"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.PIT">[docs]</a><span class="k">class</span> <span class="nc">PIT</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Permutation Invariant Training (PIT) module.</span>
+
+<span class="sd">    :parameter int num_spkrs: number of speakers for PIT process (2 or 3)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_spkrs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize PIT module.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">=</span> <span class="n">num_spkrs</span>
+
+        <span class="c1"># [[0, 1], [1, 0]] or</span>
+        <span class="c1"># [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 1, 0], [2, 0, 1]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perm_choices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">initial_seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_spkrs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_spkrs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">permutationDFS</span><span class="p">(</span><span class="n">initial_seq</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># [[0, 3], [1, 2]] or</span>
+        <span class="c1"># [[0, 4, 8], [0, 5, 7], [1, 3, 8], [1, 5, 6], [2, 4, 6], [2, 3, 7]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_perm_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="n">num_spkrs</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_spkrs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">num_spkrs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_spkrs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_perm_idx</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_perm_idx</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">perm_choices</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PIT.min_pit_sample"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.PIT.min_pit_sample">[docs]</a>    <span class="k">def</span> <span class="nf">min_pit_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the PIT loss for each sample.</span>
+
+<span class="sd">        :param 1-D torch.Tensor loss: list of losses for one sample,</span>
+<span class="sd">            including [h1r1, h1r2, h2r1, h2r2] or</span>
+<span class="sd">            [h1r1, h1r2, h1r3, h2r1, h2r2, h2r3, h3r1, h3r2, h3r3]</span>
+<span class="sd">        :return minimum loss of best permutation</span>
+<span class="sd">        :rtype torch.Tensor (1)</span>
+<span class="sd">        :return the best permutation</span>
+<span class="sd">        :rtype List: len=2</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">score_perms</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">loss</span><span class="p">[</span><span class="n">loss_perm_idx</span><span class="p">])</span> <span class="k">for</span> <span class="n">loss_perm_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_perm_idx</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span>
+        <span class="p">)</span>
+        <span class="n">perm_loss</span><span class="p">,</span> <span class="n">min_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">score_perms</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">permutation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">perm_choices</span><span class="p">[</span><span class="n">min_idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">perm_loss</span><span class="p">,</span> <span class="n">permutation</span></div>
+
+<div class="viewcode-block" id="PIT.pit_process"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.PIT.pit_process">[docs]</a>    <span class="k">def</span> <span class="nf">pit_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the PIT loss for a batch.</span>
+
+<span class="sd">        :param torch.Tensor losses: losses (B, 1|4|9)</span>
+<span class="sd">        :return minimum losses of a batch with best permutation</span>
+<span class="sd">        :rtype torch.Tensor (B)</span>
+<span class="sd">        :return the best permutation</span>
+<span class="sd">        :rtype torch.LongTensor (B, 1|2|3)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="n">losses</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">min_pit_sample</span><span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bs</span><span class="p">)]</span>
+
+        <span class="n">loss_perm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">losses</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>  <span class="c1"># (B)</span>
+        <span class="n">permutation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">])</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">losses</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">loss_perm</span><span class="p">),</span> <span class="n">permutation</span></div>
+
+<div class="viewcode-block" id="PIT.permutationDFS"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.PIT.permutationDFS">[docs]</a>    <span class="k">def</span> <span class="nf">permutationDFS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">start</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get permutations with DFS.</span>
+
+<span class="sd">           The final result is all permutations of the &#39;source&#39; sequence.</span>
+<span class="sd">           e.g. [[1, 2], [2, 1]] or</span>
+<span class="sd">                [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 2, 1], [3, 1, 2]]</span>
+
+<span class="sd">        :param np.ndarray source: (num_spkrs, 1), e.g. [1, 2, ..., N]</span>
+<span class="sd">        :param int start: the start point to permute</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># reach final state</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perm_choices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">source</span><span class="p">)):</span>
+            <span class="c1"># swap values at position start and i</span>
+            <span class="n">source</span><span class="p">[</span><span class="n">start</span><span class="p">],</span> <span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">source</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">permutationDFS</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># reverse the swap</span>
+            <span class="n">source</span><span class="p">[</span><span class="n">start</span><span class="p">],</span> <span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">source</span><span class="p">[</span><span class="n">start</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">ASRInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;E2E module.</span>
+
+<span class="sd">    :param int idim: dimension of inputs</span>
+<span class="sd">    :param int odim: dimension of outputs</span>
+<span class="sd">    :param Namespace args: argument Namespace containing options</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments.&quot;&quot;&quot;</span>
+        <span class="n">E2EASR</span><span class="o">.</span><span class="n">encoder_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2E</span><span class="o">.</span><span class="n">encoder_mix_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2EASR</span><span class="o">.</span><span class="n">attention_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">E2EASR</span><span class="o">.</span><span class="n">decoder_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.encoder_mix_add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.encoder_mix_add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">encoder_mix_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add arguments for multi-speaker encoder.&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;E2E encoder setting for multi-speaker&quot;</span><span class="p">)</span>
+        <span class="c1"># asr-mix encoder</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--spa&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable speaker parallel attention &quot;</span>
+            <span class="s2">&quot;for multi-speaker speech recognition task.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--elayers-sd&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of speaker differentiate encoder layers&quot;</span>
+            <span class="s2">&quot;for multi-speaker speech recognition task.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="E2E.get_total_subsampling_factor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize multi-speaker E2E module.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">E2E</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;mtlalpha should be [0.0, 1.0]&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">etype</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">etype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span>
+        <span class="c1"># NOTE: for self.build method</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">char_list</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;char_list&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">char_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">outdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_space</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_blank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">num_spkrs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spa</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">spa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pit</span> <span class="o">=</span> <span class="n">PIT</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+
+        <span class="c1"># below means the last number becomes eos/sos ID</span>
+        <span class="c1"># note that sos/eos IDs are identical</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># subsample info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span> <span class="o">=</span> <span class="n">get_subsample</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="n">arch</span><span class="o">=</span><span class="s2">&quot;rnn_mix&quot;</span><span class="p">)</span>
+
+        <span class="c1"># label smoothing info</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">lsm_type</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">train_json</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use label smoothing with &quot;</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">lsm_type</span><span class="p">)</span>
+            <span class="n">labeldist</span> <span class="o">=</span> <span class="n">label_smoothing_dist</span><span class="p">(</span>
+                <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">lsm_type</span><span class="p">,</span> <span class="n">transcript</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">train_json</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">labeldist</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_frontend&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>  <span class="c1"># use getattr to keep compatibility</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="n">frontend_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">idim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">feature_transform</span> <span class="o">=</span> <span class="n">feature_transform_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="p">(</span><span class="n">idim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">idim</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">n_mels</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># encoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">encoder_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">)</span>
+        <span class="c1"># ctc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># attention</span>
+        <span class="n">num_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">spa</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att</span> <span class="o">=</span> <span class="n">att_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">num_att</span><span class="p">)</span>
+        <span class="c1"># decoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="n">decoder_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">,</span> <span class="n">labeldist</span><span class="p">)</span>
+
+        <span class="c1"># weight initialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_like_chainer</span><span class="p">()</span>
+
+        <span class="c1"># options for beam search</span>
+        <span class="k">if</span> <span class="s2">&quot;report_cer&quot;</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">report_cer</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">report_wer</span><span class="p">):</span>
+            <span class="n">recog_args</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;beam_size&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span>
+                <span class="s2">&quot;penalty&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">penalty</span><span class="p">,</span>
+                <span class="s2">&quot;ctc_weight&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">ctc_weight</span><span class="p">,</span>
+                <span class="s2">&quot;maxlenratio&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span>
+                <span class="s2">&quot;minlenratio&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">minlenratio</span><span class="p">,</span>
+                <span class="s2">&quot;lm_weight&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">lm_weight</span><span class="p">,</span>
+                <span class="s2">&quot;rnnlm&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">rnnlm</span><span class="p">,</span>
+                <span class="s2">&quot;nbest&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">nbest</span><span class="p">,</span>
+                <span class="s2">&quot;space&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_space</span><span class="p">,</span>
+                <span class="s2">&quot;blank&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">sym_blank</span><span class="p">,</span>
+            <span class="p">}</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">recog_args</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">recog_args</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">report_cer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">report_wer</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rnnlm</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logzero</span> <span class="o">=</span> <span class="o">-</span><span class="mf">10000000000.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="E2E.init_like_chainer"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.init_like_chainer">[docs]</a>    <span class="k">def</span> <span class="nf">init_like_chainer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize weight like chainer.</span>
+
+<span class="sd">        chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0</span>
+<span class="sd">        pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)</span>
+
+<span class="sd">        however, there are two exceptions as far as I know.</span>
+<span class="sd">        - EmbedID.W ~ Normal(0, 1)</span>
+<span class="sd">        - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lecun_normal_init_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># exceptions</span>
+        <span class="c1"># embed weight ~ Normal(0, 1)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">embed</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># forget-bias = 1.0</span>
+        <span class="c1"># https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">decoder</span><span class="p">)):</span>
+            <span class="n">set_forget_bias_to_one</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">decoder</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">bias_ih</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="E2E.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E forward.</span>
+
+<span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)</span>
+<span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
+<span class="sd">        :param torch.Tensor ys_pad:</span>
+<span class="sd">            batch of padded character id sequence tensor (B, num_spkrs, Lmax)</span>
+<span class="sd">        :return: ctc loss value</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        :return: attention loss value</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        :return: accuracy in attention decoder</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># 0. Frontend</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="p">(</span><span class="n">to_torch_tensor</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">),</span> <span class="n">ilens</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">hlens_n</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                    <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens_n</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_transform</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">)</span>
+                <span class="n">hlens</span> <span class="o">=</span> <span class="n">hlens_n</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_transform</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span>
+
+        <span class="c1"># 1. Encoder</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="nb">list</span>
+        <span class="p">):</span>  <span class="c1"># single-channel input xs_pad (single- or multi-speaker)</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># multi-channel multi-speaker input xs_pad</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># 2. CTC loss</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">min_perm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># single-speaker input xs_pad</span>
+                <span class="n">loss_ctc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># multi-speaker input xs_pad</span>
+                <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (num_spkrs, B, Lmax)</span>
+                <span class="n">loss_ctc_perm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="p">(</span>
+                            <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span>
+                            <span class="n">hlens</span><span class="p">[</span><span class="n">i</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span>
+                            <span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                    <span class="p">],</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>  <span class="c1"># (B, num_spkrs^2)</span>
+                <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">min_perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pit</span><span class="o">.</span><span class="n">pit_process</span><span class="p">(</span><span class="n">loss_ctc_perm</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ctc loss:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">loss_ctc</span><span class="p">)))</span>
+
+        <span class="c1"># 3. attention loss</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">loss_att</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># single-speaker input xs_pad</span>
+                <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ys_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)):</span>  <span class="c1"># B</span>
+                    <span class="n">ys_pad</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">min_perm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">rslt</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">strm_idx</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">loss_att</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rslt</span><span class="p">])</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rslt</span><span class="p">))</span>
+                <span class="n">acc</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rslt</span><span class="p">])</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rslt</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">=</span> <span class="n">acc</span>
+
+        <span class="c1"># 4. compute cer without beam search</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cers</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                <span class="n">y_hats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">ns</span><span class="p">])</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">y_hats</span><span class="p">):</span>
+                    <span class="n">y_hat</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">y</span><span class="p">)]</span>
+                    <span class="n">y_true</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">ns</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+
+                    <span class="n">seq_hat</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_hat</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="p">]</span>
+                    <span class="n">seq_true</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_true</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="p">]</span>
+                    <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_hat</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+                    <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="n">seq_hat_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="n">seq_true_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_true</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+                    <span class="n">hyp_chars</span> <span class="o">=</span> <span class="n">seq_hat_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="n">ref_chars</span> <span class="o">=</span> <span class="n">seq_true_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_chars</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">cers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">editdistance</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">hyp_chars</span><span class="p">,</span> <span class="n">ref_chars</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_chars</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+            <span class="n">cer_ctc</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cers</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cers</span><span class="p">)</span> <span class="k">if</span> <span class="n">cers</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="c1"># 5. compute cer/wer</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">training</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">recog_args</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">lpz</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lpz</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">word_eds</span><span class="p">,</span> <span class="n">char_eds</span><span class="p">,</span> <span class="n">word_ref_lens</span><span class="p">,</span> <span class="n">char_ref_lens</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">recognize_beam_batch</span><span class="p">(</span>
+                    <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                    <span class="n">lpz</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">recog_args</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rnnlm</span><span class="p">,</span>
+                    <span class="n">strm_idx</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="c1"># remove &lt;sos&gt; and &lt;eos&gt;</span>
+            <span class="n">y_hats</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">[</span><span class="n">nbest_hyp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;yseq&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">nbest_hyp</span> <span class="ow">in</span> <span class="n">nbest_hyps</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y_hats</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="n">hyp_words</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">hyp_chars</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">ref_words</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">ref_chars</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                    <span class="n">y_hat</span> <span class="o">=</span> <span class="n">y_hats</span><span class="p">[</span><span class="n">ns</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">y_true</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">ns</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+
+                    <span class="n">seq_hat</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_hat</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="p">]</span>
+                    <span class="n">seq_true</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_true</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="p">]</span>
+                    <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_hat</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recog_args</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+                    <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="n">seq_hat_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recog_args</span><span class="o">.</span><span class="n">blank</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="n">seq_true_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_true</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">recog_args</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span>
+                    <span class="p">)</span>
+
+                    <span class="n">hyp_words</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_hat_text</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+                    <span class="n">ref_words</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_true_text</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+                    <span class="n">hyp_chars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_hat_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+                    <span class="n">ref_chars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_true_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+
+                <span class="n">tmp_word_ed</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">editdistance</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span>
+                        <span class="n">hyp_words</span><span class="p">[</span><span class="n">ns</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span> <span class="n">ref_words</span><span class="p">[</span><span class="n">ns</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="p">]</span>  <span class="c1"># h1r1,h1r2,h2r1,h2r2</span>
+                <span class="n">tmp_char_ed</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">editdistance</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span>
+                        <span class="n">hyp_chars</span><span class="p">[</span><span class="n">ns</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span> <span class="n">ref_chars</span><span class="p">[</span><span class="n">ns</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="p">]</span>  <span class="c1"># h1r1,h1r2,h2r1,h2r2</span>
+
+                <span class="n">word_eds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pit</span><span class="o">.</span><span class="n">min_pit_sample</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">tmp_word_ed</span><span class="p">))[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">word_ref_lens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">ref_words</span><span class="p">,</span> <span class="p">[])))</span>
+                <span class="n">char_eds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pit</span><span class="o">.</span><span class="n">min_pit_sample</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">tmp_char_ed</span><span class="p">))[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">char_ref_lens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ref_chars</span><span class="p">)))</span>
+
+            <span class="n">wer</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span>
+                <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">word_eds</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">word_ref_lens</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">cer</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span>
+                <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">char_eds</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">char_ref_lens</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_att</span>
+            <span class="n">loss_att_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_att</span><span class="p">)</span>
+            <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">alpha</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_ctc</span>
+            <span class="n">loss_att_data</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_ctc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
+            <span class="n">loss_att_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_att</span><span class="p">)</span>
+            <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_ctc</span><span class="p">)</span>
+
+        <span class="n">loss_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">loss_data</span> <span class="o">&lt;</span> <span class="n">CTC_LOSS_THRESHOLD</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">loss_data</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">(</span>
+                <span class="n">loss_ctc_data</span><span class="p">,</span> <span class="n">loss_att_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">acc</span><span class="p">,</span> <span class="n">cer_ctc</span><span class="p">,</span> <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span><span class="p">,</span> <span class="n">loss_data</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;loss (=</span><span class="si">%f</span><span class="s2">) is not correct&quot;</span><span class="p">,</span> <span class="n">loss_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
+
+<div class="viewcode-block" id="E2E.recognize"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E beam search.</span>
+
+<span class="sd">        :param ndarray x: input acoustic feature (T, D)</span>
+<span class="sd">        :param Namespace recog_args: argument Namespace containing options</span>
+<span class="sd">        :param list char_list: list of characters</span>
+<span class="sd">        :param torch.nn.Module rnnlm: language model module</span>
+<span class="sd">        :return: N-best decoding results</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="c1"># subsample frame</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[::</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:]</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">to_torch_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+        <span class="c1"># make a utt list (1) to use the same interface for encoder</span>
+        <span class="n">hs</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># 0. Frontend</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+            <span class="n">hlens_n</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                <span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens_n</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_transform</span><span class="p">(</span><span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">)</span>
+            <span class="n">hlens</span> <span class="o">=</span> <span class="n">hlens_n</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span> <span class="o">=</span> <span class="n">hs</span><span class="p">,</span> <span class="n">ilens</span>
+
+        <span class="c1"># 1. Encoder</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># single-channel multi-speaker input x</span>
+            <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># multi-channel multi-speaker input x</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                <span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># calculate log P(z_t|X) for CTC scores</span>
+        <span class="k">if</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">lpz</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">hs</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lpz</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># 2. decoder</span>
+        <span class="c1"># decode the first utterance</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">recognize_beam</span><span class="p">(</span>
+                <span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">lpz</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="p">,</span> <span class="n">strm_idx</span><span class="o">=</span><span class="n">i</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">prev</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="E2E.recognize_batch"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.recognize_batch">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E beam search.</span>
+
+<span class="sd">        :param ndarray xs: input acoustic feature (T, D)</span>
+<span class="sd">        :param Namespace recog_args: argument Namespace containing options</span>
+<span class="sd">        :param list char_list: list of characters</span>
+<span class="sd">        :param torch.nn.Module rnnlm: language model module</span>
+<span class="sd">        :return: N-best decoding results</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">((</span><span class="n">xx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+        <span class="c1"># subsample frame</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">xx</span><span class="p">[::</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">to_torch_tensor</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="c1"># 0. Frontend</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+            <span class="n">hlens_n</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens_n</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_transform</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">)</span>
+            <span class="n">hlens</span> <span class="o">=</span> <span class="n">hlens_n</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span>
+
+        <span class="c1"># 1. Encoder</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># single-channel multi-speaker input x</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># multi-channel multi-speaker input x</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># calculate log P(z_t|X) for CTC scores</span>
+        <span class="k">if</span> <span class="n">recog_args</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">lpz</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)]</span>
+            <span class="n">normalize_score</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lpz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">normalize_score</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># 2. decoder</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">recognize_beam_batch</span><span class="p">(</span>
+                <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">lpz</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">recog_args</span><span class="p">,</span>
+                <span class="n">char_list</span><span class="p">,</span>
+                <span class="n">rnnlm</span><span class="p">,</span>
+                <span class="n">normalize_score</span><span class="o">=</span><span class="n">normalize_score</span><span class="p">,</span>
+                <span class="n">strm_idx</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">prev</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="E2E.enhance"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.enhance">[docs]</a>    <span class="k">def</span> <span class="nf">enhance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Forward only the frontend stage.</span>
+
+<span class="sd">        :param ndarray xs: input acoustic feature (T, C, F)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Frontend doesn&#39;t exist&quot;</span><span class="p">)</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">((</span><span class="n">xx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+        <span class="c1"># subsample frame</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">xx</span><span class="p">[::</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">to_torch_tensor</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">())</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+        <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">enhanced</span><span class="p">,</span> <span class="n">hlensm</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prev</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enhanced</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">enhanced</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">enhanced</span><span class="p">)):</span>  <span class="c1"># number of speakers</span>
+                <span class="n">enhanced</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">enhanced</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">enhanced</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">ilens</span>
+        <span class="k">return</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">mask</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">ilens</span></div>
+
+<div class="viewcode-block" id="E2E.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.E2E.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
+
+<span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)</span>
+<span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
+<span class="sd">        :param torch.Tensor ys_pad:</span>
+<span class="sd">            batch of padded character id sequence tensor (B, num_spkrs, Lmax)</span>
+<span class="sd">        :return: attention weights with the following shape,</span>
+<span class="sd">            1) multi-head case =&gt; attention weights (B, H, Lmax, Tmax),</span>
+<span class="sd">            2) other case =&gt; attention weights (B, Lmax, Tmax).</span>
+<span class="sd">        :rtype: float ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="c1"># 0. Frontend</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="p">(</span><span class="n">to_torch_tensor</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">),</span> <span class="n">ilens</span><span class="p">)</span>
+                <span class="n">hlens_n</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                    <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens_n</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_transform</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">)</span>
+                <span class="n">hlens</span> <span class="o">=</span> <span class="n">hlens_n</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span>
+
+            <span class="c1"># 1. Encoder</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># single-channel multi-speaker input x</span>
+                <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># multi-channel multi-speaker input x</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+                    <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+            <span class="c1"># Permutation</span>
+            <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (num_spkrs, B, Lmax)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">loss_ctc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="p">(</span>
+                            <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span>
+                            <span class="n">hlens</span><span class="p">[</span><span class="n">i</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span>
+                            <span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">],</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                    <span class="p">],</span>
+                    <span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>  <span class="c1"># (B, num_spkrs^2)</span>
+                <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">min_perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pit</span><span class="o">.</span><span class="n">pit_process</span><span class="p">(</span><span class="n">loss_ctc</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ys_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)):</span>  <span class="c1"># B</span>
+                <span class="n">ys_pad</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">min_perm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">i</span><span class="p">]</span>
+
+            <span class="c1"># 2. Decoder</span>
+            <span class="n">att_ws</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">calculate_all_attentions</span><span class="p">(</span>
+                    <span class="n">hs_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">strm_idx</span><span class="o">=</span><span class="n">i</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">att_ws</span></div></div>
+
+
+<div class="viewcode-block" id="EncoderMix"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.EncoderMix">[docs]</a><span class="k">class</span> <span class="nc">EncoderMix</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Encoder module for the case of multi-speaker mixture speech.</span>
+
+<span class="sd">    :param str etype: type of encoder network</span>
+<span class="sd">    :param int idim: number of dimensions of encoder network</span>
+<span class="sd">    :param int elayers_sd:</span>
+<span class="sd">        number of layers of speaker differentiate part in encoder network</span>
+<span class="sd">    :param int elayers_rec:</span>
+<span class="sd">        number of layers of shared recognition part in encoder network</span>
+<span class="sd">    :param int eunits: number of lstm units of encoder network</span>
+<span class="sd">    :param int eprojs: number of projection units of encoder network</span>
+<span class="sd">    :param np.ndarray subsample: list of subsampling numbers</span>
+<span class="sd">    :param float dropout: dropout rate</span>
+<span class="sd">    :param int in_channel: number of input channels</span>
+<span class="sd">    :param int num_spkrs: number of number of speakers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">etype</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">,</span>
+        <span class="n">elayers_sd</span><span class="p">,</span>
+        <span class="n">elayers_rec</span><span class="p">,</span>
+        <span class="n">eunits</span><span class="p">,</span>
+        <span class="n">eprojs</span><span class="p">,</span>
+        <span class="n">subsample</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">,</span>
+        <span class="n">num_spkrs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">in_channel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the encoder of single-channel multi-speaker ASR.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EncoderMix</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="n">etype</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;vgg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">typ</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;lstm&quot;</span><span class="p">,</span> <span class="s2">&quot;gru&quot;</span><span class="p">,</span> <span class="s2">&quot;blstm&quot;</span><span class="p">,</span> <span class="s2">&quot;bgru&quot;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error: need to specify an appropriate encoder architecture&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">etype</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;vgg&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">etype</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc_mix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span><span class="n">VGG2L</span><span class="p">(</span><span class="n">in_channel</span><span class="p">)])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc_sd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                            <span class="p">[</span>
+                                <span class="n">RNNP</span><span class="p">(</span>
+                                    <span class="n">get_vgg2l_odim</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">in_channel</span><span class="o">=</span><span class="n">in_channel</span><span class="p">),</span>
+                                    <span class="n">elayers_sd</span><span class="p">,</span>
+                                    <span class="n">eunits</span><span class="p">,</span>
+                                    <span class="n">eprojs</span><span class="p">,</span>
+                                    <span class="n">subsample</span><span class="p">[:</span> <span class="n">elayers_sd</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+                                    <span class="n">dropout</span><span class="p">,</span>
+                                    <span class="n">typ</span><span class="o">=</span><span class="n">typ</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="p">]</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spkrs</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enc_rec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">RNNP</span><span class="p">(</span>
+                            <span class="n">eprojs</span><span class="p">,</span>
+                            <span class="n">elayers_rec</span><span class="p">,</span>
+                            <span class="n">eunits</span><span class="p">,</span>
+                            <span class="n">eprojs</span><span class="p">,</span>
+                            <span class="n">subsample</span><span class="p">[</span><span class="n">elayers_sd</span><span class="p">:],</span>
+                            <span class="n">dropout</span><span class="p">,</span>
+                            <span class="n">typ</span><span class="o">=</span><span class="n">typ</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use CNN-VGG + B&quot;</span> <span class="o">+</span> <span class="n">typ</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;P for encoder&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Error: need to specify an appropriate encoder architecture. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Illegal name </span><span class="si">{</span><span class="n">etype</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Error: need to specify an appropriate encoder architecture. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Illegal name </span><span class="si">{</span><span class="n">etype</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span> <span class="o">=</span> <span class="n">num_spkrs</span>
+
+<div class="viewcode-block" id="EncoderMix.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.EncoderMix.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Encodermix forward.</span>
+
+<span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)</span>
+<span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
+<span class="sd">        :return: list: batch of hidden state sequences [num_spkrs x (B, Tmax, eprojs)]</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># mixture encoder</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_mix</span><span class="p">:</span>
+            <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+
+        <span class="c1"># SD and Rec encoder</span>
+        <span class="n">xs_pad_sd</span> <span class="o">=</span> <span class="p">[</span><span class="n">xs_pad</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)]</span>
+        <span class="n">ilens_sd</span> <span class="o">=</span> <span class="p">[</span><span class="n">ilens</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">):</span>
+            <span class="c1"># Encoder_SD: speaker differentiate encoder</span>
+            <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">]:</span>
+                <span class="n">xs_pad_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">],</span> <span class="n">ilens_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">xs_pad_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">],</span> <span class="n">ilens_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">])</span>
+            <span class="c1"># Encoder_Rec: recognition encoder</span>
+            <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_rec</span><span class="p">:</span>
+                <span class="n">xs_pad_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">],</span> <span class="n">ilens_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">xs_pad_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">],</span> <span class="n">ilens_sd</span><span class="p">[</span><span class="n">ns</span><span class="p">])</span>
+
+        <span class="c1"># make mask to remove bias value in padded part</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ilens_sd</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs_pad_sd</span><span class="p">],</span> <span class="n">ilens_sd</span><span class="p">,</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="encoder_for"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.encoder_for">[docs]</a><span class="k">def</span> <span class="nf">encoder_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">subsample</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct the encoder.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_frontend&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>  <span class="c1"># use getattr to keep compatibility</span>
+        <span class="c1"># with frontend, the mixed speech are separated as streams for each speaker</span>
+        <span class="k">return</span> <span class="n">encoder_for_single</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">subsample</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">EncoderMix</span><span class="p">(</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">etype</span><span class="p">,</span>
+            <span class="n">idim</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">elayers_sd</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">elayers</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">eunits</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">eprojs</span><span class="p">,</span>
+            <span class="n">subsample</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,518 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.text package &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.optimizers package" href="espnet2.optimizers.html" />
+    <link rel="prev" title="espnet2.tasks package" href="espnet2.tasks.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.text package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-phoneme-tokenizer">espnet2.text.phoneme_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-token-id-converter">espnet2.text.token_id_converter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-cleaner">espnet2.text.cleaner</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-char-tokenizer">espnet2.text.char_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-build-tokenizer">espnet2.text.build_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-abs-tokenizer">espnet2.text.abs_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-word-tokenizer">espnet2.text.word_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-init">espnet2.text.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-sentencepiece-tokenizer">espnet2.text.sentencepiece_tokenizer</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet2.text package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet2.text.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet2-text-package">
+<h1>espnet2.text package<a class="headerlink" href="#espnet2-text-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="espnet2-text-phoneme-tokenizer">
+<span id="id1"></span><h2>espnet2.text.phoneme_tokenizer<a class="headerlink" href="#espnet2-text-phoneme-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.phoneme_tokenizer"></span><dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.G2p_en">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">G2p_en</code><span class="sig-paren">(</span><em class="sig-param">no_space: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#G2p_en"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.G2p_en" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>On behalf of g2p_en.G2p.</p>
+<p>g2p_en.G2p isn’t pickalable and it can’t be copied to the other processes
+via multiprocessing module.
+As a workaround, g2p_en.G2p is instantiated upon calling this class.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">PhonemeTokenizer</code><span class="sig-paren">(</span><em class="sig-param">g2p_type: Union[None, str], non_linguistic_symbols: Union[pathlib.Path, str, Iterable[str]] = None, space_symbol: str = '&lt;space&gt;', remove_non_linguistic_symbols: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="espnet2.text.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.text.abs_tokenizer.AbsTokenizer</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens">
+<code class="sig-name descname">text2tokens</code><span class="sig-paren">(</span><em class="sig-param">line: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer.text2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer.tokens2text">
+<code class="sig-name descname">tokens2text</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer.tokens2text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.tokens2text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.Phonemizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">Phonemizer</code><span class="sig-paren">(</span><em class="sig-param">word_separator: Optional[str] = None</em>, <em class="sig-param">syllable_separator: Optional[str] = None</em>, <em class="sig-param">**phonemize_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#Phonemizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Phonemizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Phonemizer module for various languages.</p>
+<p>This is wrapper module of <a class="reference external" href="https://github.com/bootphon/phonemizer">https://github.com/bootphon/phonemizer</a>.
+You can define various g2p modules by specifying options for phonemizer.</p>
+<dl class="simple">
+<dt>See available options:</dt><dd><p><a class="reference external" href="https://github.com/bootphon/phonemizer/blob/master/phonemizer/phonemize.py#L32">https://github.com/bootphon/phonemizer/blob/master/phonemizer/phonemize.py#L32</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_accent</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_accent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent_with_pause">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_accent_with_pause</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_accent_with_pause"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent_with_pause" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_kana">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_kana</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_kana"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_kana" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pypinyin_g2p">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pypinyin_g2p</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pypinyin_g2p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pypinyin_g2p" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pypinyin_g2p_phone">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pypinyin_g2p_phone</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pypinyin_g2p_phone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pypinyin_g2p_phone" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.split_by_space">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">split_by_space</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#split_by_space"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.split_by_space" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-text-token-id-converter">
+<span id="id2"></span><h2>espnet2.text.token_id_converter<a class="headerlink" href="#espnet2-text-token-id-converter" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.token_id_converter"></span><dl class="class">
+<dt id="espnet2.text.token_id_converter.TokenIDConverter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.token_id_converter.</code><code class="sig-name descname">TokenIDConverter</code><span class="sig-paren">(</span><em class="sig-param">token_list: Union[pathlib.Path, str, Iterable[str]], unk_symbol: str = '&lt;unk&gt;'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/token_id_converter.html#TokenIDConverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.token_id_converter.TokenIDConverter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="espnet2.text.token_id_converter.TokenIDConverter.get_num_vocabulary_size">
+<code class="sig-name descname">get_num_vocabulary_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/text/token_id_converter.html#TokenIDConverter.get_num_vocabulary_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.token_id_converter.TokenIDConverter.get_num_vocabulary_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.token_id_converter.TokenIDConverter.ids2tokens">
+<code class="sig-name descname">ids2tokens</code><span class="sig-paren">(</span><em class="sig-param">integers: Union[numpy.ndarray, Iterable[int]]</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/token_id_converter.html#TokenIDConverter.ids2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.token_id_converter.TokenIDConverter.ids2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.token_id_converter.TokenIDConverter.tokens2ids">
+<code class="sig-name descname">tokens2ids</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; List[int]<a class="reference internal" href="../_modules/espnet2/text/token_id_converter.html#TokenIDConverter.tokens2ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.token_id_converter.TokenIDConverter.tokens2ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-text-cleaner">
+<span id="id3"></span><h2>espnet2.text.cleaner<a class="headerlink" href="#espnet2-text-cleaner" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.cleaner"></span><dl class="class">
+<dt id="espnet2.text.cleaner.TextCleaner">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.cleaner.</code><code class="sig-name descname">TextCleaner</code><span class="sig-paren">(</span><em class="sig-param">cleaner_types: Collection[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/cleaner.html#TextCleaner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.cleaner.TextCleaner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Text cleaner.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cleaner</span> <span class="o">=</span> <span class="n">TextCleaner</span><span class="p">(</span><span class="s2">&quot;tacotron&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cleaner</span><span class="p">(</span><span class="s2">&quot;(Hello-World);   &amp;  jr. &amp; dr.&quot;</span><span class="p">)</span>
+<span class="go">&#39;HELLO WORLD, AND JUNIOR AND DOCTOR&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-text-char-tokenizer">
+<span id="id4"></span><h2>espnet2.text.char_tokenizer<a class="headerlink" href="#espnet2-text-char-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.char_tokenizer"></span><dl class="class">
+<dt id="espnet2.text.char_tokenizer.CharTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.char_tokenizer.</code><code class="sig-name descname">CharTokenizer</code><span class="sig-paren">(</span><em class="sig-param">non_linguistic_symbols: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">space_symbol: str = '&lt;space&gt;'</em>, <em class="sig-param">remove_non_linguistic_symbols: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/char_tokenizer.html#CharTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.char_tokenizer.CharTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="espnet2.text.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.text.abs_tokenizer.AbsTokenizer</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.text.char_tokenizer.CharTokenizer.text2tokens">
+<code class="sig-name descname">text2tokens</code><span class="sig-paren">(</span><em class="sig-param">line: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/char_tokenizer.html#CharTokenizer.text2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.char_tokenizer.CharTokenizer.text2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.char_tokenizer.CharTokenizer.tokens2text">
+<code class="sig-name descname">tokens2text</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/text/char_tokenizer.html#CharTokenizer.tokens2text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.char_tokenizer.CharTokenizer.tokens2text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-text-build-tokenizer">
+<span id="id5"></span><h2>espnet2.text.build_tokenizer<a class="headerlink" href="#espnet2-text-build-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.build_tokenizer"></span><dl class="function">
+<dt id="espnet2.text.build_tokenizer.build_tokenizer">
+<code class="sig-prename descclassname">espnet2.text.build_tokenizer.</code><code class="sig-name descname">build_tokenizer</code><span class="sig-paren">(</span><em class="sig-param">token_type: str</em>, <em class="sig-param">bpemodel: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">non_linguistic_symbols: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">remove_non_linguistic_symbols: bool = False</em>, <em class="sig-param">space_symbol: str = '&lt;space&gt;'</em>, <em class="sig-param">delimiter: str = None</em>, <em class="sig-param">g2p_type: str = None</em><span class="sig-paren">)</span> &#x2192; espnet2.text.abs_tokenizer.AbsTokenizer<a class="reference internal" href="../_modules/espnet2/text/build_tokenizer.html#build_tokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.build_tokenizer.build_tokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A helper function to instantiate Tokenizer</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-text-abs-tokenizer">
+<span id="id6"></span><h2>espnet2.text.abs_tokenizer<a class="headerlink" href="#espnet2-text-abs-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.abs_tokenizer"></span><dl class="class">
+<dt id="espnet2.text.abs_tokenizer.AbsTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.abs_tokenizer.</code><code class="sig-name descname">AbsTokenizer</code><a class="reference internal" href="../_modules/espnet2/text/abs_tokenizer.html#AbsTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<dl class="method">
+<dt id="espnet2.text.abs_tokenizer.AbsTokenizer.text2tokens">
+<em class="property">abstract </em><code class="sig-name descname">text2tokens</code><span class="sig-paren">(</span><em class="sig-param">line: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/abs_tokenizer.html#AbsTokenizer.text2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.abs_tokenizer.AbsTokenizer.text2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.abs_tokenizer.AbsTokenizer.tokens2text">
+<em class="property">abstract </em><code class="sig-name descname">tokens2text</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/text/abs_tokenizer.html#AbsTokenizer.tokens2text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.abs_tokenizer.AbsTokenizer.tokens2text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-text-word-tokenizer">
+<span id="id7"></span><h2>espnet2.text.word_tokenizer<a class="headerlink" href="#espnet2-text-word-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.word_tokenizer"></span><dl class="class">
+<dt id="espnet2.text.word_tokenizer.WordTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.word_tokenizer.</code><code class="sig-name descname">WordTokenizer</code><span class="sig-paren">(</span><em class="sig-param">delimiter: str = None</em>, <em class="sig-param">non_linguistic_symbols: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">remove_non_linguistic_symbols: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/word_tokenizer.html#WordTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.word_tokenizer.WordTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="espnet2.text.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.text.abs_tokenizer.AbsTokenizer</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.text.word_tokenizer.WordTokenizer.text2tokens">
+<code class="sig-name descname">text2tokens</code><span class="sig-paren">(</span><em class="sig-param">line: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/word_tokenizer.html#WordTokenizer.text2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.word_tokenizer.WordTokenizer.text2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.word_tokenizer.WordTokenizer.tokens2text">
+<code class="sig-name descname">tokens2text</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/text/word_tokenizer.html#WordTokenizer.tokens2text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.word_tokenizer.WordTokenizer.tokens2text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-text-init">
+<span id="id8"></span><h2>espnet2.text.__init__<a class="headerlink" href="#espnet2-text-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.__init__"></span></div>
+<div class="section" id="espnet2-text-sentencepiece-tokenizer">
+<span id="id9"></span><h2>espnet2.text.sentencepiece_tokenizer<a class="headerlink" href="#espnet2-text-sentencepiece-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.sentencepiece_tokenizer"></span><dl class="class">
+<dt id="espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.sentencepiece_tokenizer.</code><code class="sig-name descname">SentencepiecesTokenizer</code><span class="sig-paren">(</span><em class="sig-param">model: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/sentencepiece_tokenizer.html#SentencepiecesTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="espnet2.text.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.text.abs_tokenizer.AbsTokenizer</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer.text2tokens">
+<code class="sig-name descname">text2tokens</code><span class="sig-paren">(</span><em class="sig-param">line: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/sentencepiece_tokenizer.html#SentencepiecesTokenizer.text2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer.text2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer.tokens2text">
+<code class="sig-name descname">tokens2text</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/text/sentencepiece_tokenizer.html#SentencepiecesTokenizer.tokens2text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer.tokens2text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2.optimizers.html" class="btn btn-neutral float-right" title="espnet2.optimizers package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2.tasks.html" class="btn btn-neutral float-left" title="espnet2.tasks package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

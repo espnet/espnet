@@ -1,0 +1,561 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ESPnet2 &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Change the configuration for training" href="espnet2_training_option.html" />
+    <link rel="prev" title="Docker" href="docker.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ESPnet2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#main-changing-from-espnet1">Main changing from ESPnet1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#recipes-using-espnet2">Recipes using ESPnet2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-training-status">See training status</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#show-the-log-file">Show the log file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#show-the-training-status-in-a-image-file">Show the training status in a image file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-tensorboard">Use tensorboard</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#instruction-for-run-sh">Instruction for run.sh</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-parse-command-line-arguments-in-shell-scripts">How to parse command-line arguments in shell scripts?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#start-from-a-specified-stage-and-stop-at-a-specified-stage">Start from a specified stage and stop at a specified stage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-the-configuration-for-training">Change the configuration for training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-the-number-of-parallel-jobs">Change the number of parallel jobs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-gpus-training-and-distributed-training">Multi GPUs training and distributed training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-specified-expereiment-directory-for-evaluation">Use specified expereiment directory for evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#evaluation-without-training-using-pretrained-model">Evaluation without training using pretrained model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>ESPnet2</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/espnet2_tutorial.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet2">
+<h1>ESPnet2<a class="headerlink" href="#espnet2" title="Permalink to this headline">¶</a></h1>
+<p>We are planning a super major update, called <code class="docutils literal notranslate"><span class="pre">ESPnet2</span></code>. The developing status is still <strong>under construction</strong> yet, so please be very careful to use with understanding following cautions:</p>
+<ul class="simple">
+<li><p>There might be fatal bugs related to essential parts.</p></li>
+<li><p>We haven’t achieved comparable results to espnet1 on each task yet.</p></li>
+</ul>
+<div class="section" id="main-changing-from-espnet1">
+<h2>Main changing from ESPnet1<a class="headerlink" href="#main-changing-from-espnet1" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Chainer free</strong></p>
+<ul>
+<li><p>Discarding Chainer completely.</p></li>
+<li><p>The development of Chainer is stopped at v7: https://chainer.org/announcement/2019/12/05/released-v7.html</p></li>
+</ul>
+</li>
+<li><p><strong>Kaldi free</strong></p>
+<ul>
+<li><p>It’s not mandatory to compile Kaldi.</p></li>
+<li><p><strong>If you find some recipes requiring Kaldi mandatory, please report it. It should be dealt with as a bug in ESPnet2.</strong></p></li>
+<li><p>We still support the features made by Kaldi optionally.</p></li>
+<li><p>We still follow Kaldi style. i.e. depending on <code class="docutils literal notranslate"><span class="pre">utils/</span></code> of Kaldi.</p></li>
+</ul>
+</li>
+<li><p><strong>On the fly</strong> feature extraction &amp; text preprocessing for training</p>
+<ul>
+<li><p>You don’t need to create the feature file before training, but just input wave data directly.</p></li>
+<li><p>We support both raw wave input and extracted features.</p></li>
+<li><p>The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.</p></li>
+</ul>
+</li>
+<li><p>Discarding the JSON format describing the training corpus.</p>
+<ul>
+<li><p>Why do we discard the JSON format? Because a dict object generated from a large JSON file requires much memory and it also takes much time to parse such a large JSON file.</p></li>
+</ul>
+</li>
+<li><p>Support distributed data-parallel training (Not enough tested)</p>
+<ul>
+<li><p>Single node multi GPU training with <code class="docutils literal notranslate"><span class="pre">DistributedDataParallel</span></code> is also supported.</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="recipes-using-espnet2">
+<h2>Recipes using ESPnet2<a class="headerlink" href="#recipes-using-espnet2" title="Permalink to this headline">¶</a></h2>
+<p>You can find the new recipes in <code class="docutils literal notranslate"><span class="pre">egs2</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">espnet</span><span class="o">/</span>  <span class="c1"># Python modules of epsnet1</span>
+<span class="n">espnet2</span><span class="o">/</span> <span class="c1"># Python modules of epsnet2</span>
+<span class="n">egs</span><span class="o">/</span>     <span class="c1"># espnet1 recipes</span>
+<span class="n">egs2</span><span class="o">/</span>    <span class="c1"># espnet2 recipes</span>
+</pre></div>
+</div>
+<p>The usage of recipes is <strong>almost the same</strong> as that of ESPnet1.</p>
+<ol>
+<li><p>Change directory to the base directory</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g.</span>
+<span class="nb">cd</span> egs2/an4/asr1/
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">an4</span></code> is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial.
+You can perform any other recipes as the same way. e.g. <code class="docutils literal notranslate"><span class="pre">wsj</span></code>, <code class="docutils literal notranslate"><span class="pre">librispeech</span></code>, and etc.</p>
+<p>Keep in mind that all scripts should be ran at the level of <code class="docutils literal notranslate"><span class="pre">egs2/*/{asr1,tts1,...}</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Doesn&#39;t work</span>
+<span class="nb">cd</span> egs2/an4/
+./asr1/run.sh
+./asr1/scripts/&lt;some-script&gt;.sh
+
+<span class="c1"># Doesn&#39;t work</span>
+<span class="nb">cd</span> egs2/an4/asr1/local/
+./data.sh
+
+<span class="c1"># Work</span>
+<span class="nb">cd</span> egs2/an4/asr1
+./run.sh
+./scripts/&lt;some-script&gt;.sh
+</pre></div>
+</div>
+</li>
+<li><p>Change the configuration
+Describing the directory structure as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">egs2</span><span class="o">/</span><span class="n">an4</span><span class="o">/</span><span class="n">asr1</span><span class="o">/</span>
+ <span class="o">-</span> <span class="n">conf</span><span class="o">/</span>      <span class="c1"># Configuration files for training, inference, etc.</span>
+ <span class="o">-</span> <span class="n">scripts</span><span class="o">/</span>   <span class="c1"># Bash utilities of espnet2</span>
+ <span class="o">-</span> <span class="n">pyscripts</span><span class="o">/</span> <span class="c1"># Python utilities of espnet2</span>
+ <span class="o">-</span> <span class="n">steps</span><span class="o">/</span>     <span class="c1"># From Kaldi utilities</span>
+ <span class="o">-</span> <span class="n">utils</span><span class="o">/</span>     <span class="c1"># From Kaldi utilities</span>
+ <span class="o">-</span> <span class="n">db</span><span class="o">.</span><span class="n">sh</span>      <span class="c1"># The directory path of each corpora</span>
+ <span class="o">-</span> <span class="n">path</span><span class="o">.</span><span class="n">sh</span>    <span class="c1"># Setup script for environment variables</span>
+ <span class="o">-</span> <span class="n">cmd</span><span class="o">.</span><span class="n">sh</span>     <span class="c1"># Configuration for your backend of job scheduler</span>
+ <span class="o">-</span> <span class="n">run</span><span class="o">.</span><span class="n">sh</span>     <span class="c1"># Entry point</span>
+ <span class="o">-</span> <span class="n">asr</span><span class="o">.</span><span class="n">sh</span>     <span class="c1"># Invoked by run.sh</span>
+</pre></div>
+</div>
+<ul>
+<li><p>You need to modify <code class="docutils literal notranslate"><span class="pre">db.sh</span></code> for specifying your corpus before executing <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>. For example, when you touch the recipe of <code class="docutils literal notranslate"><span class="pre">egs2/wsj</span></code>, you need to change the paths of <code class="docutils literal notranslate"><span class="pre">WSJ0</span></code> and <code class="docutils literal notranslate"><span class="pre">WSJ1</span></code> in <code class="docutils literal notranslate"><span class="pre">db.sh</span></code>.</p></li>
+<li><p>Some corpora can be freely obtained from the WEB and they are written as “downloads/” at the initial state. You can also change them to your corpus path if it’s already downloaded.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path.sh</span></code> is used to set up the environment for <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it’s the Python which was installed at <code class="docutils literal notranslate"><span class="pre">tools/</span></code>. Thus you need to source <code class="docutils literal notranslate"><span class="pre">path.sh</span></code> to use this Python.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>. path.sh
+python
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cmd.sh</span></code> is used for specifying the backend of the job scheduler. If you don’t have such a system in your local machine environment, you don’t need to change anything about this file. See <a class="reference internal" href="parallelization.html"><span class="doc">Using Job scheduling system</span></a></p></li>
+</ul>
+</li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">run.sh</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run.sh
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">run.sh</span></code> is an example script, which we often call as “recipe”, to run all stages related to DNN experiments; data-preparation, training, and evaluation.</p>
+</li>
+</ol>
+</div>
+<div class="section" id="see-training-status">
+<h2>See training status<a class="headerlink" href="#see-training-status" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="show-the-log-file">
+<h3>Show the log file<a class="headerlink" href="#show-the-log-file" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% tail -f exp/*_train_*/train.log
+<span class="o">[</span>host<span class="o">]</span> <span class="m">2020</span>-04-05 <span class="m">16</span>:34:54,278 <span class="o">(</span>trainer:192<span class="o">)</span> INFO: <span class="m">2</span>/40epoch started. Estimated <span class="nb">time</span> to finish: <span class="m">7</span> minutes and <span class="m">58</span>.63 seconds
+<span class="o">[</span>host<span class="o">]</span> <span class="m">2020</span>-04-05 <span class="m">16</span>:34:56,315 <span class="o">(</span>trainer:453<span class="o">)</span> INFO: 2epoch:train:1-10batch: <span class="nv">iter_time</span><span class="o">=</span><span class="m">0</span>.006, <span class="nv">forward_time</span><span class="o">=</span><span class="m">0</span>.076, <span class="nv">loss</span><span class="o">=</span><span class="m">50</span>.873, los
+<span class="nv">s_att</span><span class="o">=</span><span class="m">35</span>.801, <span class="nv">loss_ctc</span><span class="o">=</span><span class="m">65</span>.945, <span class="nv">acc</span><span class="o">=</span><span class="m">0</span>.471, <span class="nv">backward_time</span><span class="o">=</span><span class="m">0</span>.072, <span class="nv">optim_step_time</span><span class="o">=</span><span class="m">0</span>.006, <span class="nv">lr_0</span><span class="o">=</span><span class="m">1</span>.000, <span class="nv">train_time</span><span class="o">=</span><span class="m">0</span>.203
+<span class="o">[</span>host<span class="o">]</span> <span class="m">2020</span>-04-05 <span class="m">16</span>:34:58,046 <span class="o">(</span>trainer:453<span class="o">)</span> INFO: 2epoch:train:11-20batch: <span class="nv">iter_time</span><span class="o">=</span><span class="m">4</span>.280e-05, <span class="nv">forward_time</span><span class="o">=</span><span class="m">0</span>.068, <span class="nv">loss</span><span class="o">=</span><span class="m">44</span>.369
+, <span class="nv">loss_att</span><span class="o">=</span><span class="m">28</span>.776, <span class="nv">loss_ctc</span><span class="o">=</span><span class="m">59</span>.962, <span class="nv">acc</span><span class="o">=</span><span class="m">0</span>.506, <span class="nv">backward_time</span><span class="o">=</span><span class="m">0</span>.055, <span class="nv">optim_step_time</span><span class="o">=</span><span class="m">0</span>.006, <span class="nv">lr_0</span><span class="o">=</span><span class="m">1</span>.000, <span class="nv">train_time</span><span class="o">=</span><span class="m">0</span>.173
+</pre></div>
+</div>
+</div>
+<div class="section" id="show-the-training-status-in-a-image-file">
+<h3>Show the training status in a image file<a class="headerlink" href="#show-the-training-status-in-a-image-file" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Accuracy plot</span>
+<span class="c1"># (eog is Eye of GNOME Image Viewer)</span>
+eog exp/*_train_*/images/acc.img
+<span class="c1"># Attention plot</span>
+eog exp/*_train_*/att_ws/&lt;sample-id&gt;/&lt;param-name&gt;.img
+</pre></div>
+</div>
+</div>
+<div class="section" id="use-tensorboard">
+<h3>Use tensorboard<a class="headerlink" href="#use-tensorboard" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>tensorboard --logdir exp/*_train_*/tensorboard/
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="instruction-for-run-sh">
+<h1>Instruction for run.sh<a class="headerlink" href="#instruction-for-run-sh" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="how-to-parse-command-line-arguments-in-shell-scripts">
+<h2>How to parse command-line arguments in shell scripts?<a class="headerlink" href="#how-to-parse-command-line-arguments-in-shell-scripts" title="Permalink to this headline">¶</a></h2>
+<p>All shell scripts in espnet/espnet2 depend on <a class="reference external" href="https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh">utils/parse_options.sh</a> to parase command line arguments.</p>
+<p>e.g. If the script has <code class="docutils literal notranslate"><span class="pre">ngpu</span></code> option</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+<span class="c1"># run.sh</span>
+<span class="nv">ngpu</span><span class="o">=</span><span class="m">1</span>
+. utils/parse_options.sh
+<span class="nb">echo</span> <span class="si">${</span><span class="nv">ngpu</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>Then you can change the value as follows:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --ngpu <span class="m">2</span>
+<span class="nb">echo</span> <span class="m">2</span>
+</pre></div>
+</div>
+<p>You can also show the help message:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --help
+</pre></div>
+</div>
+</div>
+<div class="section" id="start-from-a-specified-stage-and-stop-at-a-specified-stage">
+<h2>Start from a specified stage and stop at a specified stage<a class="headerlink" href="#start-from-a-specified-stage-and-stop-at-a-specified-stage" title="Permalink to this headline">¶</a></h2>
+<p>The procedures in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> can be divided into some stages, e.g. data preparation, training, and evaluation. You can specify the starting stage and the stopping stage.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --stage <span class="m">2</span> --stop-stage <span class="m">6</span>
+</pre></div>
+</div>
+<p>There are also some altenative otpions to skip specified stages:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run.sh --skip_data_prep <span class="nb">true</span>  <span class="c1"># Skip data preparation stages.</span>
+run.sh --skip_train <span class="nb">true</span>      <span class="c1"># Skip training stages.</span>
+run.sh --skip_eval <span class="nb">true</span>       <span class="c1"># Skip decoding and evaluation stages.</span>
+run.sh --skip_upload <span class="nb">false</span>    <span class="c1"># Enable packing and uploading stages.</span>
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">skip_upload</span></code> is true by default. Please change it to false when uploading your model.</p>
+</div>
+<div class="section" id="change-the-configuration-for-training">
+<h2>Change the configuration for training<a class="headerlink" href="#change-the-configuration-for-training" title="Permalink to this headline">¶</a></h2>
+<p>Please keep in mind that <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> is a wrapper script of several tools including DNN training command.
+You need to do one of the following two ways to change the training configuration.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Give a configuration file</span>
+./run.sh --asr_train_config conf/train_asr.yaml
+<span class="c1"># Give arguments to &quot;espnet2/bin/asr_train.py&quot; directly</span>
+./run.sh --asr_args <span class="s2">&quot;--foo arg --bar arg2&quot;</span>
+</pre></div>
+</div>
+<p>e.g. To change learning rate for the LM training</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --lm_args <span class="s2">&quot;--optim_conf lr=0.1&quot;</span>
+</pre></div>
+</div>
+<p>This is the case of ASR training and you need to replace it accordingly for the other task. e.g. For TTS</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --tts_args <span class="s2">&quot;--optim_conf lr=0.1&quot;</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="espnet2_training_option.html"><span class="doc">Change the configuration for training</span></a> for more detail about the usage of training tools.</p>
+</div>
+<div class="section" id="change-the-number-of-parallel-jobs">
+<h2>Change the number of parallel jobs<a class="headerlink" href="#change-the-number-of-parallel-jobs" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --nj <span class="m">10</span>             <span class="c1"># Chnage the number of parallels for data preparation stages.</span>
+./run.sh --inference_nj <span class="m">10</span>   <span class="c1"># Chnage the number of parallels for inference jobs.</span>
+</pre></div>
+</div>
+<p>We also support submitting jobs to multiple hosts to accelerate your experiment: See <a class="reference internal" href="parallelization.html"><span class="doc">Using Job scheduling system</span></a></p>
+</div>
+<div class="section" id="multi-gpus-training-and-distributed-training">
+<h2>Multi GPUs training and distributed training<a class="headerlink" href="#multi-gpus-training-and-distributed-training" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --ngpu <span class="m">4</span> <span class="c1"># 4GPUs in a single node</span>
+./run.sh --ngpu <span class="m">2</span> --num_nodes <span class="m">2</span> <span class="c1"># 2GPUs x 2nodes</span>
+</pre></div>
+</div>
+<p>Note that you need to setup your environment correctly to use distributed training. See the following two:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="espnet2_distributed.html"><span class="doc">Distributed training</span></a></p></li>
+<li><p><a class="reference internal" href="parallelization.html"><span class="doc">Using Job scheduling system</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="use-specified-expereiment-directory-for-evaluation">
+<h2>Use specified expereiment directory for evaluation<a class="headerlink" href="#use-specified-expereiment-directory-for-evaluation" title="Permalink to this headline">¶</a></h2>
+<p>If you already have trained a model, you may wonder how to give it to run.sh when you’ll evaluate it later.
+By default the directory name is determined according to given options, <code class="docutils literal notranslate"><span class="pre">asr_args</span></code>, <code class="docutils literal notranslate"><span class="pre">lm_args</span></code>, or etc.
+You can overwrite it by <code class="docutils literal notranslate"><span class="pre">--asr_exp</span></code> and <code class="docutils literal notranslate"><span class="pre">--lm_exp</span></code>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For ASR recipe</span>
+./run.sh --skip_data_prep <span class="nb">true</span> --skip_train <span class="nb">true</span> --asr_exp &lt;your_asr_exp_directory&gt; --lm_exp &lt;your_lm_exp_directory&gt;
+
+<span class="c1"># For TTS recipe</span>
+./run.sh --skip_data_prep <span class="nb">true</span> --skip_train <span class="nb">true</span> --tts_exp &lt;your_tts_exp_directory&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="evaluation-without-training-using-pretrained-model">
+<h2>Evaluation without training using pretrained model<a class="headerlink" href="#evaluation-without-training-using-pretrained-model" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --download_model &lt;model_name&gt; --skip_train <span class="nb">true</span>
+</pre></div>
+</div>
+<p>You need to fill <code class="docutils literal notranslate"><span class="pre">model_name</span></code> by yourself. See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2_training_option.html" class="btn btn-neutral float-right" title="Change the configuration for training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="docker.html" class="btn btn-neutral float-left" title="Docker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

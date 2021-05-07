@@ -1,0 +1,819 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.bin package &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.layers package" href="espnet2.layers.html" />
+    <link rel="prev" title="espnet2.diar package" href="espnet2.diar.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.bin package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-tokenize-text">espnet2.bin.tokenize_text</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference">espnet2.bin.asr_inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-launch">espnet2.bin.launch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-pack">espnet2.bin.pack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-split-scps">espnet2.bin.split_scps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-train">espnet2.bin.asr_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-lm-calc-perplexity">espnet2.bin.lm_calc_perplexity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-diar-train">espnet2.bin.diar_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-tts-train">espnet2.bin.tts_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-lm-train">espnet2.bin.lm_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-train">espnet2.bin.enh_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-aggregate-stats-dirs">espnet2.bin.aggregate_stats_dirs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-scoring">espnet2.bin.enh_scoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-inference">espnet2.bin.enh_inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-init">espnet2.bin.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-tts-inference">espnet2.bin.tts_inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-diar-inference">espnet2.bin.diar_inference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet2.bin package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet2.bin.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet2-bin-package">
+<h1>espnet2.bin package<a class="headerlink" href="#espnet2-bin-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="espnet2-bin-tokenize-text">
+<span id="id1"></span><h2>espnet2.bin.tokenize_text<a class="headerlink" href="#espnet2-bin-tokenize-text" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.tokenize_text"></span><dl class="function">
+<dt id="espnet2.bin.tokenize_text.field2slice">
+<code class="sig-prename descclassname">espnet2.bin.tokenize_text.</code><code class="sig-name descname">field2slice</code><span class="sig-paren">(</span><em class="sig-param">field: Optional[str]</em><span class="sig-paren">)</span> &#x2192; slice<a class="reference internal" href="../_modules/espnet2/bin/tokenize_text.html#field2slice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tokenize_text.field2slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert field string to slice</p>
+<p>Note that field string accepts 1-based integer.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">field2slice</span><span class="p">(</span><span class="s2">&quot;1-&quot;</span><span class="p">)</span>
+<span class="go">slice(0, None, None)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">field2slice</span><span class="p">(</span><span class="s2">&quot;1-3&quot;</span><span class="p">)</span>
+<span class="go">slice(0, 3, None)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">field2slice</span><span class="p">(</span><span class="s2">&quot;-3&quot;</span><span class="p">)</span>
+<span class="go">slice(None, 3, None)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.tokenize_text.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.tokenize_text.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; argparse.ArgumentParser<a class="reference internal" href="../_modules/espnet2/bin/tokenize_text.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tokenize_text.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.tokenize_text.main">
+<code class="sig-prename descclassname">espnet2.bin.tokenize_text.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tokenize_text.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tokenize_text.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.tokenize_text.tokenize">
+<code class="sig-prename descclassname">espnet2.bin.tokenize_text.</code><code class="sig-name descname">tokenize</code><span class="sig-paren">(</span><em class="sig-param">input: str, output: str, field: Optional[str], delimiter: Optional[str], token_type: str, space_symbol: str, non_linguistic_symbols: Optional[str], bpemodel: Optional[str], log_level: str, write_vocabulary: bool, vocabulary_size: int, remove_non_linguistic_symbols: bool, cutoff: int, add_symbol: List[str], cleaner: Optional[str], g2p: Optional[str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tokenize_text.html#tokenize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tokenize_text.tokenize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-asr-inference">
+<span id="id2"></span><h2>espnet2.bin.asr_inference<a class="headerlink" href="#espnet2-bin-asr-inference" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.asr_inference"></span><dl class="class">
+<dt id="espnet2.bin.asr_inference.Speech2Text">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.asr_inference.</code><code class="sig-name descname">Speech2Text</code><span class="sig-paren">(</span><em class="sig-param">asr_train_config: Union[pathlib.Path, str], asr_model_file: Union[pathlib.Path, str] = None, lm_train_config: Union[pathlib.Path, str] = None, lm_file: Union[pathlib.Path, str] = None, token_type: str = None, bpemodel: str = None, device: str = 'cpu', maxlenratio: float = 0.0, minlenratio: float = 0.0, batch_size: int = 1, dtype: str = 'float32', beam_size: int = 20, ctc_weight: float = 0.5, lm_weight: float = 1.0, penalty: float = 0.0, nbest: int = 1, streaming: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference.html#Speech2Text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference.Speech2Text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Speech2Text class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="p">(</span><span class="s2">&quot;asr_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;asr.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+<span class="go">[(text, token, token_int, hypothesis object), ...]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asr_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.asr_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asr_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.asr_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, maxlenratio: float, minlenratio: float, batch_size: int, dtype: str, beam_size: int, ngpu: int, seed: int, ctc_weight: float, lm_weight: float, penalty: float, nbest: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], asr_train_config: str, asr_model_file: str, lm_train_config: Optional[str], lm_file: Optional[str], word_lm_train_config: Optional[str], word_lm_file: Optional[str], token_type: Optional[str], bpemodel: Optional[str], allow_variable_data_keys: bool, streaming: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asr_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.asr_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-launch">
+<span id="id3"></span><h2>espnet2.bin.launch<a class="headerlink" href="#espnet2-bin-launch" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.launch"></span><dl class="function">
+<dt id="espnet2.bin.launch.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.launch.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/launch.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.launch.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.launch.main">
+<code class="sig-prename descclassname">espnet2.bin.launch.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/launch.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.launch.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-pack">
+<span id="id4"></span><h2>espnet2.bin.pack<a class="headerlink" href="#espnet2-bin-pack" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.pack"></span><dl class="class">
+<dt id="espnet2.bin.pack.ASRPackedContents">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">ASRPackedContents</code><a class="reference internal" href="../_modules/espnet2/bin/pack.html#ASRPackedContents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.ASRPackedContents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.bin.pack.PackedContents" title="espnet2.bin.pack.PackedContents"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.bin.pack.PackedContents</span></code></a></p>
+<dl class="attribute">
+<dt id="espnet2.bin.pack.ASRPackedContents.files">
+<code class="sig-name descname">files</code><em class="property"> = ['asr_model_file', 'lm_file']</em><a class="headerlink" href="#espnet2.bin.pack.ASRPackedContents.files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.bin.pack.ASRPackedContents.yaml_files">
+<code class="sig-name descname">yaml_files</code><em class="property"> = ['asr_train_config', 'lm_train_config']</em><a class="headerlink" href="#espnet2.bin.pack.ASRPackedContents.yaml_files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.bin.pack.EnhPackedContents">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">EnhPackedContents</code><a class="reference internal" href="../_modules/espnet2/bin/pack.html#EnhPackedContents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.EnhPackedContents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.bin.pack.PackedContents" title="espnet2.bin.pack.PackedContents"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.bin.pack.PackedContents</span></code></a></p>
+<dl class="attribute">
+<dt id="espnet2.bin.pack.EnhPackedContents.files">
+<code class="sig-name descname">files</code><em class="property"> = ['model_file']</em><a class="headerlink" href="#espnet2.bin.pack.EnhPackedContents.files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.bin.pack.EnhPackedContents.yaml_files">
+<code class="sig-name descname">yaml_files</code><em class="property"> = ['train_config']</em><a class="headerlink" href="#espnet2.bin.pack.EnhPackedContents.yaml_files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.bin.pack.PackedContents">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">PackedContents</code><a class="reference internal" href="../_modules/espnet2/bin/pack.html#PackedContents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.PackedContents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="espnet2.bin.pack.PackedContents.files">
+<code class="sig-name descname">files</code><em class="property"> = []</em><a class="headerlink" href="#espnet2.bin.pack.PackedContents.files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.bin.pack.PackedContents.yaml_files">
+<code class="sig-name descname">yaml_files</code><em class="property"> = []</em><a class="headerlink" href="#espnet2.bin.pack.PackedContents.yaml_files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.bin.pack.TTSPackedContents">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">TTSPackedContents</code><a class="reference internal" href="../_modules/espnet2/bin/pack.html#TTSPackedContents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.TTSPackedContents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.bin.pack.PackedContents" title="espnet2.bin.pack.PackedContents"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.bin.pack.PackedContents</span></code></a></p>
+<dl class="attribute">
+<dt id="espnet2.bin.pack.TTSPackedContents.files">
+<code class="sig-name descname">files</code><em class="property"> = ['model_file']</em><a class="headerlink" href="#espnet2.bin.pack.TTSPackedContents.files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.bin.pack.TTSPackedContents.yaml_files">
+<code class="sig-name descname">yaml_files</code><em class="property"> = ['train_config']</em><a class="headerlink" href="#espnet2.bin.pack.TTSPackedContents.yaml_files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.pack.add_arguments">
+<code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">add_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser: argparse.ArgumentParser, contents: Type[espnet2.bin.pack.PackedContents]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/pack.html#add_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.add_arguments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.pack.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; argparse.ArgumentParser<a class="reference internal" href="../_modules/espnet2/bin/pack.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.pack.main">
+<code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/pack.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-split-scps">
+<span id="id5"></span><h2>espnet2.bin.split_scps<a class="headerlink" href="#espnet2-bin-split-scps" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.split_scps"></span><dl class="function">
+<dt id="espnet2.bin.split_scps.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.split_scps.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; argparse.ArgumentParser<a class="reference internal" href="../_modules/espnet2/bin/split_scps.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.split_scps.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.split_scps.main">
+<code class="sig-prename descclassname">espnet2.bin.split_scps.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/split_scps.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.split_scps.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.split_scps.split_scps">
+<code class="sig-prename descclassname">espnet2.bin.split_scps.</code><code class="sig-name descname">split_scps</code><span class="sig-paren">(</span><em class="sig-param">scps: List[str], num_splits: int, names: Optional[List[str]], output_dir: str, log_level: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/split_scps.html#split_scps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.split_scps.split_scps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-asr-train">
+<span id="id6"></span><h2>espnet2.bin.asr_train<a class="headerlink" href="#espnet2-bin-asr-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.asr_train"></span><dl class="function">
+<dt id="espnet2.bin.asr_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.asr_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asr_train.main">
+<code class="sig-prename descclassname">espnet2.bin.asr_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>ASR training.</p>
+<p class="rubric">Example</p>
+<dl class="simple">
+<dt>% python asr_train.py asr –print_config –optim adadelta </dt><dd><p>&gt; conf/train_asr.yaml</p>
+</dd>
+</dl>
+<p>% python asr_train.py –config conf/train_asr.yaml</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-lm-calc-perplexity">
+<span id="id7"></span><h2>espnet2.bin.lm_calc_perplexity<a class="headerlink" href="#espnet2-bin-lm-calc-perplexity" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.lm_calc_perplexity"></span><dl class="function">
+<dt id="espnet2.bin.lm_calc_perplexity.calc_perplexity">
+<code class="sig-prename descclassname">espnet2.bin.lm_calc_perplexity.</code><code class="sig-name descname">calc_perplexity</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], log_base: Optional[float], allow_variable_data_keys: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_calc_perplexity.html#calc_perplexity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_calc_perplexity.calc_perplexity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.lm_calc_perplexity.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.lm_calc_perplexity.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_calc_perplexity.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_calc_perplexity.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.lm_calc_perplexity.main">
+<code class="sig-prename descclassname">espnet2.bin.lm_calc_perplexity.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_calc_perplexity.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_calc_perplexity.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-diar-train">
+<span id="id8"></span><h2>espnet2.bin.diar_train<a class="headerlink" href="#espnet2-bin-diar-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.diar_train"></span><dl class="function">
+<dt id="espnet2.bin.diar_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.diar_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.diar_train.main">
+<code class="sig-prename descclassname">espnet2.bin.diar_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Speaker diarization training.</p>
+<p class="rubric">Example</p>
+<dl class="simple">
+<dt>% python diar_train.py diar –print_config –optim adadelta </dt><dd><p>&gt; conf/train_diar.yaml</p>
+</dd>
+</dl>
+<p>% python diar_train.py –config conf/train_diar.yaml</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-tts-train">
+<span id="id9"></span><h2>espnet2.bin.tts_train<a class="headerlink" href="#espnet2-bin-tts-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.tts_train"></span><dl class="function">
+<dt id="espnet2.bin.tts_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.tts_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.tts_train.main">
+<code class="sig-prename descclassname">espnet2.bin.tts_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>TTS training</p>
+<p class="rubric">Example</p>
+<p>% python tts_train.py asr –print_config –optim adadelta
+% python tts_train.py –config conf/train_asr.yaml</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-lm-train">
+<span id="id10"></span><h2>espnet2.bin.lm_train<a class="headerlink" href="#espnet2-bin-lm-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.lm_train"></span><dl class="function">
+<dt id="espnet2.bin.lm_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.lm_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.lm_train.main">
+<code class="sig-prename descclassname">espnet2.bin.lm_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>LM training.</p>
+<p class="rubric">Example</p>
+<p>% python lm_train.py asr –print_config –optim adadelta
+% python lm_train.py –config conf/train_asr.yaml</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-enh-train">
+<span id="id11"></span><h2>espnet2.bin.enh_train<a class="headerlink" href="#espnet2-bin-enh-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.enh_train"></span><dl class="function">
+<dt id="espnet2.bin.enh_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.enh_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_train.main">
+<code class="sig-prename descclassname">espnet2.bin.enh_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enhancemnet frontend training.</p>
+<p class="rubric">Example</p>
+<dl class="simple">
+<dt>% python enh_train.py asr –print_config –optim adadelta </dt><dd><p>&gt; conf/train_enh.yaml</p>
+</dd>
+</dl>
+<p>% python enh_train.py –config conf/train_enh.yaml</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-aggregate-stats-dirs">
+<span id="id12"></span><h2>espnet2.bin.aggregate_stats_dirs<a class="headerlink" href="#espnet2-bin-aggregate-stats-dirs" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.aggregate_stats_dirs"></span><dl class="function">
+<dt id="espnet2.bin.aggregate_stats_dirs.aggregate_stats_dirs">
+<code class="sig-prename descclassname">espnet2.bin.aggregate_stats_dirs.</code><code class="sig-name descname">aggregate_stats_dirs</code><span class="sig-paren">(</span><em class="sig-param">input_dir: Iterable[Union[str, pathlib.Path]], output_dir: Union[str, pathlib.Path], log_level: str, skip_sum_stats: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/aggregate_stats_dirs.html#aggregate_stats_dirs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.aggregate_stats_dirs.aggregate_stats_dirs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.aggregate_stats_dirs.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.aggregate_stats_dirs.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; argparse.ArgumentParser<a class="reference internal" href="../_modules/espnet2/bin/aggregate_stats_dirs.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.aggregate_stats_dirs.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.aggregate_stats_dirs.main">
+<code class="sig-prename descclassname">espnet2.bin.aggregate_stats_dirs.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/aggregate_stats_dirs.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.aggregate_stats_dirs.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-enh-scoring">
+<span id="id13"></span><h2>espnet2.bin.enh_scoring<a class="headerlink" href="#espnet2-bin-enh-scoring" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.enh_scoring"></span><dl class="function">
+<dt id="espnet2.bin.enh_scoring.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.enh_scoring.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_scoring.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_scoring.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_scoring.main">
+<code class="sig-prename descclassname">espnet2.bin.enh_scoring.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_scoring.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_scoring.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_scoring.scoring">
+<code class="sig-prename descclassname">espnet2.bin.enh_scoring.</code><code class="sig-name descname">scoring</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, dtype: str, log_level: Union[int, str], key_file: str, ref_scp: List[str], inf_scp: List[str], ref_channel: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_scoring.html#scoring"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_scoring.scoring" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-enh-inference">
+<span id="id14"></span><h2>espnet2.bin.enh_inference<a class="headerlink" href="#espnet2-bin-enh-inference" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.enh_inference"></span><dl class="class">
+<dt id="espnet2.bin.enh_inference.SeparateSpeech">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">SeparateSpeech</code><span class="sig-paren">(</span><em class="sig-param">enh_train_config: Union[pathlib.Path, str], enh_model_file: Union[pathlib.Path, str] = None, segment_size: Optional[float] = None, hop_size: Optional[float] = None, normalize_segment_scale: bool = False, show_progressbar: bool = False, ref_channel: Optional[int] = None, normalize_output_wav: bool = False, device: str = 'cpu', dtype: str = 'float32'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#SeparateSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.SeparateSpeech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>SeparateSpeech class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">separate_speech</span> <span class="o">=</span> <span class="n">SeparateSpeech</span><span class="p">(</span><span class="s2">&quot;enh_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;enh.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">separate_speech</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+<span class="go">[separated_audio1, separated_audio2, ...]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.bin.enh_inference.SeparateSpeech.cal_permumation">
+<code class="sig-name descname">cal_permumation</code><span class="sig-paren">(</span><em class="sig-param">ref_wavs</em>, <em class="sig-param">enh_wavs</em>, <em class="sig-param">criterion='si_snr'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#SeparateSpeech.cal_permumation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.SeparateSpeech.cal_permumation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the permutation between seaprated streams in two adjacent segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref_wavs</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – [(Batch, Nsamples)]</p></li>
+<li><p><strong>enh_wavs</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – [(Batch, Nsamples)]</p></li>
+<li><p><strong>criterion</strong> (<em>str</em>) – one of (“si_snr”, “mse”, “corr)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>permutation for enh_wavs (Batch, num_spk)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>perm (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.enh_inference.SeparateSpeech.normalize_scale">
+<em class="property">static </em><code class="sig-name descname">normalize_scale</code><span class="sig-paren">(</span><em class="sig-param">enh_wav</em>, <em class="sig-param">ref_ch_wav</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#SeparateSpeech.normalize_scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.SeparateSpeech.normalize_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalize the energy of enh_wav to match that of ref_ch_wav.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enh_wav</strong> (<em>torch.Tensor</em>) – (B, Nsamples)</p></li>
+<li><p><strong>ref_ch_wav</strong> (<em>torch.Tensor</em>) – (B, Nsamples)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, Nsamples)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>enh_wav (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference.humanfriendly_or_none">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">humanfriendly_or_none</code><span class="sig-paren">(</span><em class="sig-param">value: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#humanfriendly_or_none"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.humanfriendly_or_none" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], enh_train_config: str, enh_model_file: str, allow_variable_data_keys: bool, segment_size: Optional[float], hop_size: Optional[float], normalize_segment_scale: bool, show_progressbar: bool, ref_channel: Optional[int], normalize_output_wav: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-init">
+<span id="id15"></span><h2>espnet2.bin.__init__<a class="headerlink" href="#espnet2-bin-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.__init__"></span></div>
+<div class="section" id="espnet2-bin-tts-inference">
+<span id="id16"></span><h2>espnet2.bin.tts_inference<a class="headerlink" href="#espnet2-bin-tts-inference" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.tts_inference"></span><p>TTS mode decoding.</p>
+<dl class="class">
+<dt id="espnet2.bin.tts_inference.Text2Speech">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">Text2Speech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path, str, None], model_file: Union[pathlib.Path, str, None] = None, threshold: float = 0.5, minlenratio: float = 0.0, maxlenratio: float = 10.0, use_teacher_forcing: bool = False, use_att_constraint: bool = False, backward_window: int = 1, forward_window: int = 3, speed_control_alpha: float = 1.0, vocoder_conf: dict = None, dtype: str = 'float32', device: str = 'cpu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#Text2Speech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.Text2Speech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Speech2Text class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">text2speech</span> <span class="o">=</span> <span class="n">Text2Speech</span><span class="p">(</span><span class="s2">&quot;config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;model.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wav</span> <span class="o">=</span> <span class="n">text2speech</span><span class="p">(</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">soundfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;out.wav&quot;</span><span class="p">,</span> <span class="n">wav</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">text2speech</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span> <span class="s2">&quot;PCM_16&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.bin.tts_inference.Text2Speech.fs">
+<em class="property">property </em><code class="sig-name descname">fs</code><a class="headerlink" href="#espnet2.bin.tts_inference.Text2Speech.fs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.tts_inference.Text2Speech.use_speech">
+<em class="property">property </em><code class="sig-name descname">use_speech</code><a class="headerlink" href="#espnet2.bin.tts_inference.Text2Speech.use_speech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether to require speech in inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if speech is required else False.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.tts_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get argument parser.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.tts_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], threshold: float, minlenratio: float, maxlenratio: float, use_teacher_forcing: bool, use_att_constraint: bool, backward_window: int, forward_window: int, speed_control_alpha: float, allow_variable_data_keys: bool, vocoder_conf: dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform TTS model decoding.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.tts_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run TTS model decoding.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-bin-diar-inference">
+<span id="id17"></span><h2>espnet2.bin.diar_inference<a class="headerlink" href="#espnet2-bin-diar-inference" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.diar_inference"></span><dl class="class">
+<dt id="espnet2.bin.diar_inference.DiarizeSpeech">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">DiarizeSpeech</code><span class="sig-paren">(</span><em class="sig-param">diar_train_config: Union[pathlib.Path, str], diar_model_file: Union[pathlib.Path, str] = None, segment_size: Optional[float] = None, normalize_segment_scale: bool = False, show_progressbar: bool = False, device: str = 'cpu', dtype: str = 'float32'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>DiarizeSpeech class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">diarization</span> <span class="o">=</span> <span class="n">DiarizeSpeech</span><span class="p">(</span><span class="s2">&quot;diar_config.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;diar.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">diarization</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+<span class="go">[(spk_id, start, end), (spk_id2, start2, end2)]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.diar_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.diar_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], diar_train_config: str, diar_model_file: str, allow_variable_data_keys: bool, segment_size: Optional[float], show_progressbar: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.diar_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2.layers.html" class="btn btn-neutral float-right" title="espnet2.layers package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2.diar.html" class="btn btn-neutral float-left" title="espnet2.diar package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+
+espnet2.optimizers package
+==========================
+
+
+
+.. _espnet2.optimizers.sgd:
+
+espnet2.optimizers.sgd
+----------------------
+
+.. automodule:: espnet2.optimizers.sgd
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.optimizers.__init__:
+
+espnet2.optimizers.__init__
+---------------------------
+
+.. automodule:: espnet2.optimizers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

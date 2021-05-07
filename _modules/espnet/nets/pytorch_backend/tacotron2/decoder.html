@@ -1,0 +1,944 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.pytorch_backend.tacotron2.decoder &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.pytorch_backend.tacotron2.decoder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.pytorch_backend.tacotron2.decoder</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1"># Copyright 2019 Nagoya University (Tomoki Hayashi)</span>
+<span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
+
+<span class="sd">&quot;&quot;&quot;Tacotron2 decoder related modules.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttForwardTA</span>
+
+
+<div class="viewcode-block" id="decoder_init"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.decoder_init">[docs]</a><span class="k">def</span> <span class="nf">decoder_init</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize decoder parameters.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">):</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">calculate_gain</span><span class="p">(</span><span class="s2">&quot;tanh&quot;</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ZoneOutCell"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.ZoneOutCell">[docs]</a><span class="k">class</span> <span class="nc">ZoneOutCell</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;ZoneOut Cell module.</span>
+
+<span class="sd">    This is a module of zoneout described in</span>
+<span class="sd">    `Zoneout: Regularizing RNNs by Randomly Preserving Hidden Activations`_.</span>
+<span class="sd">    This code is modified from `eladhoffer/seq2seq.pytorch`_.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; lstm = torch.nn.LSTMCell(16, 32)</span>
+<span class="sd">        &gt;&gt;&gt; lstm = ZoneOutCell(lstm, 0.5)</span>
+
+<span class="sd">    .. _`Zoneout: Regularizing RNNs by Randomly Preserving Hidden Activations`:</span>
+<span class="sd">        https://arxiv.org/abs/1606.01305</span>
+
+<span class="sd">    .. _`eladhoffer/seq2seq.pytorch`:</span>
+<span class="sd">        https://github.com/eladhoffer/seq2seq.pytorch</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cell</span><span class="p">,</span> <span class="n">zoneout_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize zone out cell module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            cell (torch.nn.Module): Pytorch recurrent cell module</span>
+<span class="sd">                e.g. `torch.nn.Module.LSTMCell`.</span>
+<span class="sd">            zoneout_rate (float, optional): Probability of zoneout from 0.0 to 1.0.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ZoneOutCell</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">cell</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">hidden_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zoneout_rate</span> <span class="o">=</span> <span class="n">zoneout_rate</span>
+        <span class="k">if</span> <span class="n">zoneout_rate</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">zoneout_rate</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;zoneout probability must be in the range from 0.0 to 1.0.&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="ZoneOutCell.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.ZoneOutCell.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            inputs (Tensor): Batch of input tensor (B, input_size).</span>
+<span class="sd">            hidden (tuple):</span>
+<span class="sd">                - Tensor: Batch of initial hidden states (B, hidden_size).</span>
+<span class="sd">                - Tensor: Batch of initial cell states (B, hidden_size).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple:</span>
+<span class="sd">                - Tensor: Batch of next hidden states (B, hidden_size).</span>
+<span class="sd">                - Tensor: Batch of next cell states (B, hidden_size).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">next_hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+        <span class="n">next_hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zoneout</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">next_hidden</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zoneout_rate</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">next_hidden</span></div>
+
+    <span class="k">def</span> <span class="nf">_zoneout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">next_h</span><span class="p">,</span> <span class="n">prob</span><span class="p">):</span>
+        <span class="c1"># apply recursively</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">num_h</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">prob</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">prob</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_h</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zoneout</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">next_h</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">prob</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_h</span><span class="p">)]</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="o">*</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">())</span><span class="o">.</span><span class="n">bernoulli_</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">mask</span> <span class="o">*</span> <span class="n">h</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="n">next_h</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">prob</span> <span class="o">*</span> <span class="n">h</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">prob</span><span class="p">)</span> <span class="o">*</span> <span class="n">next_h</span></div>
+
+
+<div class="viewcode-block" id="Prenet"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Prenet">[docs]</a><span class="k">class</span> <span class="nc">Prenet</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prenet module for decoder of Spectrogram prediction network.</span>
+
+<span class="sd">    This is a module of Prenet in the decoder of Spectrogram prediction network,</span>
+<span class="sd">    which described in `Natural TTS</span>
+<span class="sd">    Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_.</span>
+<span class="sd">    The Prenet preforms nonlinear conversion</span>
+<span class="sd">    of inputs before input to auto-regressive lstm,</span>
+<span class="sd">    which helps to learn diagonal attentions.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This module alway applies dropout even in evaluation.</span>
+<span class="sd">        See the detail in `Natural TTS Synthesis by</span>
+<span class="sd">        Conditioning WaveNet on Mel Spectrogram Predictions`_.</span>
+
+<span class="sd">    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:</span>
+<span class="sd">       https://arxiv.org/abs/1712.05884</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_units</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize prenet module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): Dimension of the inputs.</span>
+<span class="sd">            odim (int): Dimension of the outputs.</span>
+<span class="sd">            n_layers (int, optional): The number of prenet layers.</span>
+<span class="sd">            n_units (int, optional): The number of prenet units.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Prenet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">):</span>
+            <span class="n">n_inputs</span> <span class="o">=</span> <span class="n">idim</span> <span class="k">if</span> <span class="n">layer</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">n_units</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">,</span> <span class="n">n_units</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">())</span>
+            <span class="p">]</span>
+
+<div class="viewcode-block" id="Prenet.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Prenet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (Tensor): Batch of input tensors (B, ..., idim).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Batch of output tensors (B, ..., odim).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">)):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">x</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="Postnet"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Postnet">[docs]</a><span class="k">class</span> <span class="nc">Postnet</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Postnet module for Spectrogram prediction network.</span>
+
+<span class="sd">    This is a module of Postnet in Spectrogram prediction network,</span>
+<span class="sd">    which described in `Natural TTS Synthesis by</span>
+<span class="sd">    Conditioning WaveNet on Mel Spectrogram Predictions`_.</span>
+<span class="sd">    The Postnet predicts refines the predicted</span>
+<span class="sd">    Mel-filterbank of the decoder,</span>
+<span class="sd">    which helps to compensate the detail sturcture of spectrogram.</span>
+
+<span class="sd">    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:</span>
+<span class="sd">       https://arxiv.org/abs/1712.05884</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">,</span>
+        <span class="n">odim</span><span class="p">,</span>
+        <span class="n">n_layers</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">n_chans</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+        <span class="n">n_filts</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">use_batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize postnet module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): Dimension of the inputs.</span>
+<span class="sd">            odim (int): Dimension of the outputs.</span>
+<span class="sd">            n_layers (int, optional): The number of layers.</span>
+<span class="sd">            n_filts (int, optional): The number of filter size.</span>
+<span class="sd">            n_units (int, optional): The number of filter channels.</span>
+<span class="sd">            use_batch_norm (bool, optional): Whether to use batch normalization..</span>
+<span class="sd">            dropout_rate (float, optional): Dropout rate..</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Postnet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">n_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">ichans</span> <span class="o">=</span> <span class="n">odim</span> <span class="k">if</span> <span class="n">layer</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">n_chans</span>
+            <span class="n">ochans</span> <span class="o">=</span> <span class="n">odim</span> <span class="k">if</span> <span class="n">layer</span> <span class="o">==</span> <span class="n">n_layers</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">n_chans</span>
+            <span class="k">if</span> <span class="n">use_batch_norm</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
+                            <span class="n">ichans</span><span class="p">,</span>
+                            <span class="n">ochans</span><span class="p">,</span>
+                            <span class="n">n_filts</span><span class="p">,</span>
+                            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                            <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">n_filts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+                            <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="p">),</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">ochans</span><span class="p">),</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
+                            <span class="n">ichans</span><span class="p">,</span>
+                            <span class="n">ochans</span><span class="p">,</span>
+                            <span class="n">n_filts</span><span class="p">,</span>
+                            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                            <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">n_filts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+                            <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="p">),</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+        <span class="n">ichans</span> <span class="o">=</span> <span class="n">n_chans</span> <span class="k">if</span> <span class="n">n_layers</span> <span class="o">!=</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">odim</span>
+        <span class="k">if</span> <span class="n">use_batch_norm</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
+                        <span class="n">ichans</span><span class="p">,</span>
+                        <span class="n">odim</span><span class="p">,</span>
+                        <span class="n">n_filts</span><span class="p">,</span>
+                        <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">n_filts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+                        <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">odim</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
+                        <span class="n">ichans</span><span class="p">,</span>
+                        <span class="n">odim</span><span class="p">,</span>
+                        <span class="n">n_filts</span><span class="p">,</span>
+                        <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">n_filts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+                        <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+
+<div class="viewcode-block" id="Postnet.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Postnet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs (Tensor): Batch of the sequences of padded input tensors (B, idim, Tmax).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Batch of padded output tensor. (B, odim, Tmax).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postnet</span><span class="p">)):</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">xs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xs</span></div></div>
+
+
+<div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decoder module of Spectrogram prediction network.</span>
+
+<span class="sd">    This is a module of decoder of Spectrogram prediction network in Tacotron2,</span>
+<span class="sd">    which described in `Natural TTS</span>
+<span class="sd">    Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_.</span>
+<span class="sd">    The decoder generates the sequence of</span>
+<span class="sd">    features from the sequence of the hidden states.</span>
+
+<span class="sd">    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:</span>
+<span class="sd">       https://arxiv.org/abs/1712.05884</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">,</span>
+        <span class="n">odim</span><span class="p">,</span>
+        <span class="n">att</span><span class="p">,</span>
+        <span class="n">dlayers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">dunits</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">prenet_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">prenet_units</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="n">postnet_layers</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">postnet_chans</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+        <span class="n">postnet_filts</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">output_activation_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cumulate_att_w</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_concate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">zoneout_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">reduction_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize Tacotron2 decoder module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): Dimension of the inputs.</span>
+<span class="sd">            odim (int): Dimension of the outputs.</span>
+<span class="sd">            att (torch.nn.Module): Instance of attention class.</span>
+<span class="sd">            dlayers (int, optional): The number of decoder lstm layers.</span>
+<span class="sd">            dunits (int, optional): The number of decoder lstm units.</span>
+<span class="sd">            prenet_layers (int, optional): The number of prenet layers.</span>
+<span class="sd">            prenet_units (int, optional): The number of prenet units.</span>
+<span class="sd">            postnet_layers (int, optional): The number of postnet layers.</span>
+<span class="sd">            postnet_filts (int, optional): The number of postnet filter size.</span>
+<span class="sd">            postnet_chans (int, optional): The number of postnet filter channels.</span>
+<span class="sd">            output_activation_fn (torch.nn.Module, optional):</span>
+<span class="sd">                Activation function for outputs.</span>
+<span class="sd">            cumulate_att_w (bool, optional):</span>
+<span class="sd">                Whether to cumulate previous attention weight.</span>
+<span class="sd">            use_batch_norm (bool, optional): Whether to use batch normalization.</span>
+<span class="sd">            use_concate (bool, optional): Whether to concatenate encoder embedding</span>
+<span class="sd">                with decoder lstm outputs.</span>
+<span class="sd">            dropout_rate (float, optional): Dropout rate.</span>
+<span class="sd">            zoneout_rate (float, optional): Zoneout rate.</span>
+<span class="sd">            reduction_factor (int, optional): Reduction factor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Decoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># store the hyperparameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idim</span> <span class="o">=</span> <span class="n">idim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att</span> <span class="o">=</span> <span class="n">att</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span> <span class="o">=</span> <span class="n">output_activation_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cumulate_att_w</span> <span class="o">=</span> <span class="n">cumulate_att_w</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_concate</span> <span class="o">=</span> <span class="n">use_concate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">=</span> <span class="n">reduction_factor</span>
+
+        <span class="c1"># check attention type</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">,</span> <span class="n">AttForwardTA</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_att_extra_inputs</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_att_extra_inputs</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># define lstm network</span>
+        <span class="n">prenet_units</span> <span class="o">=</span> <span class="n">prenet_units</span> <span class="k">if</span> <span class="n">prenet_layers</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">odim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">dlayers</span><span class="p">):</span>
+            <span class="n">iunits</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">+</span> <span class="n">prenet_units</span> <span class="k">if</span> <span class="n">layer</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">dunits</span>
+            <span class="n">lstm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTMCell</span><span class="p">(</span><span class="n">iunits</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">zoneout_rate</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">lstm</span> <span class="o">=</span> <span class="n">ZoneOutCell</span><span class="p">(</span><span class="n">lstm</span><span class="p">,</span> <span class="n">zoneout_rate</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">+=</span> <span class="p">[</span><span class="n">lstm</span><span class="p">]</span>
+
+        <span class="c1"># define prenet</span>
+        <span class="k">if</span> <span class="n">prenet_layers</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="o">=</span> <span class="n">Prenet</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="n">odim</span><span class="p">,</span>
+                <span class="n">n_layers</span><span class="o">=</span><span class="n">prenet_layers</span><span class="p">,</span>
+                <span class="n">n_units</span><span class="o">=</span><span class="n">prenet_units</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># define postnet</span>
+        <span class="k">if</span> <span class="n">postnet_layers</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">=</span> <span class="n">Postnet</span><span class="p">(</span>
+                <span class="n">idim</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span>
+                <span class="n">odim</span><span class="o">=</span><span class="n">odim</span><span class="p">,</span>
+                <span class="n">n_layers</span><span class="o">=</span><span class="n">postnet_layers</span><span class="p">,</span>
+                <span class="n">n_chans</span><span class="o">=</span><span class="n">postnet_chans</span><span class="p">,</span>
+                <span class="n">n_filts</span><span class="o">=</span><span class="n">postnet_filts</span><span class="p">,</span>
+                <span class="n">use_batch_norm</span><span class="o">=</span><span class="n">use_batch_norm</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># define projection layers</span>
+        <span class="n">iunits</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">+</span> <span class="n">dunits</span> <span class="k">if</span> <span class="n">use_concate</span> <span class="k">else</span> <span class="n">dunits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">iunits</span><span class="p">,</span> <span class="n">odim</span> <span class="o">*</span> <span class="n">reduction_factor</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prob_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">iunits</span><span class="p">,</span> <span class="n">reduction_factor</span><span class="p">)</span>
+
+        <span class="c1"># initialize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">decoder_init</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">):</span>
+        <span class="n">init_hs</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">init_hs</span>
+
+<div class="viewcode-block" id="Decoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Decoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).</span>
+<span class="sd">            hlens (LongTensor): Batch of lengths of each input batch (B,).</span>
+<span class="sd">            ys (Tensor):</span>
+<span class="sd">                Batch of the sequences of padded target features (B, Lmax, odim).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Batch of output tensors after postnet (B, Lmax, odim).</span>
+<span class="sd">            Tensor: Batch of output tensors before postnet (B, Lmax, odim).</span>
+<span class="sd">            Tensor: Batch of logits of stop prediction (B, Lmax).</span>
+<span class="sd">            Tensor: Batch of attention weights (B, Lmax, Tmax).</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This computation is performed in teacher-forcing manner.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># thin out frames (B, Lmax, odim) -&gt;  (B, Lmax/r, odim)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">]</span>
+
+        <span class="c1"># length list should be list of int</span>
+        <span class="n">hlens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">hlens</span><span class="p">))</span>
+
+        <span class="c1"># initialize hidden states of decoder</span>
+        <span class="n">c_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="n">z_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
+            <span class="n">c_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+            <span class="n">z_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="n">prev_out</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">)</span>
+
+        <span class="c1"># initialize attention</span>
+        <span class="n">prev_att_w</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="c1"># loop for an output sequence</span>
+        <span class="n">outs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">att_ws</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_att_extra_inputs</span><span class="p">:</span>
+                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">,</span> <span class="n">prev_out</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">)</span>
+            <span class="n">prenet_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">(</span><span class="n">prev_out</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_out</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">att_c</span><span class="p">,</span> <span class="n">prenet_out</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
+                <span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="n">i</span><span class="p">](</span>
+                    <span class="n">z_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="p">)</span>
+            <span class="n">zcs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">z_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">att_c</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_concate</span>
+                <span class="k">else</span> <span class="n">z_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">outs</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zcs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">logits</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_out</span><span class="p">(</span><span class="n">zcs</span><span class="p">)]</span>
+            <span class="n">att_ws</span> <span class="o">+=</span> <span class="p">[</span><span class="n">att_w</span><span class="p">]</span>
+            <span class="n">prev_out</span> <span class="o">=</span> <span class="n">y</span>  <span class="c1"># teacher forcing</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cumulate_att_w</span> <span class="ow">and</span> <span class="n">prev_att_w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">prev_att_w</span> <span class="o">+</span> <span class="n">att_w</span>  <span class="c1"># Note: error when use +=</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">att_w</span>
+
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, Lmax)</span>
+        <span class="n">before_outs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">outs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># (B, odim, Lmax)</span>
+        <span class="n">att_ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, Lmax, Tmax)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">before_outs</span> <span class="o">=</span> <span class="n">before_outs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">before_outs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="p">)</span>  <span class="c1"># (B, odim, Lmax)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">after_outs</span> <span class="o">=</span> <span class="n">before_outs</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span><span class="p">(</span><span class="n">before_outs</span><span class="p">)</span>  <span class="c1"># (B, odim, Lmax)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">after_outs</span> <span class="o">=</span> <span class="n">before_outs</span>
+        <span class="n">before_outs</span> <span class="o">=</span> <span class="n">before_outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, Lmax, odim)</span>
+        <span class="n">after_outs</span> <span class="o">=</span> <span class="n">after_outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, Lmax, odim)</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span>
+
+        <span class="c1"># apply activation function for scaling</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">before_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span><span class="p">(</span><span class="n">before_outs</span><span class="p">)</span>
+            <span class="n">after_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span><span class="p">(</span><span class="n">after_outs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">att_ws</span></div>
+
+<div class="viewcode-block" id="Decoder.inference"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Decoder.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">h</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">minlenratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">maxlenratio</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">use_att_constraint</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">backward_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">forward_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            h (Tensor): Input sequence of encoder hidden states (T, C).</span>
+<span class="sd">            threshold (float, optional): Threshold to stop generation.</span>
+<span class="sd">            minlenratio (float, optional): Minimum length ratio.</span>
+<span class="sd">                If set to 1.0 and the length of input is 10,</span>
+<span class="sd">                the minimum length of outputs will be 10 * 1 = 10.</span>
+<span class="sd">            minlenratio (float, optional): Minimum length ratio.</span>
+<span class="sd">                If set to 10 and the length of input is 10,</span>
+<span class="sd">                the maximum length of outputs will be 10 * 10 = 100.</span>
+<span class="sd">            use_att_constraint (bool):</span>
+<span class="sd">                Whether to apply attention constraint introduced in `Deep Voice 3`_.</span>
+<span class="sd">            backward_window (int): Backward window size in attention constraint.</span>
+<span class="sd">            forward_window (int): Forward window size in attention constraint.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Output sequence of features (L, odim).</span>
+<span class="sd">            Tensor: Output sequence of stop probabilities (L,).</span>
+<span class="sd">            Tensor: Attention weights (L, T).</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This computation is performed in auto-regressive manner.</span>
+
+<span class="sd">        .. _`Deep Voice 3`: https://arxiv.org/abs/1710.07654</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># setup</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">())</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="n">hs</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">ilens</span> <span class="o">=</span> <span class="p">[</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
+        <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxlenratio</span><span class="p">)</span>
+        <span class="n">minlen</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">minlenratio</span><span class="p">)</span>
+
+        <span class="c1"># initialize hidden states of decoder</span>
+        <span class="n">c_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="n">z_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
+            <span class="n">c_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+            <span class="n">z_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="n">prev_out</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">)</span>
+
+        <span class="c1"># initialize attention</span>
+        <span class="n">prev_att_w</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="c1"># setup for attention constraint</span>
+        <span class="k">if</span> <span class="n">use_att_constraint</span><span class="p">:</span>
+            <span class="n">last_attended_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">last_attended_idx</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># loop for an output sequence</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">outs</span><span class="p">,</span> <span class="n">att_ws</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># updated index</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span>
+
+            <span class="c1"># decoder calculation</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_att_extra_inputs</span><span class="p">:</span>
+                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span>
+                    <span class="n">hs</span><span class="p">,</span>
+                    <span class="n">ilens</span><span class="p">,</span>
+                    <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">prev_att_w</span><span class="p">,</span>
+                    <span class="n">prev_out</span><span class="p">,</span>
+                    <span class="n">last_attended_idx</span><span class="o">=</span><span class="n">last_attended_idx</span><span class="p">,</span>
+                    <span class="n">backward_window</span><span class="o">=</span><span class="n">backward_window</span><span class="p">,</span>
+                    <span class="n">forward_window</span><span class="o">=</span><span class="n">forward_window</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span>
+                    <span class="n">hs</span><span class="p">,</span>
+                    <span class="n">ilens</span><span class="p">,</span>
+                    <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">prev_att_w</span><span class="p">,</span>
+                    <span class="n">last_attended_idx</span><span class="o">=</span><span class="n">last_attended_idx</span><span class="p">,</span>
+                    <span class="n">backward_window</span><span class="o">=</span><span class="n">backward_window</span><span class="p">,</span>
+                    <span class="n">forward_window</span><span class="o">=</span><span class="n">forward_window</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="n">att_ws</span> <span class="o">+=</span> <span class="p">[</span><span class="n">att_w</span><span class="p">]</span>
+            <span class="n">prenet_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">(</span><span class="n">prev_out</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_out</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">att_c</span><span class="p">,</span> <span class="n">prenet_out</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
+                <span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="n">i</span><span class="p">](</span>
+                    <span class="n">z_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="p">)</span>
+            <span class="n">zcs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">z_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">att_c</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_concate</span>
+                <span class="k">else</span> <span class="n">z_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">outs</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zcs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span>  <span class="c1"># [(1, odim, r), ...]</span>
+            <span class="n">probs</span> <span class="o">+=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_out</span><span class="p">(</span><span class="n">zcs</span><span class="p">))[</span><span class="mi">0</span><span class="p">]]</span>  <span class="c1"># [(r), ...]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">prev_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span><span class="p">(</span><span class="n">outs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># (1, odim)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prev_out</span> <span class="o">=</span> <span class="n">outs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># (1, odim)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cumulate_att_w</span> <span class="ow">and</span> <span class="n">prev_att_w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">prev_att_w</span> <span class="o">+</span> <span class="n">att_w</span>  <span class="c1"># Note: error when use +=</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">att_w</span>
+            <span class="k">if</span> <span class="n">use_att_constraint</span><span class="p">:</span>
+                <span class="n">last_attended_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+
+            <span class="c1"># check whether to finish generation</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">idx</span> <span class="o">&gt;=</span> <span class="n">maxlen</span><span class="p">:</span>
+                <span class="c1"># check mininum length</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="n">minlen</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">outs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">outs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># (1, odim, L)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">outs</span> <span class="o">=</span> <span class="n">outs</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span>  <span class="c1"># (1, odim, L)</span>
+                <span class="n">outs</span> <span class="o">=</span> <span class="n">outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># (L, odim)</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">att_ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span></div>
+
+<div class="viewcode-block" id="Decoder.calculate_all_attentions"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Decoder.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).</span>
+<span class="sd">            hlens (LongTensor): Batch of lengths of each input batch (B,).</span>
+<span class="sd">            ys (Tensor):</span>
+<span class="sd">                Batch of the sequences of padded target features (B, Lmax, odim).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Batch of attention weights (B, Lmax, Tmax).</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This computation is performed in teacher-forcing manner.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># thin out frames (B, Lmax, odim) -&gt;  (B, Lmax/r, odim)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">]</span>
+
+        <span class="c1"># length list should be list of int</span>
+        <span class="n">hlens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">hlens</span><span class="p">))</span>
+
+        <span class="c1"># initialize hidden states of decoder</span>
+        <span class="n">c_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="n">z_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
+            <span class="n">c_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+            <span class="n">z_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
+        <span class="n">prev_out</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">)</span>
+
+        <span class="c1"># initialize attention</span>
+        <span class="n">prev_att_w</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="c1"># loop for an output sequence</span>
+        <span class="n">att_ws</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_att_extra_inputs</span><span class="p">:</span>
+                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">,</span> <span class="n">prev_out</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">)</span>
+            <span class="n">att_ws</span> <span class="o">+=</span> <span class="p">[</span><span class="n">att_w</span><span class="p">]</span>
+            <span class="n">prenet_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">(</span><span class="n">prev_out</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_out</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">att_c</span><span class="p">,</span> <span class="n">prenet_out</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
+                <span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="n">i</span><span class="p">](</span>
+                    <span class="n">z_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="p">)</span>
+            <span class="n">prev_out</span> <span class="o">=</span> <span class="n">y</span>  <span class="c1"># teacher forcing</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cumulate_att_w</span> <span class="ow">and</span> <span class="n">prev_att_w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">prev_att_w</span> <span class="o">+</span> <span class="n">att_w</span>  <span class="c1"># Note: error when use +=</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">att_w</span>
+
+        <span class="n">att_ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, Lmax, Tmax)</span>
+
+        <span class="k">return</span> <span class="n">att_ws</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

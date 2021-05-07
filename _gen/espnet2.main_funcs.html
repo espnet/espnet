@@ -1,0 +1,445 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.main_funcs package &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.asr package" href="espnet2.asr.html" />
+    <link rel="prev" title="espnet2.utils package" href="espnet2.utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.main_funcs package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-main-funcs-calculate-all-attentions">espnet2.main_funcs.calculate_all_attentions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-main-funcs-average-nbest-models">espnet2.main_funcs.average_nbest_models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-main-funcs-collect-stats">espnet2.main_funcs.collect_stats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-main-funcs-pack-funcs">espnet2.main_funcs.pack_funcs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-main-funcs-init">espnet2.main_funcs.__init__</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet2.main_funcs package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet2.main_funcs.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet2-main-funcs-package">
+<h1>espnet2.main_funcs package<a class="headerlink" href="#espnet2-main-funcs-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="espnet2-main-funcs-calculate-all-attentions">
+<span id="id1"></span><h2>espnet2.main_funcs.calculate_all_attentions<a class="headerlink" href="#espnet2-main-funcs-calculate-all-attentions" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.main_funcs.calculate_all_attentions"></span><dl class="function">
+<dt id="espnet2.main_funcs.calculate_all_attentions.calculate_all_attentions">
+<code class="sig-prename descclassname">espnet2.main_funcs.calculate_all_attentions.</code><code class="sig-name descname">calculate_all_attentions</code><span class="sig-paren">(</span><em class="sig-param">model: espnet2.train.abs_espnet_model.AbsESPnetModel, batch: Dict[str, torch.Tensor]</em><span class="sig-paren">)</span> &#x2192; Dict[str, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/main_funcs/calculate_all_attentions.html#calculate_all_attentions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.calculate_all_attentions.calculate_all_attentions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derive the outputs from the all attention layers</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – </p></li>
+<li><p><strong>batch</strong> – same as forward</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dict of a list of tensor.
+key_names x batch x (D1, D2, …)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>return_dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-main-funcs-average-nbest-models">
+<span id="id2"></span><h2>espnet2.main_funcs.average_nbest_models<a class="headerlink" href="#espnet2-main-funcs-average-nbest-models" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.main_funcs.average_nbest_models"></span><dl class="function">
+<dt id="espnet2.main_funcs.average_nbest_models.average_nbest_models">
+<code class="sig-prename descclassname">espnet2.main_funcs.average_nbest_models.</code><code class="sig-name descname">average_nbest_models</code><span class="sig-paren">(</span><em class="sig-param">output_dir: pathlib.Path, reporter: espnet2.train.reporter.Reporter, best_model_criterion: Sequence[Sequence[str]], nbest: Union[Collection[int], int]</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/main_funcs/average_nbest_models.html#average_nbest_models"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.average_nbest_models.average_nbest_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate averaged model from n-best models</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_dir</strong> – The directory contains the model file for each epoch</p></li>
+<li><p><strong>reporter</strong> – Reporter instance</p></li>
+<li><p><strong>best_model_criterion</strong> – Give criterions to decide the best model.
+e.g. [(“valid”, “loss”, “min”), (“train”, “acc”, “max”)]</p></li>
+<li><p><strong>nbest</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-main-funcs-collect-stats">
+<span id="id3"></span><h2>espnet2.main_funcs.collect_stats<a class="headerlink" href="#espnet2-main-funcs-collect-stats" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.main_funcs.collect_stats"></span><dl class="function">
+<dt id="espnet2.main_funcs.collect_stats.collect_stats">
+<code class="sig-prename descclassname">espnet2.main_funcs.collect_stats.</code><code class="sig-name descname">collect_stats</code><span class="sig-paren">(</span><em class="sig-param">model: espnet2.train.abs_espnet_model.AbsESPnetModel, train_iter: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], valid_iter: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], output_dir: pathlib.Path, ngpu: Optional[int], log_interval: Optional[int], write_collected_feats: bool</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/main_funcs/collect_stats.html#collect_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.collect_stats.collect_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform on collect_stats mode.</p>
+<p>Running for deriving the shape information from data
+and gathering statistics.
+This method is used before executing train().</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-main-funcs-pack-funcs">
+<span id="id4"></span><h2>espnet2.main_funcs.pack_funcs<a class="headerlink" href="#espnet2-main-funcs-pack-funcs" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.main_funcs.pack_funcs"></span><dl class="class">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.main_funcs.pack_funcs.</code><code class="sig-name descname">Archiver</code><span class="sig-paren">(</span><em class="sig-param">file</em>, <em class="sig-param">mode='r'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">arcname=None</em>, <em class="sig-param">recursive: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver.addfile">
+<code class="sig-name descname">addfile</code><span class="sig-paren">(</span><em class="sig-param">info</em>, <em class="sig-param">fileobj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver.addfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver.addfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver.extract">
+<code class="sig-name descname">extract</code><span class="sig-paren">(</span><em class="sig-param">info</em>, <em class="sig-param">path=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver.extract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver.extract" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver.extractfile">
+<code class="sig-name descname">extractfile</code><span class="sig-paren">(</span><em class="sig-param">info</em>, <em class="sig-param">mode='r'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver.extractfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver.extractfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver.generate_info">
+<code class="sig-name descname">generate_info</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">size</em><span class="sig-paren">)</span> &#x2192; Union[tarfile.TarInfo, zipfile.ZipInfo]<a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver.generate_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver.generate_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate TarInfo using system information</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.main_funcs.pack_funcs.Archiver.get_name_from_info">
+<code class="sig-name descname">get_name_from_info</code><span class="sig-paren">(</span><em class="sig-param">info</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#Archiver.get_name_from_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.Archiver.get_name_from_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.main_funcs.pack_funcs.find_path_and_change_it_recursive">
+<code class="sig-prename descclassname">espnet2.main_funcs.pack_funcs.</code><code class="sig-name descname">find_path_and_change_it_recursive</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">src: str</em>, <em class="sig-param">tgt: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#find_path_and_change_it_recursive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.find_path_and_change_it_recursive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.main_funcs.pack_funcs.get_dict_from_cache">
+<code class="sig-prename descclassname">espnet2.main_funcs.pack_funcs.</code><code class="sig-name descname">get_dict_from_cache</code><span class="sig-paren">(</span><em class="sig-param">meta: Union[pathlib.Path, str]</em><span class="sig-paren">)</span> &#x2192; Optional[Dict[str, str]]<a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#get_dict_from_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.get_dict_from_cache" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.main_funcs.pack_funcs.pack">
+<code class="sig-prename descclassname">espnet2.main_funcs.pack_funcs.</code><code class="sig-name descname">pack</code><span class="sig-paren">(</span><em class="sig-param">files: Dict[str, Union[str, pathlib.Path]], yaml_files: Dict[str, Union[str, pathlib.Path]], outpath: Union[str, pathlib.Path], option: Iterable[Union[str, pathlib.Path]] = ()</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#pack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.pack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.main_funcs.pack_funcs.unpack">
+<code class="sig-prename descclassname">espnet2.main_funcs.pack_funcs.</code><code class="sig-name descname">unpack</code><span class="sig-paren">(</span><em class="sig-param">input_archive: Union[pathlib.Path, str], outpath: Union[pathlib.Path, str], use_cache: bool = True</em><span class="sig-paren">)</span> &#x2192; Dict[str, str]<a class="reference internal" href="../_modules/espnet2/main_funcs/pack_funcs.html#unpack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.pack_funcs.unpack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scan all files in the archive file and return as a dict of files.</p>
+<p class="rubric">Examples</p>
+<dl class="simple">
+<dt>tarfile:</dt><dd><p>model.pth
+some1.file
+some2.file</p>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;tarfile&quot;</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">)</span>
+<span class="go">{&#39;asr_model_file&#39;: &#39;out/model.pth&#39;}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-main-funcs-init">
+<span id="id5"></span><h2>espnet2.main_funcs.__init__<a class="headerlink" href="#espnet2-main-funcs-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.main_funcs.__init__"></span></div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2.asr.html" class="btn btn-neutral float-right" title="espnet2.asr package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2.utils.html" class="btn btn-neutral float-left" title="espnet2.utils package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

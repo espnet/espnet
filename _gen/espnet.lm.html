@@ -1,0 +1,829 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.lm package &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet.tts package" href="espnet.tts.html" />
+    <link rel="prev" title="espnet.st package" href="espnet.st.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.lm package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-lm-utils">espnet.lm.lm_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-init">espnet.lm.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-extlm">espnet.lm.chainer_backend.extlm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-init">espnet.lm.chainer_backend.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-lm">espnet.lm.chainer_backend.lm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-extlm">espnet.lm.pytorch_backend.extlm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-init">espnet.lm.pytorch_backend.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-lm">espnet.lm.pytorch_backend.lm</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet.lm package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet.lm.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet-lm-package">
+<h1>espnet.lm package<a class="headerlink" href="#espnet-lm-package" title="Permalink to this headline">¶</a></h1>
+<p>Initialize sub package.</p>
+<div class="section" id="espnet-lm-lm-utils">
+<span id="id1"></span><h2>espnet.lm.lm_utils<a class="headerlink" href="#espnet-lm-lm-utils" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.lm_utils"></span><dl class="class">
+<dt id="espnet.lm.lm_utils.MakeSymlinkToBestModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">MakeSymlinkToBestModel</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">prefix='model'</em>, <em class="sig-param">suffix='best'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#MakeSymlinkToBestModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.MakeSymlinkToBestModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.training.extension.Extension</span></code></p>
+<p>Extension that makes a symbolic link to the best model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<em>str</em>) – Key of value</p></li>
+<li><p><strong>prefix</strong> (<em>str</em>) – Prefix of model files and link target</p></li>
+<li><p><strong>suffix</strong> (<em>str</em>) – Suffix of link target</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet.lm.lm_utils.MakeSymlinkToBestModel.serialize">
+<code class="sig-name descname">serialize</code><span class="sig-paren">(</span><em class="sig-param">serializer</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#MakeSymlinkToBestModel.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.MakeSymlinkToBestModel.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes the extension state.</p>
+<p>It is called when a trainer that owns this extension is serialized. It
+serializes nothing by default.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.lm_utils.ParallelSentenceIterator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">ParallelSentenceIterator</code><span class="sig-paren">(</span><em class="sig-param">dataset</em>, <em class="sig-param">batch_size</em>, <em class="sig-param">max_length=0</em>, <em class="sig-param">sos=0</em>, <em class="sig-param">eos=0</em>, <em class="sig-param">repeat=True</em>, <em class="sig-param">shuffle=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#ParallelSentenceIterator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.ParallelSentenceIterator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.dataset.iterator.Iterator</span></code></p>
+<p>Dataset iterator to create a batch of sentences.</p>
+<p>This iterator returns a pair of sentences, where one token is shifted
+between the sentences like ‘&lt;sos&gt; w1 w2 w3’ and ‘w1 w2 w3 &lt;eos&gt;’
+Sentence batches are made in order of longer sentences, and then
+randomly shuffled.</p>
+<dl class="method">
+<dt id="espnet.lm.lm_utils.ParallelSentenceIterator.epoch_detail">
+<em class="property">property </em><code class="sig-name descname">epoch_detail</code><a class="headerlink" href="#espnet.lm.lm_utils.ParallelSentenceIterator.epoch_detail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet.lm.lm_utils.ParallelSentenceIterator.previous_epoch_detail">
+<em class="property">property </em><code class="sig-name descname">previous_epoch_detail</code><a class="headerlink" href="#espnet.lm.lm_utils.ParallelSentenceIterator.previous_epoch_detail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet.lm.lm_utils.ParallelSentenceIterator.serialize">
+<code class="sig-name descname">serialize</code><span class="sig-paren">(</span><em class="sig-param">serializer</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#ParallelSentenceIterator.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.ParallelSentenceIterator.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes the internal state of the iterator.</p>
+<p>This is a method to support the serializer protocol of Chainer.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It should only serialize the internal state that changes over the
+iteration. It should not serialize what is set manually by
+users such as the batch size.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.lm.lm_utils.ParallelSentenceIterator.start_shuffle">
+<code class="sig-name descname">start_shuffle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#ParallelSentenceIterator.start_shuffle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.ParallelSentenceIterator.start_shuffle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.lm_utils.compute_perplexity">
+<code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">compute_perplexity</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#compute_perplexity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.compute_perplexity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes and add the perplexity to the LogReport</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>result</strong> (<em>dict</em>) – The current observations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.lm_utils.count_tokens">
+<code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">count_tokens</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">unk_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#count_tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.count_tokens" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count tokens and oovs in token ID sequences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>list</em><em>[</em><em>np.ndarray</em><em>]</em>) – list of token ID sequences</p></li>
+<li><p><strong>unk_id</strong> (<em>int</em>) – ID of unknown token</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tuple of number of token occurrences and number of oov tokens</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.lm_utils.load_dataset">
+<code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">load_dataset</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">label_dict</em>, <em class="sig-param">outdir=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#load_dataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.load_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load and save HDF5 that contains a dataset and stats for LM</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – The path of an input text dataset file</p></li>
+<li><p><strong>label_dict</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>int</em><em>]</em>) – dictionary that maps token label string to its ID number</p></li>
+<li><p><strong>outdir</strong> (<em>str</em>) – The path of an output dir</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of</dt><dd><p>token IDs in np.int32 converted by <cite>read_tokens</cite>
+the number of tokens by <cite>count_tokens</cite>,
+and the number of OOVs by <cite>count_tokens</cite></p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple[list[np.ndarray], int, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.lm_utils.make_lexical_tree">
+<code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">make_lexical_tree</code><span class="sig-paren">(</span><em class="sig-param">word_dict</em>, <em class="sig-param">subword_dict</em>, <em class="sig-param">word_unk</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#make_lexical_tree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.make_lexical_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a lexical tree to compute word-level probabilities</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.lm_utils.read_tokens">
+<code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">read_tokens</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">label_dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#read_tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.read_tokens" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read tokens as a sequence of sentences</p>
+<p>:param str filename : The name of the input file
+:param dict label_dict : dictionary that maps token label string to its ID number
+:return list of ID sequences
+:rtype list</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-lm-init">
+<span id="id2"></span><h2>espnet.lm.__init__<a class="headerlink" href="#espnet-lm-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.__init__"></span><p>Initialize sub package.</p>
+</div>
+<div class="section" id="espnet-lm-chainer-backend-extlm">
+<span id="id3"></span><h2>espnet.lm.chainer_backend.extlm<a class="headerlink" href="#espnet-lm-chainer-backend-extlm" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.chainer_backend.extlm"></span><dl class="class">
+<dt id="espnet.lm.chainer_backend.extlm.LookAheadWordLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.extlm.</code><code class="sig-name descname">LookAheadWordLM</code><span class="sig-paren">(</span><em class="sig-param">wordlm</em>, <em class="sig-param">word_dict</em>, <em class="sig-param">subword_dict</em>, <em class="sig-param">oov_penalty=0.0001</em>, <em class="sig-param">open_vocab=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/extlm.html#LookAheadWordLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.LookAheadWordLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
+<dl class="method">
+<dt id="espnet.lm.chainer_backend.extlm.LookAheadWordLM.final">
+<code class="sig-name descname">final</code><span class="sig-paren">(</span><em class="sig-param">state</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/extlm.html#LookAheadWordLM.final"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.LookAheadWordLM.final" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.chainer_backend.extlm.LookAheadWordLM.logzero">
+<code class="sig-name descname">logzero</code><em class="property"> = -10000000000.0</em><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.LookAheadWordLM.logzero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.chainer_backend.extlm.LookAheadWordLM.zero">
+<code class="sig-name descname">zero</code><em class="property"> = 1e-10</em><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.LookAheadWordLM.zero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.chainer_backend.extlm.MultiLevelLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.extlm.</code><code class="sig-name descname">MultiLevelLM</code><span class="sig-paren">(</span><em class="sig-param">wordlm</em>, <em class="sig-param">subwordlm</em>, <em class="sig-param">word_dict</em>, <em class="sig-param">subword_dict</em>, <em class="sig-param">subwordlm_weight=0.8</em>, <em class="sig-param">oov_penalty=1.0</em>, <em class="sig-param">open_vocab=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/extlm.html#MultiLevelLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.MultiLevelLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
+<dl class="method">
+<dt id="espnet.lm.chainer_backend.extlm.MultiLevelLM.final">
+<code class="sig-name descname">final</code><span class="sig-paren">(</span><em class="sig-param">state</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/extlm.html#MultiLevelLM.final"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.MultiLevelLM.final" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.chainer_backend.extlm.MultiLevelLM.logzero">
+<code class="sig-name descname">logzero</code><em class="property"> = -10000000000.0</em><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.MultiLevelLM.logzero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.chainer_backend.extlm.MultiLevelLM.zero">
+<code class="sig-name descname">zero</code><em class="property"> = 1e-10</em><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.MultiLevelLM.zero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-lm-chainer-backend-init">
+<span id="id4"></span><h2>espnet.lm.chainer_backend.__init__<a class="headerlink" href="#espnet-lm-chainer-backend-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.chainer_backend.__init__"></span><p>Initialize sub package.</p>
+</div>
+<div class="section" id="espnet-lm-chainer-backend-lm">
+<span id="id5"></span><h2>espnet.lm.chainer_backend.lm<a class="headerlink" href="#espnet-lm-chainer-backend-lm" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.chainer_backend.lm"></span><dl class="class">
+<dt id="espnet.lm.chainer_backend.lm.BPTTUpdater">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">BPTTUpdater</code><span class="sig-paren">(</span><em class="sig-param">train_iter</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">schedulers</em>, <em class="sig-param">device</em>, <em class="sig-param">accum_grad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#BPTTUpdater"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.BPTTUpdater" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.training.updaters.standard_updater.StandardUpdater</span></code></p>
+<p>An updater for a chainer LM</p>
+<p>:param chainer.dataset.Iterator train_iter : The train iterator
+:param optimizer:
+:param schedulers:
+:param int device : The device id
+:param int accum_grad :</p>
+<dl class="method">
+<dt id="espnet.lm.chainer_backend.lm.BPTTUpdater.update_core">
+<code class="sig-name descname">update_core</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#BPTTUpdater.update_core"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.BPTTUpdater.update_core" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.chainer_backend.lm.ClassifierWithState">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">ClassifierWithState</code><span class="sig-paren">(</span><em class="sig-param">predictor</em>, <em class="sig-param">lossfun=&lt;function softmax_cross_entropy&gt;</em>, <em class="sig-param">label_key=-1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#ClassifierWithState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.ClassifierWithState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
+<p>A wrapper for a chainer RNNLM</p>
+<p>:param link.Chain predictor : The RNNLM
+:param function lossfun: The loss function to use
+:param int/str label_key:</p>
+<dl class="method">
+<dt id="espnet.lm.chainer_backend.lm.ClassifierWithState.final">
+<code class="sig-name descname">final</code><span class="sig-paren">(</span><em class="sig-param">state</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#ClassifierWithState.final"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.ClassifierWithState.final" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict final log probabilities for given state using the predictor</p>
+<p>:param state : the state
+:return log probability vector
+:rtype cupy/numpy array</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.lm.chainer_backend.lm.ClassifierWithState.predict">
+<code class="sig-name descname">predict</code><span class="sig-paren">(</span><em class="sig-param">state</em>, <em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#ClassifierWithState.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.ClassifierWithState.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict log probabilities for given state and input x using the predictor</p>
+<p>:param state : the state
+:param x : the input
+:return a tuple (state, log prob vector)
+:rtype cupy/numpy array</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.chainer_backend.lm.DefaultRNNLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">DefaultRNNLM</code><span class="sig-paren">(</span><em class="sig-param">**links</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#DefaultRNNLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.DefaultRNNLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet.nets.html#espnet.nets.lm_interface.LMInterface" title="espnet.nets.lm_interface.LMInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.lm_interface.LMInterface</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
+<p>Default RNNLM wrapper to compute reduce framewise loss values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_vocab</strong> (<em>int</em>) – The size of the vocabulary</p></li>
+<li><p><strong>args</strong> (<em>argparse.Namespace</em>) – configurations. see <cite>add_arguments</cite></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet.lm.chainer_backend.lm.DefaultRNNLM.add_arguments">
+<em class="property">static </em><code class="sig-name descname">add_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#DefaultRNNLM.add_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.DefaultRNNLM.add_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add arguments to command line argument parser.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.chainer_backend.lm.LMEvaluator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">LMEvaluator</code><span class="sig-paren">(</span><em class="sig-param">val_iter</em>, <em class="sig-param">eval_model</em>, <em class="sig-param">device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#LMEvaluator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.LMEvaluator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet.utils.html#espnet.utils.training.evaluator.BaseEvaluator" title="espnet.utils.training.evaluator.BaseEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.utils.training.evaluator.BaseEvaluator</span></code></a></p>
+<p>A custom evaluator for a chainer LM</p>
+<p>:param chainer.dataset.Iterator val_iter : The validation iterator
+:param eval_model : The model to evaluate
+:param int device : The device id to use</p>
+<dl class="method">
+<dt id="espnet.lm.chainer_backend.lm.LMEvaluator.evaluate">
+<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#LMEvaluator.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.LMEvaluator.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the model and returns a result dictionary.</p>
+<p>This method runs the evaluation loop over the validation dataset. It
+accumulates the reported values to <code class="xref py py-class docutils literal notranslate"><span class="pre">DictSummary</span></code> and
+returns a dictionary whose values are means computed by the summary.</p>
+<p>Note that this function assumes that the main iterator raises
+<code class="docutils literal notranslate"><span class="pre">StopIteration</span></code> or code in the evaluation loop raises an exception.
+So, if this assumption is not held, the function could be caught in
+an infinite loop.</p>
+<p>Users can override this method to customize the evaluation routine.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method encloses <code class="xref py py-attr docutils literal notranslate"><span class="pre">eval_func</span></code> calls with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">function.no_backprop_mode()</span></code> context, so all calculations
+using <code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionNode</span></code>s inside
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">eval_func</span></code> do not make computational graphs. It is for
+reducing the memory consumption.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Result dictionary. This dictionary is further reported via
+<code class="xref py py-func docutils literal notranslate"><span class="pre">report()</span></code> without specifying any observer.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.chainer_backend.lm.RNNLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">RNNLM</code><span class="sig-paren">(</span><em class="sig-param">n_vocab</em>, <em class="sig-param">n_layers</em>, <em class="sig-param">n_units</em>, <em class="sig-param">typ='lstm'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#RNNLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.RNNLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
+<p>A chainer RNNLM</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_vocab</strong> (<em>int</em>) – The size of the vocabulary</p></li>
+<li><p><strong>n_layers</strong> (<em>int</em>) – The number of layers to create</p></li>
+<li><p><strong>n_units</strong> (<em>int</em>) – The number of units per layer</p></li>
+<li><p><strong>type</strong> (<em>str</em>) – The RNN type</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.chainer_backend.lm.train">
+<code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train with the given args</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-lm-pytorch-backend-extlm">
+<span id="id6"></span><h2>espnet.lm.pytorch_backend.extlm<a class="headerlink" href="#espnet-lm-pytorch-backend-extlm" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.pytorch_backend.extlm"></span><dl class="class">
+<dt id="espnet.lm.pytorch_backend.extlm.LookAheadWordLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.pytorch_backend.extlm.</code><code class="sig-name descname">LookAheadWordLM</code><span class="sig-paren">(</span><em class="sig-param">wordlm</em>, <em class="sig-param">word_dict</em>, <em class="sig-param">subword_dict</em>, <em class="sig-param">oov_penalty=0.0001</em>, <em class="sig-param">open_vocab=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/extlm.html#LookAheadWordLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.LookAheadWordLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet.lm.pytorch_backend.extlm.LookAheadWordLM.final">
+<code class="sig-name descname">final</code><span class="sig-paren">(</span><em class="sig-param">state</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/extlm.html#LookAheadWordLM.final"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.LookAheadWordLM.final" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet.lm.pytorch_backend.extlm.LookAheadWordLM.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">state</em>, <em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/extlm.html#LookAheadWordLM.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.LookAheadWordLM.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.pytorch_backend.extlm.LookAheadWordLM.logzero">
+<code class="sig-name descname">logzero</code><em class="property"> = -10000000000.0</em><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.LookAheadWordLM.logzero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.pytorch_backend.extlm.LookAheadWordLM.zero">
+<code class="sig-name descname">zero</code><em class="property"> = 1e-10</em><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.LookAheadWordLM.zero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.pytorch_backend.extlm.MultiLevelLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.pytorch_backend.extlm.</code><code class="sig-name descname">MultiLevelLM</code><span class="sig-paren">(</span><em class="sig-param">wordlm</em>, <em class="sig-param">subwordlm</em>, <em class="sig-param">word_dict</em>, <em class="sig-param">subword_dict</em>, <em class="sig-param">subwordlm_weight=0.8</em>, <em class="sig-param">oov_penalty=1.0</em>, <em class="sig-param">open_vocab=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/extlm.html#MultiLevelLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.MultiLevelLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet.lm.pytorch_backend.extlm.MultiLevelLM.final">
+<code class="sig-name descname">final</code><span class="sig-paren">(</span><em class="sig-param">state</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/extlm.html#MultiLevelLM.final"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.MultiLevelLM.final" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet.lm.pytorch_backend.extlm.MultiLevelLM.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">state</em>, <em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/extlm.html#MultiLevelLM.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.MultiLevelLM.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.pytorch_backend.extlm.MultiLevelLM.logzero">
+<code class="sig-name descname">logzero</code><em class="property"> = -10000000000.0</em><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.MultiLevelLM.logzero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.lm.pytorch_backend.extlm.MultiLevelLM.zero">
+<code class="sig-name descname">zero</code><em class="property"> = 1e-10</em><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.MultiLevelLM.zero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet-lm-pytorch-backend-init">
+<span id="id7"></span><h2>espnet.lm.pytorch_backend.__init__<a class="headerlink" href="#espnet-lm-pytorch-backend-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.pytorch_backend.__init__"></span><p>Initialize sub package.</p>
+</div>
+<div class="section" id="espnet-lm-pytorch-backend-lm">
+<span id="id8"></span><h2>espnet.lm.pytorch_backend.lm<a class="headerlink" href="#espnet-lm-pytorch-backend-lm" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.lm.pytorch_backend.lm"></span><p>LM training in pytorch.</p>
+<dl class="class">
+<dt id="espnet.lm.pytorch_backend.lm.BPTTUpdater">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">BPTTUpdater</code><span class="sig-paren">(</span><em class="sig-param">train_iter</em>, <em class="sig-param">model</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">schedulers</em>, <em class="sig-param">device</em>, <em class="sig-param">gradclip=None</em>, <em class="sig-param">use_apex=False</em>, <em class="sig-param">accum_grad=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#BPTTUpdater"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.BPTTUpdater" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.training.updaters.standard_updater.StandardUpdater</span></code></p>
+<p>An updater for a pytorch LM.</p>
+<p>Initialize class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_iter</strong> (<em>chainer.dataset.Iterator</em>) – The train iterator</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="espnet.nets.html#espnet.nets.lm_interface.LMInterface" title="espnet.nets.lm_interface.LMInterface"><em>LMInterface</em></a>) – The model to update</p></li>
+<li><p><strong>optimizer</strong> (<em>torch.optim.Optimizer</em>) – The optimizer for training</p></li>
+<li><p><strong>schedulers</strong> (<a class="reference internal" href="espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface" title="espnet.scheduler.scheduler.SchedulerInterface"><em>espnet.scheduler.scheduler.SchedulerInterface</em></a>) – The schedulers of <cite>optimizer</cite></p></li>
+<li><p><strong>device</strong> (<em>int</em>) – The device id</p></li>
+<li><p><strong>gradclip</strong> (<em>float</em>) – The gradient clipping value to use</p></li>
+<li><p><strong>use_apex</strong> (<em>bool</em>) – The flag to use Apex in backprop.</p></li>
+<li><p><strong>accum_grad</strong> (<em>int</em>) – The number of gradient accumulation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet.lm.pytorch_backend.lm.BPTTUpdater.update_core">
+<code class="sig-name descname">update_core</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#BPTTUpdater.update_core"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.BPTTUpdater.update_core" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the model.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.pytorch_backend.lm.LMEvaluator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">LMEvaluator</code><span class="sig-paren">(</span><em class="sig-param">val_iter</em>, <em class="sig-param">eval_model</em>, <em class="sig-param">reporter</em>, <em class="sig-param">device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#LMEvaluator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.LMEvaluator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet.utils.html#espnet.utils.training.evaluator.BaseEvaluator" title="espnet.utils.training.evaluator.BaseEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.utils.training.evaluator.BaseEvaluator</span></code></a></p>
+<p>A custom evaluator for a pytorch LM.</p>
+<p>Initialize class.</p>
+<p>:param chainer.dataset.Iterator val_iter : The validation iterator
+:param LMInterface eval_model : The model to evaluate
+:param chainer.Reporter reporter : The observations reporter
+:param int device : The device id to use</p>
+<dl class="method">
+<dt id="espnet.lm.pytorch_backend.lm.LMEvaluator.evaluate">
+<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#LMEvaluator.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.LMEvaluator.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate the model.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.lm.pytorch_backend.lm.Reporter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">Reporter</code><span class="sig-paren">(</span><em class="sig-param">**links</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#Reporter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.Reporter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
+<p>Dummy module to use chainer’s trainer.</p>
+<dl class="method">
+<dt id="espnet.lm.pytorch_backend.lm.Reporter.report">
+<code class="sig-name descname">report</code><span class="sig-paren">(</span><em class="sig-param">loss</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#Reporter.report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.Reporter.report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Report nothing.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.pytorch_backend.lm.compute_perplexity">
+<code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">compute_perplexity</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#compute_perplexity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.compute_perplexity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute and add the perplexity to the LogReport.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>result</strong> (<em>dict</em>) – The current observations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.pytorch_backend.lm.concat_examples">
+<code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">concat_examples</code><span class="sig-paren">(</span><em class="sig-param">batch</em>, <em class="sig-param">device=None</em>, <em class="sig-param">padding=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#concat_examples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.concat_examples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concat examples in minibatch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> (<em>np.ndarray</em>) – The batch to concatenate</p></li>
+<li><p><strong>device</strong> (<em>int</em>) – The device to send to</p></li>
+<li><p><strong>padding</strong> (<em>Tuple</em><em>[</em><em>int</em><em>,</em><em>int</em><em>]</em>) – The padding to use</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(inputs, targets)</p>
+</dd>
+</dl>
+<p>:rtype (torch.Tensor, torch.Tensor)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.lm.pytorch_backend.lm.train">
+<code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train with the given args.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p></li>
+<li><p><strong>model_class</strong> (<em>type</em>) – LMInterface class for training</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet.tts.html" class="btn btn-neutral float-right" title="espnet.tts package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet.st.html" class="btn btn-neutral float-left" title="espnet.st package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

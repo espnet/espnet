@@ -1,0 +1,1027 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.train package &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="core tools" href="../apis/espnet_bin.html" />
+    <link rel="prev" title="espnet2.samplers package" href="espnet2.samplers.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.train package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-distributed-utils">espnet2.train.distributed_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-iterable-dataset">espnet2.train.iterable_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-class-choices">espnet2.train.class_choices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-reporter">espnet2.train.reporter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-collate-fn">espnet2.train.collate_fn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-trainer">espnet2.train.trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-abs-espnet-model">espnet2.train.abs_espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-preprocessor">espnet2.train.preprocessor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-dataset">espnet2.train.dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-init">espnet2.train.__init__</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet2.train package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet2.train.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet2-train-package">
+<h1>espnet2.train package<a class="headerlink" href="#espnet2-train-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="espnet2-train-distributed-utils">
+<span id="id1"></span><h2>espnet2.train.distributed_utils<a class="headerlink" href="#espnet2-train-distributed-utils" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.distributed_utils"></span><dl class="class">
+<dt id="espnet2.train.distributed_utils.DistributedOption">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">DistributedOption</code><span class="sig-paren">(</span><em class="sig-param">distributed: bool = False</em>, <em class="sig-param">dist_backend: str = 'nccl'</em>, <em class="sig-param">dist_init_method: str = 'env://'</em>, <em class="sig-param">dist_world_size: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">dist_rank: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">local_rank: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">ngpu: int = 0</em>, <em class="sig-param">dist_master_addr: Union[str</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">dist_master_port: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">dist_launcher: Union[str</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">multiprocessing_distributed: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#DistributedOption"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.dist_backend">
+<code class="sig-name descname">dist_backend</code><em class="property"> = 'nccl'</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.dist_backend" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.dist_init_method">
+<code class="sig-name descname">dist_init_method</code><em class="property"> = 'env://'</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.dist_init_method" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.dist_launcher">
+<code class="sig-name descname">dist_launcher</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.dist_launcher" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.dist_master_addr">
+<code class="sig-name descname">dist_master_addr</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.dist_master_addr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.dist_master_port">
+<code class="sig-name descname">dist_master_port</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.dist_master_port" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.dist_rank">
+<code class="sig-name descname">dist_rank</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.dist_rank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.dist_world_size">
+<code class="sig-name descname">dist_world_size</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.dist_world_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.distributed">
+<code class="sig-name descname">distributed</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.distributed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.distributed_utils.DistributedOption.init_options">
+<code class="sig-name descname">init_options</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#DistributedOption.init_options"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.init_options" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.distributed_utils.DistributedOption.init_torch_distributed">
+<code class="sig-name descname">init_torch_distributed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#DistributedOption.init_torch_distributed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.init_torch_distributed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.local_rank">
+<code class="sig-name descname">local_rank</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.local_rank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.multiprocessing_distributed">
+<code class="sig-name descname">multiprocessing_distributed</code><em class="property"> = True</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.multiprocessing_distributed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.train.distributed_utils.DistributedOption.ngpu">
+<code class="sig-name descname">ngpu</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.ngpu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.free_port">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">free_port</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#free_port"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.free_port" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find free port using bind().</p>
+<p>There are some interval between finding this port and using it
+and the other process might catch the port by that time.
+Thus it is not guaranteed that the port is really empty.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.get_local_rank">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">get_local_rank</code><span class="sig-paren">(</span><em class="sig-param">prior=None</em>, <em class="sig-param">launcher: str = None</em><span class="sig-paren">)</span> &#x2192; Optional[int]<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#get_local_rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.get_local_rank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.get_master_addr">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">get_master_addr</code><span class="sig-paren">(</span><em class="sig-param">prior=None</em>, <em class="sig-param">launcher: str = None</em><span class="sig-paren">)</span> &#x2192; Optional[str]<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#get_master_addr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.get_master_addr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.get_master_port">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">get_master_port</code><span class="sig-paren">(</span><em class="sig-param">prior=None</em><span class="sig-paren">)</span> &#x2192; Optional[int]<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#get_master_port"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.get_master_port" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.get_node_rank">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">get_node_rank</code><span class="sig-paren">(</span><em class="sig-param">prior=None</em>, <em class="sig-param">launcher: str = None</em><span class="sig-paren">)</span> &#x2192; Optional[int]<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#get_node_rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.get_node_rank" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get Node Rank.</p>
+<p>Use for “multiprocessing distributed” mode.
+The initial RANK equals to the Node id in this case and
+the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.get_num_nodes">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">get_num_nodes</code><span class="sig-paren">(</span><em class="sig-param">prior=None</em>, <em class="sig-param">launcher: str = None</em><span class="sig-paren">)</span> &#x2192; Optional[int]<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#get_num_nodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.get_num_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the number of nodes.</p>
+<p>Use for “multiprocessing distributed” mode.
+RANK equals to the Node id in this case and
+the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.get_rank">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">get_rank</code><span class="sig-paren">(</span><em class="sig-param">prior=None</em>, <em class="sig-param">launcher: str = None</em><span class="sig-paren">)</span> &#x2192; Optional[int]<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#get_rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.get_rank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.get_world_size">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">get_world_size</code><span class="sig-paren">(</span><em class="sig-param">prior=None</em>, <em class="sig-param">launcher: str = None</em><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#get_world_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.get_world_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.is_in_slurm_job">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">is_in_slurm_job</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#is_in_slurm_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.is_in_slurm_job" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.is_in_slurm_step">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">is_in_slurm_step</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#is_in_slurm_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.is_in_slurm_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.distributed_utils.resolve_distributed_mode">
+<code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">resolve_distributed_mode</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#resolve_distributed_mode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.resolve_distributed_mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-iterable-dataset">
+<span id="id2"></span><h2>espnet2.train.iterable_dataset<a class="headerlink" href="#espnet2-train-iterable-dataset" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.iterable_dataset"></span><dl class="class">
+<dt id="espnet2.train.iterable_dataset.IterableESPnetDataset">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.iterable_dataset.</code><code class="sig-name descname">IterableESPnetDataset</code><span class="sig-paren">(</span><em class="sig-param">path_name_type_list: Collection[Tuple[str, str, str]], preprocess: Callable[[str, Dict[str, numpy.ndarray]], Dict[str, numpy.ndarray]] = None, float_dtype: str = 'float32', int_dtype: str = 'long', key_file: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/iterable_dataset.html#IterableESPnetDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.iterable_dataset.IterableESPnetDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.IterableDataset</span></code></p>
+<p>Pytorch Dataset class for ESPNet.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">IterableESPnetDataset</span><span class="p">([(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;sound&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                 <span class="p">(</span><span class="s1">&#39;token_int&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="s1">&#39;text_int&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>                               <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">data</span>
+<span class="go">{&#39;input&#39;: per_utt_array, &#39;output&#39;: per_utt_array}</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.train.iterable_dataset.IterableESPnetDataset.has_name">
+<code class="sig-name descname">has_name</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/iterable_dataset.html#IterableESPnetDataset.has_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.iterable_dataset.IterableESPnetDataset.has_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.iterable_dataset.IterableESPnetDataset.names">
+<code class="sig-name descname">names</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/train/iterable_dataset.html#IterableESPnetDataset.names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.iterable_dataset.IterableESPnetDataset.names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.iterable_dataset.load_kaldi">
+<code class="sig-prename descclassname">espnet2.train.iterable_dataset.</code><code class="sig-name descname">load_kaldi</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/iterable_dataset.html#load_kaldi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.iterable_dataset.load_kaldi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-class-choices">
+<span id="id3"></span><h2>espnet2.train.class_choices<a class="headerlink" href="#espnet2-train-class-choices" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.class_choices"></span><dl class="class">
+<dt id="espnet2.train.class_choices.ClassChoices">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.class_choices.</code><code class="sig-name descname">ClassChoices</code><span class="sig-paren">(</span><em class="sig-param">name: str, classes: Mapping[str, type], type_check: type = None, default: str = None, optional: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/class_choices.html#ClassChoices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.class_choices.ClassChoices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Helper class to manage the options for variable objects and its configuration.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">A</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">foo</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>  <span class="k">pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">B</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar</span><span class="o">=</span><span class="s2">&quot;aaaa&quot;</span><span class="p">):</span>  <span class="k">pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span><span class="s2">&quot;var&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">B</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">choices</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">([</span><span class="s2">&quot;--var&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;--var_conf&quot;</span><span class="p">,</span> <span class="s2">&quot;foo=4&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">args</span><span class="o">.</span><span class="n">var</span>
+<span class="go">a</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">args</span><span class="o">.</span><span class="n">var_conf</span>
+<span class="go">{&quot;foo&quot;: 4}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">class_obj</span> <span class="o">=</span> <span class="n">choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a_object</span> <span class="o">=</span> <span class="n">class_obj</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">var_conf</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.train.class_choices.ClassChoices.add_arguments">
+<code class="sig-name descname">add_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/class_choices.html#ClassChoices.add_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.class_choices.ClassChoices.add_arguments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.class_choices.ClassChoices.choices">
+<code class="sig-name descname">choices</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Tuple[Optional[str], ...]<a class="reference internal" href="../_modules/espnet2/train/class_choices.html#ClassChoices.choices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.class_choices.ClassChoices.choices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.class_choices.ClassChoices.get_class">
+<code class="sig-name descname">get_class</code><span class="sig-paren">(</span><em class="sig-param">name: Optional[str]</em><span class="sig-paren">)</span> &#x2192; Optional[type]<a class="reference internal" href="../_modules/espnet2/train/class_choices.html#ClassChoices.get_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.class_choices.ClassChoices.get_class" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-reporter">
+<span id="id4"></span><h2>espnet2.train.reporter<a class="headerlink" href="#espnet2-train-reporter" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.reporter"></span><dl class="class">
+<dt id="espnet2.train.reporter.Average">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">Average</code><span class="sig-paren">(</span><em class="sig-param">value: Union[float, int, complex, torch.Tensor, numpy.ndarray]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Average"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Average" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.reporter.ReportedValue" title="espnet2.train.reporter.ReportedValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.reporter.ReportedValue</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.reporter.ReportedValue">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">ReportedValue</code><a class="reference internal" href="../_modules/espnet2/train/reporter.html#ReportedValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.ReportedValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.reporter.Reporter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">Reporter</code><span class="sig-paren">(</span><em class="sig-param">epoch: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Reporter class.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sub_reporter</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="n">sub_reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.check_early_stopping">
+<code class="sig-name descname">check_early_stopping</code><span class="sig-paren">(</span><em class="sig-param">patience: int</em>, <em class="sig-param">key1: str</em>, <em class="sig-param">key2: str</em>, <em class="sig-param">mode: str</em>, <em class="sig-param">epoch: int = None</em>, <em class="sig-param">logger=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.check_early_stopping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.check_early_stopping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.finish_epoch">
+<code class="sig-name descname">finish_epoch</code><span class="sig-paren">(</span><em class="sig-param">sub_reporter: espnet2.train.reporter.SubReporter</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.finish_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.finish_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.get_all_keys">
+<code class="sig-name descname">get_all_keys</code><span class="sig-paren">(</span><em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span> &#x2192; Tuple[Tuple[str, str], ...]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.get_all_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.get_all_keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.get_best_epoch">
+<code class="sig-name descname">get_best_epoch</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">key2: str</em>, <em class="sig-param">mode: str</em>, <em class="sig-param">nbest: int = 0</em><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.get_best_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.get_best_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.get_epoch">
+<code class="sig-name descname">get_epoch</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.get_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.get_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.get_keys">
+<code class="sig-name descname">get_keys</code><span class="sig-paren">(</span><em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.get_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.get_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns keys1 e.g. train,eval.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.get_keys2">
+<code class="sig-name descname">get_keys2</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.get_keys2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.get_keys2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns keys2 e.g. loss,acc.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.get_value">
+<code class="sig-name descname">get_value</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">key2: str</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.get_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.get_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.has">
+<code class="sig-name descname">has</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">key2: str</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.has"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.has" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.load_state_dict">
+<code class="sig-name descname">load_state_dict</code><span class="sig-paren">(</span><em class="sig-param">state_dict: dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.load_state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.load_state_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.log_message">
+<code class="sig-name descname">log_message</code><span class="sig-paren">(</span><em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.log_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.log_message" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.matplotlib_plot">
+<code class="sig-name descname">matplotlib_plot</code><span class="sig-paren">(</span><em class="sig-param">output_dir: Union[str, pathlib.Path]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.matplotlib_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.matplotlib_plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot stats using Matplotlib and save images.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.observe">
+<code class="sig-name descname">observe</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span> &#x2192; AbstractContextManager[espnet2.train.reporter.SubReporter]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.observe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.observe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.set_epoch">
+<code class="sig-name descname">set_epoch</code><span class="sig-paren">(</span><em class="sig-param">epoch: int</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.set_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.set_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.sort_epochs">
+<code class="sig-name descname">sort_epochs</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">key2: str</em>, <em class="sig-param">mode: str</em><span class="sig-paren">)</span> &#x2192; List[int]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.sort_epochs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.sort_epochs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.sort_epochs_and_values">
+<code class="sig-name descname">sort_epochs_and_values</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">key2: str</em>, <em class="sig-param">mode: str</em><span class="sig-paren">)</span> &#x2192; List[Tuple[int, float]]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.sort_epochs_and_values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.sort_epochs_and_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the epoch which resulted the best value.</p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">val</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">sort_epochs_and_values</span><span class="p">(</span><span class="s1">&#39;eval&#39;</span><span class="p">,</span> <span class="s1">&#39;loss&#39;</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_1best</span><span class="p">,</span> <span class="n">v_1best</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_2best</span><span class="p">,</span> <span class="n">v_2best</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.sort_values">
+<code class="sig-name descname">sort_values</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">key2: str</em>, <em class="sig-param">mode: str</em><span class="sig-paren">)</span> &#x2192; List[float]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.sort_values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.sort_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.start_epoch">
+<code class="sig-name descname">start_epoch</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span> &#x2192; espnet2.train.reporter.SubReporter<a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.start_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.start_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.state_dict">
+<code class="sig-name descname">state_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.state_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.tensorboard_add_scalar">
+<code class="sig-name descname">tensorboard_add_scalar</code><span class="sig-paren">(</span><em class="sig-param">summary_writer: torch.utils.tensorboard.writer.SummaryWriter</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.tensorboard_add_scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.tensorboard_add_scalar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.Reporter.wandb_log">
+<code class="sig-name descname">wandb_log</code><span class="sig-paren">(</span><em class="sig-param">epoch: int = None</em>, <em class="sig-param">commit: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.wandb_log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.wandb_log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.reporter.SubReporter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">SubReporter</code><span class="sig-paren">(</span><em class="sig-param">key: str</em>, <em class="sig-param">epoch: int</em>, <em class="sig-param">total_count: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class is used in Reporter.</p>
+<p>See the docstring of Reporter for the usage.</p>
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.finished">
+<code class="sig-name descname">finished</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.finished"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.finished" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.get_epoch">
+<code class="sig-name descname">get_epoch</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.get_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.get_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.get_total_count">
+<code class="sig-name descname">get_total_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.get_total_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.get_total_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the number of iterations over all epochs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.log_message">
+<code class="sig-name descname">log_message</code><span class="sig-paren">(</span><em class="sig-param">start: int = None</em>, <em class="sig-param">end: int = None</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.log_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.log_message" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.measure_iter_time">
+<code class="sig-name descname">measure_iter_time</code><span class="sig-paren">(</span><em class="sig-param">iterable</em>, <em class="sig-param">name: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.measure_iter_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.measure_iter_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.measure_time">
+<code class="sig-name descname">measure_time</code><span class="sig-paren">(</span><em class="sig-param">name: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.measure_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.measure_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.next">
+<code class="sig-name descname">next</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.next"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.next" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close up this step and reset state for the next step</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.register">
+<code class="sig-name descname">register</code><span class="sig-paren">(</span><em class="sig-param">stats: Dict[str, Union[float, int, complex, torch.Tensor, numpy.ndarray, Dict[str, Union[float, int, complex, torch.Tensor, numpy.ndarray]], None]], weight: Union[float, int, complex, torch.Tensor, numpy.ndarray] = None</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.register"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.register" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.tensorboard_add_scalar">
+<code class="sig-name descname">tensorboard_add_scalar</code><span class="sig-paren">(</span><em class="sig-param">summary_writer: torch.utils.tensorboard.writer.SummaryWriter</em>, <em class="sig-param">start: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.tensorboard_add_scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.tensorboard_add_scalar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.reporter.SubReporter.wandb_log">
+<code class="sig-name descname">wandb_log</code><span class="sig-paren">(</span><em class="sig-param">start: int = None</em>, <em class="sig-param">commit: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.wandb_log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.wandb_log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.reporter.WeightedAverage">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">WeightedAverage</code><span class="sig-paren">(</span><em class="sig-param">value: Tuple[Union[float, int, complex, torch.Tensor, numpy.ndarray], Union[float, int, complex, torch.Tensor, numpy.ndarray]], weight: Union[float, int, complex, torch.Tensor, numpy.ndarray]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#WeightedAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.WeightedAverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.reporter.ReportedValue" title="espnet2.train.reporter.ReportedValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.reporter.ReportedValue</span></code></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.reporter.aggregate">
+<code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">aggregate</code><span class="sig-paren">(</span><em class="sig-param">values: Sequence[ReportedValue]</em><span class="sig-paren">)</span> &#x2192; Union[float, int, complex, torch.Tensor, numpy.ndarray]<a class="reference internal" href="../_modules/espnet2/train/reporter.html#aggregate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.aggregate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.reporter.to_reported_value">
+<code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">to_reported_value</code><span class="sig-paren">(</span><em class="sig-param">v: Union[float, int, complex, torch.Tensor, numpy.ndarray], weight: Union[float, int, complex, torch.Tensor, numpy.ndarray] = None</em><span class="sig-paren">)</span> &#x2192; espnet2.train.reporter.ReportedValue<a class="reference internal" href="../_modules/espnet2/train/reporter.html#to_reported_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.to_reported_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-collate-fn">
+<span id="id5"></span><h2>espnet2.train.collate_fn<a class="headerlink" href="#espnet2-train-collate-fn" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.collate_fn"></span><dl class="class">
+<dt id="espnet2.train.collate_fn.CommonCollateFn">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.collate_fn.</code><code class="sig-name descname">CommonCollateFn</code><span class="sig-paren">(</span><em class="sig-param">float_pad_value: Union[float</em>, <em class="sig-param">int] = 0.0</em>, <em class="sig-param">int_pad_value: int = -32768</em>, <em class="sig-param">not_sequence: Collection[str] = ()</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/collate_fn.html#CommonCollateFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.collate_fn.CommonCollateFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Functor class of common_collate_fn()</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.collate_fn.common_collate_fn">
+<code class="sig-prename descclassname">espnet2.train.collate_fn.</code><code class="sig-name descname">common_collate_fn</code><span class="sig-paren">(</span><em class="sig-param">data: Collection[Tuple[str, Dict[str, numpy.ndarray]]], float_pad_value: Union[float, int] = 0.0, int_pad_value: int = -32768, not_sequence: Collection[str] = ()</em><span class="sig-paren">)</span> &#x2192; Tuple[List[str], Dict[str, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/train/collate_fn.html#common_collate_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.collate_fn.common_collate_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate ndarray-list to an array and convert to torch.Tensor.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.samplers.constant_batch_sampler</span> <span class="kn">import</span> <span class="n">ConstantBatchSampler</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">espnet2.tasks.abs_task</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.dataset</span> <span class="kn">import</span> <span class="n">ESPnetDataset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sampler</span> <span class="o">=</span> <span class="n">ConstantBatchSampler</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">ESPnetDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">keys</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">batch</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">batch</span> <span class="o">=</span> <span class="n">common_collate_fn</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the dict-keys of batch are propagated from
+that of the dataset as they are.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-trainer">
+<span id="id6"></span><h2>espnet2.train.trainer<a class="headerlink" href="#espnet2-train-trainer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.trainer"></span><dl class="class">
+<dt id="espnet2.train.trainer.Trainer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.trainer.</code><code class="sig-name descname">Trainer</code><a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Trainer having a optimizer.</p>
+<p>If you’d like to use multiple optimizers, then inherit this class
+and override the methods if necessary - at least “train_one_epoch()”</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">TwoOptimizerTrainer</span><span class="p">(</span><span class="n">Trainer</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nd">@classmethod</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="nd">@classmethod</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">train_one_epoch</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="n">loss1</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model1</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="n">loss1</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="gp">... </span>        <span class="n">optimizers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="gp">...</span>
+<span class="gp">... </span>        <span class="n">loss2</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model2</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="n">loss2</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="gp">... </span>        <span class="n">optimizers</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.train.trainer.Trainer.add_arguments">
+<em class="property">classmethod </em><code class="sig-name descname">add_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser: argparse.ArgumentParser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.add_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.add_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reserved for future development of another Trainer</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.trainer.Trainer.build_options">
+<em class="property">classmethod </em><code class="sig-name descname">build_options</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span> &#x2192; espnet2.train.trainer.TrainerOptions<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.build_options"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.build_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build options consumed by train(), eval(), and plot_attention()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.trainer.Trainer.plot_attention">
+<em class="property">classmethod </em><code class="sig-name descname">plot_attention</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, output_dir: Optional[pathlib.Path], summary_writer: Optional[torch.utils.tensorboard.writer.SummaryWriter], iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], reporter: espnet2.train.reporter.SubReporter, options: espnet2.train.trainer.TrainerOptions</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.plot_attention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.plot_attention" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.trainer.Trainer.resume">
+<em class="property">static </em><code class="sig-name descname">resume</code><span class="sig-paren">(</span><em class="sig-param">checkpoint: Union[str, pathlib.Path], model: torch.nn.modules.module.Module, reporter: espnet2.train.reporter.Reporter, optimizers: Sequence[torch.optim.optimizer.Optimizer], schedulers: Sequence[Optional[espnet2.schedulers.abs_scheduler.AbsScheduler]], scaler: Optional[torch.cuda.amp.grad_scaler.GradScaler], ngpu: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.resume"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.resume" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.trainer.Trainer.run">
+<em class="property">classmethod </em><code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">model: espnet2.train.abs_espnet_model.AbsESPnetModel, optimizers: Sequence[torch.optim.optimizer.Optimizer], schedulers: Sequence[Optional[espnet2.schedulers.abs_scheduler.AbsScheduler]], train_iter_factory: espnet2.iterators.abs_iter_factory.AbsIterFactory, valid_iter_factory: espnet2.iterators.abs_iter_factory.AbsIterFactory, plot_attention_iter_factory: Optional[espnet2.iterators.abs_iter_factory.AbsIterFactory], trainer_options, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform training. This method performs the main process of training.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.trainer.Trainer.train_one_epoch">
+<em class="property">classmethod </em><code class="sig-name descname">train_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], optimizers: Sequence[torch.optim.optimizer.Optimizer], schedulers: Sequence[Optional[espnet2.schedulers.abs_scheduler.AbsScheduler]], scaler: Optional[torch.cuda.amp.grad_scaler.GradScaler], reporter: espnet2.train.reporter.SubReporter, summary_writer: Optional[torch.utils.tensorboard.writer.SummaryWriter], options: espnet2.train.trainer.TrainerOptions, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.train_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.train_one_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.trainer.Trainer.validate_one_epoch">
+<em class="property">classmethod </em><code class="sig-name descname">validate_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, iterator: Iterable[Dict[str, torch.Tensor]], reporter: espnet2.train.reporter.SubReporter, options: espnet2.train.trainer.TrainerOptions, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.validate_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.validate_one_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.trainer.TrainerOptions">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.trainer.</code><code class="sig-name descname">TrainerOptions</code><span class="sig-paren">(</span><em class="sig-param">ngpu: int, resume: bool, use_amp: bool, train_dtype: str, grad_noise: bool, accum_grad: int, grad_clip: float, grad_clip_type: float, log_interval: Union[int, NoneType], no_forward_run: bool, use_tensorboard: bool, use_wandb: bool, output_dir: Union[pathlib.Path, str], max_epoch: int, seed: int, sharded_ddp: bool, patience: Union[int, NoneType], keep_nbest_models: Union[int, List[int]], early_stopping_criterion: Sequence[str], best_model_criterion: Sequence[Sequence[str]], val_scheduler_criterion: Sequence[str], unused_parameters: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/trainer.html#TrainerOptions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.TrainerOptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-abs-espnet-model">
+<span id="id7"></span><h2>espnet2.train.abs_espnet_model<a class="headerlink" href="#espnet2-train-abs-espnet-model" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.abs_espnet_model"></span><dl class="class">
+<dt id="espnet2.train.abs_espnet_model.AbsESPnetModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.abs_espnet_model.</code><code class="sig-name descname">AbsESPnetModel</code><a class="reference internal" href="../_modules/espnet2/train/abs_espnet_model.html#AbsESPnetModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.abs_espnet_model.AbsESPnetModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>The common abstract class among each tasks</p>
+<p>“ESPnetModel” is referred to a class which inherits torch.nn.Module,
+and makes the dnn-models forward as its member field,
+a.k.a delegate pattern,
+and defines “loss”, “stats”, and “weight” for the task.</p>
+<p>If you intend to implement new task in ESPNet,
+the model must inherit this class.
+In other words, the “mediator” objects between
+our training system and the your task class are
+just only these three values, loss, stats, and weight.</p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">YourESPnetModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="o">...</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">YourTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nd">@classmethod</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">YourESPnetModel</span><span class="p">:</span>
+</pre></div>
+</div>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.train.abs_espnet_model.AbsESPnetModel.collect_feats">
+<em class="property">abstract </em><code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">**batch</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/train/abs_espnet_model.html#AbsESPnetModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.abs_espnet_model.AbsESPnetModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.abs_espnet_model.AbsESPnetModel.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">**batch</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/train/abs_espnet_model.html#AbsESPnetModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.abs_espnet_model.AbsESPnetModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-preprocessor">
+<span id="id8"></span><h2>espnet2.train.preprocessor<a class="headerlink" href="#espnet2-train-preprocessor" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.preprocessor"></span><dl class="class">
+<dt id="espnet2.train.preprocessor.AbsPreprocessor">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">AbsPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#AbsPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.AbsPreprocessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.preprocessor.CommonPreprocessor">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">CommonPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool</em>, <em class="sig-param">token_type: str = None</em>, <em class="sig-param">token_list: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">bpemodel: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">text_cleaner: Collection[str] = None</em>, <em class="sig-param">g2p_type: str = None</em>, <em class="sig-param">unk_symbol: str = '&lt;unk&gt;'</em>, <em class="sig-param">space_symbol: str = '&lt;space&gt;'</em>, <em class="sig-param">non_linguistic_symbols: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">delimiter: str = None</em>, <em class="sig-param">rir_scp: str = None</em>, <em class="sig-param">rir_apply_prob: float = 1.0</em>, <em class="sig-param">noise_scp: str = None</em>, <em class="sig-param">noise_apply_prob: float = 1.0</em>, <em class="sig-param">noise_db_range: str = '3_10'</em>, <em class="sig-param">speech_volume_normalize: float = None</em>, <em class="sig-param">speech_name: str = 'speech'</em>, <em class="sig-param">text_name: str = 'text'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#CommonPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.CommonPreprocessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.preprocessor.AbsPreprocessor" title="espnet2.train.preprocessor.AbsPreprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.preprocessor.AbsPreprocessor</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.preprocessor.CommonPreprocessor_multi">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">CommonPreprocessor_multi</code><span class="sig-paren">(</span><em class="sig-param">train: bool, token_type: str = None, token_list: Union[pathlib.Path, str, Iterable[str]] = None, bpemodel: Union[pathlib.Path, str, Iterable[str]] = None, text_cleaner: Collection[str] = None, g2p_type: str = None, unk_symbol: str = '&lt;unk&gt;', space_symbol: str = '&lt;space&gt;', non_linguistic_symbols: Union[pathlib.Path, str, Iterable[str]] = None, delimiter: str = None, speech_name: str = 'speech', text_name: list = ['text']</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#CommonPreprocessor_multi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.CommonPreprocessor_multi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.preprocessor.AbsPreprocessor" title="espnet2.train.preprocessor.AbsPreprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.preprocessor.AbsPreprocessor</span></code></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.preprocessor.detect_non_silence">
+<code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">detect_non_silence</code><span class="sig-paren">(</span><em class="sig-param">x: numpy.ndarray</em>, <em class="sig-param">threshold: float = 0.01</em>, <em class="sig-param">frame_length: int = 1024</em>, <em class="sig-param">frame_shift: int = 512</em>, <em class="sig-param">window: str = 'boxcar'</em><span class="sig-paren">)</span> &#x2192; numpy.ndarray<a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#detect_non_silence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.detect_non_silence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Power based voice activity detection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – (Channel, Time)</p>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">detect</span> <span class="o">=</span> <span class="n">detect_non_silence</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">detect</span><span class="o">.</span><span class="n">shape</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">detect</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.preprocessor.framing">
+<code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">framing</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">frame_length: int = 512</em>, <em class="sig-param">frame_shift: int = 256</em>, <em class="sig-param">centered: bool = True</em>, <em class="sig-param">padded: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#framing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.framing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-dataset">
+<span id="id9"></span><h2>espnet2.train.dataset<a class="headerlink" href="#espnet2-train-dataset" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.dataset"></span><dl class="class">
+<dt id="espnet2.train.dataset.AbsDataset">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">AbsDataset</code><a class="reference internal" href="../_modules/espnet2/train/dataset.html#AbsDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.AbsDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<dl class="method">
+<dt id="espnet2.train.dataset.AbsDataset.has_name">
+<em class="property">abstract </em><code class="sig-name descname">has_name</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/dataset.html#AbsDataset.has_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.AbsDataset.has_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.dataset.AbsDataset.names">
+<em class="property">abstract </em><code class="sig-name descname">names</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/train/dataset.html#AbsDataset.names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.AbsDataset.names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.dataset.AdapterForSoundScpReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">AdapterForSoundScpReader</code><span class="sig-paren">(</span><em class="sig-param">loader</em>, <em class="sig-param">dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/dataset.html#AdapterForSoundScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.AdapterForSoundScpReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
+<dl class="method">
+<dt id="espnet2.train.dataset.AdapterForSoundScpReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/train/dataset.html#AdapterForSoundScpReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.AdapterForSoundScpReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.dataset.ESPnetDataset">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">ESPnetDataset</code><span class="sig-paren">(</span><em class="sig-param">path_name_type_list: Collection[Tuple[str, str, str]], preprocess: Callable[[str, Dict[str, numpy.ndarray]], Dict[str, numpy.ndarray]] = None, float_dtype: str = 'float32', int_dtype: str = 'long', max_cache_size: Union[float, int, str] = 0.0, max_cache_fd: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/dataset.html#ESPnetDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.ESPnetDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.dataset.AbsDataset" title="espnet2.train.dataset.AbsDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.dataset.AbsDataset</span></code></a></p>
+<p>Pytorch Dataset class for ESPNet.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">ESPnetDataset</span><span class="p">([(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;sound&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                         <span class="p">(</span><span class="s1">&#39;token_int&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="s1">&#39;text_int&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>                        <span class="p">)</span>
+<span class="gp">... </span><span class="n">uttid</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;uttid&#39;</span><span class="p">]</span>
+<span class="go">{&#39;input&#39;: per_utt_array, &#39;output&#39;: per_utt_array}</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.train.dataset.ESPnetDataset.has_name">
+<code class="sig-name descname">has_name</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/dataset.html#ESPnetDataset.has_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.ESPnetDataset.has_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.dataset.ESPnetDataset.names">
+<code class="sig-name descname">names</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/train/dataset.html#ESPnetDataset.names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.ESPnetDataset.names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.dataset.H5FileWrapper">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">H5FileWrapper</code><span class="sig-paren">(</span><em class="sig-param">path: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/dataset.html#H5FileWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.H5FileWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.dataset.kaldi_loader">
+<code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">kaldi_loader</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">float_dtype=None</em>, <em class="sig-param">max_cache_fd: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/dataset.html#kaldi_loader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.kaldi_loader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.dataset.rand_int_loader">
+<code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">rand_int_loader</code><span class="sig-paren">(</span><em class="sig-param">filepath</em>, <em class="sig-param">loader_type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/dataset.html#rand_int_loader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.rand_int_loader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.train.dataset.sound_loader">
+<code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">sound_loader</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">float_dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/dataset.html#sound_loader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.sound_loader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="espnet2-train-init">
+<span id="id10"></span><h2>espnet2.train.__init__<a class="headerlink" href="#espnet2-train-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.__init__"></span></div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../apis/espnet_bin.html" class="btn btn-neutral float-right" title="core tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2.samplers.html" class="btn btn-neutral float-left" title="espnet2.samplers package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

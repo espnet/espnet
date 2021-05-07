@@ -1,0 +1,521 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet.nets.chainer_backend.deterministic_embed_id &mdash; ESPnet 0.9.9 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.9.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>espnet.nets.chainer_backend.deterministic_embed_id</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for espnet.nets.chainer_backend.deterministic_embed_id</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">cuda</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">function_node</span>
+<span class="kn">from</span> <span class="nn">chainer.initializers</span> <span class="kn">import</span> <span class="n">normal</span>
+
+<span class="c1"># from chainer.functions.connection import embed_id</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">link</span>
+<span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="kn">import</span> <span class="n">type_check</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">variable</span>
+
+<span class="sd">&quot;&quot;&quot;Deterministic EmbedID link and function</span>
+
+<span class="sd">   copied from chainer/links/connection/embed_id.py</span>
+<span class="sd">   and chainer/functions/connection/embed_id.py,</span>
+<span class="sd">   and modified not to use atomicAdd operation</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="EmbedIDFunction"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDFunction">[docs]</a><span class="k">class</span> <span class="nc">EmbedIDFunction</span><span class="p">(</span><span class="n">function_node</span><span class="o">.</span><span class="n">FunctionNode</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignore_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="o">=</span> <span class="n">ignore_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_w_shape</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EmbedIDFunction.check_type_forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDFunction.check_type_forward">[docs]</a>    <span class="k">def</span> <span class="nf">check_type_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_types</span><span class="p">):</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">in_types</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">x_type</span><span class="p">,</span> <span class="n">w_type</span> <span class="o">=</span> <span class="n">in_types</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span>
+            <span class="n">x_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">type_check</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">w_type</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">w_type</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EmbedIDFunction.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDFunction.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retain_inputs</span><span class="p">((</span><span class="mi">0</span><span class="p">,))</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_w_shape</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">type_check</span><span class="o">.</span><span class="n">same_types</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;numpy and cupy must not be used together</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;type(W): </span><span class="si">{0}</span><span class="s2">, type(x): </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">W</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chainer</span><span class="o">.</span><span class="n">is_debug</span><span class="p">():</span>
+            <span class="n">valid_x</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">W</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">valid_x</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">valid_x</span><span class="p">,</span> <span class="n">x</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_x</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Each not ignored `x` value need to satisfy&quot;</span> <span class="s2">&quot;`0 &lt;= x &lt; len(W)`&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">x</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">W</span><span class="p">[</span><span class="n">xp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">)]),)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">W</span><span class="p">[</span><span class="n">x</span><span class="p">],)</span></div>
+
+<div class="viewcode-block" id="EmbedIDFunction.backward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDFunction.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_retained_inputs</span><span class="p">()</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">EmbedIDGrad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_w_shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">inputs</span> <span class="o">+</span> <span class="n">grad_outputs</span><span class="p">)[</span>
+            <span class="mi">0</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gW</span></div></div>
+
+
+<div class="viewcode-block" id="EmbedIDGrad"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDGrad">[docs]</a><span class="k">class</span> <span class="nc">EmbedIDGrad</span><span class="p">(</span><span class="n">function_node</span><span class="o">.</span><span class="n">FunctionNode</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_shape</span><span class="p">,</span> <span class="n">ignore_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w_shape</span> <span class="o">=</span> <span class="n">w_shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="o">=</span> <span class="n">ignore_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gy_shape</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EmbedIDGrad.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDGrad.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retain_inputs</span><span class="p">((</span><span class="mi">0</span><span class="p">,))</span>
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">gy</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gy_shape</span> <span class="o">=</span> <span class="n">gy</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">gW</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">gy</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">xp</span> <span class="ow">is</span> <span class="n">numpy</span><span class="p">:</span>
+            <span class="c1"># It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is</span>
+            <span class="c1"># too slow.</span>
+            <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">igy</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">zip</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">gy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">ix</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">gW</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">+=</span> <span class="n">igy</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            # original code based on cuda elementwise method</span>
+<span class="sd">            if self.ignore_label is None:</span>
+<span class="sd">                cuda.elementwise(</span>
+<span class="sd">                    &#39;T gy, S x, S n_out&#39;, &#39;raw T gW&#39;,</span>
+<span class="sd">                    &#39;ptrdiff_t w_ind[] = {x, i % n_out};&#39;</span>
+<span class="sd">                    &#39;atomicAdd(&amp;gW[w_ind], gy)&#39;,</span>
+<span class="sd">                    &#39;embed_id_bwd&#39;)(</span>
+<span class="sd">                        gy, xp.expand_dims(x, -1), gW.shape[1], gW)</span>
+<span class="sd">            else:</span>
+<span class="sd">                cuda.elementwise(</span>
+<span class="sd">                    &#39;T gy, S x, S n_out, S ignore&#39;, &#39;raw T gW&#39;,</span>
+<span class="sd">                    &#39;&#39;&#39;</span>
+<span class="sd">                    if (x != ignore) {</span>
+<span class="sd">                      ptrdiff_t w_ind[] = {x, i % n_out};</span>
+<span class="sd">                      atomicAdd(&amp;gW[w_ind], gy);</span>
+<span class="sd">                    }</span>
+<span class="sd">                    &#39;&#39;&#39;,</span>
+<span class="sd">                    &#39;embed_id_bwd_ignore_label&#39;)(</span>
+<span class="sd">                        gy, xp.expand_dims(x, -1), gW.shape[1],</span>
+<span class="sd">                        self.ignore_label, gW)</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="c1"># EmbedID gradient alternative without atomicAdd, which simply</span>
+            <span class="c1"># creates a one-hot vector and applies dot product</span>
+            <span class="n">xi</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gW</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">gW</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">xi</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">xi</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">gW</span> <span class="o">=</span> <span class="n">xi</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">gy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">gW</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">gW</span><span class="p">,)</span></div>
+
+<div class="viewcode-block" id="EmbedIDGrad.backward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDGrad.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
+        <span class="n">xp</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">get_array_module</span><span class="p">(</span><span class="o">*</span><span class="n">grads</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_retained_inputs</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">ggW</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">x</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span>
+            <span class="c1"># To prevent index out of bounds, we need to check if ignore_label</span>
+            <span class="c1"># is inside of W.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="n">ggy</span> <span class="o">=</span> <span class="n">ggW</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span>
+                <span class="n">mask</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">xp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((),</span> <span class="s2">&quot;f&quot;</span><span class="p">),</span> <span class="n">ggy</span><span class="o">.</span><span class="n">data</span>
+            <span class="p">)</span>
+            <span class="n">ggy</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">functions</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">ggy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ggy</span></div></div>
+
+
+<div class="viewcode-block" id="embed_id"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.embed_id">[docs]</a><span class="k">def</span> <span class="nf">embed_id</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">ignore_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Efficient linear function for one-hot input.</span>
+
+<span class="sd">    This function implements so called *word embeddings*. It takes two</span>
+<span class="sd">    arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer</span>
+<span class="sd">    vector, and a set of all ID (word) embeddings ``W`` in :math:`V \\times d`</span>
+<span class="sd">    float32 matrix. It outputs :math:`B \\times d` matrix whose ``i``-th</span>
+<span class="sd">    column is the ``x[i]``-th column of ``W``.</span>
+<span class="sd">    This function is only differentiable on the input ``W``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (chainer.Variable | np.ndarray): Batch vectors of IDs. Each</span>
+<span class="sd">            element must be signed integer.</span>
+<span class="sd">        W (chainer.Variable | np.ndarray): Distributed representation</span>
+<span class="sd">            of each ID (a.k.a. word embeddings).</span>
+<span class="sd">        ignore_label (int): If ignore_label is an int value, i-th column</span>
+<span class="sd">            of return value is filled with 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        chainer.Variable: Embedded variable.</span>
+
+
+<span class="sd">    .. rubric:: :class:`~chainer.links.EmbedID`</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; x = np.array([2, 1]).astype(&#39;i&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; x</span>
+<span class="sd">        array([2, 1], dtype=int32)</span>
+<span class="sd">        &gt;&gt;&gt; W = np.array([[0, 0, 0],</span>
+<span class="sd">        ...               [1, 1, 1],</span>
+<span class="sd">        ...               [2, 2, 2]]).astype(&#39;f&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; W</span>
+<span class="sd">        array([[ 0.,  0.,  0.],</span>
+<span class="sd">               [ 1.,  1.,  1.],</span>
+<span class="sd">               [ 2.,  2.,  2.]], dtype=float32)</span>
+<span class="sd">        &gt;&gt;&gt; F.embed_id(x, W).data</span>
+<span class="sd">        array([[ 2.,  2.,  2.],</span>
+<span class="sd">               [ 1.,  1.,  1.]], dtype=float32)</span>
+<span class="sd">        &gt;&gt;&gt; F.embed_id(x, W, ignore_label=1).data</span>
+<span class="sd">        array([[ 2.,  2.,  2.],</span>
+<span class="sd">               [ 0.,  0.,  0.]], dtype=float32)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">EmbedIDFunction</span><span class="p">(</span><span class="n">ignore_label</span><span class="o">=</span><span class="n">ignore_label</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="EmbedID"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedID">[docs]</a><span class="k">class</span> <span class="nc">EmbedID</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Link</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Efficient linear layer for one-hot input.</span>
+
+<span class="sd">    This is a link that wraps the :func:`~chainer.functions.embed_id` function.</span>
+<span class="sd">    This link holds the ID (word) embedding matrix ``W`` as a parameter.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        in_size (int): Number of different identifiers (a.k.a. vocabulary size).</span>
+<span class="sd">        out_size (int): Output dimension.</span>
+<span class="sd">        initialW (Initializer): Initializer to initialize the weight.</span>
+<span class="sd">        ignore_label (int): If `ignore_label` is an int value, i-th column of</span>
+<span class="sd">            return value is filled with 0.</span>
+
+<span class="sd">    .. rubric:: :func:`~chainer.functions.embed_id`</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        W (~chainer.Variable): Embedding parameter matrix.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; W = np.array([[0, 0, 0],</span>
+<span class="sd">        ...               [1, 1, 1],</span>
+<span class="sd">        ...               [2, 2, 2]]).astype(&#39;f&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; W</span>
+<span class="sd">        array([[ 0.,  0.,  0.],</span>
+<span class="sd">               [ 1.,  1.,  1.],</span>
+<span class="sd">               [ 2.,  2.,  2.]], dtype=float32)</span>
+<span class="sd">        &gt;&gt;&gt; l = L.EmbedID(W.shape[0], W.shape[1], initialW=W)</span>
+<span class="sd">        &gt;&gt;&gt; x = np.array([2, 1]).astype(&#39;i&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; x</span>
+<span class="sd">        array([2, 1], dtype=int32)</span>
+<span class="sd">        &gt;&gt;&gt; y = l(x)</span>
+<span class="sd">        &gt;&gt;&gt; y.data</span>
+<span class="sd">        array([[ 2.,  2.,  2.],</span>
+<span class="sd">               [ 1.,  1.,  1.]], dtype=float32)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ignore_label</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EmbedID</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="o">=</span> <span class="n">ignore_label</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">initialW</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">initialW</span> <span class="o">=</span> <span class="n">normal</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">initialW</span><span class="p">,</span> <span class="p">(</span><span class="n">in_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts the word embedding of given IDs.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (chainer.Variable): Batch vectors of IDs.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            chainer.Variable: Batch of corresponding embeddings.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">embed_id</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">ignore_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,60 @@
+
+espnet2.iterators package
+=========================
+
+
+
+.. _espnet2.iterators.sequence_iter_factory:
+
+espnet2.iterators.sequence_iter_factory
+---------------------------------------
+
+.. automodule:: espnet2.iterators.sequence_iter_factory
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.iterators.abs_iter_factory:
+
+espnet2.iterators.abs_iter_factory
+----------------------------------
+
+.. automodule:: espnet2.iterators.abs_iter_factory
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.iterators.multiple_iter_factory:
+
+espnet2.iterators.multiple_iter_factory
+---------------------------------------
+
+.. automodule:: espnet2.iterators.multiple_iter_factory
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.iterators.chunk_iter_factory:
+
+espnet2.iterators.chunk_iter_factory
+------------------------------------
+
+.. automodule:: espnet2.iterators.chunk_iter_factory
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.iterators.__init__:
+
+espnet2.iterators.__init__
+--------------------------
+
+.. automodule:: espnet2.iterators.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
