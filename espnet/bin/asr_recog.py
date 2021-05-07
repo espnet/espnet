@@ -257,6 +257,12 @@ def get_parser():
         default=0.999,
         help="Threshold probability for CTC output",
     )
+    parser.add_argument(
+        "--block_length",
+        type=float,
+        default=16,
+        help="Threshold probability for CTC output",
+    )
 
     return parser
 
