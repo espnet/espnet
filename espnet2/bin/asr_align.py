@@ -431,6 +431,9 @@ class CTCSegmentation:
         # Handle kaldi-style text format
         if self.kaldi_style_text:
             utt_ids_and_text = [utt.split(" ", 1) for utt in text]
+            # remove utterances with empty text
+            utt_ids_and_text = filter(lambda ui: len(ui) == 2, utt_ids_and_text)
+            utt_ids_and_text = list(utt_ids_and_text)
             utt_ids = [utt[0] for utt in utt_ids_and_text]
             text = [utt[1] for utt in utt_ids_and_text]
         return utt_ids, text
