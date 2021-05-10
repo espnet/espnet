@@ -32,7 +32,6 @@ lmtag=                  # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-use_unsegmented=false # set true to use unsegmented audio for decoding
 
 # model average realted (only for transformer)
 n_average=10                 # the number of ASR models to be averaged
@@ -210,50 +209,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json
 fi
-
-if ${use_unsegmented}; then
-    dir=data/
-    recog_set="dev test"
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	if [ -d "${dir}/${task_new}" ]; then
-	    rm -r ${dir:?}/${task_new}
-	fi
-	mkdir -p ${dir}/${task_new}/wavs
-	python local/conct_wav.py \
-	    "${dir}/${task}/wav.scp" \
-	    "${dir}/${task}/segments" \
-	    "$(pwd)/${dir}/${task_new}/wavs"
-	cp ${dir}/${task_new}/wavs/wav.scp ${dir}/${task_new}/
-	python ./local/conct.py < ${dir}/${task}/text > ${dir}/${task_new}/text
-	awk '{print $1"\t"$1}' < ${dir}/${task_new}/text > ${dir}/${task_new}/utt2spk
-	cp ${dir}/${task_new}/utt2spk ${dir}/${task_new}/spk2utt
-    done
-
-    fbankdir=fbank
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 4 --write-utt2dur false\
-				  data/${task_new} exp/make_fbank/${task_new} ${fbankdir}				
-	utils/fix_data_dir.sh data/${task_new}
-    done
-
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	feat_recog_dir=${dumpdir}/${task_new}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-	dump.sh --cmd ${train_cmd} --nj 4 --do_delta ${do_delta} \
-		data/${task_new}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${task_new} ${feat_recog_dir}
-    done
-
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	feat_recog_dir=${dumpdir}/${task_new}/delta${do_delta}
-	data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
-		     data/${task_new} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
-    done
-    recog_set="dev_unsegmented" "test_unsegmented"
-fi
-
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"

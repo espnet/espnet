@@ -36,7 +36,6 @@ n_gram=4
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
-use_unsegmented=false # set true to use unsegmented audio for decoding
 
 # data
 data=/export/a05/xna/data
@@ -227,47 +226,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json
-fi
-
-if ${use_unsegmented}; then
-    dir=data/
-    recog_set="dev test"
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	if [ -d "${dir}/${task_new}" ]; then
-	    rm -r ${dir:?}/${task_new}
-	fi
-	mkdir -p ${dir}/${task_new}/wavs
-	python local/conct_wav.py data/${task}/wav.scp data/${task_new}/wavs/ \
-	       data/${task_new}/wavs/gen_wav.sh data/${task_new}/wav.scp
-	bash data/${task_new}/wavs/gen_wav.sh
-	python ./local/conct.py < ${dir}/${task}/text > ${dir}/${task_new}/text
-	awk '{print $1"\t"$1}' < ${dir}/${task_new}/text > ${dir}/${task_new}/utt2spk
-	cp ${dir}/${task_new}/utt2spk ${dir}/${task_new}/spk2utt
-    done
-    
-    fbankdir=fbank
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true\
-				  data/${task_new} exp/make_fbank/${task_new} ${fbankdir}
-	utils/fix_data_dir.sh data/${task_new}
-    done
-
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	feat_recog_dir=${dumpdir}/${task_new}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-	dump.sh --cmd ${train_cmd} --nj 20 --do_delta ${do_delta} \
-		data/${task_new}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${task_new} ${feat_recog_dir}
-    done
-
-    for task in ${recog_set}; do
-	task_new=${task}_unsegmented
-	feat_recog_dir=${dumpdir}/${task_new}/delta${do_delta}
-	data2json.sh --feat ${feat_recog_dir}/feats.scp \
-		     data/${task_new} ${dict} > ${feat_recog_dir}/data.json
-    done
-    recog_set="dev_unsegmented" "test_unsegmented"
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
