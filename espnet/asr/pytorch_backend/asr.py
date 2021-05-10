@@ -324,12 +324,12 @@ class CustomConverterMulEnc(object):
 
     """
 
-    def __init__(self, subsamping_factors=[1, 1], dtype=torch.float32):
+    def __init__(self, subsampling_factors=[1, 1], dtype=torch.float32):
         """Initialize the converter."""
-        self.subsamping_factors = subsamping_factors
+        self.subsampling_factors = subsampling_factors
         self.ignore_id = -1
         self.dtype = dtype
-        self.num_encs = len(subsamping_factors)
+        self.num_encs = len(subsampling_factors)
 
     def __call__(self, batch, device=torch.device("cpu")):
         """Transform a batch and send it to a device.
@@ -348,7 +348,7 @@ class CustomConverterMulEnc(object):
         ys = batch[0][-1]
 
         # perform subsampling
-        if np.sum(self.subsamping_factors) > self.num_encs:
+        if np.sum(self.subsampling_factors) > self.num_encs:
             xs_list = [
                 [x[:: self.subsampling_factors[i], :] for x in xs_list[i]]
                 for i in range(self.num_encs)
