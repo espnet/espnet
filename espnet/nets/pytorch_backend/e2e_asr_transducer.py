@@ -356,9 +356,9 @@ class E2E(ASRInterface, torch.nn.Module):
         """E2E forward.
 
         Args:
-            feats: Feature sequences. (B, T, D_feats)
+            feats: Feature sequences. (B, F, D_feats)
             feats_len: Feature sequences lengths. (B,)
-            labels: Label ID sequences. (B, U)
+            labels: Label ID sequences. (B, L)
 
         Returns:
             loss: Transducer loss value
@@ -432,10 +432,10 @@ class E2E(ASRInterface, torch.nn.Module):
         """Encode acoustic features.
 
         Args:
-            feats: Feature sequence. (T, D_feats)
+            feats: Feature sequence. (F, D_feats)
 
         Returns:
-            enc_out: Encoded feature sequence. (T', D_enc)
+            enc_out: Encoded feature sequence. (T, D_enc)
 
         """
         feats = torch.as_tensor(feats).unsqueeze(0)
@@ -447,10 +447,10 @@ class E2E(ASRInterface, torch.nn.Module):
         """Encode acoustic features.
 
         Args:
-            feats: Feature sequence. (T, D_feats)
+            feats: Feature sequence. (F, D_feats)
 
         Returns:
-            enc_out: Encoded feature sequence. (T', D_enc)
+            enc_out: Encoded feature sequence. (T, D_enc)
 
         """
         p = next(self.parameters())
@@ -471,7 +471,7 @@ class E2E(ASRInterface, torch.nn.Module):
         """Recognize input features.
 
         Args:
-            feats: Feature sequence. (T, D_feats)
+            feats: Feature sequence. (F, D_feats)
             beam_search: Beam search class.
 
         Returns:
@@ -495,9 +495,9 @@ class E2E(ASRInterface, torch.nn.Module):
         """E2E attention calculation.
 
         Args:
-            feats: Feature sequences. (B, T, D_feats)
+            feats: Feature sequences. (B, F, D_feats)
             feats_len: Feature sequences lengths. (B,)
-            labels: Label ID sequences. (B, U)
+            labels: Label ID sequences. (B, L)
 
         Returns:
             ret: Attention weights with the following shape,

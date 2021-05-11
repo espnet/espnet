@@ -21,10 +21,10 @@ def get_decoder_input(
     """Prepare decoder input.
 
     Args:
-        labels: Label ID sequences. (B, U)
+        labels: Label ID sequences. (B, L)
 
     Returns:
-        decoder_input: Label ID sequences with blank prefix. (B, U + 1)
+        decoder_input: Label ID sequences with blank prefix. (B, U)
 
     """
     device = labels.device

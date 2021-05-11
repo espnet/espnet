@@ -100,25 +100,25 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         return state
 
     def forward(
-        self, labels: torch.Tensor, labels_mask: torch.Tensor
+        self, dec_input: torch.Tensor, dec_mask: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode label ID sequences.
 
         Args:
-            labels: Label ID sequences. (B, U)
-            labels_mask: Label mask sequences.  (B, U)
+            dec_input: Label ID sequences. (B, U)
+            dec_mask: Label mask sequences.  (B, U)
 
         Return:
-            dec_out: Decoder output sequences. (B, U, D_dec)
-            dec_out_mask: Mask of decoder output sequences. (B, U)
+            dec_output: Decoder output sequences. (B, U, D_dec)
+            dec_output_mask: Mask of decoder output sequences. (B, U)
 
         """
-        dec_emb = self.embed(labels)
+        dec_input = self.embed(dec_input)
 
-        dec_out, dec_out_mask = self.decoders(dec_emb, labels_mask)
-        dec_out = self.after_norm(dec_out)
+        dec_output, dec_mask = self.decoders(dec_input, dec_mask)
+        dec_output = self.after_norm(dec_output)
 
-        return dec_out, dec_out_mask
+        return dec_output, dec_mask
 
     def score(
         self, hyp: Hypothesis, cache: Dict[str, Any]

@@ -49,13 +49,13 @@ class VGG2L(torch.nn.Module):
         """Forward VGG2L bottleneck.
 
         Args:
-            feats: Feature sequences. (B, T, D_feats)
-            feats_mask: Mask of feature sequences. (B, 1, T)
+            feats: Feature sequences. (B, F, D_feats)
+            feats_mask: Mask of feature sequences. (B, 1, F)
 
         Returns:
             vgg_output: VGG output sequences.
-                   (B, sub(T), D_out) or ((B, sub(T), D_out), (B, sub(T), D_att))
-            vgg_mask: Mask of VGG output sequences. (B, 1, sub(T))
+                   (B, sub(F), D_out) or ((B, sub(F), D_out), (B, sub(F), D_att))
+            vgg_mask: Mask of VGG output sequences. (B, 1, sub(F))
 
         """
         feats = feats.unsqueeze(1)
@@ -78,10 +78,10 @@ class VGG2L(torch.nn.Module):
         """Create a subsampled mask of feature sequences.
 
         Args:
-            feats_mask: Mask of feature sequences. (B, 1, T)
+            feats_mask: Mask of feature sequences. (B, 1, F)
 
         Returns:
-            vgg_mask: Mask of VGG2L output sequences. (B, 1, sub(T))
+            vgg_mask: Mask of VGG2L output sequences. (B, 1, sub(F))
 
         """
         vgg1_t_len = feats_mask.size(2) - (feats_mask.size(2) % 3)

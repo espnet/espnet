@@ -81,7 +81,7 @@ class TransducerTasks(torch.nn.Module):
         if training:
             self.transducer_loss = RNNTLoss(
                 blank=blank_id,
-                reduction="mean",
+                reduction="sum",
             )
 
         if ctc_loss:
@@ -89,10 +89,12 @@ class TransducerTasks(torch.nn.Module):
 
             if LooseVersion(torch.__version__) < LooseVersion("1.7.0"):
                 self.ctc_loss = torch.nn.CTCLoss(
-                    blank=blank_id, reduction="none", zero_infinity=True
+                    blank=blank_id,
+                    reduction="sum",
+                    zero_infinity=True,
                 )
             else:
-                self.ctc_loss = torch.nn.CTCLoss(blank=blank_id, reduction="none")
+                self.ctc_loss = torch.nn.CTCLoss(blank=blank_id, reduction="sum")
 
         if aux_transducer_loss:
             self.mlp = torch.nn.Sequential(
@@ -104,7 +106,7 @@ class TransducerTasks(torch.nn.Module):
             )
 
             if js_div_loss:
-                self.kl_div = torch.nn.KLDivLoss(reduction="mean")
+                self.kl_div = torch.nn.KLDivLoss(reduction="sum")
 
         if lm_loss:
             self.lm_lin = torch.nn.Linear(decoder_dim, output_dim)
@@ -161,6 +163,7 @@ class TransducerTasks(torch.nn.Module):
         joint_out = self.joint_network(enc_out.unsqueeze(2), dec_out.unsqueeze(1))
 
         loss_trans = self.transducer_loss(joint_out, target, t_len, u_len)
+        loss_trans /= joint_out.size(0)
 
         return joint_out, loss_trans
 
@@ -183,14 +186,17 @@ class TransducerTasks(torch.nn.Module):
             : CTC loss value.
 
         """
-        ctc_out = self.ctc_lin(
+        ctc_lin = self.ctc_lin(
             torch.nn.functional.dropout(
                 enc_out.to(dtype=torch.float32), p=self.ctc_dropout_rate
             )
         )
-        ctc_logp = torch.log_softmax(ctc_out.transpose(0, 1), dim=-1)
+        ctc_logp = torch.log_softmax(ctc_lin.transpose(0, 1), dim=-1)
 
-        loss_ctc = self.ctc_loss(ctc_logp, target, t_len, u_len).mean()
+        with torch.backends.cudnn.flags(deterministic=True):
+            loss_ctc = self.ctc_loss(ctc_logp, target, t_len, u_len)
+
+        loss_ctc /= ctc_logp.size(0)
 
         return loss_ctc
 
@@ -220,6 +226,8 @@ class TransducerTasks(torch.nn.Module):
         aux_trans_loss = 0
         js_div_loss = 0
 
+        batchsize = dec_out.size(0)
+        denom = joint_out.size(0) * joint_out.size(1) * joint_out.size(2)
         num_aux_layers = len(aux_enc_out)
 
         for p in self.joint_network.parameters():
@@ -230,38 +238,56 @@ class TransducerTasks(torch.nn.Module):
 
             aux_joint_out = self.joint_network(
                 aux_mlp.unsqueeze(2),
-                dec_out.clone().detach().unsqueeze(1),
+                dec_out.unsqueeze(1),
                 is_aux=True,
             )
 
             if self.use_aux_transducer_loss:
-                aux_trans_loss += self.transducer_loss(
-                    aux_joint_out,
-                    target,
-                    aux_t_len[i],
-                    u_len,
+                aux_trans_loss += (
+                    self.transducer_loss(
+                        aux_joint_out,
+                        target,
+                        aux_t_len[i],
+                        u_len,
+                    )
+                    / batchsize
                 )
 
             if self.use_js_div_loss:
-                _joint_out = joint_out.clone().detach()
-
-                M = 0.5 * (_joint_out + aux_joint_out)
-
-                js_div_loss += 0.5 * (
-                    self.kl_div(
-                        torch.log_softmax(_joint_out, dim=-1),
-                        torch.softmax(M, dim=-1),
-                    )
-                    + self.kl_div(
-                        torch.log_softmax(aux_joint_out, dim=-1),
-                        torch.softmax(M, dim=-1),
-                    )
+                kl_main_aux = torch.nn.functional.kl_div(
+                    torch.log_softmax(joint_out, dim=-1),
+                    torch.softmax(aux_joint_out, dim=-1),
+                    reduction="sum",
                 )
+
+                kl_aux_main = torch.nn.functional.kl_div(
+                    torch.log_softmax(aux_joint_out, dim=-1),
+                    torch.softmax(joint_out, dim=-1),
+                    reduction="sum",
+                )
+
+                js_div_loss += (kl_main_aux + kl_aux_main) / denom
+
+            # if self.use_js_div_loss:
+            #     M = 0.5 * (joint_out + aux_joint_out)
+
+            #     js_div = 0.5 * (
+            #         self.kl_div(
+            #             torch.log_softmax(joint_out, dim=-1),
+            #             torch.softmax(M, dim=-1),
+            #         )
+            #         + self.kl_div(
+            #             torch.log_softmax(aux_joint_out, dim=-1),
+            #             torch.softmax(M, dim=-1),
+            #         )
+            #     )
+
+            # js_div_loss += (js_div / (batchsize * batchsize))
+
+        aux_trans_loss /= num_aux_layers
 
         for p in self.joint_network.parameters():
             p.requires_grad = True
-
-        aux_trans_loss /= num_aux_layers
 
         if self.use_js_div_loss:
             js_div_loss /= num_aux_layers
@@ -283,9 +309,9 @@ class TransducerTasks(torch.nn.Module):
             : LM loss value.
 
         """
-        lm_loss_in = self.lm_lin(dec_out)
+        lm_lin = self.lm_lin(dec_out)
 
-        lm_loss = self.label_smoothing_loss(lm_loss_in, target)
+        lm_loss = self.label_smoothing_loss(lm_lin, target)
 
         return lm_loss
 
@@ -323,8 +349,8 @@ class TransducerTasks(torch.nn.Module):
             aux_enc_out_len: Auxiliary time lengths. [N X (B,)]
 
         Returns:
-            target: Target label ID sequences. (B, U)
-            lm_loss_target: LM loss target label ID sequences. (B, U + 1)
+            target: Target label ID sequences. (B, L)
+            lm_loss_target: LM loss target label ID sequences. (B, U)
             t_len: Time lengths. (B,)
             aux_t_len: Auxiliary time lengths. [N x (B,)]
             u_len: Label lengths. (B,)
@@ -390,7 +416,7 @@ class TransducerTasks(torch.nn.Module):
             enc_out: Encoder output sequences. (B, T, D_enc)
             aux_enc_out: Encoder intermediate output sequences. (B, T_aux, D_enc_aux)
             dec_out: Decoder output sequences. (B, U, D_dec)
-            target: Target label ID sequences. (B, U)
+            target: Target label ID sequences. (B, L)
             t_len: Time lengths. (B,)
             aux_t_len: Auxiliary time lengths. (B,)
             u_len: Label lengths. (B,)

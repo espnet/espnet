@@ -81,8 +81,8 @@ class CustomEncoder(torch.nn.Module):
         """Encode feature sequences.
 
         Args:
-            feats: Feature sequences. (B, T, D_feats)
-            feats_mask: Feature mask sequences. (B, 1, T)
+            feats: Feature sequences. (B, F, D_feats)
+            feats_mask: Feature mask sequences. (B, 1, F)
 
         Returns:
             enc_out: Encoder output sequences. (B, T, D_enc) with/without

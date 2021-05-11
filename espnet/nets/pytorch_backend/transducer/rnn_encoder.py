@@ -343,11 +343,11 @@ class VGG2L(torch.nn.Module):
         """VGG2L forward.
 
         Args:
-            feats: Feature sequences. (B, T, D_feats)
+            feats: Feature sequences. (B, F, D_feats)
             feats_len: Feature sequences lengths. (B, )
 
         Returns:
-            vgg_out: VGG2L output sequences. (B, T // 4, 128 * D_feats // 4)
+            vgg_out: VGG2L output sequences. (B, F // 4, 128 * D_feats // 4)
             vgg_out_len: VGG2L output sequences lengths. (B,)
 
         """
@@ -490,7 +490,7 @@ class Encoder(torch.nn.Module):
         """Forward encoder.
 
         Args:
-            feats: Feature sequences. (B, T, D_feats)
+            feats: Feature sequences. (B, F, D_feats)
             feats_len: Feature sequences lengths. (B,)
             prev_states: Previous encoder hidden states. [N x (B, T, D_enc)]
 

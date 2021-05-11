@@ -528,7 +528,7 @@ def train(args):
                     args.noam_lr,
                 )
             else:
-                raise ValueError("noam_adim option should be set to use Noam scheduler")
+                raise ValueError("noam-adim option should be set to use Noam scheduler")
         else:
             optimizer = get_std_opt(
                 model_params,

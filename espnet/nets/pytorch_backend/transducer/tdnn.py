@@ -83,6 +83,7 @@ class TDNN(torch.nn.Module):
             sequence, pos_emb = sequence, None
 
         sequence = sequence.transpose(1, 2)
+
         # The bidirect_pos is used to distinguish legacy_rel_pos and rel_pos in
         # Conformer model. Note the `legacy_rel_pos` will be deprecated in the future.
         # Details can be found in https://github.com/espnet/espnet/pull/2816.

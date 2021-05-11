@@ -18,7 +18,6 @@ def initializer(model: torch.nn.Module, args: Namespace):
     """
     for name, p in model.named_parameters():
         if any(x in name for x in ["enc.", "dec.", "transducer_tasks."]):
-            # rnn based parts + joint network
             if p.dim() == 1:
                 # bias
                 p.data.zero_()

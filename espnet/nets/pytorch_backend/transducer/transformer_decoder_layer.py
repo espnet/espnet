@@ -53,7 +53,7 @@ class TransformerDecoderLayer(torch.nn.Module):
         Args:
             sequence: Transformer input sequences. (B, U, D_dec)
             mask: Transformer intput mask sequences. (B, U)
-            cache: Cached decoder output sequences. (B, U-1, D_dec)
+            cache: Cached decoder output sequences. (B, (U - 1), D_dec)
 
         Returns:
             sequence: Transformer output sequences. (B, U, D_dec)
