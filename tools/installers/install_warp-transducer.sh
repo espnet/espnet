@@ -15,6 +15,7 @@ fi
 
 rm -rf warp-transducer
 git clone https://github.com/HawkAaron/warp-transducer.git
+sed  -i 's/.*compute_30.*/#&/g' warp-transducer/CMakeLists.txt
 
 (
     set -euo pipefail
