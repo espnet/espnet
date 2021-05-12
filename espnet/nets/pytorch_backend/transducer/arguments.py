@@ -332,17 +332,17 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         help="Multi-layer perceptron dropout rate for auxiliary transducer loss.",
     )
     group.add_argument(
-        "--use-js-div-loss",
+        "--use-symm-kl-div-loss",
         type=strtobool,
         nargs="?",
         default=False,
-        help="Whether to compute Jensen-Shannon divergence loss.",
+        help="Whether to compute symmetric KL divergence loss.",
     )
     group.add_argument(
-        "--js-div-loss-weight",
+        "--symm-kl-div-loss-weight",
         default=0.0,
         type=float,
-        help="Weight of Jensen-Shannon divergence loss.",
+        help="Weight of symmetric KL divergence loss.",
     )
 
     return group

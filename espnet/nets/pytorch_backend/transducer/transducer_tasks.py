@@ -30,11 +30,11 @@ class TransducerTasks(torch.nn.Module):
         ctc_loss: bool = False,
         lm_loss: bool = False,
         aux_transducer_loss: bool = False,
-        js_div_loss: bool = False,
+        symm_kl_div_loss: bool = False,
         ctc_loss_weight: float = 0.5,
         lm_loss_weight: float = 1.0,
         aux_transducer_loss_weight: float = 0.2,
-        js_div_loss_weight: float = 0.2,
+        symm_kl_div_loss_weight: float = 0.2,
         ctc_loss_dropout_rate: float = 0.0,
         aux_transducer_loss_mlp_dim: int = 320,
         aux_trans_loss_mlp_dropout_rate: float = 0.0,
@@ -55,19 +55,19 @@ class TransducerTasks(torch.nn.Module):
             ctc_loss: Compute CTC loss.
             lm_loss: Compute LM loss.
             aux_transducer_loss: Compute auxiliary transducer loss.
-            js_div_loss: Compute Jensen-Shannon divergence loss.
+            symm_kl_div_loss: Compute KL divergence loss.
             transducer_loss_weight: Weight of transducer loss.
             ctc_loss_weight: Weight of CTC loss.
             lm_loss_weight: Weight of LM loss.
             aux_transducer_loss_weight: Weight of auxiliary transducer loss.
-            js_div_loss_weight: Weight of Jensen-Shannon divergence loss.
+            symm_kl_div_loss_weight: Weight of KL divergence loss.
             ctc_loss_dropout_rate: Dropout rate for CTC loss inputs.
 
         """
         super().__init__()
 
         if not training:
-            ctc_loss, lm_loss, aux_transducer_loss, js_div_loss = (
+            ctc_loss, lm_loss, aux_transducer_loss, symm_kl_div_loss = (
                 False,
                 False,
                 False,
@@ -105,7 +105,7 @@ class TransducerTasks(torch.nn.Module):
                 torch.nn.Linear(aux_transducer_loss_mlp_dim, joint_dim),
             )
 
-            if js_div_loss:
+            if symm_kl_div_loss:
                 self.kl_div = torch.nn.KLDivLoss(reduction="sum")
 
         if lm_loss:
@@ -129,8 +129,8 @@ class TransducerTasks(torch.nn.Module):
         self.use_aux_transducer_loss = aux_transducer_loss
         self.aux_transducer_loss_weight = aux_transducer_loss_weight
 
-        self.use_js_div_loss = js_div_loss
-        self.js_div_loss_weight = js_div_loss_weight
+        self.use_symm_kl_div_loss = symm_kl_div_loss
+        self.symm_kl_div_loss_weight = symm_kl_div_loss_weight
 
         self.blank_id = blank_id
         self.ignore_id = ignore_id
@@ -200,7 +200,7 @@ class TransducerTasks(torch.nn.Module):
 
         return loss_ctc
 
-    def compute_aux_transducer_and_js_div_losses(
+    def compute_aux_transducer_and_symm_kl_div_losses(
         self,
         aux_enc_out: torch.Tensor,
         dec_out: torch.Tensor,
@@ -220,11 +220,11 @@ class TransducerTasks(torch.nn.Module):
             u_len: True U lengths. (B,)
 
         Returns:
-           : auxiliary transducer loss and Jensen-Shannon divergence loss values.
+           : Auxiliary transducer loss and KL divergence loss values.
 
         """
         aux_trans_loss = 0
-        js_div_loss = 0
+        symm_kl_div_loss = 0
 
         batchsize = dec_out.size(0)
         num_aux_layers = len(aux_enc_out)
@@ -252,7 +252,7 @@ class TransducerTasks(torch.nn.Module):
                     / batchsize
                 )
 
-            if self.use_js_div_loss:
+            if self.use_symm_kl_div_loss:
                 denom = joint_out.size(0) * joint_out.size(1) * joint_out.size(2)
 
                 kl_main_aux = (
@@ -271,33 +271,17 @@ class TransducerTasks(torch.nn.Module):
                     / denom
                 )
 
-                js_div_loss += kl_main_aux + kl_aux_main
-
-            # if self.use_js_div_loss:
-            #     M = 0.5 * (joint_out + aux_joint_out)
-
-            #     js_div = 0.5 * (
-            #         self.kl_div(
-            #             torch.log_softmax(joint_out, dim=-1),
-            #             torch.softmax(M, dim=-1),
-            #         )
-            #         + self.kl_div(
-            #             torch.log_softmax(aux_joint_out, dim=-1),
-            #             torch.softmax(M, dim=-1),
-            #         )
-            #     )
-
-            # js_div_loss += (js_div / (batchsize * batchsize))
+                symm_kl_div_loss += kl_main_aux + kl_aux_main
 
         for p in self.joint_network.parameters():
             p.requires_grad = True
 
         aux_trans_loss /= num_aux_layers
 
-        if self.use_js_div_loss:
-            js_div_loss /= num_aux_layers
+        if self.use_symm_kl_div_loss:
+            symm_kl_div_loss /= num_aux_layers
 
-        return aux_trans_loss, js_div_loss
+        return aux_trans_loss, symm_kl_div_loss
 
     def compute_lm_loss(
         self,
@@ -428,15 +412,15 @@ class TransducerTasks(torch.nn.Module):
 
         Returns:
             : Weighted losses.
-              (transducer loss, ctc loss, aux transducer loss, js div loss, LM loss)
+              (transducer loss, ctc loss, aux transducer loss, KL div loss, LM loss)
             cer: Sentence-level CER score.
             wer: Sentence-level WER score.
 
         """
-        if self.use_js_div_loss:
+        if self.use_symm_kl_div_loss:
             assert self.use_aux_transducer_loss
 
-        (trans_loss, ctc_loss, lm_loss, aux_trans_loss, js_div_loss) = (
+        (trans_loss, ctc_loss, lm_loss, aux_trans_loss, symm_kl_div_loss) = (
             0.0,
             0.0,
             0.0,
@@ -458,7 +442,10 @@ class TransducerTasks(torch.nn.Module):
             ctc_loss = self.compute_ctc_loss(enc_out, target, t_len, u_len)
 
         if self.use_aux_transducer_loss:
-            aux_trans_loss, js_div_loss = self.compute_aux_transducer_and_js_div_losses(
+            (
+                aux_trans_loss,
+                symm_kl_div_loss,
+            ) = self.compute_aux_transducer_and_symm_kl_div_losses(
                 aux_enc_out,
                 dec_out,
                 joint_out,
@@ -474,6 +461,6 @@ class TransducerTasks(torch.nn.Module):
             self.transducer_loss_weight * trans_loss,
             self.ctc_loss_weight * ctc_loss,
             self.aux_transducer_loss_weight * aux_trans_loss,
-            self.js_div_loss_weight * js_div_loss,
+            self.symm_kl_div_loss_weight * symm_kl_div_loss,
             self.lm_loss_weight * lm_loss,
         )

@@ -53,7 +53,7 @@ class Reporter(chainer.Chain):
         loss_trans: float,
         loss_ctc: float,
         loss_aux_trans: float,
-        loss_js_div: float,
+        loss_symm_kl_div: float,
         loss_lm: float,
         cer: float,
         wer: float,
@@ -64,7 +64,7 @@ class Reporter(chainer.Chain):
         chainer.reporter.report({"loss_ctc": loss_ctc}, self)
         chainer.reporter.report({"loss_lm": loss_lm}, self)
         chainer.reporter.report({"loss_aux_trans": loss_aux_trans}, self)
-        chainer.reporter.report({"loss_js_div": loss_js_div}, self)
+        chainer.reporter.report({"loss_symm_kl_div": loss_symm_kl_div}, self)
         chainer.reporter.report({"cer": cer}, self)
         chainer.reporter.report({"wer": wer}, self)
 
@@ -294,11 +294,11 @@ class E2E(ASRInterface, torch.nn.Module):
             ctc_loss=args.use_ctc_loss,
             lm_loss=args.use_lm_loss,
             aux_transducer_loss=args.use_aux_transducer_loss,
-            js_div_loss=args.use_js_div_loss,
+            symm_kl_div_loss=args.use_symm_kl_div_loss,
             ctc_loss_weight=args.ctc_loss_weight,
             lm_loss_weight=args.lm_loss_weight,
             aux_transducer_loss_weight=args.aux_transducer_loss_weight,
-            js_div_loss_weight=args.js_div_loss_weight,
+            symm_kl_div_loss_weight=args.symm_kl_div_loss_weight,
             ctc_loss_dropout_rate=args.ctc_loss_dropout_rate,
             aux_transducer_loss_mlp_dim=args.aux_transducer_loss_mlp_dim,
             aux_trans_loss_mlp_dropout_rate=args.aux_transducer_loss_mlp_dropout_rate,
