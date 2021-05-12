@@ -291,12 +291,12 @@ For more information about the customizable architecture, please refer to [vivos
 
 ### Augmented training
 
-We also supports augmented transducer model training with various auxiliary tasks, such as: CTC loss, LM loss (label-smoothing), auxiliary transducer loss and Jensen-Shannon divergence.
+We also supports augmented transducer model training with various auxiliary tasks, such as: CTC loss, LM loss (label-smoothing), auxiliary transducer loss and symmetric KL divergence loss.
 The five losses can be simultaneously trained and jointly optimize the total loss function defined as:
 
 ![augmented transducer training](http://www.sciweavers.org/tex2img.php?eq=\mathcal{L}_{tot}%20%3D%20\lambda_{1}\mathcal{L}_{1}%20%2B%20\lambda_{2}\mathcal{L}_{2}%20%2B%20\lambda_{3}\mathcal{L}_{3}%20%2B%20\lambda_{4}%20\mathcal{L}_{4}%20%2B%20\lambda_{5}%20\mathcal{L}_{5}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
 
-where the losses are respectively, in order: The main transducer loss, the CTC loss, the auxiliary transducer loss, the Jensen-Shannon divergence loss and the LM loss. Lambda values define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task. 
+where the losses are respectively, in order: The main transducer loss, the CTC loss, the auxiliary transducer loss, the symmetric KL divergence loss and the LM loss. Lambda values define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task. 
 
 Each loss can be defined in the training config alongside its specific options, such as follow:
 
@@ -315,10 +315,10 @@ Each loss can be defined in the training config alongside its specific options, 
         aux-transducer-loss-mlp-dim: [Hidden dimension for the MLP network. (int)]
         aux-transducer-loss-mlp-dropout-rate: [Dropout rate for the MLP network. (float)]
 
-        # Jensen-Shannon divergence loss (L4)
+        # Symmetric KL divergence loss (L4)
         # Note: Only used in addition to the auxiliary transducer loss.
-        use-js-div-loss: True
-        js-div-loss-weight: [Weight of the Jensen-Shannon divergence loss. (float)]
+        use-symm-kl-div-loss: True
+        symm-kl-div-loss-weight: [Weight of the symmetric KL divergence loss. (float)]
 
         # LM loss (L5)
         use-lm-loss: True

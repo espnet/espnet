@@ -63,7 +63,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
     - Time Synchronous Decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040).
     - N-step Constrained beam search.
   - Features:
-    - Multi-task learning with various auxiliary tasks: CTC, LM, auxiliary RNN-T and Jensen-Shannon divergence.
+    - Multi-task learning with various auxiliary tasks: CTC, LM, auxiliary RNN-T and symmetric KL divergence.
     - Efficient encoder and decoder output prediction for joint network.
     - Transfer learning with acoustic model or language model.  
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
