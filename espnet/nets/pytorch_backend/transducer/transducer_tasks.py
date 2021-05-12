@@ -227,7 +227,6 @@ class TransducerTasks(torch.nn.Module):
         js_div_loss = 0
 
         batchsize = dec_out.size(0)
-        denom = joint_out.size(0) * joint_out.size(1) * joint_out.size(2)
         num_aux_layers = len(aux_enc_out)
 
         for p in self.joint_network.parameters():
@@ -254,19 +253,25 @@ class TransducerTasks(torch.nn.Module):
                 )
 
             if self.use_js_div_loss:
-                kl_main_aux = torch.nn.functional.kl_div(
-                    torch.log_softmax(joint_out, dim=-1),
-                    torch.softmax(aux_joint_out, dim=-1),
-                    reduction="sum",
+                denom = joint_out.size(0) * joint_out.size(1) * joint_out.size(2)
+
+                kl_main_aux = (
+                    self.kl_div(
+                        torch.log_softmax(joint_out, dim=-1),
+                        torch.softmax(aux_joint_out, dim=-1),
+                    )
+                    / denom
                 )
 
-                kl_aux_main = torch.nn.functional.kl_div(
-                    torch.log_softmax(aux_joint_out, dim=-1),
-                    torch.softmax(joint_out, dim=-1),
-                    reduction="sum",
+                kl_aux_main = (
+                    self.kl_div(
+                        torch.log_softmax(aux_joint_out, dim=-1),
+                        torch.softmax(joint_out, dim=-1),
+                    )
+                    / denom
                 )
 
-                js_div_loss += (kl_main_aux + kl_aux_main) / denom
+                js_div_loss += kl_main_aux + kl_aux_main
 
             # if self.use_js_div_loss:
             #     M = 0.5 * (joint_out + aux_joint_out)
@@ -284,10 +289,10 @@ class TransducerTasks(torch.nn.Module):
 
             # js_div_loss += (js_div / (batchsize * batchsize))
 
-        aux_trans_loss /= num_aux_layers
-
         for p in self.joint_network.parameters():
             p.requires_grad = True
+
+        aux_trans_loss /= num_aux_layers
 
         if self.use_js_div_loss:
             js_div_loss /= num_aux_layers
