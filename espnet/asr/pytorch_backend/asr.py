@@ -775,12 +775,12 @@ def train(args):
             else []
         )
 
-        js_div_keys = (
+        symm_kl_div_keys = (
             [
-                "main/loss_js_div",
-                "validation/main/loss_js_div",
+                "main/loss_symm_kl_div",
+                "validation/main/loss_symm_kl_div",
             ]
-            if args.use_js_div_loss
+            if args.use_symm_kl_div_loss
             else []
         )
 
@@ -793,7 +793,9 @@ def train(args):
             else []
         )
 
-        transducer_keys = trans_keys + ctc_keys + aux_trans_keys + js_div_keys + lm_keys
+        transducer_keys = (
+            trans_keys + ctc_keys + aux_trans_keys + symm_kl_div_keys + lm_keys
+        )
 
         trainer.extend(
             extensions.PlotReport(
