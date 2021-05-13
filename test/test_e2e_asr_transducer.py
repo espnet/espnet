@@ -249,7 +249,7 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
-@pytest.mark.parametrize("trans_type", ["warp-transducer", "warp-rnnt"])
+@pytest.mark.parametrize("trans_type", ["warp-transducer", "warp-rnnt", "torchaudio"])
 def test_pytorch_transducer_gpu_trainable(trans_type):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(trans_type=trans_type)
