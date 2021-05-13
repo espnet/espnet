@@ -52,20 +52,18 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Batch GPU decoding
 - **Transducer** based end-to-end ASR
   - Architecture:
-    - RNN-based encoder/decoder
-    - Custom encoder/decoder supporting Transformer, Conformer, TDNN (encoder) and causal conv1d (decoder) blocks.
-    - Mixed RNN/Custom encoder-decoder
-    - Also supports: VGG2L (RNN/custom encoder), Conv2D (custom encoder), TDNN (custom encoder) and causal conv1d (custom decoder)
+    - RNN-based encoder and decoder.
+    - Custom encoder and decoder supporting Transformer, Conformer (encoder), TDNN (encoder) and causal Conv1D (decoder) blocks.
+    - VGG2L (RNN/custom encoder) and Conv2D (custom encoder) bottlenecks.
   - Search algorithms:
     - Greedy search constrained to one emission by timestep.
     - Default beam search algorithm without prefix search.
-    - Alignment-Length Synchronous decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040).
-    - Time Synchronous Decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040).
+    - Alignment-Length Synchronous decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
+    - Time Synchronous Decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
     - N-step Constrained beam search.
   - Features:
     - Multi-task learning with various auxiliary tasks: CTC, LM, auxiliary RNN-T and symmetric KL divergence.
-    - Efficient encoder and decoder output prediction for joint network.
-    - Transfer learning with acoustic model or language model.  
+    - Transfer learning with acoustic model and/or language model.  
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive model based on Mask-CTC
