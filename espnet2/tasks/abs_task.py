@@ -606,6 +606,12 @@ class AbsTask(ABC):
             "  --init_param some/where/model.pth:decoder:decoder:decoder.embed\n",
         )
         group.add_argument(
+            "--ignore_init_mismatch",
+            type=str2bool,
+            default=False,
+            help="Ignore size mismatch when loading pre-trained model"
+        )
+        group.add_argument(
             "--freeze_param",
             type=str,
             default=[],
@@ -1136,6 +1142,7 @@ class AbsTask(ABC):
             load_pretrained_model(
                 model=model,
                 init_param=p,
+                ignore_init_mismatch=args.ignore_init_mismatch,
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                 #   in PyTorch<=1.4
                 map_location=f"cuda:{torch.cuda.current_device()}"
