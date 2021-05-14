@@ -37,12 +37,10 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_new
-train_dev=dev_new
-test_set=test_new
+train_set=train
+train_dev=dev
+test_set=test
 
-
-YOLOXOCHITL_MIXTEC=/export/c04/jiatong/data/
 wavdir=${YOLOXOCHITL_MIXTEC}/Yoloxochitl-Mixtec-for-ASR/Sound-files-Narratives-for-ASR
 annodir=${YOLOXOCHITL_MIXTEC}/Yoloxochitl-Mixtec-for-ASR/Transcriptions-for-ASR/ELAN-files-with-underlying-and-surface-tiers
 
@@ -50,9 +48,9 @@ log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
     log "stage1: Download data to ${YOLOXOCHITL_MIXTEC}"
-    # mkdir -p ${YOLOXOCHITL_MIXTEC}
-    # local/download_and_untar.sh ${YOLOXOCHITL_MIXTEC} http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Data.tgz Yoloxochitl-Mixtec-Data.tgz
-    # local/download_and_untar.sh local http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Manifest.tgz Yoloxochitl-Mixtec-Manifest.tgz
+    mkdir -p ${YOLOXOCHITL_MIXTEC}
+    local/download_and_untar.sh ${YOLOXOCHITL_MIXTEC} http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Data.tgz Yoloxochitl-Mixtec-Data.tgz
+    local/download_and_untar.sh local http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Manifest.tgz Yoloxochitl-Mixtec-Manifest.tgz
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -62,21 +60,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                               -f ${text_format}
     chmod +x data/${annotation_id}/remix_script.sh
     mkdir -p remixed
-    # ./data/${annotation_id}/remix_script.sh
+    ./data/${annotation_id}/remix_script.sh
 
     # ESPNet Version (same as voxforge)
     # consider duplicated sentences (does not consider speaker split)
     # filter out the same sentences (also same text) of test&dev set from validated set
     local/split_tr_dt_et.sh data/${annotation_id} data/${train_set} data/${train_dev} data/${test_set}
-    
-    # add speed perturbation
-    train_set_org=${train_set}
-    utils/perturb_data_dir_speed.sh 0.9 data/${train_set_org} data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/${train_set_org} data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/${train_set_org} data/temp3
-    train_set=${train_set_org}_sp
-    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
