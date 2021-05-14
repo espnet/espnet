@@ -372,3 +372,15 @@ def test_invalid_aux_transducer_loss_enc_layers():
 
     with pytest.raises(ValueError):
         E2E(idim, odim, train_args)
+
+    train_args = get_default_train_args(
+        use_aux_transducer_loss=True,
+        use_symm_kl_div_loss=True,
+        aux_transducer_loss_enc_output_layers=[0],
+        elayers=3,
+        etype="blstmp",
+        subsample="1_2_1",
+    )
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)
