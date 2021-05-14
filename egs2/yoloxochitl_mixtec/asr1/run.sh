@@ -5,12 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_org_sp
-train_dev=dev_org
-test_set=test_org
+train_set=train_sp
+train_dev=dev
+test_set=test
 
-asr_config=conf/tuning/train_asr_transformer.yaml
-# asr_config=conf/train_asr.yaml
+asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
@@ -25,7 +24,6 @@ inference_config=conf/decode_asr.yaml
     --nbpe 500 \
     --feats_type raw \
     --asr_config "${asr_config}" \
-    --asr_tag "transformer_org_data" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
