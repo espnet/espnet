@@ -14,8 +14,6 @@ SECONDS=0
 
 # dataset related
 annotation_type=eaf
-wavdir=${download_dir}/Sound-files-Puebla-Nahuatl
-annotation_dir=${download_dir}/Pueble-Nahuatl-Manifest
 
  . utils/parse_options.sh || exit 1;
 
@@ -37,10 +35,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-train_dev=dev
-test_set=test
-
+wavdir=${PUEBLA_NAHUATL}/Sound-files-Puebla-Nahuatl
+annotation_dir=${PUEBLA_NAHUATL}/Pueble-Nahuatl-Manifest
 
 log "data preparation started"
 
