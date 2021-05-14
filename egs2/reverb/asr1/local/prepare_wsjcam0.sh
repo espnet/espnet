@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 log() {
     local fname=${BASH_SOURCE[1]##*/}

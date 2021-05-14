@@ -1032,7 +1032,8 @@ class AbsTask(ABC):
 
         # 0. Init distributed process
         distributed_option = build_dataclass(DistributedOption, args)
-        distributed_option.init()
+        # Setting distributed_option.dist_rank, etc.
+        distributed_option.init_options()
 
         # NOTE(kamo): Don't use logging before invoking logging.basicConfig()
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
@@ -1061,6 +1062,8 @@ class AbsTask(ABC):
                 f":{distributed_option.dist_rank}/{distributed_option.dist_world_size}]"
                 f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
             )
+        # Invoking torch.distributed.init_process_group
+        distributed_option.init_torch_distributed()
 
         # 1. Set random-seed
         set_all_random_seed(args.seed)
@@ -1146,6 +1149,7 @@ class AbsTask(ABC):
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
+            logging.info(args)
 
             if args.valid_batch_size is None:
                 args.valid_batch_size = args.batch_size

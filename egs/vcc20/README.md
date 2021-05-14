@@ -38,7 +38,7 @@ The following packages do not come with the installation of ESPnet. Please insta
 ```
 cd <recipe>
 . ./path.sh
-pip install -U pypiyin parallel-wavagan
+pip install -U pypinyin parallel-wavegan
 ```
 
 - [pypinyin](https://pypi.org/project/pypinyin/): used in `tts1_en_zh` and `vc1_task2`.

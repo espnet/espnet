@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2021 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -40,8 +40,8 @@ fbankdir=$3
 tmpdir=$(mktemp -d ${data_dir}/tmp-XXXXX)
 trap 'rm -rf ${tmpdir}' EXIT
 
-for speed in ${speeds}; do
-    utils/perturb_data_dir_speed.sh ${speed} ${data_dir} ${tmpdir}/temp.${speed}
+for sp in ${speeds}; do
+    utils/perturb_data_dir_speed.sh ${sp} ${data_dir} ${tmpdir}/temp.${sp}
 done
 utils/combine_data.sh --extra-files utt2uniq ${dst} ${tmpdir}/temp.*
 
@@ -60,8 +60,8 @@ if [ -n "${langs}" ]; then
         done
         touch ${dst}/text.${case}.${lang}
 
-        for speed in ${speeds}; do
-            awk -v p="sp${speed}-" '{printf("%s %s%s\n", $1, p, $1);}' ${data_dir}/utt2spk > ${dst}/utt_map
+        for sp in ${speeds}; do
+            awk -v p="sp${sp}-" '{printf("%s %s%s\n", $1, p, $1);}' ${data_dir}/utt2spk > ${dst}/utt_map
 
             for case in ${cases}; do
                 utils/apply_map.pl -f 1 ${dst}/utt_map <${data_dir}/text.${case}.${lang} >> ${dst}/text.${case}.${lang}
@@ -70,9 +70,10 @@ if [ -n "${langs}" ]; then
     done
 else
     # for ASR only recipe
-    for speed in ${speeds}; do
-        awk -v p="sp${speed}-" '{printf("%s %s%s\n", $1, p, $1);}' ${data_dir}/utt2spk > ${dst}/utt_map
-        utils/apply_map.pl -f 1 ${dst}/utt_map <${data_dir}/text >${dst}/text
+    touch ${dst}/text
+    for sp in ${speeds}; do
+        awk -v p="sp${sp}-" '{printf("%s %s%s\n", $1, p, $1);}' ${data_dir}/utt2spk > ${dst}/utt_map
+        utils/apply_map.pl -f 1 ${dst}/utt_map <${data_dir}/text >>${dst}/text
     done
 fi
 

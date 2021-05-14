@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 2020 @kamo-naoyuki
 # This file was copied from Kaldi and 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Installs pb_chime5
 git clone https://github.com/fgnt/pb_chime5.git

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -102,7 +102,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in ${train_set_prefix} dev100 dev; do
-        local/divide_lang.sh ${x}
+        divide_lang.sh ${x} "mb fr"
     done
 
     # remove long and short utterances
@@ -152,11 +152,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} --lang "fr" \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
     for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
-        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --nlsyms ${nlsyms} --lang fr \
+        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --nlsyms ${nlsyms} --lang "fr" \
             data/${x} ${dict} > ${feat_trans_dir}/data.${src_case}_${tgt_case}.json
     done
 

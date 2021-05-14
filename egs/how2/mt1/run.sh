@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -92,7 +92,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train val dev5; do
-        local/divide_lang.sh ${x}
+        divide_lang.sh ${x} "en pt"
     done
 
     # remove long and short utterances
@@ -133,11 +133,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 
     echo "make json files"
-    data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
+    data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "pt" \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
+        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "pt" \
             data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
@@ -255,7 +255,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
         spm_decode --model=${bpemodel}.model --input_format=piece < ${data_dir}/text_asr_hyp.${src_case} | sed -e "s/▁/ /g" \
             > ${data_dir}/text_asr_hyp.wrd.${src_case}
 
-        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang pt \
+        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "pt" \
             data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         update_json.sh --text ${data_dir}/text_asr_hyp.wrd.${src_case} --bpecode ${bpemodel}.model \
             ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}

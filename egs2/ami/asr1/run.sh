@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #  Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -20,9 +20,9 @@ train_set=${mic}_train
 valid_set=${mic}_dev
 test_sets="${mic}_eval ${mic}_dev"
 
-asr_config=conf/train_asr.yaml
-lm_config=conf/train_lm.yaml
-inference_config=conf/decode_asr.yaml
+asr_config=conf/tuning/train_asr_transformer4.yaml
+lm_config=conf/tuning/train_lm_transformer2.yaml
+inference_config=conf/tuning/decode_transformer2.yaml
 
 speed_perturb_factors="0.9 1.0 1.1"
 

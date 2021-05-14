@@ -82,12 +82,10 @@ def detect_non_silence(
 
     Args:
         x: (Channel, Time)
-
     >>> x = np.random.randn(1000)
     >>> detect = detect_non_silence(x)
     >>> assert x.shape == detect.shape
     >>> assert detect.dtype == np.bool
-
     """
     if x.shape[-1] < frame_length:
         return np.full(x.shape, fill_value=True, dtype=np.bool)

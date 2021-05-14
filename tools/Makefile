@@ -3,7 +3,7 @@
 CHAINER_VERSION := 6.0.0
 # Disable cupy installation
 NO_CUPY :=
-# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.6.0, 1.7.0, 1.7.1, 1.8.0
+# PyTorch version: 0.4.1, 1.0.0, 1.0.1, 1.1.0, 1.2.0, 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.6.0, 1.7.0, 1.7.1, 1.8.0, 1.8.1
 TH_VERSION := 1.4.0
 WGET := wget --tries=3
 
@@ -153,7 +153,7 @@ endif
 	# chainer=6.0.0 depends on typing<=3.6.6, but this causes the following error when installing some modules. e.g. fairseq
 	# AttributeError: type object 'Callable' has no attribute '_abc_registry'
 	# "typing" modules is not required for python>=3.6, so uninstall here
-	python3 -m pip uninstall -y typing
+	. ./activate_python.sh && python3 -m pip uninstall -y typing
 	touch chainer.done
 
 # NOTE(kamo): Add conda_packages.done if cmake is used

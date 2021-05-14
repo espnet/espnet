@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #           2020 Electronics and Telecommunications Research Institute (Jeong-Uk, Bang)

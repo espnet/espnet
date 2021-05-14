@@ -179,7 +179,7 @@ class RNN(torch.nn.Module):
             if i == 0:
                 inputdim = idim
             else:
-                inputdim = hdim
+                inputdim = cdim
 
             layer_type = torch.nn.LSTM if "lstm" in typ else torch.nn.GRU
             rnn = layer_type(
@@ -195,6 +195,8 @@ class RNN(torch.nn.Module):
         self.hdim = hdim
         self.typ = typ
         self.bidir = bidir
+
+        self.l_last = torch.nn.Linear(cdim, hdim)
 
         self.aux_task_layer_list = aux_task_layer_list
 
@@ -242,13 +244,23 @@ class RNN(torch.nn.Module):
             xs_pad, ilens = pad_packed_sequence(xs, batch_first=True)
 
             if self.bidir:
-                xs_pad = xs_pad[:, :, : self.hdim] + xs_pad[:, :, self.hdim :]
+                xs_pad = xs_pad[:, :, : self.cdim] + xs_pad[:, :, self.cdim :]
 
             if layer in self.aux_task_layer_list:
-                aux_xs_list.append(xs_pad)
+                aux_projected = torch.tanh(
+                    self.l_last(xs_pad.contiguous().view(-1, xs_pad.size(2)))
+                )
+                aux_xs_pad = aux_projected.view(xs_pad.size(0), xs_pad.size(1), -1)
+
+                aux_xs_list.append(aux_xs_pad)
 
             if layer < self.elayers - 1:
                 xs_pad = self.dropout(xs_pad)
+
+        projected = torch.tanh(
+            self.l_last(xs_pad.contiguous().view(-1, xs_pad.size(2)))
+        )
+        xs_pad = projected.view(xs_pad.size(0), xs_pad.size(1), -1)
 
         if aux_xs_list:
             return (xs_pad, aux_xs_list), ilens, elayer_states

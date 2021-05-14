@@ -113,6 +113,7 @@ class ChunkIterFactory(AbsIterFactory):
             # Must be per-sample-loader
             assert len(ids) == 1, f"Must be per-sample-loader: {len(ids)}"
             assert all(len(x) == 1 for x in batch.values())
+
             # Get keys of sequence data
             sequence_keys = []
             for key in batch:
@@ -144,7 +145,7 @@ class ChunkIterFactory(AbsIterFactory):
             cache_chunks = cache_chunks_dict.setdefault(W, {})
 
             # Shift width to the next chunk
-            S = int(L * self.chunk_shift_ratio)
+            S = int(W * self.chunk_shift_ratio)
             # Number of chunks
             N = (L - W) // S + 1
             if shuffle:
@@ -210,4 +211,5 @@ class ChunkIterFactory(AbsIterFactory):
             )
             id_list = id_list[bs:]
             batches = {k: v[bs:] for k, v in batches.items()}
+
         return id_list, batches

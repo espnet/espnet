@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright   2014  Johns Hopkins University (author: Daniel Povey)
 #             2017  Luminar Technologies, Inc. (author: Daniel Galvez)
@@ -65,16 +65,21 @@ if [ ! -f $filepath ]; then
 
   cd $data
 
+  file_list=""
+
   if [ x$part != x ]; then
       for x in $(seq 0 $part); do
-          if ! wget --no-check-certificate ${url}${x}; then
+          echo "downloading ${url}${x}"
+          if ! wget -N --no-check-certificate ${url}${x}; then
             echo "$0: error executing wget ${url}${x}"
             exit 1;
           fi
+          file_list=${file_list}" ${filename}${x}"
       done
-      cat ${filename}* > ${filename}
+      echo "start combining"
+      cat ${file_list} > ${filename}
   else
-      if ! wget --no-check-certificate $url; then
+      if ! wget -N --no-check-certificate $url; then
         echo "$0: error executing wget $url"
         exit 1;
       fi

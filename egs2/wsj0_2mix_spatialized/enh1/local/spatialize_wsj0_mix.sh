@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright  2020  Shanghai Jiao Tong University (Author: Wangyou Zhang)
 # Apache 2.0
@@ -102,7 +102,7 @@ sed -i -e "s#c.NumWorkers = 22;#c.NumWorkers = ${NUM_WORKERS};#" \
 matlab_cmd="matlab -nodesktop -nodisplay -nosplash -r \"spatialize_wsj0_mix(${NUM_SPEAKERS},${MIN_OR_MAX},${FS},${START_IND},${STOP_IND},${USEPARCLUSTER_WITH_IND},${GENERATE_RIRS})\""
 
 cmdfile=${dir}/spatialize_matlab.sh
-echo "#!/bin/bash" > $cmdfile
+echo "#!/usr/bin/env bash" > $cmdfile
 echo "cd ${dir}" >> $cmdfile
 echo $matlab_cmd >> $cmdfile
 chmod +x $cmdfile
