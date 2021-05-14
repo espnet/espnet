@@ -40,7 +40,10 @@ def get_decoder_input(
 
 
 def valid_aux_encoder_output_layers(
-    aux_layer_id: List[int], enc_num_layers: int
+    aux_layer_id: List[int],
+    enc_num_layers: int,
+    use_symm_kl_div_loss: bool,
+    subsample: List[int],
 ) -> List[int]:
     """Check whether provided auxiliary encoder layer IDs are valid.
 
@@ -49,6 +52,8 @@ def valid_aux_encoder_output_layers(
     Args:
         aux_layer_id: Auxiliary encoder layer IDs.
         enc_num_layers: Number of encoder layers.
+        use_symm_kl_div_loss: Whether symmetric KL divergence loss is used.
+        subsample: Subsampling rate per layer.
 
     Returns:
         valid: Valid list of auxiliary encoder layers.
@@ -72,6 +77,20 @@ def valid_aux_encoder_output_layers(
             "Provided argument for aux-transducer-loss-enc-output-layers is incorrect."
             " IDs should be between [0, %d]" % enc_num_layers
         )
+
+    if use_symm_kl_div_loss:
+        sorted_list += [enc_num_layers]
+
+        for n in range(1, len(sorted_list)):
+            sub_range = subsample[(sorted_list[n - 1] + 1) : sorted_list[n] + 1]
+            valid_shape = [False if n > 1 else True for n in sub_range]
+
+            if False in valid_shape:
+                raise ValueError(
+                    "Encoder layers %d and %d have different shape due to subsampling."
+                    " Symmetric KL divergence loss doesn't cover such case for now."
+                    % (sorted_list[n - 1], sorted_list[n])
+                )
 
     return valid
 

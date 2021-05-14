@@ -206,6 +206,10 @@ class E2E(ASRInterface, torch.nn.Module):
             True if (training and args.use_aux_transducer_loss) else False
         )
 
+        self.subsample = get_subsample(
+            args, mode="asr", arch="transformer" if args.etype == "custom" else "rnn-t"
+        )
+
         if self.use_auxiliary_enc_outputs:
             n_layers = (
                 ((len(args.enc_block_arch) * args.enc_block_repeat) - 1)
@@ -216,6 +220,8 @@ class E2E(ASRInterface, torch.nn.Module):
             aux_enc_output_layers = valid_aux_encoder_output_layers(
                 args.aux_transducer_loss_enc_output_layers,
                 n_layers,
+                args.use_symm_kl_div_loss,
+                self.subsample,
             )
         else:
             aux_enc_output_layers = []
@@ -227,8 +233,6 @@ class E2E(ASRInterface, torch.nn.Module):
                     "should also be specified in training config. See"
                     "egs/vivos/asr1/conf/transducer/train_*.yaml for more info."
                 )
-
-            self.subsample = get_subsample(args, mode="asr", arch="transformer")
 
             self.encoder = CustomEncoder(
                 idim,
@@ -243,8 +247,6 @@ class E2E(ASRInterface, torch.nn.Module):
             )
             encoder_out = self.encoder.enc_out
         else:
-            self.subsample = get_subsample(args, mode="asr", arch="rnn-t")
-
             self.enc = encoder_for(
                 args,
                 idim,
