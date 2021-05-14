@@ -7,6 +7,8 @@
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
+shopt -s extglob
+
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
@@ -131,8 +133,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for x in ${test_set}; do
         cp data/${x}/text data/${x}/text.org
         paste -d " " \
-              <(cut -f 1 -d" " ${x}/text.org) \
-              <(cut -f 2- -d" " ${x}/text.org \
+              <(cut -f 1 -d" " data/${x}/text.org) \
+              <(cut -f 2- -d" " data/${x}/text.org \
                 | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")' \
                 | python3 -c 'import string; print(sys.stdin.read().translate(str.maketrans("", "", string.punctuation)), end="")') \
               > data/${x}/text
