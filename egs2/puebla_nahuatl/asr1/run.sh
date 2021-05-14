@@ -14,7 +14,7 @@ inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --local_data_opts "--stage 1" \
-    --stage 10 \
+    --stage 1 \
     --stop_stage 100 \
     --ngpu 1 \
     --nj 40 \

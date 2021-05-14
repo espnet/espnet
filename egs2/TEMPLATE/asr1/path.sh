@@ -1,4 +1,4 @@
-MAIN_ROOT=/export/c04/jiatong/tools/espnet_update/espnet
+MAIN_ROOT=$PWD/../../..
 KALDI_ROOT=$MAIN_ROOT/tools/kaldi
 
 export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$PATH
