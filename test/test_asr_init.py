@@ -235,7 +235,7 @@ def test_pytorch_trainable_and_transferable(model_type, finetune_dic):
     if model_type == "rnnt":
         beam_search = BeamSearchTransducer(
             decoder=model.dec,
-            joint_network=model.joint_network,
+            joint_network=model.transducer_tasks.joint_network,
             beam_size=1,
             lm=None,
             lm_weight=0.0,
