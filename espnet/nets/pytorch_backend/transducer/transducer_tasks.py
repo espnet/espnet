@@ -87,7 +87,7 @@ class TransducerTasks(torch.nn.Module):
         if ctc_loss:
             self.ctc_lin = torch.nn.Linear(encoder_dim, output_dim)
 
-            if LooseVersion(torch.__version__) < LooseVersion("1.7.0"):
+            if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
                 self.ctc_loss = torch.nn.CTCLoss(
                     blank=blank_id,
                     reduction="sum",
