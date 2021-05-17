@@ -96,7 +96,8 @@ def test_CTCSegmentation(asr_config_file):
     assert start < (num_samples / fs)
     assert end >= start
     assert score < 0.0
-    # check options and align with "classic" text converter
+    # check different set of options
+    aligner.config.replace_spaces_with_blanks = True
     option_dict = {
         "fs": 16000,
         "time_stamps": "fixed",
