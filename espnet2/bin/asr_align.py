@@ -484,8 +484,6 @@ class CTCSegmentation:
             config.set(**timing_cfg)
         # `text` is needed in the form of a list.
         utt_ids, text = self._split_text(text)
-        # Clean text
-        text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
         # List of str --tokenize--> list of np.array
         token_list = [
             self.preprocess_fn("<dummy>", {"text": utt})["text"] for utt in text
