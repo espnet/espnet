@@ -30,7 +30,6 @@ from espnet2.utils.types import str_or_none
 from ctc_segmentation import ctc_segmentation
 from ctc_segmentation import CtcSegmentationParameters
 from ctc_segmentation import determine_utterance_segments
-from ctc_segmentation import prepare_text
 from ctc_segmentation import prepare_token_list
 
 
@@ -148,6 +147,15 @@ class CTCSegmentation:
         utt1 utt 0.27 1.72 -0.1663 THE SALE OF THE HOTELS
         utt2 utt 4.54 6.10 -4.9646 ON PROPERTY MANAGEMENT
 
+    On multiprocessing:
+        To parallelize the computation with multiprocessing, these three steps
+        can be separated:
+        (1) ``get_lpz``: obtain the lpz,
+        (2) ``prepare_segmentation_task``: prepare the task, and
+        (3) ``get_segments``: perform CTC segmentation.
+        Note that the function `get_segments` is a staticmethod and therefore
+        independent of an already initialized CTCSegmentation obj́ect.
+
     References:
         CTC-Segmentation of Large Corpora for German End-to-end Speech Recognition
         2020, Kürzinger, Winkelbauer, Li, Watzel, Rigoll
@@ -161,8 +169,6 @@ class CTCSegmentation:
     samples_to_frames_ratio = None
     time_stamps = "auto"
     choices_time_stamps = ["auto", "fixed"]
-    text_converter = "tokenize"
-    choices_text_converter = ["tokenize", "classic"]
     warned_about_misconfiguration = False
     config = CtcSegmentationParameters()
 
@@ -175,7 +181,6 @@ class CTCSegmentation:
         batch_size: int = 1,
         dtype: str = "float32",
         kaldi_style_text: bool = True,
-        text_converter: str = "tokenize",
         time_stamps: str = "auto",
         **ctc_segmentation_args,
     ):
@@ -196,11 +201,6 @@ class CTCSegmentation:
                 is expected as first word at each line. If False, utterance
                 names are automatically generated. Set this option according to
                 your input data. Default: True.
-            text_converter: How CTC segmentation handles text.
-                "tokenize": Use ESPnet 2 preprocessing to tokenize the text.
-                "classic": The text is preprocessed as in ESPnet 1 which takes
-                token length into account. If the ASR model has longer tokens,
-                this option may yield better results. Default: "tokenize".
             time_stamps: Choose the method how the time stamps are
                 calculated. While "fixed" and "auto" use both the sample rate,
                 the ratio of samples to one frame is either automatically
@@ -252,7 +252,6 @@ class CTCSegmentation:
             fs=fs,
             time_stamps=time_stamps,
             kaldi_style_text=kaldi_style_text,
-            text_converter=text_converter,
             **ctc_segmentation_args,
         )
         # last token "<sos/eos>", not needed
@@ -274,9 +273,6 @@ class CTCSegmentation:
 
         Parameters for text preparation:
             set_blank: Index of blank in token list. Default: 0.
-            replace_spaces_with_blanks: Inserts blanks between words, which is
-                useful for handling long pauses between words. Only used in
-                "text" preprocessing mode. Default: False.
             kaldi_style_text: Determines whether the utterance name is expected
                 as fist word of the utterance. Set at module initialization.
             text_converter: How CTC segmentation handles text.
@@ -313,20 +309,9 @@ class CTCSegmentation:
         if "set_blank" in kwargs:
             assert isinstance(kwargs["set_blank"], int)
             self.config.blank = kwargs["set_blank"]
-        if "replace_spaces_with_blanks" in kwargs:
-            self.config.replace_spaces_with_blanks = bool(
-                kwargs["replace_spaces_with_blanks"]
-            )
         if "kaldi_style_text" in kwargs:
             assert isinstance(kwargs["kaldi_style_text"], bool)
             self.kaldi_style_text = kwargs["kaldi_style_text"]
-        if "text_converter" in kwargs:
-            if kwargs["text_converter"] not in self.choices_text_converter:
-                raise NotImplementedError(
-                    f"Parameter ´text_converter´ has to be one of "
-                    f"{list(self.choices_text_converter)}",
-                )
-            self.text_converter = kwargs["text_converter"]
         # Parameters for alignment
         if "min_window_size" in kwargs:
             assert isinstance(kwargs["min_window_size"], int)
@@ -447,6 +432,34 @@ class CTCSegmentation:
         object. The resulting object can be serialized and passed in a
         multiprocessing computation.
 
+        A minimal amount of text processing is done, i.e., splitting the
+        utterances in ``text`` into a list and applying ``text_cleaner``.
+        It is recommended that you normalize the text beforehand, e.g.,
+        change numbers into their spoken equivalent word, remove special
+        characters, and convert UTF-8 characters to chars corresponding to
+        your ASR model dictionary.
+
+        This function directly tokenizes the ground truth which is different
+        compared the method in ESPnet 1 that takes token length into account.
+        If your ASR model has long tokens and you want to scan for partial
+        tokens for better time resolution, then you need to change the
+        tokenization in ``ground_truth_mat`` before performing CTC
+        segmentation.
+        For example, the word "▁really" will be broken down into
+        ['▁', '▁r', '▁re', '▁real', '▁really']. This can improve timings.
+        With an already prepared ``task`` and an ``aligner``:
+
+        >>> from ctc_segmentation import prepare_text
+        >>> aligner = CTCSegmentation(...)
+        >>> # ...
+        >>> task = aligner.prepare_segmentation_task(text, lpz)
+        >>> gtm, ubi = prepare_text(aligner.config, task.text)
+        >>> task.set(ground_truth_mat=gtm, utt_begin_indices=ubi)
+        >>> segments = self.get_segments(task)
+        >>> task.set(**segments)
+        >>> str(task)
+
+
         Args:
             text: List or multiline-string with utterance ground truths.
             lpz: Log CTC posterior probabilities obtained from the CTC-network;
@@ -471,20 +484,17 @@ class CTCSegmentation:
             config.set(**timing_cfg)
         # `text` is needed in the form of a list.
         utt_ids, text = self._split_text(text)
-        # Obtain utterance & label sequence from text
-        if self.text_converter == "tokenize":
-            # list of str --tokenize--> list of np.array
-            token_list = [
-                self.preprocess_fn("<dummy>", {"text": utt})["text"] for utt in text
-            ]
-            # filter out any instances of the <unk> token
-            unk = config.char_list.index("<unk>")
-            token_list = [utt[utt != unk] for utt in token_list]
-            ground_truth_mat, utt_begin_indices = prepare_token_list(config, token_list)
-        else:
-            assert self.text_converter == "classic"
-            text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
-            ground_truth_mat, utt_begin_indices = prepare_text(config, text)
+        # Clean text
+        text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
+        # List of str --tokenize--> list of np.array
+        token_list = [
+            self.preprocess_fn("<dummy>", {"text": utt})["text"] for utt in text
+        ]
+        # Filter out any instances of the <unk> token
+        unk = config.char_list.index("<unk>")
+        token_list = [utt[utt != unk] for utt in token_list]
+        # Obtain matrix that contains the label sequences for all utterances
+        ground_truth_mat, utt_begin_indices = prepare_token_list(config, token_list)
         task = CTCSegmentationTask(
             config=config,
             name=name,
@@ -699,14 +709,6 @@ def get_parser():
         " if there are unrelated audio segments between utterances.",
     )
     group.add_argument(
-        "--replace_spaces_with_blanks",
-        type=str2bool,
-        default=False,
-        help="Fill blanks in between words to better model pauses between words."
-        " Segments can be misaligned if this option is combined with"
-        " --gratis-blank.",
-    )
-    group.add_argument(
         "--scoring_length",
         type=int,
         default=None,
@@ -719,13 +721,6 @@ def get_parser():
         choices=CTCSegmentation.choices_time_stamps,
         help="Select method how CTC index duration is estimated, and"
         " thus how the time stamps are calculated.",
-    )
-    group.add_argument(
-        "--text_converter",
-        type=str,
-        default=CTCSegmentation.text_converter,
-        choices=CTCSegmentation.choices_text_converter,
-        help="How CTC segmentation handles text.",
     )
 
     group = parser.add_argument_group("Input/output arguments")

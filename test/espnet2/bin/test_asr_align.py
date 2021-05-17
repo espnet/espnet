@@ -105,10 +105,8 @@ def test_CTCSegmentation(asr_config_file):
         "max_window_size": 20000,
         "set_blank": 0,
         "scoring_length": 10,
-        "replace_spaces_with_blanks": True,
         "gratis_blank": True,
         "kaldi_style_text": False,
-        "text_converter": "classic",
     }
     aligner.set_config(**option_dict)
     assert aligner.warned_about_misconfiguration
