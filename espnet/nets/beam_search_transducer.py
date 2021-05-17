@@ -35,6 +35,7 @@ class BeamSearchTransducer:
         nstep: int = 1,
         prefix_alpha: int = 1,
         score_norm: bool = True,
+        softmax_temperature: float = 1.0,
         nbest: int = 1,
     ):
         """Initialize transducer beam search.
@@ -60,6 +61,7 @@ class BeamSearchTransducer:
         self.beam_size = beam_size
         self.hidden_size = decoder.dunits
         self.vocab_size = decoder.odim
+
         self.blank_id = decoder.blank_id
 
         if self.beam_size <= 1:
@@ -92,6 +94,7 @@ class BeamSearchTransducer:
         self.prefix_alpha = prefix_alpha
         self.score_norm = score_norm
 
+        self.softmax_temperature = softmax_temperature
         self.nbest = nbest
 
     def __call__(
@@ -149,7 +152,10 @@ class BeamSearchTransducer:
         dec_out, state, _ = self.decoder.score(hyp, cache)
 
         for enc_out_t in enc_out:
-            logp = torch.log_softmax(self.joint_network(enc_out_t, dec_out), dim=-1)
+            logp = torch.log_softmax(
+                self.joint_network(enc_out_t, dec_out) / self.softmax_temperature,
+                dim=-1,
+            )
             top_logp, pred = torch.max(logp, dim=-1)
 
             if pred != self.blank_id:
@@ -192,7 +198,10 @@ class BeamSearchTransducer:
 
                 dec_out, state, lm_tokens = self.decoder.score(max_hyp, cache)
 
-                logp = torch.log_softmax(self.joint_network(enc_out_t, dec_out), dim=-1)
+                logp = torch.log_softmax(
+                    self.joint_network(enc_out_t, dec_out) / self.softmax_temperature,
+                    dim=-1,
+                )
                 top_k = logp[1:].topk(beam_k, dim=-1)
 
                 kept_hyps.append(
@@ -280,7 +289,9 @@ class BeamSearchTransducer:
                 )
 
                 beam_logp = torch.log_softmax(
-                    self.joint_network(enc_out_t, beam_dec_out), dim=-1
+                    self.joint_network(enc_out_t, beam_dec_out)
+                    / self.softmax_temperature,
+                    dim=-1,
                 )
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
@@ -395,7 +406,9 @@ class BeamSearchTransducer:
                 beam_enc_out = torch.stack([x[1] for x in B_enc_out])
 
                 beam_logp = torch.log_softmax(
-                    self.joint_network(beam_enc_out, beam_dec_out), dim=-1
+                    self.joint_network(beam_enc_out, beam_dec_out)
+                    / self.softmax_temperature,
+                    dim=-1,
                 )
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
@@ -523,14 +536,18 @@ class BeamSearchTransducer:
                         and (curr_id - pref_id) <= self.prefix_alpha
                     ):
                         logp = torch.log_softmax(
-                            self.joint_network(enc_out_t, hyp_i.dec_out[-1]), dim=-1
+                            self.joint_network(enc_out_t, hyp_i.dec_out[-1])
+                            / self.softmax_temperature,
+                            dim=-1,
                         )
 
                         curr_score = hyp_i.score + float(logp[hyp_j.label_seq[pref_id]])
 
                         for k in range(pref_id, (curr_id - 1)):
                             logp = torch.log_softmax(
-                                self.joint_network(enc_out_t, hyp_j.dec_out[k]), dim=-1
+                                self.joint_network(enc_out_t, hyp_j.dec_out[k])
+                                / self.softmax_temperature,
+                                dim=-1,
                             )
 
                             curr_score += float(logp[hyp_j.label_seq[k + 1]])
@@ -543,7 +560,9 @@ class BeamSearchTransducer:
                 beam_dec_out = torch.stack([hyp.dec_out[-1] for hyp in hyps])
 
                 beam_logp = torch.log_softmax(
-                    self.joint_network(beam_enc_out, beam_dec_out), dim=-1
+                    self.joint_network(beam_enc_out, beam_dec_out)
+                    / self.softmax_temperature,
+                    dim=-1,
                 )
                 beam_topk = beam_logp[:, 1:].topk(beam_k, dim=-1)
 
@@ -614,7 +633,9 @@ class BeamSearchTransducer:
                     hyps = V[:]
                 else:
                     beam_logp = torch.log_softmax(
-                        self.joint_network(beam_enc_out, beam_dec_out), dim=-1
+                        self.joint_network(beam_enc_out, beam_dec_out)
+                        / self.softmax_temperature,
+                        dim=-1,
                     )
 
                     for i, v in enumerate(V):

@@ -1075,7 +1075,6 @@ def recog(args):
             decoder=trans_decoder,
             joint_network=joint_network,
             beam_size=args.beam_size,
-            nbest=args.nbest,
             lm=rnnlm,
             lm_weight=args.lm_weight,
             search_type=args.search_type,
@@ -1084,6 +1083,8 @@ def recog(args):
             nstep=args.nstep,
             prefix_alpha=args.prefix_alpha,
             score_norm=args.score_norm,
+            softmax_temperature=args.softmax_temperature,
+            nbest=args.nbest,
         )
 
     if args.batchsize == 0:

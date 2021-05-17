@@ -187,6 +187,12 @@ def get_parser():
         default=True,
         help="Normalize transducer scores by length",
     )
+    parser.add_argument(
+        "--softmax-temperature",
+        type=float,
+        default=1.0,
+        help="Temperature for transducer output distribution.",
+    )
     # rnnlm related
     parser.add_argument(
         "--rnnlm", type=str, default=None, help="RNNLM model file to read"
