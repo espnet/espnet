@@ -148,6 +148,15 @@ class CTCSegmentation:
         utt1 utt 0.27 1.72 -0.1663 THE SALE OF THE HOTELS
         utt2 utt 4.54 6.10 -4.9646 ON PROPERTY MANAGEMENT
 
+    On multiprocessing:
+        To parallelize the computation with multiprocessing, these three steps
+        can be separated:
+        (1) ``get_lpz``: obtain the lpz,
+        (2) ``prepare_segmentation_task``: prepare the task, and
+        (3) ``get_segments``: perform CTC segmentation.
+        Note that the function `get_segments` is a staticmethod and therefore
+        independent of an already initialized CTCSegmentation obj́ect.
+
     References:
         CTC-Segmentation of Large Corpora for German End-to-end Speech Recognition
         2020, Kürzinger, Winkelbauer, Li, Watzel, Rigoll
@@ -276,7 +285,7 @@ class CTCSegmentation:
             set_blank: Index of blank in token list. Default: 0.
             replace_spaces_with_blanks: Inserts blanks between words, which is
                 useful for handling long pauses between words. Only used in
-                "text" preprocessing mode. Default: False.
+                ``text_converter="classic"`` preprocessing mode. Default: False.
             kaldi_style_text: Determines whether the utterance name is expected
                 as fist word of the utterance. Set at module initialization.
             text_converter: How CTC segmentation handles text.
@@ -284,9 +293,10 @@ class CTCSegmentation:
 
         Parameters for alignment:
             min_window_size: Minimum number of frames considered for a single
-                utterance. The current default value of 8000 should be OK in most
-                cases. If your utterances are further apart, increase this value,
-                or decrease it for smaller audio files.
+                utterance. The current default value of 8000 corresponds to
+                roughly 4 minutes (depending on ASR model) and should be OK in
+                most cases. If your utterances are further apart, increase
+                this value, or decrease it for smaller audio files.
             max_window_size: Maximum window size. It should not be necessary
                 to change this value.
             gratis_blank: If True, the transition cost of blank is set to zero.
@@ -446,6 +456,28 @@ class CTCSegmentation:
         Text, lpz, and configuration is collected in a CTCSegmentationTask
         object. The resulting object can be serialized and passed in a
         multiprocessing computation.
+
+        A minimal amount of text processing is done, i.e., splitting the
+        utterances in ``text`` into a list and applying ``text_cleaner``.
+        It is recommended that you normalize the text beforehand, e.g.,
+        change numbers into their spoken equivalent word, remove special
+        characters, and convert UTF-8 characters to chars corresponding to
+        your ASR model dictionary.
+
+        The text is tokenized based on the ``text_converter`` setting:
+
+        The "tokenize" method is more efficient and the easiest for models
+        based on latin or cyrillic script that only contain the main chars,
+        ["a", "b", ...] or for Japanese or Chinese ASR models with ~3000
+        short Kanji / Hanzi tokens.
+
+        The "classic" method improves the the accuracy of the alignments
+        for models that contain longer tokens, but with a greater complexity
+        for computation. The function scans for partial tokens which may
+        improve time resolution.
+        For example, the word "▁really" will be broken down into
+        ``['▁', '▁r', '▁re', '▁real', '▁really']``. The alignment will be
+        based on the most probable activation sequence given by the network.
 
         Args:
             text: List or multiline-string with utterance ground truths.
@@ -703,6 +735,7 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Fill blanks in between words to better model pauses between words."
+        " This option is only active for `--text_converter classic`."
         " Segments can be misaligned if this option is combined with"
         " --gratis-blank.",
     )
