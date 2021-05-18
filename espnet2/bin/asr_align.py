@@ -266,6 +266,12 @@ class CTCSegmentation:
         )
         # last token "<sos/eos>", not needed
         self.config.char_list = asr_model.token_list[:-1]
+        # Replace <space> to be a shorter token
+        # (this prevents too long ground truth sequences)
+        self.config.char_list = [
+            " " if token == self.preprocess_fn.tokenizer.space_symbol else token
+            for token in self.config.char_list
+        ]
 
     def set_config(self, **kwargs):
         """Set CTC segmentation parameters.
@@ -516,7 +522,12 @@ class CTCSegmentation:
         else:
             assert self.text_converter == "classic"
             text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
-            ground_truth_mat, utt_begin_indices = prepare_text(config, text)
+            token_list = [
+                "".join(self.preprocess_fn.tokenizer.text2tokens(utt)) for utt in text
+            ]
+            token_list = [utt.replace("<space>", " ") for utt in token_list]
+            token_list = [utt.replace("<unk>", "") for utt in token_list]
+            ground_truth_mat, utt_begin_indices = prepare_text(config, token_list)
         task = CTCSegmentationTask(
             config=config,
             name=name,
