@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 set -u
@@ -26,7 +26,7 @@ fi
 . ./db.sh || exit 1;
 
 if [ -z "${CSMSC}" ]; then
-   log "Fill the value of 'JSUT' of db.sh"
+   log "Fill the value of 'CSMSC' of db.sh"
    exit 1
 fi
 db_root=${CSMSC}

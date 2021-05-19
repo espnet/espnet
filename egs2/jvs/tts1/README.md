@@ -29,7 +29,7 @@ If you have your own pretrained model, you can skip this step.
 
 ```sh
 $ . ./path.sh
-$ espnet_model_zoo_download --unpack true --cache_dir downloads kan-bayashi/jsut_tacotron2
+$ espnet_model_zoo_download --unpack true --cachedir downloads kan-bayashi/jsut_tacotron2
 ```
 
 You can find the other pretrained models in [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).

@@ -25,7 +25,7 @@ class DistributedOption:
     dist_launcher: Optional[str] = None
     multiprocessing_distributed: bool = True
 
-    def init(self):
+    def init_options(self):
         if self.distributed:
             if self.dist_init_method == "env://":
                 if get_master_addr(self.dist_master_addr, self.dist_launcher) is None:
@@ -83,6 +83,8 @@ class DistributedOption:
                         f"tcp://{self.dist_master_addr}:{self.dist_master_port}"
                     )
 
+    def init_torch_distributed(self):
+        if self.distributed:
             # See:
             # https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html
             os.environ.setdefault("NCCL_DEBUG", "INFO")

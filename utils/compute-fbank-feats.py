@@ -118,7 +118,7 @@ def main():
 
             lmspc = logmelspectrogram(
                 x=array,
-                fs=args.fs,
+                fs=args.fs if args.fs is not None else rate,
                 n_mels=args.n_mels,
                 n_fft=args.n_fft,
                 n_shift=args.n_shift,

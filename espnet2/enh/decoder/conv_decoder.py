@@ -4,7 +4,7 @@ from espnet2.enh.decoder.abs_decoder import AbsDecoder
 
 
 class ConvDecoder(AbsDecoder):
-    """Transposed Convolutional decoder for speech enhancement and separation """
+    """Transposed Convolutional decoder for speech enhancement and separation"""
 
     def __init__(
         self,

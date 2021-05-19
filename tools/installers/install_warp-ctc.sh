@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 MAKE=make
@@ -66,11 +66,12 @@ if "${torch_17_plus}"; then
 
 elif "${torch_11_plus}"; then
 
-    warpctc_version=0.2.1
+    warpctc_version=0.2.2
+    release_page_url=https://github.com/espnet/warp-ctc/releases/tag/v${warpctc_version}
     if [ -z "${cuda_version}" ]; then
-        python3 -m pip install warpctc-pytorch==${warpctc_version}+torch"${torch_version}".cpu
+        python3 -m pip install warpctc-pytorch==${warpctc_version}+torch"${torch_version}".cpu -f ${release_page_url}
     else
-        python3 -m pip install warpctc-pytorch==${warpctc_version}+torch"${torch_version}".cuda"${cuda_version}"
+        python3 -m pip install warpctc-pytorch==${warpctc_version}+torch"${torch_version}".cuda"${cuda_version}" -f ${release_page_url}
     fi
 
 elif "${torch_10_plus}"; then

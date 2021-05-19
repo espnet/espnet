@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 # Copyright 2020 Nagoya University (Ibuki Kuroyanagi)

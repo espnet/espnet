@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -10,6 +10,7 @@ nlsyms=""
 oov="<unk>"
 bpecode=""
 verbose=0
+trans_type=char
 
 text=""
 multilingual=false
@@ -56,9 +57,9 @@ if [ -n "${bpecode}" ]; then
             > ${tmpdir}/output/token.scp
     fi
 elif [ -n "${nlsyms}" ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 else
-    text2token.py -s 1 -n 1 ${text} > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 ${text} --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 awk '{print $1 " " NF-1}' ${tmpdir}/output/tokenid.scp > ${tmpdir}/output/olen.scp

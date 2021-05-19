@@ -2,9 +2,7 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 AISHELL=downloads
-AISHELL3=downloads
 AN4=downloads
-AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
@@ -31,12 +29,14 @@ HKUST2=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
+MINI_LIBRISPEECH=downloads
 LIBRITTS=
 LJSPEECH=downloads
-MUSAN=
+NSC=
 JSSS=downloads
 JSUT=downloads
 JVS=downloads
+SPGISPEECH=
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
@@ -73,13 +73,13 @@ YESNO=downloads
 HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
+RU_OPEN_STT=downloads
+GIGASPEECH=
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
-    AISHELL3=
     AN4=
-    AUDIOSET=
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=
     DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
@@ -106,9 +106,9 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
+    MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
-    MUSAN=
     JSSS=downloads
     JSUT=downloads
     JVS=downloads

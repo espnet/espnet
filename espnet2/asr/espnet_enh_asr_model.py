@@ -18,6 +18,10 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
+SINGLE_SPK=0
+MULTI_SPK=1
+
+
 def fliter_attrs(a, b):
     a_attr = [attr for attr in a if attr[:2] != "__" and attr[-2:] != "__"]
     b_attr = [attr for attr in b if attr[:2] != "__" and attr[-2:] != "__"]
@@ -134,11 +138,18 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         ]
 
         # 0. Enhancement
+        if "utt2category" in kwargs:
+            utt2category = kwargs["utt2category"][0]
+        else:
+            utt2category = 0
+        # print(utt2category)
 
         # make sure the speech_pre is the raw waveform with same size.
-        if len(text_ref) == 1 or all(
-            [tr.equal(text_ref[0]) for tr in text_ref[1:]]
-        ):
+        # if len(text_ref) == 1 or all(
+        #     [tr.equal(text_ref[0]) for tr in text_ref[1:]]
+        # ):
+        # if False:
+        if utt2category.int() == SINGLE_SPK:
             # TODO(Jing): find a better way to locate single-spk set
             # single-speaker case
             speech_pre_all = (
@@ -151,10 +162,11 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             perm = True
             loss_enh = None
             n_speaker_asr = 1
-        else:
-            loss_enh, perm, speech_pre, speech_pre_lengths = self.forward_enh(
+        elif utt2category.int() == MULTI_SPK:
+            loss_enh, perm, speech_pre, speech_pre_lengths = self.enh_subclass.forward(
                 speech_mix,
                 speech_mix_lengths,
+                asr_integration=True,
                 speech_ref=speech_ref,
             )
             # speech_pre: List[bs,T] --> (bs,num_spk,T)
@@ -279,124 +291,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         speech_mix = speech_mix[:, : speech_mix_lengths.max()]
         feats, feats_lengths = speech_mix, speech_mix_lengths
         return {"feats": feats, "feats_lengths": feats_lengths}
-
-    # Enhancement related, basicly from the espnet2/enh/espnet_model.py
-    def forward_enh(
-        self,
-        speech_mix: torch.Tensor,
-        speech_mix_lengths: torch.Tensor = None,
-        speech_ref: List[torch.Tensor] = None,
-        resort_pre: bool = True,
-        **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
-
-        Args:
-            speech_mix: (Batch, samples) or (Batch, samples, channels)
-            speech_ref: num_speaker * (Batch, samples)
-                        or num_speaker * (Batch, samples, channels)
-            speech_mix_lengths: (Batch,), default None for chunk interator,
-                            because the chunk-iterator does not have the
-                            speech_lengths returned. see in
-                            espnet2/iterators/chunk_iter_factory.py
-        """
-        # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
-        if speech_ref is not None and speech_ref[0] is not None:
-            speech_ref = torch.stack(speech_ref, dim=1)
-        else:
-            speech_ref = None
-
-        if "noise_ref1" in kwargs:
-            # noise signal (optional, required when using
-            # frontend models with beamformering)
-            noise_ref = [
-                kwargs["noise_ref{}".format(n + 1)] for n in range(self.num_noise_type)
-            ]
-            # (Batch, num_noise_type, samples) or
-            # (Batch, num_noise_type, samples, channels)
-            noise_ref = torch.stack(noise_ref, dim=1)
-        else:
-            noise_ref = None
-
-        # dereverberated noisy signal
-        # (optional, only used for frontend models with WPE)
-        if "dereverb_ref1" in kwargs:
-            # noise signal (optional, required when using
-            # frontend models with beamformering)
-            dereverb_speech_ref = [
-                kwargs["dereverb_ref{}".format(n + 1)]
-                for n in range(self.num_spk)
-                if "dereverb_ref{}".format(n + 1) in kwargs
-            ]
-            assert len(dereverb_speech_ref) in (1, self.num_spk), len(
-                dereverb_speech_ref
-            )
-            # (Batch, N, samples) or (Batch, N, samples, channels)
-            dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
-        else:
-            dereverb_speech_ref = None
-
-        if speech_ref is None and noise_ref is None and dereverb_speech_ref is None:
-            # There is no ref provided, avoid the enh loss
-            assert not self.cal_enh_loss, (
-                "There is no reference,"
-                "cal_enh_loss must be false, but {} given.".format(self.cal_enh_loss)
-            )
-
-        batch_size = speech_mix.shape[0]
-        speech_lengths = (
-            speech_mix_lengths
-            if speech_mix_lengths is not None
-            else torch.ones(batch_size).int() * speech_mix.shape[1]
-        )
-        assert speech_lengths.dim() == 1, speech_lengths.shape
-        # Check that batch_size is unified
-        if speech_ref is not None:
-            assert (
-                speech_mix.shape[0] == speech_ref.shape[0] == speech_lengths.shape[0]
-            ), (
-                speech_mix.shape,
-                speech_ref.shape,
-                speech_lengths.shape,
-            )
-
-        # for data-parallel
-        speech_ref = (
-            speech_ref[:, :, : speech_lengths.max()] if speech_ref is not None else None
-        )
-        speech_mix = speech_mix[:, : speech_lengths.max()]
-
-        loss, speech_pre, others, out_lengths, perm  = self.enh_subclass._compute_loss(
-            speech_mix,
-            speech_lengths,
-            speech_ref,
-            dereverb_speech_ref=dereverb_speech_ref,
-            noise_ref=noise_ref,
-        )
-        if self.enh_subclass.loss_type != "si_snr":
-            speech_pre = [self.enh_subclass.decoder(ps, speech_lengths)[0] for ps in speech_pre]
-
-
-
-        if resort_pre and perm is not None:
-            # resort the prediction wav with the perm from enh_loss
-            # speech_pre : List[(BS, ...)] of spk
-            # perm : List[(num_spk)] of batch
-            speech_pre_list = []
-            for batch_idx, p in enumerate(perm):
-                batch_list = []
-                for spk_idx in p:
-                    batch_list.append(speech_pre[spk_idx][batch_idx])  # spk,...
-                speech_pre_list.append(torch.stack(batch_list, dim=0))
-
-            speech_pre = torch.stack(speech_pre_list, dim=0)  # bs,num_spk,...
-            speech_pre = torch.unbind(speech_pre, dim=1)  # list[(bs,...)] of spk
-        else:
-            # speech_pre = torch.stack(speech_pre, dim=1)  # bs,num_spk,...
-            pass
-
-
-        return loss, perm, speech_pre, out_lengths
 
     def _calc_ctc_loss_with_spk(
         self,

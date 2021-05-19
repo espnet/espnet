@@ -1,0 +1,54 @@
+# network architecture
+# encoder related
+encoder: transformer
+encoder_conf:
+    input_layer: "conv2d"
+    num_blocks: 12
+    linear_units: 2048
+    dropout_rate: 0.1
+    output_size: 512  # dimension of attention
+    attention_heads: 8
+    attention_dropout_rate: 0.0
+
+# decoder related
+# decoder related
+decoder: transformer
+decoder_conf:
+    input_layer: "embed"
+    num_blocks: 6
+    linear_units: 2048
+    dropout_rate: 0.1
+
+# hybrid CTC/attention
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+ctc_conf:
+    ignore_nan_grad: true
+
+# minibatch related
+batch_type: numel
+batch_bins: 40000000
+
+# optimization related
+optim: adam
+accum_grad: 4
+grad_clip: 5
+max_epoch: 63
+patience: none
+optim_conf:
+    lr: 1.0
+scheduler: noamlr
+scheduler_conf:
+    warmup_steps: 25000
+
+# others:
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 10
+
+init: chainer

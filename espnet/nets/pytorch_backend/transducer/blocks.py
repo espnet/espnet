@@ -1,4 +1,4 @@
-"""Set of methods to create transformer-based block."""
+"""Set of methods to create custom architecture."""
 
 from collections import Counter
 
@@ -192,7 +192,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         input_layer_odim = blocks_arch[0]["d_hidden"]
 
     if blocks_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
-        out_dim = blocks_arch[-1]["idim"]
+        out_dim = blocks_arch[-1]["odim"]
     else:
         out_dim = blocks_arch[-1]["d_hidden"]
 
@@ -473,7 +473,7 @@ def build_blocks(
     dropout_rate_embed=0.0,
     padding_idx=-1,
 ):
-    """Build block for transformer-based models.
+    """Build block for customizable architecture.
 
     Args:
         net_part (str): either 'encoder' or 'decoder'
