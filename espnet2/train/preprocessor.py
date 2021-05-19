@@ -16,6 +16,8 @@ from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 
+from espnet2.asr.espnet_enh_asr_model import SINGLE_SPK
+from espnet2.asr.espnet_enh_asr_model import MULTI_SPK
 
 class AbsPreprocessor(ABC):
     def __init__(self, train: bool):
@@ -325,12 +327,14 @@ class CommonPreprocessor_multi(AbsPreprocessor):
         delimiter: str = None,
         speech_name: str = "speech",
         text_name: list = ["text"],
+        utt2category_name: str = "utt2category",
     ):
         super().__init__(train)
         self.train = train
         self.speech_name = speech_name
         self.text_name = text_name
-
+        self.utt2category_name = utt2category_name
+        
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -365,6 +369,13 @@ class CommonPreprocessor_multi(AbsPreprocessor):
             # - CMVN
             # - Data augmentation
             pass
+
+        if self.utt2category_name in data:
+            category = data[self.utt2category_name]
+            if "single-speaker" in category:
+                data[self.utt2category_name] = np.array([SINGLE_SPK], dtype=np.int64)
+            elif "multi-speaker" in category:
+                data[self.utt2category_name] = np.array([MULTI_SPK], dtype=np.int64)
 
         for text_n in self.text_name:
             if text_n in data and self.tokenizer is not None:

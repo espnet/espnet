@@ -815,6 +815,7 @@ if ! "${skip_train}"; then
                     --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
                     --fold_length "${lm_fold_length}" \
                     --resume true \
+                    --unused_parameters true \
                     --output_dir "${lm_exp}" \
                     ${_opts} ${lm_args}
 
@@ -903,6 +904,8 @@ if ! "${skip_train}"; then
         # prepare train and valid data parameters
         _train_data_param="--train_data_path_and_name_and_type ${_joint_train_dir}/wav.scp,speech_mix,sound "
         _valid_data_param="--valid_data_path_and_name_and_type ${_joint_valid_dir}/wav.scp,speech_mix,sound "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/utt2category,utt2category,text "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/utt2category,utt2category,text "
         for spk in $(seq "${spk_num}"); do
             if ${use_signal_ref}; then
                 _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
@@ -985,6 +988,11 @@ if ! "${skip_train}"; then
         _valid_data_param="--valid_data_path_and_name_and_type ${_joint_valid_dir}/wav.scp,speech_mix,sound "
         _valid_shape_param="--valid_shape_file ${joint_stats_dir}/valid/speech_mix_shape "
         _fold_length_param="--fold_length ${_fold_length} "
+        _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/utt2category,utt2category,text "
+        _train_shape_param+="--train_shape_file ${joint_stats_dir}/train/utt2category_shape "
+        _valid_data_param+="--valid_data_path_and_name_and_type ${_joint_valid_dir}/utt2category,utt2category,text "
+        _valid_shape_param+="--valid_shape_file ${joint_stats_dir}/valid/utt2category_shape "
+        _fold_length_param+="--fold_length ${_fold_length} "
         for spk in $(seq "${spk_num}"); do
             if ${use_signal_ref}; then
                 _train_data_param+="--train_data_path_and_name_and_type ${_joint_train_dir}/spk${spk}.scp,speech_ref${spk},sound "

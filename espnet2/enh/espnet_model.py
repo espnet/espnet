@@ -140,6 +140,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self,
         speech_mix: torch.Tensor,
         speech_mix_lengths: torch.Tensor = None,
+        asr_integration: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -154,9 +155,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             espnet2/iterators/chunk_iter_factory.py
         """
         # clean speech signal of each speaker
-        speech_ref = [
-            kwargs["speech_ref{}".format(spk + 1)] for spk in range(self.num_spk)
-        ]
+        if 'speech_ref' in kwargs:
+            # speech_ref is directly provided in joint-asr training
+            speech_ref = kwargs['speech_ref']
+        else:
+            # get from kwargs
+            speech_ref = [
+                kwargs["speech_ref{}".format(spk + 1)] for spk in range(self.num_spk)
+            ]
         # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
         speech_ref = torch.stack(speech_ref, dim=1)
 
@@ -238,6 +244,23 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             )
         else:
             stats = dict(si_snr=-loss.detach(), loss=loss.detach())
+
+        if asr_integration:
+            if perm is not None:
+                # resort the prediction wav with the perm from enh_loss
+                # speech_pre : List[(BS, ...)] of spk
+                # perm : List[(num_spk)] of batch
+                speech_pre_list = []
+                for batch_idx, p in enumerate(perm):
+                    batch_list = []
+                    for spk_idx in p:
+                        batch_list.append(speech_pre[spk_idx][batch_idx])  # spk,...
+                    speech_pre_list.append(torch.stack(batch_list, dim=0))
+
+                speech_pre = torch.stack(speech_pre_list, dim=0)  # bs,num_spk,...
+                speech_pre = torch.unbind(speech_pre, dim=1)  # list[(bs,...)] of spk
+
+            return loss, perm, speech_pre, out_lengths
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

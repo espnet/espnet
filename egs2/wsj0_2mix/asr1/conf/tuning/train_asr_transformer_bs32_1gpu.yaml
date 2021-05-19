@@ -1,11 +1,10 @@
-batch_size: 4
-accum_grad: 4
+batch_size: 1
+accum_grad: 16
 max_epoch: 80
 patience: none
 num_att_plot: 0
 # The initialization method for model parameters
-cudnn_deterministic: true
-unused_parameters: true
+cudnn_deterministic: false
 init: xavier_uniform
 best_model_criterion:
 -   - valid
