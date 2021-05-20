@@ -85,6 +85,19 @@ To train the neural vocoder, please check the following repositories:
 > - We are moving on ESPnet2-based development for TTS.
 > - If you are beginner, we recommend using [ESPnet2-TTS](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1).
 
+### SE: Speech enhancement (and separation)
+
+- Single-speaker speech enhancement
+- Multi-speaker speech separation
+- Unified encoder-separator-decoder structure for time-domain and frequency-domian models
+  - Encoder/Decoder: STFT/iSTFT, Convolution/Transposed-Convolution
+  - Separators: BLSTM, Transformer, Conformer, DPRNN, Neural Beamformers
+- Flexible ASR integration: working as an individual task or as the ASR frontend
+
+Demonstration
+- Interactive SE demo with ESPnet2 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)] (https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
+
+
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Transformer based end-to-end ST (new!)
