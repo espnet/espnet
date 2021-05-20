@@ -10,7 +10,7 @@ import torch.optim
 
 def filter_state_dict(
     dst_state: Dict[str, Union[float, torch.Tensor]],
-    src_state: Dict[str, Union[float, torch.Tensor]]
+    src_state: Dict[str, Union[float, torch.Tensor]],
 ):
     """Filter name, size mismatch instances between dicts.
 
@@ -24,7 +24,9 @@ def filter_state_dict(
         if key in dst_state and (dst_state[key].size() == src_state[key].size()):
             match_state[key] = value
         else:
-            logging.warning(f"Filter out {key} from pretrained dict because of name/size({dst_state[key].size()}-{src_state[key].size()})")
+            logging.warning(
+                f"Filter out {key} from pretrained dict because of name/size({dst_state[key].size()}-{src_state[key].size()})"
+            )
     return match_state
 
 

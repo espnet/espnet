@@ -609,7 +609,7 @@ class AbsTask(ABC):
             "--ignore_init_mismatch",
             type=str2bool,
             default=False,
-            help="Ignore size mismatch when loading pre-trained model"
+            help="Ignore size mismatch when loading pre-trained model",
         )
         group.add_argument(
             "--freeze_param",

@@ -435,7 +435,7 @@ def TraverseData(
                     PackZero(segment_number),
                 )
                 if float(segment[1]) > max_length:
-                     continue
+                    continue
                 print(
                     "%s %s-L %s %s" % (segment_id, afile, segment[0], segment[1]),
                     file=segments,
@@ -465,7 +465,7 @@ def TraverseData(
                         PackZero(segment_number),
                     )
                     if float(segment[1]) > max_length:
-                         continue
+                        continue
                     print(
                         "%s %s-R %s %s" % (segment_id, afile, segment[0], segment[1]),
                         file=segments,
