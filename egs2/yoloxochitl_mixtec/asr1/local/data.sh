@@ -37,9 +37,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-train_dev=dev
-test_set=test
+train_set="train"
+train_dev="dev"
+test_set="test"
 
 wavdir=${YOLOXOCHITL_MIXTEC}/Yoloxochitl-Mixtec-for-ASR/Sound-files-Narratives-for-ASR
 annodir=${YOLOXOCHITL_MIXTEC}/Yoloxochitl-Mixtec-for-ASR/Transcriptions-for-ASR/ELAN-files-with-underlying-and-surface-tiers

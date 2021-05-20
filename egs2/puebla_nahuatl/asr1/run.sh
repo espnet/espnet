@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-train_dev=dev
-test_set=test
+train_set="train"
+train_dev="dev"
+test_set="test"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
