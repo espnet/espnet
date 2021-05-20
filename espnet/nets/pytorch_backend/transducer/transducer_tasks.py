@@ -226,8 +226,8 @@ class TransducerTasks(torch.nn.Module):
         aux_trans_loss = 0
         symm_kl_div_loss = 0
 
-        batchsize = dec_out.size(0)
         num_aux_layers = len(aux_enc_out)
+        B, T, U, D = joint_out.shape
 
         for p in self.joint_network.parameters():
             p.requires_grad = False
@@ -249,11 +249,11 @@ class TransducerTasks(torch.nn.Module):
                         aux_t_len[i],
                         u_len,
                     )
-                    / batchsize
+                    / B
                 )
 
             if self.use_symm_kl_div_loss:
-                denom = joint_out.size(0) * joint_out.size(1) * joint_out.size(2)
+                denom = B * T * U
 
                 kl_main_aux = (
                     self.kl_div(
