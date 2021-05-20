@@ -26,7 +26,7 @@ def filter_state_dict(
         else:
             logging.warning(
                 f"Filter out {key} from pretrained dict"
-                + f" because of name/size"
+                + " because of name/size"
                 + f"({dst_state[key].size()}-{src_state[key].size()})"
             )
     return match_state
