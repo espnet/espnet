@@ -91,11 +91,11 @@ To train the neural vocoder, please check the following repositories:
 - Multi-speaker speech separation
 - Unified encoder-separator-decoder structure for time-domain and frequency-domian models
   - Encoder/Decoder: STFT/iSTFT, Convolution/Transposed-Convolution
-  - Separators: BLSTM, Transformer, Conformer, DPRNN, Neural Beamformers
+  - Separators: BLSTM, Transformer, Conformer, DPRNN, Neural Beamformers, etc.
 - Flexible ASR integration: working as an individual task or as the ASR frontend
 
 Demonstration
-- Interactive SE demo with ESPnet2 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)] (https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
+- Interactive SE demo with ESPnet2 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
 
 
 ### ST: Speech Translation & MT: Machine Translation
