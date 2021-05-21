@@ -93,6 +93,8 @@ To train the neural vocoder, please check the following repositories:
   - Encoder/Decoder: STFT/iSTFT, Convolution/Transposed-Convolution
   - Separators: BLSTM, Transformer, Conformer, DPRNN, Neural Beamformers, etc.
 - Flexible ASR integration: working as an individual task or as the ASR frontend
+- Easy to import pretrained models from [Asteroid](https://github.com/asteroid-team/asteroid)
+  - Both the pre-trained models from Asteroid and the specific configuration are supported.
 
 Demonstration
 - Interactive SE demo with ESPnet2 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
@@ -219,6 +221,30 @@ Available pretrained models in the demo script are listed as below.
 | [csj.transformer.v1](https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF)         | Joint-CTC attention Transformer trained on CSJ             |
 | [csj.rnn.v1](https://drive.google.com/open?id=1ALvD4nHan9VDJlYJwNurVr7H7OV0j2X9)                 | Joint-CTC attention VGGBLSTM trained on CSJ                |
 
+</div></details>
+  
+### SE results
+<details><summary>expand</summary><div>
+
+We list results from three different models on WSJ0-2mix, which is one the most widely used benchmark dateset for speech separation.
+  
+|Model|STOI|SAR|SDR|SIR| 
+|---|---|---|---|---|
+|[TF Masking](https://zenodo.org/record/4498554)|0.89|11.40|10.24|18.04|
+|[Conv-Tasnet](https://zenodo.org/record/4498562)|0.95|16.62|15.94|25.90|
+|[DPRNN-Tasnet](https://zenodo.org/record/4688000)|0.96|18.82|18.29|28.92|
+  
+</div></details>
+  
+### SE demos
+<details><summary>expand</summary><div>
+You can try the interactive demo with Google Colab. Please click the following button to get access to the demos.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
+  
+ 
+It is based on ESPnet2. Pretrained models are available for both speech enhancement and speech separation tasks.
+  
 </div></details>
 
 ### ST results
