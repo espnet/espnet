@@ -54,7 +54,7 @@ def get_parser():
         "-t",
         type=str,
         default="char",
-        choices=["char", "phn"],
+        choices=["char", "phn", "wrd"],
         help="""Transcript type. char/phn. e.g., for TIMIT FADG0_SI1279 -
                         If trans_type is char,
                         read from SI1279.WRD file -> "bricks are an alternative"
@@ -90,45 +90,49 @@ def main():
         print(" ".join(x[: args.skip_ncols]), end=" ")
         a = " ".join(x[args.skip_ncols :])
 
-        # get all matched positions
-        match_pos = []
-        for r in rs:
-            i = 0
-            while i >= 0:
-                m = r.search(a, i)
-                if m:
-                    match_pos.append([m.start(), m.end()])
-                    i = m.end()
-                else:
-                    break
-
-        if args.trans_type == "phn":
-            a = a.split(" ")
+        if args.trans_type == "wrd":
+            print(a)
+            line = f.readline()
         else:
-            if len(match_pos) > 0:
-                chars = []
+            # get all matched positions
+            match_pos = []
+            for r in rs:
                 i = 0
-                while i < len(a):
-                    start_pos, end_pos = exist_or_not(i, match_pos)
-                    if start_pos is not None:
-                        chars.append(a[start_pos:end_pos])
-                        i = end_pos
+                while i >= 0:
+                    m = r.search(a, i)
+                    if m:
+                        match_pos.append([m.start(), m.end()])
+                        i = m.end()
                     else:
-                        chars.append(a[i])
-                        i += 1
-                a = chars
+                        break
 
-            a = [a[j : j + n] for j in range(0, len(a), n)]
+            if args.trans_type == "phn":
+                a = a.split(" ")
+            else:
+                if len(match_pos) > 0:
+                    chars = []
+                    i = 0
+                    while i < len(a):
+                        start_pos, end_pos = exist_or_not(i, match_pos)
+                        if start_pos is not None:
+                            chars.append(a[start_pos:end_pos])
+                            i = end_pos
+                        else:
+                            chars.append(a[i])
+                            i += 1
+                    a = chars
 
-        a_flat = []
-        for z in a:
-            a_flat.append("".join(z))
+                a = [a[j : j + n] for j in range(0, len(a), n)]
 
-        a_chars = [z.replace(" ", args.space) for z in a_flat]
-        if args.trans_type == "phn":
-            a_chars = [z.replace("sil", args.space) for z in a_chars]
-        print(" ".join(a_chars))
-        line = f.readline()
+            a_flat = []
+            for z in a:
+                a_flat.append("".join(z))
+
+            a_chars = [z.replace(" ", args.space) for z in a_flat]
+            if args.trans_type == "phn":
+                a_chars = [z.replace("sil", args.space) for z in a_chars]
+            print(" ".join(a_chars))
+            line = f.readline()
 
 
 if __name__ == "__main__":
