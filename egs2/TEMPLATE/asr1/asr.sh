@@ -1310,11 +1310,15 @@ if ! "${skip_upload}"; then
         if [ "${token_type}" = bpe ]; then
             _opts+="--option ${bpemodel} "
         fi
+        if [ "${nlsyms_txt}" != none ]; then
+            _opts+="--option ${nlsyms_txt} "
+        fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack asr \
             --asr_train_config "${asr_exp}"/config.yaml \
             --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
             ${_opts} \
+            --option "${asr_exp}"/RESULTS.md \
             --option "${asr_exp}"/RESULTS.md \
             --option "${asr_exp}"/images \
             --outpath "${packed_model}"
