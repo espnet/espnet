@@ -79,8 +79,7 @@ class LightweightSincConvs(AbsPreEncoder):
         }
         if dropout_type not in self.choices_dropout:
             raise NotImplementedError(
-                f"Dropout type has to be one of "
-                f"{list(self.choices_dropout.keys())}",
+                f"Dropout type has to be one of " f"{list(self.choices_dropout.keys())}"
             )
 
         self.choices_activation = {
@@ -90,7 +89,7 @@ class LightweightSincConvs(AbsPreEncoder):
         if activation_type not in self.choices_activation:
             raise NotImplementedError(
                 f"Activation type has to be one of "
-                f"{list(self.choices_activation.keys())}",
+                f"{list(self.choices_activation.keys())}"
             )
 
         # initialization

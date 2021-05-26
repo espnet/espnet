@@ -38,13 +38,7 @@ def prepare_inputs(
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, lg in enumerate(olens):
         labels[i, lg - 1 :] = 1
-    batch = {
-        "xs": xs,
-        "ilens": ilens,
-        "ys": ys,
-        "labels": labels,
-        "olens": olens,
-    }
+    batch = {"xs": xs, "ilens": ilens, "ys": ys, "labels": labels, "olens": olens}
 
     if spk_embed_dim is not None:
         batch["spembs"] = torch.FloatTensor(
@@ -599,19 +593,13 @@ def test_legacy_length_regulator():
     )
     xs_expand_1 = length_regulator(xs, ds)
     xs_expand_2 = legacy_length_regulator(xs, ds)
-    np.testing.assert_array_equal(
-        xs_expand_1.numpy(),
-        xs_expand_2.numpy(),
-    )
+    np.testing.assert_array_equal(xs_expand_1.numpy(), xs_expand_2.numpy())
 
     # test with duration including zero
     ds[:, 2] = 0
     xs_expand_1 = length_regulator(xs, ds)
     xs_expand_2 = legacy_length_regulator(xs, ds)
-    np.testing.assert_array_equal(
-        xs_expand_1.numpy(),
-        xs_expand_2.numpy(),
-    )
+    np.testing.assert_array_equal(xs_expand_1.numpy(), xs_expand_2.numpy())
 
 
 def test_duration_calculator():
@@ -633,10 +621,7 @@ def test_duration_calculator():
     )
 
 
-@pytest.mark.parametrize(
-    "alpha",
-    [(1.0), (0.5), (2.0)],
-)
+@pytest.mark.parametrize("alpha", [(1.0), (0.5), (2.0)])
 def test_fastspeech_inference(alpha):
     # make args
     idim, odim = 10, 25
@@ -659,7 +644,5 @@ def test_fastspeech_inference(alpha):
         else:
             spemb = batch["spembs"][0]
         model.inference(
-            batch["xs"][0][: batch["ilens"][0]],
-            inference_args,
-            spemb=spemb,
+            batch["xs"][0][: batch["ilens"][0]], inference_args, spemb=spemb
         )

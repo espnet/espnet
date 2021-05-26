@@ -275,8 +275,7 @@ def inference(
     from matplotlib.ticker import MaxNLocator
 
     with NpyScpWriter(
-        output_dir / "norm",
-        output_dir / "norm/feats.scp",
+        output_dir / "norm", output_dir / "norm/feats.scp"
     ) as norm_writer, NpyScpWriter(
         output_dir / "denorm", output_dir / "denorm/feats.scp"
     ) as denorm_writer, open(
@@ -390,8 +389,7 @@ def inference(
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
-        description="TTS Decode",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="TTS Decode", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     # Note(kamo): Use "_" instead of "-" as separator.
@@ -405,23 +403,12 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--output_dir",
-        type=str,
-        required=True,
-        help="The path of output directory",
+        "--output_dir", type=str, required=True, help="The path of output directory"
     )
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode"
     )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=0,
-        help="Random seed",
-    )
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
         "--dtype",
         default="float32",
@@ -435,10 +422,7 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference"
     )
 
     group = parser.add_argument_group("Input data related")
@@ -448,27 +432,12 @@ def get_parser():
         required=True,
         action="append",
     )
-    group.add_argument(
-        "--key_file",
-        type=str_or_none,
-    )
-    group.add_argument(
-        "--allow_variable_data_keys",
-        type=str2bool,
-        default=False,
-    )
+    group.add_argument("--key_file", type=str_or_none)
+    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument(
-        "--train_config",
-        type=str,
-        help="Training configuration file.",
-    )
-    group.add_argument(
-        "--model_file",
-        type=str,
-        help="Model parameter file.",
-    )
+    group.add_argument("--train_config", type=str, help="Training configuration file.")
+    group.add_argument("--model_file", type=str, help="Model parameter file.")
 
     group = parser.add_argument_group("Decoding related")
     group.add_argument(
@@ -484,10 +453,7 @@ def get_parser():
         help="Minimum length ratio in decoding",
     )
     group.add_argument(
-        "--threshold",
-        type=float,
-        default=0.5,
-        help="Threshold value in decoding",
+        "--threshold", type=float, default=0.5, help="Threshold value in decoding"
     )
     group.add_argument(
         "--use_att_constraint",

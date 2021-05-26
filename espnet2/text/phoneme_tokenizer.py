@@ -137,9 +137,7 @@ class Phonemizer:
 
     def __call__(self, text) -> List[str]:
         return self.phonemize(
-            text,
-            separator=self.separator,
-            **self.phonemize_kwargs,
+            text, separator=self.separator, **self.phonemize_kwargs
         ).split()
 
 

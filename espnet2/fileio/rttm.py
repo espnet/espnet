@@ -68,10 +68,7 @@ class RttmReader(collections.abc.Mapping):
 
     """
 
-    def __init__(
-        self,
-        fname: str,
-    ):
+    def __init__(self, fname: str):
         assert check_argument_types()
         super().__init__()
 

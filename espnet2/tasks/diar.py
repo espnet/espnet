@@ -45,10 +45,7 @@ frontend_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(
-        global_mvn=GlobalMVN,
-        utterance_mvn=UtteranceMVN,
-    ),
+    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN),
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
@@ -61,9 +58,7 @@ label_aggregator_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        conformer=ConformerEncoder,
-        transformer=TransformerEncoder,
-        rnn=RNNEncoder,
+        conformer=ConformerEncoder, transformer=TransformerEncoder, rnn=RNNEncoder
     ),
     type_check=AbsEncoder,
     default="rnn",

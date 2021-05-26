@@ -312,7 +312,7 @@ class CTCSegmentation:
             if kwargs["time_stamps"] not in self.choices_time_stamps:
                 raise NotImplementedError(
                     f"Parameter ´time_stamps´ has to be one of "
-                    f"{list(self.choices_time_stamps)}",
+                    f"{list(self.choices_time_stamps)}"
                 )
             self.time_stamps = kwargs["time_stamps"]
         if "fs" in kwargs:
@@ -334,7 +334,7 @@ class CTCSegmentation:
             if kwargs["text_converter"] not in self.choices_text_converter:
                 raise NotImplementedError(
                     f"Parameter ´text_converter´ has to be one of "
-                    f"{list(self.choices_text_converter)}",
+                    f"{list(self.choices_text_converter)}"
                 )
             self.text_converter = kwargs["text_converter"]
         # Parameters for alignment
@@ -363,9 +363,7 @@ class CTCSegmentation:
 
     def get_timing_config(self, speech_len=None, lpz_len=None):
         """Obtain parameters to determine time stamps."""
-        timing_cfg = {
-            "index_duration": self.config.index_duration,
-        }
+        timing_cfg = {"index_duration": self.config.index_duration}
         # As the parameter ctc_index_duration vetoes the other
         if self.time_stamps == "fixed":
             # Initialize the value, if not yet available
@@ -625,10 +623,7 @@ def ctc_align(
     kwargs = {k: v for (k, v) in kwargs.items() if v is not None}
 
     # Prepare CTC segmentation module
-    model = {
-        "asr_train_config": asr_train_config,
-        "asr_model_file": asr_model_file,
-    }
+    model = {"asr_train_config": asr_train_config, "asr_model_file": asr_model_file}
     aligner = CTCSegmentation(**model, **kwargs)
 
     # load audio file
@@ -666,10 +661,7 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode"
     )
     parser.add_argument(
         "--dtype",
@@ -786,11 +778,7 @@ def get_parser():
         help="Include the confidence score in the segments output.",
     )
     group.add_argument(
-        "-a",
-        "--audio",
-        type=Path,
-        required=True,
-        help="Input audio file.",
+        "-a", "--audio", type=Path, required=True, help="Input audio file."
     )
     group.add_argument(
         "-t",

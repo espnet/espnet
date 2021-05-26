@@ -478,11 +478,7 @@ class Encoder(torch.nn.Module):
 
         current_states = []
         for module, prev_state in zip(self.enc, prev_states):
-            xs_pad, ilens, states = module(
-                xs_pad,
-                ilens,
-                prev_state=prev_state,
-            )
+            xs_pad, ilens, states = module(xs_pad, ilens, prev_state=prev_state)
             current_states.append(states)
 
         if isinstance(xs_pad, tuple):
@@ -493,10 +489,7 @@ class Encoder(torch.nn.Module):
             aux_xs_list = [layer.masked_fill(mask, 0.0) for layer in aux_xs_list]
 
             return (
-                (
-                    final_xs_pad.masked_fill(mask, 0.0),
-                    aux_xs_list,
-                ),
+                (final_xs_pad.masked_fill(mask, 0.0), aux_xs_list),
                 ilens,
                 current_states,
             )

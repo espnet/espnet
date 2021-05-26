@@ -32,10 +32,7 @@ def add_encoder_general_arguments(group):
         help="Type of encoder network architecture",
     )
     group.add_argument(
-        "--dropout-rate",
-        default=0.0,
-        type=float,
-        help="Dropout rate for the encoder",
+        "--dropout-rate", default=0.0, type=float, help="Dropout rate for the encoder"
     )
 
     return group
@@ -51,11 +48,7 @@ def add_rnn_encoder_arguments(group):
         "in multi-speaker asr mode)",
     )
     group.add_argument(
-        "--eunits",
-        "-u",
-        default=300,
-        type=int,
-        help="Number of encoder hidden units",
+        "--eunits", "-u", default=300, type=int, help="Number of encoder hidden units"
     )
     group.add_argument(
         "--eprojs", default=320, type=int, help="Number of encoder projection units"
@@ -235,10 +228,7 @@ def add_transducer_arguments(group):
         help="Weight of transducer loss when auxiliary task is used.",
     )
     group.add_argument(
-        "--joint-dim",
-        default=320,
-        type=int,
-        help="Number of dimensions in joint space",
+        "--joint-dim", default=320, type=int, help="Number of dimensions in joint space"
     )
     group.add_argument(
         "--joint-activation-type",

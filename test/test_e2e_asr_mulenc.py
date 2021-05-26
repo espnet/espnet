@@ -552,9 +552,7 @@ def test_multi_gpu_trainable(module, num_encs):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize(
     "module, num_encs, model_dict",
-    [
-        ("espnet.nets.pytorch_backend.e2e_asr_mulenc", 2, {}),
-    ],
+    [("espnet.nets.pytorch_backend.e2e_asr_mulenc", 2, {})],
 )
 def test_calculate_plot_attention_ctc(module, num_encs, model_dict):
     args = make_arg(num_encs=num_encs, **model_dict)

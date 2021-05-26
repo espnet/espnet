@@ -94,9 +94,7 @@ class ChunkIterFactory(AbsIterFactory):
         self.shuffle = shuffle
 
     def build_iter(
-        self,
-        epoch: int,
-        shuffle: bool = None,
+        self, epoch: int, shuffle: bool = None
     ) -> Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]:
         per_sample_loader = self.per_sample_iter_factory.build_iter(epoch, shuffle)
 
@@ -168,10 +166,7 @@ class ChunkIterFactory(AbsIterFactory):
 
             if len(cache_id_list) > self.num_cache_chunks:
                 cache_id_list, cache_chunks = yield from self._generate_mini_batches(
-                    cache_id_list,
-                    cache_chunks,
-                    shuffle,
-                    state,
+                    cache_id_list, cache_chunks, shuffle, state
                 )
 
             cache_id_list_dict[W] = cache_id_list
@@ -183,10 +178,7 @@ class ChunkIterFactory(AbsIterFactory):
                 cache_chunks = cache_chunks_dict.setdefault(W, {})
 
                 yield from self._generate_mini_batches(
-                    cache_id_list,
-                    cache_chunks,
-                    shuffle,
-                    state,
+                    cache_id_list, cache_chunks, shuffle, state
                 )
 
     def _generate_mini_batches(

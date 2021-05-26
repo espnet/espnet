@@ -30,10 +30,7 @@ def mask_along_axis(
     D = spec.shape[dim]
     # mask_length: (B, num_mask, 1)
     mask_length = torch.randint(
-        mask_width_range[0],
-        mask_width_range[1],
-        (B, num_mask),
-        device=spec.device,
+        mask_width_range[0], mask_width_range[1], (B, num_mask), device=spec.device
     ).unsqueeze(2)
 
     # mask_pos: (B, num_mask, 1)
@@ -81,7 +78,7 @@ class MaskAlongAxis(torch.nn.Module):
         if len(mask_width_range) != 2:
             raise TypeError(
                 f"mask_width_range must be a tuple of int and int values: "
-                f"{mask_width_range}",
+                f"{mask_width_range}"
             )
 
         assert mask_width_range[1] > mask_width_range[0]

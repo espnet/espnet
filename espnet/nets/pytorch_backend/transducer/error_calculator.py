@@ -36,9 +36,7 @@ class ErrorCalculator(object):
         super().__init__()
 
         self.beam_search = BeamSearchTransducer(
-            decoder=decoder,
-            joint_network=joint_network,
-            beam_size=1,
+            decoder=decoder, joint_network=joint_network, beam_size=1
         )
 
         self.decoder = decoder

@@ -88,10 +88,7 @@ class SequentialRNNLM(AbsLM):
         decoded = self.decoder(
             output.contiguous().view(output.size(0) * output.size(1), output.size(2))
         )
-        return (
-            decoded.view(output.size(0), output.size(1), decoded.size(1)),
-            hidden,
-        )
+        return (decoded.view(output.size(0), output.size(1), decoded.size(1)), hidden)
 
     def score(
         self,

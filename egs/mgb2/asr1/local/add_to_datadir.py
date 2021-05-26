@@ -41,9 +41,9 @@ for line in sys.stdin:
 
         # only add segments where Matching Error Rate is below the threshhold
         if mer_thresh is None or mer <= mer_thresh:
-            print("%s %s %.2f %.2f" % (segId, basename, start, end),file=segments_file)
-            print("%s %s" % (segId, words),file=text_file)
-            print("%s %s" % (segId, spkId),file=utt2spk_file)
+            print("%s %s %.2f %.2f" % (segId, basename, start, end), file=segments_file)
+            print("%s %s" % (segId, words), file=text_file)
+            print("%s %s" % (segId, spkId), file=utt2spk_file)
 
 segments_file.close()
 utt2spk_file.close()
