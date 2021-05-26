@@ -21,10 +21,6 @@ EOF
 . ./path.sh
 . ./db.sh
 
-# Path to the directory containing WHAM! noise
-# (will download from the official site if not specified)
-wham_noise=
-
 
 . utils/parse_options.sh
 

@@ -49,15 +49,17 @@ class ESPnetEnhancementModel(AbsESPnetModel):
     ):
         assert check_argument_types()
 
-        if loss_type == 'ci_sdr':
+        if loss_type == "ci_sdr":
             try:
                 import ci_sdr
+
                 def ci_sdr_loss(ref, inf):
                     """CI-SDR loss
 
                     Reference:
-                        Convolutive Transfer Function Invariant SDR Training Criteria for
-                        Multi-Channel Reverberant Speech Separation; C. Boeddeker et al., 2021;
+                        Convolutive Transfer Function Invariant SDR Training
+                        Criteria for Multi-Channel Reverberant Speech Separation;
+                        C. Boeddeker et al., 2021;
                         https://arxiv.org/abs/2011.15003
 
                     Args:
@@ -68,12 +70,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     """
                     assert ref.shape == inf.shape, (ref.shape, inf.shape)
                     return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False)
+
                 self.ci_sdr_loss = ci_sdr_loss
             except ImportError:
-                raise ImportError("Package 'ci_sdr' is not installed, \
+                raise ImportError(
+                    "Package 'ci_sdr' is not installed, \
                     please visit https://github.com/fgnt/ci_sdr \
-                    and install it manually to the environment.")
-
+                    and install it manually to the environment."
+                )
 
         super().__init__()
 
@@ -83,7 +87,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
-        if loss_type not in  ["si_snr", "ci_sdr"] and isinstance(encoder, ConvEncoder):
+        if loss_type not in ["si_snr", "ci_sdr"] and isinstance(encoder, ConvEncoder):
             raise TypeError(f"{loss_type} is not supported with {type(ConvEncoder)}")
 
         # get mask type for TF-domain models (only used when loss_type="mask_*")
@@ -245,7 +249,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
 
         # add stats for logging
-        if self.loss_type not in ['ci_sdr', 'si_snr']:
+        if self.loss_type not in ["ci_sdr", "si_snr"]:
             if self.training:
                 si_snr = None
             else:
@@ -570,8 +574,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
             )
         return l1loss
-    
-
 
     @staticmethod
     def si_snr_loss(ref, inf):
