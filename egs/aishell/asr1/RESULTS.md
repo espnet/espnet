@@ -35,6 +35,24 @@
 |decode_test_decode_default|7176|104765|95.0|4.7|0.3|0.1|5.0|37.1|
 
 
+# RNN-Transducer with auxiliary task (CTC weight = 0.1)
+
+## Environments
+- Same as RNN-Transducer (see below)
+
+## Config files
+- preprocess config: `conf/specaug.yaml`
+- train config: `conf/tuning/transducer/train_transducer_aux.yaml`
+- lm config: `-` (LM was not used)
+- decode config: `conf/tuning/transducer/decode_default.yaml`
+
+## Results (CER)
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_decode_default|14326|205341|93.9|5.8|0.3|0.1|6.3|41.9|
+|decode_test_decode_default|7176|104765|93.2|6.5|0.4|0.1|6.9|44.5|
+
+
 # RNN-Transducer
 
 ## Environments
