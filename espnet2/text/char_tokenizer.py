@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Union
+import warnings
 
 from typeguard import check_argument_types
 
@@ -21,8 +22,12 @@ class CharTokenizer(AbsTokenizer):
             self.non_linguistic_symbols = set()
         elif isinstance(non_linguistic_symbols, (Path, str)):
             non_linguistic_symbols = Path(non_linguistic_symbols)
-            with non_linguistic_symbols.open("r", encoding="utf-8") as f:
-                self.non_linguistic_symbols = set(line.rstrip() for line in f)
+            try:
+                with non_linguistic_symbols.open("r", encoding="utf-8") as f:
+                    self.non_linguistic_symbols = set(line.rstrip() for line in f)
+            except FileNotFoundError:
+                warnings.warn(f"{non_linguistic_symbols} doesn't exist.")
+                self.non_linguistic_symbols = set()
         else:
             self.non_linguistic_symbols = set(non_linguistic_symbols)
         self.remove_non_linguistic_symbols = remove_non_linguistic_symbols
