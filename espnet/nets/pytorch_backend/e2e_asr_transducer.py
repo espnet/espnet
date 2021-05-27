@@ -217,7 +217,8 @@ class E2E(ASRInterface, torch.nn.Module):
             )
 
             aux_task_layer_list = valid_aux_task_layer_list(
-                args.aux_task_layer_list, n_layers
+                args.aux_task_layer_list,
+                n_layers,
             )
         else:
             aux_task_layer_list = []
@@ -250,7 +251,10 @@ class E2E(ASRInterface, torch.nn.Module):
             self.subsample = get_subsample(args, mode="asr", arch="rnn-t")
 
             self.enc = encoder_for(
-                args, idim, self.subsample, aux_task_layer_list=aux_task_layer_list
+                args,
+                idim,
+                self.subsample,
+                aux_task_layer_list=aux_task_layer_list,
             )
             encoder_out = args.eprojs
 
@@ -431,9 +435,9 @@ class E2E(ASRInterface, torch.nn.Module):
 
         if self.use_aux_ctc:
             if "custom" in self.etype:
-                hs_mask = torch.IntTensor([h.size(1) for h in hs_mask]).to(
-                    hs_mask.device
-                )
+                hs_mask = torch.IntTensor(
+                    [h.size(1) for h in hs_mask],
+                ).to(hs_mask.device)
 
             loss_ctc = self.aux_ctc_weight * self.aux_ctc(hs_pad, hs_mask, ys_pad)
         else:

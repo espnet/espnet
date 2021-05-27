@@ -269,7 +269,10 @@ class BeamSearchTransducer:
                 D = []
 
                 beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    C, beam_state, cache, self.use_lm
+                    C,
+                    beam_state,
+                    cache,
+                    self.use_lm,
                 )
 
                 beam_logp = torch.log_softmax(self.joint_network(h_enc, beam_y), dim=-1)
@@ -377,7 +380,10 @@ class BeamSearchTransducer:
 
             if B_:
                 beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    B_, beam_state, cache, self.use_lm
+                    B_,
+                    beam_state,
+                    cache,
+                    self.use_lm,
                 )
 
                 h_enc = torch.stack([h[1] for h in h_states])
@@ -465,7 +471,10 @@ class BeamSearchTransducer:
         cache = {}
 
         beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-            init_tokens, beam_state, cache, self.use_lm
+            init_tokens,
+            beam_state,
+            cache,
+            self.use_lm,
         )
 
         state = self.decoder.select_state(beam_state, 0)
@@ -564,10 +573,15 @@ class BeamSearchTransducer:
                 V = substract(V, hyps)[:beam]
 
                 beam_state = self.decoder.create_batch_states(
-                    beam_state, [v.dec_state for v in V], [v.yseq for v in V]
+                    beam_state,
+                    [v.dec_state for v in V],
+                    [v.yseq for v in V],
                 )
                 beam_y, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    V, beam_state, cache, self.use_lm
+                    V,
+                    beam_state,
+                    cache,
+                    self.use_lm,
                 )
 
                 if self.use_lm:

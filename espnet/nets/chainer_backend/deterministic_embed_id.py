@@ -27,7 +27,10 @@ class EmbedIDFunction(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         x_type, w_type = in_types
-        type_check.expect(x_type.dtype.kind == "i", x_type.ndim >= 1)
+        type_check.expect(
+            x_type.dtype.kind == "i",
+            x_type.ndim >= 1,
+        )
         type_check.expect(w_type.dtype == numpy.float32, w_type.ndim == 2)
 
     def forward(self, inputs):

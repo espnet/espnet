@@ -138,7 +138,12 @@ def get_parser():
         default=None,
         help="Maximum window size considered for utterance.",
     )
-    parser.add_argument("--use-dict-blank", type=int, default=None, help="DEPRECATED.")
+    parser.add_argument(
+        "--use-dict-blank",
+        type=int,
+        default=None,
+        help="DEPRECATED.",
+    )
     parser.add_argument(
         "--set-blank",
         type=int,

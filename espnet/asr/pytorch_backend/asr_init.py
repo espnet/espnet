@@ -272,7 +272,7 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
                     else:
                         logging.warning(
                             f"modules {modules} in model {model_path} "
-                            f"don't match your training config"
+                            f"don't match your training config",
                         )
             else:
                 logging.warning("model was not found : %s", model_path)

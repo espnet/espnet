@@ -271,7 +271,12 @@ def test_pytorch_transducer_gpu_trainable(trans_type):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-@pytest.mark.parametrize("train_dic", [{"report_cer": True, "report_wer": True}])
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {"report_cer": True, "report_wer": True},
+    ],
+)
 @pytest.mark.execution_timeout(2.8)
 def test_pytorch_multi_gpu_trainable(train_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()

@@ -86,4 +86,10 @@ if __name__ == "__main__":
     else:
         out = open(args.out, "w", encoding="utf-8")
 
-    json.dump(data, out, indent=4, ensure_ascii=False, separators=(",", ": "))
+    json.dump(
+        data,
+        out,
+        indent=4,
+        ensure_ascii=False,
+        separators=(",", ": "),
+    )

@@ -35,7 +35,9 @@ class TransducerDecoderInterface:
     """Decoder interface for transducer models."""
 
     def init_state(
-        self, batch_size: int, device: torch.device
+        self,
+        batch_size: int,
+        device: torch.device,
     ) -> Union[
         Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
     ]:
@@ -52,7 +54,9 @@ class TransducerDecoderInterface:
         raise NotImplementedError("init_state method is not implemented")
 
     def score(
-        self, hyp: Union[Hypothesis, NSCHypothesis], cache: Dict[str, Any]
+        self,
+        hyp: Union[Hypothesis, NSCHypothesis],
+        cache: Dict[str, Any],
     ) -> Union[
         Tuple[torch.Tensor, Optional[torch.Tensor]],
         torch.Tensor,

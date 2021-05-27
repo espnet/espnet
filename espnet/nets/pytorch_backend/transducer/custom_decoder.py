@@ -191,7 +191,9 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
             )
 
             dec_state = self.create_batch_states(
-                self.init_state(), [p[2] for p in process], _tokens
+                self.init_state(),
+                [p[2] for p in process],
+                _tokens,
             )
 
             tgt = self.embed(batch_tokens)

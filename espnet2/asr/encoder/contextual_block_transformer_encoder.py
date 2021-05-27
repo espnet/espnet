@@ -115,7 +115,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             )
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx)
+                torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
             )
         elif input_layer is None:
             self.embed = None
@@ -124,7 +124,11 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         self.normalize_before = normalize_before
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
-            positionwise_layer_args = (output_size, linear_units, dropout_rate)
+            positionwise_layer_args = (
+                output_size,
+                linear_units,
+                dropout_rate,
+            )
         elif positionwise_layer_type == "conv1d":
             positionwise_layer = MultiLayeredConv1d
             positionwise_layer_args = (

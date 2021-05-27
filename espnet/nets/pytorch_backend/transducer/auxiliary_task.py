@@ -84,12 +84,17 @@ class AuxiliaryTask(torch.nn.Module):
             aux_mlp = self.mlp_net(enc_aux)
 
             aux_joint = self.joint_network(
-                aux_mlp.unsqueeze(2), dec_out.unsqueeze(1), is_aux=True
+                aux_mlp.unsqueeze(2),
+                dec_out.unsqueeze(1),
+                is_aux=True,
             )
 
             if self.aux_task_type != "symm_kl_div":
                 aux_trans += self.rnnt_criterion(
-                    aux_joint, target, pred_len, target_len
+                    aux_joint,
+                    target,
+                    pred_len,
+                    target_len,
                 )
 
             if self.aux_task_type != "default":

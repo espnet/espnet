@@ -84,7 +84,9 @@ def test_tranformer(
         model.eval()
 
         # free running
-        inputs = dict(text=torch.randint(0, 10, (2,)))
+        inputs = dict(
+            text=torch.randint(0, 10, (2,)),
+        )
         if use_gst:
             inputs.update(speech=torch.randn(5, 5))
         if spk_embed_dim is not None:

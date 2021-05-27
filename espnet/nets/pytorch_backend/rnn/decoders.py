@@ -763,7 +763,13 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 lpz[0].size(-1),
             )
             ctc_scorer = [
-                CTCPrefixScoreTH(lpz[idx], hlens[idx], 0, self.eos, margin=ctc_margin)
+                CTCPrefixScoreTH(
+                    lpz[idx],
+                    hlens[idx],
+                    0,
+                    self.eos,
+                    margin=ctc_margin,
+                )
                 for idx in range(self.num_encs)
             ]
 

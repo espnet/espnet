@@ -22,7 +22,8 @@ import torch
 def get_parser():
     """Construct the parser."""
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--sample_rate", type=int, default=16000, help="Sampling rate.")
     parser.add_argument(
@@ -166,9 +167,8 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
     f_mins = np.abs(pre_filters[:, 0])
     f_maxs = np.abs(pre_filters[:, 0]) + np.abs(pre_filters[:, 1] - pre_filters[:, 0])
     F_mins, F_maxs = f_mins * sample_rate, f_maxs * sample_rate
-    pre_F_mins, pre_F_maxs = (
-        np.round(F_mins).astype(np.int),
-        np.round(F_maxs).astype(np.int),
+    pre_F_mins, pre_F_maxs = np.round(F_mins).astype(np.int), np.round(F_maxs).astype(
+        np.int
     )
 
     # learned
@@ -180,9 +180,8 @@ def plot_filter_kernels(filters: torch.Tensor, sample_rate: int, args):
     f_maxs = np.abs(filters[:, 0]) + np.abs(filters[:, 1] - filters[:, 0])
     F_mins, F_maxs = f_mins * sample_rate, f_maxs * sample_rate
     F_mins, F_maxs = np.round(F_mins).astype(np.int), np.round(F_maxs).astype(np.int)
-    F_mins, F_maxs = (
-        np.clip(F_mins, 0, sample_rate / 2.0),
-        np.clip(F_maxs, 0, sample_rate / 2.0),
+    F_mins, F_maxs = np.clip(F_mins, 0, sample_rate / 2.0), np.clip(
+        F_maxs, 0, sample_rate / 2.0
     )
 
     x_f = np.linspace(0.0, np.max(F_maxs), int(np.max(F_maxs)) + 1)

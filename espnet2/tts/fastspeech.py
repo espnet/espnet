@@ -498,14 +498,20 @@ class FastSpeech(AbsTTS):
         loss = l1_loss + duration_loss
 
         stats = dict(
-            l1_loss=l1_loss.item(), duration_loss=duration_loss.item(), loss=loss.item()
+            l1_loss=l1_loss.item(),
+            duration_loss=duration_loss.item(),
+            loss=loss.item(),
         )
 
         # report extra information
         if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(encoder_alpha=self.encoder.embed[-1].alpha.data.item())
+            stats.update(
+                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+            )
         if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(decoder_alpha=self.decoder.embed[-1].alpha.data.item())
+            stats.update(
+                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+            )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -554,12 +560,21 @@ class FastSpeech(AbsTTS):
             # use groundtruth of duration, pitch, and energy
             ds = d.unsqueeze(0)
             _, outs, *_ = self._forward(
-                xs, ilens, ys, ds=ds, spembs=spembs
+                xs,
+                ilens,
+                ys,
+                ds=ds,
+                spembs=spembs,
             )  # (1, L, odim)
         else:
             # inference
             _, outs, _ = self._forward(
-                xs, ilens, ys, spembs=spembs, is_inference=True, alpha=alpha
+                xs,
+                ilens,
+                ys,
+                spembs=spembs,
+                is_inference=True,
+                alpha=alpha,
             )  # (1, L, odim)
 
         return outs[0], None, None

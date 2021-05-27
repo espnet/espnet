@@ -474,9 +474,13 @@ class FastSpeech2(AbsTTS):
 
         # report extra information
         if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(encoder_alpha=self.encoder.embed[-1].alpha.data.item())
+            stats.update(
+                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+            )
         if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(decoder_alpha=self.decoder.embed[-1].alpha.data.item())
+            stats.update(
+                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+            )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -606,11 +610,22 @@ class FastSpeech2(AbsTTS):
             # use groundtruth of duration, pitch, and energy
             ds, ps, es = d.unsqueeze(0), p.unsqueeze(0), e.unsqueeze(0)
             _, outs, *_ = self._forward(
-                xs, ilens, ys, ds=ds, ps=ps, es=es, spembs=spembs
+                xs,
+                ilens,
+                ys,
+                ds=ds,
+                ps=ps,
+                es=es,
+                spembs=spembs,
             )  # (1, L, odim)
         else:
             _, outs, *_ = self._forward(
-                xs, ilens, ys, spembs=spembs, is_inference=True, alpha=alpha
+                xs,
+                ilens,
+                ys,
+                spembs=spembs,
+                is_inference=True,
+                alpha=alpha,
             )  # (1, L, odim)
 
         return outs[0], None, None

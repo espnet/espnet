@@ -388,7 +388,12 @@ class E2E(STInterface, torch.nn.Module):
         enc_output, _ = self.encoder(x, None)
         return enc_output.squeeze(0)
 
-    def translate(self, x, trans_args, char_list=None):
+    def translate(
+        self,
+        x,
+        trans_args,
+        char_list=None,
+    ):
         """Translate input speech.
 
         :param ndnarray x: input acoustic feature (B, T, D) or (T, D)

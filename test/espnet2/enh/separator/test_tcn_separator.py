@@ -104,9 +104,15 @@ def test_tcn_separator_forward_backward_real(
 
 def test_tcn_separator_invalid_type():
     with pytest.raises(ValueError):
-        TCNSeparator(input_dim=10, nonlinear="fff")
+        TCNSeparator(
+            input_dim=10,
+            nonlinear="fff",
+        )
     with pytest.raises(ValueError):
-        TCNSeparator(input_dim=10, norm_type="xxx")
+        TCNSeparator(
+            input_dim=10,
+            norm_type="xxx",
+        )
 
 
 def test_tcn_separator_output():
