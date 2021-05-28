@@ -80,6 +80,9 @@ for x in tr cv; do
     sort -u> ${data}/${ddir}/utt2spk
   utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
 
+  awk '{print($1, "dummy")}' ${data}/${ddir}/wav.scp | \
+    sort -u> ${data}/${ddir}/text
+
   noise_wav_dir=${dns_wav}/noise/
   sed -e "s#${mixwav_dir}.*_\(.*\).wav#${noise_wav_dir}noise_fileid_\1.wav#g" ${data}/${ddir}/wav.scp \
     > ${data}/${ddir}/noise1.scp
@@ -110,6 +113,10 @@ for x in tt; do
 
     awk '{print($1, $1)}' ${data}/${ddir}/wav.scp | \
     sort -u> ${data}/${ddir}/utt2spk
+
+
+    awk '{print($1, "dummy")}' ${data}/${ddir}/wav.scp | \
+    sort -u> ${data}/${ddir}/text
 
     utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
     touch ${data}/${ddir}/text

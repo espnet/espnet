@@ -21,8 +21,9 @@ test_sets="tt_synthetic_no_reverb tt_synthetic_with_reverb"
     --ngpu 2 \
     --spk_num 1 \
     --local_data_opts "" \
-    --enh_config ./conf/tuning/train_enh_beamformer_mvdr.yaml \
+    --enh_config ./conf/tuning/train_enh_blstm_tf.yaml \
     --use_dereverb_ref false \
     --use_noise_ref true \
+    --max_wav_duration 31 \
     --inference_model "valid.loss.best.pth" \
     "$@"
