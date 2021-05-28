@@ -72,7 +72,8 @@ transformer_separator = TransformerSeparator(
     "separator", [rnn_separator, dprnn_separator, tcn_separator, transformer_separator]
 )
 @pytest.mark.parametrize(
-    "loss_type", ["si_snr", "ci_sdr" "mask_mse", "magnitude", "spectrum", "spectrum_log"]
+    "loss_type",
+    ["si_snr", "ci_sdr" "mask_mse", "magnitude", "spectrum", "spectrum_log"],
 )
 @pytest.mark.parametrize("stft_consistency", [True, False])
 @pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "NPSM", "PSM^2"])
