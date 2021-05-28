@@ -109,6 +109,7 @@ def test_single_channel_model(
                 mask_type=mask_type,
             )
         return
+
     if stft_consistency and loss_type in (
         "mask_mse",
         "ci_sdr",
