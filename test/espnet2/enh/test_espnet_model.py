@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+from functools import partial
 
 import pytest
 import torch
@@ -86,9 +87,14 @@ def test_single_channel_model(
     if not is_torch_1_2_plus:
         pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
 
-    inputs = torch.randn(2, 100)
-    ilens = torch.LongTensor([100, 80])
-    speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]
+    shapes = (2, 100) if loss_type != "ci_sdr" else (2, 768)
+    inputs = torch.randn(*shapes)
+    ilens = (
+        torch.LongTensor([100, 80])
+        if loss_type != "ci_sdr"
+        else torch.LongTensor([768, 700])
+    )
+    speech_refs = [torch.randn(*shapes).float(), torch.randn(*shapes).float()]
 
     if loss_type not in ("ci_sdr", "si_snr", "snr") and isinstance(
         encoder, ConvEncoder
@@ -210,7 +216,7 @@ def test_forward_with_beamformer_net(
     ch = 2
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
-    speech_refs = [torch.randn(2, 16, ch).float() for spk in range(num_spk)]
+    speech_refs = [torch.randn(2, 16, ch).float() for _ in range(num_spk)]
     noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     encoder = STFTEncoder(n_fft=8, hop_length=2)
@@ -251,6 +257,10 @@ def test_forward_with_beamformer_net(
         stft_consistency=stft_consistency,
         loss_type=loss_type,
         mask_type=mask_type,
+    )
+    # hack the ci_sdr_loss to match the input length
+    ESPnetEnhancementModel.ci_sdr_loss = partial(
+        ESPnetEnhancementModel.ci_sdr_loss, filter_length=5
     )
     if training:
         enh_model.train()

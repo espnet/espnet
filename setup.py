@@ -47,6 +47,7 @@ requirements = {
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
+        "ci_sdr",
     ],
     "recipe": [
         "espnet_model_zoo",

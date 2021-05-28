@@ -56,7 +56,15 @@ class NeuralBeamformer(AbsSeparator):
 
         self._num_spk = num_spk
         self.loss_type = loss_type
-        if loss_type not in ("mask_mse", "spectrum", "spectrum_log", "magnitude"):
+        if loss_type not in (
+            "ci_sdr",
+            "si_snr",
+            "snr",
+            "mask_mse",
+            "spectrum",
+            "spectrum_log",
+            "magnitude",
+        ):
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
         self.use_beamformer = use_beamformer

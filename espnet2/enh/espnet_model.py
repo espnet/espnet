@@ -150,12 +150,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         Returns:
             labels: List[Tensor(B, T, F), ...] or List[ComplexTensor(B, T, F), ...]
         """
-
         # Must be upper case
+        mask_type = mask_type.upper()
         assert mask_type in [
             "IBM",
             "IRM",
-            "cIRM",
+            "CIRM",
             "IAM",
             "VAD",
             "PSM",
@@ -188,7 +188,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 #  as noise referecens are provided separately
                 mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + EPS)
                 raise NotImplementedError("IRM is not supported yet")
-            elif mask_type == "cIRM":
+            elif mask_type == "CIRM":
                 # Reference: Complex Ratio Masking for Monaural Speech
                 # Separation; Williamson et al, 2016
                 denom = mix_spec.real.pow(2) + mix_spec.imag.pow(2) + EPS
@@ -212,8 +212,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             elif mask_type == "PSM" or mask_type == "NPSM":
                 complex_eps = r.real.new_full((), EPS)
                 complex_eps = complex_impl(complex_eps, complex_eps)
-                phase_r = r / (abs(r) + complex_eps)
-                phase_mix = mix_spec / (abs(mix_spec) + complex_eps)
+                phase_r = r / abs(r + complex_eps).clamp(min=EPS)
+                phase_mix = mix_spec / abs(mix_spec + complex_eps).clamp(min=EPS)
                 # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
                 cos_theta = (
                     phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
@@ -228,8 +228,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 complex_eps = r.real.new_full((), EPS)
                 complex_eps = complex_impl(complex_eps, complex_eps)
                 # This is for training beamforming masks
-                phase_r = r / abs(r + complex_eps)
-                phase_mix = mix_spec / abs(mix_spec + complex_eps)
+                phase_r = r / abs(r + complex_eps).clamp(min=EPS)
+                phase_mix = mix_spec / abs(mix_spec + complex_eps).clamp(min=EPS)
                 # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
                 cos_theta = (
                     phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
@@ -369,7 +369,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 stats = dict(ci_sdr=-loss.detach(), loss=loss.detach())
             elif self.loss_type == "si_snr":
                 stats = dict(si_snr=-loss.detach(), loss=loss.detach())
-            if self.loss_type == "snr":
+            elif self.loss_type == "snr":
                 stats = dict(snr=-loss.detach(), loss=loss.detach())
             else:
                 raise ValueError("Unsupported loss type: %s" % self.loss_type)
@@ -430,10 +430,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     self.encoder(sp, speech_lengths)[0] for sp in tmp_t_domain
                 ]
 
-            is_complex = isinstance(spectrum_pre[0], ComplexTensor) or (
-                is_torch_1_8_plus and torch.is_complex(spectrum_pre[0])
-            )
-            if spectrum_pre is not None and not is_complex:
+            if (
+                spectrum_pre is not None
+                and not isinstance(spectrum_pre[0], ComplexTensor)
+                and not (is_torch_1_8_plus and torch.is_complex(spectrum_pre[0]))
+            ):
                 spectrum_pre = [
                     complex_impl(*torch.unbind(sp, dim=-1)) for sp in spectrum_pre
                 ]
@@ -573,7 +574,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if self.loss_type == "ci_sdr":
                 # compute ci-snr loss
                 loss, perm = self._permutation_loss(
-                    speech_ref, speech_pre, self.ci_sdr_loss
+                    speech_ref2, speech_pre, self.ci_sdr_loss
                 )
             elif self.loss_type == "si_snr":
                 # compute si-snr loss
@@ -691,7 +692,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         return l1loss
 
     @staticmethod
-    def ci_sdr_loss(ref, inf):
+    def ci_sdr_loss(ref, inf, filter_length=512):
         """CI-SDR loss
 
         Reference:
@@ -702,11 +703,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         Args:
             ref: (Batch, samples)
             inf: (Batch, samples)
+            filter_length (int): a time-invariant filter that allows
+                                 slight distortion via filtering
         Returns:
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False)
+        return ci_sdr.pt.ci_sdr_loss(
+            inf, ref, compute_permutation=False, filter_length=filter_length
+        )
 
     @staticmethod
     def snr_loss(ref, inf):
@@ -812,11 +817,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             ) / len(permutation)
 
         if perm is None:
+            device = ref[0].device
             all_permutations = list(permutations(range(num_spk)))
             losses = torch.stack([pair_loss(p) for p in all_permutations], dim=1)
             loss, perm = torch.min(losses, dim=1)
             perm = torch.index_select(
-                ref[0].new_tensor(all_permutations, dtype=torch.long),
+                torch.as_tensor(all_permutations, dtype=torch.long, device=device),
                 0,
                 perm,
             )
