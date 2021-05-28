@@ -121,10 +121,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             ...     _revert_compressed_mask(_compress_mask(x)), x
             ... )
         """
+
+        def _atanh(x):
+            return torch.log1p(2 * x / (1 - x)) * 0.5
+
         if is_torch_1_7_plus:
             atanh = torch.atanh
         else:
-            atanh = lambda x: torch.log1p(2 * x / (1 - x)) * 0.5  # noqa(E731)
+            atanh = _atanh
         if isinstance(mask, ComplexTensor) or (
             is_torch_1_8_plus and torch.is_complex(mask)
         ):
@@ -808,12 +812,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             ) / len(permutation)
 
         if perm is None:
-            device = ref[0].device
             all_permutations = list(permutations(range(num_spk)))
             losses = torch.stack([pair_loss(p) for p in all_permutations], dim=1)
             loss, perm = torch.min(losses, dim=1)
             perm = torch.index_select(
-                torch.tensor(all_permutations, device=device, dtype=torch.long),
+                ref[0].new_tensor(all_permutations, dtype=torch.long),
                 0,
                 perm,
             )
