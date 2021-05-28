@@ -84,15 +84,15 @@ def test_single_channel_model(
     if not is_torch_1_2_plus:
         pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
 
-    if loss_type == 'ci_sdr':
+    if loss_type == "ci_sdr":
         inputs = torch.randn(2, 300)
         ilens = torch.LongTensor([300, 200])
         speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
     else:
-        # ci_sdr will fail if length is too short 
+        # ci_sdr will fail if length is too short
         inputs = torch.randn(2, 100)
         ilens = torch.LongTensor([100, 80])
-        speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]    
+        speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]
 
     if loss_type not in ["si_snr", "ci_sdr"] and isinstance(encoder, ConvEncoder):
         with pytest.raises(TypeError):
