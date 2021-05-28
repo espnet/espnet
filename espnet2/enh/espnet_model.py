@@ -5,10 +5,10 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
+import ci_sdr
 import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
-import ci_sdr
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
