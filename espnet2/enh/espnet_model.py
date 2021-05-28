@@ -8,6 +8,7 @@ from typing import Tuple
 import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
+import ci_sdr
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
@@ -48,36 +49,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         mask_type: Optional[str] = None,
     ):
         assert check_argument_types()
-
-        if loss_type == "ci_sdr":
-            try:
-                import ci_sdr
-
-                def ci_sdr_loss(ref, inf):
-                    """CI-SDR loss
-
-                    Reference:
-                        Convolutive Transfer Function Invariant SDR Training
-                        Criteria for Multi-Channel Reverberant Speech Separation;
-                        C. Boeddeker et al., 2021;
-                        https://arxiv.org/abs/2011.15003
-
-                    Args:
-                        ref: (Batch, samples)
-                        inf: (Batch, samples)
-                    Returns:
-                        loss: (Batch,)
-                    """
-                    assert ref.shape == inf.shape, (ref.shape, inf.shape)
-                    return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False)
-
-                self.ci_sdr_loss = ci_sdr_loss
-            except ImportError:
-                raise ImportError(
-                    "Package 'ci_sdr' is not installed, \
-                    please visit https://github.com/fgnt/ci_sdr \
-                    and install it manually to the environment."
-                )
 
         super().__init__()
 
@@ -574,6 +545,25 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
             )
         return l1loss
+
+    @staticmethod
+    def ci_sdr_loss(ref, inf):
+        """CI-SDR loss
+
+        Reference:
+            Convolutive Transfer Function Invariant SDR Training
+            Criteria for Multi-Channel Reverberant Speech Separation;
+            C. Boeddeker et al., 2021;
+            https://arxiv.org/abs/2011.15003
+
+        Args:
+            ref: (Batch, samples)
+            inf: (Batch, samples)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+        return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False)
 
     @staticmethod
     def si_snr_loss(ref, inf):
