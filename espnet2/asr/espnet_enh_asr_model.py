@@ -1,9 +1,9 @@
+from distutils.version import LooseVersion
 from itertools import chain
+import random
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import Union
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -13,13 +13,12 @@ from typeguard import check_argument_types
 
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.train.category import UttCategory
 
 
-SINGLE_SPK=0
-MULTI_SPK=1
+is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
 
 
 def fliter_attrs(a, b):
@@ -41,6 +40,8 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         cal_enh_loss: bool = True,
         end2end_train: bool = True,
         total_loss_scale: float = 1,
+        # for multi-condition training with real data when num_spk == 1
+        enh_real_prob: float = 1.0,
     ):
         assert check_argument_types()
         assert 0.0 <= asr_model.ctc_weight <= 1.0, asr_model.ctc_weight
@@ -63,8 +64,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 asr_model.ctc_weight != 0.0 or cal_enh_loss
             )  # need at least one to cal PIT permutation
 
-
-        # self.end2end_train = False
         self.end2end_train = end2end_train
         self.enh_attr = dir(enh_model)
         self.asr_attr = dir(asr_model)
@@ -77,7 +76,9 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         for arr in self.asr_attr:
             setattr(self, arr, getattr(self.asr_subclass, arr))
 
-
+        # for multi-condition training with real data when self.num_spk == 1
+        # if < 1.0, feed the real data only to ASR with probability `enh_real_prob`
+        self.enh_real_prob = enh_real_prob
 
     def forward(
         self,
@@ -93,12 +94,6 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             text: (Batch, Length)
             text_lengths: (Batch,)
         """
-        speech_ref = [
-            kwargs["speech_ref{}".format(spk + 1)]
-            if f"speech_ref{spk + 1}" in kwargs
-            else None
-            for spk in range(self.num_spk)
-        ]
         text_ref = [kwargs["text_ref{}".format(spk + 1)] for spk in range(self.num_spk)]
         text_ref_lengths = [
             kwargs["text_ref{}_lengths".format(spk + 1)] for spk in range(self.num_spk)
@@ -123,15 +118,10 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         # for data-parallel
         text_length_max = max(ref_lengths.max() for ref_lengths in text_ref_lengths)
+        # pad text sequences of different speakers to the same length
         text_ref = [
             torch.cat(
-                [
-                    ref,
-                    torch.ones(batch_size, text_length_max, dtype=ref.dtype).to(
-                        ref.device
-                    )
-                    * self.idx_blank,
-                ],
+                [ref, ref.new_full((batch_size, text_length_max), self.idx_blank)],
                 dim=1,
             )[:, :text_length_max]
             for ref in text_ref
@@ -139,19 +129,83 @@ class ESPnetEnhASRModel(AbsESPnetModel):
 
         # 0. Enhancement
         if "utt2category" in kwargs:
-            utt2category = kwargs["utt2category"][0]
+            utt2category = kwargs["utt2category"][0].int()
         else:
-            utt2category = 0
-        # print(utt2category)
+            utt2category = UttCategory.SIMU_DATA
 
-        # make sure the speech_pre is the raw waveform with same size.
-        # if len(text_ref) == 1 or all(
-        #     [tr.equal(text_ref[0]) for tr in text_ref[1:]]
-        # ):
-        # if False:
-        if utt2category.int() == SINGLE_SPK:
-            # TODO(Jing): find a better way to locate single-spk set
-            # single-speaker case
+        if utt2category == UttCategory.SIMU_DATA or (
+            utt2category == UttCategory.REAL_1SPEAKER and self.num_spk == 1
+        ):
+            is_simu_data = utt2category == UttCategory.SIMU_DATA
+            if is_simu_data or random.random() <= self.enh_real_prob:
+                # 1. For simulated single-/multi-speaker data (SIMU_DATA),
+                #    feed it to Enh FrontEnd and calculate loss_enh
+                # 2. For single-speaker real data (REAL_1SPEAKER),
+                #    feed it to Enh FrontEnd but without calculating loss_enh
+                #    with some probability for end-to-end SE and ASR
+                loss_enh, perm, speech_pre, speech_pre_lengths = self.forward_enh(
+                    speech_mix,
+                    speech_mix_lengths,
+                    cal_loss=is_simu_data,
+                    **kwargs,
+                )
+
+                # speech_pre: List[(Batch, T)] --> (Batch, num_spk, T)
+                speech_pre = torch.stack(speech_pre, dim=1)
+                speech_frame_length = speech_mix.size(1)
+                if speech_pre[:, 0].dim() == speech_mix.dim():  # single-channel input
+                    shape_tmp = speech_mix.shape
+                else:  # multi-channel input
+                    shape_tmp = speech_mix[..., 0].shape
+                assert speech_pre[:, 0].shape == shape_tmp, (
+                    speech_pre[:, 0].shape,
+                    speech_mix.shape,
+                )
+
+                if is_simu_data and not self.end2end_train:
+                    # if the FrontEnd and ASR are trained independetly
+                    # use the speech_ref to train ASR (only for SIMU_DATA)
+                    speech_pre = torch.stack(
+                        [
+                            kwargs["speech_ref{}".format(spk + 1)]
+                            if f"speech_ref{spk + 1}" in kwargs
+                            else None
+                            for spk in range(self.num_spk)
+                        ],
+                        dim=1,
+                    )
+
+                # Pack the separated speakers into the ASR part.
+                # (Batch, num_spk, T) -> (num_spk * Batch, T)
+                speech_pre_all = (
+                    speech_pre.transpose(0, 1)
+                    .contiguous()
+                    .view(-1, speech_frame_length)
+                )
+                # (num_spk * Batch,)
+                speech_pre_lengths = torch.stack(
+                    [speech_mix_lengths for _ in range(self.num_spk)], dim=1
+                ).view(-1)
+                text_ref_all = torch.stack(text_ref, dim=1).view(
+                    batch_size * len(text_ref), -1
+                )
+                text_ref_lengths = torch.stack(text_ref_lengths, dim=1).view(-1)
+                n_speaker_asr = 1 if self.cal_enh_loss else self.num_spk
+            else:
+                # 2. with some probability, bypass the Enh Frontend, and feed the
+                # real 1-spk data directly to the ASR backend
+                speech_pre_all = (
+                    speech_mix
+                    if speech_mix.dim() == 2
+                    else speech_mix[..., self.ref_channel]
+                )
+                speech_pre_lengths = speech_mix_lengths
+                text_ref_all, text_ref_lengths = text_ref[0], text_ref_lengths[0]
+                loss_enh, perm = None, None
+                n_speaker_asr = 1
+
+        elif utt2category in (UttCategory.CLEAN_1SPEAKER, UttCategory.REAL_1SPEAKER):
+            # single-speaker clean/real data, only for ASR
             speech_pre_all = (
                 speech_mix
                 if speech_mix.dim() == 2
@@ -159,53 +213,10 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             )
             speech_pre_lengths = speech_mix_lengths
             text_ref_all, text_ref_lengths = text_ref[0], text_ref_lengths[0]
-            perm = True
-            loss_enh = None
+            loss_enh, perm = None, None
             n_speaker_asr = 1
-        elif utt2category.int() == MULTI_SPK:
-            loss_enh, perm, speech_pre, speech_pre_lengths = self.enh_subclass.forward(
-                speech_mix,
-                speech_mix_lengths,
-                asr_integration=True,
-                speech_ref=speech_ref,
-            )
-            # speech_pre: List[bs,T] --> (bs,num_spk,T)
-            speech_pre = torch.stack(speech_pre, dim=1)
-            if speech_pre[:, 0].dim() == speech_mix.dim():
-                # single-channel input
-                assert speech_pre[:, 0].shape == speech_mix.shape, (
-                    speech_pre[:, 0].shape,
-                    speech_mix.shape,
-                )
-                speech_frame_length = speech_mix.size(-1)
-            else:
-                # multi-channel input
-                assert speech_pre[:, 0].shape == speech_mix[..., 0].shape, (
-                    speech_pre[:, 0].shape,
-                    speech_mix.shape,
-                )
-                speech_frame_length = speech_mix.size(-2)
-
-            if not self.end2end_train:
-                # if the FrontEnd and ASR are trained independetly
-                # use the speech_ref to train asr
-                speech_pre = torch.stack(speech_ref, dim=1)
-
-            # Pack the separated speakers into the ASR part.
-            speech_pre_all = (
-                speech_pre.transpose(0, 1)
-                .contiguous()
-                .view(-1, speech_frame_length)
-            )  # (N_spk*B, T)
-            speech_pre_lengths = torch.stack(
-                [speech_mix_lengths, speech_mix_lengths], dim=1
-            ).view(-1)
-            text_ref_all = torch.stack(text_ref, dim=1).view(
-                batch_size * len(text_ref), -1
-            )
-            text_ref_lengths = torch.stack(text_ref_lengths, dim=1).view(-1)
-            n_speaker_asr = 1 if self.cal_enh_loss else self.num_spk
-
+        else:
+            raise ValueError("Unsupported category: %s" % utt2category)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech_pre_all, speech_pre_lengths)
@@ -291,6 +302,78 @@ class ESPnetEnhASRModel(AbsESPnetModel):
         speech_mix = speech_mix[:, : speech_mix_lengths.max()]
         feats, feats_lengths = speech_mix, speech_mix_lengths
         return {"feats": feats, "feats_lengths": feats_lengths}
+
+    def forward_enh(
+        self,
+        speech_mix: torch.Tensor,
+        speech_mix_lengths: torch.Tensor,
+        cal_loss: bool,
+        **kwargs,
+    ):
+        """enh forward with or without loss calculation
+
+        Args:
+            speech_mix: (Batch, samples) or (Batch, samples, channels)
+            speech_mix_lengths: (Batch,), default None for chunk interator,
+                            because the chunk-iterator does not have the
+                            speech_lengths returned. see in
+                            espnet2/iterators/chunk_iter_factory.py
+            cal_loss: Can set to False only if used in joint SE and ASR (enh_asr)
+        [Optional Args]:
+            speech_ref: speech references for all speakers List[torch.Tensor]
+            noise_ref1: denoising reference for noise 1 (Batchm, samples [, channels])
+            ...
+            dereverb_ref1: dereverberation reference for speaker 1
+                (Batchm, samples [, channels])
+            dereverb_ref2: dereverberation reference for speaker 2
+                (Batchm, samples [, channels])
+            ...
+        Returns:
+            loss: scalar
+            perm: (Batch,)
+            speech_pre: List[torch.Tensor(Batch, samples)]
+            out_lengths: (Batch,)
+        """
+        (
+            speech_mix,
+            speech_lengths,
+            speech_ref,
+            noise_ref,
+            dereverb_speech_ref,
+        ) = self.enh_subclass._prepare_data(speech_mix, speech_mix_lengths, kwargs)
+
+        if cal_loss:
+            loss, speech_pre, _, out_lengths, perm, _ = self.enh_subclass._compute_loss(
+                speech_mix,
+                speech_lengths,
+                speech_ref,
+                dereverb_speech_ref=dereverb_speech_ref,
+                noise_ref=noise_ref,
+            )
+
+            # make sure speech_pre is waveform
+            if isinstance(speech_pre[0], ComplexTensor) or (
+                is_torch_1_8_plus and torch.is_complex(speech_pre[0])
+            ):
+                # speech_pre: list[(batch, sample)]
+                speech_pre = [
+                    self.enh_subclass.decoder(ps, speech_lengths)[0]
+                    for ps in speech_pre
+                ]
+            assert speech_pre[0].dim() == 2, speech_pre[0].dim()
+
+            # resort the prediction wav with the perm from enh_loss
+            speech_pre = ESPnetEnhancementModel.sort_by_perm(speech_pre, perm)
+
+        else:
+            loss, perm = None, None
+            feature_mix, flens = self.enh_subclass.encoder(speech_mix, speech_lengths)
+            feature_pre, flens, others = self.enh_subclass.separator(feature_mix, flens)
+            speech_pre = [
+                self.enh_subclass.decoder(ps, speech_lengths)[0] for ps in feature_pre
+            ]
+
+        return loss, perm, speech_pre, speech_lengths
 
     def _calc_ctc_loss_with_spk(
         self,

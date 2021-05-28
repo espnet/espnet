@@ -224,7 +224,9 @@ class Speech2Text:
         for idx, p in enumerate(perm):
             speech_spk = speech_pre[int(p)]
             # enc, _ = self.joint_model.encode(speech_spk, batch['speech_lengths'])
-            enc, _ = self.joint_model.asr_subclass.encode(speech_spk, speech_pre_lengths)
+            enc, _ = self.joint_model.asr_subclass.encode(
+                speech_spk, speech_pre_lengths
+            )
             assert len(enc) == 1, len(enc)
 
             # c. Passed the encoder result and the beam search

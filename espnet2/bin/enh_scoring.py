@@ -8,15 +8,14 @@ from typing import Union
 from mir_eval.separation import bss_eval_sources
 import numpy as np
 from pystoi import stoi
-from pypesq import pesq
 import torch
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils import config_argparse
-from espnet2.enh.espnet_model import ESPnetEnhancementModel
 
 
 def scoring(
@@ -58,7 +57,6 @@ def scoring(
             inf_audios = [inf_reader[key][1] for inf_reader in inf_readers]
             ref = np.array(ref_audios)
             inf = np.array(inf_audios)
-#            print('ref:{}, inf:{}'.format(ref.shape, inf.shape), flush=True)
             if ref.ndim > inf.ndim:
                 # multi-channel reference and single-channel output
                 ref = ref[..., ref_channel]
@@ -78,13 +76,13 @@ def scoring(
 
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
-                pesq_score = pesq(ref[i], inf[int(perm[i])], fs=sample_rate)
-                si_snr_score = - float(ESPnetEnhancementModel.si_snr_loss(
-                    torch.from_numpy(ref[i][None, ...]),
-                    torch.from_numpy(inf[int(perm[i])][None, ...])
-                ))
+                si_snr_score = -float(
+                    ESPnetEnhancementModel.si_snr_loss(
+                        torch.from_numpy(ref[i][None, ...]),
+                        torch.from_numpy(inf[int(perm[i])][None, ...]),
+                    )
+                )
                 writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
-                writer[f"PESQ_spk{i + 1}"][key] = str(pesq_score)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])

@@ -15,9 +15,8 @@ from typeguard import check_return_type
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.train.category import UttCategory
 
-from espnet2.asr.espnet_enh_asr_model import SINGLE_SPK
-from espnet2.asr.espnet_enh_asr_model import MULTI_SPK
 
 class AbsPreprocessor(ABC):
     def __init__(self, train: bool):
@@ -334,7 +333,7 @@ class CommonPreprocessor_multi(AbsPreprocessor):
         self.speech_name = speech_name
         self.text_name = text_name
         self.utt2category_name = utt2category_name
-        
+
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -372,10 +371,22 @@ class CommonPreprocessor_multi(AbsPreprocessor):
 
         if self.utt2category_name in data:
             category = data[self.utt2category_name]
-            if "single-speaker" in category:
-                data[self.utt2category_name] = np.array([SINGLE_SPK], dtype=np.int64)
-            elif "multi-speaker" in category:
-                data[self.utt2category_name] = np.array([MULTI_SPK], dtype=np.int64)
+            if category.startswith("clean_single-speaker"):
+                data[self.utt2category_name] = np.array(
+                    [UttCategory.CLEAN_1SPEAKER], dtype=np.int64
+                )
+            elif category.startswith("real_single-speaker"):
+                data[self.utt2category_name] = np.array(
+                    [UttCategory.REAL_1SPEAKER], dtype=np.int64
+                )
+            elif category.startswith("simu"):
+                data[self.utt2category_name] = np.array(
+                    [UttCategory.SIMU_DATA], dtype=np.int64
+                )
+            else:
+                data[self.utt2category_name] = np.array(
+                    [UttCategory.SIMU_DATA], dtype=np.int64
+                )
 
         for text_n in self.text_name:
             if text_n in data and self.tokenizer is not None:

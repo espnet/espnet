@@ -31,8 +31,8 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.tasks.enh import encoder_choices as enh_encoder_choices
 from espnet2.tasks.enh import decoder_choices as enh_decoder_choices
+from espnet2.tasks.enh import encoder_choices as enh_encoder_choices
 from espnet2.tasks.enh import separator_choices as enh_separator_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -309,12 +309,21 @@ class EnhASRTask(AbsTask):
         logging.info(f"Vocabulary size: {vocab_size }")
 
         # 0. Build pre enhancement model
-        enh_encoder = enh_encoder_choices.get_class(args.enh_encoder)(**args.enh_encoder_conf)
+        enh_encoder = enh_encoder_choices.get_class(args.enh_encoder)(
+            **args.enh_encoder_conf
+        )
         enh_separator = enh_separator_choices.get_class(args.enh_separator)(
             enh_encoder.output_dim, **args.enh_separator_conf
         )
-        enh_decoder = enh_decoder_choices.get_class(args.enh_decoder)(**args.enh_decoder_conf)
-        enh_model = ESPnetEnhancementModel(encoder=enh_encoder, decoder=enh_decoder, separator=enh_separator, **args.enh_model_conf)
+        enh_decoder = enh_decoder_choices.get_class(args.enh_decoder)(
+            **args.enh_decoder_conf
+        )
+        enh_model = ESPnetEnhancementModel(
+            encoder=enh_encoder,
+            decoder=enh_decoder,
+            separator=enh_separator,
+            **args.enh_model_conf,
+        )
 
         # Step 1-7 follows the asr.py to build asr_model.
         # 1. frontend
@@ -343,7 +352,7 @@ class EnhASRTask(AbsTask):
             normalize = normalize_class(**args.normalize_conf)
         else:
             normalize = None
-        
+
         # 4. PreEncoder (Not implemented)
         pre_encoder = None
 
@@ -367,8 +376,6 @@ class EnhASRTask(AbsTask):
 
         # 8. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
-
-
 
         asr_model = ESPnetASRModel(
             vocab_size=vocab_size,

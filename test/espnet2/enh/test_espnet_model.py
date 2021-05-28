@@ -72,10 +72,13 @@ transformer_separator = TransformerSeparator(
     "separator", [rnn_separator, dprnn_separator, tcn_separator, transformer_separator]
 )
 @pytest.mark.parametrize(
-    "loss_type", ["si_snr", "mask_mse", "magnitude", "spectrum", "spectrum_log"]
+    "loss_type",
+    ["ci_sdr", "si_snr", "snr", "mask_mse", "magnitude", "spectrum", "spectrum_log"],
 )
 @pytest.mark.parametrize("stft_consistency", [True, False])
-@pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "NPSM", "PSM^2"])
+@pytest.mark.parametrize(
+    "mask_type", ["IBM", "cIRM", "IAM", "VAD", "PSM", "NPSM", "PSM^2"]
+)
 @pytest.mark.parametrize("training", [True, False])
 def test_single_channel_model(
     encoder, decoder, separator, stft_consistency, loss_type, mask_type, training
@@ -87,7 +90,9 @@ def test_single_channel_model(
     ilens = torch.LongTensor([100, 80])
     speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]
 
-    if loss_type != "si_snr" and isinstance(encoder, ConvEncoder):
+    if loss_type not in ("ci_sdr", "si_snr", "snr") and isinstance(
+        encoder, ConvEncoder
+    ):
         with pytest.raises(TypeError):
             enh_model = ESPnetEnhancementModel(
                 encoder=encoder,
@@ -98,7 +103,12 @@ def test_single_channel_model(
                 mask_type=mask_type,
             )
         return
-    if stft_consistency and loss_type in ["mask_mse", "si_snr"]:
+    if stft_consistency and loss_type in (
+        "mask_mse",
+        "ci_sdr",
+        "si_snr",
+        "snr",
+    ):
         with pytest.raises(ValueError):
             enh_model = ESPnetEnhancementModel(
                 encoder=encoder,
@@ -176,9 +186,12 @@ random_speech = torch.tensor(
 
 
 @pytest.mark.parametrize("training", [True, False])
-@pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "PSM^2"])
 @pytest.mark.parametrize(
-    "loss_type", ["mask_mse", "magnitude", "spectrum", "spectrum_log"]
+    "loss_type",
+    ["ci_sdr", "si_snr", "snr", "mask_mse", "magnitude", "spectrum", "spectrum_log"],
+)
+@pytest.mark.parametrize(
+    "mask_type", ["IBM", "cIRM", "IAM", "VAD", "PSM", "NPSM", "PSM^2"]
 )
 @pytest.mark.parametrize("num_spk", [1, 2, 3])
 @pytest.mark.parametrize("use_noise_mask", [True, False])
@@ -203,7 +216,12 @@ def test_forward_with_beamformer_net(
     encoder = STFTEncoder(n_fft=8, hop_length=2)
     decoder = STFTDecoder(n_fft=8, hop_length=2)
 
-    if stft_consistency and loss_type in ["mask_mse", "si_snr"]:
+    if stft_consistency and loss_type in (
+        "mask_mse",
+        "ci_sdr",
+        "si_snr",
+        "snr",
+    ):
         # skip this condition
         return
 
@@ -253,3 +271,27 @@ def test_forward_with_beamformer_net(
         "dereverb_ref1": dereverb_ref1,
     }
     loss, stats, weight = enh_model(**kwargs)
+
+
+def test_mask_compress_and_revert():
+    mask = torch.rand(2, 100, 257)
+    assert torch.allclose(
+        ESPnetEnhancementModel._revert_compressed_mask(
+            ESPnetEnhancementModel._compress_mask(mask)
+        ),
+        mask,
+    )
+
+
+@pytest.mark.parametrize("num_spk", [1, 2, 3])
+def test_permutation_loss(num_spk):
+    ref = [torch.randn(2, 100) for _ in range(num_spk)]
+    inf = [torch.randn(2, 100) for _ in range(num_spk)]
+    loss0, perm0 = ESPnetEnhancementModel._permutation_loss(
+        ref, inf, ESPnetEnhancementModel.si_snr_loss, perm=None
+    )
+
+    loss, _ = ESPnetEnhancementModel._permutation_loss(
+        ref, inf, ESPnetEnhancementModel.si_snr_loss, perm=perm0
+    )
+    assert loss0 == loss, (loss0, loss)
