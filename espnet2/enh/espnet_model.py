@@ -68,7 +68,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # whether to compute the TF-domain loss while enforcing STFT consistency
         self.stft_consistency = stft_consistency
 
-        if stft_consistency and loss_type in ["mask_mse", "si_snr"]:
+        if stft_consistency and loss_type in ["mask_mse", "si_snr", "ci_sdr"]:
             raise ValueError(
                 f"stft_consistency will not work when '{loss_type}' loss is used"
             )
@@ -562,6 +562,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         Returns:
             loss: (Batch,)
         """
+        print(ref.shape, inf.shape)
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
         return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False)
 

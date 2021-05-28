@@ -73,7 +73,7 @@ transformer_separator = TransformerSeparator(
 )
 @pytest.mark.parametrize(
     "loss_type",
-    ["si_snr", "ci_sdr" "mask_mse", "magnitude", "spectrum", "spectrum_log"],
+    ["si_snr", "ci_sdr", "mask_mse", "magnitude", "spectrum", "spectrum_log"],
 )
 @pytest.mark.parametrize("stft_consistency", [True, False])
 @pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "NPSM", "PSM^2"])
@@ -84,9 +84,15 @@ def test_single_channel_model(
     if not is_torch_1_2_plus:
         pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
 
-    inputs = torch.randn(2, 100)
-    ilens = torch.LongTensor([100, 80])
-    speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]
+    if loss_type == 'ci_sdr':
+        inputs = torch.randn(2, 300)
+        ilens = torch.LongTensor([300, 200])
+        speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    else:
+        # ci_sdr will fail if length is too short 
+        inputs = torch.randn(2, 100)
+        ilens = torch.LongTensor([100, 80])
+        speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]    
 
     if loss_type not in ["si_snr", "ci_sdr"] and isinstance(encoder, ConvEncoder):
         with pytest.raises(TypeError):
