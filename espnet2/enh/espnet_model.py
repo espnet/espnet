@@ -206,7 +206,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 mask = abs(r) / (abs(mix_spec) + EPS)
                 mask = (
                     mask.clamp(min=0, max=1)
-                    .mean(dim=-1, keepdims=True)
+                    .mean(dim=-1, keepdim=True)
                     .expand(mask.shape)
                 )
             elif mask_type == "PSM" or mask_type == "NPSM":
@@ -744,7 +744,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         ref = ref / torch.norm(ref, p=2, dim=1, keepdim=True)
         inf = inf / torch.norm(inf, p=2, dim=1, keepdim=True)
 
-        s_target = (ref * inf).sum(dim=1, keepdims=True) * ref
+        s_target = (ref * inf).sum(dim=1, keepdim=True) * ref
         e_noise = inf - s_target
 
         si_snr = 20 * (
