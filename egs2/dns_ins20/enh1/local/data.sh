@@ -14,10 +14,13 @@ Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>] [--configure <conf.json>
   optional argument:
     [--stage]: 1 (default) or 2
     [--stop_stage]: 1 or 2 (default)
-    [--configure]: use specific configuration file 
+    [--configure]: use another specific configuration file 
     NOTE:
+        stage 1: Create the Data Mixture from the DNS scripts. You can skip this step when you already have the audio mixture for training.
+        stage 2: Prepare the data for ESPNet-se
         You can clone the DNS-interspeech2020 by git clone -b interspeech2020/master https://github.com/microsoft/DNS-Challenge.git DNS-Challenge
-        Default configuration is noisyspeech_synthesizer.cfg under the DNS-Challenge directory
+        If you do not want to use the default noisyspeech_synthesizer.cfg configuration under the DNS directory, you can specify your configuration file.
+        Please make sure the destination is under data/dns_wav
 EOF
 )
 
@@ -29,7 +32,6 @@ stage=1
 stop_stage=2
 configure=
 dns_wav=$PWD/data/dns_wav
-dns_script=$PWD/data/dns
 
 
 . utils/parse_options.sh

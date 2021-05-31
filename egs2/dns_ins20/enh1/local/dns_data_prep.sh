@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-. utils/parse_options.sh
 . ./path.sh
 
 
