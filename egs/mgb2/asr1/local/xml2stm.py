@@ -66,28 +66,30 @@ def loadXml(xmlFileName, opts):
 
 
 def stm(data):
-    out = codecs.getwriter("utf-8")(sys.stdout)
-    for e in data["turn"]:
-        out.write(
-            "{} 1 UNKNOWN {:.02f} {:.02f} ".format(data["id"], e.startTime, e.endTime)
-        )
-        out.write(e.text)
-        out.write("\n")
+    with codecs.open("out", "wb", encoding="utf-8") as f:
+        for e in data["turn"]:
+            f.write(
+                "{} 1 UNKNOWN {:.02f} {:.02f} ".format(
+                    data["id"], e.startTime, e.endTime
+                )
+            )
+            f.write(e.text)
+            f.write("\n")
 
 
 def ctm(data):
     """generate ctm output for test"""
 
-    out = codecs.getwriter("utf-8")(sys.stdout)
-    for e in data["turn"]:
-        tokens = e.text.split()
-        duration = e.endTime - e.startTime
-        interval = duration / len(tokens)
-        startTime = e.startTime
-        for token in tokens:
-            out.write("{} 1 {:.02f} {:.02f} ".format(data["id"], startTime, interval))
-            out.write(token)
-            out.write("\n")
+    with codecs.open("out", "wb", encoding="utf-8") as f:
+        for e in data["turn"]:
+            tokens = e.text.split()
+            duration = e.endTime - e.startTime
+            interval = duration / len(tokens)
+            startTime = e.startTime
+            for token in tokens:
+                f.write("{} 1 {:.02f} {:.02f} ".format(data["id"], startTime, interval))
+                f.write(token)
+                f.write("\n")
 
 
 def main(args):
