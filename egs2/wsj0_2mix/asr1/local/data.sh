@@ -99,10 +99,10 @@ cat ${nlsyms}
 # Prepare utt2category for wsj_mix
 for folder in ${train_set} ${train_dev} ${recog_set};
 do
-    awk '{print($1, "multi-speaker")}' ./data/${folder}/wav.scp > ./data/${folder}/utt2category
+    awk '{print($1, "simu")}' ./data/${folder}/wav.scp > ./data/${folder}/utt2category
 done
 # Prepare utt2category, spk*.scp and text_spk* for train_si284
-awk '{print($1, "single-speaker")}' ./data/wsj/train_si284/wav.scp > ./data/wsj/train_si284/utt2category
+awk '{print($1, "clean_single-speaker")}' ./data/wsj/train_si284/wav.scp > ./data/wsj/train_si284/utt2category
 ln -s wav.scp ./data/wsj/train_si284/spk1.scp
 ln -s wav.scp ./data/wsj/train_si284/spk2.scp
 ln -s text ./data/wsj/train_si284/text_spk1
