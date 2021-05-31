@@ -8,7 +8,6 @@
 
 __author__ = "Yifan Zhang (yzhang@qf.org.qa)"
 
-import codecs
 import sys
 from xml.dom import minidom
 
