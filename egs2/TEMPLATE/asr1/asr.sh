@@ -1038,6 +1038,7 @@ if ! "${skip_train}"; then
             --init_file_prefix "${asr_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.asr_train \
+                --num_att_plot 0 \
                 --use_preprocessor true \
                 --bpemodel "${bpemodel}" \
                 --token_type "${token_type}" \
