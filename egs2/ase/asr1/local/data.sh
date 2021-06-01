@@ -17,7 +17,7 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
 train_dev="dev"
-trans_type=phn
+lexicon=resource/lexicon.txt
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -51,8 +51,25 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+        _dst=data/${part//-/_}
         # use underscore-separated names in data directories.
-        local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
+        local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} ${_dst}
+
+        # G2P
+        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+        # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+        # FIXME: cleaner
+        # FIXME: --non_linguistic_symbols ${nlsyms_txt} \
+        ${python} -m espnet2.bin.tokenize_text  \
+            --token_type "phn" \
+            --input "${_dst}/text" --output "${_dst}/text.phn" \
+            --field 2- \
+            --cleaner tacotron \
+            --g2p "${g2p}" \
+            --write_vocabulary false \
+            --add_symbol "${blank}:0" \
+            --add_symbol "${oov}:1" \
+            --add_symbol "${sos_eos}:-1"
     done
 fi
 
