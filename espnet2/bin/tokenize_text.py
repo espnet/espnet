@@ -131,10 +131,9 @@ def tokenize(
         line = cleaner(line)
         tokens = tokenizer.text2tokens(line)
 
-        if keep_all_fields:
-            tokens = tokens_before + tokens + tokens_after
-
         if not write_vocabulary:
+            if keep_all_fields:
+                tokens = tokens_before + tokens + tokens_after
             fout.write(" ".join(tokens) + "\n")
         else:
             for t in tokens:
