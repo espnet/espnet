@@ -12,26 +12,17 @@ log() {
 SECONDS=0
 
 
-stage=0
+stage=1
 stop_stage=100000
-data_url=www.openslr.org/resources/12
-train_set="train_960"
-train_dev="dev"
-
-# g2p related
-lexicon=resource/lexicon.txt
-python=python3
-oov="<unk>"         # Out of vocabulary symbol.
-blank="<blank>"     # CTC blank symbol
-sos_eos="<sos/eos>" # sos and eos symbole
+data=/home/storage07/zhangjunbo/data
 
 
 log "$0 $*"
-. utils/parse_options.sh
+# . utils/parse_options.sh
 
-. ./db.sh
-. ./path.sh
-. ./cmd.sh
+# . ./db.sh
+# . ./path.sh
+# . ./cmd.sh
 
 
 if [ $# -ne 0 ]; then
@@ -39,59 +30,19 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-if [ -z "${LIBRISPEECH}" ]; then
-    log "Fill the value of 'LIBRISPEECH' of db.sh"
-    exit 1
-fi
-
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${LIBRISPEECH}/LibriSpeech/LICENSE.TXT" ]; then
-	echo "stage 1: Data Download to ${LIBRISPEECH}"
-	for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-            local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
-	done
-    else
-        log "stage 1: ${LIBRISPEECH}/LibriSpeech/LICENSE.TXT is already existing. Skip data downloading"
-    fi
+  for part in train test; do
+    local/data_prep.sh $data/speechocean762/$part data/$part
+  done
+
+  mkdir -p data/local
+  cp $data/speechocean762/resource/* data/local
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Data Preparation"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-        _dst=data/${part//-/_}
-        # use underscore-separated names in data directories.
-        local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} ${_dst}
-
-        # G2P
-        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-        # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-        #
-        # NOTE: make sure this follows immediately after local/data_prep.sh, since it overwrite "text" file
-        # FIXME: cleaner
-        # FIXME: --non_linguistic_symbols ${nlsyms_txt} \
-        ${python} -m espnet2.bin.tokenize_text  \
-            --token_type "phn" \
-            --input "${_dst}/text" --output "${_dst}/text.phn" \
-            --field 2- \
-            --keep_all_fields true \
-            --cleaner tacotron \
-            --g2p "g2p_en" \
-            --write_vocabulary false \
-            --add_symbol "${blank}:0" \
-            --add_symbol "${oov}:1" \
-            --add_symbol "${sos_eos}:-1"
-
-        mv ${_dst}/text.phn ${_dst}/text
-    done
-fi
-
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: combine all training and development sets"
-    # TODO: for now we don't need so much data
-    # utils/combine_data.sh --extra_files utt2num_frames data/${train_set} data/train_clean_100 data/train_clean_360 data/train_other_500
-    # utils/combine_data.sh --extra_files utt2num_frames data/${train_dev} data/dev_clean data/dev_other
-    utils/combine_data.sh --extra_files utt2num_frames data/${train_set} data/train_clean_100
-    utils/combine_data.sh --extra_files utt2num_frames data/${train_dev} data/dev_clean
+  text_phone="data/local/text-phone"
+  utt2phone="data/local/utt2phone"
+  python local/get_utt2phone.py ${text_phone} ${utt2phone}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
