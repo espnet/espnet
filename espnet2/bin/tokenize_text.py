@@ -254,7 +254,8 @@ def get_parser() -> argparse.ArgumentParser:
         "--keep_all_fields",
         type=str2bool,
         default=False,
-        help='Keep all columns in the output, e.g. the "utt" in "utt token1 token2" will be in the output, '
+        help="Keep all columns in the output, e.g. "
+        'the "utt" in "utt token1 token2" will be in the output, '
         "even when --field 2- is used. "
         "Only used when --write_vocabulary is false",
     )
