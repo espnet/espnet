@@ -222,6 +222,27 @@ def add_custom_training_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         type=int,
         help="Most dominant attention dimension for scheduler.",
     )
+    group.add_argument(
+        "--transformer-warmup-steps",
+        type=int,
+        help="Optimizer warmup steps. The parameter is deprecated, "
+        "please use --optimizer-warmup-steps instead.",
+        dest="optimizer_warmup_steps",
+    )
+    group.add_argument(
+        "--transformer-lr",
+        type=float,
+        help="Initial value of learning rate. The parameter is deprecated, "
+        "please use --noam-lr instead.",
+        dest="noam_lr",
+    )
+    group.add_argument(
+        "--adim",
+        type=int,
+        help="Most dominant attention dimension for scheduler. "
+        "The parameter is deprecated, please use --noam-adim instead.",
+        dest="noam_adim",
+    )
 
     return group
 
