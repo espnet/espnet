@@ -1,61 +1,47 @@
 # This configuration requires 4 GPUs with 32GB memory
-batch_type: numel
-batch_bins: 30000000
-accum_grad: 3
-max_epoch: 60
-patience: none
+optim: adadelta
 init: xavier_uniform
+max_epoch: 25
+batch_type: folded
+batch_size: 30
+optim_conf:
+    lr: 1.0
+    rho: 0.95
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 4
+val_scheduler_criterion:
+- valid
+- loss
 best_model_criterion:
-  - - valid
+-   - valid
     - acc
     - max
-keep_nbest_models: 10
+keep_nbest_models: 3
 
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
 encoder: rnn
 encoder_conf:
-  rnn_type: gru
-  bidirectional: true
-  use_projection: true
-  num_layers: 4
-  hidden_size: 320
-  output_size: 320
-  dropout: 0.2
-
-# # decoder is not used
-# decoder: transformer
-# decoder_conf:
-#   attention_heads: 8
-#   linear_units: 2048
-#   num_blocks: 6
-#   dropout_rate: 0.1
-#   positional_dropout_rate: 0.1
-#   self_attention_dropout_rate: 0.1
-#   src_attention_dropout_rate: 0.1
-
+    rnn_type: gru
+    bidirectional: true
+    use_projection: true
+    num_layers: 4
+    hidden_size: 320
+    output_size: 320
+    dropout: 0.2
+decoder: rnn
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    hidden_size: 320
+    dropout: 0.0
+    att_conf:
+        atype: location
+        adim: 320
 model_conf:
-  ctc_weight: 1.0  # full CTC
-  lsm_weight: 0.0  # no label smoothing
-  length_normalized_loss: false
-
-optim: adam
-optim_conf:
-  lr: 0.001
-scheduler: warmuplr
-scheduler_conf:
-  warmup_steps: 25000
-
-specaug: specaug
-specaug_conf:
-  apply_time_warp: true
-  time_warp_window: 5
-  time_warp_mode: bicubic
-  apply_freq_mask: true
-  freq_mask_width_range:
-    - 0
-    - 30
-  num_freq_mask: 2
-  apply_time_mask: true
-  time_mask_width_range:
-    - 0
-    - 40
-  num_time_mask: 2
+    ctc_weight: 1.0
+    lsm_weight: 0.0
