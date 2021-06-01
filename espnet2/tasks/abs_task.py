@@ -325,7 +325,8 @@ class AbsTask(ABC):
             type=int,
             default=3,
             help="The number images to plot the outputs from attention. "
-            "This option makes sense only when attention-based model",
+            "This option makes sense only when attention-based model. "
+            "We can also disable the attention plot by setting it 0",
         )
 
         group = parser.add_argument_group("distributed training related")
