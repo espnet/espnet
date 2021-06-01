@@ -75,12 +75,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --field 2- \
             --keep_all_fields true \
             --cleaner tacotron \
-            --g2p "g2p_with_dict" \
+            --g2p "g2p_en" \
             --write_vocabulary false \
             --add_symbol "${blank}:0" \
             --add_symbol "${oov}:1" \
             --add_symbol "${sos_eos}:-1"
-        mv text.phn text
+
+        mv ${_dst}/text.phn ${_dst}/text
     done
 fi
 
