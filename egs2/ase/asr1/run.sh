@@ -21,7 +21,7 @@ inference_config=conf/decode_asr.yaml
     --inference_config "${inference_config}" \
     --g2p g2p_en \
     --use_lm false \
-    --token_type "phn" \
+    --token_type "word" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

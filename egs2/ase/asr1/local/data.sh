@@ -17,7 +17,15 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
 train_dev="dev"
+
+# g2p related
 lexicon=resource/lexicon.txt
+python=python3
+g2p=g2p_en
+oov="<unk>"         # Out of vocabulary symbol.
+blank="<blank>"     # CTC blank symbol
+sos_eos="<sos/eos>" # sos and eos symbole
+
 
 log "$0 $*"
 . utils/parse_options.sh
