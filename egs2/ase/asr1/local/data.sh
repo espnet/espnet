@@ -21,7 +21,6 @@ train_dev="dev"
 # g2p related
 lexicon=resource/lexicon.txt
 python=python3
-g2p=g2p_en
 oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
@@ -66,18 +65,22 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # G2P
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+        #
+        # NOTE: make sure this follows immediately after local/data_prep.sh, since it overwrite "text" file
         # FIXME: cleaner
         # FIXME: --non_linguistic_symbols ${nlsyms_txt} \
         ${python} -m espnet2.bin.tokenize_text  \
             --token_type "phn" \
             --input "${_dst}/text" --output "${_dst}/text.phn" \
             --field 2- \
+            --keep_all_fields true \
             --cleaner tacotron \
-            --g2p "${g2p}" \
+            --g2p "g2p_with_dict" \
             --write_vocabulary false \
             --add_symbol "${blank}:0" \
             --add_symbol "${oov}:1" \
             --add_symbol "${sos_eos}:-1"
+        mv text.phn text
     done
 fi
 
