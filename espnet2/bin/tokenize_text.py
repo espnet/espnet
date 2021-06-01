@@ -119,8 +119,8 @@ def tokenize(
             # e.g. field="2-"
             # uttidA hello world!! -> hello world!!
             tokens = line.split(delimiter)
-            tokens_before = tokens[:field.start]
-            tokens_after = tokens[field.stop:]
+            tokens_before = tokens[: field.start]
+            tokens_after = tokens[field.stop :]
             tokens = tokens[field]
 
             if delimiter is None:
@@ -255,8 +255,8 @@ def get_parser() -> argparse.ArgumentParser:
         type=str2bool,
         default=False,
         help='Keep all columns in the output, e.g. the "utt" in "utt token1 token2" will be in the output, '
-             'even when --field 2- is used. '
-             "Only used when --write_vocabulary is false",
+        "even when --field 2- is used. "
+        "Only used when --write_vocabulary is false",
     )
 
     group = parser.add_argument_group("write_vocabulary mode related")
