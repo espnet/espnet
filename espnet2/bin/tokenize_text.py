@@ -18,9 +18,7 @@ from espnet2.utils.types import str_or_none
 
 def field2slice(field: Optional[str]) -> slice:
     """Convert field string to slice
-
     Note that field string accepts 1-based integer.
-
     Examples:
         >>> field2slice("1-")
         slice(0, None, None)
@@ -28,7 +26,6 @@ def field2slice(field: Optional[str]) -> slice:
         slice(0, 3, None)
         >>> field2slice("-3")
         slice(None, 3, None)
-
     """
     field = field.strip()
     try:
@@ -77,7 +74,6 @@ def tokenize(
     add_symbol: List[str],
     cleaner: Optional[str],
     g2p: Optional[str],
-    keep_all_fields: bool,
 ):
     assert check_argument_types()
 
@@ -113,16 +109,11 @@ def tokenize(
 
     for line in fin:
         line = line.rstrip()
-        tokens_before = []
-        tokens_after = []
         if field is not None:
             # e.g. field="2-"
             # uttidA hello world!! -> hello world!!
             tokens = line.split(delimiter)
-            tokens_before = tokens[: field.start if field.start else 0]
-            tokens_after = tokens[field.stop if field.stop else len(tokens) :]
             tokens = tokens[field]
-
             if delimiter is None:
                 line = " ".join(tokens)
             else:
@@ -130,10 +121,7 @@ def tokenize(
 
         line = cleaner(line)
         tokens = tokenizer.text2tokens(line)
-
         if not write_vocabulary:
-            if keep_all_fields:
-                tokens = tokens_before + tokens + tokens_after
             fout.write(" ".join(tokens) + "\n")
         else:
             for t in tokens:
@@ -249,15 +237,6 @@ def get_parser() -> argparse.ArgumentParser:
         ],
         default=None,
         help="Specify g2p method if --token_type=phn",
-    )
-    parser.add_argument(
-        "--keep_all_fields",
-        type=str2bool,
-        default=False,
-        help="Keep all columns in the output, e.g. "
-        'the "utt" in "utt token1 token2" will be in the output, '
-        "even when --field 2- is used. "
-        "Only used when --write_vocabulary is false",
     )
 
     group = parser.add_argument_group("write_vocabulary mode related")
