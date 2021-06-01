@@ -37,6 +37,7 @@ gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
+use_amp=false
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -804,6 +805,7 @@ if ! "${skip_train}"; then
                 --multiprocessing_distributed true -- \
                 ${python} -m espnet2.bin.lm_train \
                     --ngpu "${ngpu}" \
+                    --use_amp ${use_amp} \
                     --use_preprocessor true \
                     --bpemodel "${bpemodel}" \
                     --token_type "${lm_token_type}"\

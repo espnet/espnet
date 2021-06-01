@@ -28,7 +28,7 @@
 
 
 # Select the backend used by run.sh from "local", "stdout", "sge", "slurm", or "ssh"
-cmd_backend='local'
+cmd_backend='sge'
 
 # Local machine, without any Job scheduling system
 if [ "${cmd_backend}" = local ]; then
@@ -60,7 +60,7 @@ elif [ "${cmd_backend}" = sge ]; then
 
     export train_cmd="queue.pl -q w1v6.q,cpu.q --mem 2G"
     export decode_cmd="queue.pl -q w1v6.q,cpu.q --mem 1G"
-    export cuda_cmd="queue.pl -q v100.q,v100_2.q --mem 2G"
+    export cuda_cmd="queue.pl --mem 2G"
 
     # export egs_cmd="queue.pl -q w1v6.q,cpu.q --mem 5G"
     # export mkgraph_cmd="queue.pl -q graph.q --mem 15G"
