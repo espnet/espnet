@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 train_set="train"
-valid_set="dev"
-test_sets="test_clean test_other dev_clean dev_other"
+val_set="test"
+test_sets="test"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
@@ -19,10 +19,10 @@ inference_config=conf/decode_asr.yaml
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
-    --g2p g2p_en \
     --use_lm false \
     --token_type "word" \
     --train_set "${train_set}" \
-    --valid_set "${valid_set}" \
+    --valid_set "${val_set}" \
     --test_sets "${test_sets}" \
+    --lm_train_text "data/local/utt2phone" \
     "$@"
