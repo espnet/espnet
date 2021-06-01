@@ -17,6 +17,7 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
 train_dev="dev"
+trans_type=phn
 
 log "$0 $*"
 . utils/parse_options.sh
