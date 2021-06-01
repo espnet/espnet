@@ -77,7 +77,7 @@ def tokenize(
     add_symbol: List[str],
     cleaner: Optional[str],
     g2p: Optional[str],
-    keep_all_fields: Optional[bool],
+    keep_all_fields: bool,
 ):
     assert check_argument_types()
 
