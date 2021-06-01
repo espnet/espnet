@@ -302,7 +302,6 @@ class Trainer:
                     distributed_option=distributed_option,
                 )
 
-            # disable attention plot
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # att_plot doesn't support distributed
                 if plot_attention_iter_factory is not None:
