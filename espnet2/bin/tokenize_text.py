@@ -77,6 +77,7 @@ def tokenize(
     add_symbol: List[str],
     cleaner: Optional[str],
     g2p: Optional[str],
+    keep_all_fields: Optional[bool],
 ):
     assert check_argument_types()
 
@@ -112,11 +113,16 @@ def tokenize(
 
     for line in fin:
         line = line.rstrip()
+        tokens_before = []
+        tokens_after = []
         if field is not None:
             # e.g. field="2-"
             # uttidA hello world!! -> hello world!!
             tokens = line.split(delimiter)
+            tokens_before = tokens[:field.start]
+            tokens_after = tokens[field.stop:]
             tokens = tokens[field]
+
             if delimiter is None:
                 line = " ".join(tokens)
             else:
@@ -124,6 +130,10 @@ def tokenize(
 
         line = cleaner(line)
         tokens = tokenizer.text2tokens(line)
+
+        if keep_all_fields:
+            tokens = tokens_before + tokens + tokens_after
+
         if not write_vocabulary:
             fout.write(" ".join(tokens) + "\n")
         else:
@@ -240,6 +250,14 @@ def get_parser() -> argparse.ArgumentParser:
         ],
         default=None,
         help="Specify g2p method if --token_type=phn",
+    )
+    parser.add_argument(
+        "--keep_all_fields",
+        type=str2bool,
+        default=False,
+        help='Keep all columns in the output, e.g. the "utt" in "utt token1 token2" will be in the output, '
+             'even when --field 2- is used. '
+             "Only used when --write_vocabulary is false",
     )
 
     group = parser.add_argument_group("write_vocabulary mode related")
