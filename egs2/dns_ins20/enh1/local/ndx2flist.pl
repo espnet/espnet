@@ -1,1 +1,0 @@
-../../../../egs/wsj/asr1/local/ndx2flist.pl
