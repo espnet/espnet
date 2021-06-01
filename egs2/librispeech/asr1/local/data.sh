@@ -12,7 +12,7 @@ log() {
 SECONDS=0
 
 
-stage=0
+stage=1
 stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
@@ -65,7 +65,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # use external data
     if [ ! -e data/local/other_text/librispeech-lm-norm.txt.gz ]; then
 	log "stage 4: prepare external text data from http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz"
-        wget https://openslr.magicdatatech.com/resources/11/librispeech-lm-norm.txt.gz -P data/local/other_text/
+        wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/other_text/
     fi
     if [ ! -e data/local/other_text/text ]; then
 	# provide utterance id to each texts
