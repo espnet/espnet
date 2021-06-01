@@ -120,7 +120,7 @@ def tokenize(
             # uttidA hello world!! -> hello world!!
             tokens = line.split(delimiter)
             tokens_before = tokens[: field.start if field.start else 0]
-            tokens_after = tokens[field.stop if field.stop else len(tokens):]
+            tokens_after = tokens[field.stop if field.stop else len(tokens) :]
             tokens = tokens[field]
 
             if delimiter is None:
