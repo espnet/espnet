@@ -3,7 +3,7 @@
 # Copyright (C) 2020 Kanari AI 
 # (Amir Hussein)
 
-if [ $# -ne 3 ]; then
+if [ $# -ne 4 ]; then
   echo "Usage: $0 <DB-dir> <process-xml> <data-subset> <mer>"
   exit 1;
 fi
