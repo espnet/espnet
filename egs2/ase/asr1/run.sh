@@ -5,11 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train"
-val_set="test"
-test_sets="test"
+train_set="train_all"
+val_set="dev"
+test_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
@@ -24,5 +24,5 @@ inference_config=conf/decode_asr.yaml
     --train_set "${train_set}" \
     --valid_set "${val_set}" \
     --test_sets "${test_sets}" \
-    --lm_train_text "data/local/utt2phone" \
+    --lm_train_text "data/${train_set}/text" \
     "$@"

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Based on https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/loca/data.sh
+
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -12,7 +15,7 @@ log() {
 SECONDS=0
 
 
-stage=1
+stage=4
 stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_all"
@@ -53,7 +56,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
         # use underscore-separated names in data directories.
-        local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
+        local/prep-librispeech.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
     done
 fi
 
@@ -67,17 +70,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-  # use external data
-  if [ ! -e data/local/other_text/librispeech-lm-norm.txt.gz ]; then
-	  log "stage 4: prepare external text data from http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz"
-    wget https://openslr.magicdatatech.com/resources/11/librispeech-lm-norm.txt.gz -P data/local/other_text/
-  fi
-  if [ ! -e data/local/other_text/text ]; then
-	  # provide utterance id to each texts
-	  # e.g., librispeech_lng_00003686 A BANK CHECK
-	  zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
-	    awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
-  fi
+  align_dir=local/librispeech-aligned
+  # NOTE: generate phone-level transcripts like so:
+  # pushd $align_dir
+  #  ./align-librispeech.sh
+  # popd
+
+  cp $align_dir/text data/${train_set}/text
+  utils/fix_data_dir.sh data/${train_set}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

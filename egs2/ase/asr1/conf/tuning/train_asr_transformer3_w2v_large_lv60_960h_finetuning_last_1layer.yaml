@@ -1,0 +1,66 @@
+batch_type: numel
+batch_bins: 15000000
+accum_grad: 8
+max_epoch: 100
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+freeze_param: [
+    "encoder.encoders.mask_emb", "encoder.encoders.feature_extractor",
+    "encoder.encoders.post_extract_proj", "encoder.encoders.quantizer",
+    "encoder.encoders.project_q", "encoder.encoders.encoder.pos_conv",
+    "encoder.encoders.encoder.layers.0", "encoder.encoders.encoder.layers.1", "encoder.encoders.encoder.layers.2",
+    "encoder.encoders.encoder.layers.3", "encoder.encoders.encoder.layers.4", "encoder.encoders.encoder.layers.5",
+    "encoder.encoders.encoder.layers.6", "encoder.encoders.encoder.layers.7", "encoder.encoders.encoder.layers.8",
+    "encoder.encoders.encoder.layers.9", "encoder.encoders.encoder.layers.10", "encoder.encoders.encoder.layers.11",
+    "encoder.encoders.encoder.layers.12", "encoder.encoders.encoder.layers.13", "encoder.encoders.encoder.layers.14",
+    "encoder.encoders.encoder.layers.15", "encoder.encoders.encoder.layers.16", "encoder.encoders.encoder.layers.17",
+    "encoder.encoders.encoder.layers.18", "encoder.encoders.encoder.layers.19", "encoder.encoders.encoder.layers.20",
+    "encoder.encoders.encoder.layers.21", "encoder.encoders.encoder.layers.22",
+    "encoder.encoders.encoder.layer_norm", "encoder.encoders.layer_norm",
+]
+
+input_size: 2048
+encoder: wav2vec2
+encoder_conf:
+    output_size: 1024
+    normalize_before: false
+    freeze_finetune_updates: 100000
+    w2v_url: https://dl.fbaipublicfiles.com/fairseq/wav2vec/wav2vec2_vox_960h_new.pt
+    w2v_dir_path: ./downloads/wav2vec_pretrained_models
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
+
+unused_parameters: true
+
+frontend: null
+
+normalize: null
+
+specaug: null
