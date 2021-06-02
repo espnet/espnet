@@ -14,7 +14,7 @@
 ## With transformer LM
 - ASR config: [conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml](conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml)
 - LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
-- Pretrained model: [https://zenodo.org/record/4604066](https://zenodo.org/record/4604066)
+- Pretrained model: [https://zenodo.org/record/4604011](https://zenodo.org/record/4604011)
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
