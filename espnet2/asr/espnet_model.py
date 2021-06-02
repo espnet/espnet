@@ -1,5 +1,7 @@
+import logging
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -9,12 +11,19 @@ from typing import Union
 import torch
 from typeguard import check_argument_types
 
+from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
+from espnet.nets.beam_search import BeamSearch
+from espnet.nets.beam_search import Hypothesis
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
+from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -22,6 +31,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -295,3 +305,92 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
     ):
         raise NotImplementedError
+
+class ESPnetASRInference(torch.nn.Module):
+    """Beam-searh inference for CTC-attention hybrid Encoder-Decoder"""
+
+    def __init__(
+        self,
+        asr_train_config: Union[Path, str],
+        asr_model: ESPnetASRModel,
+        lm: ESPnetLanguageModel = None,
+        device: str = "cpu",
+        maxlenratio: float = 0.0,
+        minlenratio: float = 0.0,
+        batch_size: int = 1,
+        dtype: str = "float32",
+        beam_size: int = 20,
+        ctc_weight: float = 0.5,
+        lm_weight: float = 1.0,
+        penalty: float = 0.0,
+        streaming: bool = False,
+    ):
+        """Initialize beam-search"""
+        super().__init__()
+        scorers = {}
+        decoder = asr_model.decoder
+        ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
+        token_list = asr_model.token_list
+        scorers.update(
+            decoder=decoder,
+            ctc=ctc,
+            length_bonus=LengthBonus(len(token_list)),
+        )
+        if lm is not None:
+            scorers["lm"] = lm.lm
+
+        # Build BeamSearch object
+        weights = dict(
+            decoder=1.0 - ctc_weight,
+            ctc=ctc_weight,
+            lm=lm_weight,
+            length_bonus=penalty,
+        )
+        beam_search = BeamSearch(
+            beam_size=beam_size,
+            weights=weights,
+            scorers=scorers,
+            sos=asr_model.sos,
+            eos=asr_model.eos,
+            vocab_size=len(token_list),
+            token_list=token_list,
+            pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+        )
+
+        # TODO(karita): make all scorers batchfied
+        if batch_size == 1:
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            if len(non_batch) == 0:
+                if streaming:
+                    beam_search.__class__ = BatchBeamSearchOnlineSim
+                    beam_search.set_streaming_config(asr_train_config)
+                    logging.info("BatchBeamSearchOnlineSim implementation is selected.")
+                else:
+                    beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
+            else:
+                logging.warning(
+                    f"As non-batch scorers {non_batch} are found, "
+                    f"fall back to non-batch implementation."
+                )
+
+        beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+        for scorer in scorers.values():
+            if isinstance(scorer, torch.nn.Module):
+                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+
+        logging.info(f"Beam_search: {beam_search}")
+
+        self.beam_search = beam_search
+        self.maxlenratio = maxlenratio
+        self.minlenratio = minlenratio
+
+    def forward(
+        self, enc_out: torch.Tensor
+    ) -> List[Hypothesis]:
+        """Perform beam-search"""
+        return self.beam_search(x=enc_out, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio)
