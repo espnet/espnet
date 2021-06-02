@@ -9,18 +9,21 @@ train_set="train_960"
 valid_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml
-lm_config=conf/tuning/train_lm_transformer2.yaml
-inference_config=conf/decode_asr.yaml
+# asr_config=conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml
+# lm_config=conf/tuning/train_lm_transformer2.yaml
+# inference_config=conf/decode_asr.yaml
+asr_config=conf/train_rnn.yaml
+inference_config=conf/decode_rnn.yaml
 
+# --lm_config "${lm_config}" \
 ./asr.sh \
     --lang en \
-    --ngpu 16 \
+    --ngpu 8 \
     --nbpe 5000 \
     --max_wav_duration 30 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
-    --lm_config "${lm_config}" \
+    --use_lm false \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
