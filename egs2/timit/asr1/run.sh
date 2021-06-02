@@ -24,6 +24,7 @@ inference_config=conf/decode_asr.yaml
 
 
 ./asr.sh \
+    --ngpu 8 \
     --token_type "${token_type}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
