@@ -30,7 +30,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   # FIXME: using a small portion of data for now, train test have overlap
-  local/data-librispeech.sh --train_subsets "test_clean test_other dev_clean dev_other" --dev_subsets "dev_clean dev_other"
+  local/data-librispeech.sh --train_subsets "train_clean_100" --dev_subsets "dev_clean dev_other"
 fi
 
 log "Data preparation completed"
