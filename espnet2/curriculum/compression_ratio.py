@@ -14,7 +14,6 @@ def calc_CR(wav_scp, data_dir, res_dir):
     for cmd in tqdm(commands):
         fname = cmd.split()[0]
         fpath = os.path.join(data_dir, "/".join(fname.split('_')[:-1]), fname)
-        print(fpath)
         cmd_convert = cmd.split()[1:-2]
         cmd_convert.pop(0)
         cmd_convert.insert(0, 'ffmpeg')
