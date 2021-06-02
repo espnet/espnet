@@ -53,7 +53,7 @@ for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
     fi
 
     find -L $chapter_dir/ -iname "*.flac" | sort | xargs -I% basename % .flac | \
-      awk -v "dir=$chapter_dir" '{printf "%s %s/%s.flac\n", $0, dir, $0}' >>$wav_scp|| exit 1
+      awk -v "dir=$chapter_dir" '{printf "%s flac -c -d -s %s/%s.flac |\n", $0, dir, $0}' >>$wav_scp|| exit 1
 
     chapter_trans=$chapter_dir/${reader}-${chapter}.trans.txt
     [ ! -f  $chapter_trans ] && echo "$0: expected file $chapter_trans to exist" && exit 1
