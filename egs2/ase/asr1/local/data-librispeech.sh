@@ -15,7 +15,7 @@ log() {
 SECONDS=0
 
 
-stage=4
+stage=1
 stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_all"
@@ -54,9 +54,9 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+    for part in ${train_subsets} ${dev_subsets}; do
         # use underscore-separated names in data directories.
-        local/prep-librispeech.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
+        local/prep-librispeech.sh ${LIBRISPEECH}/LibriSpeech/${part//_/-} data/${part}
     done
 fi
 
