@@ -23,8 +23,6 @@ lm_train_text=data/lm_train.txt
 # NOTE: The default settings require 4 GPUs with 12 GB memory
 ./asr.sh \
     --ngpu 4 \
-    --stage 10 \
-    --stop-stage 12 \
     --nj 16 \
     --inference_nj 16 \
     --token_type bpe \
