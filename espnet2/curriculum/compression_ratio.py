@@ -37,7 +37,6 @@ def calc_CR(wav_scp, data_dir, res_dir):
 
         df = pd.DataFrame.from_dict(d)
         df.to_csv(os.path.join(res_dir, 'compression_ratio.csv'))
-        '''
 
 
 if __name__=="__main__":
