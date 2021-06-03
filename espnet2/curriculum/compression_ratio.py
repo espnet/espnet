@@ -22,7 +22,7 @@ def calc_CR(wav_scp, data_dir, res_dir):
         cmd_convert.append(fpath+'.wav')
         cmd_convert = subprocess.run(cmd_convert, stdout=subprocess.PIPE, 
                                                 text=True, check=True)
-        print("Err:", cmd_convert.output)
+        print(subprocess.check_call(cmd_convert))
         temp = subprocess.run(["gzip", "-k", fpath+'.wav'])
         fsize = subprocess.run(["du", fpath+'.wav'], stdout=subprocess.PIPE, 
                                             text=True, check=True)
@@ -34,7 +34,7 @@ def calc_CR(wav_scp, data_dir, res_dir):
         temp = subprocess.run(["rm", fpath+".wav"])
         CR = 1 - (fsize_comp/fsize)
         
-        d["fname"].append(f)
+        d["fname"].append(fname)
         d["CR"].append(CR)
 
         df = pd.DataFrame.from_dict(d)
