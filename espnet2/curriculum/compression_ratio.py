@@ -19,10 +19,11 @@ def calc_CR(wav_scp, data_dir, res_dir):
         #cmd_convert.insert(0, 'ffmpeg')
         cmd_convert.pop(5)
         cmd_convert.insert(5, fpath+'.opus')
-        cmd_convert.append(fpath+'.wav')
+        cmd_convert.append(os.path.join(res_dir, fname+'.wav'))
+        print("Command")
         cmd_convert = subprocess.run(cmd_convert, stdout=subprocess.PIPE, 
                                                 text=True, check=True)
-        print("OUTPUT:", subprocess.check_output(cmd_convert))
+        '''
         temp = subprocess.run(["gzip", "-k", fpath+'.wav'])
         fsize = subprocess.run(["du", fpath+'.wav'], stdout=subprocess.PIPE, 
                                             text=True, check=True)
@@ -39,6 +40,7 @@ def calc_CR(wav_scp, data_dir, res_dir):
 
         df = pd.DataFrame.from_dict(d)
         df.to_csv(os.path.join(res_dir, 'compression_ratio.csv'))
+        '''
 
 
 if __name__=="__main__":
