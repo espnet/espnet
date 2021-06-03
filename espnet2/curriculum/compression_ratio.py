@@ -27,8 +27,8 @@ def calc_CR(wav_scp, data_dir, res_dir):
                                                 text=True, check=True)
             fsize = int(fsize.stdout.split('\t')[0])
             fsize_comp = int(fsize_comp.stdout.split('\t')[0])
-            #temp = subprocess.run(["rm", fname_out+".wav"+".gz"])
-            #temp = subprocess.run(["rm", fname_out+".wav"])
+            temp = subprocess.run(["rm", fname_out+".wav"+".gz"])
+            temp = subprocess.run(["rm", fname_out+".wav"])
             CR = 1 - (fsize_comp/fsize)
 
             fo.write(fname+' '+str(CR)+"\n")
