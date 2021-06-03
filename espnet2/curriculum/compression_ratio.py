@@ -15,24 +15,21 @@ def calc_CR(wav_scp, data_dir, res_dir):
         fname = cmd.split()[0]
         fpath = os.path.join(data_dir, "/".join(fname.split('_')[:-1]), fname)
         cmd_convert = cmd.split()[1:-2]
-        #cmd_convert.pop(0)
-        #cmd_convert.insert(0, 'ffmpeg')
         cmd_convert.pop(5)
         cmd_convert.insert(5, fpath+'.opus')
         cmd_convert.append(os.path.join(res_dir, fname+'.wav'))
-        print("Command")
         cmd_convert = subprocess.run(cmd_convert, stdout=subprocess.PIPE, 
                                                 text=True, check=True)
-        '''
-        temp = subprocess.run(["gzip", "-k", fpath+'.wav'])
-        fsize = subprocess.run(["du", fpath+'.wav'], stdout=subprocess.PIPE, 
+        fname_out = os.path.join(res_dir, fname)
+        temp = subprocess.run(["gzip", "-k", fname_out+'.wav'])
+        fsize = subprocess.run(["du", fname_out+'.wav'], stdout=subprocess.PIPE, 
                                             text=True, check=True)
-        fsize_comp = subprocess.run(["du", fpath+'.wav'+'.gz'], stdout=subprocess.PIPE, 
+        fsize_comp = subprocess.run(["du", fname_out+'.wav'+'.gz'], stdout=subprocess.PIPE, 
                                             text=True, check=True)
         fsize = int(fsize.stdout.split('\t')[0])
         fsize_comp = int(fsize_comp.stdout.split('\t')[0])
-        temp = subprocess.run(["rm", fpath+".wav"+".gz"])
-        temp = subprocess.run(["rm", fpath+".wav"])
+        temp = subprocess.run(["rm", fname_out+".wav"+".gz"])
+        temp = subprocess.run(["rm", fname_out+".wav"])
         CR = 1 - (fsize_comp/fsize)
         
         d["fname"].append(fname)
