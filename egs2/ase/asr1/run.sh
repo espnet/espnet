@@ -9,7 +9,7 @@ train_set="train_all"
 val_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml
+asr_config=conf/tuning/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \

@@ -76,7 +76,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   #  ./align-librispeech.sh
   # popd
 
-  cp $align_dir/text data/${train_set}/text
+  cp $align_dir/text_cleaned data/${train_set}/text
   utils/fix_data_dir.sh data/${train_set}
 fi
 
