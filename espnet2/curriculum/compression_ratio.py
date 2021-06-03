@@ -1,42 +1,38 @@
 import os
 import subprocess
-import pandas as pd
 from tqdm import tqdm
 import argparse
 
 def calc_CR(wav_scp, data_dir, res_dir):
-    
-    d = {"fname":[], "CR":[]}
 
     with open(wav_scp) as fo:
         commands = fo.readlines()
-    
-    for cmd in tqdm(commands):
-        fname = cmd.split()[0]
-        fpath = os.path.join(data_dir, "/".join(fname.split('_')[:-1]), fname)
-        cmd_convert = cmd.split()[1:-2]
-        cmd_convert.pop(5)
-        cmd_convert.insert(5, fpath+'.opus')
-        cmd_convert.append(os.path.join(res_dir, fname+'.wav'))
-        cmd_convert = subprocess.run(cmd_convert, stdout=subprocess.PIPE, 
-                                                text=True, check=True)
-        fname_out = os.path.join(res_dir, fname)
-        temp = subprocess.run(["gzip", "-k", fname_out+'.wav'])
-        fsize = subprocess.run(["du", fname_out+'.wav'], stdout=subprocess.PIPE, 
-                                            text=True, check=True)
-        fsize_comp = subprocess.run(["du", fname_out+'.wav'+'.gz'], stdout=subprocess.PIPE, 
-                                            text=True, check=True)
-        fsize = int(fsize.stdout.split('\t')[0])
-        fsize_comp = int(fsize_comp.stdout.split('\t')[0])
-        temp = subprocess.run(["rm", fname_out+".wav"+".gz"])
-        temp = subprocess.run(["rm", fname_out+".wav"])
-        CR = 1 - (fsize_comp/fsize)
-        
-        d["fname"].append(fname)
-        d["CR"].append(CR)
 
-        df = pd.DataFrame.from_dict(d)
-        df.to_csv(os.path.join(res_dir, 'compression_ratio.csv'))
+    with open(os.path.join(res_dir, "compression_ratio"), 'w') as fo:
+
+        for cmd in tqdm(commands):
+            fname = cmd.split()[0]
+            fpath = os.path.join(data_dir, "/".join(fname.split('_')[:-1]), fname)
+            cmd_convert = cmd.split()[1:-2]
+            cmd_convert.pop(5)
+            cmd_convert.insert(5, fpath+'.opus')
+            cmd_convert.append(os.path.join(res_dir, fname+'.wav'))
+            cmd_convert = subprocess.run(cmd_convert, stdout=subprocess.PIPE, 
+                                                    text=True, check=True)
+            fname_out = os.path.join(res_dir, fname)
+            temp = subprocess.run(["gzip", "-k", fname_out+'.wav'])
+            fsize = subprocess.run(["du", fname_out+'.wav'], stdout=subprocess.PIPE, 
+                                                text=True, check=True)
+            fsize_comp = subprocess.run(["du", fname_out+'.wav'+'.gz'], stdout=subprocess.PIPE, 
+                                                text=True, check=True)
+            fsize = int(fsize.stdout.split('\t')[0])
+            fsize_comp = int(fsize_comp.stdout.split('\t')[0])
+            temp = subprocess.run(["rm", fname_out+".wav"+".gz"])
+            temp = subprocess.run(["rm", fname_out+".wav"])
+            CR = 1 - (fsize_comp/fsize)
+
+            fo.write(fname+' '+str(CR)+"\n")
+            
 
 
 if __name__=="__main__":
