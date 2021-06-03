@@ -24,6 +24,7 @@ train_dev="dev"
 # librispeech subsets that are used to generate train/dev data
 train_subsets="train_clean_100 train_clean_360 train_other_500"
 dev_subsets="dev_clean dev_other"
+test_subsets="test_clean test_other"
 use_external_data=false
 
 
@@ -54,7 +55,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    for part in ${train_subsets} ${dev_subsets}; do
+    for part in ${train_subsets} ${dev_subsets} ${test_subsets}; do
         # use underscore-separated names in data directories.
         local/prep-librispeech.sh ${LIBRISPEECH}/LibriSpeech/${part//_/-} data/${part}
     done

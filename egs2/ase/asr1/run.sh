@@ -7,7 +7,7 @@ set -o pipefail
 
 train_set="train_all"
 val_set="dev"
-test_sets="test_clean test_other dev_clean dev_other"
+test_sets="test_clean test_other"
 
 asr_config=conf/tuning/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
