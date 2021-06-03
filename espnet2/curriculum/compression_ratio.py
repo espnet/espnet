@@ -22,7 +22,7 @@ def calc_CR(wav_scp, data_dir, res_dir):
         cmd_convert.append(fpath+'.wav')
         cmd_convert = subprocess.run(cmd_convert, stdout=subprocess.PIPE, 
                                                 text=True, check=True)
-        print(subprocess.check_output(cmd_convert))
+        print("OUTPUT:", subprocess.check_output(cmd_convert))
         temp = subprocess.run(["gzip", "-k", fpath+'.wav'])
         fsize = subprocess.run(["du", fpath+'.wav'], stdout=subprocess.PIPE, 
                                             text=True, check=True)
