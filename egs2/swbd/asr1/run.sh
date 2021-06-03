@@ -9,8 +9,7 @@ train_set=train_nodup
 valid_set=train_dev
 test_sets="eval2000"
 
-asr_config=conf/tuning/train_asr_conformer4.yaml
-#asr_config=conf/train_asr.yaml
+asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
