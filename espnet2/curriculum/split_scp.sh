@@ -5,8 +5,8 @@ key_file="/shared/50k_train/mls_english_opus/data/train/wav.scp"
 _nj=10
 split_scps=""
 _logdir="/shared/workspaces/anakuzne/tmp/log"
-_inp_dir = "/shared/workspaces/anakuzne/tmp/inp_scp"
-_out_dir = "/shared/workspaces/anakuzne/tmp/res"
+_inp_dir="/shared/workspaces/anakuzne/tmp/inp_scp"
+_out_dir="/shared/workspaces/anakuzne/tmp/res"
 
 for n in $(seq ${_nj}); do
     split_scps+=" ${_inp_dir}/train.${n}.scp"
