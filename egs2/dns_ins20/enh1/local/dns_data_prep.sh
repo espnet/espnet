@@ -64,11 +64,11 @@ paste $tmpdir/train_valid.uttids $tmpdir/train_valid.flist \
 | sort -k1,1 >  $tmpdir/train_valid.scp
 
 num=$(wc -l $tmpdir/train_valid.scp | awk '{print $1}')
+train_num=$(($num*9/10))
 
 echo "Split 10% of the Training data to the Validation data"
-cat $tmpdir/train_valid.scp | head -n $(($num*9/10)) > $tmpdir/tr.scp
-cat $tmpdir/train_valid.scp | tail -n $(($num - $num*9/10)) > $tmpdir/cv.scp
-
+awk "NR<=$train_num" $tmpdir/train_valid.scp > $tmpdir/tr.scp
+awk "NR>$train_num" $tmpdir/train_valid.scp > $tmpdir/cv.scp
 
 for x in tr cv; do
   ddir=${x}_synthetic
