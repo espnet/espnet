@@ -20,6 +20,7 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_all"
 train_dev="dev"
+test_set="test"
 
 # librispeech subsets that are used to generate train/dev data
 train_subsets="train_clean_100 train_clean_360 train_other_500"
@@ -65,19 +66,26 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: combine all training and development sets"
     train_subsets=$(sed 's/[^ ]* */data\/&/g' <<< ${train_subsets})
     dev_subsets=$(sed 's/[^ ]* */data\/&/g' <<< ${dev_subsets})
+    test_subsets=$(sed 's/[^ ]* */data\/&/g' <<< ${test_subsets})
     log "Using ${train_subsets} for the train set and ${dev_subsets} for the dev set"
     utils/combine_data.sh --extra_files utt2num_frames data/${train_set} ${train_subsets}
     utils/combine_data.sh --extra_files utt2num_frames data/${train_dev} ${dev_subsets}
+    utils/combine_data.sh --extra_files utt2num_frames data/${test_set} ${test_subsets}
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   align_dir=local/librispeech-aligned
-  # NOTE: generate phone-level transcripts like so:
+  # NOTE: generate phone-level transcripts for training data using:
   # pushd $align_dir
   #  ./align-librispeech.sh
   # popd
+  #
+  # Generate for dev/test data:
+  # https://git.n.xiaomi.com/tangjiyang/kaldi-align-to-phones
 
   cp $align_dir/text_cleaned data/${train_set}/text
+  cp $align_dir/text_dev_cleaned data/${train_dev}/text
+  cp $align_dir/text_test_cleaned data/${test_set}/text
   utils/fix_data_dir.sh data/${train_set}
 fi
 
