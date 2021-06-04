@@ -10,9 +10,8 @@ for n in $(seq ${_nj}); do
     split_scps+=" ${_logdir}/train.${n}.scp"
 done
 
-echo ${split_scps}
                                                                                                                                                                                                               
-#utils/split_scp.pl "${key_file}" ${split_scps}
+/shared/50k_train/mls_english_opus/utils/split_scp.pl "${key_file}" ${split_scps}
 
 #queue.pl JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
 #                ${python} -m espnet2.bin.lm_train \
