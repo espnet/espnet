@@ -56,17 +56,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
     done
 
-    for x in eval2000; do
+    x=eval2000
     cp data/${x}/text data/${x}/text.org
     paste -d "" \
          <(cut -f 1 -d" " data/${x}/text.org) \
          <(awk '{$1=""; print tolower($0)}' data/${x}/text.org \
          | perl -pe 's| \(\%.*\)||g' | perl -pe 's| \<.*\>||g' \
          | sed -e "s/(//g" -e "s/)//g") \
-         | sed -e 's/\s\+/ /g' > data/${x}/text.org
+         | sed -e 's/\s\+/ /g' > data/${x}/text.org2 # for ci check
     # remove the file with empty text, otherwise bug in stage calc perplexity 
-    awk -F ' ' '{if(length($2)!=0)print $0}' data/${x}/text.org > data/${x}/text 
-    done
+    awk -F ' ' '{if(length($2)!=0)print $0}' data/${x}/text.org2 > data/${x}/text 
+    
 
     utils/fix_data_dir.sh data/train
     utils/fix_data_dir.sh data/eval2000
