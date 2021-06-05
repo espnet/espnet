@@ -72,6 +72,6 @@ class E2E(E2ETransformer):
             use_cnn_module=args.use_cnn_module,
             zero_triu=args.zero_triu,
             cnn_module_kernel=args.cnn_module_kernel,
-            stochastic_layer_drop_rate=args.stochastic_layer_drop_rate,
+            stochastic_depth_rate=args.stochastic_depth_rate,
         )
         self.reset_parameters(args)
