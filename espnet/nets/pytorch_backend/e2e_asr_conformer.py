@@ -73,5 +73,6 @@ class E2E(E2ETransformer):
             zero_triu=args.zero_triu,
             cnn_module_kernel=args.cnn_module_kernel,
             stochastic_depth_rate=args.stochastic_depth_rate,
+            intermediate_layers=self.intermediate_ctc_layers,
         )
         self.reset_parameters(args)
