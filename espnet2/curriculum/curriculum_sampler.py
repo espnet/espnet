@@ -9,6 +9,7 @@ from typeguard import check_argument_types
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
+################ AUX FUNCS ################
 def read_CR(cr_file):
     '''
     Reads the input comp_ratio.txt
@@ -27,6 +28,7 @@ def read_CR(cr_file):
         cr_dict[line[0]] = 1 - int(line[1])
     return cr_dict
 
+################ CURRICULUM SAMPLER CLASS ##################
 class CurriculumSampler(AbsSampler):
     '''
     Returns K iterators with the data sorted according to complexity
@@ -41,9 +43,8 @@ class CurriculumSampler(AbsSampler):
         cr_file: str = 'comp_ratio.txt',
         K: int=1,
         min_batch_size: int = 1,
-        sort_in_batch: str = "descending",
-        sort_batch: str = "ascending",
-        drop_last: bool = False,
+        sort_in_batch: str = "random",
+        sort_batch: str = "descending",
         padding: bool = True,
     ):
         assert check_argument_types()
@@ -52,16 +53,17 @@ class CurriculumSampler(AbsSampler):
             raise ValueError(
                 f"sort_batch must be ascending or descending: {sort_batch}"
             )
-        if sort_in_batch != "descending" and sort_in_batch != "ascending":
+        if sort_in_batch != "descending" and sort_in_batch != "ascending" and sort_in_batch != "random":
             raise ValueError(
-                f"sort_in_batch must be ascending or descending: {sort_in_batch}"
+                f"sort_in_batch must be ascending, descending or random: {sort_in_batch}"
             )
 
         self.batch_bins = batch_bins
         self.shape_files = shape_files
         self.sort_in_batch = sort_in_batch
         self.sort_batch = sort_batch
-        self.drop_last = drop_last
+        self.cr_file = cr_file
+        self.K = K
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -69,6 +71,11 @@ class CurriculumSampler(AbsSampler):
         utt2shapes = [
             load_num_sequence_text(s, loader_type="csv_int") for s in shape_files
         ]
+
+        ## load compression ratio file
+
+        utt2cr = read_CR(self.cr_file)
+        print("utt2cr:", utt2cr[:10])
 
         first_utt2shape = utt2shapes[0]
         for s, d in zip(shape_files, utt2shapes):
@@ -183,3 +190,24 @@ class CurriculumSampler(AbsSampler):
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
         return iter(self.batch_list)
+
+
+'''
+self.batch_bins = batch_bins
+        self.shape_files = shape_files
+        self.sort_in_batch = sort_in_batch
+        self.sort_batch = sort_batch
+        self.cr_file = cr_file
+        self.K = K
+'''
+
+
+
+testSampler = CurriculumSampler(
+                batch_bins=14000000, 
+                shape_files=['/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/speech_shape',
+                        '/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/text_shape.bpe' ],
+                sort_in_batch='random',
+                cr_file='/shared/workspaces/anakuzne/tmp/res/comp_ratio.1.txt',
+                K=2
+                )
