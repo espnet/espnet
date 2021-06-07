@@ -1100,6 +1100,7 @@ if ! "${skip_eval}"; then
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
+            _ngpu=1
         else
             _cmd="${decode_cmd}"
             _ngpu=0
