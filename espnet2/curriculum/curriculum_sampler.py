@@ -116,7 +116,7 @@ class CurriculumSampler(AbsSampler):
             # shape: (Length, dim1, dim2, ...)
             if padding:
                 for d, s in zip(utt2shapes, shape_files):
-                    if tuple(d[key][1:]) != tuple(d[keys[0]][1:]):
+                    if tuple(d[key][1:]) != tuple(d[keys_dim[0]][1:]):
                         raise RuntimeError(
                             "If padding=True, the "
                             f"feature dimension must be unified: {s}",
