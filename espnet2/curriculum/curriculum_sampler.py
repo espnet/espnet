@@ -203,7 +203,7 @@ class CurriculumSampler:
     
         while i < num_batches:
             if (len(task_i) < task_size):
-                task_i.append(l[i])
+                task_i.append(self.batch_list[i])
             else:
                 tasks.append(task_i)
                 task_i = []
