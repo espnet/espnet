@@ -95,7 +95,6 @@ class CurriculumSampler(AbsSampler):
             )
 
         # Sort samples in descending order
-        print(first_utt2shape)
         keys = dict(sorted(utt2cr.items(), key=lambda k: k[1]))
         
         if len(keys) == 0:
@@ -105,6 +104,7 @@ class CurriculumSampler(AbsSampler):
             # therefore the first sample is referred
             keys_dim = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
             feat_dims = [np.prod(d[keys_dim[0]][1:]) for d in utt2shapes]
+            print("feat_dims:", feat_dims[:10])
         else:
             feat_dims = None
 
