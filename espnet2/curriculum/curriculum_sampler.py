@@ -7,7 +7,6 @@ import numpy as np
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import load_num_sequence_text
-from espnet2.samplers.abs_sampler import AbsSampler
 
 ################ AUX FUNCS ################
 def read_CR(cr_file):
@@ -32,7 +31,7 @@ def read_CR(cr_file):
     return cr_dict
 
 ################ CURRICULUM SAMPLER CLASS ##################
-class CurriculumSampler(AbsSampler):
+class CurriculumSampler:
     '''
     Returns K iterators with the data sorted according to complexity
     Params: 
@@ -224,7 +223,7 @@ class CurriculumSampler(AbsSampler):
         )
 
 
-    def __get_tasks(self):
+    def get_tasks(self):
         '''
         Returns K iterators specified to each task.
         '''
