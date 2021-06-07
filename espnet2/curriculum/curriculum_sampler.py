@@ -28,7 +28,7 @@ def read_CR(cr_file):
         try:
             cr_dict[line[0]] = 1 - float(line[1])
         except IndexError:
-            print("line:", line, len(line))
+            print("line:", line, i, len(line))
     return cr_dict
 
 ################ CURRICULUM SAMPLER CLASS ##################
@@ -78,7 +78,7 @@ class CurriculumSampler(AbsSampler):
         ## load compression ratio file
 
         utt2cr = read_CR(self.cr_file)
-        print("utt2cr:", utt2cr.items()[:10])
+        print("utt2cr:", utt2cr.items())
 
         first_utt2shape = utt2shapes[0]
         for s, d in zip(shape_files, utt2shapes):
