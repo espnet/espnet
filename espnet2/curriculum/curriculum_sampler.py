@@ -89,9 +89,9 @@ class CurriculumSampler(AbsSampler):
         #Check if keys match in CR file and shape files
 
         for s, d in zip(utt2cr, utt2shapes):
-            if set(d) != set(first_utt2shape):
+            if set(s) != set(first_utt2shape):
                 raise RuntimeError(
-                    f"keys are mismatched between {s} != {shape_files[0]}"
+                    f"keys are mismatched between {s} != {self.cr_file}"
                 )
 
         # Sort samples in ascending order
