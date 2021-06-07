@@ -87,6 +87,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   cp $align_dir/text_dev_cleaned data/${train_dev}/text
   cp $align_dir/text_test_cleaned data/${test_set}/text
   utils/fix_data_dir.sh data/${train_set}
+  utils/fix_data_dir.sh data/${test_set}
+  utils/fix_data_dir.sh data/${dev_set}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

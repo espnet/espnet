@@ -15,8 +15,8 @@ inference_config=conf/decode_asr.yaml
 ./asr.sh \
     --lang en \
     --ngpu 8 \
-    --gpu_inference true \
     --max_wav_duration 30 \
+    --inference_nj 100 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
