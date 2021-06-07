@@ -211,9 +211,10 @@ class CurriculumSampler:
 
     def get_tasks(self):
         '''
-        Returns K iterators specified to each task.
+        Returns K iterators specified for each task.
         '''
         task_ind = self.split_tasks()
+        print(task_ind)
         return [iter(self.batch_list[ind[0], ind[1]]) for ind in task_ind]
 
 
