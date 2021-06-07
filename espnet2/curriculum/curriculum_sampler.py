@@ -190,26 +190,14 @@ class CurriculumSampler:
         '''
         num_batches = len(self.batch_list)
         task_size = num_batches//self.K
-        left = 0
-        right = 0
-        
-        tasks = []
-        task_i = []
-        
-        i = 0
-    
-        while i < num_batches:
-            if (len(task_i) < task_size):
-                task_i.append(self.batch_list[i])
+        task_ind = []
+
+        for i in range(self.K):
+            if i!=self.K-1:
+                task_ind.append((i*task_size, (i+1)*task_size))
             else:
-                tasks.append(task_i)
-                task_i = []
-                left = right
-                right+=task_size
-            i+=1
-        tasks.append(task_i)
-        del task_i
-        return tasks
+                task_ind.append((i*task_size,num_batches-1))                   
+        return task_ind
 
     def __repr__(self):
         return (
@@ -225,5 +213,5 @@ class CurriculumSampler:
         '''
         Returns K iterators specified to each task.
         '''
-        tasks = self.split_tasks()
-        return [iter(t) for t in tasks]
+        task_ind = self.split_tasks()
+        return [iter(self.batch_list[ind[0], ind[1]]) for ind in task_ind]
