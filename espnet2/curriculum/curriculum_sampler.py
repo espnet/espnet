@@ -46,7 +46,7 @@ class CurriculumSampler(AbsSampler):
         cr_file: str = 'comp_ratio.txt',
         K: int=1,
         min_batch_size: int = 1,
-        sort_in_batch: str = "random",
+        sort_in_batch: str = "descending",
         sort_batch: str = "descending",
         drop_last: bool = False,
         padding: bool = True,
@@ -209,7 +209,7 @@ testSampler = CurriculumSampler(
                 batch_bins=14000000, 
                 shape_files=['/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/speech_shape',
                         '/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/text_shape.bpe' ],
-                sort_in_batch='random',
+                sort_in_batch='descending',
                 cr_file='/shared/workspaces/anakuzne/tmp/res/comp_ratio.txt',
                 K=2
                 )
