@@ -19,7 +19,7 @@ def read_CR(cr_file):
         cr_file (str): path to comp_ratio.txt
     '''
     with open(cr_file, 'r') as fo:
-        cr_file = fo.read().split(']')
+        cr_file = fo.read().split(']')[:-1]
 
     cr_dict = {}
 
@@ -88,7 +88,11 @@ class CurriculumSampler(AbsSampler):
         
         #Check if keys match in CR file and shape files
 
-        print("first_utt2shape:", first_utt2shape)
+        for s, d in zip(utt2cr, utt2shapes):
+            if set(d) != set(first_utt2shape):
+                raise RuntimeError(
+                    f"keys are mismatched between {s} != {shape_files[0]}"
+                )
 
         # Sort samples in ascending order
         # (shape order should be like (Length, Dim))
