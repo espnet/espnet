@@ -48,6 +48,7 @@ class CurriculumSampler(AbsSampler):
         min_batch_size: int = 1,
         sort_in_batch: str = "random",
         sort_batch: str = "descending",
+        drop_last: bool = False,
         padding: bool = True,
     ):
         assert check_argument_types()
@@ -65,6 +66,7 @@ class CurriculumSampler(AbsSampler):
         self.shape_files = shape_files
         self.sort_in_batch = sort_in_batch
         self.sort_batch = sort_batch
+        self.drop_last = drop_last
         self.cr_file = cr_file
         self.K = K
 
@@ -92,10 +94,10 @@ class CurriculumSampler(AbsSampler):
                 f"keys are mismatched between {shape_files[0]} != {self.cr_file}"
             )
 
-        # Sort samples in ascending order
-        # (shape order should be like (Length, Dim))
-        keys = sorted(utt2cr.items(), key=lambda k: k[1])
-        print("Sorted keys:", keys)
+        # Sort samples in descending order
+        
+        keys = dict(sorted(utt2cr.items(), key=lambda k: k[1]))
+        
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
         if padding:
@@ -210,3 +212,5 @@ testSampler = CurriculumSampler(
                 cr_file='/shared/workspaces/anakuzne/tmp/res/comp_ratio.txt',
                 K=2
                 )
+
+print("Sampler:", batch_list)
