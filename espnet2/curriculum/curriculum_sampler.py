@@ -224,7 +224,7 @@ class CurriculumSampler(AbsSampler):
         )
 
 
-    def _get_tasks(self):
+    def __get_tasks(self):
         '''
         Returns K iterators specified to each task.
         '''
