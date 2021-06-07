@@ -25,7 +25,7 @@ def read_CR(cr_file):
 
     for line in cr_file:
         line = line.replace('[', '').split()
-        cr_dict[line[0]] = 1 - int(line[1])
+        cr_dict[line[0]] = 1 - float(line[1])
     return cr_dict
 
 ################ CURRICULUM SAMPLER CLASS ##################
