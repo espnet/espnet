@@ -23,9 +23,9 @@ def read_CR(cr_file):
 
     cr_dict = {}
 
-    for line in cr_file:
+    for i, line in enumerate(cr_file):
         line = line.replace('[', '').split()
-        print("debug", len(line))
+        print("debug", len(line), line)
         cr_dict[line[0]] = 1 - float(line[1])
     return cr_dict
 
