@@ -25,8 +25,10 @@ def read_CR(cr_file):
 
     for i, line in enumerate(cr_file):
         line = line.replace('[', '').split()
-        print("debug", len(line), line)
-        cr_dict[line[0]] = 1 - float(line[1])
+        try:
+            cr_dict[line[0]] = 1 - float(line[1])
+        except IndexError:
+            print("line:", line, len(line))
     return cr_dict
 
 ################ CURRICULUM SAMPLER CLASS ##################
