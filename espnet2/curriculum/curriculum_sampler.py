@@ -24,10 +24,7 @@ def read_CR(cr_file):
 
     for i, line in enumerate(cr_file):
         line = line.replace('[', '').split()
-        try:
-            cr_dict[line[0]] = 1 - float(line[1])
-        except IndexError:
-            print("line:", line, i, len(line))
+        cr_dict[line[0]] = 1 - float(line[1])
     return cr_dict
 
 ################ CURRICULUM SAMPLER CLASS ##################
@@ -233,7 +230,7 @@ class CurriculumSampler:
         return [iter(t) for t in tasks]
 
 
-
+'''
 testSampler = CurriculumSampler(
                 batch_bins=14000000, 
                 shape_files=['/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/speech_shape',
@@ -244,5 +241,5 @@ testSampler = CurriculumSampler(
                 )
 
 print("Sampler:", testSampler)
-
 task_iters = testSampler.get_tasks()
+'''
