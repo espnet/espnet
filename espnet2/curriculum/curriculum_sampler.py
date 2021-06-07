@@ -69,7 +69,6 @@ class CurriculumSampler(AbsSampler):
         self.drop_last = drop_last
         self.cr_file = cr_file
         self.K = K
-        self.tasks = None
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -190,6 +189,9 @@ class CurriculumSampler(AbsSampler):
             )
 
     def split_tasks(self):
+        '''
+        Split current batch_list into K tasks.
+        '''
         num_batches = len(self.batch_list)
         task_size = num_batches//self.K
         left = 0
@@ -216,17 +218,18 @@ class CurriculumSampler(AbsSampler):
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
-            f"N-batch={len(self)}, "
-            f"batch_bins={self.batch_bins}, "
+            f"N-tasks={self.K}, "
             f"sort_in_batch={self.sort_in_batch}, "
             f"sort_batch={self.sort_batch})"
         )
 
-    def __len__(self):
-        return len(self.batch_list)
 
-    def __iter__(self) -> Iterator[Tuple[str, ...]]:
-        return iter(self.batch_list)
+    def get_tasks(self):
+        '''
+        Returns K iterators specified to each task.
+        '''
+        tasks = self.split_tasks()
+        return [iter(t) for t in tasks]
 
 
 
@@ -240,3 +243,6 @@ testSampler = CurriculumSampler(
                 )
 
 print("Sampler:", testSampler)
+
+task_iters = testSampler.get_tasks()
+print(task_iters)
