@@ -1245,7 +1245,7 @@ class AbsTask(ABC):
                 )
             else:
                 plot_attention_iter_factory = None
-                
+
             # 8. Start training
             if args.use_wandb:
                 if (
@@ -1253,18 +1253,15 @@ class AbsTask(ABC):
                     or distributed_option.dist_rank == 0
                 ):
                     if args.wandb_project is None:
-                        project = (
-                            "ESPnet_"
-                            + cls.__name__
-                        )
+                        project = "ESPnet_" + cls.__name__
                     else:
                         project = args.wandb_project
-                    
+
                     if args.wandb_name is None:
                         name = str(Path(".").resolve()).replace("/", "_")
                     else:
                         name = args.wandb_name
-                        
+
                     wandb.init(
                         entity=args.wandb_entity,
                         project=project,

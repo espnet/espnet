@@ -131,7 +131,7 @@ class Trainer:
     def add_arguments(cls, parser: argparse.ArgumentParser):
         """Reserved for future development of another Trainer"""
         pass
-    
+
     @staticmethod
     def resume(
         checkpoint: Union[str, Path],
@@ -160,7 +160,7 @@ class Trainer:
                 scaler.load_state_dict(states["scaler"])
 
         logging.info(f"The training was resumed using {checkpoint}")
-        
+
     @classmethod
     def run(
         cls,
@@ -381,14 +381,19 @@ class Trainer:
                     logging.info(
                         "The best model has been updated: " + ", ".join(_improved)
                     )
-               
-                if(iepoch % trainer_options.model_log_interval == 0 and
-                    trainer_options.use_wandb):
+
+                if (
+                    iepoch % trainer_options.model_log_interval == 0
+                    and trainer_options.use_wandb
+                ):
                     print("Logging Model on epoch ::::: ", iepoch)
                     reporter.wandb_log_model_artifact(
                         model_path=str(output_dir / f"{iepoch}epoch.pth"),
-                        aliases=[f"epoch-{iepoch}","best" if best_epoch == iepoch else ""],
-                        metadata={"improved": _improved}
+                        aliases=[
+                            f"epoch-{iepoch}",
+                            "best" if best_epoch == iepoch else "",
+                        ],
+                        metadata={"improved": _improved},
                     )
                 # 6. Remove the model files excluding n-best epoch and latest epoch
                 _removed = []
@@ -778,9 +783,9 @@ class Trainer:
                         summary_writer.add_figure(
                             f"{k}_{id_}", fig, reporter.get_epoch()
                         )
-                    
+
                     if options.use_wandb:
-                        reporter.wandb_log_image({
-                            f"attention plot/{k}_{id_}": wandb.Image(fig)
-                        })
+                        reporter.wandb_log_image(
+                            {f"attention plot/{k}_{id_}": wandb.Image(fig)}
+                        )
             reporter.next()

@@ -96,15 +96,16 @@ def aggregate(values: Sequence["ReportedValue"]) -> Num:
     assert check_return_type(retval)
     return retval
 
+
 def wandb_get_prefix(key: str):
-    if key.startswith('valid'):
-        return 'valid/'
-    if key.startswith('train'):
-        return 'train/'
-    if key.startswith('attn'):
-        return 'attn/'
-    return 'metrics/'
-    
+    if key.startswith("valid"):
+        return "valid/"
+    if key.startswith("train"):
+        return "train/"
+    if key.startswith("attn"):
+        return "attn/"
+    return "metrics/"
+
 
 class ReportedValue:
     pass
@@ -257,10 +258,10 @@ class SubReporter:
             d[wandb_get_prefix(key2) + key2] = v
         d["iteration"] = self.total_count
         wandb.log(d)
-        
+
     def wandb_log_image(self, wandb_image_dict):
         wandb.log(wandb_image_dict)
-        
+
     def finished(self) -> None:
         self._finished = True
 
@@ -575,16 +576,20 @@ class Reporter:
                 d[wandb_get_prefix(key) + key] = self.stats[epoch][key1][key2]
         d["epoch"] = epoch
         wandb.log(d)
-        
+
     def wandb_log_image(self, wandb_image_dict):
         wandb.log(wandb_image_dict)
-        
-    def wandb_log_model_artifact(self, model_path: str, aliases: List[str], metadata: Dict):
+
+    def wandb_log_model_artifact(
+        self, model_path: str, aliases: List[str], metadata: Dict
+    ):
         print("ArtifactLogger")
-        artifact = wandb.Artifact(name=f"model_{wandb.run.id}", type='model', metadata=metadata)
+        artifact = wandb.Artifact(
+            name=f"model_{wandb.run.id}", type="model", metadata=metadata
+        )
         artifact.add_file(model_path)
         wandb.log_artifact(artifact, aliases=aliases)
-    
+
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}
 
