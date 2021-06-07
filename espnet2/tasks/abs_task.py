@@ -591,7 +591,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--model_log_interval",
             type=int,
-            default=None,
+            default=-1,
             help="Set the model log period",
         )
         group.add_argument(
@@ -1290,6 +1290,8 @@ class AbsTask(ABC):
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
             )
+
+            wandb.finish() if wandb.run else None
 
     @classmethod
     def build_iter_options(

@@ -382,10 +382,11 @@ class Trainer:
                         "The best model has been updated: " + ", ".join(_improved)
                     )
 
-                if (
-                    iepoch % trainer_options.model_log_interval == 0
-                    and trainer_options.use_wandb
-                ):
+                log_model = (
+                    trainer_options.model_log_interval > 0
+                    and iepoch % trainer_options.model_log_interval == 0
+                )
+                if log_model and trainer_options.use_wandb:
                     print("Logging Model on epoch ::::: ", iepoch)
                     reporter.wandb_log_model_artifact(
                         model_path=str(output_dir / f"{iepoch}epoch.pth"),
