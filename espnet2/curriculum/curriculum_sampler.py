@@ -78,7 +78,6 @@ class CurriculumSampler(AbsSampler):
         ## load compression ratio file
 
         utt2cr = read_CR(self.cr_file)
-        print("utt2cr:", utt2cr.items())
 
         first_utt2shape = utt2shapes[0]
         for s, d in zip(shape_files, utt2shapes):
@@ -86,6 +85,10 @@ class CurriculumSampler(AbsSampler):
                 raise RuntimeError(
                     f"keys are mismatched between {s} != {shape_files[0]}"
                 )
+        
+        #Check if keys match in CR file and shape files
+
+        print("first_utt2shape:", first_utt2shape)
 
         # Sort samples in ascending order
         # (shape order should be like (Length, Dim))
