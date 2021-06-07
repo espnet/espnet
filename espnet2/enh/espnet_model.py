@@ -562,7 +562,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         Returns:
             loss: (Batch,)
         """
-        print(ref.shape, inf.shape)
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
         return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False)
 
