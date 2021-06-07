@@ -94,7 +94,8 @@ class CurriculumSampler(AbsSampler):
 
         # Sort samples in ascending order
         # (shape order should be like (Length, Dim))
-        keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
+        keys = sorted(utt2cr.items(), key=lambda k: k[1])
+        print("Sorted keys:", keys)
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
         if padding:
@@ -198,16 +199,6 @@ class CurriculumSampler(AbsSampler):
 
     def __iter__(self) -> Iterator[Tuple[str, ...]]:
         return iter(self.batch_list)
-
-
-'''
-self.batch_bins = batch_bins
-        self.shape_files = shape_files
-        self.sort_in_batch = sort_in_batch
-        self.sort_batch = sort_batch
-        self.cr_file = cr_file
-        self.K = K
-'''
 
 
 
