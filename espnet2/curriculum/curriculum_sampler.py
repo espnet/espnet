@@ -225,19 +225,20 @@ class CurriculumSampler:
         Returns K iterators specified to each task.
         '''
         tasks = self.split_tasks()
+        for t in tasks:
+            print(len(t))
         return [iter(t) for t in tasks]
 
 
-'''
+
 testSampler = CurriculumSampler(
                 batch_bins=14000000, 
                 shape_files=['/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/speech_shape',
                         '/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/text_shape.bpe' ],
                 sort_in_batch='descending',
                 cr_file='/shared/workspaces/anakuzne/tmp/res/comp_ratio.txt',
-                K=2
+                K=7
                 )
 
 print("Sampler:", testSampler)
 task_iters = testSampler.get_tasks()
-'''
