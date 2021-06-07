@@ -95,7 +95,7 @@ class CurriculumSampler(AbsSampler):
             )
 
         # Sort samples in descending order
-        
+        print(first_utt2shape)
         keys = dict(sorted(utt2cr.items(), key=lambda k: k[1]))
         
         if len(keys) == 0:
