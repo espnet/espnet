@@ -103,7 +103,8 @@ class CurriculumSampler(AbsSampler):
         if padding:
             # If padding case, the feat-dim must be same over whole corpus,
             # therefore the first sample is referred
-            feat_dims = [np.prod(d[keys[0]][1:]) for d in utt2shapes]
+            keys_dim = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
+            feat_dims = [np.prod(d[keys_dim[0]][1:]) for d in utt2shapes]
         else:
             feat_dims = None
 
