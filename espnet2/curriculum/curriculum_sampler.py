@@ -215,7 +215,7 @@ class CurriculumSampler:
         '''
         task_ind = self.split_tasks()
         print(task_ind)
-        return [iter(self.batch_list[ind[0], ind[1]]) for ind in task_ind]
+        return [iter(self.batch_list[ind[0]:ind[1]]) for ind in task_ind]
 
 
 testSampler = CurriculumSampler(
