@@ -216,6 +216,6 @@ testSampler = CurriculumSampler(
                 shape_files=['/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/speech_shape',
                         '/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/text_shape.bpe' ],
                 sort_in_batch='random',
-                cr_file='/shared/workspaces/anakuzne/tmp/res/comp_ratio.1.txt',
+                cr_file='/shared/workspaces/anakuzne/tmp/res/comp_ratio.txt',
                 K=2
                 )
