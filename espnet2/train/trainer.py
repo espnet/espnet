@@ -20,6 +20,7 @@ import torch
 import torch.nn
 import torch.optim
 from typeguard import check_argument_types
+import wandb
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
@@ -91,6 +92,7 @@ class TrainerOptions:
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
+    model_log_interval: int
 
 
 class Trainer:
@@ -129,7 +131,7 @@ class Trainer:
     def add_arguments(cls, parser: argparse.ArgumentParser):
         """Reserved for future development of another Trainer"""
         pass
-
+    
     @staticmethod
     def resume(
         checkpoint: Union[str, Path],
@@ -158,7 +160,7 @@ class Trainer:
                 scaler.load_state_dict(states["scaler"])
 
         logging.info(f"The training was resumed using {checkpoint}")
-
+        
     @classmethod
     def run(
         cls,
@@ -352,7 +354,7 @@ class Trainer:
                     output_dir / "checkpoint.pth",
                 )
 
-                # 5. Save the model and update the link to the best model
+                # 5. Save and log the model and update the link to the best model
                 torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
@@ -379,7 +381,15 @@ class Trainer:
                     logging.info(
                         "The best model has been updated: " + ", ".join(_improved)
                     )
-
+               
+                if(iepoch % trainer_options.model_log_interval == 0 and
+                    trainer_options.use_wandb):
+                    print("Logging Model on epoch ::::: ", iepoch)
+                    reporter.wandb_log_model_artifact(
+                        model_path=str(output_dir / f"{iepoch}epoch.pth"),
+                        aliases=[f"epoch-{iepoch}","best" if best_epoch == iepoch else ""],
+                        metadata={"improved": _improved}
+                    )
                 # 6. Remove the model files excluding n-best epoch and latest epoch
                 _removed = []
                 # Get the union set of the n-best among multiple criterion
@@ -768,4 +778,9 @@ class Trainer:
                         summary_writer.add_figure(
                             f"{k}_{id_}", fig, reporter.get_epoch()
                         )
+                    
+                    if options.use_wandb:
+                        reporter.wandb_log_image({
+                            f"attention plot/{k}_{id_}": wandb.Image(fig)
+                        })
             reporter.next()

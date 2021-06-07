@@ -561,7 +561,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--use_wandb",
             type=str2bool,
-            default=False,
+            default=True,
             help="Enable wandb logging",
         )
         group.add_argument(
@@ -575,6 +575,24 @@ class AbsTask(ABC):
             type=str,
             default=None,
             help="Specify wandb id",
+        )
+        group.add_argument(
+            "--wandb_entity",
+            type=str,
+            default=None,
+            help="Specify wandb entity",
+        )
+        group.add_argument(
+            "--wandb_name",
+            type=str,
+            default=None,
+            help="Specify wandb run name",
+        )
+        group.add_argument(
+            "--model_log_interval",
+            type=int,
+            default=None,
+            help="Set the model log period",
         )
         group.add_argument(
             "--detect_anomaly",
@@ -1227,7 +1245,7 @@ class AbsTask(ABC):
                 )
             else:
                 plot_attention_iter_factory = None
-
+                
             # 8. Start training
             if args.use_wandb:
                 if (
@@ -1238,19 +1256,21 @@ class AbsTask(ABC):
                         project = (
                             "ESPnet_"
                             + cls.__name__
-                            + str(Path(".").resolve()).replace("/", "_")
                         )
                     else:
                         project = args.wandb_project
-                    if args.wandb_id is None:
-                        wandb_id = str(output_dir).replace("/", "_")
+                    
+                    if args.wandb_name is None:
+                        name = str(Path(".").resolve()).replace("/", "_")
                     else:
-                        wandb_id = args.wandb_id
-
+                        name = args.wandb_name
+                        
                     wandb.init(
+                        entity=args.wandb_entity,
                         project=project,
+                        name=name,
                         dir=output_dir,
-                        id=wandb_id,
+                        id=args.wandb_id,
                         resume="allow",
                     )
                     wandb.config.update(args)

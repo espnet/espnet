@@ -96,6 +96,15 @@ def aggregate(values: Sequence["ReportedValue"]) -> Num:
     assert check_return_type(retval)
     return retval
 
+def wandb_get_prefix(key: str):
+    if key.startswith('valid'):
+        return 'valid/'
+    if key.startswith('train'):
+        return 'train/'
+    if key.startswith('attn'):
+        return 'attn/'
+    return 'metrics/'
+    
 
 class ReportedValue:
     pass
@@ -233,7 +242,7 @@ class SubReporter:
             v = aggregate(values)
             summary_writer.add_scalar(key2, v, self.total_count)
 
-    def wandb_log(self, start: int = None, commit: bool = True):
+    def wandb_log(self, start: int = None):
         if start is None:
             start = 0
         if start < 0:
@@ -245,10 +254,13 @@ class SubReporter:
             # values: List[ReportValue]
             values = stats_list[start:]
             v = aggregate(values)
-            d[key2] = v
+            d[wandb_get_prefix(key2) + key2] = v
         d["iteration"] = self.total_count
-        wandb.log(d, commit=commit)
-
+        wandb.log(d)
+        
+    def wandb_log_image(self, wandb_image_dict):
+        wandb.log(wandb_image_dict)
+        
     def finished(self) -> None:
         self._finished = True
 
@@ -550,7 +562,7 @@ class Reporter:
                     epoch,
                 )
 
-    def wandb_log(self, epoch: int = None, commit: bool = True):
+    def wandb_log(self, epoch: int = None):
         if epoch is None:
             epoch = self.get_epoch()
 
@@ -559,10 +571,20 @@ class Reporter:
             for key2 in self.stats[epoch][key1]:
                 if key2 in ("time", "total_count"):
                     continue
-                d[f"{key1}_{key2}_epoch"] = self.stats[epoch][key1][key2]
+                key = f"{key1}_{key2}_epoch"
+                d[wandb_get_prefix(key) + key] = self.stats[epoch][key1][key2]
         d["epoch"] = epoch
-        wandb.log(d, commit=commit)
-
+        wandb.log(d)
+        
+    def wandb_log_image(self, wandb_image_dict):
+        wandb.log(wandb_image_dict)
+        
+    def wandb_log_model_artifact(self, model_path: str, aliases: List[str], metadata: Dict):
+        print("ArtifactLogger")
+        artifact = wandb.Artifact(name=f"model_{wandb.run.id}", type='model', metadata=metadata)
+        artifact.add_file(model_path)
+        wandb.log_artifact(artifact, aliases=aliases)
+    
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}
 
