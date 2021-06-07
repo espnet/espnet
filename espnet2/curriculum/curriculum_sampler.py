@@ -69,6 +69,7 @@ class CurriculumSampler(AbsSampler):
         self.drop_last = drop_last
         self.cr_file = cr_file
         self.K = K
+        self.tasks = None
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -104,7 +105,7 @@ class CurriculumSampler(AbsSampler):
             # therefore the first sample is referred
             keys_dim = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
             feat_dims = [np.prod(d[keys_dim[0]][1:]) for d in utt2shapes]
-            print("feat_dims:", feat_dims[:10])
+
         else:
             feat_dims = None
 
@@ -187,6 +188,30 @@ class CurriculumSampler(AbsSampler):
             raise ValueError(
                 f"sort_batch must be ascending or descending: {sort_batch}"
             )
+
+    def split_tasks(self):
+        num_batches = len(self.batch_list)
+        task_size = num_batches//self.K
+        left = 0
+        right = 0
+        
+        tasks = []
+        task_i = []
+        
+        i = 0
+    
+        while i < num_batches:
+            if (len(task_i) < task_size):
+                task_i.append(l[i])
+            else:
+                tasks.append(task_i)
+                task_i = []
+                left = right
+                right+=task_size
+            i+=1
+        tasks.append(task_i)
+        del task_i
+        return tasks
 
     def __repr__(self):
         return (
