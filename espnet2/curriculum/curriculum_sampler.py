@@ -25,7 +25,6 @@ def read_CR(cr_file):
 
     for line in cr_file:
         line = line.replace('[', '').split()
-        print("line", line)
         cr_dict[line[0]] = 1 - float(line[1])
     return cr_dict
 
@@ -76,7 +75,7 @@ class CurriculumSampler(AbsSampler):
         ## load compression ratio file
 
         utt2cr = read_CR(self.cr_file)
-        print("utt2cr:", utt2cr[:10])
+        print("utt2cr:", utt2cr.items()[:10])
 
         first_utt2shape = utt2shapes[0]
         for s, d in zip(shape_files, utt2shapes):
