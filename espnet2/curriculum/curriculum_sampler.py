@@ -214,4 +214,4 @@ testSampler = CurriculumSampler(
                 K=2
                 )
 
-print("Sampler:", batch_list)
+print("Sampler:", testSampler)
