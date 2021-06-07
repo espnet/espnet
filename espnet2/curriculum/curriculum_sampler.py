@@ -228,6 +228,8 @@ class CurriculumSampler:
         Returns K iterators specified to each task.
         '''
         tasks = self.split_tasks()
+        for t in tasks:
+            print(len(t))
         return [iter(t) for t in tasks]
 
 
@@ -244,5 +246,3 @@ testSampler = CurriculumSampler(
 print("Sampler:", testSampler)
 
 task_iters = testSampler.get_tasks()
-for it in task_iters:
-    print(len(it))
