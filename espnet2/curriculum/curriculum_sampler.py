@@ -244,4 +244,5 @@ testSampler = CurriculumSampler(
 print("Sampler:", testSampler)
 
 task_iters = testSampler.get_tasks()
-print(task_iters)
+for i in task_iters[0]:
+    print(i)
