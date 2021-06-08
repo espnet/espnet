@@ -333,7 +333,8 @@ class Trainer:
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results
                 logging.info(reporter.log_message())
-                reporter.matplotlib_plot(output_dir / "images")
+                if plot_attention_iter_factory is not None:
+                    reporter.matplotlib_plot(output_dir / "images")
                 if summary_writer is not None:
                     reporter.tensorboard_add_scalar(summary_writer)
                 if trainer_options.use_wandb:

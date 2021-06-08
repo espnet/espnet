@@ -28,7 +28,6 @@ def field2slice(field: Optional[str]) -> slice:
         slice(0, 3, None)
         >>> field2slice("-3")
         slice(None, 3, None)
-
     """
     field = field.strip()
     try:
@@ -54,9 +53,12 @@ def field2slice(field: Optional[str]) -> slice:
     except ValueError:
         raise RuntimeError(f"Format error: e.g. '2-', '2-5', or '-5': {field}")
 
-    # -1 because of 1-based integer following "cut" command
-    # e.g "1-3" -> slice(0, 3)
-    slic = slice(s1 - 1, s2)
+    if s1 is None:
+        slic = slice(None, s2)
+    else:
+        # -1 because of 1-based integer following "cut" command
+        # e.g "1-3" -> slice(0, 3)
+        slic = slice(s1 - 1, s2)
     return slic
 
 
