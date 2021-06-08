@@ -91,7 +91,7 @@ class CurriculumSampler:
             )
 
         # Sort samples in descending order
-        keys = dict(sorted(utt2cr.items(), key=lambda k: k[1]))
+        keys = sorted(utt2cr.items(), key=lambda k: k[1])
         
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
@@ -104,7 +104,7 @@ class CurriculumSampler:
         else:
             feat_dims = None
 
-        print("KEYS:", list(keys.keys())[:3], list(keys_dim.keys())[:3])
+        print("KEYS:", keys[:3], keys_dim[:3])
 
         # Decide batch-sizes
         batch_sizes = []
