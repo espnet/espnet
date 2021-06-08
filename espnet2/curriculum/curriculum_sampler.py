@@ -91,7 +91,7 @@ class CurriculumSampler:
             )
 
         # Sort samples in descending order
-        keys = sorted(utt2cr.items(), key=lambda k: k[1])
+        keys = dict(sorted(utt2cr.items(), key=lambda k: k[1]))
         
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
@@ -103,10 +103,6 @@ class CurriculumSampler:
 
         else:
             feat_dims = None
-
-        
-        print("utt2shape:", first_utt2shape[:5])
-        print("KEYS:", keys[:3], keys_dim[:3])
 
         # Decide batch-sizes
         batch_sizes = []
@@ -219,16 +215,3 @@ class CurriculumSampler:
         '''
         task_ind = self.split_tasks()
         return [iter(self.batch_list[ind[0]:ind[1]]) for ind in task_ind]
-
-
-testSampler = CurriculumSampler(
-                batch_bins=14000000, 
-                shape_files=['/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/speech_shape',
-                        '/shared/50k_train/mls_english_opus/exp/asr_stats_extracted_train_norm/train/text_shape.bpe' ],
-                sort_in_batch='descending',
-                cr_file='/shared/workspaces/anakuzne/tmp/res/comp_ratio.txt',
-                K=7
-                )
-
-print("Sampler:", testSampler)
-task_iters = testSampler.get_tasks()
