@@ -104,6 +104,8 @@ class CurriculumSampler:
         else:
             feat_dims = None
 
+        
+        print("utt2shape:", first_utt2shape[:5])
         print("KEYS:", keys[:3], keys_dim[:3])
 
         # Decide batch-sizes
