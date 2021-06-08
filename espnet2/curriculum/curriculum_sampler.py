@@ -92,7 +92,7 @@ class CurriculumSampler:
 
         # Sort samples in descending order
         keys = dict(sorted(utt2cr.items(), key=lambda k: k[1]))
-        
+
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
         if padding:
