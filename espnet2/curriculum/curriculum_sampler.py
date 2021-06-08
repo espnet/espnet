@@ -53,9 +53,9 @@ class CurriculumSampler:
             raise ValueError(
                 f"sort_batch must be ascending or descending: {sort_batch}"
             )
-        if sort_in_batch != "descending" and sort_in_batch != "ascending" and sort_in_batch != "random":
+        if sort_in_batch != "descending" and sort_in_batch != "ascending":
             raise ValueError(
-                f"sort_in_batch must be ascending, descending or random: {sort_in_batch}"
+                f"sort_in_batch must be ascending, descending: {sort_in_batch}"
             )
 
         self.batch_bins = batch_bins
