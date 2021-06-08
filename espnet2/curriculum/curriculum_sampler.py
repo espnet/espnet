@@ -104,6 +104,8 @@ class CurriculumSampler:
         else:
             feat_dims = None
 
+        print("KEYS:", list(keys.keys())[:3], list(keys_dim.keys())[:3])
+
         # Decide batch-sizes
         batch_sizes = []
         current_batch_keys = []
