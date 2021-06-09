@@ -257,7 +257,19 @@ def get_parser():
         default=0.999,
         help="Threshold probability for CTC output",
     )
-
+    # quantize model related
+    parser.add_argument(
+        "--quantize-asr-model",
+        type=bool,
+        default=False,
+        help="Quantize asr model",
+    )
+    parser.add_argument(
+        "--quantize-lm-model",
+        type=bool,
+        default=False,
+        help="Quantize lm model",
+    )
     return parser
 
 
