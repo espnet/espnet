@@ -1250,10 +1250,10 @@ class AbsTask(ABC):
             # 8. Start training
             if args.use_wandb:
                 try:
-                    wandb_configured = wandb.login()
+                    wandb.login()
                 except wandb.errors.UsageError:
                     logging.info(
-                        "wandb not configured! please run `wandb login` to enable wandb logging"
+                        "wandb not configured! run `wandb login` to enable"
                     )
                     args.use_wandb = False
 
