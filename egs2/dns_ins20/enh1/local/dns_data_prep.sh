@@ -95,6 +95,7 @@ done
 echo "Building testing data"
 
 for x in tt; do
+  echo "Building synthetic testing data"
   for rev in with_reverb no_reverb; do
     ddir=${x}_synthetic_${rev}
     mkdir -p ${data}/${ddir}
@@ -118,11 +119,35 @@ for x in tt; do
     sort -u> ${data}/${ddir}/text
 
     utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
-    touch ${data}/${ddir}/text
 
     spk1_wav_dir=${root_dir}/clean/
     sed -e "s#${mixwav_dir}.*_\(.*\).wav#${spk1_wav_dir}clean_fileid_\1.wav#g" ${data}/${ddir}/wav.scp \
       > ${data}/${ddir}/spk1.scp
   done
+
+  echo "Building real testing data"
+  ddir=${x}_real_recordings
+  mkdir -p ${data}/${ddir}
+  real_dir=${dns_test_wav}/real_recordings
+
+  find $real_dir -iname '*.wav' > $tmpdir/${x}_real_recordings.flist
+  
+  sed -e 's:^\(.*\).wav$:\1:i' $tmpdir/${x}_real_recordings.flist \
+  > $tmpdir/${x}_real_recordings.uttids
+
+  paste $tmpdir/${x}_real_recordings.uttids $tmpdir/${x}_real_recordings.flist \
+  | sort -k1,1 >  ${data}/${ddir}/wav.scp 
+
+
+  awk '{print($1, $1)}' ${data}/${ddir}/wav.scp | \
+  sort -u> ${data}/${ddir}/utt2spk
+
+
+  awk '{print($1, "dummy")}' ${data}/${ddir}/wav.scp | \
+  sort -u> ${data}/${ddir}/text
+
+  utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
+  
+
 done
 
