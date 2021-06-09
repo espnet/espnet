@@ -133,7 +133,7 @@ for x in tt; do
 
   find $real_dir -iname '*.wav' > $tmpdir/${x}_real_recordings.flist
   
-  sed -e 's:^\(.*\).wav$:\1:i' $tmpdir/${x}_real_recordings.flist \
+  sed -e 's:.*\/\(.*\).wav$:\1:i' $tmpdir/${x}_real_recordings.flist \
   > $tmpdir/${x}_real_recordings.uttids
 
   paste $tmpdir/${x}_real_recordings.uttids $tmpdir/${x}_real_recordings.flist \
