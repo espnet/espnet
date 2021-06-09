@@ -20,6 +20,7 @@ import torch
 import torch.nn
 import torch.optim
 from typeguard import check_argument_types
+import wandb
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
@@ -91,6 +92,7 @@ class TrainerOptions:
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
+    wandb_model_log_interval: int
 
 
 class Trainer:
@@ -353,7 +355,7 @@ class Trainer:
                     output_dir / "checkpoint.pth",
                 )
 
-                # 5. Save the model and update the link to the best model
+                # 5. Save and log the model and update the link to the best model
                 torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
@@ -380,6 +382,24 @@ class Trainer:
                     logging.info(
                         "The best model has been updated: " + ", ".join(_improved)
                     )
+
+                log_model = (
+                    trainer_options.wandb_model_log_interval > 0
+                    and iepoch % trainer_options.wandb_model_log_interval == 0
+                )
+                if log_model and trainer_options.use_wandb:
+                    logging.info("Logging Model on this epoch :::::")
+                    artifact = wandb.Artifact(
+                        name=f"model_{wandb.run.id}",
+                        type="model",
+                        metadata={"improved": _improved},
+                    )
+                    artifact.add_file(str(output_dir / f"{iepoch}epoch.pth"))
+                    aliases = [
+                        f"epoch-{iepoch}",
+                        "best" if best_epoch == iepoch else "",
+                    ]
+                    wandb.log_artifact(artifact, aliases=aliases)
 
                 # 6. Remove the model files excluding n-best epoch and latest epoch
                 _removed = []
@@ -769,4 +789,7 @@ class Trainer:
                         summary_writer.add_figure(
                             f"{k}_{id_}", fig, reporter.get_epoch()
                         )
+
+                    if options.use_wandb:
+                        wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
             reporter.next()

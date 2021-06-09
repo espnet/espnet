@@ -562,7 +562,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--use_wandb",
             type=str2bool,
-            default=False,
+            default=True,
             help="Enable wandb logging",
         )
         group.add_argument(
@@ -576,6 +576,24 @@ class AbsTask(ABC):
             type=str,
             default=None,
             help="Specify wandb id",
+        )
+        group.add_argument(
+            "--wandb_entity",
+            type=str,
+            default=None,
+            help="Specify wandb entity",
+        )
+        group.add_argument(
+            "--wandb_name",
+            type=str,
+            default=None,
+            help="Specify wandb run name",
+        )
+        group.add_argument(
+            "--wandb_model_log_interval",
+            type=int,
+            default=-1,
+            help="Set the model log period",
         )
         group.add_argument(
             "--detect_anomaly",
@@ -1231,27 +1249,33 @@ class AbsTask(ABC):
 
             # 8. Start training
             if args.use_wandb:
+                try:
+                    wandb.login()
+                except wandb.errors.UsageError:
+                    logging.info("wandb not configured! run `wandb login` to enable")
+                    args.use_wandb = False
+
+            if args.use_wandb:
                 if (
                     not distributed_option.distributed
                     or distributed_option.dist_rank == 0
                 ):
                     if args.wandb_project is None:
-                        project = (
-                            "ESPnet_"
-                            + cls.__name__
-                            + str(Path(".").resolve()).replace("/", "_")
-                        )
+                        project = "ESPnet_" + cls.__name__
                     else:
                         project = args.wandb_project
-                    if args.wandb_id is None:
-                        wandb_id = str(output_dir).replace("/", "_")
+
+                    if args.wandb_name is None:
+                        name = str(Path(".").resolve()).replace("/", "_")
                     else:
-                        wandb_id = args.wandb_id
+                        name = args.wandb_name
 
                     wandb.init(
+                        entity=args.wandb_entity,
                         project=project,
+                        name=name,
                         dir=output_dir,
-                        id=wandb_id,
+                        id=args.wandb_id,
                         resume="allow",
                     )
                     wandb.config.update(args)
@@ -1274,6 +1298,9 @@ class AbsTask(ABC):
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
             )
+
+            if wandb.run:
+                wandb.finish()
 
     @classmethod
     def build_iter_options(

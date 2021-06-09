@@ -146,7 +146,7 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
     ```
 
     There are some required packages depending on each task other than above. If you meet ImportError, please intall them at that time.
-
+- Once installed, run `wandb login` to enable tracking runs using W&B. 
 ## Usage
 See [Usage](https://espnet.github.io/espnet/tutorial.html).
 
