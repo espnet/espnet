@@ -590,7 +590,7 @@ class AbsTask(ABC):
             help="Specify wandb run name",
         )
         group.add_argument(
-            "--model_log_interval",
+            "--wandb_model_log_interval",
             type=int,
             default=-1,
             help="Set the model log period",

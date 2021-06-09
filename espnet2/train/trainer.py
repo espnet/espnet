@@ -92,7 +92,7 @@ class TrainerOptions:
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
-    model_log_interval: int
+    wandb_model_log_interval: int
 
 
 class Trainer:
@@ -384,11 +384,11 @@ class Trainer:
                     )
 
                 log_model = (
-                    trainer_options.model_log_interval > 0
-                    and iepoch % trainer_options.model_log_interval == 0
+                    trainer_options.wandb_model_log_interval > 0
+                    and iepoch % trainer_options.wandb_model_log_interval == 0
                 )
                 if log_model and trainer_options.use_wandb:
-                    logging.info("Logging Model on epoch ::::: " + "".join(iepoch))
+                    logging.info("Logging Model on this epoch :::::")
                     artifact = wandb.Artifact(
                         name=f"model_{wandb.run.id}",
                         type="model",
