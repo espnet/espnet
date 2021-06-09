@@ -1252,9 +1252,7 @@ class AbsTask(ABC):
                 try:
                     wandb.login()
                 except wandb.errors.UsageError:
-                    logging.info(
-                        "wandb not configured! run `wandb login` to enable"
-                    )
+                    logging.info("wandb not configured! run `wandb login` to enable")
                     args.use_wandb = False
 
             if args.use_wandb:
