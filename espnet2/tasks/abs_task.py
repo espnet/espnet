@@ -35,6 +35,7 @@ from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
+from espnet2.curriculum.curriculum_iter_factory import CurriculumIterFactory
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
@@ -1418,8 +1419,58 @@ class AbsTask(ABC):
                 iter_options=iter_options,
                 mode=mode,
             )
+
+############### Curriculum Learning ###################
+        elif args.iterator_type == "curriculum":
+            return cls.build_curriculum_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
         else:
             raise RuntimeError(f"Not supported: iterator_type={args.iterator_type}")
+
+    @classmethod
+    def build_curriculum_iter_factory(
+        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+    ) -> AbsIterFactory:
+        assert check_argument_types()
+
+        dataset = ESPnetDataset(
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
+        )
+
+        batch_sampler = CurriculumSampler(
+                type=iter_options.batch_type,
+                batch_bins=iter_options, 
+                shape_files=iter_options.shape_files,
+                cr_file=iter_options.cr_file,
+                K=iter_options.K,
+                sort_in_batch=args.sort_in_batch,
+                sort_batch=args.sort_batch,
+                drop_last=False,
+                min_batch_size=torch.distributed.get_world_size()
+                )
+
+        batches = batch_sampler.get_tasks()
+
+        logging.info(f"[{mode}] dataset:\n{dataset}")
+        logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
+
+        return CurriculumIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=args.seed,
+            num_iters_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
+        )
 
     @classmethod
     def build_sequence_iter_factory(
