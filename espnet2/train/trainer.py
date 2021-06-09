@@ -395,6 +395,10 @@ class Trainer:
                         metadata={"improved": _improved},
                     )
                     artifact.add_file(str(output_dir / f"{iepoch}epoch.pth"))
+                    aliases = [
+                        f"epoch-{iepoch}",
+                        "best" if best_epoch == iepoch else "",
+                    ]
                     wandb.log_artifact(artifact, aliases=aliases)
 
                 # 6. Remove the model files excluding n-best epoch and latest epoch
