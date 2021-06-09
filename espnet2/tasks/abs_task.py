@@ -1301,7 +1301,8 @@ class AbsTask(ABC):
                 distributed_option=distributed_option,
             )
 
-            wandb.finish() if wandb.run else None
+            if wandb.run:
+                wandb.finish()
 
     @classmethod
     def build_iter_options(
