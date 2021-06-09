@@ -21,7 +21,8 @@ dns_test_wav=$2
 # check if the wav dirs exist.
 
 for ddir in clean noise noisy; do
-  if [ ! -d ${dns_wav}/${ddir} ]; then
+  f=${dns_wav}/${ddir}
+  if [ ! -d $f ]; then
     echo "Error: $f is not a directory."
     exit 1;
   fi
