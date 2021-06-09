@@ -259,9 +259,6 @@ class SubReporter:
         d["iteration"] = self.total_count
         wandb.log(d)
 
-    def wandb_log_image(self, wandb_image_dict):
-        wandb.log(wandb_image_dict)
-
     def finished(self) -> None:
         self._finished = True
 
@@ -576,19 +573,6 @@ class Reporter:
                 d[wandb_get_prefix(key) + key] = self.stats[epoch][key1][key2]
         d["epoch"] = epoch
         wandb.log(d)
-
-    def wandb_log_image(self, wandb_image_dict):
-        wandb.log(wandb_image_dict)
-
-    def wandb_log_model_artifact(
-        self, model_path: str, aliases: List[str], metadata: Dict
-    ):
-        print("ArtifactLogger")
-        artifact = wandb.Artifact(
-            name=f"model_{wandb.run.id}", type="model", metadata=metadata
-        )
-        artifact.add_file(model_path)
-        wandb.log_artifact(artifact, aliases=aliases)
 
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}

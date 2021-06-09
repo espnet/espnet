@@ -562,7 +562,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--use_wandb",
             type=str2bool,
-            default=False,
+            default=True,
             help="Enable wandb logging",
         )
         group.add_argument(
@@ -1248,6 +1248,15 @@ class AbsTask(ABC):
                 plot_attention_iter_factory = None
 
             # 8. Start training
+            if args.use_wandb:
+                try:
+                    wandb_configured = wandb.login()
+                except wandb.errors.UsageError:
+                    logging.info(
+                        "wandb not configured! please run `wandb login` to enable wandb logging"
+                    )
+                    args.use_wandb = False
+
             if args.use_wandb:
                 if (
                     not distributed_option.distributed

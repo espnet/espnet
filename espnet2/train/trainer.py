@@ -388,15 +388,15 @@ class Trainer:
                     and iepoch % trainer_options.model_log_interval == 0
                 )
                 if log_model and trainer_options.use_wandb:
-                    print("Logging Model on epoch ::::: ", iepoch)
-                    reporter.wandb_log_model_artifact(
-                        model_path=str(output_dir / f"{iepoch}epoch.pth"),
-                        aliases=[
-                            f"epoch-{iepoch}",
-                            "best" if best_epoch == iepoch else "",
-                        ],
+                    logging.info("Logging Model on epoch ::::: " + "".join(iepoch))
+                    artifact = wandb.Artifact(
+                        name=f"model_{wandb.run.id}",
+                        type="model",
                         metadata={"improved": _improved},
                     )
+                    artifact.add_file(str(output_dir / f"{iepoch}epoch.pth"))
+                    wandb.log_artifact(artifact, aliases=aliases)
+
                 # 6. Remove the model files excluding n-best epoch and latest epoch
                 _removed = []
                 # Get the union set of the n-best among multiple criterion
@@ -787,7 +787,5 @@ class Trainer:
                         )
 
                     if options.use_wandb:
-                        reporter.wandb_log_image(
-                            {f"attention plot/{k}_{id_}": wandb.Image(fig)}
-                        )
+                        wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
             reporter.next()
