@@ -80,3 +80,4 @@ specaug_conf:
 
 ## Curriculum learning params
 cr_file: /shared/workspaces/anakuzne/tmp/comp_ratio.txt
+K: 2

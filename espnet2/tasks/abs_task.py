@@ -663,6 +663,10 @@ class AbsTask(ABC):
             default=None,
             help="Path to comp_ratio.txt",
         )
+        group.add_argument("--K", 
+                           type=int, 
+                           default=1,
+                           help="Number of tasks for curriculum learning")
 
         group = parser.add_argument_group("Sequence iterator related")
         _batch_type_help = ""
@@ -1456,8 +1460,8 @@ class AbsTask(ABC):
                 type=iter_options.batch_type,
                 batch_bins=iter_options, 
                 shape_files=iter_options.shape_files,
-                cr_file=iter_options.cr_file,
-                K=iter_options.K,
+                cr_file=args.cr_file,
+                K=args.K,
                 sort_in_batch=args.sort_in_batch,
                 sort_batch=args.sort_batch,
                 drop_last=False,
