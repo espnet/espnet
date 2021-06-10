@@ -655,6 +655,14 @@ class AbsTask(ABC):
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
         group.add_argument("--valid_shape_file", type=str, action="append", default=[])
+        
+        group = parser.add_argument_group("Curriculum Learning related")
+        group.add_argument(
+            "--cr_file",
+            type=str,
+            default=None,
+            help="Path to comp_ratio.txt",
+        )
 
         group = parser.add_argument_group("Sequence iterator related")
         _batch_type_help = ""
