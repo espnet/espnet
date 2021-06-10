@@ -15,6 +15,7 @@ import sys
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
+import torch
 
 # NOTE: you need this func to generate our sphinx doc
 
@@ -258,6 +259,15 @@ def get_parser():
         help="Threshold probability for CTC output",
     )
     # quantize model related
+    parser.add_argument(
+        "--quantize-config",
+        type=set,
+        default={torch.nn.Linear},
+        help="Config for dynamic quantize",
+    )
+    parser.add_argument(
+        "--quantize-dtype", type=str, default="qint8", help="Dtype dynamic quantize"
+    )
     parser.add_argument(
         "--quantize-asr-model",
         type=bool,

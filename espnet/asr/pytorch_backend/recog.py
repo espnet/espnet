@@ -42,8 +42,13 @@ def recog_v2(args):
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
+    if args.quantize_asr_model:
+        logging.info("Use quantized asr model for decoding")
+        dtype = getattr(torch, args.quantize_dtype)
+        model = torch.quantization.quantize_dynamic(
+            model, args.quantize_config, dtype=dtype
+        )
     model.eval()
-
     load_inputs_and_targets = LoadInputsAndTargets(
         mode="asr",
         load_output=False,
@@ -61,6 +66,12 @@ def recog_v2(args):
         lm_class = dynamic_import_lm(lm_model_module, lm_args.backend)
         lm = lm_class(len(train_args.char_list), lm_args)
         torch_load(args.rnnlm, lm)
+        if args.quantize_lm_model:
+            logging.info("Use quantized lm model")
+            dtype = getattr(torch, args.quantize_dtype)
+            lm = torch.quantization.quantize_dynamic(
+                lm, args.quantize_config, dtype=dtype
+            )
         lm.eval()
     else:
         lm = None

@@ -957,6 +957,15 @@ def recog(args):
     model, train_args = load_trained_model(args.model, training=False)
     assert isinstance(model, ASRInterface)
     model.recog_args = args
+    if args.quantize_asr_model:
+        assert (
+            "transducer" not in mtl_mode
+        ), "Quantization of transducer model is not supported yet."
+        logging.info("Use quantized asr model for decoding")
+        dtype = getattr(torch, args.quantize_dtype)
+        model = torch.quantization.quantize_dynamic(
+            model, args.quantize_config, dtype=dtype
+        )
 
     if args.streaming_mode and "transformer" in train_args.model_module:
         raise NotImplementedError("streaming mode for transformer is not implemented")
@@ -981,6 +990,11 @@ def recog(args):
             )
         )
         torch_load(args.rnnlm, rnnlm)
+        if args.quantize_lm_model:
+            dtype = getattr(torch, args.quantize_dtype)
+            rnnlm = torch.quantization.quantize_dynamic(
+                rnnlm, args.quantize_config, dtype=dtype
+            )
         rnnlm.eval()
     else:
         rnnlm = None
