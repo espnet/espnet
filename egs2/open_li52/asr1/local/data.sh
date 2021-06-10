@@ -7,6 +7,8 @@
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
+shopt -s extglob
+
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
@@ -117,11 +119,26 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/combine_data.sh --skip_fix true data/train_temp data/train_!(*temp|*li52_*)
     utils/combine_data.sh --skip_fix true data/dev_temp data/dev_!(*temp|*li52_*)
 
+    # Perform text preprocessing (upper case, remove punctuation)
+    # Original text: 
+    #     But, most important, he was able every day to live out his dream. 
+    #     "Ask me why; I know why."
+    # --->
+    # Upper text:
+    #     BUT, MOST IMPORTANT, HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM.
+    #     "ASK ME WHY; I KNOW WHY."
+    # ---->
+    # Punctuation remove: 
+    #     BUT MOST IMPORTANT HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM
+    #     ASK ME WHY I KNOW WHY
+
     for x in data/train_temp data/dev_temp; do
         cp ${x}/text ${x}/text.org
         paste -d " " \
               <(cut -f 1 -d" " ${x}/text.org) \
-              <(cut -f 2- -d" " ${x}/text.org | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")') \
+              <(cut -f 2- -d" " ${x}/text.org \
+                | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")' \
+                | python3 -c 'import string; print(sys.stdin.read().translate(str.maketrans("", "", string.punctuation)), end="")') \
               > ${x}/text
         rm ${x}/text.org
     done
@@ -130,7 +147,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         cp data/${x}/text data/${x}/text.org
         paste -d " " \
               <(cut -f 1 -d" " data/${x}/text.org) \
-              <(cut -f 2- -d" " data/${x}/text.org | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")') \
+              <(cut -f 2- -d" " data/${x}/text.org \
+                | python3 -c 'import sys; print(sys.stdin.read().upper(), end="")' \
+                | python3 -c 'import string; print(sys.stdin.read().translate(str.maketrans("", "", string.punctuation)), end="")') \
               > data/${x}/text
         rm data/${x}/text.org
     done
@@ -144,6 +163,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     if [ "$lid" = true ]
     then
+
+        # Original text: 
+        #     BUT MOST IMPORTANT HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM
+        #     ASK ME WHY I KNOW WHY
+        # --->
+        # Add language ID: 
+        #     [en] BUT MOST IMPORTANT HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM
+        #     [en] ASK ME WHY I KNOW WHY
+
         paste -d " " \
        <(cut -f 1 -d" " data/train_temp/text) \
        <(cut -f 1 -d" " data/train_temp/text | sed -e "s/.*\-\(.*\)_.*/\1/" | sed -e "s/_[^TW]\+//" | sed -e "s/^/\[/" -e "s/$/\]/") \

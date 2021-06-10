@@ -93,7 +93,7 @@ inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language modle path for decoding.
-inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
+inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                       # e.g.
                                       # inference_asr_model=train.loss.best.pth
                                       # inference_asr_model=3epoch.pth
@@ -444,7 +444,7 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-                rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
+                rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
                     # "segments" is used for splitting wav files which are written in "wav".scp
@@ -1175,7 +1175,7 @@ if ! "${skip_eval}"; then
 
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         log "Stage 12: Scoring"
-        if [ "${token_type}" = pnh ]; then
+        if [ "${token_type}" = phn ]; then
             log "Error: Not implemented for token_type=phn"
             exit 1
         fi
@@ -1310,11 +1310,15 @@ if ! "${skip_upload}"; then
         if [ "${token_type}" = bpe ]; then
             _opts+="--option ${bpemodel} "
         fi
+        if [ "${nlsyms_txt}" != none ]; then
+            _opts+="--option ${nlsyms_txt} "
+        fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack asr \
             --asr_train_config "${asr_exp}"/config.yaml \
             --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
             ${_opts} \
+            --option "${asr_exp}"/RESULTS.md \
             --option "${asr_exp}"/RESULTS.md \
             --option "${asr_exp}"/images \
             --outpath "${packed_model}"
