@@ -16,6 +16,7 @@ def split_scps(
     names: Optional[List[str]],
     output_dir: str,
     log_level: str,
+    cache_fhs: bool
 ):
     logging.basicConfig(
         level=log_level,
@@ -34,10 +35,15 @@ def split_scps(
 
     scp_files = [open(s, "r", encoding="utf-8") for s in scps]
     # Remove existing files
+    fhs = {}
     for n in range(num_splits):
         for name in names:
             if (Path(output_dir) / name / f"split.{n}").exists():
                 (Path(output_dir) / name / f"split.{n}").unlink()
+            if cache_fhs:
+                f = (Path(output_dir) / name / f"split.{n}").open(
+                        "a", encoding="utf-8")
+                fhs[Path(output_dir) / name / f"split.{n}"] = f
 
     counter = Counter()
     linenum = -1
@@ -56,11 +62,14 @@ def split_scps(
         counter[num] += 1
         # Write lines respectively
         for line, name in zip(lines, names):
-            # To reduce the number of opened file descriptors, open now
-            with (Path(output_dir) / name / f"split.{num}").open(
-                "a", encoding="utf-8"
-            ) as f:
-                f.write(line)
+            if cache_fhs:
+                fhs[Path(output_dir) / name / f"split.{num}"].write(line)
+            else:
+                # To reduce the number of opened file descriptors, open now
+                with (Path(output_dir) / name / f"split.{num}").open(
+                    "a", encoding="utf-8"
+                ) as f:
+                    f.write(line)
 
     if linenum + 1 < num_splits:
         raise RuntimeError(
@@ -71,6 +80,10 @@ def split_scps(
         with (Path(output_dir) / name / "num_splits").open("w", encoding="utf-8") as f:
             f.write(str(num_splits))
     logging.info(f"N lines of split text: {set(counter.values())}")
+
+    if cache_fhs:
+        for name, fh in fhs:
+            fh.close()
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -90,6 +103,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--names", help="Output names for each files", nargs="+")
     parser.add_argument("--num_splits", help="Split number", type=int)
     parser.add_argument("--output_dir", required=True, help="Output directory")
+    parser.add_argument("--cache_fhs", help="if cache all split output file handlers, default false", action='store_true', default=False)
     return parser
 
 
