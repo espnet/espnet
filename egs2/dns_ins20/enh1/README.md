@@ -11,7 +11,8 @@
 
 ## enh_train_enh_blstm_tf_raw
 
-config: ./conf/tuning/train_enh_blstm_tf.yaml
+ - config: ./conf/tuning/train_enh_blstm_tf.yaml
+ - Pretrained model: https://zenodo.org/record/4923697
 
 |dataset|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
