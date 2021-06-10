@@ -13,7 +13,7 @@ test_set=${lang}_test
 
 lm_train_text=data/${lang}_lm_train.txt
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/tuning/train_asr_conformer7_n_fft512_hop_length256_enc18_lr1.yaml
 inference_config=conf/decode_asr.yaml
 
 ngpu=1
