@@ -42,6 +42,11 @@ def recog_v2(args):
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
+    if args.quantize_config is not None:
+        q_config = set([getattr(torch.nn, q) for q in args.quantize_config])
+    else:
+        q_config = {torch.nn.Linear}
+
     if args.quantize_asr_model:
         logging.info("Use quantized asr model for decoding")
         dtype = getattr(torch, args.quantize_dtype)
