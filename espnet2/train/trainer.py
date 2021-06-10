@@ -634,7 +634,10 @@ class Trainer:
                                 optimizer.step()
                             if isinstance(scheduler, AbsBatchStepScheduler):
                                 scheduler.step()
-                            optimizer.zero_grad()
+                for iopt, optimizer in enumerate(optimizers):
+                    if optim_idx is not None and iopt != optim_idx:
+                        continue
+                    optimizer.zero_grad()
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
