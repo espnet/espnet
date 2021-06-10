@@ -1466,7 +1466,7 @@ class AbsTask(ABC):
                 sort_in_batch=args.sort_in_batch,
                 sort_batch=args.sort_batch,
                 drop_last=False,
-                min_batch_size=torch.distributed.get_world_size()
+                min_batch_size=1
                 )
 
         batches = batch_sampler.get_tasks()
