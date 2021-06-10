@@ -45,9 +45,7 @@ def recog_v2(args):
     if args.quantize_asr_model:
         logging.info("Use quantized asr model for decoding")
         dtype = getattr(torch, args.quantize_dtype)
-        model = torch.quantization.quantize_dynamic(
-            model, args.quantize_config, dtype=dtype
-        )
+        model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
     model.eval()
     load_inputs_and_targets = LoadInputsAndTargets(
         mode="asr",
@@ -69,9 +67,7 @@ def recog_v2(args):
         if args.quantize_lm_model:
             logging.info("Use quantized lm model")
             dtype = getattr(torch, args.quantize_dtype)
-            lm = torch.quantization.quantize_dynamic(
-                lm, args.quantize_config, dtype=dtype
-            )
+            lm = torch.quantization.quantize_dynamic(lm, q_config, dtype=dtype)
         lm.eval()
     else:
         lm = None

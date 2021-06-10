@@ -15,7 +15,6 @@ import sys
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
-import torch
 
 # NOTE: you need this func to generate our sphinx doc
 
@@ -261,9 +260,9 @@ def get_parser():
     # quantize model related
     parser.add_argument(
         "--quantize-config",
-        type=set,
-        default={torch.nn.Linear},
-        help="Config for dynamic quantize",
+        nargs="*",
+        help="""List of layers for dynamic_quantize. 
+                    E.g.: --quantize-config=[Linear, LSTM]""",
     )
     parser.add_argument(
         "--quantize-dtype", type=str, default="qint8", help="Dtype dynamic quantize"
