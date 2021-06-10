@@ -261,8 +261,7 @@ def get_parser():
     parser.add_argument(
         "--quantize-config",
         nargs="*",
-        help="""List of layers for dynamic_quantize. 
-                    E.g.: --quantize-config=[Linear, LSTM]""",
+        help="Quantize config list. E.g.: --quantize-config=[Linear, LSTM]",
     )
     parser.add_argument(
         "--quantize-dtype", type=str, default="qint8", help="Dtype dynamic quantize"
