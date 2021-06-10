@@ -1458,7 +1458,7 @@ class AbsTask(ABC):
         )
 
         batch_sampler = CurriculumSampler(
-                batch_bins=iter_options, 
+                batch_bins=iter_options.batch_bins, 
                 shape_files=iter_options.shape_files,
                 cr_file=args.cr_file,
                 K=args.K,
