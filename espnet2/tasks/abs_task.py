@@ -1482,7 +1482,7 @@ class AbsTask(ABC):
             num_workers=args.num_workers,
             collate_fn=iter_options.collate_fn,
             pin_memory=args.ngpu > 0,
-        ).build_curriculum_iter()
+        )
 
     @classmethod
     def build_sequence_iter_factory(
