@@ -85,6 +85,7 @@ class CurriculumSampler:
                 )
         
         #Check if keys match in CR file and shape files
+        print("LENGTHS", len(utt2cr), len(first_utt2shape))
         if set(utt2cr) != set(first_utt2shape):
             raise RuntimeError(
                 f"keys are mismatched between {shape_files[0]} != {self.cr_file}"
