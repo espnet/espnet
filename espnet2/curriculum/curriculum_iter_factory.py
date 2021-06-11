@@ -38,7 +38,7 @@ class CurriculumIterFactory(AbsIterFactory):
         self.pin_memory = pin_memory
 
     
-    def build_curriculum_iter(self):
+    def build_iter(self):
         #Instead of one data loader we return K data loader for each task
         if self.collate_fn is not None:
             kwargs = dict(collate_fn=self.collate_fn)
