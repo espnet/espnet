@@ -2,6 +2,7 @@ from typing import Any
 from typing import Sequence
 from typing import Union
 from typing import List
+from typing import Iterator
 
 import numpy as np
 from torch.utils.data import DataLoader
