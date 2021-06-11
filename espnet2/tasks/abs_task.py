@@ -1435,11 +1435,18 @@ class AbsTask(ABC):
 
 ############### Curriculum Learning ###################
         elif args.iterator_type == "curriculum":
-            return cls.build_curriculum_iter_factory(
+            if mode=='train':
+                return cls.build_curriculum_iter_factory(
+                    args=args,
+                    iter_options=iter_options,
+                    mode=mode,
+                )
+            else:
+                return cls.build_sequence_iter_factory(
                 args=args,
                 iter_options=iter_options,
                 mode=mode,
-            )
+                )
         else:
             raise RuntimeError(f"Not supported: iterator_type={args.iterator_type}")
 
