@@ -562,7 +562,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--use_wandb",
             type=str2bool,
-            default=True,
+            default=False,
             help="Enable wandb logging",
         )
         group.add_argument(

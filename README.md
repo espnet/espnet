@@ -146,7 +146,8 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
     ```
 
     There are some required packages depending on each task other than above. If you meet ImportError, please intall them at that time.
-- Once installed, run `wandb login` to enable tracking runs using W&B. 
+- (ESPNet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
+
 ## Usage
 See [Usage](https://espnet.github.io/espnet/tutorial.html).
 
@@ -222,29 +223,29 @@ Available pretrained models in the demo script are listed as below.
 | [csj.rnn.v1](https://drive.google.com/open?id=1ALvD4nHan9VDJlYJwNurVr7H7OV0j2X9)                 | Joint-CTC attention VGGBLSTM trained on CSJ                |
 
 </div></details>
-  
+
 ### SE results
 <details><summary>expand</summary><div>
 
 We list results from three different models on WSJ0-2mix, which is one the most widely used benchmark dateset for speech separation.
-  
-|Model|STOI|SAR|SDR|SIR| 
+
+|Model|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
 |[TF Masking](https://zenodo.org/record/4498554)|0.89|11.40|10.24|18.04|
 |[Conv-Tasnet](https://zenodo.org/record/4498562)|0.95|16.62|15.94|25.90|
 |[DPRNN-Tasnet](https://zenodo.org/record/4688000)|0.96|18.82|18.29|28.92|
-  
+
 </div></details>
-  
+
 ### SE demos
 <details><summary>expand</summary><div>
 You can try the interactive demo with Google Colab. Please click the following button to get access to the demos.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
-  
- 
+
+
 It is based on ESPnet2. Pretrained models are available for both speech enhancement and speech separation tasks.
-  
+
 </div></details>
 
 ### ST results
