@@ -1,0 +1,398 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "espnet2_tts_demo",
+      "provenance": [],
+      "collapsed_sections": [],
+      "toc_visible": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "SMSw_r1uRm4a",
+        "colab_type": "text"
+      },
+      "source": [
+        "[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "MuhqhYSToxl7",
+        "colab_type": "text"
+      },
+      "source": [
+        "# ESPnet2-TTS realtime demonstration\n",
+        "\n",
+        "This notebook provides a demonstration of the realtime E2E-TTS using ESPnet2-TTS and ParallelWaveGAN (+ MelGAN).\n",
+        "\n",
+        "- ESPnet2-TTS: https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1\n",
+        "- ParallelWaveGAN: https://github.com/kan-bayashi/ParallelWaveGAN\n",
+        "\n",
+        "Author: Tomoki Hayashi ([@kan-bayashi](https://github.com/kan-bayashi))"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9e_i_gdgAFNJ",
+        "colab_type": "text"
+      },
+      "source": [
+        "## Installation"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "fjJ5zkyaoy29",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# NOTE: pip shows imcompatible errors due to preinstalled libraries but you do not need to care\n",
+        "!pip install -q espnet==0.9.3 parallel_wavegan==0.4.6"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "zhDsW_dYnp2N",
+        "colab_type": "text"
+      },
+      "source": [
+        "### (Optional)\n",
+        "\n",
+        "If you want to try Japanese TTS, please run the following cell to install pyopenjtalk."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "sDAWw-Upnbpn",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "!mkdir tools && cd tools && git clone https://github.com/r9y9/hts_engine_API.git\n",
+        "!cd tools/hts_engine_API/src && ./waf configure && ./waf build install\n",
+        "!cd tools && git clone https://github.com/r9y9/open_jtalk.git\n",
+        "!mkdir -p tools/open_jtalk/src/build && cd tools/open_jtalk/src/build && \\\n",
+        "    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON .. && make install\n",
+        "!cp tools/open_jtalk/src/build/*.so* /usr/lib64-nvidia\n",
+        "!cd tools && git clone https://github.com/r9y9/pyopenjtalk.git\n",
+        "!cd tools/pyopenjtalk && pip install ."
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "BYLn3bL-qQjN",
+        "colab_type": "text"
+      },
+      "source": [
+        "## Single speaker model demo"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "as4iFXid0m4f",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Model Selection\n",
+        "\n",
+        "Please select models by comment out.\n",
+        "\n",
+        "English, Japanese, and Mandarin are supported.\n",
+        "\n",
+        "You can try Tacotron2, FastSpeech, and FastSpeech2 as the text2mel model.  \n",
+        "And you can use Parallel WaveGAN and Multi-band MelGAN as the vocoder model."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "GQ4ra5DcwwGI",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "###################################\n",
+        "#          ENGLISH MODELS         #\n",
+        "###################################\n",
+        "fs, lang = 22050, \"English\"\n",
+        "# tag = \"kan-bayashi/ljspeech_tacotron2\"\n",
+        "# tag = \"kan-bayashi/ljspeech_fastspeech\"\n",
+        "# tag = \"kan-bayashi/ljspeech_fastspeech2\"\n",
+        "tag = \"kan-bayashi/ljspeech_conformer_fastspeech2\"\n",
+        "vocoder_tag = \"ljspeech_parallel_wavegan.v1\"\n",
+        "# vocoder_tag = \"ljspeech_full_band_melgan.v2\"\n",
+        "# vocoder_tag = \"ljspeech_multi_band_melgan.v2\"\n",
+        "\n",
+        "###################################\n",
+        "#         JAPANESE MODELS         #\n",
+        "###################################\n",
+        "# fs, lang = 24000, \"Japanese\"\n",
+        "# tag = \"kan-bayashi/jsut_tacotron2\"\n",
+        "# tag = \"kan-bayashi/jsut_transformer\"\n",
+        "# tag = \"kan-bayashi/jsut_fastspeech\"\n",
+        "# tag = \"kan-bayashi/jsut_fastspeech2\"\n",
+        "# tag = \"kan-bayashi/jsut_conformer_fastspeech2\"\n",
+        "# vocoder_tag = \"jsut_parallel_wavegan.v1\"\n",
+        "# vocoder_tag = \"jsut_multi_band_melgan.v2\"\n",
+        "\n",
+        "###################################\n",
+        "#         MANDARIN MODELS         #\n",
+        "###################################\n",
+        "# fs, lang = 24000, \"Mandarin\"\n",
+        "# tag = \"kan-bayashi/csmsc_tacotron2\"\n",
+        "# tag = \"kan-bayashi/csmsc_transformer\"\n",
+        "# tag = \"kan-bayashi/csmsc_fastspeech\"\n",
+        "# tag = \"kan-bayashi/csmsc_fastspeech2\"\n",
+        "# tag = \"kan-bayashi/csmsc_conformer_fastspeech2\"\n",
+        "# vocoder_tag = \"csmsc_parallel_wavegan.v1\"\n",
+        "# vocoder_tag = \"csmsc_multi_band_melgan.v2\""
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "g9S-SFPe0z0w",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Model Setup"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "z64fD2UgjJ6Q",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import time\n",
+        "import torch\n",
+        "from espnet_model_zoo.downloader import ModelDownloader\n",
+        "from espnet2.bin.tts_inference import Text2Speech\n",
+        "from parallel_wavegan.utils import download_pretrained_model\n",
+        "from parallel_wavegan.utils import load_model\n",
+        "d = ModelDownloader()\n",
+        "text2speech = Text2Speech(\n",
+        "    **d.download_and_unpack(tag),\n",
+        "    device=\"cuda\",\n",
+        "    # Only for Tacotron 2\n",
+        "    threshold=0.5,\n",
+        "    minlenratio=0.0,\n",
+        "    maxlenratio=10.0,\n",
+        "    use_att_constraint=False,\n",
+        "    backward_window=1,\n",
+        "    forward_window=3,\n",
+        "    # Only for FastSpeech & FastSpeech2\n",
+        "    speed_control_alpha=1.0,\n",
+        ")\n",
+        "text2speech.spc2wav = None  # Disable griffin-lim\n",
+        "# NOTE: Sometimes download is failed due to \"Permission denied\". That is \n",
+        "#   the limitation of google drive. Please retry after serveral hours.\n",
+        "vocoder = load_model(download_pretrained_model(vocoder_tag)).to(\"cuda\").eval()\n",
+        "vocoder.remove_weight_norm()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "FMaT0Zev021a",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Synthesis"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "vrRM57hhgtHy",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# decide the input sentence by yourself\n",
+        "print(f\"Input your favorite sentence in {lang}.\")\n",
+        "x = input()\n",
+        "\n",
+        "# synthesis\n",
+        "with torch.no_grad():\n",
+        "    start = time.time()\n",
+        "    wav, c, *_ = text2speech(x)\n",
+        "    wav = vocoder.inference(c)\n",
+        "rtf = (time.time() - start) / (len(wav) / fs)\n",
+        "print(f\"RTF = {rtf:5f}\")\n",
+        "\n",
+        "# let us listen to generated samples\n",
+        "from IPython.display import display, Audio\n",
+        "display(Audio(wav.view(-1).cpu().numpy(), rate=fs))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "3TTAygALqY6T",
+        "colab_type": "text"
+      },
+      "source": [
+        "## Multi-speaker Model Demo"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "rSEZYh22n4gn",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Model Selection\n",
+        "\n",
+        "Please select models by comment out.\n",
+        "\n",
+        "Now we provide only English multi-speaker pretrained model."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "J87XSyYIn-Ha",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "###################################\n",
+        "#          ENGLISH MODELS         #\n",
+        "###################################\n",
+        "fs, lang = 24000, \"English\"\n",
+        "tag = \"kan-bayashi/vctk_gst_tacotron2\"\n",
+        "# tag = \"kan-bayashi/vctk_gst_transformer\"\n",
+        "vocoder_tag = \"vctk_parallel_wavegan.v1\"\n",
+        "# vocoder_tag = \"vctk_multi_band_melgan.v2\""
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GcshmgYpoVzh",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Model Setup"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "kfJFD4QroNhJ",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import time\n",
+        "import torch\n",
+        "from espnet_model_zoo.downloader import ModelDownloader\n",
+        "from espnet2.bin.tts_inference import Text2Speech\n",
+        "from parallel_wavegan.utils import download_pretrained_model\n",
+        "from parallel_wavegan.utils import load_model\n",
+        "d = ModelDownloader()\n",
+        "text2speech = Text2Speech(\n",
+        "    **d.download_and_unpack(tag),\n",
+        "    device=\"cuda\",\n",
+        "    # Only for Tacotron 2\n",
+        "    threshold=0.5,\n",
+        "    minlenratio=0.0,\n",
+        "    maxlenratio=10.0,\n",
+        "    use_att_constraint=False,\n",
+        "    backward_window=1,\n",
+        "    forward_window=3,\n",
+        "    # Only for FastSpeech & FastSpeech2\n",
+        "    speed_control_alpha=1.0,\n",
+        ")\n",
+        "text2speech.spc2wav = None  # Disable griffin-lim\n",
+        "# NOTE: Sometimes download is failed due to \"Permission denied\". That is \n",
+        "#   the limitation of google drive. Please retry after serveral hours.\n",
+        "vocoder = load_model(download_pretrained_model(vocoder_tag)).to(\"cuda\").eval()\n",
+        "vocoder.remove_weight_norm()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "W6G-1YW9ocYV",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Synthesis\n",
+        "\n",
+        "For multi-speaker model, we need to provide the reference speech to decide the speaker characteristics.  \n",
+        "You can use any speech but please make sure the sampling rate is matched."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "o87zK1NLobne",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# decide the input sentence by yourself\n",
+        "print(f\"Input your favorite sentence in {lang}.\")\n",
+        "x = input()\n",
+        "\n",
+        "# you can change here to load your own reference speech\n",
+        "# e.g.\n",
+        "# import soundfile as sf\n",
+        "# speech, fs = sf.read(\"/path/to/reference.wav\")\n",
+        "# speech = torch.from_numpy(speech)\n",
+        "speech = torch.randn(50000,)\n",
+        "\n",
+        "# synthesis\n",
+        "with torch.no_grad():\n",
+        "    start = time.time()\n",
+        "    wav, c, *_ = text2speech(x, speech=speech)\n",
+        "    wav = vocoder.inference(c)\n",
+        "rtf = (time.time() - start) / (len(wav) / fs)\n",
+        "print(f\"RTF = {rtf:5f}\")\n",
+        "\n",
+        "# let us listen to generated samples\n",
+        "from IPython.display import display, Audio\n",
+        "display(Audio(wav.view(-1).cpu().numpy(), rate=fs))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

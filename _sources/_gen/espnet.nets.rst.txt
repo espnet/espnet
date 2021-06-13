@@ -1,0 +1,1633 @@
+
+espnet.nets package
+===================
+Initialize sub package.
+
+
+.. _espnet.nets.mt_interface:
+
+espnet.nets.mt_interface
+------------------------
+
+.. automodule:: espnet.nets.mt_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.asr_interface:
+
+espnet.nets.asr_interface
+-------------------------
+
+.. automodule:: espnet.nets.asr_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.e2e_mt_common:
+
+espnet.nets.e2e_mt_common
+-------------------------
+
+.. automodule:: espnet.nets.e2e_mt_common
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.beam_search:
+
+espnet.nets.beam_search
+-----------------------
+
+.. automodule:: espnet.nets.beam_search
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.batch_beam_search_online_sim:
+
+espnet.nets.batch_beam_search_online_sim
+----------------------------------------
+
+.. automodule:: espnet.nets.batch_beam_search_online_sim
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.batch_beam_search:
+
+espnet.nets.batch_beam_search
+-----------------------------
+
+.. automodule:: espnet.nets.batch_beam_search
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.lm_interface:
+
+espnet.nets.lm_interface
+------------------------
+
+.. automodule:: espnet.nets.lm_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.tts_interface:
+
+espnet.nets.tts_interface
+-------------------------
+
+.. automodule:: espnet.nets.tts_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.ctc_prefix_score:
+
+espnet.nets.ctc_prefix_score
+----------------------------
+
+.. automodule:: espnet.nets.ctc_prefix_score
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.e2e_asr_common:
+
+espnet.nets.e2e_asr_common
+--------------------------
+
+.. automodule:: espnet.nets.e2e_asr_common
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.beam_search_transducer:
+
+espnet.nets.beam_search_transducer
+----------------------------------
+
+.. automodule:: espnet.nets.beam_search_transducer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.scorer_interface:
+
+espnet.nets.scorer_interface
+----------------------------
+
+.. automodule:: espnet.nets.scorer_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.__init__:
+
+espnet.nets.__init__
+--------------------
+
+.. automodule:: espnet.nets.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.st_interface:
+
+espnet.nets.st_interface
+------------------------
+
+.. automodule:: espnet.nets.st_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.transducer_decoder_interface:
+
+espnet.nets.transducer_decoder_interface
+----------------------------------------
+
+.. automodule:: espnet.nets.transducer_decoder_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.asr_interface:
+
+espnet.nets.chainer_backend.asr_interface
+-----------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.asr_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.e2e_asr_transformer:
+
+espnet.nets.chainer_backend.e2e_asr_transformer
+-----------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.e2e_asr_transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.deterministic_embed_id:
+
+espnet.nets.chainer_backend.deterministic_embed_id
+--------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.deterministic_embed_id
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.e2e_asr:
+
+espnet.nets.chainer_backend.e2e_asr
+-----------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.e2e_asr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.nets_utils:
+
+espnet.nets.chainer_backend.nets_utils
+--------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.nets_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.ctc:
+
+espnet.nets.chainer_backend.ctc
+-------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.ctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.__init__:
+
+espnet.nets.chainer_backend.__init__
+------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.training:
+
+espnet.nets.chainer_backend.transformer.training
+------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.training
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.attention:
+
+espnet.nets.chainer_backend.transformer.attention
+-------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.attention
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.embedding:
+
+espnet.nets.chainer_backend.transformer.embedding
+-------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.embedding
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.layer_norm:
+
+espnet.nets.chainer_backend.transformer.layer_norm
+--------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.layer_norm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.label_smoothing_loss:
+
+espnet.nets.chainer_backend.transformer.label_smoothing_loss
+------------------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.label_smoothing_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.decoder:
+
+espnet.nets.chainer_backend.transformer.decoder
+-----------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.decoder_layer:
+
+espnet.nets.chainer_backend.transformer.decoder_layer
+-----------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.decoder_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.ctc:
+
+espnet.nets.chainer_backend.transformer.ctc
+-------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.ctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.subsampling:
+
+espnet.nets.chainer_backend.transformer.subsampling
+---------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.subsampling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.positionwise_feed_forward:
+
+espnet.nets.chainer_backend.transformer.positionwise_feed_forward
+-----------------------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.positionwise_feed_forward
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.__init__:
+
+espnet.nets.chainer_backend.transformer.__init__
+------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.encoder_layer:
+
+espnet.nets.chainer_backend.transformer.encoder_layer
+-----------------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.encoder_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.mask:
+
+espnet.nets.chainer_backend.transformer.mask
+--------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.mask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.transformer.encoder:
+
+espnet.nets.chainer_backend.transformer.encoder
+-----------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.transformer.encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.rnn.training:
+
+espnet.nets.chainer_backend.rnn.training
+----------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.rnn.training
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.rnn.encoders:
+
+espnet.nets.chainer_backend.rnn.encoders
+----------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.rnn.encoders
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.rnn.decoders:
+
+espnet.nets.chainer_backend.rnn.decoders
+----------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.rnn.decoders
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.rnn.attentions:
+
+espnet.nets.chainer_backend.rnn.attentions
+------------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.rnn.attentions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.chainer_backend.rnn.__init__:
+
+espnet.nets.chainer_backend.rnn.__init__
+----------------------------------------
+
+.. automodule:: espnet.nets.chainer_backend.rnn.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.scorers.ngram:
+
+espnet.nets.scorers.ngram
+-------------------------
+
+.. automodule:: espnet.nets.scorers.ngram
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.scorers.ctc:
+
+espnet.nets.scorers.ctc
+-----------------------
+
+.. automodule:: espnet.nets.scorers.ctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.scorers.length_bonus:
+
+espnet.nets.scorers.length_bonus
+--------------------------------
+
+.. automodule:: espnet.nets.scorers.length_bonus
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.scorers.__init__:
+
+espnet.nets.scorers.__init__
+----------------------------
+
+.. automodule:: espnet.nets.scorers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_st_transformer:
+
+espnet.nets.pytorch_backend.e2e_st_transformer
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_st_transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr_transducer:
+
+espnet.nets.pytorch_backend.e2e_asr_transducer
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr_transducer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_tts_fastspeech:
+
+espnet.nets.pytorch_backend.e2e_tts_fastspeech
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_tts_fastspeech
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_tts_tacotron2:
+
+espnet.nets.pytorch_backend.e2e_tts_tacotron2
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_tts_tacotron2
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_st_conformer:
+
+espnet.nets.pytorch_backend.e2e_st_conformer
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_st_conformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr_transformer:
+
+espnet.nets.pytorch_backend.e2e_asr_transformer
+-----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr_transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_vc_tacotron2:
+
+espnet.nets.pytorch_backend.e2e_vc_tacotron2
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_vc_tacotron2
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr_mulenc:
+
+espnet.nets.pytorch_backend.e2e_asr_mulenc
+------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr_mulenc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_st:
+
+espnet.nets.pytorch_backend.e2e_st
+----------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_st
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr_conformer:
+
+espnet.nets.pytorch_backend.e2e_asr_conformer
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr_conformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_tts_transformer:
+
+espnet.nets.pytorch_backend.e2e_tts_transformer
+-----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_tts_transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr:
+
+espnet.nets.pytorch_backend.e2e_asr
+-----------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.nets_utils:
+
+espnet.nets.pytorch_backend.nets_utils
+--------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.nets_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.gtn_ctc:
+
+espnet.nets.pytorch_backend.gtn_ctc
+-----------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.gtn_ctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.ctc:
+
+espnet.nets.pytorch_backend.ctc
+-------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.ctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_vc_transformer:
+
+espnet.nets.pytorch_backend.e2e_vc_transformer
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_vc_transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.wavenet:
+
+espnet.nets.pytorch_backend.wavenet
+-----------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.wavenet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr_maskctc:
+
+espnet.nets.pytorch_backend.e2e_asr_maskctc
+-------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr_maskctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr_mix_transformer:
+
+espnet.nets.pytorch_backend.e2e_asr_mix_transformer
+---------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr_mix_transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.__init__:
+
+espnet.nets.pytorch_backend.__init__
+------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_mt_transformer:
+
+espnet.nets.pytorch_backend.e2e_mt_transformer
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_mt_transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_mt:
+
+espnet.nets.pytorch_backend.e2e_mt
+----------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_mt
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.e2e_asr_mix:
+
+espnet.nets.pytorch_backend.e2e_asr_mix
+---------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr_mix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.initialization:
+
+espnet.nets.pytorch_backend.initialization
+------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.initialization
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.frontends.feature_transform:
+
+espnet.nets.pytorch_backend.frontends.feature_transform
+-------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.frontends.feature_transform
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.frontends.dnn_beamformer:
+
+espnet.nets.pytorch_backend.frontends.dnn_beamformer
+----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.frontends.dnn_beamformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.frontends.mask_estimator:
+
+espnet.nets.pytorch_backend.frontends.mask_estimator
+----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.frontends.mask_estimator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.frontends.beamformer:
+
+espnet.nets.pytorch_backend.frontends.beamformer
+------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.frontends.beamformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.frontends.dnn_wpe:
+
+espnet.nets.pytorch_backend.frontends.dnn_wpe
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.frontends.dnn_wpe
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.frontends.__init__:
+
+espnet.nets.pytorch_backend.frontends.__init__
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.frontends.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.frontends.frontend:
+
+espnet.nets.pytorch_backend.frontends.frontend
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.frontends.frontend
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.lm.seq_rnn:
+
+espnet.nets.pytorch_backend.lm.seq_rnn
+--------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.lm.seq_rnn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.lm.transformer:
+
+espnet.nets.pytorch_backend.lm.transformer
+------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.lm.transformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.lm.default:
+
+espnet.nets.pytorch_backend.lm.default
+--------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.lm.default
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.lm.__init__:
+
+espnet.nets.pytorch_backend.lm.__init__
+---------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.lm.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.maskctc.add_mask_token:
+
+espnet.nets.pytorch_backend.maskctc.add_mask_token
+--------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.maskctc.add_mask_token
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.maskctc.__init__:
+
+espnet.nets.pytorch_backend.maskctc.__init__
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.maskctc.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.maskctc.mask:
+
+espnet.nets.pytorch_backend.maskctc.mask
+----------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.maskctc.mask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.tacotron2.decoder:
+
+espnet.nets.pytorch_backend.tacotron2.decoder
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.tacotron2.decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.tacotron2.cbhg:
+
+espnet.nets.pytorch_backend.tacotron2.cbhg
+------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.tacotron2.cbhg
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.tacotron2.__init__:
+
+espnet.nets.pytorch_backend.tacotron2.__init__
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.tacotron2.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.tacotron2.encoder:
+
+espnet.nets.pytorch_backend.tacotron2.encoder
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.tacotron2.encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.attention:
+
+espnet.nets.pytorch_backend.transformer.attention
+-------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.attention
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.embedding:
+
+espnet.nets.pytorch_backend.transformer.embedding
+-------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.embedding
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.lightconv2d:
+
+espnet.nets.pytorch_backend.transformer.lightconv2d
+---------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.lightconv2d
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.layer_norm:
+
+espnet.nets.pytorch_backend.transformer.layer_norm
+--------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.layer_norm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.subsampling_without_posenc:
+
+espnet.nets.pytorch_backend.transformer.subsampling_without_posenc
+------------------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.subsampling_without_posenc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.label_smoothing_loss:
+
+espnet.nets.pytorch_backend.transformer.label_smoothing_loss
+------------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.label_smoothing_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.decoder:
+
+espnet.nets.pytorch_backend.transformer.decoder
+-----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.multi_layer_conv:
+
+espnet.nets.pytorch_backend.transformer.multi_layer_conv
+--------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.multi_layer_conv
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.add_sos_eos:
+
+espnet.nets.pytorch_backend.transformer.add_sos_eos
+---------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.add_sos_eos
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.decoder_layer:
+
+espnet.nets.pytorch_backend.transformer.decoder_layer
+-----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.decoder_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.lightconv:
+
+espnet.nets.pytorch_backend.transformer.lightconv
+-------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.lightconv
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer:
+
+espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer
+----------------------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.plot:
+
+espnet.nets.pytorch_backend.transformer.plot
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.plot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.initializer:
+
+espnet.nets.pytorch_backend.transformer.initializer
+---------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.initializer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.repeat:
+
+espnet.nets.pytorch_backend.transformer.repeat
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.repeat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.optimizer:
+
+espnet.nets.pytorch_backend.transformer.optimizer
+-------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.optimizer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.dynamic_conv:
+
+espnet.nets.pytorch_backend.transformer.dynamic_conv
+----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.dynamic_conv
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.dynamic_conv2d:
+
+espnet.nets.pytorch_backend.transformer.dynamic_conv2d
+------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.dynamic_conv2d
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.subsampling:
+
+espnet.nets.pytorch_backend.transformer.subsampling
+---------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.subsampling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.positionwise_feed_forward:
+
+espnet.nets.pytorch_backend.transformer.positionwise_feed_forward
+-----------------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.positionwise_feed_forward
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.__init__:
+
+espnet.nets.pytorch_backend.transformer.__init__
+------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.encoder_layer:
+
+espnet.nets.pytorch_backend.transformer.encoder_layer
+-----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.encoder_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.argument:
+
+espnet.nets.pytorch_backend.transformer.argument
+------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.argument
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.mask:
+
+espnet.nets.pytorch_backend.transformer.mask
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.mask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.encoder_mix:
+
+espnet.nets.pytorch_backend.transformer.encoder_mix
+---------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.encoder_mix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transformer.encoder:
+
+espnet.nets.pytorch_backend.transformer.encoder
+-----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.arguments:
+
+espnet.nets.pytorch_backend.transducer.arguments
+------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.arguments
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.vgg2l:
+
+espnet.nets.pytorch_backend.transducer.vgg2l
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.vgg2l
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.tdnn:
+
+espnet.nets.pytorch_backend.transducer.tdnn
+-------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.tdnn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.blocks:
+
+espnet.nets.pytorch_backend.transducer.blocks
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.blocks
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.rnn_decoder:
+
+espnet.nets.pytorch_backend.transducer.rnn_decoder
+--------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.rnn_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.joint_network:
+
+espnet.nets.pytorch_backend.transducer.joint_network
+----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.joint_network
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.error_calculator:
+
+espnet.nets.pytorch_backend.transducer.error_calculator
+-------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.error_calculator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.rnn_encoder:
+
+espnet.nets.pytorch_backend.transducer.rnn_encoder
+--------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.rnn_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.auxiliary_task:
+
+espnet.nets.pytorch_backend.transducer.auxiliary_task
+-----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.auxiliary_task
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.initializer:
+
+espnet.nets.pytorch_backend.transducer.initializer
+--------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.initializer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.custom_encoder:
+
+espnet.nets.pytorch_backend.transducer.custom_encoder
+-----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.custom_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.utils:
+
+espnet.nets.pytorch_backend.transducer.utils
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.custom_decoder:
+
+espnet.nets.pytorch_backend.transducer.custom_decoder
+-----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.custom_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.causal_conv1d:
+
+espnet.nets.pytorch_backend.transducer.causal_conv1d
+----------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.causal_conv1d
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.__init__:
+
+espnet.nets.pytorch_backend.transducer.__init__
+-----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.loss:
+
+espnet.nets.pytorch_backend.transducer.loss
+-------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.transformer_decoder_layer:
+
+espnet.nets.pytorch_backend.transducer.transformer_decoder_layer
+----------------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.transformer_decoder_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.rnn.encoders:
+
+espnet.nets.pytorch_backend.rnn.encoders
+----------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.rnn.encoders
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.rnn.decoders:
+
+espnet.nets.pytorch_backend.rnn.decoders
+----------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.rnn.decoders
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.rnn.attentions:
+
+espnet.nets.pytorch_backend.rnn.attentions
+------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.rnn.attentions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.rnn.__init__:
+
+espnet.nets.pytorch_backend.rnn.__init__
+----------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.rnn.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.rnn.argument:
+
+espnet.nets.pytorch_backend.rnn.argument
+----------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.rnn.argument
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.fastspeech.duration_calculator:
+
+espnet.nets.pytorch_backend.fastspeech.duration_calculator
+----------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.fastspeech.duration_calculator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.fastspeech.duration_predictor:
+
+espnet.nets.pytorch_backend.fastspeech.duration_predictor
+---------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.fastspeech.duration_predictor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.fastspeech.__init__:
+
+espnet.nets.pytorch_backend.fastspeech.__init__
+-----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.fastspeech.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.fastspeech.length_regulator:
+
+espnet.nets.pytorch_backend.fastspeech.length_regulator
+-------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.fastspeech.length_regulator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.conformer.convolution:
+
+espnet.nets.pytorch_backend.conformer.convolution
+-------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.conformer.convolution
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.conformer.swish:
+
+espnet.nets.pytorch_backend.conformer.swish
+-------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.conformer.swish
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.conformer.__init__:
+
+espnet.nets.pytorch_backend.conformer.__init__
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.conformer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.conformer.encoder_layer:
+
+espnet.nets.pytorch_backend.conformer.encoder_layer
+---------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.conformer.encoder_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.conformer.argument:
+
+espnet.nets.pytorch_backend.conformer.argument
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.conformer.argument
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.conformer.encoder:
+
+espnet.nets.pytorch_backend.conformer.encoder
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.conformer.encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.streaming.segment:
+
+espnet.nets.pytorch_backend.streaming.segment
+---------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.streaming.segment
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.streaming.window:
+
+espnet.nets.pytorch_backend.streaming.window
+--------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.streaming.window
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.streaming.__init__:
+
+espnet.nets.pytorch_backend.streaming.__init__
+----------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.streaming.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

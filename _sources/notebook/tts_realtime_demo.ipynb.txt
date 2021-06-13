@@ -1,0 +1,913 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "E2E-TTS demo",
+      "provenance": [],
+      "collapsed_sections": [
+        "3lMJyJcLCsd4",
+        "gtSZpF-mCjTr",
+        "98SCpId7__5S"
+      ]
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "SMSw_r1uRm4a",
+        "colab_type": "text"
+      },
+      "source": [
+        "[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "MuhqhYSToxl7",
+        "colab_type": "text"
+      },
+      "source": [
+        "# ESPnet real time E2E-TTS demonstration\n",
+        "\n",
+        "This notebook provides a demonstration of the realtime E2E-TTS using ESPnet-TTS and ParallelWaveGAN (+ MelGAN).\n",
+        "\n",
+        "- ESPnet: https://github.com/espnet/espnet\n",
+        "- ParallelWaveGAN: https://github.com/kan-bayashi/ParallelWaveGAN\n",
+        "\n",
+        "Author: Tomoki Hayashi ([@kan-bayashi](https://github.com/kan-bayashi))"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9e_i_gdgAFNJ",
+        "colab_type": "text"
+      },
+      "source": [
+        "## Install"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "fjJ5zkyaoy29",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# install minimal components\n",
+        "!pip install -q parallel_wavegan PyYaml unidecode ConfigArgparse g2p_en espnet_tts_frontend\n",
+        "!git clone -q https://github.com/espnet/espnet.git\n",
+        "!cd espnet && git fetch && git checkout -b v.0.9.1 refs/tags/v.0.9.1"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "3lMJyJcLCsd4",
+        "colab_type": "text"
+      },
+      "source": [
+        "\n",
+        "\n",
+        "---\n",
+        "## English demo\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "C1a5CgX1AHXJ",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Download pretrained feature generation model\n",
+        "\n",
+        "You can select one from three models. Please only run the seletected model cells.\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "rWaOkhGVQNla",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (a) Tacotron2"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "mCM9Eo2cPXhZ",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained model\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/en/tacotron2\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1lFfeyewyOsxaNO-DEWy9iSz6qB9ZS1UR downloads/en/tacotron2 tar.gz\n",
+        "\n",
+        "# set path\n",
+        "trans_type = \"phn\"\n",
+        "dict_path = \"downloads/en/tacotron2/data/lang_1phn/phn_train_no_dev_units.txt\"\n",
+        "model_path = \"downloads/en/tacotron2/exp/phn_train_no_dev_pytorch_train_pytorch_tacotron2.v3/results/model.last1.avg.best\"\n",
+        "\n",
+        "print(\"sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Z6dhfhcrQI6_",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (b) Transformer"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ztWZjy_XOPZR",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained model\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/en/transformer\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1z8KSOWVBjK-_Ws4RxVN4NTx-Buy03-7c downloads/en/transformer tar.gz\n",
+        "\n",
+        "# set path\n",
+        "trans_type = \"phn\"\n",
+        "dict_path = \"downloads/en/transformer/data/lang_1phn/phn_train_no_dev_units.txt\"\n",
+        "model_path = \"downloads/en/transformer/exp/phn_train_no_dev_pytorch_train_pytorch_transformer.v3.single/results/model.last1.avg.best\"\n",
+        "\n",
+        "print(\"sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "VONMvIC1ODvR",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (c) FastSpeech\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ZX0Kmo72POfY",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained model\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/en/fastspeech\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1P9I4qag8wAcJiTCPawt6WCKBqUfJFtFp downloads/en/fastspeech tar.gz\n",
+        "\n",
+        "# set path\n",
+        "trans_type = \"phn\"\n",
+        "dict_path = \"downloads/en/fastspeech/data/lang_1phn/phn_train_no_dev_units.txt\"\n",
+        "model_path = \"downloads/en/fastspeech/exp/phn_train_no_dev_pytorch_train_tacotron2.v3_fastspeech.v4.single/results/model.last1.avg.best\"\n",
+        "\n",
+        "print(\"Sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vwc7JXD_dAy8",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Download pretrained vocoder model\n",
+        "\n",
+        "You can select one from two models. Please only run the seletected model cells."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "VdIFfyL9eWic",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (a) Parallel WaveGAN"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "nQDFNuQ2dK-M",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained model\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/en/parallel_wavegan\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1Grn7X9wD35UcDJ5F7chwdTqTa4U7DeVB downloads/en/parallel_wavegan tar.gz\n",
+        "\n",
+        "# set path\n",
+        "vocoder_path = \"downloads/en/parallel_wavegan/ljspeech.parallel_wavegan.v2/checkpoint-400000steps.pkl\"\n",
+        "\n",
+        "print(\"Sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "5B0V2Wy6ebNE",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (b) MelGAN"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "UBBAokMQegdK",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained model\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/en/melgan\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1_a8faVA5OGCzIcJNw4blQYjfG4oA9VEt downloads/en/melgan tar.gz\n",
+        "\n",
+        "# set path\n",
+        "vocoder_path = \"downloads/en/melgan/train_nodev_ljspeech_melgan.v3.long/checkpoint-4000000steps.pkl\"\n",
+        "\n",
+        "print(\"Sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "-olNAOEtYtU0",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (c) Multi-band MelGAN\n",
+        "\n",
+        "This is an **EXPERIMENTAL** model."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "8DgoxvIfYsUh",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained model\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/en/mb-melgan\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1rGG5y15uy4WZ-lJy8NPVTkmB_6VhC20V downloads/en/mb-melgan tar.gz\n",
+        "\n",
+        "# set path\n",
+        "vocoder_path = \"downloads/en/mb-melgan/train_nodev_ljspeech_multi_band_melgan.v1/checkpoint-1000000steps.pkl\"\n",
+        "\n",
+        "print(\"Sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "HaSyEKBWAK7H",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Setup"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "i8JXOfRfqMFN",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# add path\n",
+        "import sys\n",
+        "sys.path.append(\"espnet\")\n",
+        "\n",
+        "# define device\n",
+        "import torch\n",
+        "device = torch.device(\"cuda\")\n",
+        "\n",
+        "# define E2E-TTS model\n",
+        "from argparse import Namespace\n",
+        "from espnet.asr.asr_utils import get_model_conf\n",
+        "from espnet.asr.asr_utils import torch_load\n",
+        "from espnet.utils.dynamic_import import dynamic_import\n",
+        "idim, odim, train_args = get_model_conf(model_path)\n",
+        "model_class = dynamic_import(train_args.model_module)\n",
+        "model = model_class(idim, odim, train_args)\n",
+        "torch_load(model_path, model)\n",
+        "model = model.eval().to(device)\n",
+        "inference_args = Namespace(**{\n",
+        "    \"threshold\": 0.5,\"minlenratio\": 0.0, \"maxlenratio\": 10.0,\n",
+        "    # Only for Tacotron 2\n",
+        "    \"use_attention_constraint\": True, \"backward_window\": 1,\"forward_window\":3,\n",
+        "    # Only for fastspeech (lower than 1.0 is faster speech, higher than 1.0 is slower speech)\n",
+        "    \"fastspeech_alpha\": 1.0,\n",
+        "    })\n",
+        "\n",
+        "# define neural vocoder\n",
+        "from parallel_wavegan.utils import load_model\n",
+        "fs = 22050\n",
+        "vocoder = load_model(vocoder_path)\n",
+        "vocoder.remove_weight_norm()\n",
+        "vocoder = vocoder.eval().to(device)\n",
+        "\n",
+        "# define text frontend\n",
+        "from tacotron_cleaner.cleaners import custom_english_cleaners\n",
+        "from g2p_en import G2p\n",
+        "with open(dict_path) as f:\n",
+        "    lines = f.readlines()\n",
+        "lines = [line.replace(\"\\n\", \"\").split(\" \") for line in lines]\n",
+        "char_to_id = {c: int(i) for c, i in lines}\n",
+        "g2p = G2p()\n",
+        "def frontend(text):\n",
+        "    \"\"\"Clean text and then convert to id sequence.\"\"\"\n",
+        "    text = custom_english_cleaners(text)\n",
+        "    \n",
+        "    if trans_type == \"phn\":\n",
+        "        text = filter(lambda s: s != \" \", g2p(text))\n",
+        "        text = \" \".join(text)\n",
+        "        print(f\"Cleaned text: {text}\")\n",
+        "        charseq = text.split(\" \")\n",
+        "    else:\n",
+        "        print(f\"Cleaned text: {text}\")\n",
+        "        charseq = list(text)\n",
+        "    idseq = []\n",
+        "    for c in charseq:\n",
+        "        if c.isspace():\n",
+        "            idseq += [char_to_id[\"<space>\"]]\n",
+        "        elif c not in char_to_id.keys():\n",
+        "            idseq += [char_to_id[\"<unk>\"]]\n",
+        "        else:\n",
+        "            idseq += [char_to_id[c]]\n",
+        "    idseq += [idim - 1]  # <eos>\n",
+        "    return torch.LongTensor(idseq).view(-1).to(device)\n",
+        "\n",
+        "import nltk\n",
+        "nltk.download('punkt')\n",
+        "print(\"Now ready to synthesize!\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "AacD_RerASiO",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Synthesis"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9gGRzrjyudWF",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import time\n",
+        "print(\"Input your favorite sentence in English!\")\n",
+        "input_text = input()\n",
+        "with torch.no_grad():\n",
+        "    start = time.time()\n",
+        "    x = frontend(input_text)\n",
+        "    c, _, _ = model.inference(x, inference_args)\n",
+        "    y = vocoder.inference(c)\n",
+        "rtf = (time.time() - start) / (len(y) / fs)\n",
+        "print(f\"RTF = {rtf:5f}\")\n",
+        "\n",
+        "from IPython.display import display, Audio\n",
+        "display(Audio(y.view(-1).cpu().numpy(), rate=fs))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "gtSZpF-mCjTr",
+        "colab_type": "text"
+      },
+      "source": [
+        "\n",
+        "\n",
+        "---\n",
+        "\n",
+        "## Japanese demo\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "UOkxcmprLYD8",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Install Japanese dependencies"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "TpHnzqesEMfh",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# install dependency\n",
+        "!mkdir tools && cd tools && git clone https://github.com/r9y9/hts_engine_API.git\n",
+        "!cd tools/hts_engine_API/src && ./waf configure && ./waf build install\n",
+        "!cd tools && git clone https://github.com/r9y9/open_jtalk.git\n",
+        "!mkdir -p tools/open_jtalk/src/build && cd tools/open_jtalk/src/build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON .. && make install\n",
+        "!cp tools/open_jtalk/src/build/*.so* /usr/lib64-nvidia\n",
+        "!cd tools && git clone https://github.com/r9y9/pyopenjtalk.git\n",
+        "!cd tools/pyopenjtalk && pip install ."
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "LQiWSgwULc9L",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Download pretrained models\n",
+        "\n",
+        "Here we select Tacotron2 or Transformer. The vocoder model is Parallel WaveGAN.\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "bnWn46FmF8Nv",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (a) Tacotron 2"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "bBEWUGItF2hf",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained models\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/jp/tacotron2\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM downloads/jp/tacotron2 tar.gz\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1kp5M4VvmagDmYckFJa78WGqh1drb_P9t downloads/jp/tacotron2 tar.gz\n",
+        "\n",
+        "# set path\n",
+        "dict_path = \"downloads/jp/tacotron2/data/lang_1phn/train_no_dev_units.txt\"\n",
+        "model_path = \"downloads/jp/tacotron2/exp/train_no_dev_pytorch_train_pytorch_tacotron2_phn/results/model.last1.avg.best\"\n",
+        "vocoder_path = \"downloads/jp/tacotron2/jsut.parallel_wavegan.v1/checkpoint-400000steps.pkl\"\n",
+        "\n",
+        "print(\"sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ta6wNJ4WGAEP",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (b) Transformer"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "n7fLzr99CogD",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained models\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/jp/transformer\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1OwrUQzAmvjj1x9cDhnZPp6dqtsEqGEJM downloads/jp/transformer tar.gz\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1mEnZfBKqA4eT6Bn0eRZuP6lNzL-IL3VD downloads/jp/transformer tar.gz\n",
+        "\n",
+        "# set path\n",
+        "dict_path = \"downloads/jp/transformer/data/lang_1phn/train_no_dev_units.txt\"\n",
+        "model_path = \"downloads/jp/transformer/exp/train_no_dev_pytorch_train_pytorch_transformer_phn/results/model.last1.avg.best\"\n",
+        "vocoder_path = \"downloads/jp/transformer/jsut.parallel_wavegan.v1/checkpoint-400000steps.pkl\"\n",
+        "\n",
+        "print(\"sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "7O2FXi1uLrUV",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Setup"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "69vGlN12DqB2",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# add path\n",
+        "import sys\n",
+        "sys.path.append(\"espnet\")\n",
+        "\n",
+        "# define device\n",
+        "import torch\n",
+        "device = torch.device(\"cuda\")\n",
+        "\n",
+        "# define E2E-TTS model\n",
+        "from argparse import Namespace\n",
+        "from espnet.asr.asr_utils import get_model_conf\n",
+        "from espnet.asr.asr_utils import torch_load\n",
+        "from espnet.utils.dynamic_import import dynamic_import\n",
+        "idim, odim, train_args = get_model_conf(model_path)\n",
+        "model_class = dynamic_import(train_args.model_module)\n",
+        "model = model_class(idim, odim, train_args)\n",
+        "torch_load(model_path, model)\n",
+        "model = model.eval().to(device)\n",
+        "inference_args = Namespace(**{\"threshold\": 0.5, \"minlenratio\": 0.0, \"maxlenratio\": 10.0})\n",
+        "\n",
+        "# define neural vocoder\n",
+        "from parallel_wavegan.utils import load_model\n",
+        "fs = 24000\n",
+        "vocoder = load_model(vocoder_path)\n",
+        "vocoder.remove_weight_norm()\n",
+        "vocoder = vocoder.eval().to(device)\n",
+        "\n",
+        "# define text frontend\n",
+        "import pyopenjtalk\n",
+        "with open(dict_path) as f:\n",
+        "    lines = f.readlines()\n",
+        "lines = [line.replace(\"\\n\", \"\").split(\" \") for line in lines]\n",
+        "char_to_id = {c: int(i) for c, i in lines}\n",
+        "def frontend(text):\n",
+        "    \"\"\"Clean text and then convert to id sequence.\"\"\"\n",
+        "    text = pyopenjtalk.g2p(text, kana=False)\n",
+        "    print(f\"Cleaned text: {text}\")\n",
+        "    charseq = text.split(\" \")\n",
+        "    idseq = []\n",
+        "    for c in charseq:\n",
+        "        if c.isspace():\n",
+        "            idseq += [char_to_id[\"<space>\"]]\n",
+        "        elif c not in char_to_id.keys():\n",
+        "            idseq += [char_to_id[\"<unk>\"]]\n",
+        "        else:\n",
+        "            idseq += [char_to_id[c]]\n",
+        "    idseq += [idim - 1]  # <eos>\n",
+        "    return torch.LongTensor(idseq).view(-1).to(device)\n",
+        "\n",
+        "frontend(\"初回の辞書のインストールが必要です\")\n",
+        "print(\"Now ready to synthesize!\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "HmyyM1RCN1Rs",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Synthesis"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "n2Dk9o0-JlbN",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import time\n",
+        "print(\"日本語で好きな文章を入力してください\")\n",
+        "input_text = input()\n",
+        "\n",
+        "with torch.no_grad():\n",
+        "    start = time.time()\n",
+        "    x = frontend(input_text)\n",
+        "    c, _, _ = model.inference(x, inference_args)\n",
+        "    y = vocoder.inference(c)\n",
+        "rtf = (time.time() - start) / (len(y) / fs)\n",
+        "print(f\"RTF = {rtf:5f}\")\n",
+        "\n",
+        "from IPython.display import display, Audio\n",
+        "display(Audio(y.view(-1).cpu().numpy(), rate=fs))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "98SCpId7__5S",
+        "colab_type": "text"
+      },
+      "source": [
+        "---\n",
+        "## Mandarin demo\n",
+        "\n",
+        "**IMPORTANT NOTE**: The author cannot understand Mandarin. The text front-end part might have some bugs.\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "o9SsPzWpMW7N",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Install Mandarin dependencies"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "h6AiFqy-_-gN",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "!pip install pypinyin"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "HwsbvzE9MesI",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Download pretrained models\n",
+        "\n",
+        "You can select Transformer or FastSpeech."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ZLqsIX1KMlA9",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (a) Transformer"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "rrs3D7qBCMSY",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained models\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/zh/transformer\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy downloads/zh/transformer tar.gz\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1bTSygvonv5TS6-iuYsOIUWpN2atGnyhZ downloads/zh/transformer tar.gz\n",
+        "\n",
+        "# set path\n",
+        "dict_path = \"downloads/zh/transformer/data/lang_phn/train_no_dev_units.txt\"\n",
+        "model_path = \"downloads/zh/transformer/exp/train_no_dev_pytorch_train_pytorch_transformer.v1.single/results/model.last1.avg.best\"\n",
+        "vocoder_path = \"downloads/zh/transformer/csmsc.parallel_wavegan.v1/checkpoint-400000steps.pkl\"\n",
+        "\n",
+        "print(\"sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "dhotjpBtMqqu",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### (b) FastSpeech"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "O06IGB5CMn7z",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# download pretrained models\n",
+        "import os\n",
+        "if not os.path.exists(\"downloads/zh/fastspeech\"):\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy downloads/zh/fastspeech tar.gz\n",
+        "    !./espnet/utils/download_from_google_drive.sh \\\n",
+        "        https://drive.google.com/open?id=1T8thxkAxjGFPXPWPTcKLvHnd6lG0-82R downloads/zh/fastspeech tar.gz \n",
+        "\n",
+        "# set path\n",
+        "dict_path = \"downloads/zh/fastspeech/data/lang_phn/train_no_dev_units.txt\"\n",
+        "model_path = \"downloads/zh/fastspeech/exp/train_no_dev_pytorch_train_fastspeech.v3.single/results/model.last1.avg.best\"\n",
+        "vocoder_path = \"downloads/zh/fastspeech/csmsc.parallel_wavegan.v1/checkpoint-400000steps.pkl\"\n",
+        "\n",
+        "print(\"sucessfully finished download.\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "T0zOfTt4RekL",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Setup"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "MoNYASQ-A0cN",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "# add path\n",
+        "import sys\n",
+        "sys.path.append(\"espnet\")\n",
+        "\n",
+        "# define device\n",
+        "import torch\n",
+        "device = torch.device(\"cuda\")\n",
+        "\n",
+        "# define E2E-TTS model\n",
+        "from argparse import Namespace\n",
+        "from espnet.asr.asr_utils import get_model_conf\n",
+        "from espnet.asr.asr_utils import torch_load\n",
+        "from espnet.utils.dynamic_import import dynamic_import\n",
+        "idim, odim, train_args = get_model_conf(model_path)\n",
+        "model_class = dynamic_import(train_args.model_module)\n",
+        "model = model_class(idim, odim, train_args)\n",
+        "torch_load(model_path, model)\n",
+        "model = model.eval().to(device)\n",
+        "inference_args = Namespace(**{\"threshold\": 0.5, \"minlenratio\": 0.0, \"maxlenratio\": 10.0})\n",
+        "\n",
+        "# define neural vocoder\n",
+        "from parallel_wavegan.utils import load_model\n",
+        "fs = 24000\n",
+        "vocoder = load_model(vocoder_path)\n",
+        "vocoder.remove_weight_norm()\n",
+        "vocoder = vocoder.eval().to(device)\n",
+        "\n",
+        "# define text frontend\n",
+        "from pypinyin import pinyin, Style\n",
+        "from pypinyin.style._utils import get_initials, get_finals\n",
+        "with open(dict_path) as f:\n",
+        "    lines = f.readlines()\n",
+        "lines = [line.replace(\"\\n\", \"\").split(\" \") for line in lines]\n",
+        "char_to_id = {c: int(i) for c, i in lines}\n",
+        "def frontend(text):\n",
+        "    \"\"\"Clean text and then convert to id sequence.\"\"\"\n",
+        "    text = pinyin(text, style=Style.TONE3)\n",
+        "    text = [c[0] for c in text]\n",
+        "    print(f\"Cleaned text: {text}\")\n",
+        "    idseq = []\n",
+        "    for x in text:\n",
+        "        c_init = get_initials(x, strict=True)\n",
+        "        c_final = get_finals(x, strict=True)\n",
+        "        for c in [c_init, c_final]:\n",
+        "            if len(c) == 0:\n",
+        "                continue\n",
+        "            c = c.replace(\"ü\", \"v\")\n",
+        "            c = c.replace(\"ui\", \"uei\")\n",
+        "            c = c.replace(\"un\", \"uen\")\n",
+        "            c = c.replace(\"iu\", \"iou\")\n",
+        "            # Special rule: \"e5n\" -> \"en5\"\n",
+        "            if \"5\" in c:\n",
+        "                c = c.replace(\"5\", \"\") + \"5\"\n",
+        "            if c not in char_to_id.keys():\n",
+        "                print(f\"WARN: {c} is not included in dict.\")\n",
+        "                idseq += [char_to_id[\"<unk>\"]]\n",
+        "            else:\n",
+        "                idseq += [char_to_id[c]]\n",
+        "    idseq += [idim - 1]  # <eos>\n",
+        "    return torch.LongTensor(idseq).view(-1).to(device)\n",
+        "\n",
+        "print(\"now ready to synthesize!\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "04pDL8V6Rg5v",
+        "colab_type": "text"
+      },
+      "source": [
+        "### Synthesis"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PGLeZP1CCB2E",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import time\n",
+        "print(\"請用中文輸入您喜歡的句子!\")\n",
+        "input_text = input()\n",
+        "\n",
+        "with torch.no_grad():\n",
+        "    start = time.time()\n",
+        "    x = frontend(input_text)\n",
+        "    c, _, _ = model.inference(x, inference_args)\n",
+        "    y = vocoder.inference(c)\n",
+        "rtf = (time.time() - start) / (len(y) / fs)\n",
+        "print(f\"RTF = {rtf:5f}\")\n",
+        "\n",
+        "from IPython.display import display, Audio\n",
+        "display(Audio(y.view(-1).cpu().numpy(), rate=fs))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

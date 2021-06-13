@@ -1,0 +1,60 @@
+
+espnet2.main_funcs package
+==========================
+
+
+
+.. _espnet2.main_funcs.calculate_all_attentions:
+
+espnet2.main_funcs.calculate_all_attentions
+-------------------------------------------
+
+.. automodule:: espnet2.main_funcs.calculate_all_attentions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.main_funcs.average_nbest_models:
+
+espnet2.main_funcs.average_nbest_models
+---------------------------------------
+
+.. automodule:: espnet2.main_funcs.average_nbest_models
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.main_funcs.collect_stats:
+
+espnet2.main_funcs.collect_stats
+--------------------------------
+
+.. automodule:: espnet2.main_funcs.collect_stats
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.main_funcs.pack_funcs:
+
+espnet2.main_funcs.pack_funcs
+-----------------------------
+
+.. automodule:: espnet2.main_funcs.pack_funcs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.main_funcs.__init__:
+
+espnet2.main_funcs.__init__
+---------------------------
+
+.. automodule:: espnet2.main_funcs.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
