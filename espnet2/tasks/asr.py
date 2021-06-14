@@ -192,6 +192,13 @@ class ASRTask(AbsTask):
             help="The keyword arguments for model class.",
         )
 
+        group.add_argument(
+            "--use_curriculum",
+            type=str,
+            default=False,
+            help="Use curriculum learning algorithms.",
+        )
+
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
             "--use_preprocessor",
