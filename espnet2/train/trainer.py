@@ -284,7 +284,6 @@ class Trainer:
             # 1. Train and validation for one-epoch
             with reporter.observe("train") as sub_reporter:
                 if trainer_options.use_curriculum==True:
-                    print("USING CURRICULUM")
                     all_steps_are_invalid = cls.train_one_epoch_curriculum(
                         model=dp_model,
                         optimizers=optimizers,
@@ -481,6 +480,8 @@ class Trainer:
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         start_time = time.perf_counter()
+        print("Iterator curr:", len(iterator))
+        print("first batch:", iterator[0][0])
         for iiter, (_, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
