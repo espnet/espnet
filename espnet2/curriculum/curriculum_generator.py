@@ -7,7 +7,7 @@ class CurriculumGenerator:
                 init="zeros"
                 ):
 
-        if curriculum_algo=='exp3':
+        if curriculum_algo=='exp3s':
             self.curriculum_algo = curriculum_algo
         else:
             raise NotImplementedError
