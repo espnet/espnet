@@ -42,4 +42,4 @@ class CurriculumGenerator:
         pass
 
     def get_next_task_ind(self):
-        pass
+        return np.argmax(self.policy)

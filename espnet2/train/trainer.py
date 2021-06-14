@@ -513,9 +513,10 @@ class Trainer:
                 with reporter.measure_time("forward_time"):
                     #### Curriculum Learning main loop ####
                     if iiter==1:
-                        k = np.random.randint(low=0, high=4, size=len(tasks))
+                        k = int(np.random.randint(low=0, high=4, size=len(tasks)))
                     
-                    curriculum_generator.update_policy(k)                    
+                    curriculum_generator.update_policy(k)
+                    k = curriculum_generator.get_next_task_ind()    
                     retval = model(**batch)
 
                     # Note(kamo):
