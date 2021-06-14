@@ -28,7 +28,7 @@ class CurriculumIterFactory(AbsIterFactory):
     ):
 
         assert check_argument_types()
-       
+        print("Batches:", len(batches))
         self.sampler = batches
         self.dataset = dataset
         self.num_iters_per_epoch = num_iters_per_epoch
