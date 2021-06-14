@@ -494,6 +494,8 @@ class Trainer:
                                     init='zeros'
                                     )
 
+        print("TASKS:", len(tasks[0]), len(tasks[1]))
+
         for iiter, (_, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
