@@ -53,7 +53,7 @@ class CurriculumIterFactory(AbsIterFactory):
             loaders.append(
                 DataLoader(
                     dataset=self.dataset,
-                    batch_sampler=batches[i],
+                    batch_sampler=self.sampler[i],
                     num_workers=self.num_workers,
                     pin_memory=self.pin_memory,
                     **kwargs,
