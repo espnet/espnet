@@ -29,18 +29,17 @@ class CurriculumGenerator:
 
         self.policy = np.zeros((1, K))
 
-    @classmethod
-    def update_weights(cls):
+    def update_weights(self):
         pass
 
-    @classmethod
-    def update_policy(cls, epsilon=0.005):
-        
+    def update_policy(self, k, epsilon=0.005):
+        if self.curriculum_algo == 'exp3s':
+            tmp1 = np.exp(self.weights[k])/np.sum(self.weights)
+            pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
+            self.policy[k] = pi_k
 
-    @classmethod
-    def get_reward(cls):
+    def get_reward(self):
         pass
 
-    @classmethod
-    def get_next_task_ind(cls):
+    def get_next_task_ind(self):
         pass

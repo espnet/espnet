@@ -511,6 +511,11 @@ class Trainer:
 
             with autocast(scaler is not None):
                 with reporter.measure_time("forward_time"):
+                    #### Curriculum Learning main loop ####
+                    if iiter==1:
+                        k = np.random.randint(low=0, high=4, size=len(tasks))
+                    
+                    curriculum_generator.update_policy(k)                    
                     retval = model(**batch)
 
                     # Note(kamo):
