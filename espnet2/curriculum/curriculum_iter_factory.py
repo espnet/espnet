@@ -28,7 +28,7 @@ class CurriculumIterFactory(AbsIterFactory):
     ):
 
         assert check_argument_types()
-        print("Batches:", len(batches))
+        
         self.sampler = batches
         self.dataset = dataset
         self.num_iters_per_epoch = num_iters_per_epoch
@@ -49,7 +49,7 @@ class CurriculumIterFactory(AbsIterFactory):
             kwargs = {}
 
         loaders = []
-        for i in range(len(self.sampler)-1):
+        for i in range(len(self.sampler)):
             loaders.append(
                 DataLoader(
                     dataset=self.dataset,
