@@ -480,7 +480,7 @@ class Trainer:
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         start_time = time.perf_counter()
-        print("Iterator curr:", iterator)
+        print("Iterator curr:", iterator[0][0])
         for iiter, (_, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
