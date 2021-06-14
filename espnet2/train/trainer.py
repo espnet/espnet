@@ -37,6 +37,7 @@ from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
+from espnet2.curriculum.curriculum_generator import CurriculumGenerator
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
@@ -285,17 +286,20 @@ class Trainer:
             # 1. Train and validation for one-epoch
             with reporter.observe("train") as sub_reporter:
                 if trainer_options.use_curriculum==True:
-                    all_steps_are_invalid = cls.train_one_epoch_curriculum(
-                        model=dp_model,
-                        optimizers=optimizers,
-                        schedulers=schedulers,
-                        iterator=train_iter_factory.build_iter(iepoch),
-                        reporter=sub_reporter,
-                        scaler=scaler,
-                        summary_writer=summary_writer,
-                        options=trainer_options,
-                        distributed_option=distributed_option,
-                    )
+                    if iepoch==1:
+                        curriculum_iterator = train_iter_factory.build_iter(iepoch)
+                        
+                    all_steps_are_invalid, curriculum_iterator = cls.train_one_epoch_curriculum(
+                            model=dp_model,
+                            optimizers=optimizers,
+                            schedulers=schedulers,
+                            iterator=curriculum_iterator,
+                            reporter=sub_reporter,
+                            scaler=scaler,
+                            summary_writer=summary_writer,
+                            options=trainer_options,
+                            distributed_option=distributed_option,
+                        )
                 else:
                     all_steps_are_invalid = cls.train_one_epoch(
                         model=dp_model,
@@ -455,6 +459,7 @@ class Trainer:
         summary_writer: Optional[SummaryWriter],
         options: TrainerOptions,
         distributed_option: DistributedOption,
+        iepoch: int
     ) -> bool:
         assert check_argument_types()
 
@@ -481,7 +486,7 @@ class Trainer:
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         start_time = time.perf_counter()
-        print("Iterator curr:", iterator[0][0])
+
         for iiter, (_, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
@@ -661,7 +666,7 @@ class Trainer:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
 
-        return all_steps_are_invalid
+        return all_steps_are_invalid, tasks
 
     @classmethod
     def train_one_epoch(
