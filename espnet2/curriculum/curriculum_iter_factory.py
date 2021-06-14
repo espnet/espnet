@@ -40,7 +40,8 @@ class CurriculumIterFactory(AbsIterFactory):
         self.pin_memory = pin_memory
 
     
-    def build_iter(self, epoch):
+    def build_iter(self, epoch=1):
+        #epoch is a dummy variable to accomodate trainer.run() method.
         #Instead of one data loader we return K data loader for each task
         if self.collate_fn is not None:
             kwargs = dict(collate_fn=self.collate_fn)
@@ -48,7 +49,7 @@ class CurriculumIterFactory(AbsIterFactory):
             kwargs = {}
 
         loaders = []
-        for i in range(len(batches)-1):
+        for i in range(len(self.sampler)-1):
             loaders.append(
                 DataLoader(
                     dataset=self.dataset,
