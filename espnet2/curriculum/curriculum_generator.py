@@ -1,11 +1,14 @@
 import numpy as np
+from typeguard import check_argument_types
 
 class CurriculumGenerator:
     def __init__(self, 
-                curriculum_algo='exp3s', 
-                K=1, 
-                init="zeros"
+                curriculum_algo: str = "exp3s", 
+                K: int =1, 
+                init: str ="zeros",
                 ):
+
+        assert check_argument_types()
 
         if curriculum_algo=='exp3s':
             self.curriculum_algo = curriculum_algo
@@ -24,11 +27,14 @@ class CurriculumGenerator:
                 f"Initialization type is not supported: {init}"
             )
 
-        def update_weights(self):
+        @classmethod
+        def update_weights(cls):
             pass
 
-        def get_reward(self):
+        @classmethod
+        def get_reward(cls):
             pass
 
-        def get_next_task_ind(self):
+        @classmethod
+        def get_next_task_ind(cls):
             pass
