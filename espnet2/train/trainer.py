@@ -91,6 +91,8 @@ class TrainerOptions:
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
+    use_curriculum: bool
+    curriculum_algo: Sequence[str]
 
 
 class Trainer:
@@ -281,17 +283,31 @@ class Trainer:
             reporter.set_epoch(iepoch)
             # 1. Train and validation for one-epoch
             with reporter.observe("train") as sub_reporter:
-                all_steps_are_invalid = cls.train_one_epoch(
-                    model=dp_model,
-                    optimizers=optimizers,
-                    schedulers=schedulers,
-                    iterator=train_iter_factory.build_iter(iepoch),
-                    reporter=sub_reporter,
-                    scaler=scaler,
-                    summary_writer=summary_writer,
-                    options=trainer_options,
-                    distributed_option=distributed_option,
-                )
+                if trainer_options.use_curriculum
+                    all_steps_are_invalid = cls.train_one_epoch_curriculum(
+                        model=dp_model,
+                        optimizers=optimizers,
+                        schedulers=schedulers,
+                        iterator=train_iter_factory.build_iter(iepoch),
+                        reporter=sub_reporter,
+                        scaler=scaler,
+                        summary_writer=summary_writer,
+                        options=trainer_options,
+                        distributed_option=distributed_option,
+                    )
+                else:
+                    all_steps_are_invalid = cls.train_one_epoch(
+                        model=dp_model,
+                        optimizers=optimizers,
+                        schedulers=schedulers,
+                        iterator=train_iter_factory.build_iter(iepoch),
+                        reporter=sub_reporter,
+                        scaler=scaler,
+                        summary_writer=summary_writer,
+                        options=trainer_options,
+                        distributed_option=distributed_option,
+                    )
+
 
             with reporter.observe("valid") as sub_reporter:
                 cls.validate_one_epoch(
