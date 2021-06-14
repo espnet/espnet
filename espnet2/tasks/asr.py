@@ -202,7 +202,7 @@ class ASRTask(AbsTask):
         group.add_argument(
             "--curriculum_algo",
             type=str,
-            default=None,
+            default="",
             help="MAB algorithm to use for curriculum learning",
         )
 
