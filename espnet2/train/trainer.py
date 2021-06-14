@@ -93,6 +93,7 @@ class TrainerOptions:
     unused_parameters: bool
     use_curriculum: bool
     curriculum_algo: Sequence[str]
+    gain_type: Sequence[str]
 
 
 class Trainer:

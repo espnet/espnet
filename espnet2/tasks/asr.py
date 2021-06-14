@@ -202,8 +202,15 @@ class ASRTask(AbsTask):
         group.add_argument(
             "--curriculum_algo",
             type=str,
-            default="",
+            default="exp3s",
             help="MAB algorithm to use for curriculum learning",
+        )
+
+        group.add_argument(
+            "--gain_type",
+            type=str,
+            default="PG",
+            help="Loss-based gain for Curriculum Learning. Prediction Gain (PG) or Self-Prediction Gain (SPG)",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
