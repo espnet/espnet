@@ -489,7 +489,7 @@ class Trainer:
         #### Initialise Curriculum Learning Environment #######
         tasks = iterator
         curriculum_generator = CurriculumGenerator(
-                                    curriculum_algo=trainer_options.curriculum_algo,
+                                    curriculum_algo=options.curriculum_algo,
                                     K=len(tasks),
                                     init='zeros'
                                     )
