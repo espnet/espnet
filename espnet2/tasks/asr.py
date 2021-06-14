@@ -199,6 +199,13 @@ class ASRTask(AbsTask):
             help="Use curriculum learning algorithms.",
         )
 
+        group.add_argument(
+            "--curriculum_algo",
+            type=str,
+            default=None,
+            help="MAB algorithm to use for curriculum learning",
+        )
+
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
             "--use_preprocessor",
