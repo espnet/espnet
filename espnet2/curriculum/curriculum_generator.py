@@ -27,14 +27,20 @@ class CurriculumGenerator:
                 f"Initialization type is not supported: {init}"
             )
 
-        @classmethod
-        def update_weights(cls):
-            pass
+        self.policy = np.zeros((1, K))
 
-        @classmethod
-        def get_reward(cls):
-            pass
+    @classmethod
+    def update_weights(cls):
+        pass
 
-        @classmethod
-        def get_next_task_ind(cls):
-            pass
+    @classmethod
+    def update_policy(cls, epsilon=0.005):
+        
+
+    @classmethod
+    def get_reward(cls):
+        pass
+
+    @classmethod
+    def get_next_task_ind(cls):
+        pass

@@ -496,8 +496,7 @@ class Trainer:
 
             
         for iiter, (_, batch) in enumerate(
-            reporter.measure_iter_time(iterator, "iter_time"), 1
-        ):
+            reporter.measure_iter_time(iterator, "iter_time"), 1):
             assert isinstance(batch, dict), type(batch)
 
             if distributed:
