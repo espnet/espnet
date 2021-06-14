@@ -288,7 +288,7 @@ class Trainer:
                 if trainer_options.use_curriculum==True:
                     if iepoch==1:
                         curriculum_iterator = train_iter_factory.build_iter(iepoch)
-                        
+
                     all_steps_are_invalid, curriculum_iterator = cls.train_one_epoch_curriculum(
                             model=dp_model,
                             optimizers=optimizers,
@@ -459,7 +459,6 @@ class Trainer:
         summary_writer: Optional[SummaryWriter],
         options: TrainerOptions,
         distributed_option: DistributedOption,
-        iepoch: int
     ) -> bool:
         assert check_argument_types()
 
@@ -486,6 +485,14 @@ class Trainer:
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         start_time = time.perf_counter()
+
+        #### Initialise Curriculum Learning Environment #######
+        tasks = iterator
+        curriculum_generator = CurriculumGenerator(
+                                    curriculum_algo=trainer_options.curriculum_algo,
+                                    K=len(tasks),
+                                    init='zeros'
+                                    )
 
         for iiter, (_, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
