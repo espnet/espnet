@@ -34,7 +34,7 @@ class CurriculumGenerator:
 
     def update_policy(self, k, epsilon=0.05):
         if self.curriculum_algo == 'exp3s':
-            tmp1 = np.exp(self.weights[k])/np.sum(self.weights)
+            tmp1 = np.exp(self.weights[k-1])/np.sum(self.weights)
             pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
             self.policy[k-1] = pi_k
             print("Policy update:", self.policy)
