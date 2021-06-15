@@ -2,7 +2,7 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-batch_size:  16
+batch_size:  64
 num_workers: 4
 optim_conf:
     lr: 1.0e-03
