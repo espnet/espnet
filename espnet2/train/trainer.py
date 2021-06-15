@@ -299,6 +299,7 @@ class Trainer:
                             summary_writer=summary_writer,
                             options=trainer_options,
                             distributed_option=distributed_option,
+                            iepoch=iepoch,
                         )
                 else:
                     all_steps_are_invalid = cls.train_one_epoch(
