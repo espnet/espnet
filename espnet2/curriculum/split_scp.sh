@@ -1,12 +1,12 @@
 
 
 
-key_file="/shared/50k_train/mls_english_opus/data/train/wav.scp"
+key_file="/shared/50k_train/mls_english_opus/dump/extracted/train_norm_debug/wav.scp"
 _nj=10
 split_scps=""
 _logdir="/shared/workspaces/anakuzne/tmp/log"
 _inp_dir="/shared/workspaces/anakuzne/tmp/inp_scp"
-_out_dir="/shared/workspaces/anakuzne/tmp/res"
+_out_dir="/shared/workspaces/anakuzne/tmp/test_files"
 format='scp'
 
 for n in $(seq ${_nj}); do
