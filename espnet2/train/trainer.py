@@ -526,15 +526,14 @@ class Trainer:
             if options.gain_type=='PG':
                 model.eval()
                 with autocast(scaler is not None):
-                    with reporter.measure_time("forward_time"): 
-                        retval = model(**batch)
-                        # Note(kamo):
-                        # Supporting two patterns for the returned value from the model
-                        #   a. dict type ANAKUZNE: removed code for dict type, excessive
-                        #   b. tuple or list type
-                        #Curriculum goes into this condition
-                        loss_before, stats, weight = retval
-                        optim_idx = None
+                    retval = model(**batch)
+                    # Note(kamo):
+                    # Supporting two patterns for the returned value from the model
+                    #   a. dict type ANAKUZNE: removed code for dict type, excessive
+                    #   b. tuple or list type
+                    #Curriculum goes into this condition
+                    loss_before, stats, weight = retval
+                    optim_idx = None
 
                     stats = {k: v for k, v in stats.items() if v is not None}
                     if ngpu > 1 or distributed:
