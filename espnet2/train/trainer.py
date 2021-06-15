@@ -526,14 +526,14 @@ class Trainer:
 
             with autocast(scaler is not None):
                 with reporter.measure_time("forward_time"): 
-                    print("forward pass...")
+                    sys.stdout.write("start forward pass...")
                     retval = model(**batch)
                     # Note(kamo):
                     # Supporting two patterns for the returned value from the model
                     #   a. dict type
                     if isinstance(retval, dict):
                         loss = retval["loss"]
-                        print("curr loss:", loss)
+                        sys.stdout.write("Loss:"+str(loss))
                         stats = retval["stats"]
                         weight = retval["weight"]
                         optim_idx = retval.get("optim_idx")
