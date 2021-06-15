@@ -550,7 +550,7 @@ class Trainer:
                         loss_before *= torch.distributed.get_world_size()
 
                     loss_before /= accum_grad
-                    logging.info(f"Loss before: {loss_before}")
+                    #logging.info(f"Loss before: {loss_before}")
                 
                 model.train()
                 with autocast(scaler is not None):
@@ -580,10 +580,12 @@ class Trainer:
                         loss_after *= torch.distributed.get_world_size()
 
                     loss_after /= accum_grad
-                    logging.info(f"{loss_after}")
+                    #logging.info(f"Loss after: {loss_after}")
 
                     progress_gain = loss_before - loss_after
-                    logging.info(f"Progress gain:{progress_gain}")
+                    progress_gain = progress_gain.detach().cpu().numpy()
+                    #logging.info(f"Progress gain:{progress_gain}")
+
                     loss = loss_after
                 
 
