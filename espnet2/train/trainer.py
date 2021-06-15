@@ -505,6 +505,10 @@ class Trainer:
                 k = int(np.random.randint(low=1, high=len(tasks), size=1))
             
             curriculum_generator.update_policy(k)
+            next_task = curriculum_generator.get_next_task_ind()
+            print("Next task:", next_task)
+
+            print("bacth:", next(tasks[next_task]))
             
             for iiter, (_, batch) in enumerate(
                 reporter.measure_iter_time(iterator, "iter_time"), 1):

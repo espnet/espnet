@@ -37,7 +37,6 @@ class CurriculumGenerator:
             tmp1 = np.exp(self.weights[k-1])/np.sum(self.weights)
             pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
             self.policy[k-1] = pi_k
-            print("Policy update:", self.policy)
 
     def get_reward(self):
         pass
