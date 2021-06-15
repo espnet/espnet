@@ -501,8 +501,6 @@ class Trainer:
 
         while delta > 0.05:
             #Tune stopping criterion later
-            logging.info("Started curriculum training")
-
             if iepoch==1:
                 k = int(np.random.randint(low=1, high=len(tasks), size=1))
             
@@ -525,7 +523,6 @@ class Trainer:
                 continue
 
             if options.gain_type=='PG':
-                print("Condition PG")
                 model.eval()
                 with autocast(scaler is not None):
                     retval = model(**batch)
@@ -553,6 +550,7 @@ class Trainer:
                         loss_before *= torch.distributed.get_world_size()
 
                     loss_before /= accum_grad
+                    logging.info(f"{loss_before}", loss_before)
                 
                 model.train()
                 with autocast(scaler is not None):
@@ -582,9 +580,10 @@ class Trainer:
                         loss_after *= torch.distributed.get_world_size()
 
                     loss_after /= accum_grad
+                    logging.info(f"{loss_after}", loss_before)
 
                     progress_gain = loss_before - loss_after
-                    sys.stdout.write("Progress gain:"+ str(progress_gain))
+                    logging.info(f"Progress gain:{progress_gain}")
                     loss = loss_after
                 
 
