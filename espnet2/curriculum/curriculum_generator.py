@@ -51,7 +51,7 @@ class CurriculumGenerator:
         if (len(self.reward_history) < self.hist_size) and (len(self.reward_history)!=0):
             q_lo = np.ceil(np.quantile(self.reward_history, 0.2))
             q_hi = np.ceil(np.quantile(self.reward_history, 0.8))
-        elif len(self.reward_history):
+        elif len(self.reward_history)==0:
             q_lo = 0.000000000098
             q_hi = 0.000000000099
         else:
