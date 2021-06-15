@@ -1,6 +1,3 @@
-
-
-
 key_file="/shared/50k_train/mls_english_opus/dump/extracted/train_norm_debug/wav.scp"
 _nj=10
 split_scps=""
