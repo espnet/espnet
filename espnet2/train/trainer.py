@@ -564,7 +564,7 @@ class Trainer:
                     #   b. tuple or list type
                     else:
                         loss, stats, weight = retval
-                        sys.stdout.write("Loss:"+str(loss))
+                        sys.stderr.write("Loss:"+str(loss))
                         optim_idx = None
 
                 stats = {k: v for k, v in stats.items() if v is not None}
