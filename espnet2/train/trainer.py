@@ -534,8 +534,7 @@ class Trainer:
                     if isinstance(retval, dict):
                         loss = retval["loss"]
                         loss = retval["loss"]
-                        sys.stdout.write("Loss dict:"+str(loss))
-                        sys.err.write("Loss:"+str(loss))
+                        sys.stderr.write("Loss dict:"+str(loss))
                         stats = retval["stats"]
                         weight = retval["weight"]
                         optim_idx = retval.get("optim_idx")
