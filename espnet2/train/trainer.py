@@ -511,7 +511,7 @@ class Trainer:
             #reporter.measure_iter_time(iterator, "iter_time"), 1):
             iiter+=1
             _, batch = tasks[next_task].next()
-            
+
             assert isinstance(batch, dict), type(batch)
 
             if distributed:
@@ -526,6 +526,7 @@ class Trainer:
 
             with autocast(scaler is not None):
                 with reporter.measure_time("forward_time"): 
+                    print("forward pass...")
                     retval = model(**batch)
                     # Note(kamo):
                     # Supporting two patterns for the returned value from the model
