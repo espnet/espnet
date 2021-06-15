@@ -580,7 +580,7 @@ class Trainer:
                         loss_after *= torch.distributed.get_world_size()
 
                     loss_after /= accum_grad
-                    logging.info(f"{loss_after}", loss_before)
+                    logging.info(f"{loss_after}")
 
                     progress_gain = loss_before - loss_after
                     logging.info(f"Progress gain:{progress_gain}")
