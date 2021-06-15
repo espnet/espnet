@@ -501,6 +501,7 @@ class Trainer:
 
         while delta > 0.05:
             #Tune stopping criterion later
+            logging.info("Started curriculum training")
 
             if iepoch==1:
                 k = int(np.random.randint(low=1, high=len(tasks), size=1))
