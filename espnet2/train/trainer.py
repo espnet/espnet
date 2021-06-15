@@ -550,7 +550,7 @@ class Trainer:
                         loss_before *= torch.distributed.get_world_size()
 
                     loss_before /= accum_grad
-                    logging.info(f"Loss before: {loss_before}".)
+                    logging.info(f"Loss before: {loss_before}")
                 
                 model.train()
                 with autocast(scaler is not None):
