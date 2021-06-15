@@ -481,7 +481,6 @@ class Trainer:
             except TypeError:
                 log_interval = 100
 
-        model.train()
         all_steps_are_invalid = True
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
@@ -499,6 +498,7 @@ class Trainer:
 
         delta = 9999
         iiter = 0
+
         while delta > 0.05:
             #Tune stopping criterion later
 
@@ -512,9 +512,7 @@ class Trainer:
             #reporter.measure_iter_time(iterator, "iter_time"), 1):
             iiter+=1
             _, batch = tasks[next_task].next()
-
             assert isinstance(batch, dict), type(batch)
-
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
@@ -525,63 +523,71 @@ class Trainer:
                 all_steps_are_invalid = False
                 continue
 
-            with autocast(scaler is not None):
-                with reporter.measure_time("forward_time"): 
-                    retval = model(**batch)
-                    # Note(kamo):
-                    # Supporting two patterns for the returned value from the model
-                    #   a. dict type
-                    if isinstance(retval, dict):
-                        loss = retval["loss"]
-                        loss = retval["loss"]
-                        sys.stderr.write("Loss dict:"+str(loss))
-                        stats = retval["stats"]
-                        weight = retval["weight"]
-                        optim_idx = retval.get("optim_idx")
-                        if optim_idx is not None and not isinstance(optim_idx, int):
-                            if not isinstance(optim_idx, torch.Tensor):
-                                raise RuntimeError(
-                                    "optim_idx must be int or 1dim torch.Tensor, "
-                                    f"but got {type(optim_idx)}"
-                                )
-                            if optim_idx.dim() >= 2:
-                                raise RuntimeError(
-                                    "optim_idx must be int or 1dim torch.Tensor, "
-                                    f"but got {optim_idx.dim()}dim tensor"
-                                )
-                            if optim_idx.dim() == 1:
-                                for v in optim_idx:
-                                    if v != optim_idx[0]:
-                                        raise RuntimeError(
-                                            "optim_idx must be 1dim tensor "
-                                            "having same values for all entries"
-                                        )
-                                optim_idx = optim_idx[0].item()
-                            else:
-                                optim_idx = optim_idx.item()
-
-                    #   b. tuple or list type
-                    else:
-                        loss, stats, weight = retval
-                        sys.stderr.write("Loss:"+str(loss))
+            if options.gain_type=='PG':
+                model.eval()
+                with autocast(scaler is not None):
+                    with reporter.measure_time("forward_time"): 
+                        retval = model(**batch)
+                        # Note(kamo):
+                        # Supporting two patterns for the returned value from the model
+                        #   a. dict type ANAKUZNE: removed code for dict type, excessive
+                        #   b. tuple or list type
+                        #Curriculum goes into this condition
+                        loss_before, stats, weight = retval
                         optim_idx = None
 
-                stats = {k: v for k, v in stats.items() if v is not None}
-                if ngpu > 1 or distributed:
-                    # Apply weighted averaging for loss and stats
-                    loss = (loss * weight.type(loss.dtype)).sum()
+                    stats = {k: v for k, v in stats.items() if v is not None}
+                    if ngpu > 1 or distributed:
+                        # Apply weighted averaging for loss and stats
+                        loss_before = (loss_before * weight.type(loss.dtype)).sum()
 
-                    # if distributed, this method can also apply all_reduce()
-                    stats, weight = recursive_average(stats, weight, distributed)
+                        # if distributed, this method can also apply all_reduce()
+                        stats, weight = recursive_average(stats, weight, distributed)
 
-                    # Now weight is summation over all workers
-                    loss /= weight
-                if distributed:
-                    # NOTE(kamo): Multiply world_size because DistributedDataParallel
-                    # automatically normalizes the gradient by world_size.
-                    loss *= torch.distributed.get_world_size()
+                        # Now weight is summation over all workers
+                        loss_before /= weight
+                    if distributed:
+                        # NOTE(kamo): Multiply world_size because DistributedDataParallel
+                        # automatically normalizes the gradient by world_size.
+                        loss_before *= torch.distributed.get_world_size()
 
-                loss /= accum_grad
+                    loss_before /= accum_grad
+                
+                model.train()
+                with autocast(scaler is not None):
+                    with reporter.measure_time("forward_time"): 
+                        retval = model(**batch)
+                        # Note(kamo):
+                        # Supporting two patterns for the returned value from the model
+                        #   a. dict type ANAKUZNE: removed code for dict type, excessive
+                        #   b. tuple or list type
+                        #Curriculum goes into this condition
+                        loss_after, stats, weight = retval
+                        optim_idx = None
+
+                    stats = {k: v for k, v in stats.items() if v is not None}
+                    if ngpu > 1 or distributed:
+                        # Apply weighted averaging for loss and stats
+                        loss_after = (loss_before * weight.type(loss.dtype)).sum()
+
+                        # if distributed, this method can also apply all_reduce()
+                        stats, weight = recursive_average(stats, weight, distributed)
+
+                        # Now weight is summation over all workers
+                        loss_after /= weight
+                    if distributed:
+                        # NOTE(kamo): Multiply world_size because DistributedDataParallel
+                        # automatically normalizes the gradient by world_size.
+                        loss_after *= torch.distributed.get_world_size()
+
+                    loss_after /= accum_grad
+
+                    progress_gain = loss_before - loss_after
+                    sys.stdout.write("Progress gain:"+ str(progress_gain))
+                    loss = loss_after
+                
+
+
 
             reporter.register(stats, weight)
 
