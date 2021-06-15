@@ -508,7 +508,9 @@ class Trainer:
             next_task = curriculum_generator.get_next_task_ind()
             print("Next task:", next_task)
 
-            print("bacth:", next(tasks[next_task]))
+            print("bacth:", len(tasks[next_task]))
+            print(iter(tasks[next_task]).next())
+            print("bacth:", len(tasks[next_task]))
             
             for iiter, (_, batch) in enumerate(
                 reporter.measure_iter_time(iterator, "iter_time"), 1):
