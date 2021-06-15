@@ -502,7 +502,7 @@ class Trainer:
             #Tune stopping criterion later
 
             if iepoch==1:
-                k = int(np.random.randint(low=0, high=len(tasks)-1, size=1))
+                k = int(np.random.randint(low=1, high=len(tasks), size=1))
             
             curriculum_generator.update_policy(k)
             
