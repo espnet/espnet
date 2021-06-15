@@ -524,6 +524,7 @@ class Trainer:
                 continue
 
             if options.gain_type=='PG':
+                print("Condition PG")
                 model.eval()
                 with autocast(scaler is not None):
                     retval = model(**batch)
