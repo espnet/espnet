@@ -490,7 +490,6 @@ class Trainer:
 
         #### Initialise Curriculum Learning Environment #######
         tasks = iterator
-        print("tasks", len(tasks))
         curriculum_generator = CurriculumGenerator(
                                     curriculum_algo=options.curriculum_algo,
                                     K=len(tasks),
@@ -503,7 +502,7 @@ class Trainer:
             #Tune stopping criterion later
 
             if iepoch==1:
-                k = int(np.random.randint(low=0, high=len(tasks), size=len(tasks)))
+                k = int(np.random.randint(low=0, high=int(len(tasks)), size=int(len(tasks))))
             
             curriculum_generator.update_policy(k)
             
