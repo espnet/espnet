@@ -493,7 +493,7 @@ class Trainer:
         curriculum_generator = CurriculumGenerator(
                                     curriculum_algo=options.curriculum_algo,
                                     K=len(tasks),
-                                    init='zeros',
+                                    init='random',
                                     )
 
         delta = 9999
