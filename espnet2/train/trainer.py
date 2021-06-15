@@ -497,7 +497,7 @@ class Trainer:
                                     )
 
         delta = 9999
-
+        iiter = 0
         while delta > 0.05:
             #Tune stopping criterion later
 
@@ -509,8 +509,9 @@ class Trainer:
             
             #for iiter, (_, batch) in enumerate(
             #reporter.measure_iter_time(iterator, "iter_time"), 1):
+            iiter+=1
             _, batch = tasks[next_task].next()
-            print("Batch:", batch)
+            
             assert isinstance(batch, dict), type(batch)
 
             if distributed:
