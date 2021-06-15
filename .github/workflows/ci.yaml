@@ -60,6 +60,8 @@ jobs:
         run: |
           ./ci/install_kaldi.sh
       - name: test integration
+        env:
+          TEST_QUANTIZATION: ${{ !contains(["1.0.1", "1.1.0", "1.2.0"], matrix.pytorch-version) }} 
         run: |
           ./ci/test_integration.sh
       - uses: codecov/codecov-action@v1
