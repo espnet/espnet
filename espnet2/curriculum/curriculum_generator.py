@@ -45,7 +45,9 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         self.policy = np.zeros(K)
 
     def get_next_task_ind(self):
-        return np.argmax(self.policy)
+        arr = np.arange(self.K)
+        task_ind = np.random.choice(arr, size=1, p=self.policy)
+        return task_ind
 
     def update_policy(self, epsilon=0.05):
         tmp1 = np.exp(self.weights)/np.sum(np.exp(self.weights))
