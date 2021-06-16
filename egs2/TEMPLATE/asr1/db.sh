@@ -6,6 +6,7 @@ AN4=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
+DNS=
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -77,6 +78,8 @@ HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
 RU_OPEN_STT=downloads
 GIGASPEECH=
+NOISY_SPEECH=
+NOISY_REVERBERANT_SPEECH=
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -85,6 +88,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=
     DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
+    DNS=
     WSJ0=
     WSJ1=
     WSJCAM0=/export/corpora3/LDC/LDC95S24/wsjcam0
