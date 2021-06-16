@@ -48,9 +48,9 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         return np.argmax(self.policy)
 
     def update_policy(self, k, epsilon=0.05):
-        tmp1 = np.exp(self.weights[k])/np.sum(np.exp(self.weights))
-        pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
-        self.policy[k] = pi_k
+        tmp1 = np.exp(self.weights)/np.sum(np.exp(self.weights))
+        pi = (1 - epsilon)*tmp1 + epsilon/self.K
+        self.policy = pi
 
     def get_reward(self, progress_gain, batch_lens):
         '''
@@ -84,6 +84,8 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         t = iepoch*iiter
         alpha_t = t**-1
         r = (reward + beta)/self.policy[k]
+        r_vec = np.zeros(self.K)
+        r_vec[k] = r
 
         tmp1 = (1-alpha_t)*np.exp(self.weights[k] + eta*r)
         tmp_sum = []
