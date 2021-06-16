@@ -508,12 +508,11 @@ class Trainer:
                 k = int(np.random.randint(low=1, high=len(tasks), size=1))
             
             curriculum_generator.update_policy(k)
-            print("Upd policy:", curriculum_generator.policy)
-            next_task = curriculum_generator.get_next_task_ind()
-            
+
             #for iiter, (_, batch) in enumerate(
             #reporter.measure_iter_time(iterator, "iter_time"), 1):
-            _, batch = tasks[next_task].next()
+            _, batch = tasks[k].next()
+            print("batch", batch)
             assert isinstance(batch, dict), type(batch)
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
@@ -591,7 +590,7 @@ class Trainer:
 
                     loss = loss_after
                 
-
+            #### Calculate the reward and update weights
 
 
             reporter.register(stats, weight)
