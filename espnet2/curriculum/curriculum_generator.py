@@ -32,17 +32,17 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         self.action_hist = []
 
         if init=='ones':
-            self.weights = np.ones((1, K))
+            self.weights = np.ones(K)
         elif init=='zeros':
-            self.weights = np.zeros((1, K))
+            self.weights = np.zeros(K)
         elif init=='random':
-            self.weights = np.random.rand(1, K)
+            self.weights = np.random.rand(K)
         else:
             raise ValueError(
                 f"Initialization type is not supported: {init}"
             )
 
-        self.policy = np.zeros((1, K))
+        self.policy = np.zeros(K)
 
     def get_next_task_ind(self):
         return np.argmax(self.policy)
