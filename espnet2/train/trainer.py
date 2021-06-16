@@ -512,7 +512,7 @@ class Trainer:
             #for iiter, (_, batch) in enumerate(
             #reporter.measure_iter_time(iterator, "iter_time"), 1):
             _, batch = tasks[k].next()
-            print("batch", batch)
+            
             assert isinstance(batch, dict), type(batch)
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
@@ -586,6 +586,10 @@ class Trainer:
 
                     progress_gain = loss_before - loss_after
                     progress_gain = progress_gain.detach().cpu().numpy()
+                    r = curriculum_generator.get_reward(progress_gain=progress_gain, 
+                                                    batch_lens=batch['speech_lengths'].detach().cpu().numpy())
+                    print("reward:", r)
+
                     #logging.info(f"Progress gain:{progress_gain}")
 
                     loss = loss_after

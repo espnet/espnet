@@ -43,7 +43,7 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
             )
 
         self.policy = np.zeros((1, K))
-        
+
     def get_next_task_ind(self):
         return np.argmax(self.policy)
 
@@ -52,10 +52,12 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
         self.policy[k-1] = pi_k
 
-    def get_reward(self, progress_gain):
+    def get_reward(self, progress_gain, batch_lens):
         '''
         Calculates and scales reward based on previous reward history.
         '''
+        progress_gain = progress_gain/np.sum(batch_lens)
+
         if len(self.reward_history)==0:
             q_lo = 0.000000000098
             q_hi = 0.000000000099
