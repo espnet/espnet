@@ -86,7 +86,7 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         r = (reward + beta)/self.policy[k]
 
         tmp1 = (1-alpha_t)*np.exp(self.weights[k] + eta*r)
-        print("tmp1:", tmp1)
+        print("tmp1:", tmp1, np.exp(self.weights[k] + eta*r))
         
         tmp_sum = []
 
