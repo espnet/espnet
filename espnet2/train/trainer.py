@@ -494,7 +494,7 @@ class Trainer:
         if options.curriculum_algo=='exp3s':
             curriculum_generator = EXP3SCurriculumGenerator(
                                         K=len(tasks),
-                                        init='random',
+                                        init='zeros',
                                         )
 
         delta = 9999
@@ -502,15 +502,17 @@ class Trainer:
 
         while delta > 0.05:
             #Tune stopping criterion later
-            if iepoch==1:
+            iiter+=1
+
+            if (iepoch==1) and (iiter==1):
                 k = int(np.random.randint(low=1, high=len(tasks), size=1))
             
             curriculum_generator.update_policy(k)
+            print("Upd policy:", curriculum_generator.policy)
             next_task = curriculum_generator.get_next_task_ind()
             
             #for iiter, (_, batch) in enumerate(
             #reporter.measure_iter_time(iterator, "iter_time"), 1):
-            iiter+=1
             _, batch = tasks[next_task].next()
             assert isinstance(batch, dict), type(batch)
             if distributed:
