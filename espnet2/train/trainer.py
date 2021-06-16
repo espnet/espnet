@@ -507,7 +507,7 @@ class Trainer:
         while delta > 0.05:
             #Tune stopping criterion later
             iiter+=1
-            curriculum_generator.update_policy(k)
+            curriculum_generator.update_policy()
             k = curriculum_generator.get_next_task_ind()
 
             #for iiter, (_, batch) in enumerate(
@@ -589,7 +589,7 @@ class Trainer:
                     progress_gain = progress_gain.detach().cpu().numpy()
                     reward = curriculum_generator.get_reward(progress_gain=progress_gain, 
                                                     batch_lens=batch['speech_lengths'].detach().cpu().numpy())
-                                                    
+
                     print("Policy:", curriculum_generator.policy)
                     print("--------------------------------")
                     print("task:", k)

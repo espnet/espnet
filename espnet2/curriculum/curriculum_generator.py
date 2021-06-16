@@ -47,7 +47,7 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
     def get_next_task_ind(self):
         return np.argmax(self.policy)
 
-    def update_policy(self, k, epsilon=0.05):
+    def update_policy(self, epsilon=0.05):
         tmp1 = np.exp(self.weights)/np.sum(np.exp(self.weights))
         pi = (1 - epsilon)*tmp1 + epsilon/self.K
         self.policy = pi
@@ -87,14 +87,10 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         r_vec = np.zeros(self.K)
         r_vec[k] = r
 
-        tmp1 = (1-alpha_t)*np.exp(self.weights[k] + eta*r)
-        tmp_sum = []
-
         for i, w in enumerate(self.weights):
-            if i!=k:
-                tmp_sum.append(np.exp(w))
-
-        tmp2 = (alpha_t/(self.K-1))*sum(tmp_sum)
-        w_t = np.log(tmp1+tmp2)
-        self.weights[k] = w_t
+            tmp1 = (1-alpha_t)*np.exp(w + eta*r_vec[i])
+            sum_ind = [j if j!=i for j in range(len(self.weights))]
+            tmp2 = (alpha_t/(self.K-1))*self.weights[sum_ind].sum()
+            w_i = np.log(tmp1+tmp2)
+            self.weights[i] = w_i
             
