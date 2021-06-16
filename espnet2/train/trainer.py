@@ -589,6 +589,7 @@ class Trainer:
                     progress_gain = progress_gain.detach().cpu().numpy()
                     reward = curriculum_generator.get_reward(progress_gain=progress_gain, 
                                                     batch_lens=batch['speech_lengths'].detach().cpu().numpy())
+                    print("reward:", reward)
                     print("Policy:", curriculum_generator.policy)
                     print("Weights:", curriculum_generator.weights)
                     curriculum_generator.update_weights(k=k, 
