@@ -48,7 +48,7 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         return np.argmax(self.policy)
 
     def update_policy(self, k, epsilon=0.05):
-        tmp1 = np.exp(self.weights[k-1])/np.sum(np.exp(self.weights))
+        tmp1 = np.exp(self.weights[k])/np.sum(np.exp(self.weights))
         pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
         self.policy[k-1] = pi_k
 
@@ -57,7 +57,6 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         Calculates and scales reward based on previous reward history.
         '''
         progress_gain = progress_gain/np.sum(batch_lens)
-        print("Progress scaled:", progress_gain)
 
         if len(self.reward_history)==0:
             q_lo = 0.000000000098
@@ -81,5 +80,20 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         self.reward_history = np.append(self.reward_history, reward)
         return reward
 
-    def update_weights(self):
-        pass
+    def update_weights(self, k, reward, iepoch, iiter, eta=0.01, beta=0, epsilon=0.05):
+        t = iepoch*iiter
+        alpha_t = t**-1
+        r = (reward + beta)/self.policy[k]
+
+        tmp1 = (1-alpha_t)*np.exp(self.weights[k] + eta*r)
+        
+        tmp_sum = []
+
+        for i, w in enumerate(self.weights):
+            if i!=k:
+                tmp_sum.append(np.exp(w))
+        tmp2 = (alpha_t/(self.K-1))*sum(tmp_sum)
+
+        w_t = np.log(tmp1+tmp2)
+        self.weights[k] = w_t
+            

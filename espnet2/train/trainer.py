@@ -505,9 +505,10 @@ class Trainer:
             iiter+=1
 
             if (iepoch==1) and (iiter==1):
-                k = int(np.random.randint(low=1, high=len(tasks), size=1))
-            
+                k = int(np.random.randint(low=0, high=len(tasks)-1, size=1))
             curriculum_generator.update_policy(k)
+
+            k = curriculum_generator.get_next_task_ind()
 
             #for iiter, (_, batch) in enumerate(
             #reporter.measure_iter_time(iterator, "iter_time"), 1):
@@ -586,11 +587,15 @@ class Trainer:
 
                     progress_gain = loss_before - loss_after
                     progress_gain = progress_gain.detach().cpu().numpy()
-                    r = curriculum_generator.get_reward(progress_gain=progress_gain, 
+                    reward = curriculum_generator.get_reward(progress_gain=progress_gain, 
                                                     batch_lens=batch['speech_lengths'].detach().cpu().numpy())
-                    print("reward:", r)
 
-                    #logging.info(f"Progress gain:{progress_gain}")
+                    curriculum_generator.update_weights(k=k, 
+                                                        reward=reward, 
+                                                        iepoch=iepoch,
+                                                        iiter=iiter
+                                                        )
+                    
 
                     loss = loss_after
                 
