@@ -86,11 +86,14 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         r = (reward + beta)/self.policy[k]
         r_vec = np.zeros(self.K)
         r_vec[k] = r
+        print("reward vec:", r_vec)
 
         for i, w in enumerate(self.weights):
             tmp1 = (1-alpha_t)*np.exp(w + eta*r_vec[i])
+            print("tmp1:", tmp1)
             sum_ind = [j for j in range(len(self.weights)) if j!=i]
             tmp2 = (alpha_t/(self.K-1))*self.weights[sum_ind].sum()
+            print("tmp2:", tmp2)
             w_i = np.log(tmp1+tmp2)
             self.weights[i] = w_i
             
