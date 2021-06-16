@@ -590,6 +590,7 @@ class Trainer:
                                                     batch_lens=batch['speech_lengths'].detach().cpu().numpy())
                     print("--------------------------------")
                     print("task:", k)
+                    print("Policy:", curriculum_generator.policy)
                     print("loss:", loss_after)
                     print("reward:", reward)
                     print("Weights:", curriculum_generator.weights)
@@ -599,7 +600,6 @@ class Trainer:
                                                         iiter=iiter
                                                         )
                     print("Updated weights:", curriculum_generator.weights)
-                    print("Policy:", curriculum_generator.policy)
                     print("---------------------------------")
                     
 
