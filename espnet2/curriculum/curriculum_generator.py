@@ -32,32 +32,33 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         self.action_hist = []
 
         if init=='ones':
-            self.weights = np.ones((1, K))
+            self.weights = np.ones(K)
         elif init=='zeros':
-            self.weights = np.zeros((1, K))
+            self.weights = np.zeros(K)
         elif init=='random':
-            self.weights = np.random.rand(1, K)
+            self.weights = np.random.rand(K)
         else:
             raise ValueError(
                 f"Initialization type is not supported: {init}"
             )
 
-        self.policy = np.zeros((1, K))
+        self.policy = np.zeros(K)
 
     def get_next_task_ind(self):
-        return np.argmax(self.policy)
+        arr = np.arange(self.K)
+        task_ind = np.random.choice(arr, size=1, p=self.policy)
+        return int(task_ind)
 
-    def update_policy(self, k, epsilon=0.05):
-        tmp1 = np.exp(self.weights[k-1])/np.sum(np.exp(self.weights))
-        pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
-        self.policy[k-1] = pi_k
+    def update_policy(self, epsilon=0.05):
+        tmp1 = np.exp(self.weights)/np.sum(np.exp(self.weights))
+        pi = (1 - epsilon)*tmp1 + epsilon/self.K
+        self.policy = pi
 
     def get_reward(self, progress_gain, batch_lens):
         '''
         Calculates and scales reward based on previous reward history.
         '''
         progress_gain = progress_gain/np.sum(batch_lens)
-        print("Progress scaled:", progress_gain)
 
         if len(self.reward_history)==0:
             q_lo = 0.000000000098
@@ -81,5 +82,20 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         self.reward_history = np.append(self.reward_history, reward)
         return reward
 
-    def update_weights(self):
-        pass
+    def update_weights(self, k, reward, iiter, eta=0.01, beta=0, epsilon=0.05):
+        if iiter==1:
+            t = 0.99
+        else:
+            t = iiter
+        alpha_t = t**-1
+        r = (reward + beta)/self.policy[k]
+        r_vec = np.zeros(self.K)
+        r_vec[k] = r
+
+        for i, w in enumerate(self.weights):
+            tmp1 = (1-alpha_t)*np.exp(w + eta*r_vec[i])
+            sum_ind = [j for j in range(len(self.weights)) if j!=i]
+            tmp2 = (alpha_t/(self.K-1))*np.exp(self.weights[sum_ind]).sum()
+            w_i = np.log(tmp1+tmp2)
+            self.weights[i] = w_i
+            
