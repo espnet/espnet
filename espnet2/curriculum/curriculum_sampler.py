@@ -73,8 +73,8 @@ class CurriculumSampler:
             )
 
         task_keys = [[] for k in range(self.K)]
-        for id,task in tasks:
-            task_keys[task].append(id)
+        for id in tasks:
+            task_keys[tasks[id][0]].append(id)
             
         # Sort samples in descending order
         sorted_task_keys = [sorted(t, key=lambda k: first_utt2shape[k][0]) for t in task_keys]
@@ -84,7 +84,7 @@ class CurriculumSampler:
         if padding:
             # If padding case, the feat-dim must be same over whole corpus,
             # therefore the first sample is referred
-            feat_dims = [np.prod(d[first_utt2shape[0]][1:]) for d in utt2shapes]
+            feat_dims = [np.prod(d[sorted_task_keys[0][0]][1:]) for d in utt2shapes]
         else:
             feat_dims = None
 
@@ -99,7 +99,7 @@ class CurriculumSampler:
                 # shape: (Length, dim1, dim2, ...)
                 if padding:
                     for d, s in zip(utt2shapes, shape_files):
-                        if tuple(d[key][1:]) != tuple(d[first_utt2shape[0]][1:]):
+                        if tuple(d[key][1:]) != tuple(d[sorted_task_keys[0][0]][1:]):
                             raise RuntimeError(
                                 "If padding=True, the "
                                 f"feature dimension must be unified: {s}",
@@ -116,11 +116,11 @@ class CurriculumSampler:
                 if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
                     batch_sizes.append(len(current_batch_keys))
                     current_batch_keys = []
-                else:
-                    if len(current_batch_keys) != 0 and (
-                            not self.drop_last or len(batch_sizes) == 0
-                    ):
-                        batch_sizes.append(len(current_batch_keys))
+            else:
+                if len(current_batch_keys) != 0 and (
+                        not self.drop_last or len(batch_sizes) == 0
+                ):
+                    batch_sizes.append(len(current_batch_keys))
 
             if len(batch_sizes) == 0:
                 # Maybe we can't reach here
@@ -171,7 +171,7 @@ class CurriculumSampler:
                     f"sort_batch must be ascending or descending: {sort_batch}"
                 )
 
-        self.task_batch_lists.append(batch_list)
+            self.task_batch_lists.append(batch_list)
 
     def __repr__(self):
         return (
