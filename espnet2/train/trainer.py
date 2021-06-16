@@ -500,14 +500,13 @@ class Trainer:
         delta = 9999
         iiter = 0
 
+        #Initial sampling of task index
+        k = int(np.random.randint(low=0, high=len(tasks)-1, size=1))
+
         while delta > 0.05:
             #Tune stopping criterion later
             iiter+=1
-
-            if (iepoch==1) and (iiter==1):
-                k = int(np.random.randint(low=0, high=len(tasks)-1, size=1))
             curriculum_generator.update_policy(k)
-
             k = curriculum_generator.get_next_task_ind()
 
             #for iiter, (_, batch) in enumerate(
@@ -589,10 +588,10 @@ class Trainer:
                     progress_gain = progress_gain.detach().cpu().numpy()
                     reward = curriculum_generator.get_reward(progress_gain=progress_gain, 
                                                     batch_lens=batch['speech_lengths'].detach().cpu().numpy())
+                    print("--------------------------------")
                     print("task:", k)
                     print("loss:", loss_after)
                     print("reward:", reward)
-                    print("Policy:", curriculum_generator.policy)
                     print("Weights:", curriculum_generator.weights)
                     curriculum_generator.update_weights(k=k, 
                                                         reward=reward, 
@@ -600,6 +599,8 @@ class Trainer:
                                                         iiter=iiter
                                                         )
                     print("Updated weights:", curriculum_generator.weights)
+                    print("Policy:", curriculum_generator.policy)
+                    print("---------------------------------")
                     
 
                     loss = loss_after
