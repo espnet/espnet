@@ -38,7 +38,8 @@ from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
-from espnet2.curriculum.curriculum_generator import CurriculumGenerator
+from espnet2.curriculum.curriculum_generator import AbsCurriculumGenerator
+from espnet2.curriculum.curriculum_generator import EXP3SCurriculumGenerator
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
     from torch.utils.tensorboard import SummaryWriter
@@ -490,11 +491,11 @@ class Trainer:
 
         #### Initialise Curriculum Learning Environment #######
         tasks = [iter(it) for it in iterator]
-        curriculum_generator = CurriculumGenerator(
-                                    curriculum_algo=options.curriculum_algo,
-                                    K=len(tasks),
-                                    init='random',
-                                    )
+        if options.curriculum_algo=='exp3S':
+            curriculum_generator = EXP3SCurriculumGenerator(
+                                        K=len(tasks),
+                                        init='random',
+                                        )
 
         delta = 9999
         iiter = 0

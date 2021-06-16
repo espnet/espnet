@@ -1,21 +1,31 @@
 import numpy as np
 from typeguard import check_argument_types
+from abc import ABC
+from abc import abstractmethod
 
-class CurriculumGenerator:
+class AbsCurriculumGenerator(ABC):
+    @abstractmethod
+    def update_policy(self, k, epsilon=0.05):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_reward(self, progress_gain):
+        raise NotImplementedError
+        
+    @abstractmethod
+    def get_next_task_ind(self):
+        raise NotImplementedError
+
+
+class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
     def __init__(self, 
-                curriculum_algo: str = "exp3s", 
                 K: int =1, 
                 init: str ="zeros",
                 hist_size=10000,
-                reservoir_size=1000,
                 ):
 
         assert check_argument_types()
 
-        if curriculum_algo=='exp3s':
-            self.curriculum_algo = curriculum_algo
-        else:
-            raise NotImplementedError
         self.K = K 
         self.reward_history = np.array([])
         self.hist_size = hist_size
@@ -35,15 +45,18 @@ class CurriculumGenerator:
 
         self.policy = np.zeros((1, K))
 
+    @classmethod
     def update_weights(self):
         pass
 
+    @classmethod
     def update_policy(self, k, epsilon=0.05):
         if self.curriculum_algo == 'exp3s':
             tmp1 = np.exp(self.weights[k-1])/np.sum(self.weights)
             pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
             self.policy[k-1] = pi_k
 
+    @classmethod
     def get_reward(self, progress_gain):
         '''
         Calculates and scales reward based on previous reward history.
@@ -73,6 +86,6 @@ class CurriculumGenerator:
         self.reward_history = np.append(self.reward_history, reward)
         return reward
         
-
+    @classmethod
     def get_next_task_ind(self):
         return np.argmax(self.policy)
