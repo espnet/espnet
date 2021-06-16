@@ -29,7 +29,6 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         self.K = K 
         self.reward_history = np.array([])
         self.hist_size = hist_size
-        self.reservoir_size = reservoir_size
         self.action_hist = []
 
         if init=='ones':
@@ -45,18 +44,14 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
 
         self.policy = np.zeros((1, K))
 
-    @classmethod
     def update_weights(self):
         pass
 
-    @classmethod
     def update_policy(self, k, epsilon=0.05):
-        if self.curriculum_algo == 'exp3s':
-            tmp1 = np.exp(self.weights[k-1])/np.sum(self.weights)
-            pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
-            self.policy[k-1] = pi_k
+        tmp1 = np.exp(self.weights[k-1])/np.sum(np.exp(self.weights))
+        pi_k = (1 - epsilon)*tmp1 + epsilon/self.K
+        self.policy[k-1] = pi_k
 
-    @classmethod
     def get_reward(self, progress_gain):
         '''
         Calculates and scales reward based on previous reward history.
@@ -85,7 +80,6 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         
         self.reward_history = np.append(self.reward_history, reward)
         return reward
-        
-    @classmethod
+
     def get_next_task_ind(self):
         return np.argmax(self.policy)

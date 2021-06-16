@@ -491,7 +491,7 @@ class Trainer:
 
         #### Initialise Curriculum Learning Environment #######
         tasks = [iter(it) for it in iterator]
-        if options.curriculum_algo=='exp3S':
+        if options.curriculum_algo=='exp3s':
             curriculum_generator = EXP3SCurriculumGenerator(
                                         K=len(tasks),
                                         init='random',
