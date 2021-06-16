@@ -659,10 +659,10 @@ class AbsTask(ABC):
         
         group = parser.add_argument_group("Curriculum Learning related")
         group.add_argument(
-            "--cr_file",
+            "--task_file",
             type=str,
             default=None,
-            help="Path to comp_ratio.txt",
+            help="Path to task assignment file",
         )
         group.add_argument("--K", 
                            type=int, 
