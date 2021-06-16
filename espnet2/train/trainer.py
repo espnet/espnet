@@ -597,8 +597,7 @@ class Trainer:
                     print("reward:", reward)
                     print("Weights:", curriculum_generator.weights)
                     curriculum_generator.update_weights(k=k, 
-                                                        reward=reward, 
-                                                        iepoch=iepoch,
+                                                        reward=reward,
                                                         iiter=iiter
                                                         )
                     print("Updated weights:", curriculum_generator.weights)

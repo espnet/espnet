@@ -80,8 +80,11 @@ class EXP3SCurriculumGenerator(AbsCurriculumGenerator):
         self.reward_history = np.append(self.reward_history, reward)
         return reward
 
-    def update_weights(self, k, reward, iepoch, iiter, eta=0.01, beta=0, epsilon=0.05):
-        t = iepoch*iiter
+    def update_weights(self, k, reward, iiter, eta=0.01, beta=0, epsilon=0.05):
+        if iiter==1:
+            t = 0.99
+        else:
+            t = iiter
         alpha_t = t**-1
         r = (reward + beta)/self.policy[k]
         r_vec = np.zeros(self.K)
