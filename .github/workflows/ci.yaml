@@ -59,9 +59,10 @@ jobs:
       - name: install kaldi
         run: |
           ./ci/install_kaldi.sh
+      # Disable quantization for older pytorch (<= 1.2). It is tested in debian9.yml though.
       - name: test integration
         env:
-          TEST_QUANTIZATION: ${{ !contains(["1.0.1", "1.1.0", "1.2.0"], matrix.pytorch-version) }} 
+          TEST_QUANTIZATION: false
         run: |
           ./ci/test_integration.sh
       - uses: codecov/codecov-action@v1
