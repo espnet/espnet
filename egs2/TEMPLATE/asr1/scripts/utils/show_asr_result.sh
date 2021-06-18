@@ -44,17 +44,17 @@ cat << EOF
 EOF
 
 while IFS= read -r expdir; do
-    if ls "${expdir}"/*/score_*/result.txt &> /dev/null; then
+    if ls "${expdir}"/*/*/score_*/result.txt &> /dev/null; then
         echo "## $(basename ${expdir})"
         for type in wer cer ter; do
-            if ls "${expdir}"/*/score_${type}/result.txt &> /dev/null; then
+            if ls "${expdir}"/*/*/score_${type}/result.txt &> /dev/null; then
                 cat << EOF
 ### ${type^^}
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 EOF
-                grep -H -e Avg "${expdir}"/*/score_${type}/result.txt \
+                grep -H -e Avg "${expdir}"/*/*/score_${type}/result.txt \
                     | sed -e "s#${expdir}/\([^/]*/[^/]*\)/score_${type}/result.txt:#|\1#g" \
                     | sed -e 's#Sum/Avg##g' | tr '|' ' ' | tr -s ' ' '|'
                 echo

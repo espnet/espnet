@@ -1097,7 +1097,7 @@ if ! "${skip_eval}"; then
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${joint_exp}/decode_${dset}_${decode_tag}"
+            _dir="${joint_exp}/${decode_tag}/${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
