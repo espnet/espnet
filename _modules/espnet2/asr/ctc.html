@@ -252,9 +252,7 @@
             <span class="kn">import</span> <span class="nn">warpctc_pytorch</span> <span class="k">as</span> <span class="nn">warp_ctc</span>
 
             <span class="k">if</span> <span class="n">ignore_nan_grad</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                    <span class="s2">&quot;ignore_nan_grad option is not supported for warp_ctc&quot;</span>
-                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;ignore_nan_grad option is not supported for warp_ctc&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">warp_ctc</span><span class="o">.</span><span class="n">CTCLoss</span><span class="p">(</span><span class="n">size_average</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="n">reduce</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
