@@ -6,7 +6,7 @@ import pytest
 
 from espnet.nets.asr_interface import dynamic_import_asr
 
-torch = pytest.importorskip("torch")
+torch = pytest.importorskip("torch", minversion="1.3.0")
 
 
 @pytest.mark.parametrize(

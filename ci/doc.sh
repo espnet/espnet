@@ -30,7 +30,7 @@ find ./espnet2/bin/*.py -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/espnet2_
 ./doc/module2rst.py --root espnet espnet2 --dst ./doc --exclude espnet.bin
 
 # build html
-travis-sphinx build --source=doc --nowarn
+# TODO(karita): add -W to turn warnings into errors
+sphinx-build -b html doc doc/build
 
 touch doc/build/.nojekyll
-
