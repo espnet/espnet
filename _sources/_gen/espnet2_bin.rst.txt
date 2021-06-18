@@ -27,6 +27,11 @@ asr_align.py
 
 .. code-block:: none
 
+    [nltk_data] Downloading package averaged_perceptron_tagger to
+    [nltk_data]     /home/runner/nltk_data...
+    [nltk_data]   Unzipping taggers/averaged_perceptron_tagger.zip.
+    [nltk_data] Downloading package cmudict to /home/runner/nltk_data...
+    [nltk_data]   Unzipping corpora/cmudict.zip.
     usage: asr_align.py [-h] [--config CONFIG]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         [--ngpu NGPU] [--dtype {float16,float32,float64}]
@@ -635,7 +640,7 @@ asr_train.py
                             The initialization method (default: None)
       --input_size INPUT_SIZE
                             The number of input dimension of the feature (default: None)
-      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': False})
+      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': True})
       --model_conf MODEL_CONF
                             The keyword arguments for model class. (default: {'ctc_weight': 0.5, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>'})
     
