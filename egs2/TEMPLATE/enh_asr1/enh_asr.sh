@@ -363,7 +363,7 @@ fi
 if [ -n "${speed_perturb_factors}" ]; then
     joint_exp="${joint_exp}_sp"
 fi
-if [ -n "${train_aux_set}" ]; then
+if [ -n "${train_aux_set}" ] && [[ ! "${joint_exp}" =~ "_aux" ]]; then
     joint_exp="${joint_exp}_aux"
 fi
 if [ -z "${lm_exp}" ]; then
@@ -1258,22 +1258,90 @@ else
     log "Skip the evaluation stages"
 fi
 
-if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-    log "[Option] Stage 13: Pack model: ${joint_exp}/packed.zip"
+packed_model="${joint_exp}/${joint_exp##*/}_${decode_joint_model%.*}.zip"
+if ! "${skip_upload}"; then
 
-    _opts=
-    if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${joint_stats_dir}/train/feats_stats.npz "
+    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+        log "[Option] Stage 13: Pack model: ${joint_exp}/packed.zip"
+
+        _opts=
+
+        if "${use_lm}"; then
+                _opts+="--lm_train_config ${lm_exp}/config.yaml "
+                _opts+="--lm_file ${lm_exp}/${decode_lm} "
+                _opts+="--option ${lm_exp}/perplexity_test/ppl "
+                _opts+="--option ${lm_exp}/images "
+        fi
+
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack asr \
+            --asr_train_config "${joint_exp}"/config.yaml \
+            --asr_model_file "${joint_exp}"/"${decode_joint_model}" \
+            ${_opts} \
+            --option "${joint_exp}"/RESULTS.md \
+            --option "${joint_exp}"/images \
+            --outpath "${packed_model}"
+
     fi
 
-    # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.pack asr\
-        --train_config.yaml "${joint_exp}"/config.yaml \
-        --model_file.pth "${joint_exp}"/"${decode_joint_model}" \
-        ${_opts} \
-        --option "${joint_exp}"/RESULTS.TXT \
-        --outpath "${joint_exp}/packed.zip"
+     if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Upload model to Zenodo: ${packed_model}"
 
+        # To upload your model, you need to do:
+        #   1. Sign up to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
+
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # Generate description file
+        cat << EOF > "${joint_exp}"/description
+This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
+<li><strong>Evaluate in the recipe</strong><pre>
+<code class="language-bash">git clone https://github.com/espnet/espnet
+cd espnet${_checkout}
+pip install -e .
+cd $(pwd | rev | cut -d/ -f1-3 | rev)
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
+</pre></li>
+<li><strong>Results</strong><pre><code>$(cat "${joint_exp}"/RESULTS.md)</code></pre></li>
+<li><strong>ASR config</strong><pre><code>$(cat "${joint_exp}"/config.yaml)</code></pre></li>
+<li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
+</ul>
+EOF
+
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish it by yourself.
+
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${joint_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
+
+else
+    log "Skip the uploading stages"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

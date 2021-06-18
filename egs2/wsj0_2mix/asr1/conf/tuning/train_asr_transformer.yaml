@@ -1,9 +1,11 @@
 batch_size: 4
-#accum_grad: 8
-max_epoch: 200
+accum_grad: 4
+max_epoch: 120
 patience: none
 num_att_plot: 0
 # The initialization method for model parameters
+cudnn_deterministic: false
+unused_parameters: true
 init: xavier_uniform
 best_model_criterion:
 -   - valid
@@ -18,17 +20,18 @@ optim: adam
 batch_type: folded
 num_workers: 4
 optim_conf:
-    lr: 1.0e-03
+    lr: 2.0e-03
     eps: 1.0e-08
     weight_decay: 1.0e-7
+grad_clip: 3
+    
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 45000
+
 val_scheduler_criterion:
     - valid
     - loss
-scheduler: reducelronplateau
-scheduler_conf:
-    mode: min
-    factor: 0.9
-    patience: 2
 
 # Enhancement Related
 enh_model_conf:
@@ -49,7 +52,7 @@ enh_separator_conf:
     layer: 6
     stack: 3
     bottleneck_dim: 256
-    hidden_dim: 512
+    hidden_dim: 384
     kernel: 3
     causal: False
     norm_type: "gLN"
@@ -68,7 +71,7 @@ encoder: transformer
 encoder_conf:
     output_size: 256
     attention_heads: 4
-    linear_units: 2048
+    linear_units: 1536
     num_blocks: 12
     dropout_rate: 0.1
     positional_dropout_rate: 0.2
@@ -79,7 +82,7 @@ encoder_conf:
 decoder: transformer
 decoder_conf:
     attention_heads: 4
-    linear_units: 2048
+    linear_units: 1536
     num_blocks: 6
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
@@ -95,6 +98,6 @@ asr_model_conf:
     length_normalized_loss: false
 
 joint_model_conf:
-    enh_weight: 0.99
+    enh_weight: 0.8
     end2end_train: true
     cal_enh_loss: true # whether to calculate enh_loss, need the reduce in ctc_conf
