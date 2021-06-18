@@ -2,7 +2,7 @@
 # RESULTS
 ## Environments
 - date: `Fri May 14 07:43:22 UTC 2021`
-- model link: https://drive.google.com/drive/folders/18jJyFxSS9nhS51H8xWkMiDybGKrKPVEV?usp=sharing
+- model link: https://zenodo.org/record/4978923/files/asr_train_asr_cformer5_raw_bpe2000_sp_valid.acc.ave.zip?download=1
 - python version: `3.8.8 (default, Apr 13 2021, 19:58:26)  [GCC 7.3.0]`
 - espnet version: `espnet 0.9.9`
 - pytorch version: `pytorch 1.8.0+cu111`
