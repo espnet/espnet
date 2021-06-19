@@ -1,13 +1,9 @@
-from distutils.version import LooseVersion
-
 import pytest
 
 import torch
 from torch_complex import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
-
-is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -20,8 +16,6 @@ is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 def test_STFTDecoder_backward(
     n_fft, win_length, hop_length, window, center, normalized, onesided
 ):
-    if not is_torch_1_2_plus:
-        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
     decoder = STFTDecoder(
         n_fft=n_fft,
         win_length=win_length,
@@ -50,9 +44,6 @@ def test_STFTDecoder_backward(
 def test_STFTDecoder_invalid_type(
     n_fft, win_length, hop_length, window, center, normalized, onesided
 ):
-    if not is_torch_1_2_plus:
-        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
-
     decoder = STFTDecoder(
         n_fft=n_fft,
         win_length=win_length,

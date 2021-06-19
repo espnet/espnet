@@ -1,3 +1,4 @@
+"""Reporter module."""
 from collections import defaultdict
 from contextlib import contextmanager
 import dataclasses
@@ -18,14 +19,11 @@ import warnings
 import humanfriendly
 import numpy as np
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
 from typeguard import check_return_type
 import wandb
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    from torch.utils.tensorboard import SummaryWriter
-else:
-    from tensorboardX import SummaryWriter
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
