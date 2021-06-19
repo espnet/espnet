@@ -33,12 +33,6 @@ class CTC(torch.nn.Module):
             else "builtin"
         )
 
-        # ctc_type = buitin not support Pytorch=1.0.1
-        if self.ctc_type == "builtin" and (
-            LooseVersion(torch.__version__) < LooseVersion("1.1.0")
-        ):
-            self.ctc_type = "cudnnctc"
-
         if ctc_type != self.ctc_type:
             logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")
 
