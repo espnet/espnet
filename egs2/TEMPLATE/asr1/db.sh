@@ -38,6 +38,7 @@ JSSS=downloads
 JSUT=downloads
 JVS=downloads
 SPGISPEECH=
+SWBD=
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
