@@ -211,7 +211,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet2.tasks.abs_task</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span>
+<span></span><span class="sd">&quot;&quot;&quot;Abstract task module.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span>
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
@@ -292,6 +293,7 @@
 
 <span class="n">optim_classes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
     <span class="n">adam</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">,</span>
+    <span class="n">adamw</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">,</span>
     <span class="n">sgd</span><span class="o">=</span><span class="n">SGD</span><span class="p">,</span>
     <span class="n">adadelta</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adadelta</span><span class="p">,</span>
     <span class="n">adagrad</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">,</span>
@@ -301,8 +303,6 @@
     <span class="n">rmsprop</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">RMSprop</span><span class="p">,</span>
     <span class="n">rprop</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Rprop</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.2.0&quot;</span><span class="p">):</span>
-    <span class="n">optim_classes</span><span class="p">[</span><span class="s2">&quot;adamw&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">torch_optimizer</span>
 
@@ -349,19 +349,12 @@
     <span class="n">multisteplr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">MultiStepLR</span><span class="p">,</span>
     <span class="n">exponentiallr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ExponentialLR</span><span class="p">,</span>
     <span class="n">CosineAnnealingLR</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingLR</span><span class="p">,</span>
+    <span class="n">noamlr</span><span class="o">=</span><span class="n">NoamLR</span><span class="p">,</span>
+    <span class="n">warmuplr</span><span class="o">=</span><span class="n">WarmupLR</span><span class="p">,</span>
+    <span class="n">cycliclr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">,</span>
+    <span class="n">onecyclelr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">OneCycleLR</span><span class="p">,</span>
+    <span class="n">CosineAnnealingWarmRestarts</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingWarmRestarts</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.1.0&quot;</span><span class="p">):</span>
-    <span class="n">scheduler_classes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-        <span class="n">noamlr</span><span class="o">=</span><span class="n">NoamLR</span><span class="p">,</span>
-        <span class="n">warmuplr</span><span class="o">=</span><span class="n">WarmupLR</span><span class="p">,</span>
-    <span class="p">)</span>
-<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.3.0&quot;</span><span class="p">):</span>
-    <span class="n">CosineAnnealingWarmRestarts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingWarmRestarts</span>
-    <span class="n">scheduler_classes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-        <span class="n">cycliclr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">,</span>
-        <span class="n">onecyclelr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">OneCycleLR</span><span class="p">,</span>
-        <span class="n">CosineAnnealingWarmRestarts</span><span class="o">=</span><span class="n">CosineAnnealingWarmRestarts</span><span class="p">,</span>
-    <span class="p">)</span>
 <span class="c1"># To lower keys</span>
 <span class="n">optim_classes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">optim_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 <span class="n">scheduler_classes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scheduler_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -1954,32 +1947,16 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="c1"># IterableDataset is supported from pytorch=1.2</span>
-        <span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.2&quot;</span><span class="p">):</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="n">IterableESPnetDataset</span><span class="p">(</span>
-                <span class="n">data_path_and_name_and_type</span><span class="p">,</span>
-                <span class="n">float_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess_fn</span><span class="p">,</span>
-                <span class="n">key_file</span><span class="o">=</span><span class="n">key_file</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply_utt2category</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">IterableESPnetDataset</span><span class="p">(</span>
+            <span class="n">data_path_and_name_and_type</span><span class="p">,</span>
+            <span class="n">float_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess_fn</span><span class="p">,</span>
+            <span class="n">key_file</span><span class="o">=</span><span class="n">key_file</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply_utt2category</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="n">ESPnetDataset</span><span class="p">(</span>
-                <span class="n">data_path_and_name_and_type</span><span class="p">,</span>
-                <span class="n">float_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">preprocess</span><span class="o">=</span><span class="n">preprocess_fn</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">key_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">key_file</span> <span class="o">=</span> <span class="n">data_path_and_name_and_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">batch_sampler</span> <span class="o">=</span> <span class="n">UnsortedBatchSampler</span><span class="p">(</span>
-                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
-                <span class="n">key_file</span><span class="o">=</span><span class="n">key_file</span><span class="p">,</span>
-                <span class="n">drop_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">batch_sampler</span><span class="o">=</span><span class="n">batch_sampler</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 
         <span class="bp">cls</span><span class="o">.</span><span class="n">check_task_requirements</span><span class="p">(</span>
             <span class="n">dataset</span><span class="p">,</span> <span class="n">allow_variable_data_keys</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">inference</span><span class="o">=</span><span class="n">inference</span>

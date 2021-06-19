@@ -211,18 +211,12 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet2.layers.time_warp</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
-
+<span></span><span class="sd">&quot;&quot;&quot;Time warp module.&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">pad_list</span>
 
-
-<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.1&quot;</span><span class="p">):</span>
-    <span class="n">DEFAULT_TIME_WARP_MODE</span> <span class="o">=</span> <span class="s2">&quot;bicubic&quot;</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="c1"># pytorch1.0 doesn&#39;t implement bicubic</span>
-    <span class="n">DEFAULT_TIME_WARP_MODE</span> <span class="o">=</span> <span class="s2">&quot;bilinear&quot;</span>
+<span class="n">DEFAULT_TIME_WARP_MODE</span> <span class="o">=</span> <span class="s2">&quot;bicubic&quot;</span>
 
 
 <div class="viewcode-block" id="time_warp"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.time_warp.time_warp">[docs]</a><span class="k">def</span> <span class="nf">time_warp</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TIME_WARP_MODE</span><span class="p">):</span>

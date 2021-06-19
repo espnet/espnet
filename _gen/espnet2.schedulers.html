@@ -338,7 +338,8 @@
 <span class="target" id="module-espnet2.schedulers.__init__"></span></div>
 <div class="section" id="espnet2-schedulers-warmup-lr">
 <span id="id3"></span><h2>espnet2.schedulers.warmup_lr<a class="headerlink" href="#espnet2-schedulers-warmup-lr" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.schedulers.warmup_lr"></span><dl class="class">
+<span class="target" id="module-espnet2.schedulers.warmup_lr"></span><p>Warm up learning rate scheduler module.</p>
+<dl class="class">
 <dt id="espnet2.schedulers.warmup_lr.WarmupLR">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.schedulers.warmup_lr.</code><code class="sig-name descname">WarmupLR</code><span class="sig-paren">(</span><em class="sig-param">optimizer: torch.optim.optimizer.Optimizer</em>, <em class="sig-param">warmup_steps: Union[int</em>, <em class="sig-param">float] = 25000</em>, <em class="sig-param">last_epoch: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_lr.html#WarmupLR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_lr.WarmupLR" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler._LRScheduler</span></code>, <a class="reference internal" href="#espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler" title="espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler</span></code></a></p>
@@ -371,7 +372,8 @@
 </div>
 <div class="section" id="espnet2-schedulers-noam-lr">
 <span id="id4"></span><h2>espnet2.schedulers.noam_lr<a class="headerlink" href="#espnet2-schedulers-noam-lr" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.schedulers.noam_lr"></span><dl class="class">
+<span class="target" id="module-espnet2.schedulers.noam_lr"></span><p>Noam learning rate scheduler module.</p>
+<dl class="class">
 <dt id="espnet2.schedulers.noam_lr.NoamLR">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.schedulers.noam_lr.</code><code class="sig-name descname">NoamLR</code><span class="sig-paren">(</span><em class="sig-param">optimizer: torch.optim.optimizer.Optimizer</em>, <em class="sig-param">model_size: Union[int</em>, <em class="sig-param">float] = 320</em>, <em class="sig-param">warmup_steps: Union[int</em>, <em class="sig-param">float] = 25000</em>, <em class="sig-param">last_epoch: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/noam_lr.html#NoamLR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.noam_lr.NoamLR" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler._LRScheduler</span></code>, <a class="reference internal" href="#espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler" title="espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler</span></code></a></p>

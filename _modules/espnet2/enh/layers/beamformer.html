@@ -211,7 +211,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet2.enh.layers.beamformer</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span></span><span class="sd">&quot;&quot;&quot;Beamformer module.&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
@@ -221,7 +221,6 @@
 <span class="kn">from</span> <span class="nn">torch_complex</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">FC</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
-<span class="n">is_torch_1_1_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.1.0&quot;</span><span class="p">)</span>
 <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span>
 
 
@@ -256,8 +255,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        rtf (ComplexTensor): (..., F, C, 1)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">use_torch_solver</span> <span class="ow">and</span> <span class="n">is_torch_1_1_plus</span><span class="p">:</span>
-        <span class="c1"># torch.solve is required, which is only available after pytorch 1.1.0+</span>
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
         <span class="n">phi</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">phi</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">psd_noise</span><span class="o">.</span><span class="n">inverse2</span><span class="p">(),</span> <span class="n">psd_speech</span><span class="p">)</span>
@@ -305,8 +303,7 @@
     <span class="k">if</span> <span class="n">diagonal_loading</span><span class="p">:</span>
         <span class="n">psd_n</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">use_torch_solver</span> <span class="ow">and</span> <span class="n">is_torch_1_1_plus</span><span class="p">:</span>
-        <span class="c1"># torch.solve is required, which is only available after pytorch 1.1.0+</span>
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">psd_s</span><span class="p">,</span> <span class="n">psd_n</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">psd_n</span><span class="o">.</span><span class="n">inverse2</span><span class="p">(),</span> <span class="n">psd_s</span><span class="p">)</span>
@@ -366,8 +363,7 @@
     <span class="p">)</span>
 
     <span class="c1"># numerator: (..., C_1, C_2) x (..., C_2, 1) -&gt; (..., C_1)</span>
-    <span class="k">if</span> <span class="n">use_torch_solver</span> <span class="ow">and</span> <span class="n">is_torch_1_1_plus</span><span class="p">:</span>
-        <span class="c1"># torch.solve is required, which is only available after pytorch 1.1.0+</span>
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">rtf</span><span class="p">,</span> <span class="n">psd_n</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">psd_n</span><span class="o">.</span><span class="n">inverse2</span><span class="p">(),</span> <span class="n">rtf</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -546,8 +542,7 @@
         <span class="n">Rf</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">Rf</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
 
     <span class="c1"># numerator: (..., C_1, C_2) x (..., C_2, C_3) -&gt; (..., C_1, C_3)</span>
-    <span class="k">if</span> <span class="n">use_torch_solver</span> <span class="ow">and</span> <span class="n">is_torch_1_1_plus</span><span class="p">:</span>
-        <span class="c1"># torch.solve is required, which is only available after pytorch 1.1.0+</span>
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">Phi</span><span class="p">,</span> <span class="n">Rf</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Rf</span><span class="o">.</span><span class="n">inverse2</span><span class="p">(),</span> <span class="n">Phi</span><span class="p">)</span>
@@ -658,8 +653,7 @@
     <span class="c1"># (B, F, (K+1)*C, 1)</span>
     <span class="n">rtf</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">rtf</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">psd_observed_bar</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">C</span><span class="p">),</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="c1"># numerator: (..., C_1, C_2) x (..., C_2, 1) -&gt; (..., C_1)</span>
-    <span class="k">if</span> <span class="n">use_torch_solver</span> <span class="ow">and</span> <span class="n">is_torch_1_1_plus</span><span class="p">:</span>
-        <span class="c1"># torch.solve is required, which is only available after pytorch 1.1.0+</span>
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">rtf</span><span class="p">,</span> <span class="n">psd_observed_bar</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">psd_observed_bar</span><span class="o">.</span><span class="n">inverse2</span><span class="p">(),</span> <span class="n">rtf</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -807,8 +801,7 @@
 <span class="sd">        beamforming_vector (ComplexTensor): (..., L, N)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># (..., L, N)</span>
-    <span class="k">if</span> <span class="n">use_torch_solver</span> <span class="ow">and</span> <span class="n">is_torch_1_1_plus</span><span class="p">:</span>
-        <span class="c1"># torch.solve is required, which is only available after pytorch 1.1.0+</span>
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">gammax</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">Phi</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">numerator</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Phi</span><span class="o">.</span><span class="n">inverse2</span><span class="p">(),</span> <span class="n">gammax</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>

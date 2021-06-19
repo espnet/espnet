@@ -305,7 +305,8 @@ registered hooks while the latter silently ignores them.</p>
 </div>
 <div class="section" id="espnet2-enh-espnet-model">
 <span id="id3"></span><h2>espnet2.enh.espnet_model<a class="headerlink" href="#espnet2-enh-espnet-model" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.enh.espnet_model"></span><dl class="class">
+<span class="target" id="module-espnet2.enh.espnet_model"></span><p>Enhancement model module.</p>
+<dl class="class">
 <dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model.</code><code class="sig-name descname">ESPnetEnhancementModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder</em>, <em class="sig-param">separator: espnet2.enh.separator.abs_separator.AbsSeparator</em>, <em class="sig-param">decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">stft_consistency: bool = False</em>, <em class="sig-param">loss_type: str = 'mask_mse'</em>, <em class="sig-param">mask_type: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
@@ -787,7 +788,8 @@ registered hooks while the latter silently ignores them.</p>
 </div>
 <div class="section" id="espnet2-enh-layers-dnn-beamformer">
 <span id="id8"></span><h2>espnet2.enh.layers.dnn_beamformer<a class="headerlink" href="#espnet2-enh-layers-dnn-beamformer" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.enh.layers.dnn_beamformer"></span><dl class="class">
+<span class="target" id="module-espnet2.enh.layers.dnn_beamformer"></span><p>DNN beamformer module.</p>
+<dl class="class">
 <dt id="espnet2.enh.layers.dnn_beamformer.AttentionReference">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnn_beamformer.</code><code class="sig-name descname">AttentionReference</code><span class="sig-paren">(</span><em class="sig-param">bidim</em>, <em class="sig-param">att_dim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#AttentionReference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.AttentionReference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
@@ -881,7 +883,8 @@ ilens (torch.Tensor): (B,)</p>
 </div>
 <div class="section" id="espnet2-enh-layers-beamformer">
 <span id="id9"></span><h2>espnet2.enh.layers.beamformer<a class="headerlink" href="#espnet2-enh-layers-beamformer" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.enh.layers.beamformer"></span><dl class="function">
+<span class="target" id="module-espnet2.enh.layers.beamformer"></span><p>Beamformer module.</p>
+<dl class="function">
 <dt id="espnet2.enh.layers.beamformer.complex_norm">
 <code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">complex_norm</code><span class="sig-paren">(</span><em class="sig-param">c: torch_complex.tensor.ComplexTensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#complex_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.complex_norm" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>

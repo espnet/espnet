@@ -254,7 +254,8 @@
 <h1>espnet2.train package<a class="headerlink" href="#espnet2-train-package" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="espnet2-train-iterable-dataset">
 <span id="id1"></span><h2>espnet2.train.iterable_dataset<a class="headerlink" href="#espnet2-train-iterable-dataset" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.train.iterable_dataset"></span><dl class="class">
+<span class="target" id="module-espnet2.train.iterable_dataset"></span><p>Iterable dataset module.</p>
+<dl class="class">
 <dt id="espnet2.train.iterable_dataset.IterableESPnetDataset">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.iterable_dataset.</code><code class="sig-name descname">IterableESPnetDataset</code><span class="sig-paren">(</span><em class="sig-param">path_name_type_list: Collection[Tuple[str, str, str]], preprocess: Callable[[str, Dict[str, numpy.ndarray]], Dict[str, numpy.ndarray]] = None, float_dtype: str = 'float32', int_dtype: str = 'long', key_file: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/iterable_dataset.html#IterableESPnetDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.iterable_dataset.IterableESPnetDataset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.IterableDataset</span></code></p>
@@ -288,7 +289,8 @@
 </div>
 <div class="section" id="espnet2-train-trainer">
 <span id="id2"></span><h2>espnet2.train.trainer<a class="headerlink" href="#espnet2-train-trainer" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.train.trainer"></span><dl class="class">
+<span class="target" id="module-espnet2.train.trainer"></span><p>Trainer module.</p>
+<dl class="class">
 <dt id="espnet2.train.trainer.Trainer">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.trainer.</code><code class="sig-name descname">Trainer</code><a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
@@ -547,7 +549,8 @@ the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
 </div>
 <div class="section" id="espnet2-train-reporter">
 <span id="id6"></span><h2>espnet2.train.reporter<a class="headerlink" href="#espnet2-train-reporter" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.train.reporter"></span><dl class="class">
+<span class="target" id="module-espnet2.train.reporter"></span><p>Reporter module.</p>
+<dl class="class">
 <dt id="espnet2.train.reporter.Average">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.reporter.</code><code class="sig-name descname">Average</code><span class="sig-paren">(</span><em class="sig-param">value: Union[float, int, complex, torch.Tensor, numpy.ndarray]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Average"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Average" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.train.reporter.ReportedValue" title="espnet2.train.reporter.ReportedValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.reporter.ReportedValue</span></code></a></p>
