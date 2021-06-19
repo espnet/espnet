@@ -1,23 +1,14 @@
+"""Transformation module."""
+from collections.abc import Sequence
 from collections import OrderedDict
 import copy
+from inspect import signature
 import io
 import logging
-import sys
 
 import yaml
 
 from espnet.utils.dynamic_import import dynamic_import
-
-
-PY2 = sys.version_info[0] == 2
-
-if PY2:
-    from collections import Sequence
-    from funcsigs import signature
-else:
-    # The ABCs from 'collections' will stop working in 3.8
-    from collections.abc import Sequence
-    from inspect import signature
 
 
 # TODO(karita): inherit TransformInterface

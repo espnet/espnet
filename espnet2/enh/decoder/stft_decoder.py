@@ -6,7 +6,7 @@ from espnet2.layers.stft import Stft
 
 
 class STFTDecoder(AbsDecoder):
-    """STFT decoder for speech enhancement and separation """
+    """STFT decoder for speech enhancement and separation"""
 
     def __init__(
         self,

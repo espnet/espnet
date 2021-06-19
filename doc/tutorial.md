@@ -152,22 +152,46 @@ $ ./run.sh --stage 3 --stop-stage 5
 
 ### CTC, attention, and hybrid CTC/attention
 
-ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
+ESPnet can easily switch the model's training/decoding mode from CTC, attention, and hybrid CTC/attention.
+
+Each mode can be trained by specifying `mtlalpha` in the [training configuration](https://github.com/espnet/espnet/blob/7dc9da2f07c54b4b0e878d8ef219fcd4d16a5bec/doc/tutorial.md#changing-the-training-configuration):
 
 ```sh
 # hybrid CTC/attention (default)
-#  --mtlalpha 0.5 and --ctc_weight 0.3 in most cases
-$ ./run.sh
+mtlalpha: 0.3
 
-# CTC mode
-$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
+# CTC
+mtlalpha: 1.0
 
-# attention mode
-$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0 --maxlenratio 0.8 --minlenratio 0.3
+# attention
+mtlalpha: 0.0
 ```
 
-- The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
-(i.e., `--recog_model model.loss.best`).
+Decoding for each mode can be done using the following decoding configurations:
+
+```sh
+# hybrid CTC/attention (default)
+ctc-weight: 0.3
+beam-size: 10
+
+# CTC
+ctc-weight: 1.0
+## for best path decoding
+api: v1 # default setting (can be omitted)
+## for prefix search decoding w/ beam search
+api: v2
+beam-size: 10
+
+# attention
+ctc-weight: 0.0
+beam-size: 10
+maxlenratio: 0.8
+minlenratio: 0.3
+```
+
+- The CTC mode does not compute the validation accuracy, and the optimum model is selected with its loss value
+(i.e., `$ ./run.sh --recog_model model.loss.best`).
+- The CTC decoding adopts the best path decoding by default, which simply outputs the most probable label at every time step. The prefix search deocding with beam search is also supported in [beam search API v2](https://espnet.github.io/espnet/apis/espnet_bin.html?highlight=api#asr-recog-py).
 - The pure attention mode requires to set the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`), appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.
 - About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics. 
 

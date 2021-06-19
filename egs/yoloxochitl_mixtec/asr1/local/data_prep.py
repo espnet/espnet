@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 import os
 import re
 import shutil
+import soundfile as sf
 import string
 import sys
 from xml.dom.minidom import parse
@@ -413,6 +414,8 @@ def TraverseData(
                 continue
             left_channel_segments, right_channel_segments = segment_info
 
+            f = sf.SoundFile(sound_files[afile])
+            max_length = len(f) / f.samplerate
             print(
                 'sox -t wavpcm "%s" -c 1 -r 16000 -t wavpcm %s-L.wav remix 1'
                 % (sound_files[afile], os.path.join(new_data_dir, afile)),
@@ -431,6 +434,8 @@ def TraverseData(
                     afile,
                     PackZero(segment_number),
                 )
+                if float(segment[1]) > max_length:
+                    continue
                 print(
                     "%s %s-L %s %s" % (segment_id, afile, segment[0], segment[1]),
                     file=segments,
@@ -459,6 +464,8 @@ def TraverseData(
                         afile,
                         PackZero(segment_number),
                     )
+                    if float(segment[1]) > max_length:
+                        continue
                     print(
                         "%s %s-R %s %s" % (segment_id, afile, segment[0], segment[1]),
                         file=segments,
