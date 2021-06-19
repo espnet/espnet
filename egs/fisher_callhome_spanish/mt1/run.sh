@@ -87,6 +87,8 @@ else
     train_set=train.en
     train_dev=train_dev.en
     trans_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
+    trans_set="fisher_dev.en"
+    trans_set="fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -171,11 +173,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make json files"
     if [ ${reverse_direction} = true ]; then
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang es \
-            data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${train_dev} ${trans_set}; do
+        for x in ${train_set} ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang es \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang es \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
@@ -187,11 +187,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         done
     else
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
-            data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${train_dev} ${trans_set}; do
+        for x in ${train_set} ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
@@ -217,7 +215,11 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    if [ ${seed} = 1 ]; then
+        expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    else
+        expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_seed${seed}_${bpemode}${nbpe}
+    fi
 else
     expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
 fi
