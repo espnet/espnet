@@ -1,5 +1,5 @@
+"""Iterable dataset module."""
 import copy
-from distutils.version import LooseVersion
 from io import StringIO
 from pathlib import Path
 from typing import Callable
@@ -13,14 +13,10 @@ import kaldiio
 import numpy as np
 import soundfile
 import torch
+from torch.utils.data.dataset import IterableDataset
 from typeguard import check_argument_types
 
 from espnet2.train.dataset import ESPnetDataset
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.2"):
-    from torch.utils.data.dataset import IterableDataset
-else:
-    from torch.utils.data.dataset import Dataset as IterableDataset
 
 
 def load_kaldi(input):
