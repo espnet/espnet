@@ -221,7 +221,6 @@
 <span class="kn">import</span> <span class="nn">configargparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
@@ -342,26 +341,16 @@
 
     <span class="c1"># check CUDA_VISIBLE_DEVICES</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="c1"># python 2 case</span>
-        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">python_version_tuple</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;2&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s2">&quot;clsp.jhu.edu&quot;</span> <span class="ow">in</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s2">&quot;hostname&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">]):</span>
-                <span class="n">cvd</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
+        <span class="k">if</span> <span class="s2">&quot;clsp.jhu.edu&quot;</span> <span class="ow">in</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s2">&quot;hostname&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">():</span>
+            <span class="n">cvd</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
                     <span class="p">[</span><span class="s2">&quot;/usr/local/bin/free-gpu&quot;</span><span class="p">,</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">ngpu</span><span class="p">)]</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CLSP: use gpu&quot;</span> <span class="o">+</span> <span class="n">cvd</span><span class="p">)</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;CUDA_VISIBLE_DEVICES&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cvd</span>
-        <span class="c1"># python 3 case</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s2">&quot;clsp.jhu.edu&quot;</span> <span class="ow">in</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s2">&quot;hostname&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">():</span>
-                <span class="n">cvd</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
-                        <span class="p">[</span><span class="s2">&quot;/usr/local/bin/free-gpu&quot;</span><span class="p">,</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">ngpu</span><span class="p">)]</span>
-                    <span class="p">)</span>
-                    <span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-                    <span class="o">.</span><span class="n">strip</span><span class="p">()</span>
                 <span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CLSP: use gpu&quot;</span> <span class="o">+</span> <span class="n">cvd</span><span class="p">)</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;CUDA_VISIBLE_DEVICES&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cvd</span>
+                <span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CLSP: use gpu&quot;</span> <span class="o">+</span> <span class="n">cvd</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;CUDA_VISIBLE_DEVICES&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cvd</span>
 
         <span class="n">cvd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CUDA_VISIBLE_DEVICES&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cvd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

@@ -217,11 +217,11 @@
 <span class="sd">&quot;&quot;&quot;Training/decoding definition for the speech recognition task.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">reporter</span> <span class="k">as</span> <span class="n">reporter_module</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
@@ -271,11 +271,6 @@
 <span class="kn">import</span> <span class="nn">matplotlib</span>
 
 <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
-
-<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">izip_longest</span> <span class="k">as</span> <span class="n">zip_longest</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">zip_longest</span> <span class="k">as</span> <span class="n">zip_longest</span>
 
 
 <span class="k">def</span> <span class="nf">_recursive_to</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
@@ -1358,7 +1353,7 @@
 
         <span class="k">def</span> <span class="nf">grouper</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
             <span class="n">kargs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)]</span> <span class="o">*</span> <span class="n">n</span>
-            <span class="k">return</span> <span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">kargs</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="n">fillvalue</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">itertools</span><span class="o">.</span><span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">kargs</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="n">fillvalue</span><span class="p">)</span>
 
         <span class="c1"># sort data if batchsize &gt; 1</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">js</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -1536,7 +1531,7 @@
 
     <span class="k">def</span> <span class="nf">grouper</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">kargs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)]</span> <span class="o">*</span> <span class="n">n</span>
-        <span class="k">return</span> <span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">kargs</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="n">fillvalue</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">itertools</span><span class="o">.</span><span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">kargs</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="n">fillvalue</span><span class="p">)</span>
 
     <span class="n">num_images</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">image_dir</span><span class="p">):</span>
@@ -1643,91 +1638,6 @@
             <span class="k">if</span> <span class="n">num_images</span> <span class="o">&gt;=</span> <span class="n">args</span><span class="o">.</span><span class="n">num_images</span> <span class="ow">and</span> <span class="n">enh_writer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Breaking the process.&quot;</span><span class="p">)</span>
                 <span class="k">break</span></div>
-
-
-<div class="viewcode-block" id="ctc_align"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr.ctc_align">[docs]</a><span class="k">def</span> <span class="nf">ctc_align</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;CTC forced alignments with the given args.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        args (namespace): The program arguments.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">add_alignment_to_json</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="n">alignment</span><span class="p">,</span> <span class="n">char_list</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add N-best results to json.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            js (dict[str, Any]): Groundtruth utterance dict.</span>
-<span class="sd">            alignment (list[int]): List of alignment.</span>
-<span class="sd">            char_list (list[str]): List of characters.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            dict[str, Any]: N-best results added utterance dict.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># copy old json info</span>
-        <span class="n">new_js</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;ctc_alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="n">alignment_tokens</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">alignment</span><span class="p">):</span>
-            <span class="n">alignment_tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">char_list</span><span class="p">[</span><span class="n">a</span><span class="p">])</span>
-        <span class="n">alignment_tokens</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">alignment_tokens</span><span class="p">)</span>
-
-        <span class="n">new_js</span><span class="p">[</span><span class="s2">&quot;ctc_alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">alignment_tokens</span>
-
-        <span class="k">return</span> <span class="n">new_js</span>
-
-    <span class="n">set_deterministic_pytorch</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="n">model</span><span class="p">,</span> <span class="n">train_args</span> <span class="o">=</span> <span class="n">load_trained_model</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ASRInterface</span><span class="p">)</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-
-    <span class="n">load_inputs_and_targets</span> <span class="o">=</span> <span class="n">LoadInputsAndTargets</span><span class="p">(</span>
-        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span>
-        <span class="n">load_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">sort_in_input_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">preprocess_conf</span><span class="o">=</span><span class="n">train_args</span><span class="o">.</span><span class="n">preprocess_conf</span>
-        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocess_conf</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocess_conf</span><span class="p">,</span>
-        <span class="n">preprocess_args</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
-    <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;only single GPU decoding is supported&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-
-    <span class="c1"># read json data</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">align_json</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">js</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s2">&quot;utts&quot;</span><span class="p">]</span>
-    <span class="n">new_js</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">batchsize</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">js</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="mi">1</span><span class="p">):</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;(</span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2">) aligning &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">js</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-                <span class="n">batch</span> <span class="o">=</span> <span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="n">js</span><span class="p">[</span><span class="n">name</span><span class="p">])]</span>
-                <span class="n">feat</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">load_inputs_and_targets</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-                <span class="n">feat</span> <span class="o">=</span> <span class="n">feat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">enc</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">feat</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                <span class="n">alignment</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">forced_align</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-                <span class="n">new_js</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_alignment_to_json</span><span class="p">(</span>
-                    <span class="n">js</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">alignment</span><span class="p">,</span> <span class="n">train_args</span><span class="o">.</span><span class="n">char_list</span>
-                <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Align_batch is not implemented.&quot;</span><span class="p">)</span>
-
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">result_label</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-            <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
-                <span class="p">{</span><span class="s2">&quot;utts&quot;</span><span class="p">:</span> <span class="n">new_js</span><span class="p">},</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf_8&quot;</span><span class="p">)</span>
-        <span class="p">)</span></div>
 </pre></div>
 
            </div>

@@ -211,7 +211,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet.nets.pytorch_backend.rnn.decoders</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span></span><span class="sd">&quot;&quot;&quot;RNN decoder module.&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">random</span>
@@ -478,15 +478,11 @@
         <span class="n">z_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">z_all</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch</span> <span class="o">*</span> <span class="n">olength</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># compute loss</span>
         <span class="n">y_all</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">z_all</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.0&quot;</span><span class="p">):</span>
-            <span class="n">reduction_str</span> <span class="o">=</span> <span class="s2">&quot;elementwise_mean&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">reduction_str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span>
             <span class="n">y_all</span><span class="p">,</span>
             <span class="n">ys_out_pad</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
             <span class="n">ignore_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">,</span>
-            <span class="n">reduction</span><span class="o">=</span><span class="n">reduction_str</span><span class="p">,</span>
+            <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># compute perplexity</span>
         <span class="n">ppl</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>

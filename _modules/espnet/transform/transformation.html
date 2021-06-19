@@ -211,26 +211,17 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet.transform.transformation</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span></span><span class="sd">&quot;&quot;&quot;Transformation module.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
 <span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">import</span> <span class="nn">yaml</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.dynamic_import</span> <span class="kn">import</span> <span class="n">dynamic_import</span>
-
-
-<span class="n">PY2</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
-
-<span class="k">if</span> <span class="n">PY2</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Sequence</span>
-    <span class="kn">from</span> <span class="nn">funcsigs</span> <span class="kn">import</span> <span class="n">signature</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="c1"># The ABCs from &#39;collections&#39; will stop working in 3.8</span>
-    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
-    <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
 
 
 <span class="c1"># TODO(karita): inherit TransformInterface</span>
