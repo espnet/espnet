@@ -6,7 +6,7 @@
 | RNN (BPE1k)                                                   | 26.0       | 24.9        | 22.8        | 44.6             | 45.7             |
 | Transformer (BPE1k)                                           | 24.2       | 23.6        | 21.5        | 41.1             | 41.4             |
 | + SpecAugment                                                 | 23.1       | 22.5        | 20.8        | 40.2             | 39.6             |
-| Conformer (BPE1k) + SpecAugment                               | **21.3**   | **21.1**    | **19.4**    | **37.1**         | **37.9**         |
+| Conformer (BPE1k) + SpecAugment                               | **20.7**   | **20.1**    | **18.9**    | **36.0**         | **36.7**         |
 
 # Conformer results
 
@@ -14,13 +14,14 @@
 
 | dataset                                                                                                                     | Snt  | Wrd   | Corr | Sub  | Del | Ins | Err      | S.Err |
 | --------------------------------------------------------------------------------------------------------------------------- | ---- | ----- | ---- | ---- | --- | --- | -------- | ----- |
-| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_fisher_dev.es_decode_pytorch_transformer       | 3973 | 40966 | 83.0 | 12.3 | 4.6 | 4.3 | **21.3** | 63.5  |
-| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_fisher_dev2.es_decode_pytorch_transformer      | 3957 | 39895 | 83.7 | 12.4 | 3.9 | 4.9 | **21.1** | 63.7  |
-| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_fisher_test.es_decode_pytorch_transformer      | 3638 | 39990 | 85.8 | 10.8 | 3.4 | 5.3 | **19.4** | 62.4  |
-| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_callhome_devtest.es_decode_pytorch_transformer | 3956 | 37584 | 70.3 | 23.4 | 6.3 | 7.4 | **37.1** | 78.7  |
-| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_callhome_evltest.es_decode_pytorch_transformer | 1825 | 18807 | 69.4 | 23.4 | 7.2 | 7.3 | **37.9** | 80.5  |
+| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_fisher_dev.es_decode_pytorch_transformer       | 3973 | 40966 | 84.0 | 11.6 | 4.3 | 4.7 | **20.7** | 61.9  |
+| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_fisher_dev2.es_decode_pytorch_transformer      | 3957 | 39895 | 84.9 | 11.6 | 3.5 | 5.0 | **20.1** | 62.0  |
+| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_fisher_test.es_decode_pytorch_transformer      | 3638 | 39990 | 86.6 | 10.2 | 3.2 | 5.5 | **18.9** | 61.1  |
+| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_callhome_devtest.es_decode_pytorch_transformer | 3956 | 37584 | 71.8 | 21.9 | 6.3 | 7.8 | **36.0** | 77.1  |
+| exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug/decode_callhome_evltest.es_decode_pytorch_transformer | 1825 | 18807 | 71.0 | 22.1 | 6.9 | 7.8 | **36.7** | 79.8  |
 
 - Model files (archived to train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/file/d/1IuaujfXZP9my9lsvwhquzb0_N5-ojhg2/view?usp=sharing
   - training config file: `conf/tuning/train_pytorch_conformer.yaml`
   - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
   - preprocess config file: `conf/specaug.yaml`
