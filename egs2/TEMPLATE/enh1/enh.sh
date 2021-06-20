@@ -674,7 +674,7 @@ if ! "${skip_eval}"; then
                 paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
                 awk 'BEGIN{sum=0}
                     {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
-                    END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
+                    END{printf ("%.2f\n",sum/NR)}' > "${_dir}/result_${protocol,,}.txt"
             done
         done
         ./scripts/utils/show_enh_score.sh ${enh_exp} > "${enh_exp}/RESULTS.md"

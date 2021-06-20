@@ -1,17 +1,10 @@
-from distutils.version import LooseVersion
-
 import numpy as np
-import pytest
 import torch
 
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.1.0"),
-    reason="Require pytorch>=1.1.0",
-)
 def test_WarumupLR():
     linear = torch.nn.Linear(2, 2)
     opt = torch.optim.SGD(linear.parameters(), 0.1)
@@ -24,10 +17,6 @@ def test_WarumupLR():
     assert lr != lr2
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.1.0"),
-    reason="Require pytorch>=1.1.0",
-)
 def test_WarumupLR_is_compatible_with_NoamLR():
     lr = 10
     model_size = 32

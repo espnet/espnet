@@ -361,7 +361,7 @@ class Transformer(AbsTTS):
         self._reset_parameters(
             init_type=init_type,
             init_enc_alpha=init_enc_alpha,
-            init_dec_alpha=init_enc_alpha,
+            init_dec_alpha=init_dec_alpha,
         )
 
     def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):

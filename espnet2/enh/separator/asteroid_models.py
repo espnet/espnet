@@ -103,7 +103,7 @@ class AsteroidModel_Converter(AbsSeparator):
     def forward_rawwav(
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Output with waveforms. """
+        """Output with waveforms."""
         return self.forward(input, ilens)
 
     @property

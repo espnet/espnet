@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+"""DNN beamformer module."""
 from typing import List
 from typing import Tuple
 from typing import Union
@@ -20,9 +20,6 @@ from espnet2.enh.layers.beamformer import get_WPD_filter_v2
 from espnet2.enh.layers.beamformer import get_WPD_filter_with_rtf
 from espnet2.enh.layers.beamformer import perform_WPD_filtering
 from espnet2.enh.layers.mask_estimator import MaskEstimator
-
-is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
-is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
 
 
 BEAMFORMER_TYPES = (
@@ -497,10 +494,8 @@ class AttentionReference(torch.nn.Module):
         B, _, C = psd_in.size()[:3]
         assert psd_in.size(2) == psd_in.size(3), psd_in.size()
         # psd_in: (B, F, C, C)
-        datatype = torch.bool if is_torch_1_3_plus else torch.uint8
-        datatype2 = torch.bool if is_torch_1_2_plus else torch.uint8
         psd = psd_in.masked_fill(
-            torch.eye(C, dtype=datatype, device=psd_in.device).type(datatype2), 0
+            torch.eye(C, dtype=torch.bool, device=psd_in.device), 0
         )
         # psd: (B, F, C, C) -> (B, C, F)
         psd = (psd.sum(dim=-1) / (C - 1)).transpose(-1, -2)

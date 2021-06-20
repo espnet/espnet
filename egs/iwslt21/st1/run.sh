@@ -50,8 +50,12 @@ tgt_case=tc
 remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
 # NOTE: IWSLT community accepts this setting and therefore we use this by default
 
+# iwslt segmentation related
+max_interval=200
+max_duration=1500
+
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=16000
 bpemode=bpe
 
 # exp tag
@@ -70,13 +74,16 @@ mustc_dir=../../must_c
 mustc_v2_dir=../../must_c_v2
 stted_dir=../../iwslt18
 
+# test data directory
+iwslt_test_data_dir=/n/rd8/iwslt18
+
 train_set=train.de
 train_dev=dev.de
 trans_subset="et_mustc_dev_org.de et_mustc_tst-COMMON.de et_mustc_tst-HE.de"
 trans_set="et_mustc_dev_org.de et_mustc_tst-COMMON.de et_mustc_tst-HE.de \
-           et_mustcv2_dev_org.de et_mustcv2_tst-COMMON.de et_mustcv2_tst-HE.de \
-           et_stted_dev2010.de et_stted_tst2010.de et_stted_tst2013.de et_stted_tst2014.de et_stted_tst2015.de \
-           et_stted_tst2018.de et_stted_tst2019.de"
+           et_mustcv2_dev_org.de et_mustcv2_tst-COMMON.de et_mustcv2_tst-HE.de"
+iwslt_test_set="et_stted_dev2010.de et_stted_tst2010.de et_stted_tst2013.de et_stted_tst2014.de et_stted_tst2015.de \
+                et_stted_tst2018.de et_stted_tst2019.de"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -128,8 +135,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cp -rf ${stted_dir}/st1/data/${x}.en data/et_${data_code}_${x}.en
         cp -rf ${stted_dir}/st1/data/${x}.de data/et_${data_code}_${x}.de
     done
-
-    # TODO: IWSLT21 test set
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -144,9 +149,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}
+        rm data/${x}/segments
+        rm data/${x}/wav.scp
     done
-    rm data/*/segments
-    rm data/*/wav.scp
 
     for lang in en de; do
         utils/combine_data.sh --extra_files "text.tc text.lc text.lc.rm" data/train.${lang} data/tr_mustc.${lang} data/tr_mustcv2.${lang} data/tr_stted.${lang}
@@ -182,6 +187,32 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
             data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_trans_dir}
     done
+
+    # concatenate short segments
+    for x in ${iwslt_test_set}; do
+        output_dir=${x}_merge${max_interval}_duration${max_duration}
+        rm -rf data/${output_dir}
+        cp -rf data/${x} data/${output_dir}
+        rm data/${output_dir}/utt2num_frames
+
+        local/merge_short_segments.py \
+            data/${x}/segments \
+            data/${output_dir}/segments \
+            data/${output_dir}/utt2spk \
+            data/${output_dir}/spk2utt \
+            --min_interval ${max_interval} \
+            --max_duration ${max_duration} \
+            --delimiter "_" || exit 1;
+
+        # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${output_dir} exp/make_fbank/${output_dir} ${fbankdir}
+        utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${output_dir}
+
+        feat_trans_dir=${dumpdir}/${output_dir}/delta${do_delta}; mkdir -p ${feat_trans_dir}
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+            data/${output_dir}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${output_dir} ${feat_trans_dir}
+    done
 fi
 
 dict=data/lang_1spm/${train_set}_${bpemode}${nbpe}_units_${tgt_case}.txt
@@ -210,10 +241,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for x in ${train_dev} ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
-        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
-            data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+    for x in ${train_dev} ${trans_set} ${iwslt_test_set}; do
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            feat_trans_dir=${dumpdir}/${x}_merge${max_interval}_duration${max_duration}/delta${do_delta}
+            local/data2json.sh --feat ${feat_trans_dir}/feats.scp --no_text true \
+                data/${x}_merge${max_interval}_duration${max_duration} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        else
+            feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
+            data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
+                data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        fi
     done
 
     # update json (add source references)
@@ -287,6 +324,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for x in ${trans_subset}; do
     (
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            x=${x}_merge${max_interval}_duration${max_duration}
+        fi
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
 
@@ -303,9 +343,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            --remove_nonverbal ${remove_nonverbal} \
-            ${expdir}/${decode_dir} "de" ${dict}
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            set=$(echo ${x} | cut -f 1 -d "." | cut -f 3 -d "_")
+            local/score_bleu_reseg.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+                --remove_nonverbal ${remove_nonverbal} \
+                ${expdir}/${decode_dir} ${dict} ${iwslt_test_data_dir} ${set}
+        else
+            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+                --remove_nonverbal ${remove_nonverbal} \
+                ${expdir}/${decode_dir} "de" ${dict}
+        fi
     ) &
     pids+=($!) # store background pids
     done
