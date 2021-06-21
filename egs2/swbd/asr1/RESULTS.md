@@ -35,10 +35,27 @@ exp_sp/train_nodup_sp_pytorch_train_pytorch_conformer_lr5_specaug_resume/decode_
 - Commit date: `Sat Jun 19 19:42:50 2021 -0400`
 - model link: https://zenodo.org/record/5006864/files/asr_train_conformer_fbank_pitch_bpe2000_valid.acc.ave_10best.zip?download=1
 
-
+Without LM Rescoring
+```
+exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.callhm.ctm.filt.sys
 |       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
-exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.callhm.ctm.filt.sys:	|	Sum/Avg	|	2628	|	21594	|	87.4	|	9.6	|	3.0	|	2.0	|	14.6	|	49.7	|
-exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.swbd.ctm.filt.sys:	|	Sum/Avg	|	1831	|	21395	|	93.7	|	4.3	|	2.0	|	0.9	|	7.2	|	37.7	|
-exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_lm_transformer_valid.loss.ave_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.callhm.ctm.filt.sys:	|	Sum/Avg	|	2628	|	21594	|	88.0	|	8.9	|	3.1	|	2.0	|	14.0	|	48.0	|
-exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_lm_transformer_valid.loss.ave_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.swbd.ctm.filt.sys:	|	Sum/Avg	|	1831	|	21395	|	94.0	|	4.0	|	2.0	|	0.9	|	6.8	|	35.9	|
- 
+|	Sum/Avg	|	2628	|	21594	|	87.4	|	9.6	|	3.0	|	2.0	|	14.6	|	49.7	|
+exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.ctm.filt.sys	
+|       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
+|	Sum/Avg	|	4459	|	42989	|	90.5	|	7.0	|	2.5	|	1.5	|	10.9	|	44.7	|
+exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.swbd.ctm.filt.sys
+|       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
+|	Sum/Avg	|	1831	|	21395	|	93.7	|	4.3	|	2.0	|	0.9	|	7.2	|	37.7	|
+```
+ With Transformer LM
+```
+exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_lm_transformer_valid.loss.ave_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.callhm.ctm.filt.sys
+|       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
+|	Sum/Avg	|	2628	|	21594	|	88.0	|	8.9	|	3.1	|	2.0	|	14.0	|	48.0	|
+exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_lm_transformer_valid.loss.ave_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.ctm.filt.sys
+|       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
+|	Sum/Avg	|	4459	|	42989	|	91.0	|	6.5	|	2.5	|	1.4	|	10.4	|	43.0	|
+exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_lm_transformer_valid.loss.ave_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.swbd.ctm.filt.sys
+|       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
+|	Sum/Avg	|	1831	|	21395	|	94.0	|	4.0	|	2.0	|	0.9	|	6.8	|	35.9	|
+``` 
