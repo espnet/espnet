@@ -4,6 +4,7 @@
 # begin configuration section.
 cmd=run.pl
 stage=0
+data=data/eval2000
 #end configuration section.
 
 [ -f ./path.sh ] && . ./path.sh
@@ -17,7 +18,6 @@ if [ $# -lt 1 ]; then
   exit 1;
 fi
 
-data=data/eval2000
 asr_expdir=$1
 
 hubscr=${KALDI_ROOT}/tools/sctk/bin/hubscr.pl
