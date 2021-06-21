@@ -55,7 +55,7 @@ while IFS= read -r expdir; do
 #|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 #|---|---|---|---|---|---|---|---|---|
 EOF
-    			if  [[ $type == "wer" ]] && [[ ! -z `ls ${expdir}/*/*/score_wer/scoring/*.filt.sys` ]] ; then
+			if  [[ $type == "wer" ]] && [[ -n $(ls ${expdir}/*/*/score_wer/scoring/*.filt.sys) ]] ; then
 	    			echo "## $(basename ${expdir})"
             			grep -H -e Sum/Avg "${expdir}"/*/*/score_wer/scoring/*.filt.sys | tr '|' ' ' | tr -s ' ' '|'
 	    			echo 

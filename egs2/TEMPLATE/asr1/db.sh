@@ -38,7 +38,6 @@ JSSS=downloads
 JSUT=downloads
 JVS=downloads
 SPGISPEECH=
-FISHER=
 SWBD=
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads

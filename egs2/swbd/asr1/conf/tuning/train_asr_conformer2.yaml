@@ -5,7 +5,7 @@ fold_length:
         - 80000
         - 150
 accum_grad: 1
-max_epoch: 86
+max_epoch: 150
 patience: none
 init: None
 best_model_criterion:
@@ -50,18 +50,10 @@ model_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.002
+    lr: 0.006
 scheduler: warmuplr
 scheduler_conf: 
     warmup_steps: 25000
-    #scheduler: tristage
-    #scheduler_conf:
-    #warmup_steps: 25000
-    #hold_steps: 8000
-    #decay_steps: 20000
-    #init_lr_ratio: 0.06
-    #final_lr_ratio: 0.01
-
 ctc_conf:
         ignore_nan_grad: true
 
