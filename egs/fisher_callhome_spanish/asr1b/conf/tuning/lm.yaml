@@ -6,3 +6,6 @@ batchsize: 256 # batch size in LM training
 epoch: 60      # if the data size is large, we can reduce this
 patience: 3
 maxlen: 150      # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
+
+tie-weights: true
+emb_dropout_rate: 0.3
