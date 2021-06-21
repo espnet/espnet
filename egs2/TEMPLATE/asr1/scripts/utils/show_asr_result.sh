@@ -52,11 +52,12 @@ while IFS= read -r expdir; do
                 cat << EOF
 ### ${type^^}
 
-#|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-#|---|---|---|---|---|---|---|---|---|
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
 EOF
 			if  [[ $type == "wer" ]] && [[ -n $(ls ${expdir}/*/*/score_wer/scoring/*.filt.sys) ]] ; then
-	    			echo "## $(basename ${expdir})"
+	    			## If STM used for HUBSCR based scoring, the *.sys files have the WER, not result.txt or result.wrd.txt
+				echo "## $(basename ${expdir})"
             			grep -H -e Sum/Avg "${expdir}"/*/*/score_wer/scoring/*.filt.sys | tr '|' ' ' | tr -s ' ' '|'
 	    			echo 
 	    		else    
