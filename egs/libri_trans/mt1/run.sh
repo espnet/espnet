@@ -36,6 +36,10 @@ metric=bleu                  # loss/acc/bleu
 asr_model=
 decode_config_asr=
 dict_asr=
+# example:
+# asr_model_dir=../asr1/exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug
+# decode_config_asr=../asr1/config/tuning/decode_pytorch_transformer.yaml
+# dict_asr=../asr1/data/lang_1spm/train_sp.en_bpe1000_units_lc.rm.txt
 
 # preprocessing related
 src_case=lc.rm
@@ -162,15 +166,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make json files"
     if [ ${reverse_direction} = true ]; then
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
-            data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
-            data/${train_set} ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${train_dev} ${trans_set}; do
+        for x in ${train_set} ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
+        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
+            data/${train_set} ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         # update json (add source references)
         update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".fr/text.${src_case} --bpecode ${bpemodel}.model \
@@ -183,15 +185,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json data/"$(echo ${x} | cut -f 1 -d ".")".fr ${dict}
         done
     else
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "fr" \
-            data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        data2json.sh --nj 16 --text data/train.fr.gtranslate/text.${tgt_case} --bpecode ${bpemodel}.model --lang "fr" \
-            data/train.fr.gtranslate ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${train_dev} ${trans_set}; do
+        for x in ${train_set} ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "fr" \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "fr" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
+        data2json.sh --nj 16 --text data/train.fr.gtranslate/text.${tgt_case} --bpecode ${bpemodel}.model --lang "fr" \
+            data/train.fr.gtranslate ${dict} > ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         # update json (add source references)
         update_json.sh --text data/"$(echo ${train_set} | cut -f 1 -d ".")".en/text.${src_case} --bpecode ${bpemodel}.model \
@@ -208,7 +208,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # concatenate Fr and Fr (Google translation) jsons
     concat_json_multiref.py \
         ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
-        ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json > ${feat_tr_dir}/data_2ref_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        ${feat_tr_dir}/data_gtranslate${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        > ${feat_tr_dir}/data_2ref_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 fi
 
 # NOTE: skip stage 3: LM Preparation
