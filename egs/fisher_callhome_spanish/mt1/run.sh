@@ -33,9 +33,13 @@ use_valbest_average=true     # if true, the validation `n_average`-best MT model
 metric=bleu                  # loss/acc/bleu
 
 # cascaded-ST related
-asr_model=
+asr_model_dir=
 decode_config_asr=
 dict_asr=
+# example:
+# asr_model_dir=../asr1b/exp/train_sp.es_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug
+# decode_config_asr=../asr1b/config/tuning/decode_pytorch_transformer.yaml
+# dict_asr=../asr1b/data/lang_1spm/train_sp.es_bpe1000_units_lc.rm.txt
 
 # preprocessing related
 src_case=lc.rm
@@ -171,11 +175,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make json files"
     if [ ${reverse_direction} = true ]; then
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang es \
-            data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${train_dev} ${trans_set}; do
+        for x in ${train_set} ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang es \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang es \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
@@ -187,11 +189,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         done
     else
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
-            data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-        for x in ${train_dev} ${trans_set}; do
+        for x in ${train_set} ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
@@ -207,7 +207,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
             feat_trans_dir=${dumpdir}/${x}
             for no in 1 2 3; do
-                data2json.sh --text data/${x}/text.${tgt_case}.${no} --bpecode ${bpemodel}.model --lang en \
+                data2json.sh --text data/${x}/text.${tgt_case}.${no} --bpecode ${bpemodel}.model --lang "en" \
                     data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}_${no}.${src_case}_${tgt_case}.json
             done
         done
@@ -217,7 +217,11 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    if [ ${seed} = 1 ]; then
+        expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    else
+        expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_seed${seed}_${bpemode}${nbpe}
+    fi
 else
     expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
 fi
@@ -316,7 +320,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Finished"
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
     echo "stage 6: Cascaded-ST decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average MT models
@@ -328,17 +332,17 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
     fi
 
     for x in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
+        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model_dir} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
         rtask=$(echo ${x} | cut -f -1 -d ".").es
         data_dir=data/${rtask}
 
         # ASR outputs
         asr_decode_dir=decode_${rtask}_$(basename ${decode_config_asr%.*})
-        json2text.py ${asr_model}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
+        json2text.py ${asr_model_dir}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
         spm_decode --model=${bpemodel}.model --input_format=piece < ${data_dir}/text_asr_hyp.${src_case} | sed -e "s/▁/ /g" \
             > ${data_dir}/text_asr_hyp.wrd.${src_case}
 
-        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
+        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
             data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         update_json.sh --text ${data_dir}/text_asr_hyp.wrd.${src_case} --bpecode ${bpemodel}.model \
             ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
@@ -346,9 +350,9 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
 
     # Fisher has 4 references per utterance
     for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
+        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model_dir} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
         for no in 1 2 3; do
-            data2json.sh --text data/${x}/text.${tgt_case}.${no} --bpecode ${bpemodel}.model --lang en \
+            data2json.sh --text data/${x}/text.${tgt_case}.${no} --bpecode ${bpemodel}.model --lang "en" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}_${no}.${src_case}_${tgt_case}.json
         done
     done
@@ -361,7 +365,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
     for x in ${trans_set}; do
     (
         decode_dir=decode_${x}_$(basename ${decode_config%.*})_pipeline
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev)
+        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model_dir} | rev | cut -f 2 -d "/" | rev)
 
         # reset log for RTF calculation
         if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
