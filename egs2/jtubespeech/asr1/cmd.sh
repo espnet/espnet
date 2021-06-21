@@ -28,7 +28,7 @@
 
 
 # Select the backend used by run.sh from "local", "stdout", "sge", "slurm", or "ssh"
-cmd_backend='sge'
+cmd_backend='local'
 
 # Local machine, without any Job scheduling system
 if [ "${cmd_backend}" = local ]; then
@@ -58,9 +58,9 @@ elif [ "${cmd_backend}" = sge ]; then
     # To know the "queue" names, type "qhost -q"
     # Note that to use "--gpu *", you have to setup "complex_value" for the system scheduler.
 
-    export train_cmd="queue.pl -l h_rt=24:00:00"
-    export cuda_cmd="queue.pl --mem 40G --gpu 1  -l h_rt=200:00:00"
-    export decode_cmd="queue.pl -l h_rt=24:00:00"
+    export train_cmd="queue.pl"
+    export cuda_cmd="queue.pl"
+    export decode_cmd="queue.pl"
 
 
 # "qsub" (Torque/PBS.)
