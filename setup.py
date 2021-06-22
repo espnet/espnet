@@ -95,7 +95,11 @@ try:
     if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("fairscale")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
+        raise NotImplementedError("Not yet supported")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.9.0"):
+        requirements["install"].append("torchaudio==0.9.0")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):
         requirements["install"].append("torchaudio==0.8.1")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
         requirements["install"].append("torchaudio==0.8.0")
