@@ -60,10 +60,5 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # The following datasets will be created:
     # {tr,cv}_synthetic tt_synthetic__{no,with}_reverb
     local/dns_data_prep.sh  ${dns_wav} ${DNS}/datasets/test_set/ || exit 1;
-
-    # Note:
-    #   - `both`: a mixture of speech1, speech2 and noise (for speech separation)
-    #   - `clean`: a mixture of speech1 and speech2 (for speech separation)
-    #   - `single`: a mixture of speech1 and noise (for speech enhancement)
 fi
 

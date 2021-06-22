@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-sample_rate=48k
+sample_rate=8k
 
 
 
