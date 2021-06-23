@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+"""Enhancement model module."""
 from functools import reduce
 from itertools import permutations
 from typing import Dict

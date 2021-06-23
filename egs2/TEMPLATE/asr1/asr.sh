@@ -1175,7 +1175,7 @@ if ! "${skip_eval}"; then
 
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         log "Stage 12: Scoring"
-        if [ "${token_type}" = pnh ]; then
+        if [ "${token_type}" = phn ]; then
             log "Error: Not implemented for token_type=phn"
             exit 1
         fi
