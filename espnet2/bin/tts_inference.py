@@ -149,14 +149,14 @@ class Text2Speech:
             batch["spembs"] = spembs
 
         cfg = self.decode_config
-        if speed_control_alpha is not None and isinstance(self.tts, (FastSpeech, FastSpeech2)):
+        if speed_control_alpha is not None and isinstance(
+            self.tts, (FastSpeech, FastSpeech2)
+        ):
             cfg = self.decode_config.copy()
-            cfg.update({"alpha": speed_control_alpha})    
+            cfg.update({"alpha": speed_control_alpha})
 
         batch = to_device(batch, self.device)
-        outs, outs_denorm, probs, att_ws = self.model.inference(
-            **batch, **cfg
-        )
+        outs, outs_denorm, probs, att_ws = self.model.inference(**batch, **cfg)
 
         if att_ws is not None:
             duration, focus_rate = self.duration_calculator(att_ws)
