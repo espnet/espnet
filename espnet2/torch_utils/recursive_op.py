@@ -1,14 +1,8 @@
-from distutils.version import LooseVersion
-
+"""Torch utility module."""
 import torch
 
 if torch.distributed.is_available():
-    if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
-        from torch.distributed import ReduceOp
-    else:
-        from torch.distributed import reduce_op as ReduceOp
-else:
-    ReduceOp = None
+    from torch.distributed import ReduceOp
 
 
 def recursive_sum(obj, weight: torch.Tensor, distributed: bool = False):

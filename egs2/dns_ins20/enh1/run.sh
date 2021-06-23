@@ -14,6 +14,7 @@ valid_set=cv_synthetic
 test_sets="tt_synthetic_no_reverb tt_synthetic_with_reverb"
 
 ./enh.sh \
+    --lang en \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

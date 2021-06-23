@@ -1,12 +1,8 @@
-from distutils.version import LooseVersion
-
 import pytest
 import torch
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
-
-is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 
 random_speech = torch.tensor(
     [
