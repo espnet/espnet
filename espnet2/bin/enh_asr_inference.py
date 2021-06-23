@@ -169,8 +169,7 @@ class Speech2Text:
     def __call__(
         self,
         speech_mix: Union[torch.Tensor, np.ndarray],
-        speech_ref1: Union[torch.Tensor, np.ndarray] = None,
-        speech_ref2: Union[torch.Tensor, np.ndarray] = None,
+        speech_refs: List[Union[torch.Tensor, np.ndarray]] = None,
     ) -> List[
         List[Tuple[Optional[float], Optional[str], List[str], List[int], Hypothesis]]
     ]:
@@ -187,10 +186,8 @@ class Speech2Text:
         # Input as audio signal
         if isinstance(speech, np.ndarray):
             speech = torch.from_numpy(speech)
-        if isinstance(speech_ref1, np.ndarray):
-            speech_ref1 = torch.from_numpy(speech_ref1)
-        if isinstance(speech_ref2, np.ndarray):
-            speech_ref2 = torch.from_numpy(speech_ref2)
+        if speech_refs is not None and isinstance(speech_refs[0], np.ndarray):
+            speech_refs = [torch.from_numpy(srf) for srf in speech_refs]
 
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
@@ -211,7 +208,7 @@ class Speech2Text:
         ]
         if self.joint_model.cal_enh_loss:
             ref = np.array(
-                torch.stack([speech_ref1, speech_ref2], dim=0).squeeze()
+                torch.stack(speech_refs, dim=0).squeeze()
             )  # nspk,T
             inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
@@ -358,10 +355,11 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            speech_refs = [v[0] for k, v in batch.items() if k.startwith("speech_ref")]
 
             # N-best list of (text, token, token_int, hyp_object)
             logging.info(f"keys: {keys}")
-            results_list = speech2text(**batch)
+            results_list = speech2text(batch['speech_mix'], speech_refs)
 
             for spk_idx, results in enumerate(results_list):
                 # Only supporting batch_size==1

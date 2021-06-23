@@ -22,7 +22,7 @@ class TransformerSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
-        num_spk: int = 2,
+        num_spk: int = 1,
         adim: int = 384,
         aheads: int = 4,
         layers: int = 6,

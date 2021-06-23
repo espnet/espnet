@@ -14,7 +14,7 @@ class TCNSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
-        num_spk: int = 2,
+        num_spk: int = 1,
         layer: int = 8,
         stack: int = 3,
         bottleneck_dim: int = 128,

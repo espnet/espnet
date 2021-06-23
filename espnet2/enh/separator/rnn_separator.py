@@ -15,7 +15,7 @@ class RNNSeparator(AbsSeparator):
         self,
         input_dim: int,
         rnn_type: str = "blstm",
-        num_spk: int = 2,
+        num_spk: int = 1,
         nonlinear: str = "sigmoid",
         layer: int = 3,
         unit: int = 512,
