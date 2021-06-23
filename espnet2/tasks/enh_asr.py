@@ -1,4 +1,5 @@
 import argparse
+import copy
 import logging
 from typing import Callable
 from typing import Collection
@@ -31,9 +32,9 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.tasks.enh import decoder_choices as enh_decoder_choices
-from espnet2.tasks.enh import encoder_choices as enh_encoder_choices
-from espnet2.tasks.enh import separator_choices as enh_separator_choices
+from espnet2.tasks.enh import decoder_choices as enh_decoder_choices_
+from espnet2.tasks.enh import encoder_choices as enh_encoder_choices_
+from espnet2.tasks.enh import separator_choices as enh_separator_choices_
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -45,8 +46,14 @@ from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
+
+# copy the choices from enh task to keep the choices consistent
+# rename with "enh" prefix to avoid conficts with asr encoder/decoder
+enh_encoder_choices = copy.deepcopy(enh_encoder_choices_)
 enh_encoder_choices.name = "enh_encoder"
+enh_decoder_choices = copy.deepcopy(enh_decoder_choices_)
 enh_decoder_choices.name = "enh_decoder"
+enh_separator_choices = copy.deepcopy(enh_separator_choices_)
 enh_separator_choices.name = "enh_separator"
 
 frontend_choices = ClassChoices(
