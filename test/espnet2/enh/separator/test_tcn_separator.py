@@ -123,7 +123,8 @@ def test_tcn_separator_output():
     for num_spk in range(1, 3):
         model = TCNSeparator(
             input_dim=10,
-            layer=num_spk,
+            layer=2,
+            num_spk=num_spk,
             stack=2,
             bottleneck_dim=3,
             hidden_dim=3,

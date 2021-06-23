@@ -207,9 +207,7 @@ class Speech2Text:
             for f in feats
         ]
         if self.joint_model.cal_enh_loss:
-            ref = np.array(
-                torch.stack(speech_refs, dim=0).squeeze()
-            )  # nspk,T
+            ref = np.array(torch.stack(speech_refs, dim=0).squeeze())  # nspk,T
             inf = np.array(torch.stack(speech_pre, dim=1).squeeze())
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
         else:
@@ -359,7 +357,7 @@ def inference(
 
             # N-best list of (text, token, token_int, hyp_object)
             logging.info(f"keys: {keys}")
-            results_list = speech2text(batch['speech_mix'], speech_refs)
+            results_list = speech2text(batch["speech_mix"], speech_refs)
 
             for spk_idx, results in enumerate(results_list):
                 # Only supporting batch_size==1

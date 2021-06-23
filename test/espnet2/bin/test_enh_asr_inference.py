@@ -72,7 +72,9 @@ def lm_config_file(tmp_path: Path, token_list):
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text(enh_asr_config_file, lm_config_file):
     speech2text = Speech2Text(
-        joint_train_config=enh_asr_config_file, lm_train_config=lm_config_file, beam_size=1
+        joint_train_config=enh_asr_config_file,
+        lm_train_config=lm_config_file,
+        beam_size=1,
     )
     speech = np.random.randn(100000)
     speech_ref1 = np.random.randn(100000)
@@ -103,6 +105,3 @@ def enh_asr_config_file_streaming(tmp_path: Path, token_list):
         ]
     )
     return tmp_path / "asr_streaming" / "config.yaml"
-
-
-
