@@ -53,7 +53,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         decoder: AbsDecoder,
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
-        mask_type: Optional[str] = None,
+        mask_type: Optional[str] = "PSM",
         ref_channel: int = 0,
     ):
         assert check_argument_types()
