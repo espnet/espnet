@@ -5,6 +5,8 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
+import numpy as np
+from scipy.optimize import linear_sum_assignment
 import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
@@ -387,6 +389,9 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             # loss_ctc = loss_ctc.masked_fill(torch.isinf(loss_ctc), 0)
             loss_ctc = loss_ctc.mean()
         else:
+            assert (
+                self.ctc.reduce is False
+            ), "When solve permutation with CTC, the CTC loss should not be reduced"
             encoder_out, encoder_out_lens, ys_pad, ys_pad_lens = (
                 torch.chunk(encoder_out, n_speakers, dim=0),
                 torch.chunk(encoder_out_lens, n_speakers, dim=0),
@@ -394,6 +399,7 @@ class ESPnetEnhASRModel(AbsESPnetModel):
                 torch.chunk(ys_pad_lens, n_speakers, dim=0),
             )
             batch_size = encoder_out[0].size(0)
+
             loss_ctc = torch.stack(
                 [
                     torch.stack(
@@ -437,3 +443,60 @@ class ESPnetEnhASRModel(AbsESPnetModel):
             ys_hat = self.ctc.argmax(encoder_out).data
             cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc, encoder_out, encoder_out_lens
+
+    def _permutation_loss(self, ref, inf, criterion, perm=None):
+        """The basic permutation loss function.
+
+        Args:
+            ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
+            inf (List[torch.Tensor]): [(batch, ...), ...]
+            criterion (function): Loss function
+            perm: (batch)
+        Returns:
+            loss: torch.Tensor: (batch)
+            perm: list[(num_spk)]
+
+        """
+        num_spk = len(ref)
+
+        losses = torch.stack(
+            [
+                torch.stack([criterion(ref[r], inf[h]) for r in range(num_spk)], dim=1)
+                for h in range(num_spk)
+            ],
+            dim=2,
+        )  # (B, n_ref, n_hyp)
+        perm_detail, min_loss = self.permutation_invariant_training(losses)
+
+        return min_loss.mean(), perm_detail
+
+    def permutation_invariant_training(self, losses: torch.Tensor):
+        """Compute  PIT loss.
+
+        Args:
+            losses (torch.Tensor): (batch, nref, nhyp)
+        Returns:
+            perm: list: (batch, n_spk)
+            loss: torch.Tensor: (batch)
+
+        """
+        hyp_perm, min_perm_loss = [], []
+        losses_cpu = losses.data.cpu()
+        for b, b_loss in enumerate(losses_cpu):
+            # hungarian algorithm
+            try:
+                row_ind, col_ind = linear_sum_assignment(b_loss)
+            except ValueError as err:
+                if str(err) == "cost matrix is infeasible":
+                    # random assignment since the cost is always inf
+                    col_ind = np.array([0, 1])
+                    min_perm_loss.append(torch.mean(losses[b, col_ind, col_ind]))
+                    hyp_perm.append(col_ind)
+                    continue
+                else:
+                    raise
+
+            min_perm_loss.append(torch.mean(losses[b, row_ind, col_ind]))
+            hyp_perm.append(col_ind)
+
+        return hyp_perm, torch.stack(min_perm_loss)
