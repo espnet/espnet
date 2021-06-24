@@ -1,7 +1,7 @@
 # This configuration requires 4 GPUs with 24GB memory
 batch_type: numel
-batch_bins: 2000000
-accum_grad: 2
+batch_bins: 4000000
+accum_grad: 1
 max_epoch: 50
 patience: none
 init: xavier_uniform

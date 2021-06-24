@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_ss_th-0.3
-valid_set=valid_ss_th-0.3
-test_sets="valid_ss_th-0.3"
+train_set=train_ss0622_th-0.3_nodev
+valid_set=valid_ss0622_th-0.3
+test_sets="valid_ss0622_th-0.3"
 
 asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr.yaml
@@ -19,7 +19,7 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 # NOTE: The default settings require 4 GPUs with 32 GB memory
 ./asr.sh \
-    --ngpu 4 \
+    --ngpu 1 \
     --nj 128 \
     --inference_nj 256 \
     --lang jp \

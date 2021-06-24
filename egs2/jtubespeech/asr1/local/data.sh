@@ -29,9 +29,10 @@ fi
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-data_tag="_ss_th${thre}"
+data_tag="_ss0622_th${thre}"
 odir=/exp/swatanabe/data/opj/single-speaker
 scores=/exp/swatanabe/data/opj/single-speaker/segments/segments_20210531_ctcscore.txt
+scores=/expscratch/swatanabe/202007espnet/espnet_v2/egs2/jtubespeech/asr1/100G_ctcseg_0622/segments.txt
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "prepare the basic data directories"
@@ -68,6 +69,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     utils/subset_data_dir_tr_cv.sh --cv-spk-percent 5 data/local/data${data_tag}_trim data/train${data_tag} data/valid${data_tag}
     utils/fix_data_dir.sh data/train${data_tag}
     utils/fix_data_dir.sh data/valid${data_tag}
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "make the training data by subtracting the test set speaker list"
+    awk '{print $1}' data/local/data${data_tag}_trim/spk2utt | sort > data/local/data${data_tag}_trim/all_speaker_list
+    comm -3 data/local/data${data_tag}_trim/all_speaker_list local/test_speaker_list > data/local/data${data_tag}_trim/train_speaker_list
+    utils/subset_data_dir.sh --spk-list data/local/data${data_tag}_trim/train_speaker_list data/local/data${data_tag}_trim data/train${data_tag}_nodev
+    utils/fix_data_dir.sh data/train${data_tag}_nodev
+fi
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    log "make more difficult test data by using the test set speaker list and changing the threshold"
+    utils/subset_data_dir.sh --spk-list local/test_speaker_list data/local/data${data_tag}_trim data/valid${data_tag}_fixspeaker
+    utils/fix_data_dir.sh data/valid${data_tag}_fixspeaker
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
