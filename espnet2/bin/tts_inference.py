@@ -130,7 +130,7 @@ class Text2Speech:
         speech: Union[torch.Tensor, np.ndarray] = None,
         durations: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
-        speed_control_alpha: float = None,
+        speed_control_alpha: Optional[float] = None,
     ):
         assert check_argument_types()
 
