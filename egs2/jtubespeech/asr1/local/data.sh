@@ -89,6 +89,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "make an official easy_jun21 test set"
     for d_or_e in dev eval; do
 	# we will add normal, hard, and hell modes in the future
+	# shellcheck disable=SC2043
 	for test_mode in easy_jun21; do
 	    x=${d_or_e}_${test_mode}
 	    if [ ! -d data/${x} ]; then
