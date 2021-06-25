@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 train_set=train_ss0622_th-0.3_nodev
-valid_set=valid_ss0622_th-0.3
-test_sets="valid_ss0622_th-0.3"
+valid_set=valid
+test_sets="dev_easy_jun21 eval_easy_jun21"
 
 asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr.yaml
