@@ -14,7 +14,11 @@ echo ${value[0]} # This is model path
 echo ${value[2]} # This is model name
 
 IFS='/' read -ra ADDR <<< ${value[0]}
-repo_name=${ADDR[-1]%.zip} # Get name of hugging face repo
+escapeString="_"
+pattern="%2B" # Repo name does not accept + or %
+
+repo_name=${ADDR[-1]%.zip}
+repo_name=${repo_name//${pattern}/${escapeString}} # Get name of hugging face repo
 
 rm -rf dest/*
 unzip  ${value[0]} -d dest/ # Save data in dest folder
