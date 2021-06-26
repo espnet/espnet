@@ -286,11 +286,15 @@
     <span class="n">L</span><span class="o">.</span><span class="n">MultiStepLR</span><span class="p">,</span>
     <span class="n">L</span><span class="o">.</span><span class="n">ExponentialLR</span><span class="p">,</span>
     <span class="n">L</span><span class="o">.</span><span class="n">CosineAnnealingLR</span><span class="p">,</span>
-    <span class="n">L</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">,</span>
+<span class="p">]:</span>
+    <span class="n">AbsEpochStepScheduler</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+<span class="n">AbsBatchStepScheduler</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span>
     <span class="n">L</span><span class="o">.</span><span class="n">OneCycleLR</span><span class="p">,</span>
     <span class="n">L</span><span class="o">.</span><span class="n">CosineAnnealingWarmRestarts</span><span class="p">,</span>
 <span class="p">]:</span>
-    <span class="n">AbsEpochStepScheduler</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">AbsBatchStepScheduler</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
 
            </div>
