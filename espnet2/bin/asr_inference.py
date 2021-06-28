@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import os
 from pathlib import Path
 import sys
 from typing import Optional
@@ -8,11 +9,14 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+from huggingface_hub import cached_download
+from huggingface_hub import hf_hub_url
 import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
+import yaml
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
@@ -23,7 +27,11 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
+
+from espnet2 import __version__
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME
+from espnet2.main_funcs.pack_funcs import unpack
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -31,6 +39,7 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.hf_hub import hf_rewrite_yaml
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -166,6 +175,56 @@ class Speech2Text:
         self.dtype = dtype
         self.nbest = nbest
 
+    def from_pretrained(filename_or_model_id: str, **kwargs) -> "Speech2Text":
+        """Instantiate a Speech2Text model from a local packed archive or a model id
+
+        Args:
+            filename_or_model_id (str): Path to a local packed archive, or model id from
+                the huggingface.co model hub
+                (e.g. ``"julien-c/mini_an4_asr_train_raw_bpe_valid"``)
+
+        Returns:
+            instance of Speech2Text
+
+        """
+        if os.path.isfile(filename_or_model_id):
+            outpath = os.path.dirname(filename_or_model_id)
+            inputs = unpack(input_archive=filename_or_model_id, outpath=outpath)
+        else:
+            # If not found locally, let's try to find it on Hugging Face model hub
+            # e.g. julien-c/model is a valid model id
+            # and  julien-c/model@main supports specifying a commit/branch/tag.
+            if "@" in filename_or_model_id:
+                model_id = filename_or_model_id.split("@")[0]
+                revision = filename_or_model_id.split("@")[1]
+            else:
+                model_id = filename_or_model_id
+                revision = None
+            meta_yaml_url = hf_hub_url(
+                model_id, filename=META_YAML_FILENAME, revision=revision
+            )
+            meta_yaml_path = cached_download(
+                meta_yaml_url, library_name="espnet", library_version=__version__
+            )
+            with open(meta_yaml_path, "r", encoding="utf-8") as f:
+                d = yaml.safe_load(f)
+            assert isinstance(d, dict), type(d)
+            yaml_files = d["yaml_files"]
+            files = d["files"]
+            assert isinstance(yaml_files, dict), type(yaml_files)
+            assert isinstance(files, dict), type(files)
+            inputs = {}
+            for key, value in list(yaml_files.items()) + list(files.items()):
+                file_url = hf_hub_url(model_id, filename=value, revision=revision)
+                inputs[key] = cached_download(
+                    file_url, library_name="espnet", library_version=__version__
+                )
+                if key in yaml_files.keys():
+                    # Rewrite paths inside yaml
+                    hf_rewrite_yaml(inputs[key], model_id=model_id, revision=revision)
+
+        return Speech2Text(**inputs, **kwargs)
+
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
@@ -253,6 +312,7 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     streaming: bool,
+    pretrained_huggingface_id: Optional[str],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -276,24 +336,28 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    speech2text = Speech2Text(
-        asr_train_config=asr_train_config,
-        asr_model_file=asr_model_file,
-        lm_train_config=lm_train_config,
-        lm_file=lm_file,
-        token_type=token_type,
-        bpemodel=bpemodel,
-        device=device,
-        maxlenratio=maxlenratio,
-        minlenratio=minlenratio,
-        dtype=dtype,
-        beam_size=beam_size,
-        ctc_weight=ctc_weight,
-        lm_weight=lm_weight,
-        penalty=penalty,
-        nbest=nbest,
-        streaming=streaming,
-    )
+    if pretrained_huggingface_id is not None:
+        logging.info("Loading pretrained model from huggingface")
+        speech2text = Speech2Text.from_pretrained(pretrained_huggingface_id)
+    else:
+        speech2text = Speech2Text(
+            asr_train_config=asr_train_config,
+            asr_model_file=asr_model_file,
+            lm_train_config=lm_train_config,
+            lm_file=lm_file,
+            token_type=token_type,
+            bpemodel=bpemodel,
+            device=device,
+            maxlenratio=maxlenratio,
+            minlenratio=minlenratio,
+            dtype=dtype,
+            beam_size=beam_size,
+            ctc_weight=ctc_weight,
+            lm_weight=lm_weight,
+            penalty=penalty,
+            nbest=nbest,
+            streaming=streaming,
+        )
 
     # 3. Build data-iterator
     loader = ASRTask.build_streaming_iterator(
@@ -391,6 +455,7 @@ def get_parser():
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--asr_train_config", type=str, required=True)
     group.add_argument("--asr_model_file", type=str, required=True)
+    group.add_argument("--pretrained_huggingface_id", type=str, default="")
     group.add_argument("--lm_train_config", type=str)
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)

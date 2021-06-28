@@ -14,6 +14,9 @@ import zipfile
 import yaml
 
 
+META_YAML_FILENAME = "meta.yaml"
+
+
 class Archiver:
     def __init__(self, file, mode="r"):
         if Path(file).suffix == ".tar":

@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -13,14 +14,20 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+from huggingface_hub import cached_download
+from huggingface_hub import hf_hub_url
 import matplotlib
 import numpy as np
 import soundfile as sf
 import torch
 from typeguard import check_argument_types
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2 import __version__
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME
+from espnet2.main_funcs.pack_funcs import unpack
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -32,6 +39,7 @@ from espnet2.tts.transformer import Transformer
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
+from espnet2.utils.hf_hub import hf_rewrite_yaml
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -39,7 +47,7 @@ from espnet2.utils.types import str_or_none
 
 
 class Text2Speech:
-    """Speech2Text class
+    """Text2Speech class
 
     Examples:
         >>> import soundfile
@@ -122,6 +130,56 @@ class Text2Speech:
         else:
             self.spc2wav = None
             logging.info("Vocoder is not used because vocoder_conf is not sufficient")
+
+    def from_pretrained(filename_or_model_id: str, **kwargs) -> "Text2Speech":
+        """Instantiate a Text2Speech model from a local packed archive or a model id
+
+        Args:
+            filename_or_model_id (str): Path to a local packed archive, or model id from
+                the huggingface.co model hub
+                (e.g. ``"julien-c/kan-bayashi-jsut_tts_train_tacotron2_ja"``)
+
+        Returns:
+            instance of Text2Speech
+
+        """
+        if os.path.isfile(filename_or_model_id):
+            outpath = os.path.dirname(filename_or_model_id)
+            inputs = unpack(input_archive=filename_or_model_id, outpath=outpath)
+        else:
+            # If not found locally, let's try to find it on Hugging Face model hub
+            # e.g. julien-c/model is a valid model id
+            # and  julien-c/model@main supports specifying a commit/branch/tag.
+            if "@" in filename_or_model_id:
+                model_id = filename_or_model_id.split("@")[0]
+                revision = filename_or_model_id.split("@")[1]
+            else:
+                model_id = filename_or_model_id
+                revision = None
+            meta_yaml_url = hf_hub_url(
+                model_id, filename=META_YAML_FILENAME, revision=revision
+            )
+            meta_yaml_path = cached_download(
+                meta_yaml_url, library_name="espnet", library_version=__version__
+            )
+            with open(meta_yaml_path, "r", encoding="utf-8") as f:
+                d = yaml.safe_load(f)
+            assert isinstance(d, dict), type(d)
+            yaml_files = d["yaml_files"]
+            files = d["files"]
+            assert isinstance(yaml_files, dict), type(yaml_files)
+            assert isinstance(files, dict), type(files)
+            inputs = {}
+            for key, value in list(yaml_files.items()) + list(files.items()):
+                file_url = hf_hub_url(model_id, filename=value, revision=revision)
+                inputs[key] = cached_download(
+                    file_url, library_name="espnet", library_version=__version__
+                )
+                if key in yaml_files.keys():
+                    # Rewrite paths inside yaml
+                    hf_rewrite_yaml(inputs[key], model_id=model_id, revision=revision)
+
+        return Text2Speech(**inputs, **kwargs)
 
     @torch.no_grad()
     def __call__(
@@ -210,6 +268,7 @@ def inference(
     speed_control_alpha: float,
     allow_variable_data_keys: bool,
     vocoder_conf: dict,
+    pretrained_huggingface_id: Optional[str],
 ):
     """Perform TTS model decoding."""
     assert check_argument_types()
@@ -231,21 +290,25 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build model
-    text2speech = Text2Speech(
-        train_config=train_config,
-        model_file=model_file,
-        threshold=threshold,
-        maxlenratio=maxlenratio,
-        minlenratio=minlenratio,
-        use_teacher_forcing=use_teacher_forcing,
-        use_att_constraint=use_att_constraint,
-        backward_window=backward_window,
-        forward_window=forward_window,
-        speed_control_alpha=speed_control_alpha,
-        vocoder_conf=vocoder_conf,
-        dtype=dtype,
-        device=device,
-    )
+    if pretrained_huggingface_id is not None:
+        logging.info("Loading pretrained model from huggingface")
+        text2speech = Text2Speech.from_pretrained(pretrained_huggingface_id)
+    else:
+        text2speech = Text2Speech(
+            train_config=train_config,
+            model_file=model_file,
+            threshold=threshold,
+            maxlenratio=maxlenratio,
+            minlenratio=minlenratio,
+            use_teacher_forcing=use_teacher_forcing,
+            use_att_constraint=use_att_constraint,
+            backward_window=backward_window,
+            forward_window=forward_window,
+            speed_control_alpha=speed_control_alpha,
+            vocoder_conf=vocoder_conf,
+            dtype=dtype,
+            device=device,
+        )
 
     # 3. Build data-iterator
     if not text2speech.use_speech:

@@ -53,12 +53,14 @@ ESPnet2's recipes correspond to `egs2`. ESPnet2 applies a new paradigm without d
 For ESPnet2, we do not recommend preparing the recipe's stages for each corpus but using the common pipelines we provided in `asr.sh`, `tts.sh`, and 
 `enh.sh`. For details of creating ESPnet2 recipes, please refer to [egs2-readme](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/README.md).
 
-The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Zenodo.
+The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Zenodo and Hugging Face.
 You can also refer to the document in https://github.com/espnet/espnet_model_zoo
-To upload your model, you need first:
+To upload your model on Zenodo, you need first:
 1. Sign up to Zenodo: https://zenodo.org/
 2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
 3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+Details about the use of Hugging Face pretrained models will be shared later.
 
 #### 1.3.3 Additional requirements for new recipe
 
@@ -127,7 +129,7 @@ You can also test the scripts in `utils` with [bats-core](https://github.com/bat
 To test:
 
 ``` console
-./ci/test_bash.sh
+./ci/test_shell.sh
 ```
 
 ## 5 Integration testing

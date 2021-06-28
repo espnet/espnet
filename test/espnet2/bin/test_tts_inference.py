@@ -10,6 +10,12 @@ from espnet2.bin.tts_inference import Text2Speech
 from espnet2.tasks.tts import TTSTask
 
 
+EXAMPLE_TTS_EN_MODEL_ID = (
+    "julien-c/ljspeech_tts_train_tacotron2_raw_phn_tacotron_g2p_en_no_space_train"
+)
+EXAMPLE_TTS_JA_MODEL_ID = "julien-c/kan-bayashi-jsut_tts_train_tacotron2"
+
+
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 
@@ -57,5 +63,12 @@ def config_file(tmp_path: Path, token_list):
 @pytest.mark.execution_timeout(5)
 def test_Text2Speech(config_file):
     text2speech = Text2Speech(train_config=config_file)
+    text = "aiueo"
+    text2speech(text)
+
+
+@pytest.mark.execution_timeout(30)
+def test_from_pretrained():
+    text2speech = Text2Speech.from_pretrained(EXAMPLE_TTS_EN_MODEL_ID)
     text = "aiueo"
     text2speech(text)
