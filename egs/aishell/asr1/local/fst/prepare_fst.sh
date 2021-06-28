@@ -23,10 +23,13 @@ if [ ${stage} -le 0 ]; then
     mkdir -p $lm
     text2token.py -s 1 -n 1 data/train/text | cut -f 2- -d" " > $lm/text
     lmplz --discount_fallback -o ${n_gram} <$lm/text> $lm/${n_gram}gram.arpa
-    # Build decoding TLG
+    # Build G.fst
     python3 -m kaldilm \
 	    --read-symbol-table="data/fst/lang/words.txt" \
 	    --disambig-symbol='#0' \
 	    --max-order=${n_gram} \
 	    $lm/${n_gram}gram.arpa >data/fst/lang/G.fst.txt
+
+    #make HLG.fst
+    local/fst//make_hlg.py
 fi
