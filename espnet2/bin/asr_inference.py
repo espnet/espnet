@@ -455,7 +455,7 @@ def get_parser():
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--asr_train_config", type=str, required=True)
     group.add_argument("--asr_model_file", type=str, required=True)
-    group.add_argument("--pretrained_huggingface_id", type=str, default="")
+    group.add_argument("--pretrained_huggingface_id", type=str, default=None)
     group.add_argument("--lm_train_config", type=str)
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)

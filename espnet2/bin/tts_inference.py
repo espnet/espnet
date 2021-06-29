@@ -538,6 +538,7 @@ def get_parser():
         type=str,
         help="Model parameter file.",
     )
+    group.add_argument("--pretrained_huggingface_id", type=str, default=None)
 
     group = parser.add_argument_group("Decoding related")
     group.add_argument(

@@ -1,9 +1,13 @@
 # general
+featbin/*
+ubuntu16-featbin.tar.gz
 *~
 *.pyc
 \#*\#
 .\#*
 *DS_Store
+dummy_token_list
+out/
 out.txt
 espnet.egg-info/
 doc/_build
