@@ -41,11 +41,13 @@ def hf_rewrite_yaml(yaml_file: str, cached_dir: str):
 
             for rewrite_key in REWRITE_KEYS:
                 v = nested_dict_get(d, rewrite_key)
-                if v is not None and any(v.startswith(prefix) for prefix in ["exp", "data"]):
+                if v is not None and any(
+                    v.startswith(prefix) for prefix in ["exp", "data"]
+                ):
                     new_value = os.path.join(cached_dir, v)
                     nested_dict_set(d, rewrite_key, new_value)
             with open(yaml_file, "w", encoding="utf-8") as fw:
                 yaml.safe_dump(d, fw)
-            
+
             with open(touch_path, 'a'):
                 os.utime(touch_path, None)
