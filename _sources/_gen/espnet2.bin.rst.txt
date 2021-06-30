@@ -4,17 +4,6 @@ espnet2.bin package
 
 
 
-.. _espnet2.bin.tts_train:
-
-espnet2.bin.tts_train
----------------------
-
-.. automodule:: espnet2.bin.tts_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.bin.diar_train:
 
 espnet2.bin.diar_train
@@ -37,12 +26,89 @@ espnet2.bin.aggregate_stats_dirs
     :show-inheritance:
 
 
+.. _espnet2.bin.tts_train:
+
+espnet2.bin.tts_train
+---------------------
+
+.. automodule:: espnet2.bin.tts_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.lm_calc_perplexity:
+
+espnet2.bin.lm_calc_perplexity
+------------------------------
+
+.. automodule:: espnet2.bin.lm_calc_perplexity
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.enh_train:
 
 espnet2.bin.enh_train
 ---------------------
 
 .. automodule:: espnet2.bin.enh_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.tokenize_text:
+
+espnet2.bin.tokenize_text
+-------------------------
+
+.. automodule:: espnet2.bin.tokenize_text
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.launch:
+
+espnet2.bin.launch
+------------------
+
+.. automodule:: espnet2.bin.launch
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.asr_inference:
+
+espnet2.bin.asr_inference
+-------------------------
+
+.. automodule:: espnet2.bin.asr_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.asr_train:
+
+espnet2.bin.asr_train
+---------------------
+
+.. automodule:: espnet2.bin.asr_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.tts_inference:
+
+espnet2.bin.tts_inference
+-------------------------
+
+.. automodule:: espnet2.bin.tts_inference
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,34 +136,12 @@ espnet2.bin.pack
     :show-inheritance:
 
 
-.. _espnet2.bin.launch:
+.. _espnet2.bin.lm_train:
 
-espnet2.bin.launch
-------------------
+espnet2.bin.lm_train
+--------------------
 
-.. automodule:: espnet2.bin.launch
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.enh_inference:
-
-espnet2.bin.enh_inference
--------------------------
-
-.. automodule:: espnet2.bin.enh_inference
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.asr_train:
-
-espnet2.bin.asr_train
----------------------
-
-.. automodule:: espnet2.bin.asr_train
+.. automodule:: espnet2.bin.lm_train
     :members:
     :undoc-members:
     :show-inheritance:
@@ -114,67 +158,12 @@ espnet2.bin.enh_scoring
     :show-inheritance:
 
 
-.. _espnet2.bin.tts_inference:
-
-espnet2.bin.tts_inference
--------------------------
-
-.. automodule:: espnet2.bin.tts_inference
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.bin.split_scps:
 
 espnet2.bin.split_scps
 ----------------------
 
 .. automodule:: espnet2.bin.split_scps
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.lm_train:
-
-espnet2.bin.lm_train
---------------------
-
-.. automodule:: espnet2.bin.lm_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.tokenize_text:
-
-espnet2.bin.tokenize_text
--------------------------
-
-.. automodule:: espnet2.bin.tokenize_text
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.asr_inference:
-
-espnet2.bin.asr_inference
--------------------------
-
-.. automodule:: espnet2.bin.asr_inference
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.lm_calc_perplexity:
-
-espnet2.bin.lm_calc_perplexity
-------------------------------
-
-.. automodule:: espnet2.bin.lm_calc_perplexity
     :members:
     :undoc-members:
     :show-inheritance:
@@ -197,6 +186,17 @@ espnet2.bin.asr_align
 ---------------------
 
 .. automodule:: espnet2.bin.asr_align
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.enh_inference:
+
+espnet2.bin.enh_inference
+-------------------------
+
+.. automodule:: espnet2.bin.enh_inference
     :members:
     :undoc-members:
     :show-inheritance:

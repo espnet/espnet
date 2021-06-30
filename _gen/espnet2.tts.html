@@ -42,8 +42,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="espnet2.bin package" href="espnet2.bin.html" />
-    <link rel="prev" title="espnet2.torch_utils package" href="espnet2.torch_utils.html" /> 
+    <link rel="next" title="espnet2.diar package" href="espnet2.diar.html" />
+    <link rel="prev" title="espnet2.tasks package" href="espnet2.tasks.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -110,55 +110,55 @@
 </ul>
 <p class="caption"><span class="caption-text">Package Reference:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.tts package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer">espnet2.tts.transformer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-tacotron2">espnet2.tts.tacotron2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-init">espnet2.tts.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-abs-tts">espnet2.tts.abs_tts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-variance-predictor">espnet2.tts.variance_predictor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2">espnet2.tts.fastspeech2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech">espnet2.tts.fastspeech</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-espnet-model">espnet2.tts.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-duration-calculator">espnet2.tts.duration_calculator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-init">espnet2.tts.gst.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-style-encoder">espnet2.tts.gst.style_encoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-mel-fbank">espnet2.tts.feats_extract.log_mel_fbank</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-energy">espnet2.tts.feats_extract.energy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-init">espnet2.tts.feats_extract.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-abs-feats-extract">espnet2.tts.feats_extract.abs_feats_extract</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-spectrogram">espnet2.tts.feats_extract.log_spectrogram</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-dio">espnet2.tts.feats_extract.dio</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.tts package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-duration-calculator">espnet2.tts.duration_calculator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-init">espnet2.tts.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-variance-predictor">espnet2.tts.variance_predictor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-espnet-model">espnet2.tts.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer">espnet2.tts.transformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-tacotron2">espnet2.tts.tacotron2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech">espnet2.tts.fastspeech</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-abs-tts">espnet2.tts.abs_tts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2">espnet2.tts.fastspeech2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-energy">espnet2.tts.feats_extract.energy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-abs-feats-extract">espnet2.tts.feats_extract.abs_feats_extract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-mel-fbank">espnet2.tts.feats_extract.log_mel_fbank</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-init">espnet2.tts.feats_extract.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-dio">espnet2.tts.feats_extract.dio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-spectrogram">espnet2.tts.feats_extract.log_spectrogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-init">espnet2.tts.gst.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-style-encoder">espnet2.tts.gst.style_encoder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Tool Reference:</span></p>
 <ul>
@@ -259,8 +259,119 @@
 </style>
 <div class="section" id="espnet2-tts-package">
 <h1>espnet2.tts package<a class="headerlink" href="#espnet2-tts-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="espnet2-tts-duration-calculator">
+<span id="id1"></span><h2>espnet2.tts.duration_calculator<a class="headerlink" href="#espnet2-tts-duration-calculator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.duration_calculator"></span><p>Duration calculator for ESPnet2.</p>
+<dl class="class">
+<dt id="espnet2.tts.duration_calculator.DurationCalculator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.duration_calculator.</code><code class="sig-name descname">DurationCalculator</code><a class="reference internal" href="../_modules/espnet2/tts/duration_calculator.html#DurationCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.duration_calculator.DurationCalculator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Duration calculator module.</p>
+<p>Initilize duration calculator.</p>
+<dl class="method">
+<dt id="espnet2.tts.duration_calculator.DurationCalculator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">att_ws: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/duration_calculator.html#DurationCalculator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.duration_calculator.DurationCalculator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert attention weight to durations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>att_ws</strong> (<em>Tesnor</em>) – Attention weight tensor (L, T) or (#layers, #heads, L, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Duration of each input (T,).
+Tensor: Focus rate value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>LongTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-tts-init">
+<span id="id2"></span><h2>espnet2.tts.__init__<a class="headerlink" href="#espnet2-tts-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.__init__"></span></div>
+<div class="section" id="espnet2-tts-variance-predictor">
+<span id="id3"></span><h2>espnet2.tts.variance_predictor<a class="headerlink" href="#espnet2-tts-variance-predictor" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.variance_predictor"></span><p>Variance predictor related modules.</p>
+<dl class="class">
+<dt id="espnet2.tts.variance_predictor.VariancePredictor">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.variance_predictor.</code><code class="sig-name descname">VariancePredictor</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">n_layers: int = 2</em>, <em class="sig-param">n_chans: int = 384</em>, <em class="sig-param">kernel_size: int = 3</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">dropout_rate: float = 0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/variance_predictor.html#VariancePredictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.variance_predictor.VariancePredictor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Variance predictor module.</p>
+<p>This is a module of variacne predictor described in <a class="reference external" href="https://arxiv.org/abs/2006.04558">FastSpeech 2:
+Fast and High-Quality End-to-End Text to Speech</a>.</p>
+<p>Initilize duration predictor module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Input dimension.</p></li>
+<li><p><strong>n_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of convolutional layers.</p></li>
+<li><p><strong>n_chans</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of channels of convolutional layers.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Kernel size of convolutional layers.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.tts.variance_predictor.VariancePredictor.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs: torch.Tensor</em>, <em class="sig-param">x_masks: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/variance_predictor.html#VariancePredictor.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.variance_predictor.VariancePredictor.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> (<em>Tensor</em>) – Batch of input sequences (B, Tmax, idim).</p></li>
+<li><p><strong>x_masks</strong> (<em>ByteTensor</em><em>, </em><em>optional</em>) – Batch of masks indicating padded part (B, Tmax).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Batch of predicted sequences (B, Tmax, 1).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-tts-espnet-model">
+<span id="id4"></span><h2>espnet2.tts.espnet_model<a class="headerlink" href="#espnet2-tts-espnet-model" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.espnet_model"></span><dl class="class">
+<dt id="espnet2.tts.espnet_model.ESPnetTTSModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.espnet_model.</code><code class="sig-name descname">ESPnetTTSModel</code><span class="sig-paren">(</span><em class="sig-param">feats_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], pitch_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], energy_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], pitch_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], energy_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], tts: espnet2.tts.abs_tts.AbsTTS</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.tts.espnet_model.ESPnetTTSModel.collect_feats">
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">pitch_lengths: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">energy_lengths: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.espnet_model.ESPnetTTSModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">pitch_lengths: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">energy_lengths: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.espnet_model.ESPnetTTSModel.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="espnet2-tts-transformer">
-<span id="id1"></span><h2>espnet2.tts.transformer<a class="headerlink" href="#espnet2-tts-transformer" title="Permalink to this headline">¶</a></h2>
+<span id="id5"></span><h2>espnet2.tts.transformer<a class="headerlink" href="#espnet2-tts-transformer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.transformer"></span><p>TTS-Transformer related modules.</p>
 <dl class="class">
 <dt id="espnet2.tts.transformer.Transformer">
@@ -399,7 +510,7 @@ Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).</p>
 
 </div>
 <div class="section" id="espnet2-tts-tacotron2">
-<span id="id2"></span><h2>espnet2.tts.tacotron2<a class="headerlink" href="#espnet2-tts-tacotron2" title="Permalink to this headline">¶</a></h2>
+<span id="id6"></span><h2>espnet2.tts.tacotron2<a class="headerlink" href="#espnet2-tts-tacotron2" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.tacotron2"></span><p>Tacotron 2 related modules for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.tacotron2.Tacotron2">
@@ -522,11 +633,124 @@ Tensor: Attention weights (L, T).</p>
 </dd></dl>
 
 </div>
-<div class="section" id="espnet2-tts-init">
-<span id="id3"></span><h2>espnet2.tts.__init__<a class="headerlink" href="#espnet2-tts-init" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.__init__"></span></div>
+<div class="section" id="espnet2-tts-fastspeech">
+<span id="id7"></span><h2>espnet2.tts.fastspeech<a class="headerlink" href="#espnet2-tts-fastspeech" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.fastspeech"></span><p>Fastspeech related modules for ESPnet2.</p>
+<dl class="class">
+<dt id="espnet2.tts.fastspeech.FastSpeech">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.fastspeech.</code><code class="sig-name descname">FastSpeech</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">elayers: int = 6</em>, <em class="sig-param">eunits: int = 1536</em>, <em class="sig-param">dlayers: int = 6</em>, <em class="sig-param">dunits: int = 1536</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">use_scaled_pos_enc: bool = True</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">encoder_normalize_before: bool = True</em>, <em class="sig-param">decoder_normalize_before: bool = True</em>, <em class="sig-param">encoder_concat_after: bool = False</em>, <em class="sig-param">decoder_concat_after: bool = False</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">encoder_type: str = 'transformer'</em>, <em class="sig-param">decoder_type: str = 'transformer'</em>, <em class="sig-param">conformer_rel_pos_type: str = 'legacy'</em>, <em class="sig-param">conformer_pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">conformer_self_attn_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">conformer_activation_type: str = 'swish'</em>, <em class="sig-param">use_macaron_style_in_conformer: bool = True</em>, <em class="sig-param">use_cnn_in_conformer: bool = True</em>, <em class="sig-param">conformer_enc_kernel_size: int = 7</em>, <em class="sig-param">conformer_dec_kernel_size: int = 31</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">spk_embed_dim: int = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">use_gst: bool = False</em>, <em class="sig-param">gst_tokens: int = 10</em>, <em class="sig-param">gst_heads: int = 4</em>, <em class="sig-param">gst_conv_layers: int = 6</em>, <em class="sig-param">gst_conv_chans_list: Sequence[int] = (32</em>, <em class="sig-param">32</em>, <em class="sig-param">64</em>, <em class="sig-param">64</em>, <em class="sig-param">128</em>, <em class="sig-param">128)</em>, <em class="sig-param">gst_conv_kernel_size: int = 3</em>, <em class="sig-param">gst_conv_stride: int = 2</em>, <em class="sig-param">gst_gru_layers: int = 1</em>, <em class="sig-param">gst_gru_units: int = 128</em>, <em class="sig-param">transformer_enc_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">init_enc_alpha: float = 1.0</em>, <em class="sig-param">init_dec_alpha: float = 1.0</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.abs_tts.AbsTTS" title="espnet2.tts.abs_tts.AbsTTS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.abs_tts.AbsTTS</span></code></a></p>
+<p>FastSpeech module for end-to-end text-to-speech.</p>
+<p>This is a module of FastSpeech, feed-forward Transformer with duration predictor
+described in <a class="reference external" href="https://arxiv.org/pdf/1905.09263.pdf">FastSpeech: Fast, Robust and Controllable Text to Speech</a>, which
+does not require any auto-regressive processing during inference, resulting in
+fast decoding compared with auto-regressive Transformer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
+<li><p><strong>elayers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of encoder layers.</p></li>
+<li><p><strong>eunits</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of encoder hidden units.</p></li>
+<li><p><strong>dlayers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of decoder layers.</p></li>
+<li><p><strong>dunits</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of decoder hidden units.</p></li>
+<li><p><strong>use_scaled_pos_enc</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use trainable scaled positional encoding.</p></li>
+<li><p><strong>encoder_normalize_before</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to perform layer normalization before encoder block.</p></li>
+<li><p><strong>decoder_normalize_before</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to perform layer normalization before decoder block.</p></li>
+<li><p><strong>encoder_concat_after</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to concatenate attention
+layer’s input and output in encoder.</p></li>
+<li><p><strong>decoder_concat_after</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to concatenate attention
+layer’s input and output in decoder.</p></li>
+<li><p><strong>duration_predictor_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of duration predictor layers.</p></li>
+<li><p><strong>duration_predictor_chans</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of duration predictor channels.</p></li>
+<li><p><strong>duration_predictor_kernel_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Kernel size of duration predictor.</p></li>
+<li><p><strong>spk_embed_dim</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of speaker embedding dimensions.</p></li>
+<li><p><strong>spk_embed_integration_type</strong> – How to integrate speaker embedding.</p></li>
+<li><p><strong>use_gst</strong> (<em>str</em><em>, </em><em>optional</em>) – Whether to use global style token.</p></li>
+<li><p><strong>gst_tokens</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GST embeddings.</p></li>
+<li><p><strong>gst_heads</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of heads in GST multihead attention.</p></li>
+<li><p><strong>gst_conv_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of conv layers in GST.</p></li>
+<li><p><strong>gst_conv_chans_list</strong> – (Sequence[int], optional):
+List of the number of channels of conv layers in GST.</p></li>
+<li><p><strong>gst_conv_kernel_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Kernal size of conv layers in GST.</p></li>
+<li><p><strong>gst_conv_stride</strong> (<em>int</em><em>, </em><em>optional</em>) – Stride size of conv layers in GST.</p></li>
+<li><p><strong>gst_gru_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GRU layers in GST.</p></li>
+<li><p><strong>gst_gru_units</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GRU units in GST.</p></li>
+<li><p><strong>reduction_factor</strong> (<em>int</em><em>, </em><em>optional</em>) – Reduction factor.</p></li>
+<li><p><strong>transformer_enc_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in encoder except attention &amp; positional encoding.</p></li>
+<li><p><strong>transformer_enc_positional_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate after encoder positional encoding.</p></li>
+<li><p><strong>transformer_enc_attn_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in encoder self-attention module.</p></li>
+<li><p><strong>transformer_dec_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in decoder except attention &amp; positional encoding.</p></li>
+<li><p><strong>transformer_dec_positional_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate after decoder positional encoding.</p></li>
+<li><p><strong>transformer_dec_attn_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in deocoder self-attention module.</p></li>
+<li><p><strong>init_type</strong> (<em>str</em><em>, </em><em>optional</em>) – How to initialize transformer parameters.</p></li>
+<li><p><strong>init_enc_alpha</strong> (<em>float</em><em>, </em><em>optional</em>) – Initial value of alpha in scaled pos encoding of the encoder.</p></li>
+<li><p><strong>init_dec_alpha</strong> (<em>float</em><em>, </em><em>optional</em>) – Initial value of alpha in scaled pos encoding of the decoder.</p></li>
+<li><p><strong>use_masking</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to apply masking for padded part in loss calculation.</p></li>
+<li><p><strong>use_weighted_masking</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to apply weighted masking in loss calculation.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Initialize FastSpeech module.</p>
+<dl class="method">
+<dt id="espnet2.tts.fastspeech.FastSpeech.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">spembs: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, Tmax).</p></li>
+<li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input (B,).</p></li>
+<li><p><strong>speech</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p></li>
+<li><p><strong>speech_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
+<li><p><strong>durations</strong> (<em>LongTensor</em>) – Batch of padded durations (B, Tmax + 1).</p></li>
+<li><p><strong>durations_lengths</strong> (<em>LongTensor</em>) – Batch of duration lengths (B, Tmax + 1).</p></li>
+<li><p><strong>spembs</strong> (<em>Tensor</em><em>, </em><em>optional</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Loss scalar value.
+Dict: Statistics to be monitored.
+Tensor: Weight value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.fastspeech.FastSpeech.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the sequence of features given the sequences of characters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T,).</p></li>
+<li><p><strong>speech</strong> (<em>Tensor</em><em>, </em><em>optional</em>) – Feature sequence to extract style (N, idim).</p></li>
+<li><p><strong>spembs</strong> (<em>Tensor</em><em>, </em><em>optional</em>) – Speaker embedding vector (spk_embed_dim,).</p></li>
+<li><p><strong>durations</strong> (<em>LongTensor</em><em>, </em><em>optional</em>) – Groundtruth of duration (T + 1,).</p></li>
+<li><p><strong>alpha</strong> (<em>float</em><em>, </em><em>optional</em>) – Alpha to control the speed.</p></li>
+<li><p><strong>use_teacher_forcing</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use teacher forcing.
+If true, groundtruth of duration, pitch and energy will be used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output sequence of features (L, odim).
+None: Dummy for compatibility.
+None: Dummy for compatibility.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="espnet2-tts-abs-tts">
-<span id="id4"></span><h2>espnet2.tts.abs_tts<a class="headerlink" href="#espnet2-tts-abs-tts" title="Permalink to this headline">¶</a></h2>
+<span id="id8"></span><h2>espnet2.tts.abs_tts<a class="headerlink" href="#espnet2-tts-abs-tts" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.abs_tts"></span><dl class="class">
 <dt id="espnet2.tts.abs_tts.AbsTTS">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.abs_tts.</code><code class="sig-name descname">AbsTTS</code><a class="reference internal" href="../_modules/espnet2/tts/abs_tts.html#AbsTTS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.abs_tts.AbsTTS" title="Permalink to this definition">¶</a></dt>
@@ -554,53 +778,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="espnet2-tts-variance-predictor">
-<span id="id5"></span><h2>espnet2.tts.variance_predictor<a class="headerlink" href="#espnet2-tts-variance-predictor" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.variance_predictor"></span><p>Variance predictor related modules.</p>
-<dl class="class">
-<dt id="espnet2.tts.variance_predictor.VariancePredictor">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.variance_predictor.</code><code class="sig-name descname">VariancePredictor</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">n_layers: int = 2</em>, <em class="sig-param">n_chans: int = 384</em>, <em class="sig-param">kernel_size: int = 3</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">dropout_rate: float = 0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/variance_predictor.html#VariancePredictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.variance_predictor.VariancePredictor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>Variance predictor module.</p>
-<p>This is a module of variacne predictor described in <a class="reference external" href="https://arxiv.org/abs/2006.04558">FastSpeech 2:
-Fast and High-Quality End-to-End Text to Speech</a>.</p>
-<p>Initilize duration predictor module.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>idim</strong> (<em>int</em>) – Input dimension.</p></li>
-<li><p><strong>n_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of convolutional layers.</p></li>
-<li><p><strong>n_chans</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of channels of convolutional layers.</p></li>
-<li><p><strong>kernel_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Kernel size of convolutional layers.</p></li>
-<li><p><strong>dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="method">
-<dt id="espnet2.tts.variance_predictor.VariancePredictor.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs: torch.Tensor</em>, <em class="sig-param">x_masks: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/variance_predictor.html#VariancePredictor.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.variance_predictor.VariancePredictor.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate forward propagation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>xs</strong> (<em>Tensor</em>) – Batch of input sequences (B, Tmax, idim).</p></li>
-<li><p><strong>x_masks</strong> (<em>ByteTensor</em><em>, </em><em>optional</em>) – Batch of masks indicating padded part (B, Tmax).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Batch of predicted sequences (B, Tmax, 1).</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-</div>
 <div class="section" id="espnet2-tts-fastspeech2">
-<span id="id6"></span><h2>espnet2.tts.fastspeech2<a class="headerlink" href="#espnet2-tts-fastspeech2" title="Permalink to this headline">¶</a></h2>
+<span id="id9"></span><h2>espnet2.tts.fastspeech2<a class="headerlink" href="#espnet2-tts-fastspeech2" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.fastspeech2"></span><p>Fastspeech2 related modules for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.fastspeech2.FastSpeech2">
@@ -723,136 +902,17 @@ Tensor: Energy predictor loss value.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="espnet2-tts-fastspeech">
-<span id="id8"></span><h2>espnet2.tts.fastspeech<a class="headerlink" href="#espnet2-tts-fastspeech" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.fastspeech"></span><p>Fastspeech related modules for ESPnet2.</p>
+<div class="section" id="espnet2-tts-feats-extract-energy">
+<span id="id11"></span><h2>espnet2.tts.feats_extract.energy<a class="headerlink" href="#espnet2-tts-feats-extract-energy" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.energy"></span><p>Energy extractor.</p>
 <dl class="class">
-<dt id="espnet2.tts.fastspeech.FastSpeech">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.fastspeech.</code><code class="sig-name descname">FastSpeech</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">elayers: int = 6</em>, <em class="sig-param">eunits: int = 1536</em>, <em class="sig-param">dlayers: int = 6</em>, <em class="sig-param">dunits: int = 1536</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">use_scaled_pos_enc: bool = True</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">encoder_normalize_before: bool = True</em>, <em class="sig-param">decoder_normalize_before: bool = True</em>, <em class="sig-param">encoder_concat_after: bool = False</em>, <em class="sig-param">decoder_concat_after: bool = False</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">encoder_type: str = 'transformer'</em>, <em class="sig-param">decoder_type: str = 'transformer'</em>, <em class="sig-param">conformer_rel_pos_type: str = 'legacy'</em>, <em class="sig-param">conformer_pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">conformer_self_attn_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">conformer_activation_type: str = 'swish'</em>, <em class="sig-param">use_macaron_style_in_conformer: bool = True</em>, <em class="sig-param">use_cnn_in_conformer: bool = True</em>, <em class="sig-param">conformer_enc_kernel_size: int = 7</em>, <em class="sig-param">conformer_dec_kernel_size: int = 31</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">spk_embed_dim: int = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">use_gst: bool = False</em>, <em class="sig-param">gst_tokens: int = 10</em>, <em class="sig-param">gst_heads: int = 4</em>, <em class="sig-param">gst_conv_layers: int = 6</em>, <em class="sig-param">gst_conv_chans_list: Sequence[int] = (32</em>, <em class="sig-param">32</em>, <em class="sig-param">64</em>, <em class="sig-param">64</em>, <em class="sig-param">128</em>, <em class="sig-param">128)</em>, <em class="sig-param">gst_conv_kernel_size: int = 3</em>, <em class="sig-param">gst_conv_stride: int = 2</em>, <em class="sig-param">gst_gru_layers: int = 1</em>, <em class="sig-param">gst_gru_units: int = 128</em>, <em class="sig-param">transformer_enc_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">init_enc_alpha: float = 1.0</em>, <em class="sig-param">init_dec_alpha: float = 1.0</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.abs_tts.AbsTTS" title="espnet2.tts.abs_tts.AbsTTS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.abs_tts.AbsTTS</span></code></a></p>
-<p>FastSpeech module for end-to-end text-to-speech.</p>
-<p>This is a module of FastSpeech, feed-forward Transformer with duration predictor
-described in <a class="reference external" href="https://arxiv.org/pdf/1905.09263.pdf">FastSpeech: Fast, Robust and Controllable Text to Speech</a>, which
-does not require any auto-regressive processing during inference, resulting in
-fast decoding compared with auto-regressive Transformer.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
-<li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
-<li><p><strong>elayers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of encoder layers.</p></li>
-<li><p><strong>eunits</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of encoder hidden units.</p></li>
-<li><p><strong>dlayers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of decoder layers.</p></li>
-<li><p><strong>dunits</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of decoder hidden units.</p></li>
-<li><p><strong>use_scaled_pos_enc</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use trainable scaled positional encoding.</p></li>
-<li><p><strong>encoder_normalize_before</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to perform layer normalization before encoder block.</p></li>
-<li><p><strong>decoder_normalize_before</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to perform layer normalization before decoder block.</p></li>
-<li><p><strong>encoder_concat_after</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to concatenate attention
-layer’s input and output in encoder.</p></li>
-<li><p><strong>decoder_concat_after</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to concatenate attention
-layer’s input and output in decoder.</p></li>
-<li><p><strong>duration_predictor_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of duration predictor layers.</p></li>
-<li><p><strong>duration_predictor_chans</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of duration predictor channels.</p></li>
-<li><p><strong>duration_predictor_kernel_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Kernel size of duration predictor.</p></li>
-<li><p><strong>spk_embed_dim</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of speaker embedding dimensions.</p></li>
-<li><p><strong>spk_embed_integration_type</strong> – How to integrate speaker embedding.</p></li>
-<li><p><strong>use_gst</strong> (<em>str</em><em>, </em><em>optional</em>) – Whether to use global style token.</p></li>
-<li><p><strong>gst_tokens</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GST embeddings.</p></li>
-<li><p><strong>gst_heads</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of heads in GST multihead attention.</p></li>
-<li><p><strong>gst_conv_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of conv layers in GST.</p></li>
-<li><p><strong>gst_conv_chans_list</strong> – (Sequence[int], optional):
-List of the number of channels of conv layers in GST.</p></li>
-<li><p><strong>gst_conv_kernel_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Kernal size of conv layers in GST.</p></li>
-<li><p><strong>gst_conv_stride</strong> (<em>int</em><em>, </em><em>optional</em>) – Stride size of conv layers in GST.</p></li>
-<li><p><strong>gst_gru_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GRU layers in GST.</p></li>
-<li><p><strong>gst_gru_units</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GRU units in GST.</p></li>
-<li><p><strong>reduction_factor</strong> (<em>int</em><em>, </em><em>optional</em>) – Reduction factor.</p></li>
-<li><p><strong>transformer_enc_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in encoder except attention &amp; positional encoding.</p></li>
-<li><p><strong>transformer_enc_positional_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate after encoder positional encoding.</p></li>
-<li><p><strong>transformer_enc_attn_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in encoder self-attention module.</p></li>
-<li><p><strong>transformer_dec_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in decoder except attention &amp; positional encoding.</p></li>
-<li><p><strong>transformer_dec_positional_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate after decoder positional encoding.</p></li>
-<li><p><strong>transformer_dec_attn_dropout_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Dropout rate in deocoder self-attention module.</p></li>
-<li><p><strong>init_type</strong> (<em>str</em><em>, </em><em>optional</em>) – How to initialize transformer parameters.</p></li>
-<li><p><strong>init_enc_alpha</strong> (<em>float</em><em>, </em><em>optional</em>) – Initial value of alpha in scaled pos encoding of the encoder.</p></li>
-<li><p><strong>init_dec_alpha</strong> (<em>float</em><em>, </em><em>optional</em>) – Initial value of alpha in scaled pos encoding of the decoder.</p></li>
-<li><p><strong>use_masking</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to apply masking for padded part in loss calculation.</p></li>
-<li><p><strong>use_weighted_masking</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to apply weighted masking in loss calculation.</p></li>
-</ul>
-</dd>
-</dl>
-<p>Initialize FastSpeech module.</p>
+<dt id="espnet2.tts.feats_extract.energy.Energy">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.energy.</code><code class="sig-name descname">Energy</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: str = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">use_token_averaged_energy: bool = True</em>, <em class="sig-param">reduction_factor: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<p>Energy extractor.</p>
 <dl class="method">
-<dt id="espnet2.tts.fastspeech.FastSpeech.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">spembs: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate forward propagation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, Tmax).</p></li>
-<li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input (B,).</p></li>
-<li><p><strong>speech</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p></li>
-<li><p><strong>speech_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
-<li><p><strong>durations</strong> (<em>LongTensor</em>) – Batch of padded durations (B, Tmax + 1).</p></li>
-<li><p><strong>durations_lengths</strong> (<em>LongTensor</em>) – Batch of duration lengths (B, Tmax + 1).</p></li>
-<li><p><strong>spembs</strong> (<em>Tensor</em><em>, </em><em>optional</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Loss scalar value.
-Dict: Statistics to be monitored.
-Tensor: Weight value.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.fastspeech.FastSpeech.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech.inference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate the sequence of features given the sequences of characters.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T,).</p></li>
-<li><p><strong>speech</strong> (<em>Tensor</em><em>, </em><em>optional</em>) – Feature sequence to extract style (N, idim).</p></li>
-<li><p><strong>spembs</strong> (<em>Tensor</em><em>, </em><em>optional</em>) – Speaker embedding vector (spk_embed_dim,).</p></li>
-<li><p><strong>durations</strong> (<em>LongTensor</em><em>, </em><em>optional</em>) – Groundtruth of duration (T + 1,).</p></li>
-<li><p><strong>alpha</strong> (<em>float</em><em>, </em><em>optional</em>) – Alpha to control the speed.</p></li>
-<li><p><strong>use_teacher_forcing</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use teacher forcing.
-If true, groundtruth of duration, pitch and energy will be used.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output sequence of features (L, odim).
-None: Dummy for compatibility.
-None: Dummy for compatibility.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="espnet2-tts-espnet-model">
-<span id="id9"></span><h2>espnet2.tts.espnet_model<a class="headerlink" href="#espnet2-tts-espnet-model" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.espnet_model"></span><dl class="class">
-<dt id="espnet2.tts.espnet_model.ESPnetTTSModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.espnet_model.</code><code class="sig-name descname">ESPnetTTSModel</code><span class="sig-paren">(</span><em class="sig-param">feats_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], pitch_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], energy_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], pitch_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], energy_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], tts: espnet2.tts.abs_tts.AbsTTS</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
-<dl class="method">
-<dt id="espnet2.tts.espnet_model.ESPnetTTSModel.collect_feats">
-<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">pitch_lengths: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">energy_lengths: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.espnet_model.ESPnetTTSModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">pitch_lengths: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">energy_lengths: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.forward" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.tts.feats_extract.energy.Energy.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em>, <em class="sig-param">feats_lengths: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -865,48 +925,174 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="espnet2.tts.espnet_model.ESPnetTTSModel.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.inference" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.tts.feats_extract.energy.Energy.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.energy.Energy.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy.output_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="espnet2-tts-duration-calculator">
-<span id="id10"></span><h2>espnet2.tts.duration_calculator<a class="headerlink" href="#espnet2-tts-duration-calculator" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.duration_calculator"></span><p>Duration calculator for ESPnet2.</p>
-<dl class="class">
-<dt id="espnet2.tts.duration_calculator.DurationCalculator">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.duration_calculator.</code><code class="sig-name descname">DurationCalculator</code><a class="reference internal" href="../_modules/espnet2/tts/duration_calculator.html#DurationCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.duration_calculator.DurationCalculator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>Duration calculator module.</p>
-<p>Initilize duration calculator.</p>
+<div class="section" id="espnet2-tts-feats-extract-abs-feats-extract">
+<span id="id12"></span><h2>espnet2.tts.feats_extract.abs_feats_extract<a class="headerlink" href="#espnet2-tts-feats-extract-abs-feats-extract" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.abs_feats_extract"></span><dl class="class">
+<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.abs_feats_extract.</code><code class="sig-name descname">AbsFeatsExtract</code><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
 <dl class="method">
-<dt id="espnet2.tts.duration_calculator.DurationCalculator.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">att_ws: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/duration_calculator.html#DurationCalculator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.duration_calculator.DurationCalculator.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert attention weight to durations.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>att_ws</strong> (<em>Tesnor</em>) – Attention weight tensor (L, T) or (#layers, #heads, L, T).</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Duration of each input (T,).
-Tensor: Focus rate value.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>LongTensor</p>
-</dd>
-</dl>
+<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
 </dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.get_parameters">
+<em class="property">abstract </em><code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.output_size">
+<em class="property">abstract </em><code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-tts-feats-extract-log-mel-fbank">
+<span id="id13"></span><h2>espnet2.tts.feats_extract.log_mel_fbank<a class="headerlink" href="#espnet2-tts-feats-extract-log-mel-fbank" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.log_mel_fbank"></span><dl class="class">
+<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_mel_fbank.</code><code class="sig-name descname">LogMelFbank</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = 80</em>, <em class="sig-param">fmax: Optional[int] = 7600</em>, <em class="sig-param">htk: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<p>Conventional frontend structure for ASR</p>
+<p>Stft -&gt; amplitude-spec -&gt; Log-Mel-Fbank</p>
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the parameters required by Vocoder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-tts-feats-extract-init">
+<span id="id14"></span><h2>espnet2.tts.feats_extract.__init__<a class="headerlink" href="#espnet2-tts-feats-extract-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.__init__"></span></div>
+<div class="section" id="espnet2-tts-feats-extract-dio">
+<span id="id15"></span><h2>espnet2.tts.feats_extract.dio<a class="headerlink" href="#espnet2-tts-feats-extract-dio" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.dio"></span><p>F0 extractor using DIO + Stonemask algorithm.</p>
+<dl class="class">
+<dt id="espnet2.tts.feats_extract.dio.Dio">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.dio.</code><code class="sig-name descname">Dio</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">f0min: int = 80</em>, <em class="sig-param">f0max: int = 400</em>, <em class="sig-param">use_token_averaged_f0: bool = True</em>, <em class="sig-param">use_continuous_f0: bool = True</em>, <em class="sig-param">use_log_f0: bool = True</em>, <em class="sig-param">reduction_factor: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<p>F0 estimation with dio + stonemask algortihm.</p>
+<p>This is f0 extractor based on dio + stonmask algorithm introduced in <a class="reference external" href="https://doi.org/10.1587/transinf.2015EDP7457">WORLD:
+a vocoder-based high-quality speech synthesis system for real-time applications</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This module is based on NumPy implementation. Therefore, the computational graph
+is not connected.</p>
+</div>
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.dio.Dio.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em>, <em class="sig-param">feats_lengths: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.dio.Dio.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.dio.Dio.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-tts-feats-extract-log-spectrogram">
+<span id="id17"></span><h2>espnet2.tts.feats_extract.log_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-log-spectrogram" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.log_spectrogram"></span><dl class="class">
+<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_spectrogram.</code><code class="sig-name descname">LogSpectrogram</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<p>Conventional frontend structure for ASR</p>
+<p>Stft -&gt; log-amplitude-spec</p>
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the parameters required by Vocoder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
 </div>
 <div class="section" id="espnet2-tts-gst-init">
-<span id="id11"></span><h2>espnet2.tts.gst.__init__<a class="headerlink" href="#espnet2-tts-gst-init" title="Permalink to this headline">¶</a></h2>
+<span id="id18"></span><h2>espnet2.tts.gst.__init__<a class="headerlink" href="#espnet2-tts-gst-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.gst.__init__"></span></div>
 <div class="section" id="espnet2-tts-gst-style-encoder">
-<span id="id12"></span><h2>espnet2.tts.gst.style_encoder<a class="headerlink" href="#espnet2-tts-gst-style-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id19"></span><h2>espnet2.tts.gst.style_encoder<a class="headerlink" href="#espnet2-tts-gst-style-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.gst.style_encoder"></span><p>Style encoder of GST-Tacotron.</p>
 <dl class="class">
 <dt id="espnet2.tts.gst.style_encoder.MultiHeadedAttention">
@@ -1040,192 +1226,6 @@ Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="espnet2-tts-feats-extract-log-mel-fbank">
-<span id="id16"></span><h2>espnet2.tts.feats_extract.log_mel_fbank<a class="headerlink" href="#espnet2-tts-feats-extract-log-mel-fbank" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.feats_extract.log_mel_fbank"></span><dl class="class">
-<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_mel_fbank.</code><code class="sig-name descname">LogMelFbank</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = 80</em>, <em class="sig-param">fmax: Optional[int] = 7600</em>, <em class="sig-param">htk: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
-<p>Conventional frontend structure for ASR</p>
-<p>Stft -&gt; amplitude-spec -&gt; Log-Mel-Fbank</p>
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.get_parameters">
-<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.get_parameters" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the parameters required by Vocoder</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.output_size">
-<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.output_size" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="espnet2-tts-feats-extract-energy">
-<span id="id17"></span><h2>espnet2.tts.feats_extract.energy<a class="headerlink" href="#espnet2-tts-feats-extract-energy" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.feats_extract.energy"></span><p>Energy extractor.</p>
-<dl class="class">
-<dt id="espnet2.tts.feats_extract.energy.Energy">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.energy.</code><code class="sig-name descname">Energy</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: str = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">use_token_averaged_energy: bool = True</em>, <em class="sig-param">reduction_factor: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
-<p>Energy extractor.</p>
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.energy.Energy.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em>, <em class="sig-param">feats_lengths: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.energy.Energy.get_parameters">
-<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy.get_parameters" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.energy.Energy.output_size">
-<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/energy.html#Energy.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.energy.Energy.output_size" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="espnet2-tts-feats-extract-init">
-<span id="id18"></span><h2>espnet2.tts.feats_extract.__init__<a class="headerlink" href="#espnet2-tts-feats-extract-init" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.feats_extract.__init__"></span></div>
-<div class="section" id="espnet2-tts-feats-extract-abs-feats-extract">
-<span id="id19"></span><h2>espnet2.tts.feats_extract.abs_feats_extract<a class="headerlink" href="#espnet2-tts-feats-extract-abs-feats-extract" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.feats_extract.abs_feats_extract"></span><dl class="class">
-<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.abs_feats_extract.</code><code class="sig-name descname">AbsFeatsExtract</code><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
-<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.forward">
-<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.get_parameters">
-<em class="property">abstract </em><code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.get_parameters" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.output_size">
-<em class="property">abstract </em><code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract.output_size" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="espnet2-tts-feats-extract-log-spectrogram">
-<span id="id20"></span><h2>espnet2.tts.feats_extract.log_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-log-spectrogram" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.feats_extract.log_spectrogram"></span><dl class="class">
-<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_spectrogram.</code><code class="sig-name descname">LogSpectrogram</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
-<p>Conventional frontend structure for ASR</p>
-<p>Stft -&gt; log-amplitude-spec</p>
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.get_parameters">
-<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.get_parameters" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the parameters required by Vocoder</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.output_size">
-<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.output_size" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="espnet2-tts-feats-extract-dio">
-<span id="id21"></span><h2>espnet2.tts.feats_extract.dio<a class="headerlink" href="#espnet2-tts-feats-extract-dio" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.feats_extract.dio"></span><p>F0 extractor using DIO + Stonemask algorithm.</p>
-<dl class="class">
-<dt id="espnet2.tts.feats_extract.dio.Dio">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.dio.</code><code class="sig-name descname">Dio</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">f0min: int = 80</em>, <em class="sig-param">f0max: int = 400</em>, <em class="sig-param">use_token_averaged_f0: bool = True</em>, <em class="sig-param">use_continuous_f0: bool = True</em>, <em class="sig-param">use_log_f0: bool = True</em>, <em class="sig-param">reduction_factor: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
-<p>F0 estimation with dio + stonemask algortihm.</p>
-<p>This is f0 extractor based on dio + stonmask algorithm introduced in <a class="reference external" href="https://doi.org/10.1587/transinf.2015EDP7457">WORLD:
-a vocoder-based high-quality speech synthesis system for real-time applications</a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This module is based on NumPy implementation. Therefore, the computational graph
-is not connected.</p>
-</div>
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.dio.Dio.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em>, <em class="sig-param">feats_lengths: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.dio.Dio.get_parameters">
-<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.get_parameters" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="espnet2.tts.feats_extract.dio.Dio.output_size">
-<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.output_size" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
 </div>
 
 
@@ -1234,8 +1234,8 @@ registered hooks while the latter silently ignores them.</p>
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="espnet2.bin.html" class="btn btn-neutral float-right" title="espnet2.bin package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="espnet2.torch_utils.html" class="btn btn-neutral float-left" title="espnet2.torch_utils package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet2.diar.html" class="btn btn-neutral float-right" title="espnet2.diar package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2.tasks.html" class="btn btn-neutral float-left" title="espnet2.tasks package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

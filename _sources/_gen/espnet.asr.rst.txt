@@ -37,6 +37,17 @@ espnet.asr.asr_mix_utils
     :show-inheritance:
 
 
+.. _espnet.asr.chainer_backend.asr:
+
+espnet.asr.chainer_backend.asr
+------------------------------
+
+.. automodule:: espnet.asr.chainer_backend.asr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.asr.chainer_backend.__init__:
 
 espnet.asr.chainer_backend.__init__
@@ -48,12 +59,34 @@ espnet.asr.chainer_backend.__init__
     :show-inheritance:
 
 
-.. _espnet.asr.chainer_backend.asr:
+.. _espnet.asr.pytorch_backend.asr_mix:
 
-espnet.asr.chainer_backend.asr
+espnet.asr.pytorch_backend.asr_mix
+----------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.asr_mix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.recog:
+
+espnet.asr.pytorch_backend.recog
+--------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.recog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.asr:
+
+espnet.asr.pytorch_backend.asr
 ------------------------------
 
-.. automodule:: espnet.asr.chainer_backend.asr
+.. automodule:: espnet.asr.pytorch_backend.asr
     :members:
     :undoc-members:
     :show-inheritance:
@@ -76,39 +109,6 @@ espnet.asr.pytorch_backend.asr_init
 -----------------------------------
 
 .. automodule:: espnet.asr.pytorch_backend.asr_init
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.asr.pytorch_backend.recog:
-
-espnet.asr.pytorch_backend.recog
---------------------------------
-
-.. automodule:: espnet.asr.pytorch_backend.recog
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.asr.pytorch_backend.asr_mix:
-
-espnet.asr.pytorch_backend.asr_mix
-----------------------------------
-
-.. automodule:: espnet.asr.pytorch_backend.asr_mix
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.asr.pytorch_backend.asr:
-
-espnet.asr.pytorch_backend.asr
-------------------------------
-
-.. automodule:: espnet.asr.pytorch_backend.asr
     :members:
     :undoc-members:
     :show-inheritance:
