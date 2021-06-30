@@ -43,6 +43,7 @@ egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
+egs2/test
 
 # tools related
 tools/bin

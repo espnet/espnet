@@ -1,15 +1,11 @@
 """Utilities for huggingface hub."""
 
+from filelock import FileLock
 import functools
+import os
 from typing import Any
 from typing import Dict
-from typing import Optional
-
-from huggingface_hub import cached_download
-from huggingface_hub import hf_hub_url
 import yaml
-
-from espnet2 import __version__
 
 
 REWRITE_KEYS = [
@@ -32,17 +28,24 @@ def nested_dict_set(dictionary: Dict, dotted_key: str, v: Any):
     dictionary[keys[-1]] = v
 
 
-def hf_rewrite_yaml(filepath: str, model_id: str, revision: Optional[str]):
+def hf_rewrite_yaml(yaml_file: str, cached_dir: str):
     """hf_rewrite_yaml."""
-    with open(filepath, "r", encoding="utf-8") as f:
-        d = yaml.safe_load(f)
-    for rewrite_key in REWRITE_KEYS:
-        v = nested_dict_get(d, rewrite_key)
-        if v is not None and any(v.startswith(prefix) for prefix in ["exp", "data"]):
-            file_url = hf_hub_url(model_id, filename=v, revision=revision)
-            file_path = cached_download(
-                file_url, library_name="espnet", library_version=__version__
-            )
-            nested_dict_set(d, rewrite_key, file_path)
-    with open(filepath, "w", encoding="utf-8") as fw:
-        yaml.safe_dump(d, fw)
+    touch_path = yaml_file + ".touch"
+    lock_path = yaml_file + ".lock"
+
+    with FileLock(lock_path):
+        if not os.path.exists(touch_path):
+
+            with open(yaml_file, "r", encoding='utf-8') as f:
+                d = yaml.safe_load(f)
+
+            for rewrite_key in REWRITE_KEYS:
+                v = nested_dict_get(d, rewrite_key)
+                if v is not None and any(v.startswith(prefix) for prefix in ["exp", "data"]):
+                    new_value = os.path.join(cached_dir, v)
+                    nested_dict_set(d, rewrite_key, new_value)
+            with open(yaml_file, "w", encoding="utf-8") as fw:
+                yaml.safe_dump(d, fw)
+            
+            with open(touch_path, 'a'):
+                os.utime(touch_path, None)

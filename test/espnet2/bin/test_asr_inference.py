@@ -124,7 +124,7 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
 
 
 @pytest.mark.execution_timeout(300)
-def test_from_pretrained():
-    speech2text = Speech2Text.from_pretrained(EXAMPLE_ASR_EN_MODEL_ID)
+def test_from_huggingface():
+    speech2text = Speech2Text.from_huggingface(EXAMPLE_ASR_EN_MODEL_ID)
     speech = np.random.randn(100000)
     _ = speech2text(speech)
