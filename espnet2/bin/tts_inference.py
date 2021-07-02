@@ -130,7 +130,7 @@ class Text2Speech:
             self.spc2wav = None
             logging.info("Vocoder is not used because vocoder_conf is not sufficient")
 
-    def from_huggingface(huggingface_id: str, **kwargs) -> "Text2Speech":
+    def from_pretrained(huggingface_id: str, **kwargs) -> "Text2Speech":
         """Instantiate a Text2Speech model from a local packed archive or a model id
 
         Args:
@@ -284,7 +284,7 @@ def inference(
     # 2. Build model
     if huggingface_id is not None:
         logging.info("Loading pretrained model from huggingface")
-        text2speech = Text2Speech.from_huggingface(huggingface_id)
+        text2speech = Text2Speech.from_pretrained(huggingface_id)
     else:
         text2speech = Text2Speech(
             train_config=train_config,

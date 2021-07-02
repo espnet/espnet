@@ -105,7 +105,7 @@ class SeparateSpeech:
         else:
             logging.info("Perform direct speech %s on the input" % task)
 
-    def from_huggingface(huggingface_id: str, **kwargs) -> "SeparateSpeech":
+    def from_pretrained(huggingface_id: str, **kwargs) -> "SeparateSpeech":
         """Instantiate a SeparateSpeech model from a local packed archive or a model id
 
         Args:
@@ -361,7 +361,7 @@ def inference(
     # 2. Build separate_speech
     if huggingface_id is not None:
         logging.info("Loading pretrained model from huggingface")
-        separate_speech = SeparateSpeech.from_huggingface(huggingface_id)
+        separate_speech = SeparateSpeech.from_pretrained(huggingface_id)
     else:
         separate_speech = SeparateSpeech(
             enh_train_config=enh_train_config,

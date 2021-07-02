@@ -174,7 +174,7 @@ class Speech2Text:
         self.dtype = dtype
         self.nbest = nbest
 
-    def from_huggingface(huggingface_id: str, **kwargs) -> "Speech2Text":
+    def from_pretrained(huggingface_id: str, **kwargs) -> "Speech2Text":
         """Instantiate a Speech2Text model from a local packed archive or a model id
 
         Args:
@@ -330,7 +330,7 @@ def inference(
     # 2. Build speech2text
     if huggingface_id is not None:
         logging.info("Loading pretrained model from huggingface")
-        speech2text = Speech2Text.from_huggingface(huggingface_id)
+        speech2text = Speech2Text.from_pretrained(huggingface_id)
     else:
         speech2text = Speech2Text(
             asr_train_config=asr_train_config,

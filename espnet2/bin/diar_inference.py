@@ -83,7 +83,7 @@ class DiarizeSpeech:
         else:
             logging.info("Perform direct speaker diarization on the input")
 
-    def from_huggingface(huggingface_id: str, **kwargs) -> "DiarizeSpeech":
+    def from_pretrained(huggingface_id: str, **kwargs) -> "DiarizeSpeech":
         """Instantiate a DiarizeSpeech model from a local packed archive or a model id
 
         Args:
@@ -249,7 +249,7 @@ def inference(
     # 2. Build separate_speech
     if huggingface_id is not None:
         logging.info("Loading pretrained model from huggingface")
-        diarize_speech = DiarizeSpeech.from_huggingface(huggingface_id)
+        diarize_speech = DiarizeSpeech.from_pretrained(huggingface_id)
     else:
         diarize_speech = DiarizeSpeech(
             diar_train_config=diar_train_config,
