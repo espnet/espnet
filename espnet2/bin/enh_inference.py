@@ -2,13 +2,16 @@
 import argparse
 import logging
 from pathlib import Path
+import os
 import sys
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
+import yaml
 
+from huggingface_hub import snapshot_download
 import humanfriendly
 import numpy as np
 import torch
@@ -16,11 +19,14 @@ from tqdm import trange
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2 import __version__
 from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.hf_hub import hf_rewrite_yaml
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -98,6 +104,49 @@ class SeparateSpeech:
             )
         else:
             logging.info("Perform direct speech %s on the input" % task)
+
+    def from_huggingface(huggingface_id: str, **kwargs) -> "SeparateSpeech":
+        """Instantiate a SeparateSpeech model from a local packed archive or a model id
+
+        Args:
+            huggingface_id (str): model id from the huggingface.co model hub
+                e.g. ``"julien-c/mini_an4_asr_train_raw_bpe_valid"``
+                and  ``julien-c/model@main`` supports specifying a commit/branch/tag.
+
+        Returns:
+            instance of SeparateSpeech
+
+        """
+
+        if "@" in huggingface_id:
+            huggingface_id = huggingface_id.split("@")[0]
+            revision = huggingface_id.split("@")[1]
+        else:
+            huggingface_id = huggingface_id
+            revision = None
+        cached_dir = snapshot_download(
+            huggingface_id,
+            revision=revision,
+            library_name='espnet',
+            library_version=__version__,
+        )
+
+        meta_yaml_path = os.path.join(cached_dir, META_YAML_FILENAME)
+        with open(meta_yaml_path, "r", encoding="utf-8") as f:
+            d = yaml.safe_load(f)
+        assert isinstance(d, dict), type(d)
+
+        yaml_files = d["yaml_files"]
+        files = d["files"]
+        assert isinstance(yaml_files, dict), type(yaml_files)
+        assert isinstance(files, dict), type(files)
+        inputs = {}
+        for key, value in list(yaml_files.items()) + list(files.items()):
+            inputs[key] = os.path.join(cached_dir, value)
+            if key in yaml_files.keys():
+                # Rewrite paths inside yaml
+                hf_rewrite_yaml(inputs[key], cached_dir)
+        return SeparateSpeech(**inputs, **kwargs)
 
     @torch.no_grad()
     def __call__(
@@ -288,6 +337,7 @@ def inference(
     show_progressbar: bool,
     ref_channel: Optional[int],
     normalize_output_wav: bool,
+    huggingface_id: Optional[str],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -309,18 +359,22 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build separate_speech
-    separate_speech = SeparateSpeech(
-        enh_train_config=enh_train_config,
-        enh_model_file=enh_model_file,
-        segment_size=segment_size,
-        hop_size=hop_size,
-        normalize_segment_scale=normalize_segment_scale,
-        show_progressbar=show_progressbar,
-        ref_channel=ref_channel,
-        normalize_output_wav=normalize_output_wav,
-        device=device,
-        dtype=dtype,
-    )
+    if huggingface_id is not None:
+        logging.info("Loading pretrained model from huggingface")
+        separate_speech = SeparateSpeech.from_huggingface(huggingface_id)
+    else:
+        separate_speech = SeparateSpeech(
+            enh_train_config=enh_train_config,
+            enh_model_file=enh_model_file,
+            segment_size=segment_size,
+            hop_size=hop_size,
+            normalize_segment_scale=normalize_segment_scale,
+            show_progressbar=show_progressbar,
+            ref_channel=ref_channel,
+            normalize_output_wav=normalize_output_wav,
+            device=device,
+            dtype=dtype,
+        )
 
     # 3. Build data-iterator
     loader = EnhancementTask.build_streaming_iterator(
@@ -423,6 +477,7 @@ def get_parser():
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--enh_train_config", type=str, required=True)
     group.add_argument("--enh_model_file", type=str, required=True)
+    group.add_argument("--huggingface_id", type=str, default=None)
 
     group = parser.add_argument_group("Data loading related")
     group.add_argument(

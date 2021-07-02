@@ -14,8 +14,7 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-from huggingface_hub import cached_download
-from huggingface_hub import hf_hub_url
+from huggingface_hub import snapshot_download
 import matplotlib
 import numpy as np
 import soundfile as sf
@@ -131,54 +130,47 @@ class Text2Speech:
             self.spc2wav = None
             logging.info("Vocoder is not used because vocoder_conf is not sufficient")
 
-    def from_pretrained(filename_or_model_id: str, **kwargs) -> "Text2Speech":
+    def from_huggingface(huggingface_id: str, **kwargs) -> "Text2Speech":
         """Instantiate a Text2Speech model from a local packed archive or a model id
 
         Args:
-            filename_or_model_id (str): Path to a local packed archive, or model id from
-                the huggingface.co model hub
-                (e.g. ``"julien-c/kan-bayashi-jsut_tts_train_tacotron2_ja"``)
+            huggingface_id (str): model id from the huggingface.co model hub
+                e.g. ``"julien-c/mini_an4_asr_train_raw_bpe_valid"``
+                and  ``julien-c/model@main`` supports specifying a commit/branch/tag.
 
         Returns:
             instance of Text2Speech
 
         """
-        if os.path.isfile(filename_or_model_id):
-            outpath = os.path.dirname(filename_or_model_id)
-            inputs = unpack(input_archive=filename_or_model_id, outpath=outpath)
-        else:
-            # If not found locally, let's try to find it on Hugging Face model hub
-            # e.g. julien-c/model is a valid model id
-            # and  julien-c/model@main supports specifying a commit/branch/tag.
-            if "@" in filename_or_model_id:
-                model_id = filename_or_model_id.split("@")[0]
-                revision = filename_or_model_id.split("@")[1]
-            else:
-                model_id = filename_or_model_id
-                revision = None
-            meta_yaml_url = hf_hub_url(
-                model_id, filename=META_YAML_FILENAME, revision=revision
-            )
-            meta_yaml_path = cached_download(
-                meta_yaml_url, library_name="espnet", library_version=__version__
-            )
-            with open(meta_yaml_path, "r", encoding="utf-8") as f:
-                d = yaml.safe_load(f)
-            assert isinstance(d, dict), type(d)
-            yaml_files = d["yaml_files"]
-            files = d["files"]
-            assert isinstance(yaml_files, dict), type(yaml_files)
-            assert isinstance(files, dict), type(files)
-            inputs = {}
-            for key, value in list(yaml_files.items()) + list(files.items()):
-                file_url = hf_hub_url(model_id, filename=value, revision=revision)
-                inputs[key] = cached_download(
-                    file_url, library_name="espnet", library_version=__version__
-                )
-                if key in yaml_files.keys():
-                    # Rewrite paths inside yaml
-                    hf_rewrite_yaml(inputs[key], model_id=model_id, revision=revision)
 
+        if "@" in huggingface_id:
+            huggingface_id = huggingface_id.split("@")[0]
+            revision = huggingface_id.split("@")[1]
+        else:
+            huggingface_id = huggingface_id
+            revision = None
+        cached_dir = snapshot_download(
+            huggingface_id,
+            revision=revision,
+            library_name='espnet',
+            library_version=__version__,
+        )
+
+        meta_yaml_path = os.path.join(cached_dir, META_YAML_FILENAME)
+        with open(meta_yaml_path, "r", encoding="utf-8") as f:
+            d = yaml.safe_load(f)
+        assert isinstance(d, dict), type(d)
+
+        yaml_files = d["yaml_files"]
+        files = d["files"]
+        assert isinstance(yaml_files, dict), type(yaml_files)
+        assert isinstance(files, dict), type(files)
+        inputs = {}
+        for key, value in list(yaml_files.items()) + list(files.items()):
+            inputs[key] = os.path.join(cached_dir, value)
+            if key in yaml_files.keys():
+                # Rewrite paths inside yaml
+                hf_rewrite_yaml(inputs[key], cached_dir)
         return Text2Speech(**inputs, **kwargs)
 
     @torch.no_grad()
@@ -268,7 +260,7 @@ def inference(
     speed_control_alpha: float,
     allow_variable_data_keys: bool,
     vocoder_conf: dict,
-    pretrained_huggingface_id: Optional[str],
+    huggingface_id: Optional[str],
 ):
     """Perform TTS model decoding."""
     assert check_argument_types()
@@ -290,9 +282,9 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build model
-    if pretrained_huggingface_id is not None:
+    if huggingface_id is not None:
         logging.info("Loading pretrained model from huggingface")
-        text2speech = Text2Speech.from_pretrained(pretrained_huggingface_id)
+        text2speech = Text2Speech.from_huggingface(huggingface_id)
     else:
         text2speech = Text2Speech(
             train_config=train_config,
@@ -538,7 +530,7 @@ def get_parser():
         type=str,
         help="Model parameter file.",
     )
-    group.add_argument("--pretrained_huggingface_id", type=str, default=None)
+    group.add_argument("--huggingface_id", type=str, default=None)
 
     group = parser.add_argument_group("Decoding related")
     group.add_argument(
