@@ -13,26 +13,27 @@ echo ${value[0]} # This is model path
 
 echo ${value[2]} # This is model name
 
-IFS='/' read -ra ADDR <<< ${value[0]}
 escapeString="_"
-pattern="%2B" # Repo name does not accept + or %
+pattern1="/"
+pattern2="+" # Repo name does not accept /
 
-repo_name=${ADDR[-1]%.zip}
-repo_name=${repo_name//${pattern}/${escapeString}} # Get name of hugging face repo
+repo_name=${value[2]}
+repo_name=${repo_name//${pattern1}/${escapeString}} 
+repo_name=${repo_name//${pattern2}/${escapeString}} # Get name of hugging face repo
 
 rm -rf dest/*
 unzip  ${value[0]} -d dest/ # Save data in dest folder
 
-# Create hugging face repo and push all data to repo
-transformers-cli repo create ${repo_name}
-git clone https://huggingface.co/Siddhant/${repo_name}
+# # Create hugging face repo and push all data to repo
+transformers-cli repo create ${repo_name}  --organization espnet
+git clone https://huggingface.co/espnet/${repo_name}
 mv dest/* ${repo_name}/.
 
 # Add readme
 python create_README_file.py ${repo_name} ${value[2]}
 cd ${repo_name}
 git add .
-git commit -m "initial import from zenodo"
+git commit -m "import from zenodo"
 git push
 
 

@@ -3,15 +3,16 @@ tags:
 - espnet
 - audio
 - <add_more_tags>
-language: en
+language: <add_lang>
 datasets:
-- gigaspeech
+- <add_corpus>
 license: cc-by-4.0
 ---
-## Example ESPnet2 <add_task_name> model 
+## ESPnet2 <add_task_name> pretrained model 
 ### `<add_model_name>`
 ♻️ Imported from <add_url>
-This model was trained by <add_name> using <add_corpus> recipe in [espnet](https://github.com/espnet/espnet/).
+
+This model was trained by <add_name> using <add_corpus>/<add_recipe_task_name> recipe in [espnet](https://github.com/espnet/espnet/).
 ### Demo: How to use in ESPnet2
 ```python
 # coming soon
