@@ -44,5 +44,5 @@ def create_Readme_file(repo_name,model_name):
 
 if __name__ == "__main__":
 	repo_name=sys.argv[1]
-	model_name=sys.argv[2].replace("\_"," ")
+	model_name=sys.argv[2]
 	create_Readme_file(repo_name,model_name)
