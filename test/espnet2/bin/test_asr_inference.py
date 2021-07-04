@@ -13,7 +13,9 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 
 
-EXAMPLE_ASR_EN_MODEL_ID = "julien-c/mini_an4_asr_train_raw_bpe_valid"
+EXAMPLE_ASR_EN_MODEL_ID = (
+    "espnet/kamo-naoyuki-mini_an4_asr_train_raw_bpe_valid.acc.best"
+)
 
 
 def test_get_parser():
@@ -125,6 +127,10 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
 
 @pytest.mark.execution_timeout(300)
 def test_from_huggingface():
-    speech2text = Speech2Text.from_huggingface(EXAMPLE_ASR_EN_MODEL_ID)
+    try:
+        from espnet_model_zoo.huggingface import from_huggingface  # NOQA
+    except Exception:
+        pytest.skip("No espnet_model_zoo found in your installation")
+    speech2text = Speech2Text.from_pretrained(EXAMPLE_ASR_EN_MODEL_ID)
     speech = np.random.randn(100000)
     _ = speech2text(speech)

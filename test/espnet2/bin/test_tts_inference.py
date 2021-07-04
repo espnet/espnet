@@ -10,10 +10,7 @@ from espnet2.bin.tts_inference import Text2Speech
 from espnet2.tasks.tts import TTSTask
 
 
-EXAMPLE_TTS_EN_MODEL_ID = (
-    "julien-c/ljspeech_tts_train_tacotron2_raw_phn_tacotron_g2p_en_no_space_train"
-)
-EXAMPLE_TTS_JA_MODEL_ID = "julien-c/kan-bayashi-jsut_tts_train_tacotron2"
+EXAMPLE_TTS_EN_MODEL_ID = "espnet/kan-bayashi_ljspeech_tacotron2"
 
 
 def test_get_parser():
@@ -69,6 +66,10 @@ def test_Text2Speech(config_file):
 
 @pytest.mark.execution_timeout(30)
 def test_from_pretrained():
+    try:
+        from espnet_model_zoo.huggingface import from_huggingface  # NOQA
+    except Exception:
+        pytest.skip("No espnet_model_zoo found in your installation")
     text2speech = Text2Speech.from_pretrained(EXAMPLE_TTS_EN_MODEL_ID)
     text = "aiueo"
     text2speech(text)

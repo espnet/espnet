@@ -10,6 +10,11 @@ from espnet2.bin.enh_inference import SeparateSpeech
 from espnet2.tasks.enh import EnhancementTask
 
 
+EXAMPLE_ENH_EN_MODEL_ID = (
+    "espnet/yen-ju-lu-dns_ins20_enh_train_enh_blstm_tf_raw_valid.loss.best"
+)
+
+
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 
@@ -43,4 +48,15 @@ def test_SeparateSpeech(config_file, batch_size, input_size, segment_size, hop_s
         enh_train_config=config_file, segment_size=segment_size, hop_size=hop_size
     )
     wav = torch.rand(batch_size, input_size)
+    separate_speech(wav, fs=8000)
+
+
+@pytest.mark.execution_timeout(30)
+def test_from_pretrained():
+    try:
+        from espnet_model_zoo.huggingface import from_huggingface  # NOQA
+    except Exception:
+        pytest.skip("No espnet_model_zoo found in your installation")
+    separate_speech = SeparateSpeech.from_pretrained(EXAMPLE_ENH_EN_MODEL_ID)
+    wav = torch.rand(1, 16000)
     separate_speech(wav, fs=8000)

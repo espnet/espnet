@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os
 from pathlib import Path
 import sys
 from typing import Optional
@@ -9,14 +8,11 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-from huggingface_hub import snapshot_download
-
 import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
-import yaml
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
@@ -28,9 +24,7 @@ from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
-from espnet2 import __version__
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.main_funcs.pack_funcs import META_YAML_FILENAME
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -38,7 +32,6 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.hf_hub import hf_rewrite_yaml
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -186,35 +179,11 @@ class Speech2Text:
             instance of Speech2Text
 
         """
-
-        if "@" in huggingface_id:
-            huggingface_id = huggingface_id.split("@")[0]
-            revision = huggingface_id.split("@")[1]
-        else:
-            huggingface_id = huggingface_id
-            revision = None
-        cached_dir = snapshot_download(
-            huggingface_id,
-            revision=revision,
-            library_name='espnet',
-            library_version=__version__,
-        )
-
-        meta_yaml_path = os.path.join(cached_dir, META_YAML_FILENAME)
-        with open(meta_yaml_path, "r", encoding="utf-8") as f:
-            d = yaml.safe_load(f)
-        assert isinstance(d, dict), type(d)
-
-        yaml_files = d["yaml_files"]
-        files = d["files"]
-        assert isinstance(yaml_files, dict), type(yaml_files)
-        assert isinstance(files, dict), type(files)
-        inputs = {}
-        for key, value in list(yaml_files.items()) + list(files.items()):
-            inputs[key] = os.path.join(cached_dir, value)
-            if key in yaml_files.keys():
-                # Rewrite paths inside yaml
-                hf_rewrite_yaml(inputs[key], cached_dir)
+        try:
+            from espnet_model_zoo.huggingface import from_huggingface
+        except Exception:
+            raise ModuleNotFoundError("You need to install ESPnet model zoo.")
+        inputs = from_huggingface(huggingface_id)
         return Speech2Text(**inputs, **kwargs)
 
     @torch.no_grad()
