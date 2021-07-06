@@ -18,7 +18,7 @@ requirements = {
         "humanfriendly",
         "scipy>=1.4.1",
         "matplotlib==3.1.0",
-        "pillow>=6.1.0",
+        "pillow!=8.3.0,>=6.1.0",
         "editdistance==0.5.2",
         "ctc-segmentation<1.8,>=1.6.6",
         "wandb",
