@@ -30,6 +30,9 @@ class EncoderLayer(nn.Module):
             if True, additional linear will be applied.
             i.e. x -> x + linear(concat(x, att(x)))
             if False, no additional linear will be applied. i.e. x -> x + att(x)
+        stochastic_depth_rate (float): Proability to skip this layer.
+            During training, the layer may skip residual computation and return input as-is
+            with given probability.
 
     """
 
