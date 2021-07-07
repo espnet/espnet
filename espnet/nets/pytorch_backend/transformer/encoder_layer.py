@@ -33,7 +33,6 @@ class EncoderLayer(nn.Module):
         stochastic_depth_rate (float): Proability to skip this layer.
             During training, the layer may skip residual computation and return input
             as-is with given probability.
-
     """
 
     def __init__(
