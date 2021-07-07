@@ -61,9 +61,10 @@ class Encoder(torch.nn.Module):
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
         stochastic_depth_rate (float): Maximum probability to skip the encoder layer.
-        intermediate_layers (Union[List[int], None]): the indices of layers for intermediate CTC.
+        intermediate_layers (Union[List[int], None]): indices of intermediate CTC layer.
             indices start from 1.
-            if not None, intermediate outputs are returned, affecting return type signature.
+            if not None, intermediate outputs are returned (which changes return type
+            signature.)
 
     """
 
