@@ -245,18 +245,21 @@ class Encoder(torch.nn.Module):
         else:
             xs = self.embed(xs)
 
-        intermediate_outputs = []
-        for layer_idx, encoder_layer in enumerate(self.encoders):
-            xs, masks = encoder_layer(xs, masks)
+        if self.intermediate_layers is None:
+            xs, masks = self.encoders(xs, masks)
+        else:
+            intermediate_outputs = []
+            for layer_idx, encoder_layer in enumerate(self.encoders):
+                xs, masks = encoder_layer(xs, masks)
 
-            if self.intermediate_layers is not None and layer_idx + 1 in self.intermediate_layers:
-                # intermediate branches also require normalization.
-                encoder_output = xs
-                if isinstance(encoder_output, tuple):
-                    encoder_output = encoder_output[0]
-                    if self.normalize_before:
-                        encoder_output = self.after_norm(encoder_output)
-                intermediate_outputs.append(encoder_output)
+                if self.intermediate_layers is not None and layer_idx + 1 in self.intermediate_layers:
+                    # intermediate branches also require normalization.
+                    encoder_output = xs
+                    if isinstance(encoder_output, tuple):
+                        encoder_output = encoder_output[0]
+                        if self.normalize_before:
+                            encoder_output = self.after_norm(encoder_output)
+                    intermediate_outputs.append(encoder_output)
 
         if isinstance(xs, tuple):
             xs = xs[0]

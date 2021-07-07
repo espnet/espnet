@@ -82,35 +82,39 @@ class EncoderLayer(nn.Module):
             skip_layer = torch.rand(1).item() < self.stochastic_depth_rate
             stoch_layer_coeff = 1. / (1 - self.stochastic_depth_rate)
 
-        if not skip_layer:
-            residual = x
-            if self.normalize_before:
-                x = self.norm1(x)
-
-            if cache is None:
-                x_q = x
-            else:
-                assert cache.shape == (x.shape[0], x.shape[1] - 1, self.size)
-                x_q = x[:, -1:, :]
-                residual = residual[:, -1:, :]
-                mask = None if mask is None else mask[:, -1:, :]
-
-            if self.concat_after:
-                x_concat = torch.cat((x, self.self_attn(x_q, x, x, mask)), dim=-1)
-                x = residual + stoch_layer_coeff * self.concat_linear(x_concat)
-            else:
-                x = residual + stoch_layer_coeff * self.dropout(self.self_attn(x_q, x, x, mask))
-            if not self.normalize_before:
-                x = self.norm1(x)
-
-            residual = x
-            if self.normalize_before:
-                x = self.norm2(x)
-            x = residual + stoch_layer_coeff * self.dropout(self.feed_forward(x))
-            if not self.normalize_before:
-                x = self.norm2(x)
-
+        if skip_layer:
             if cache is not None:
                 x = torch.cat([cache, x], dim=1)
+            return x, mask
+
+        residual = x
+        if self.normalize_before:
+            x = self.norm1(x)
+
+        if cache is None:
+            x_q = x
+        else:
+            assert cache.shape == (x.shape[0], x.shape[1] - 1, self.size)
+            x_q = x[:, -1:, :]
+            residual = residual[:, -1:, :]
+            mask = None if mask is None else mask[:, -1:, :]
+
+        if self.concat_after:
+            x_concat = torch.cat((x, self.self_attn(x_q, x, x, mask)), dim=-1)
+            x = residual + stoch_layer_coeff * self.concat_linear(x_concat)
+        else:
+            x = residual + stoch_layer_coeff * self.dropout(self.self_attn(x_q, x, x, mask))
+        if not self.normalize_before:
+            x = self.norm1(x)
+
+        residual = x
+        if self.normalize_before:
+            x = self.norm2(x)
+        x = residual + stoch_layer_coeff * self.dropout(self.feed_forward(x))
+        if not self.normalize_before:
+            x = self.norm2(x)
+
+        if cache is not None:
+            x = torch.cat([cache, x], dim=1)
 
         return x, mask
