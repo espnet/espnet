@@ -50,7 +50,7 @@ class EncoderLayer(nn.Module):
         dropout_rate,
         normalize_before=True,
         concat_after=False,
-        stochastic_depth_rate=0.,
+        stochastic_depth_rate=0.0,
     ):
         """Construct an EncoderLayer object."""
         super(EncoderLayer, self).__init__()
@@ -102,7 +102,7 @@ class EncoderLayer(nn.Module):
         stoch_layer_coeff = 1.0
         if self.training and self.stochastic_depth_rate > 0:
             skip_layer = torch.rand(1).item() < self.stochastic_depth_rate
-            stoch_layer_coeff = 1. / (1 - self.stochastic_depth_rate)
+            stoch_layer_coeff = 1.0 / (1 - self.stochastic_depth_rate)
 
         if skip_layer:
             if cache is not None:
@@ -116,7 +116,9 @@ class EncoderLayer(nn.Module):
             residual = x
             if self.normalize_before:
                 x = self.norm_ff_macaron(x)
-            x = residual + stoch_layer_coeff * self.ff_scale * self.dropout(self.feed_forward_macaron(x))
+            x = residual + stoch_layer_coeff * self.ff_scale * self.dropout(
+                self.feed_forward_macaron(x)
+            )
             if not self.normalize_before:
                 x = self.norm_ff_macaron(x)
 
@@ -159,7 +161,9 @@ class EncoderLayer(nn.Module):
         residual = x
         if self.normalize_before:
             x = self.norm_ff(x)
-        x = residual + stoch_layer_coeff * self.ff_scale * self.dropout(self.feed_forward(x))
+        x = residual + stoch_layer_coeff * self.ff_scale * self.dropout(
+            self.feed_forward(x)
+        )
         if not self.normalize_before:
             x = self.norm_ff(x)
 

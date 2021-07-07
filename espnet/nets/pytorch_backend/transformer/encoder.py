@@ -101,7 +101,7 @@ class Encoder(torch.nn.Module):
         positionwise_conv_kernel_size=1,
         selfattention_layer_type="selfattn",
         padding_idx=-1,
-        stochastic_depth_rate=0.,
+        stochastic_depth_rate=0.0,
         intermediate_layers=None,
     ):
         """Construct an Encoder object."""
@@ -315,7 +315,10 @@ class Encoder(torch.nn.Module):
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs, masks = encoder_layer(xs, masks)
 
-                if self.intermediate_layers is not None and layer_idx + 1 in self.intermediate_layers:
+                if (
+                    self.intermediate_layers is not None
+                    and layer_idx + 1 in self.intermediate_layers
+                ):
                     encoder_output = xs
                     # intermediate branches also require normalization.
                     if self.normalize_before:

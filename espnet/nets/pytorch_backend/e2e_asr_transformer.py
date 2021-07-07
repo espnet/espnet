@@ -88,8 +88,10 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.intermediate_ctc_weight = args.intermediate_ctc_weight
         self.intermediate_ctc_layers = []
-        if args.intermediate_ctc_layer != '':
-            self.intermediate_ctc_layers = [int(i) for i in args.intermediate_ctc_layer.split(',')]
+        if args.intermediate_ctc_layer != "":
+            self.intermediate_ctc_layers = [
+                int(i) for i in args.intermediate_ctc_layer.split(",")
+            ]
 
         self.encoder = Encoder(
             idim=idim,
@@ -209,7 +211,7 @@ class E2E(ASRInterface, torch.nn.Module):
         # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
         cer_ctc = None
-        loss_intermediate_ctc = 0.
+        loss_intermediate_ctc = 0.0
         if self.mtlalpha == 0.0:
             loss_ctc = None
         else:
@@ -226,7 +228,9 @@ class E2E(ASRInterface, torch.nn.Module):
             if self.intermediate_ctc_weight > 0 and self.intermediate_ctc_layers:
                 for hs_intermediate in hs_intermediates:
                     # assuming hs_intermediates and hs_pad has same length / padding
-                    loss_inter = self.ctc(hs_intermediate.view(batch_size, -1, self.adim), hs_len, ys_pad)
+                    loss_inter = self.ctc(
+                        hs_intermediate.view(batch_size, -1, self.adim), hs_len, ys_pad
+                    )
                     loss_intermediate_ctc += loss_inter
 
                 loss_intermediate_ctc /= len(self.intermediate_ctc_layers)
@@ -247,13 +251,19 @@ class E2E(ASRInterface, torch.nn.Module):
         elif alpha == 1:
             self.loss = loss_ctc
             if self.intermediate_ctc_weight > 0:
-                self.loss = (1 - self.intermediate_ctc_weight) * loss_ctc + self.intermediate_ctc_weight * loss_intermediate_ctc
+                self.loss = (
+                    1 - self.intermediate_ctc_weight
+                ) * loss_ctc + self.intermediate_ctc_weight * loss_intermediate_ctc
             loss_att_data = None
             loss_ctc_data = float(loss_ctc)
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
             if self.intermediate_ctc_weight > 0:
-                self.loss = (1 - alpha - self.intermediate_ctc_weight) * loss_att + alpha * loss_ctc + self.intermediate_ctc_weight * loss_intermediate_ctc
+                self.loss = (
+                    (1 - alpha - self.intermediate_ctc_weight) * loss_att
+                    + alpha * loss_ctc
+                    + self.intermediate_ctc_weight * loss_intermediate_ctc
+                )
             loss_att_data = float(loss_att)
             loss_ctc_data = float(loss_ctc)
 

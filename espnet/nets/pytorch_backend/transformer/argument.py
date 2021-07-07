@@ -129,7 +129,7 @@ def add_arguments_transformer_common(group):
     )
     group.add_argument(
         "--intermediate-ctc-layer",
-        default='',
+        default="",
         type=str,
         help="Position of intermediate CTC layer. {int} or {int},{int},...,{int}",
     )
