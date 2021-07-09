@@ -9,9 +9,9 @@ def CenterCrop(batch_img, size):
     th, tw = size
     img = np.zeros((len(batch_img), len(batch_img[0]), th, tw))
     for i in range(len(batch_img)):
-        x1 = int(round((w - tw))/2.)
-        y1 = int(round((h - th))/2.)
-        img[i] = batch_img[i, :, y1:y1+th, x1:x1+tw]
+        x1 = int(round((w - tw)) / 2.0)
+        y1 = int(round((h - th)) / 2.0)
+        img[i] = batch_img[i, :, y1 : y1 + th, x1 : x1 + tw]
     return img
 
 
@@ -22,7 +22,7 @@ def RandomCrop(batch_img, size):
     for i in range(len(batch_img)):
         x1 = random.randint(0, 8)
         y1 = random.randint(0, 8)
-        img[i] = batch_img[i, :, y1:y1+th, x1:x1+tw]
+        img[i] = batch_img[i, :, y1 : y1 + th, x1 : x1 + tw]
     return img
 
 

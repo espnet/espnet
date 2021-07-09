@@ -81,14 +81,15 @@ def main():
         assert key_a == k_v
         visual = torch.tensor([[visual]])
         audio = torch.tensor(audio)
-        visual_p = torch.nn.functional.interpolate(visual, size=(audio.shape[0], visual.shape[-1]))[0][0]
+        visual_p = torch.nn.functional.interpolate(
+            visual, size=(audio.shape[0], visual.shape[-1])
+        )[0][0]
         av_feature = torch.cat((audio, visual_p), dim=1).numpy()
         writer[key_a] = av_feature
 
     audio_reader.close()
     visual_reader.close()
     writer.close()
-
 
 
 if __name__ == "__main__":

@@ -12,11 +12,14 @@ def reload_model(model, path=""):
         return model
     else:
         model_dict = model.state_dict()
-        pretrained_dict = torch.load(path, map_location='cpu')
-        pretrained_dict = {k: v for k, v in pretrained_dict.items(
-        ) if k in model_dict and v.size() == model_dict[k].size()}
+        pretrained_dict = torch.load(path, map_location="cpu")
+        pretrained_dict = {
+            k: v
+            for k, v in pretrained_dict.items()
+            if k in model_dict and v.size() == model_dict[k].size()
+        }
         model_dict.update(pretrained_dict)
-        print('load {} parameters'.format(len(pretrained_dict)))
+        print("load {} parameters".format(len(pretrained_dict)))
         model.load_state_dict(model_dict)
         return model
 
@@ -47,8 +50,6 @@ class BoundingBox(object):
             self.minx, self.miny = 192, 192
             self.maxx, self.maxy = 64, 64
 
-
-
     @property
     def width(self):
         return self.maxx - self.minx
@@ -59,7 +60,8 @@ class BoundingBox(object):
 
     def __repr__(self):
         return "BoundingBox({}, {}, {}, {})".format(
-            self.minx, self.maxx, self.miny, self.maxy)
+            self.minx, self.maxx, self.miny, self.maxy
+        )
 
 
 def parse_scripts(scp_path, value_processor=lambda x: x, num_tokens=2):
@@ -73,24 +75,26 @@ def parse_scripts(scp_path, value_processor=lambda x: x, num_tokens=2):
         for raw_line in f:
             scp_tokens = raw_line.strip().split()
             line += 1
-            if num_tokens >= 2 and len(scp_tokens) != num_tokens or len(
-                    scp_tokens) < 2:
+            if num_tokens >= 2 and len(scp_tokens) != num_tokens or len(scp_tokens) < 2:
                 raise RuntimeError(
                     "For {}, format error in line[{:d}]: {}".format(
-                        scp_path, line, raw_line))
+                        scp_path, line, raw_line
+                    )
+                )
             if num_tokens == 2:
                 key, value = scp_tokens
             else:
                 key, value = scp_tokens[0], scp_tokens[1:]
             if key in scp_dict:
-                raise ValueError("Duplicated key \'{0}\' exists in {1}".format(
-                    key, scp_path))
+                raise ValueError(
+                    "Duplicated key '{0}' exists in {1}".format(key, scp_path)
+                )
             scp_dict[key] = value_processor(value)
     return scp_dict
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model = pretrained.Lipreading(mode='temporalConv', nClasses=500)
+model = pretrained.Lipreading(mode="temporalConv", nClasses=500)
 model = reload_model(model, "./local/feature_extract/finetuneGRU_19.pt")
 model = model.float()
 model.eval()
@@ -99,16 +103,19 @@ model.to(device)
 
 class VideoReader(object):
     """
-        Basic Reader Class
+    Basic Reader Class
     """
 
     def __init__(self, scp_path, value_processor=lambda x: x):
         self.index_dict = parse_scripts(
-            scp_path, value_processor=value_processor, num_tokens=2)
+            scp_path, value_processor=value_processor, num_tokens=2
+        )
         self.index_keys = list(self.index_dict.keys())
-        self.face_align_model = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D,
-                                                             flip_input=False,
-                                                             device="cuda:0" if torch.cuda.is_available() else "cpu")
+        self.face_align_model = face_alignment.FaceAlignment(
+            face_alignment.LandmarksType._2D,
+            flip_input=False,
+            device="cuda:0" if torch.cuda.is_available() else "cpu",
+        )
 
     def video_face_crop(self, input_video):
         video = input_video
@@ -124,19 +131,23 @@ class VideoReader(object):
 
         bounding_box = BoundingBox(heatmap[2:15])
 
-        croped = video[:, bounding_box.miny:bounding_box.maxy,
-                       bounding_box.minx:bounding_box.maxx, :]
+        croped = video[
+            :,
+            bounding_box.miny : bounding_box.maxy,
+            bounding_box.minx : bounding_box.maxx,
+            :,
+        ]
 
         crop_resize = np.zeros((np.shape(video)[0], 112, 112, np.shape(video)[-1]))
-        
+
         for i in range(len(croped)):
             try:
                 crop_resize[i] = skimage.transform.resize(
-                    croped[i], (112, 112), preserve_range=True)
-            except:
+                    croped[i], (112, 112), preserve_range=True
+                )
+            except Exception:
                 print(croped)
-                print('frame fails')
-
+                print("frame fails")
 
         crop_resize = crop_resize.astype(np.uint8)
 
@@ -193,8 +204,8 @@ class VideoReader(object):
             num_utts = len(self.index_keys)
             if index >= num_utts or index < 0:
                 raise KeyError(
-                    "Interger index out of range, {:d} vs {:d}".format(
-                        index, num_utts))
+                    "Interger index out of range, {:d} vs {:d}".format(index, num_utts)
+                )
             index = self.index_keys[index]
         if index not in self.index_dict:
             raise KeyError("Missing utterance {}!".format(index))
