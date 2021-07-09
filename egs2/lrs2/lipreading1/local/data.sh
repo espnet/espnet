@@ -16,7 +16,7 @@ log() {
 
 cmd=run.pl
 nj=2
-stage=2
+stage=1
 stop_stage=5
 
 log "$0 $*"
@@ -52,21 +52,21 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     for dataset in train val test; do
         echo "extracting visual feature for [${dataset}]"
         
-        # log_dir=data/${dataset}/split_${nj}
-        # split_scps=""
-        # mkdir -p ${log_dir}
-        # for n in $(seq $nj); do
-        #     split_scps="$split_scps ${log_dir}/video.$n.scp"
-        # done
-        # ./utils/split_scp.pl data/${dataset}/video.scp $split_scps || exit 1
+        log_dir=data/${dataset}/split_${nj}
+        split_scps=""
+        mkdir -p ${log_dir}
+        for n in $(seq $nj); do
+            split_scps="$split_scps ${log_dir}/video.$n.scp"
+        done
+        ./utils/split_scp.pl data/${dataset}/video.scp $split_scps || exit 1
 
-        # $cmd JOB=1:$nj ${log_dir}/extract_visual_feature.JOB.log python ./local/feature_extract/extract_visual_feature.py \
-        #  ${log_dir}/video.JOB.scp \
-        #  scp,ark:${log_dir}/vfeature.JOB.scp,${log_dir}/vfeature.JOB.ark || exit 1
+        $cmd JOB=1:$nj ${log_dir}/extract_visual_feature.JOB.log python ./local/feature_extract/extract_visual_feature.py \
+         ${log_dir}/video.JOB.scp \
+         scp,ark:${log_dir}/vfeature.JOB.scp,${log_dir}/vfeature.JOB.ark || exit 1
 
-        # for n in $(seq $nj); do
-        #     cat ${log_dir}/vfeature.${n}.scp
-        # done > data/${dataset}/vfeature.scp
+        for n in $(seq $nj); do
+            cat ${log_dir}/vfeature.${n}.scp
+        done > data/${dataset}/vfeature.scp
         cp data/${dataset}/vfeature.scp data/${dataset}/feats.scp
 
     done

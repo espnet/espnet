@@ -19,4 +19,5 @@ test_set="test "
     --test_sets ${test_set} \
     --feats_type extracted \
     --asr_config conf/train_asr_transformer.yaml \
-    --srctexts "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text" \
+    --bpe_train_text "data/${train_set}/text" "$@"
