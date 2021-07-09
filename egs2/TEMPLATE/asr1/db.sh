@@ -78,6 +78,7 @@ HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
 JAVA=downloads
+SUNDA=downloads
 RU_OPEN_STT=downloads
 GIGASPEECH=
 NOISY_SPEECH=
@@ -159,5 +160,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HOW2_FEATS=
     ZEROTH_KOREAN=downloads
     JAVA=
+    SUNDA=
 
 fi
