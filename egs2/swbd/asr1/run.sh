@@ -17,19 +17,17 @@ lm_config=conf/train_lm.yaml
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
 speed_perturb_factors="1.1 0.9 1.0"
 
-bpe_train_text=dump/raw/train_nodup_sp/text
+bpe_train_text=dump/fbank_pitch/train_nodup_sp/text
 lm_train_text=data/lm_train.txt
 
-# NOTE: The default settings require 4 GPUs with 12 GB memory
+# NOTE: The default settings require 8 GPUs with 32 GB memory
 ./asr.sh \
-    --ngpu 4 \
-    --nj 16 \
-    --inference_nj 16 \
+    --ngpu 8 \
     --token_type bpe \
     --nbpe 2000 \
     --bpe_train_text ${bpe_train_text} \
     --lm_train_text ${lm_train_text} \
-    --feats_type raw \
+    --feats_type fbank_pitch \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --inference_lm valid.loss.best.pth \

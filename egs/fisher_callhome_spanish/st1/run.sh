@@ -137,16 +137,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish/st1/dump/${train_set}/delta${do_delta}/storage \
-          ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish/st1/dump/${train_dev}/delta${do_delta}/storage \
-          ${feat_dt_dir}/storage
-    fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     for x in ${train_dev} ${trans_set}; do
@@ -181,11 +171,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    for x in ${train_dev} ${trans_set}; do
+    for x in ${train_set} ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
-        data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang en \
+        data2json.sh --nj 16 --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
             data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     done
 
@@ -193,7 +181,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
         for no in 1 2 3; do
-            data2json.sh --text data/${x}/text.${tgt_case}.${no} --feat ${feat_trans_dir}/feats.scp --bpecode ${bpemodel}.model --lang en \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case}.${no} --feat ${feat_trans_dir}/feats.scp --bpecode ${bpemodel}.model --lang "en" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}_${no}.${tgt_case}.json
         done
     done
@@ -258,7 +246,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --enc-init ${asr_model} \
-        --dec-init ${mt_model}
+        --dec-init ${mt_model} \
+        --n-iter-processes 2
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
