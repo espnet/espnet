@@ -56,8 +56,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   if python -c "import skvideo" &> /dev/null; then
     echo 'skvideo installed'
   else
-    echo 'please install required packages by run '\
-      '". ./path.sh; pip install sk-video scikit-image face_alignment"'
+    echo 'please install required packages by run ". ./path.sh; pip install sk-video scikit-image face_alignment"'
     exit 1;
   fi
 
