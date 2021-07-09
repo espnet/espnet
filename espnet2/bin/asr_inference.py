@@ -56,7 +56,7 @@ class Speech2Text:
         asr_model_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
-        ngram_scorer: str = 'full',
+        ngram_scorer: str = "full",
         ngram_file: Union[Path, str] = None,
         token_type: str = None,
         bpemodel: str = None,
