@@ -7,19 +7,17 @@ set -o pipefail
 
 lid=false # whether to use language id as additional label
 
-train_set="sunda_train" # NOTE no "sunda_" in alam5
-train_dev="sunda_dev" # NOTE no "sunda_" in alam5
-test_set="sunda_test" # NOTE no "sunda_" in alam5
+train_set="sunda_train"
+train_dev="sunda_dev"
+test_set="sunda_test"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 ngpu=1
 
-# NOTE started in stage 1 for alam5
-
 ./asr.sh \
-    --stage 2 \
+    --stage 1 \
     --stop_stage 100 \
     --ngpu ${ngpu} \
     --nj 80 \
@@ -35,4 +33,3 @@ ngpu=1
     --test_sets "${test_set}" \
     --lm_train_text "data/${train_set}/text" \
     --local_score_opts "--score_lang_id ${lid}" "$@"
-
