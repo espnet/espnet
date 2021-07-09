@@ -31,19 +31,21 @@ log "data preparation started"
 
 mkdir -p ${SUNDA}
 
+workspace=$PWD
+
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
     cd ${SUNDA}
     idxs=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f")
-    for i in ${idxs[@]}; do
+    for i in "${idxs[@]}"; do
         wget https://www.openslr.org/resources/36/asr_sundanese_${i}.zip
         unzip -o asr_sundanese_${i}.zip
         rm -f asr_sundanese_${i}.zip
     done
     mv asr_sundanese/* .
     rm -rf asr_sundanese
-    cd ..
+    cd $workspace
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
