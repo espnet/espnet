@@ -27,7 +27,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         mkdir -p data/${dataset}
         awk  -v lrs2=${LRS2} -F '[/ ]' '{print $1"_"$2, lrs2"/main/"$1"/"$2".mp4"}' ${LRS2}/${dataset}.txt | sort > data/${dataset}/video.scp
         awk '{print $1, "ffmpeg -i " $2 " -ar 16000 -ac 1  -f wav pipe:1 |" }' data/${dataset}/video.scp > data/${dataset}/wav.scp
-        awk '{print $2}' data/${dataset}/video.scp | sed -e 's/.mp4/.txt/g' | while read line 
+        awk '{print $2}' data/${dataset}/video.scp | sed -e 's/.mp4/.txt/g' | while read -r line 
         do 
             grep 'Text:' $line | sed -e 's/Text:  //g'
         done > data/${dataset}/text_tmp
@@ -41,6 +41,9 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # Download the pretrained model to extract visual features.
+    # The model was trained by Chenda Li (lichenda1996@sjtu.edu.cn), 
+    # following the paper by Stafylakis, T., & Tzimiropoulos, G. (2017). 
+    # "Combining residual networks with LSTMs for lipreading".
     if [ ! -f ./local/feature_extract/finetuneGRU_19.pt ]; then
         wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=12ww9Vp8q3g-PdNGKvgEW8dPmFlJdhko0' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=12ww9Vp8q3g-PdNGKvgEW8dPmFlJdhko0" -O ./local/feature_extract/finetuneGRU_19.pt.tgz && rm -rf /tmp/cookies.txt 
         tar xzvf ./local/feature_extract/finetuneGRU_19.pt.tgz -C ./local/feature_extract/
@@ -49,6 +52,15 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    
+  if python -c "import skvideo" &> /dev/null; then
+    echo 'skvideo installed'
+  else
+    echo 'please install required packages by run '\
+      '". ./path.sh; pip install sk-video scikit-image face_alignment"'
+    exit 1;
+  fi
+
     for dataset in train val test; do
         echo "extracting visual feature for [${dataset}]"
         

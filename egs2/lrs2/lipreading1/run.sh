@@ -5,8 +5,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-valid_set=val
+train_set="train"
+valid_set="val"
 test_set="test "
 
 ./asr.sh \
