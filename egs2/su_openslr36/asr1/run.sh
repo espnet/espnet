@@ -22,6 +22,8 @@ ngpu=1
     --ngpu ${ngpu} \
     --nj 80 \
     --inference_nj 256 \
+    --gpu_inference true \
+    --inference_args "--batch_size 1" \
     --use_lm false \
     --token_type bpe \
     --nbpe 1000 \
