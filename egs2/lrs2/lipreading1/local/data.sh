@@ -44,17 +44,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # The model was trained by Chenda Li (lichenda1996@sjtu.edu.cn), 
     # following the paper by Stafylakis, T., & Tzimiropoulos, G. (2017). 
     # "Combining residual networks with LSTMs for lipreading".
-    if [ ! -f ./local/feature_extract/finetuneGRU_19.pt ]; then
-        wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=12ww9Vp8q3g-PdNGKvgEW8dPmFlJdhko0' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=12ww9Vp8q3g-PdNGKvgEW8dPmFlJdhko0" -O ./local/feature_extract/finetuneGRU_19.pt.tgz && rm -rf /tmp/cookies.txt 
-        tar xzvf ./local/feature_extract/finetuneGRU_19.pt.tgz -C ./local/feature_extract/
+    if [ ! -f ./local/feature_extract/lipread_lrw_pretrain.pt.tgz ]; then
+        wget https://zenodo.org/record/5090353/files/lipread_lrw_pretrain.pt.tgz -O ./local/feature_extract/lipread_lrw_pretrain.pt.tgz
+        tar xzvf ./local/feature_extract/lipread_lrw_pretrain.pt.tgz -C ./local/feature_extract/
     fi
 fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     
-  if python -c "import skvideo" &> /dev/null; then
-    echo 'skvideo installed'
+  if python -c "import skvideo, skimage, face_alignment" &> /dev/null; then
+    echo 'requirements installed'
   else
     echo 'please install required packages by run ". ./path.sh; pip install sk-video scikit-image face_alignment"'
     exit 1;

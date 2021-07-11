@@ -95,7 +95,7 @@ def parse_scripts(scp_path, value_processor=lambda x: x, num_tokens=2):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = pretrained.Lipreading(mode="temporalConv", nClasses=500)
-model = reload_model(model, "./local/feature_extract/finetuneGRU_19.pt")
+model = reload_model(model, "./local/feature_extract/lipread_lrw_pretrain.pt")
 model = model.float()
 model.eval()
 model.to(device)
