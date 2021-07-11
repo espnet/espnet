@@ -80,6 +80,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         done > data/${dataset}/vfeature.scp
         cp data/${dataset}/vfeature.scp data/${dataset}/feats.scp
 
+        ./steps/compute_cmvn_stats.sh data/${dataset}/ data/${dataset}/cmvn data/${dataset}
     done
 
 fi
