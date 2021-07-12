@@ -858,9 +858,13 @@ if ! "${skip_train}"; then
 
     mkdir -p ${ngram_exp}
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-        cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-        build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+        if "${use_ngram}"; then
+            log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
+            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+        else
+            log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
+        fi
     fi
 
 
@@ -917,7 +921,7 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
+        log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
         mkdir -p "${asr_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${asr_stats_dir}/run.sh"; chmod +x "${asr_stats_dir}/run.sh"
 
         # 3. Submit jobs
@@ -1136,7 +1140,7 @@ if ! "${skip_eval}"; then
                 _opts+="--lm_file ${lm_exp}/${inference_lm} "
             fi
         fi
-        if "${use_lm}"; then
+        if "${use_ngram}"; then
              _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
         fi
 
