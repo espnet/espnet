@@ -415,6 +415,7 @@ def get_parser():
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)
     group.add_argument("--word_lm_file", type=str)
+    group.add_argument("--ngram_file", type=str)
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
@@ -448,6 +449,7 @@ def get_parser():
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
     group.add_argument("--streaming", type=str2bool, default=False)
 
     group = parser.add_argument_group("Text converter related")
