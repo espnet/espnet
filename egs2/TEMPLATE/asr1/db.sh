@@ -82,6 +82,7 @@ RU_OPEN_STT=downloads
 GIGASPEECH=
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
+SUNDA=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -159,5 +160,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HOW2_FEATS=
     ZEROTH_KOREAN=downloads
     JAVA=
+    SUNDA=
 
 fi
