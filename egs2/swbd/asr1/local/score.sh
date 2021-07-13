@@ -28,7 +28,7 @@ for f in ${data}/stm ${data}/glm; do
   [ ! -f ${f} ] && echo "$0: expecting file $f to exist" && exit 1;
 done
 name=$(basename ${data}) # e.g. eval2000
-for dir in ${asr_expdir}/decode_*/score_wer; do
+for dir in ${asr_expdir}/decode_*/${name}/score_wer; do
     score_dir=${dir}/scoring
     ctm=${score_dir}/hyp.ctm
     # The WER seems to be lower without converting stm
