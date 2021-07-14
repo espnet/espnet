@@ -224,7 +224,7 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     feats_types="raw"
     for t in ${feats_types}; do
         echo "==== feats_type=${t} ==="
-        ./run.sh --ngpu 0 --stage 2 --stop-stage 9 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1" --python "${python}"
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1" --python "${python}"
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
