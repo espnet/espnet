@@ -11,8 +11,16 @@ from espnet2.enh.encoder.stft_encoder import STFTEncoder
 @pytest.mark.parametrize("center", [True])
 @pytest.mark.parametrize("normalized", [True, False])
 @pytest.mark.parametrize("onesided", [True, False])
+@pytest.mark.parametrize("use_builtin_complex", [True, False])
 def test_STFTEncoder_backward(
-    n_fft, win_length, hop_length, window, center, normalized, onesided
+    n_fft,
+    win_length,
+    hop_length,
+    window,
+    center,
+    normalized,
+    onesided,
+    use_builtin_complex,
 ):
     encoder = STFTEncoder(
         n_fft=n_fft,
@@ -22,6 +30,7 @@ def test_STFTEncoder_backward(
         center=center,
         normalized=normalized,
         onesided=onesided,
+        use_builtin_complex=use_builtin_complex,
     )
 
     x = torch.rand(2, 32000, requires_grad=True)
