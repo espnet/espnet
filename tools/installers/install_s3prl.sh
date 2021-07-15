@@ -9,11 +9,11 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-torch_15_plus=$(python3 <<EOF
+torch_17_plus=$(python3 <<EOF
 from distutils.version import LooseVersion as V
 import torch
 
-if V(torch.__version__) >= V("1.5"):
+if V(torch.__version__) >= V("1.7"):
     print("true")
 else:
     print("false")
@@ -43,16 +43,14 @@ EOF
 )
 echo "cuda_version=${cuda_version}"
 
-if "${torch_15_plus}" && "${python_36_plus}"; then
+if "${torch_17_plus}" && "${python_36_plus}"; then
 
-    rm -rf fairseq
+    rm -rf s3prl
 
-    # FairSeq Commit id when making this PR: `commit 313ff0581561c7725ea9430321d6af2901573dfb`
-    git clone https://github.com/pytorch/fairseq.git
-    python3 -m pip install --editable ./fairseq
-    python3 -m pip install filelock
+    # S3PRL Commit id when making this PR: `commit a3318ca43e9cdf0b33cc934b91ed37bdbf883abb`
+    git clone https://github.com/s3prl/s3prl.git
 
 else
-    echo "[WARNING] fairseq is not prepared for pytorch<1.5.0, python<3.6 now"
+    echo "[WARNING] s3prl is not prepared for pytorch<1.7.0, python<3.6 now"
 
 fi
