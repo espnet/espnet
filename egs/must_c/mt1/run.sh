@@ -59,9 +59,6 @@ tgt_lang=de
 # if true, reverse source and target languages: **->English
 reverse_direction=false
 
-# if true, reverse source and target languages: **->English
-reverse_direction=false
-
 # use the same dict as in the ST task
 use_st_dict=true
 

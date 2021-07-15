@@ -685,10 +685,4 @@ The sample rate of the audio must be consistent with that of the data used in tr
   year={2021},
   organization={IEEE},
 }
-@article{inaguma2020espnet,
-  title={ESPnet-ST: All-in-One Speech Translation Toolkit},
-  author={Inaguma, Hirofumi and Kiyono, Shun and Duh, Kevin and Karita, Shigeki and Soplin, Nelson Enrique Yalta and Hayashi, Tomoki and Watanabe, Shinji},
-  journal={arXiv preprint arXiv:2004.10234},
-  year={2020}
-}
 ```

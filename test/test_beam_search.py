@@ -66,122 +66,12 @@ transformer_args = Namespace(
     dunits=2,
     sym_space="<space>",
     sym_blank="<blank>",
-    transformer_decoder_selfattn_layer_type="selfattn",
-    transformer_encoder_selfattn_layer_type="selfattn",
     transformer_init="pytorch",
     transformer_input_layer="conv2d",
     transformer_length_normalized_loss=True,
     report_cer=False,
     report_wer=False,
     ctc_type="warpctc",
-    wshare=2,
-    ldconv_encoder_kernel_length="31_31",
-    ldconv_decoder_kernel_length="11_11",
-    ldconv_usebias=False,
-    lsm_weight=0.001,
-)
-
-ldconv_lconv_args = Namespace(
-    adim=16,
-    aheads=2,
-    dropout_rate=0.0,
-    transformer_attn_dropout_rate=None,
-    elayers=2,
-    eunits=16,
-    dlayers=2,
-    dunits=16,
-    sym_space="<space>",
-    sym_blank="<blank>",
-    transformer_decoder_selfattn_layer_type="lightconv",
-    transformer_encoder_selfattn_layer_type="lightconv",
-    transformer_init="pytorch",
-    transformer_input_layer="conv2d",
-    transformer_length_normalized_loss=True,
-    report_cer=False,
-    report_wer=False,
-    ctc_type="warpctc",
-    wshare=2,
-    ldconv_encoder_kernel_length="31_31",
-    ldconv_decoder_kernel_length="11_11",
-    ldconv_usebias=False,
-    lsm_weight=0.001,
-)
-
-ldconv_dconv_args = Namespace(
-    adim=16,
-    aheads=2,
-    dropout_rate=0.0,
-    transformer_attn_dropout_rate=None,
-    elayers=2,
-    eunits=16,
-    dlayers=2,
-    dunits=16,
-    sym_space="<space>",
-    sym_blank="<blank>",
-    transformer_decoder_selfattn_layer_type="dynamicconv",
-    transformer_encoder_selfattn_layer_type="dynamicconv",
-    transformer_init="pytorch",
-    transformer_input_layer="conv2d",
-    transformer_length_normalized_loss=True,
-    report_cer=False,
-    report_wer=False,
-    ctc_type="warpctc",
-    wshare=2,
-    ldconv_encoder_kernel_length="31_31",
-    ldconv_decoder_kernel_length="11_11",
-    ldconv_usebias=False,
-    lsm_weight=0.001,
-)
-
-ldconv_lconv2d_args = Namespace(
-    adim=16,
-    aheads=2,
-    dropout_rate=0.0,
-    transformer_attn_dropout_rate=None,
-    elayers=2,
-    eunits=16,
-    dlayers=2,
-    dunits=16,
-    sym_space="<space>",
-    sym_blank="<blank>",
-    transformer_decoder_selfattn_layer_type="lightconv2d",
-    transformer_encoder_selfattn_layer_type="lightconv2d",
-    transformer_init="pytorch",
-    transformer_input_layer="conv2d",
-    transformer_length_normalized_loss=True,
-    report_cer=False,
-    report_wer=False,
-    ctc_type="warpctc",
-    wshare=2,
-    ldconv_encoder_kernel_length="31_31",
-    ldconv_decoder_kernel_length="11_11",
-    ldconv_usebias=False,
-    lsm_weight=0.001,
-)
-
-ldconv_dconv2d_args = Namespace(
-    adim=16,
-    aheads=2,
-    dropout_rate=0.0,
-    transformer_attn_dropout_rate=None,
-    elayers=2,
-    eunits=16,
-    dlayers=2,
-    dunits=16,
-    sym_space="<space>",
-    sym_blank="<blank>",
-    transformer_decoder_selfattn_layer_type="dynamicconv2d",
-    transformer_encoder_selfattn_layer_type="dynamicconv2d",
-    transformer_init="pytorch",
-    transformer_input_layer="conv2d",
-    transformer_length_normalized_loss=True,
-    report_cer=False,
-    report_wer=False,
-    ctc_type="warpctc",
-    wshare=2,
-    ldconv_encoder_kernel_length="31_31",
-    ldconv_decoder_kernel_length="11_11",
-    ldconv_usebias=False,
     lsm_weight=0.001,
 )
 
@@ -275,15 +165,6 @@ def test_beam_search_equal(
     lm_args = Namespace(type="lstm", layer=1, unit=2, embed_unit=2, dropout_rate=0.0)
     lm = dynamic_import_lm("default", backend="pytorch")(len(char_list), lm_args)
     lm.eval()
-
-    if mtlalpha == 0.0 and ctc_weight > 0.0:
-        pytest.skip("no CTC + CTC decoding.")
-    if mtlalpha == 1.0 and ctc_weight < 1.0:
-        pytest.skip("pure CTC + attention decoding")
-
-    # TODO(hirofumi0810): pure CTC beam search is not implemented
-    if ctc_weight == 1.0:
-        pytest.skip("pure CTC beam search is not implemented")
 
     # test previous beam search
     args = Namespace(
