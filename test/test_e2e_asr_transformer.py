@@ -185,12 +185,6 @@ def test_transformer_trainable_and_decodable(module, model_dict):
     elif args.mtlalpha == 0:
         assert model.ctc is None
 
-    # check for pure CTC and pure Attention
-    if args.mtlalpha == 1:
-        assert model.decoder is None
-    elif args.mtlalpha == 0:
-        assert model.ctc is None
-
     # test beam search
     recog_args = argparse.Namespace(
         beam_size=1,

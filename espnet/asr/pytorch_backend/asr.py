@@ -440,11 +440,6 @@ def train(args):
         + str(sum(p.numel() for p in model.parameters()))
     )
 
-    logging.info(
-        " Total parameter of the model = "
-        + str(sum(p.numel() for p in model.parameters()))
-    )
-
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(

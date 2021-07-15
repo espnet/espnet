@@ -164,43 +164,6 @@ echo "==== TTS (backend=pytorch) ==="
 rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1
 
-
-# [ESPnet2] Validate configuration files
-echo "<blank>" > dummy_token_list
-echo "==== [ESPnet2] Validation configuration files ==="
-if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.1.0")' &> /dev/null;  then
-    for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        python -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
-    done
-    for f in egs2/*/asr1/conf/train_lm*.yaml; do
-        python -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
-    done
-    for f in egs2/*/tts1/conf/train_*.yaml; do
-        python -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
-    done
-fi
-
-# These files must be same each other.
-for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do
-    file1=
-    for f in egs2/*/*/"${base}"; do
-        if [ -z "${file1}" ]; then
-            file1="${f}"
-        fi
-        diff "${file1}" "${f}" || { echo "Error: ${file1} and ${f} differ: To solve: for f in egs2/*/*/${base}; do cp egs2/TEMPLATE/asr1/${base} \${f}; done" ; exit 1; }
-    done
-done
-
-
-echo "==== [ESPnet2] test setup.sh ==="
-for d in egs2/TEMPLATE/*; do
-    if [ -d "${d}" ]; then
-        d="${d##*/}"
-        egs2/TEMPLATE/"$d"/setup.sh egs2/test/"${d}"
-    fi
-done
-
-
 echo "=== run integration tests at test_utils ==="
 
 PATH=$(pwd)/bats-core/bin:$PATH
