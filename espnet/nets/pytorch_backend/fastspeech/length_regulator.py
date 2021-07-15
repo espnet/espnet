@@ -8,13 +8,9 @@
 
 import logging
 
-from distutils.version import LooseVersion
-
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
-
-is_torch_1_1_plus = LooseVersion(torch.__version__) >= LooseVersion("1.1")
 
 
 class LengthRegulator(torch.nn.Module):
@@ -38,12 +34,8 @@ class LengthRegulator(torch.nn.Module):
             pad_value (float, optional): Value used for padding.
 
         """
-        super(LengthRegulator, self).__init__()
+        super().__init__()
         self.pad_value = pad_value
-        if is_torch_1_1_plus:
-            self.repeat_fn = self._repeat_one_sequence
-        else:
-            self.repeat_fn = self._legacy_repeat_one_sequence
 
     def forward(self, xs, ds, alpha=1.0):
         """Calculate forward propagation.
@@ -71,31 +63,5 @@ class LengthRegulator(torch.nn.Module):
             #   So we do not need to care the padded sequence case here.
             ds[ds.sum(dim=1).eq(0)] = 1
 
-        return pad_list([self.repeat_fn(x, d) for x, d in zip(xs, ds)], self.pad_value)
-
-    def _repeat_one_sequence(self, x, d):
-        """Repeat each frame according to duration for torch 1.1+."""
-        return torch.repeat_interleave(x, d, dim=0)
-
-    def _legacy_repeat_one_sequence(self, x, d):
-        """Repeat each frame according to duration for torch 1.0.
-
-        Examples:
-            >>> x = torch.tensor([[1], [2], [3]])
-            tensor([[1],
-                    [2],
-                    [3]])
-            >>> d = torch.tensor([1, 2, 3])
-            tensor([1, 2, 3])
-            >>> self._repeat_one_sequence(x, d)
-            tensor([[1],
-                    [2],
-                    [2],
-                    [3],
-                    [3],
-                    [3]])
-
-        """
-        return torch.cat(
-            [x_.repeat(int(d_), 1) for x_, d_ in zip(x, d) if d_ != 0], dim=0
-        )
+        repeat = [torch.repeat_interleave(x, d, dim=0) for x, d in zip(xs, ds)]
+        return pad_list(repeat, self.pad_value)

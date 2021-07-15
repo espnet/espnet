@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 import logging
 from pathlib import Path
 import uuid
@@ -6,16 +5,12 @@ import uuid
 import numpy as np
 import pytest
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from espnet2.train.reporter import aggregate
 from espnet2.train.reporter import Average
 from espnet2.train.reporter import ReportedValue
 from espnet2.train.reporter import Reporter
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    from torch.utils.tensorboard import SummaryWriter
-else:
-    from tensorboardX import SummaryWriter
 
 
 @pytest.mark.parametrize("weight1,weight2", [(None, None), (19, np.array(9))])

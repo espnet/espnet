@@ -39,7 +39,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         output_size: dimension of attention
         attention_heads: the number of heads of multi head attention
         linear_units: the number of units of position-wise feed forward
-        num_blocks: the number of decoder blocks
+        num_blocks: the number of encoder blocks
         dropout_rate: dropout rate
         attention_dropout_rate: dropout rate in attention
         positional_dropout_rate: dropout rate after adding positional encoding
