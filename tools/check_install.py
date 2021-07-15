@@ -25,6 +25,7 @@ module_list = [
     ("fairseq", None, "installers/install_fairseq.sh"),
     ("phonemizer", None, "installers/install_phonemizer.sh"),
     ("gtn", None, "installers/install_gtn.sh"),
+    ("s3prl", None, "installers/install_s3prl.sh"),
 ]
 
 executable_list = [
