@@ -251,8 +251,10 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.default</span> <span class="kn">import</span> <span class="n">DefaultFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.s3prl</span> <span class="kn">import</span> <span class="n">S3prlFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.windowing</span> <span class="kn">import</span> <span class="n">SlidingWindow</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.linear</span> <span class="kn">import</span> <span class="n">LinearProjection</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.sinc</span> <span class="kn">import</span> <span class="n">LightweightSincConvs</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.specaug</span> <span class="kn">import</span> <span class="n">SpecAug</span>
@@ -274,7 +276,11 @@
 
 <span class="n">frontend_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;frontend&quot;</span><span class="p">,</span>
-    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DefaultFrontend</span><span class="p">,</span> <span class="n">sliding_window</span><span class="o">=</span><span class="n">SlidingWindow</span><span class="p">),</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">DefaultFrontend</span><span class="p">,</span>
+        <span class="n">sliding_window</span><span class="o">=</span><span class="n">SlidingWindow</span><span class="p">,</span>
+        <span class="n">s3prl</span><span class="o">=</span><span class="n">S3prlFrontend</span><span class="p">,</span>
+    <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsFrontend</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -299,6 +305,7 @@
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;preencoder&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">sinc</span><span class="o">=</span><span class="n">LightweightSincConvs</span><span class="p">,</span>
+        <span class="n">linear</span><span class="o">=</span><span class="n">LinearProjection</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsPreEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>

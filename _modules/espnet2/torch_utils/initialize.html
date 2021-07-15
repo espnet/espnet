@@ -298,11 +298,15 @@
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;espnet_initialization_fn&quot;</span><span class="p">):</span>
                 <span class="n">m</span><span class="o">.</span><span class="n">espnet_initialization_fn</span><span class="p">()</span>
 
-        <span class="c1"># TODO(xkc): Hacking wav2vec2 initialization</span>
+        <span class="c1"># TODO(xkc): Hacking s3prl_frontend and wav2vec2encoder initialization</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;encoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span>
             <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s2">&quot;reload_pretrained_parameters&quot;</span><span class="p">,</span> <span class="kc">None</span>
         <span class="p">):</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">reload_pretrained_parameters</span><span class="p">()</span></div>
+            <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">reload_pretrained_parameters</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;frontend&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">frontend</span><span class="p">,</span> <span class="s2">&quot;reload_pretrained_parameters&quot;</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">frontend</span><span class="o">.</span><span class="n">reload_pretrained_parameters</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

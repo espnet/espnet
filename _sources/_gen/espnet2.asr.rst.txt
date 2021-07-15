@@ -180,6 +180,17 @@ espnet2.asr.preencoder.__init__
     :show-inheritance:
 
 
+.. _espnet2.asr.preencoder.linear:
+
+espnet2.asr.preencoder.linear
+-----------------------------
+
+.. automodule:: espnet2.asr.preencoder.linear
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.preencoder.sinc:
 
 espnet2.asr.preencoder.sinc
@@ -263,6 +274,17 @@ espnet2.asr.frontend.windowing
 ------------------------------
 
 .. automodule:: espnet2.asr.frontend.windowing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.s3prl:
+
+espnet2.asr.frontend.s3prl
+--------------------------
+
+.. automodule:: espnet2.asr.frontend.s3prl
     :members:
     :undoc-members:
     :show-inheritance:

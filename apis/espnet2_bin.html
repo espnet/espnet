@@ -545,12 +545,12 @@ Text converter related:
                     [--noise_scp NOISE_SCP]
                     [--noise_apply_prob NOISE_APPLY_PROB]
                     [--noise_db_range NOISE_DB_RANGE]
-                    [--frontend {default,sliding_window}]
+                    [--frontend {default,sliding_window,s3prl}]
                     [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                     [--specaug_conf SPECAUG_CONF]
                     [--normalize {global_mvn,utterance_mvn,None}]
                     [--normalize_conf NORMALIZE_CONF]
-                    [--preencoder {sinc,None}]
+                    [--preencoder {sinc,linear,None}]
                     [--preencoder_conf PREENCODER_CONF]
                     [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2}]
                     [--encoder_conf ENCODER_CONF]
@@ -902,7 +902,7 @@ Optimizer related:
   --token_type {bpe,char,word,phn}
                         The text will be tokenized in the specified level token (default: bpe)
   --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
-  --frontend {default,sliding_window}
+  --frontend {default,sliding_window,s3prl}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
                         The keyword arguments for frontend (default: {})
@@ -914,7 +914,7 @@ Optimizer related:
                         The normalize type (default: utterance_mvn)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --preencoder {sinc,None}
+  --preencoder {sinc,linear,None}
                         The preencoder type (default: None)
   --preencoder_conf PREENCODER_CONF
                         The keyword arguments for preencoder (default: {})
