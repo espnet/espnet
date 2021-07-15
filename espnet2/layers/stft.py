@@ -10,6 +10,8 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.inversible_interface import InversibleInterface
 
+is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
+
 
 class Stft(torch.nn.Module, InversibleInterface):
     def __init__(
@@ -143,13 +145,19 @@ class Stft(torch.nn.Module, InversibleInterface):
 
         if self.window is not None:
             window_func = getattr(torch, f"{self.window}_window")
-            window = window_func(
-                self.win_length, dtype=input.dtype, device=input.device
-            )
+            if isinstance(input, ComplexTensor) or (
+                is_torch_1_8_plus and torch.is_complex(input)
+            ):
+                datatype = input.real.dtype
+            else:
+                datatype = input.dtype
+            window = window_func(self.win_length, dtype=datatype, device=input.device)
         else:
             window = None
 
-        if isinstance(input, ComplexTensor):
+        if isinstance(input, ComplexTensor) or (
+            is_torch_1_8_plus and torch.is_complex(input)
+        ):
             input = torch.stack([input.real, input.imag], dim=-1)
         assert input.shape[-1] == 2
         input = input.transpose(1, 2)

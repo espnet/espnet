@@ -1,4 +1,5 @@
 """Enhancement model module."""
+from distutils.version import LooseVersion
 from functools import reduce
 from itertools import permutations
 from typing import Dict
@@ -18,6 +19,8 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
+is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
+is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
 ALL_LOSS_TYPES = (
     # mse_loss(predicted_mask, target_label)
     "mask_mse",
@@ -298,13 +301,18 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 spectrum_pre = [
                     self.encoder(sp, speech_lengths)[0] for sp in tmp_t_domain
                 ]
-                pass
 
-            if spectrum_pre is not None and not isinstance(
-                spectrum_pre[0], ComplexTensor
-            ):
+            if spectrum_pre is not None:
+                if isinstance(spectrum_mix, ComplexTensor):
+                    complex_wrapper = ComplexTensor
+                elif is_torch_1_8_plus:
+                    complex_wrapper = torch.complex
+                else:
+                    raise ValueError(
+                        "Please update your PyTorch version to 1.8+ for compelx support"
+                    )
                 spectrum_pre = [
-                    ComplexTensor(*torch.unbind(sp, dim=-1)) for sp in spectrum_pre
+                    complex_wrapper(*torch.unbind(sp, dim=-1)) for sp in spectrum_pre
                 ]
 
             if not cal_loss:
@@ -468,8 +476,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
+        if not is_torch_1_3_plus:
+            # in case of binary masks
+            ref = ref.type(inf.dtype)
         diff = ref - inf
-        if isinstance(diff, ComplexTensor):
+        if isinstance(diff, ComplexTensor) or (
+            is_torch_1_8_plus and torch.is_complex(diff)
+        ):
             mseloss = diff.real ** 2 + diff.imag ** 2
         else:
             mseloss = diff ** 2
@@ -495,8 +508,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
+        if not is_torch_1_3_plus:
+            # in case of binary masks
+            ref = ref.type(inf.dtype)
         diff = ref - inf
-        if isinstance(diff, ComplexTensor):
+        if isinstance(diff, ComplexTensor) or (
+            is_torch_1_8_plus and torch.is_complex(diff)
+        ):
             log_mse_loss = diff.real ** 2 + diff.imag ** 2
         else:
             log_mse_loss = diff ** 2
@@ -522,7 +540,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        if isinstance(inf, ComplexTensor):
+        if not is_torch_1_3_plus:
+            # in case of binary masks
+            ref = ref.type(inf.dtype)
+        if isinstance(inf, ComplexTensor) or (
+            is_torch_1_8_plus and torch.is_complex(inf)
+        ):
             l1loss = abs(ref - inf + EPS)
         else:
             l1loss = abs(ref - inf)

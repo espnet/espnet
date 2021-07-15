@@ -43,6 +43,7 @@ def _pre_hook(
     # https://github.com/espnet/espnet/commit/3d422f6de8d4f03673b89e1caef698745ec749ea#diff-bffb1396f038b317b2b64dd96e6d3563
     rename_state_dict(prefix + "output_norm.", prefix + "after_norm.", state_dict)
 
+
 def _pre_hook(
     state_dict,
     prefix,
@@ -54,6 +55,7 @@ def _pre_hook(
 ):
     # https://github.com/espnet/espnet/commit/3d422f6de8d4f03673b89e1caef698745ec749ea#diff-bffb1396f038b317b2b64dd96e6d3563
     rename_state_dict(prefix + "output_norm.", prefix + "after_norm.", state_dict)
+
 
 class Decoder(BatchScorerInterface, torch.nn.Module):
     """Transfomer decoder module.
