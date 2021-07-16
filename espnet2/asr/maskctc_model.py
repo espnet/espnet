@@ -1,8 +1,7 @@
-import logging
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from itertools import groupby
-from typing import Dict
+import logging
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -13,7 +12,6 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.beam_search import Hypothesis
-from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (

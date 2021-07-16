@@ -1,6 +1,6 @@
-import logging
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+import logging
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -21,9 +21,9 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
+from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder

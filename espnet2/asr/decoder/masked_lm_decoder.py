@@ -4,7 +4,6 @@
 """Masked LM Decoder definition."""
 from typing import Any
 from typing import List
-from typing import Sequence
 from typing import Tuple
 
 import torch

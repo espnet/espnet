@@ -17,11 +17,11 @@ from typing import List
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.asr.espnet_model import ESPnetASRInference
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.maskctc_model import MaskCTCInference
 from espnet2.asr.maskctc_model import MaskCTCModel
+from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
