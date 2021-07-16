@@ -41,7 +41,7 @@ class MaskedLMDecoder(BaseTransformerDecoder):
     ):
         assert check_argument_types()
 
-        vocab_size += 1 # for mask token
+        vocab_size += 1  # for mask token
         super().__init__(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,

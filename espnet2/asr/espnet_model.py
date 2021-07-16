@@ -306,6 +306,7 @@ class ESPnetASRModel(AbsESPnetModel):
     ):
         raise NotImplementedError
 
+
 class ESPnetASRInference(torch.nn.Module):
     """Beam-searh inference for CTC-attention hybrid Encoder-Decoder"""
 
@@ -389,8 +390,8 @@ class ESPnetASRInference(torch.nn.Module):
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
 
-    def forward(
-        self, enc_out: torch.Tensor
-    ) -> List[Hypothesis]:
+    def forward(self, enc_out: torch.Tensor) -> List[Hypothesis]:
         """Perform beam-search"""
-        return self.beam_search(x=enc_out, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio)
+        return self.beam_search(
+            x=enc_out, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+        )

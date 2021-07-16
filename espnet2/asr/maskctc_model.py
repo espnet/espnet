@@ -66,7 +66,9 @@ class MaskCTCModel(ESPnetASRModel):
     ):
         assert check_argument_types()
         assert 0.0 < ctc_weight < 1.0, ctc_weight
-        assert isinstance(decoder, MaskedLMDecoder), "Only masked_lm decoder is supported"
+        assert isinstance(
+            decoder, MaskedLMDecoder
+        ), "Only masked_lm decoder is supported"
         assert rnnt_decoder is None, "Not implemented"
 
         super().__init__(
@@ -160,15 +162,11 @@ class MaskCTCInference(torch.nn.Module):
         self.threshold_probability = threshold_probability
         self.converter = TokenIDConverter(token_list=asr_model.token_list)
 
-    def ids2text(
-        self, ids: List[int]
-    ):
+    def ids2text(self, ids: List[int]):
         text = "".join(self.converter.ids2tokens(ids))
-        return text.replace('<mask>', '_').replace('<space>', ' ')
+        return text.replace("<mask>", "_").replace("<space>", " ")
 
-    def forward(
-        self, enc_out: torch.Tensor
-    ) -> List[Hypothesis]:
+    def forward(self, enc_out: torch.Tensor) -> List[Hypothesis]:
         """Perform Mask-CTC inference"""
         # greedy ctc outputs
         enc_out = enc_out.unsqueeze(0)
@@ -221,6 +219,8 @@ class MaskCTCInference(torch.nn.Module):
             logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))
 
         # pad with mask tokens to ensure compatibility with sos/eos tokens
-        yseq = torch.tensor([self.mask_token] + y_in.tolist()[0] + [self.mask_token], device=y_in.device)
+        yseq = torch.tensor(
+            [self.mask_token] + y_in.tolist()[0] + [self.mask_token], device=y_in.device
+        )
 
         return [Hypothesis(yseq=yseq)]

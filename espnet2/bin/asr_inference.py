@@ -108,7 +108,9 @@ class Speech2Text:
                 threshold_probability=maskctc_threshold_probability,
             )
         else:
-            raise NotImplementedError(f"Inference algorithm is not implemented for {type(asr_model)}")
+            raise NotImplementedError(
+                f"Inference algorithm is not implemented for {type(asr_model)}"
+            )
         s2t.to(device=device, dtype=getattr(torch, dtype)).eval()
         logging.info(f"Decoding type={type(s2t)}, device={device}, dtype={dtype}")
 
