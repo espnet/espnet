@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from distutils.version import LooseVersion
 from typing import List
 from typing import Tuple
 from typing import Union
@@ -16,6 +17,9 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,  # noqa: H301
 )
 from espnet2.enh.separator.abs_separator import AbsSeparator
+
+
+is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
 
 
 class TransformerSeparator(AbsSeparator):
@@ -120,7 +124,9 @@ class TransformerSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
-        if isinstance(input, ComplexTensor):
+        if isinstance(input, ComplexTensor) or (
+            is_torch_1_8_plus and torch.is_complex(input)
+        ):
             feature = abs(input)
         else:
             feature = input

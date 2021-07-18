@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from distutils.version import LooseVersion
 from typing import List
 from typing import Tuple
 from typing import Union
@@ -8,6 +9,9 @@ from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.tcn import TemporalConvNet
 from espnet2.enh.separator.abs_separator import AbsSeparator
+
+
+is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
 
 
 class TCNSeparator(AbsSeparator):
@@ -79,7 +83,9 @@ class TCNSeparator(AbsSeparator):
             ]
         """
         # if complex spectrum
-        if isinstance(input, ComplexTensor):
+        if isinstance(input, ComplexTensor) or (
+            is_torch_1_8_plus and torch.is_complex(input)
+        ):
             feature = abs(input)
         else:
             feature = input
