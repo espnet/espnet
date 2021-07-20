@@ -28,14 +28,7 @@ This model was trained by <add_name> using <add_corpus>/<add_recipe_task_name> r
   doi={10.21437/Interspeech.2018-1456},
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
 }
-@inproceedings{hayashi2020espnet,
-  title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},
-  author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},
-  booktitle={Proceedings of IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
-  pages={7654--7658},
-  year={2020},
-  organization={IEEE}
-}
+<add_tts_reference>
 ```
 or arXiv:
 ```bibtex

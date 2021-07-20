@@ -29,13 +29,13 @@ This model was trained by <add_name> using <add_corpus>/enh1 recipe in [espnet](
   doi={10.21437/Interspeech.2018-1456},
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
 }
-@inproceedings{hayashi2020espnet,
-  title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},
-  author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},
-  booktitle={Proceedings of IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
-  pages={7654--7658},
-  year={2020},
-  organization={IEEE}
+@inproceedings{li2021espnet,
+title={ESPnet-SE: end-to-end speech enhancement and separation toolkit designed for ASR integration},
+author={Li, Chenda and Shi, Jing and Zhang, Wangyou and Subramanian, Aswin Shanmugam and Chang, Xuankai and Kamo, Naoyuki and Hira, Moto and Hayashi, Tomoki and Boeddeker, Christoph and Chen, Zhuo and others},
+booktitle={2021 IEEE Spoken Language Technology Workshop (SLT)},
+pages={785--792},
+year={2021},
+organization={IEEE}
 }
 ```
 or arXiv:

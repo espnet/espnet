@@ -2,6 +2,15 @@ import pandas as pd
 from espnet_model_zoo.downloader import ModelDownloader
 import sys
 
+tts_reference="@inproceedings{hayashi2020espnet,\n\
+  title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},\n\
+  author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},\n\
+  booktitle={Proceedings of IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},\n\
+  pages={7654--7658},\n\
+  year={2020},\n\
+  organization={IEEE}\n\
+}"
+
 def create_Readme_file(repo_name,model_name):
 	# Fill in the blanks in the template Readme eg. add task tags, model name etc.
 	d = ModelDownloader()
@@ -33,6 +42,11 @@ def create_Readme_file(repo_name,model_name):
 		line=line.replace("<add_corpus>",corpus_name)
 		line=line.replace("<add_task_name>",task_name.upper())
 		line=line.replace("<add_recipe_task_name>",task_name.lower()+"1")
+		if "<add_tts_reference>" in line:
+			if task_name=="tts":
+				line=line.replace("<add_tts_reference>",tts_reference)
+			else:
+				line=line.replace("<add_tts_reference>","")
 		new_Readme.write(line)
 
 if __name__ == "__main__":
