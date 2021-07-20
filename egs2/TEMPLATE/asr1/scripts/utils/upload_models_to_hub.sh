@@ -18,9 +18,7 @@ escapeString="_"
 pattern1="/"
 pattern2="+"
 pattern3=" " # Repo name does not accept /
-model_name=${model_name//${pattern3}/${escapeString}} 
-
-repo_name=${model_name}
+repo_name=${model_name//${pattern3}/${escapeString}} 
 repo_name=${repo_name//${pattern1}/${escapeString}} 
 repo_name=${repo_name//${pattern2}/${escapeString}} 
 # Get name of hugging face repo
@@ -34,7 +32,7 @@ git clone https://huggingface.co/espnet/${repo_name}
 mv dest/* ${repo_name}/.
 
 # Add readme
-python create_README_file.py ${repo_name} ${model_name}
+python create_README_file.py ${repo_name} "${model_name}"
 cd ${repo_name}
 git add .
 git commit -m "import from zenodo"
