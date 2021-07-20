@@ -8,7 +8,7 @@ python get_model_names.py "${model_name}" >> model_names.txt # Saves model path 
 
 IFS=$'\n' GLOBIGNORE='*' command eval  'a=($(cat model_names.txt))'
 
-for value in ${a[@]}
+for value in "${a[@]}"
 do
 
 echo ${value} # This is model path
