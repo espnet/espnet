@@ -9,37 +9,17 @@ import torch
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import einsum
+from espnet2.enh.layers.complex_utils import inverse
+from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
+from espnet2.enh.layers.complex_utils import matmul
+from espnet2.enh.layers.complex_utils import reverse
+from espnet2.enh.layers.complex_utils import solve
+
+
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.double).eps
-is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
-
-
-def is_complex(c):
-    return isinstance(c, ComplexTensor) or (is_torch_1_8_plus and torch.is_complex(c))
-
-
-def to_double(c):
-    if is_torch_1_8_plus and torch.is_complex(c):
-        return c.to(dtype=torch.complex128)
-    else:
-        return c.double()
-
-
-def to_float(c):
-    if is_torch_1_8_plus and torch.is_complex(c):
-        return c.to(dtype=torch.complex64)
-    else:
-        return c.float()
-
-
-def complex_norm(c) -> torch.Tensor:
-    return torch.sqrt((c.real ** 2 + c.imag ** 2).sum(dim=-1, keepdim=True) + EPS)
-
-
-def reverse(a, dim=0):
-    if isinstance(ComplexTensor):
-        return FC.reverse(a, dim=dim)
-    else:
-        return torch.flip(a, dims=(dim,))
 
 
 def get_power_spectral_density_matrix(
@@ -57,14 +37,7 @@ def get_power_spectral_density_matrix(
 
     """
     # outer product: (..., C_1, T) x (..., C_2, T) -> (..., T, C, C_2)
-    if isinstance(xs, ComplexTensor):
-        psd_Y = FC.einsum("...ct,...et->...tce", [xs, xs.conj()])
-    elif is_torch_1_8_plus and torch.is_complex(xs):
-        psd_Y = torch.einsum("...ct,...et->...tce", [xs, xs.conj()])
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
+    psd_Y = einsum("...ct,...et->...tce", xs, xs.conj())
 
     # Averaging mask along C: (..., C, T) -> (..., T)
     mask = mask.mean(dim=-2)
@@ -112,28 +85,19 @@ def get_rtf(
     Returns:
         rtf (torch.complex64/ComplexTensor): (..., F, C, 1)
     """
-    if isinstance(psd_speech, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(psd_speech):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     if use_torch_solver:
-        phi = complex_wrapper.solve(psd_speech, psd_noise)[0]
+        phi = solve(psd_speech, psd_noise)
     else:
-        phi = complex_wrapper.matmul(psd_noise.inverse2(), psd_speech)
+        phi = matmul(inverse(psd_noise), psd_speech)
     rtf = (
         phi[..., reference_vector, None]
         if isinstance(reference_vector, int)
-        else complex_wrapper.matmul(phi, reference_vector[..., None, :, None])
+        else matmul(phi, reference_vector[..., None, :, None])
     )
     for _ in range(iterations - 2):
-        rtf = complex_wrapper.matmul(phi, rtf)
+        rtf = matmul(phi, rtf)
         # rtf = rtf / complex_norm(rtf)
-    rtf = complex_wrapper.matmul(psd_speech, rtf)
+    rtf = matmul(psd_speech, rtf)
     return rtf
 
 
@@ -168,35 +132,26 @@ def get_mvdr_vector(
     Returns:
         beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
     """  # noqa: D400
-    if isinstance(psd_s, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(psd_s):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
     if use_torch_solver:
-        numerator = complex_wrapper.solve(psd_s, psd_n)[0]
+        numerator = solve(psd_s, psd_n)
     else:
-        numerator = complex_wrapper.matmul(psd_n.inverse2(), psd_s)
+        numerator = matmul(inverse(psd_n), psd_s)
+    # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
+    # support bacth processing. Use FC.trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
-    ws = numerator / (complex_wrapper.trace(numerator)[..., None, None] + eps)
+    ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
-    beamform_vector = complex_wrapper.einsum(
-        "...fec,...c->...fe", [ws, reference_vector]
-    )
+    beamform_vector = einsum("...fec,...c->...fe", ws, reference_vector)
     return beamform_vector
 
 
 def get_mvdr_vector_with_rtf(
-    psd_n: ComplexTensor,
-    psd_speech: ComplexTensor,
-    psd_noise: ComplexTensor,
+    psd_n: Union[torch.Tensor, ComplexTensor],
+    psd_speech: Union[torch.Tensor, ComplexTensor],
+    psd_noise: Union[torch.Tensor, ComplexTensor],
     iterations: int = 3,
     reference_vector: Union[int, torch.Tensor, None] = None,
     normalize_ref_channel: Optional[int] = None,
@@ -204,7 +159,7 @@ def get_mvdr_vector_with_rtf(
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
-) -> ComplexTensor:
+) -> Union[torch.Tensor, ComplexTensor]:
     """Return the MVDR (Minimum Variance Distortionless Response) vector
         calculated with RTF:
 
@@ -232,15 +187,6 @@ def get_mvdr_vector_with_rtf(
     Returns:
         beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
     """  # noqa: H405, D205, D400
-    if isinstance(psd_speech, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(psd_speech):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     if diagonal_loading:
         psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
 
@@ -255,12 +201,10 @@ def get_mvdr_vector_with_rtf(
 
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
     if use_torch_solver:
-        numerator = complex_wrapper.solve(rtf, psd_n)[0].squeeze(-1)
+        numerator = solve(rtf, psd_n).squeeze(-1)
     else:
-        numerator = complex_wrapper.matmul(psd_n.inverse2(), rtf).squeeze(-1)
-    denominator = complex_wrapper.einsum(
-        "...d,...d->...", [rtf.squeeze(-1).conj(), numerator]
-    )
+        numerator = matmul(inverse(psd_n), rtf).squeeze(-1)
+    denominator = einsum("...d,...d->...", rtf.squeeze(-1).conj(), numerator)
     if normalize_ref_channel is not None:
         scale = rtf.squeeze(-1)[..., normalize_ref_channel, None].conj()
         beamforming_vector = numerator * scale / (denominator.real.unsqueeze(-1) + eps)
@@ -273,17 +217,8 @@ def apply_beamforming_vector(
     beamform_vector: Union[torch.Tensor, ComplexTensor],
     mix: Union[torch.Tensor, ComplexTensor],
 ) -> Union[torch.Tensor, ComplexTensor]:
-    if isinstance(beamform_vector, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(beamform_vector):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for compelx support."
-        )
-
     # (..., C) x (..., C, T) -> (..., T)
-    es = complex_wrapper.einsum("...c,...ct->...t", [beamform_vector.conj(), mix])
+    es = einsum("...c,...ct->...t", beamform_vector.conj(), mix)
     return es
 
 
@@ -313,11 +248,11 @@ def signal_framing(
             else:          (..., T - bdelay - frame_length + 2, frame_length)
     """
     if isinstance(signal, ComplexTensor):
-        complex_wrapper = FC
+        complex_wrapper = ComplexTensor
         pad_func = FC.pad
     else:
         complex_wrapper = torch.complex
-        pad_func = torch.nn.functional
+        pad_func = torch.nn.functional.pad
 
     frame_length2 = frame_length - 1
     # pad to the right at the last dimension of `signal` (time dimension)
@@ -384,15 +319,6 @@ def get_covariances(
         Correlation matrix: (B, F, (btaps+1) * C, (btaps+1) * C)
         Correlation vector: (B, F, btaps + 1, C, C)
     """  # noqa: H405, D205, D400, D401
-    if isinstance(Y, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(Y):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     assert inverse_power.dim() == 3, inverse_power.dim()
     assert inverse_power.size(0) == Y.size(0), (inverse_power.size(0), Y.size(0))
 
@@ -410,9 +336,7 @@ def get_covariances(
     # let T' = T - bdelay - btaps + 1
     # (B, F, C, T', btaps + 1) x (B, F, C, T', btaps + 1)
     #  -> (B, F, btaps + 1, C, btaps + 1, C)
-    covariance_matrix = complex_wrapper.einsum(
-        "bfdtk,bfetl->bfkdle", (Psi, Psi_norm.conj())
-    )
+    covariance_matrix = einsum("bfdtk,bfetl->bfkdle", Psi, Psi_norm.conj())
 
     # (B, F, btaps + 1, C, btaps + 1, C)
     #   -> (B, F, (btaps + 1) * C, (btaps + 1) * C)
@@ -423,8 +347,8 @@ def get_covariances(
     if get_vector:
         # (B, F, C, T', btaps + 1) x (B, F, C, T')
         #    --> (B, F, btaps +1, C, C)
-        covariance_vector = complex_wrapper.einsum(
-            "bfdtk,bfet->bfked", (Psi_norm, Y[..., bdelay + btaps - 1 :].conj())
+        covariance_vector = einsum(
+            "bfdtk,bfet->bfked", Psi_norm, Y[..., bdelay + btaps - 1 :].conj()
         )
         return covariance_matrix, covariance_vector
     else:
@@ -469,29 +393,20 @@ def get_WPD_filter(
     Returns:
         filter_matrix (torch.complex64/ComplexTensor): (B, F, (btaps + 1) * C)
     """
-    if isinstance(Phi, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(Phi):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     if diagonal_loading:
         Rf = tik_reg(Rf, reg=diag_eps, eps=eps)
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     if use_torch_solver:
-        numerator = complex_wrapper.solve(Phi, Rf)[0]
+        numerator = solve(Phi, Rf)
     else:
-        numerator = complex_wrapper.matmul(Rf.inverse2(), Phi)
+        numerator = matmul(inverse(Rf), Phi)
+    # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
+    # support bacth processing. Use FC.trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
-    ws = numerator / (complex_wrapper.trace(numerator)[..., None, None] + eps)
+    ws = numerator / (FC.trace(numerator)[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
-    beamform_vector = complex_wrapper.einsum(
-        "...fec,...c->...fe", [ws, reference_vector]
-    )
+    beamform_vector = einsum("...fec,...c->...fe", ws, reference_vector)
     # (B, F, (btaps + 1) * C)
     return beamform_vector
 
@@ -524,31 +439,20 @@ def get_WPD_filter_v2(
     Returns:
         filter_matrix (torch.complex64/ComplexTensor): (B, F, (btaps+1) * C)
     """
-    if isinstance(Phi, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(Phi):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     C = reference_vector.shape[-1]
     if diagonal_loading:
         Rf = tik_reg(Rf, reg=diag_eps, eps=eps)
-    inv_Rf = Rf.inverse2()
+    inv_Rf = inverse(Rf)
     # (B, F, (btaps+1) * C, C)
     inv_Rf_pruned = inv_Rf[..., :C]
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    numerator = complex_wrapper.matmul(inv_Rf_pruned, Phi)
+    numerator = matmul(inv_Rf_pruned, Phi)
+    # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
+    # support bacth processing. Use FC.trace() as fallback.
     # ws: (..., (btaps+1) * C, C) / (...,) -> (..., (btaps+1) * C, C)
-    ws = numerator / (
-        complex_wrapper.trace(numerator[..., :C, :])[..., None, None] + eps
-    )
+    ws = numerator / (FC.trace(numerator[..., :C, :])[..., None, None] + eps)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
-    beamform_vector = complex_wrapper.einsum(
-        "...fec,...c->...fe", [ws, reference_vector]
-    )
+    beamform_vector = einsum("...fec,...c->...fe", ws, reference_vector)
     # (B, F, (btaps+1) * C)
     return beamform_vector
 
@@ -600,14 +504,12 @@ def get_WPD_filter_with_rtf(
         beamform_vector (torch.complex64/ComplexTensor)r: (..., F, C)
     """
     if isinstance(psd_speech, ComplexTensor):
-        complex_wrapper = FC
         pad_func = FC.pad
-    if is_torch_1_8_plus and torch.is_complex(psd_speech):
-        complex_wrapper = torch
-        pad_func = torch.nn.functional
+    if is_torch_complex_tensor(psd_speech):
+        pad_func = torch.nn.functional.pad
     else:
         raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
+            "Please update your PyTorch version to 1.9+ for complex support."
         )
 
     C = psd_noise.size(-1)
@@ -627,12 +529,10 @@ def get_WPD_filter_with_rtf(
     rtf = pad_func(rtf, (0, 0, 0, psd_observed_bar.shape[-1] - C), "constant", 0)
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
     if use_torch_solver:
-        numerator = complex_wrapper.solve(rtf, psd_observed_bar)[0].squeeze(-1)
+        numerator = solve(rtf, psd_observed_bar).squeeze(-1)
     else:
-        numerator = complex_wrapper.matmul(psd_observed_bar.inverse2(), rtf).squeeze(-1)
-    denominator = complex_wrapper.einsum(
-        "...d,...d->...", [rtf.squeeze(-1).conj(), numerator]
-    )
+        numerator = matmul(inverse(psd_observed_bar), rtf).squeeze(-1)
+    denominator = einsum("...d,...d->...", rtf.squeeze(-1).conj(), numerator)
     if normalize_ref_channel is not None:
         scale = rtf.squeeze(-1)[..., normalize_ref_channel, None].conj()
         beamforming_vector = numerator * scale / (denominator.real.unsqueeze(-1) + eps)
@@ -656,15 +556,6 @@ def perform_WPD_filtering(
     Returns:
         enhanced (torch.complex64/ComplexTensor): (B, F, T)
     """
-    if isinstance(Y, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(Y):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     # (B, F, C, T) --> (B, F, C, T, btaps + 1)
     Ytilde = signal_framing(Y, btaps + 1, 1, bdelay, do_padding=True, pad_value=0)
     Ytilde = reverse(Ytilde, dim=-1)
@@ -673,9 +564,7 @@ def perform_WPD_filtering(
     # --> (B, F, T, btaps + 1, C) --> (B, F, T, (btaps + 1) * C)
     Ytilde = Ytilde.permute(0, 1, 3, 4, 2).contiguous().view(Bs, Fdim, T, -1)
     # (B, F, T, 1)
-    enhanced = complex_wrapper.einsum(
-        "...tc,...c->...t", [Ytilde, filter_matrix.conj()]
-    )
+    enhanced = einsum("...tc,...c->...t", Ytilde, filter_matrix.conj())
     return enhanced
 
 
@@ -689,22 +578,13 @@ def tik_reg(mat, reg: float = 1e-8, eps: float = 1e-8):
     Returns:
         ret (torch.complex64/ComplexTensor): regularized matrix (..., C, C)
     """
-    if isinstance(mat, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(mat):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     # Add eps
     C = mat.size(-1)
     eye = torch.eye(C, dtype=mat.dtype, device=mat.device)
     shape = [1 for _ in range(mat.dim() - 2)] + [C, C]
     eye = eye.view(*shape).repeat(*mat.shape[:-2], 1, 1)
     with torch.no_grad():
-        epsilon = complex_wrapper.trace(mat).real[..., None, None] * reg
+        epsilon = FC.trace(mat).real[..., None, None] * reg
         # in case that correlation_matrix is all-zero
         epsilon = epsilon + eps
     mat = mat + epsilon * eye
@@ -729,11 +609,11 @@ def get_adjacent(spec, filter_length: int = 5):
     """  # noqa: D400
     if isinstance(spec, ComplexTensor):
         pad_func = FC.pad
-    elif is_torch_1_8_plus and torch.is_complex(spec):
+    elif is_torch_complex_tensor(spec):
         pad_func = torch.nn.functional.pad
     else:
         raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
+            "Please update your PyTorch version to 1.9+ for complex support."
         )
     return (
         pad_func(spec, pad=[filter_length - 1, 0])
@@ -793,8 +673,8 @@ def vector_to_Hermitian(vec, use_builtin_complex=False):
         (...,) + triu2 + (np.ones(triu2[0].shape[0]),)
     ]
 
-    if is_torch_1_8_plus and use_builtin_complex:
-        return torch.complex64(mat[..., 0], mat[..., 1])
+    if is_torch_1_9_plus and use_builtin_complex:
+        return torch.complex(mat[..., 0], mat[..., 1])
     else:
         return ComplexTensor(mat[..., 0], mat[..., 1])
 
@@ -810,23 +690,12 @@ def get_mfmvdr_vector(gammax, Phi, use_torch_solver: bool = True, eps: float = E
     Returns:
         beamforming_vector (torch.complex64/ComplexTensor): (..., L, N)
     """
-    if isinstance(gammax, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(gammax):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     # (..., L, N)
     if use_torch_solver:
-        numerator = complex_wrapper.solve(gammax.unsqueeze(-1), Phi)[0].squeeze(-1)
+        numerator = solve(gammax.unsqueeze(-1), Phi).squeeze(-1)
     else:
-        numerator = complex_wrapper.matmul(
-            Phi.inverse2(), gammax.unsqueeze(-1)
-        ).squeeze(-1)
-    denominator = complex_wrapper.einsum("...d,...d->...", [gammax.conj(), numerator])
+        numerator = matmul(inverse(Phi), gammax.unsqueeze(-1)).squeeze(-1)
+    denominator = einsum("...d,...d->...", gammax.conj(), numerator)
     return numerator / (denominator.real.unsqueeze(-1) + eps)
 
 
@@ -849,17 +718,8 @@ def filter_minimum_gain_like(
         output (torch.complex64/ComplexTensor): minimum gain-filtered output
         alpha (float): optional
     """
-    if isinstance(w, ComplexTensor):
-        complex_wrapper = FC
-    elif is_torch_1_8_plus and torch.is_complex(w):
-        complex_wrapper = torch
-    else:
-        raise ValueError(
-            "Please update your PyTorch version to 1.8+ for complex support."
-        )
-
     # (..., L)
-    filtered_input = complex_wrapper.einsum("...d,...d->...", [w.conj(), y])
+    filtered_input = einsum("...d,...d->...", [w.conj(), y])
     # (..., L)
     Y = y[..., -1]
     return minimum_gain_like(G_min, Y, filtered_input, alpha, k, eps)

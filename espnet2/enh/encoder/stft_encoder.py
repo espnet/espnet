@@ -5,7 +5,7 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.layers.stft import Stft
 
-is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 class STFTEncoder(AbsEncoder):
@@ -48,7 +48,7 @@ class STFTEncoder(AbsEncoder):
             ilens (torch.Tensor): input lengths [Batch]
         """
         spectrum, flens = self.stft(input, ilens)
-        if is_torch_1_8_plus and self.use_builtin_complex:
+        if is_torch_1_9_plus and self.use_builtin_complex:
             spectrum = torch.complex(spectrum[..., 0], spectrum[..., 1])
         else:
             spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])

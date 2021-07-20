@@ -18,12 +18,12 @@ from espnet2.enh.layers.beamformer import get_power_spectral_density_matrix
 from espnet2.enh.layers.beamformer import get_WPD_filter_v2
 from espnet2.enh.layers.beamformer import get_WPD_filter_with_rtf
 from espnet2.enh.layers.beamformer import perform_WPD_filtering
-from espnet2.enh.layers.beamformer import to_double
-from espnet2.enh.layers.beamformer import to_float
+from espnet2.enh.layers.complex_utils import to_double
+from espnet2.enh.layers.complex_utils import to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 
-is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer
@@ -252,7 +252,7 @@ class DNN_Beamformer(torch.nn.Module):
 
         if isinstance(data, ComplexTensor):
             complex_wrapper = FC
-        elif is_torch_1_8_plus and torch.is_complex(data):
+        elif is_torch_1_9_plus and torch.is_complex(data):
             complex_wrapper = torch
         else:
             raise ValueError(

@@ -6,7 +6,7 @@ import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.enh.layers.beamformer import to_double
+from espnet2.enh.layers.complex_utils import to_double
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 

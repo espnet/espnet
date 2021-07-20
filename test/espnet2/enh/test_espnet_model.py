@@ -15,7 +15,7 @@ from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
 is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
-is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 stft_encoder = STFTEncoder(
@@ -219,7 +219,7 @@ def test_forward_with_beamformer_net(
     if not loss_type.startswith("mask") and mask_type != "IBM":
         # `mask_type` has no effect when `loss_type` is not "mask..."
         return
-    if not is_torch_1_8_plus and use_builtin_complex:
+    if not is_torch_1_9_plus and use_builtin_complex:
         # builtin complex support is only available in PyTorch 1.8+
         return
 

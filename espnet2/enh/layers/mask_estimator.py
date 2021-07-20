@@ -12,7 +12,7 @@ from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
 
 
-is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 class MaskEstimator(torch.nn.Module):
@@ -59,7 +59,7 @@ class MaskEstimator(torch.nn.Module):
 
         # Calculate amplitude: (B, C, T, F) -> (B, C, T, F)
         if isinstance(xs, ComplexTensor) or (
-            is_torch_1_8_plus and torch.is_complex(xs)
+            is_torch_1_9_plus and torch.is_complex(xs)
         ):
             xs = (xs.real ** 2 + xs.imag ** 2) ** 0.5
         # xs: (B, C, T, F) -> xs: (B * C, T, F)
