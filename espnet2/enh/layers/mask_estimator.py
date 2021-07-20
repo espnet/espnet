@@ -10,6 +10,7 @@ from torch_complex.tensor import ComplexTensor
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
+from espnet2.enh.layers.complex_utils import is_complex
 
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
@@ -58,9 +59,7 @@ class MaskEstimator(torch.nn.Module):
         xs = xs.permute(0, 2, 3, 1)
 
         # Calculate amplitude: (B, C, T, F) -> (B, C, T, F)
-        if isinstance(xs, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(xs)
-        ):
+        if is_complex(xs):
             xs = (xs.real ** 2 + xs.imag ** 2) ** 0.5
         # xs: (B, C, T, F) -> xs: (B * C, T, F)
         xs = xs.contiguous().view(-1, xs.size(-2), xs.size(-1))

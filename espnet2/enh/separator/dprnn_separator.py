@@ -7,6 +7,7 @@ from typing import Union
 import torch
 from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.dprnn import DPRNN
 from espnet2.enh.layers.dprnn import merge_feature
 from espnet2.enh.layers.dprnn import split_feature
@@ -89,9 +90,7 @@ class DPRNNSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
-        if isinstance(input, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(input)
-        ):
+        if is_complex(input):
             feature = abs(input)
         else:
             feature = input

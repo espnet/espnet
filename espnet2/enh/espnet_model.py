@@ -8,12 +8,12 @@ from typing import Tuple
 
 import ci_sdr
 import torch
-from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -467,9 +467,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # in case of binary masks
             ref = ref.type(inf.dtype)
         diff = ref - inf
-        if isinstance(diff, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(diff)
-        ):
+        if is_complex(diff):
             mseloss = diff.real ** 2 + diff.imag ** 2
         else:
             mseloss = diff ** 2
@@ -499,9 +497,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # in case of binary masks
             ref = ref.type(inf.dtype)
         diff = ref - inf
-        if isinstance(diff, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(diff)
-        ):
+        if is_complex(diff):
             log_mse_loss = diff.real ** 2 + diff.imag ** 2
         else:
             log_mse_loss = diff ** 2
@@ -530,9 +526,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if not is_torch_1_3_plus:
             # in case of binary masks
             ref = ref.type(inf.dtype)
-        if isinstance(inf, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(inf)
-        ):
+        if is_complex(inf):
             l1loss = abs(ref - inf + EPS)
         else:
             l1loss = abs(ref - inf)

@@ -11,6 +11,7 @@ from espnet.nets.pytorch_backend.conformer.encoder import (
     Encoder as ConformerEncoder,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
@@ -137,9 +138,7 @@ class ConformerSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
-        if isinstance(input, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(input)
-        ):
+        if is_complex(input):
             feature = abs(input)
         else:
             feature = input

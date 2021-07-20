@@ -8,6 +8,7 @@ import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
@@ -85,9 +86,7 @@ class RNNSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
-        if isinstance(input, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(input)
-        ):
+        if is_complex(input):
             feature = abs(input)
         else:
             feature = input

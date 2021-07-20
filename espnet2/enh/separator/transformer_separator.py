@@ -16,6 +16,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import (
 from espnet.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,  # noqa: H301
 )
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
@@ -124,9 +125,7 @@ class TransformerSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
-        if isinstance(input, ComplexTensor) or (
-            is_torch_1_9_plus and torch.is_complex(input)
-        ):
+        if is_complex(input):
             feature = abs(input)
         else:
             feature = input
