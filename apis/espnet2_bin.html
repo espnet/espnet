@@ -398,12 +398,13 @@ Input/output arguments:
                         [--lm_file LM_FILE]
                         [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
                         [--word_lm_file WORD_LM_FILE]
-                        [--batch_size BATCH_SIZE] [--nbest NBEST]
-                        [--beam_size BEAM_SIZE] [--penalty PENALTY]
-                        [--maxlenratio MAXLENRATIO]
+                        [--ngram_file NGRAM_FILE] [--batch_size BATCH_SIZE]
+                        [--nbest NBEST] [--beam_size BEAM_SIZE]
+                        [--penalty PENALTY] [--maxlenratio MAXLENRATIO]
                         [--minlenratio MINLENRATIO] [--ctc_weight CTC_WEIGHT]
-                        [--lm_weight LM_WEIGHT] [--streaming STREAMING]
-                        [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
+                        [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
+                        [--streaming STREAMING] [--token_type {char,bpe,None}]
+                        [--bpemodel BPEMODEL]
 
 ASR Decoding
 
@@ -431,6 +432,7 @@ The model configuration related:
   --lm_file LM_FILE
   --word_lm_train_config WORD_LM_TRAIN_CONFIG
   --word_lm_file WORD_LM_FILE
+  --ngram_file NGRAM_FILE
 
 Beam-search related:
   --batch_size BATCH_SIZE
@@ -451,6 +453,8 @@ Beam-search related:
                         CTC weight in joint decoding (default: 0.5)
   --lm_weight LM_WEIGHT
                         RNNLM weight (default: 1.0)
+  --ngram_weight NGRAM_WEIGHT
+                        ngram weight (default: 0.9)
   --streaming STREAMING
 
 Text converter related:
