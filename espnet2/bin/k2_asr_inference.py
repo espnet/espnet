@@ -30,7 +30,7 @@ from espnet2.utils.types import str_or_none
 
 # copied from: https://github.com/k2-fsa/snowfall/blob/master/snowfall/training/ctc_graph.py#L13
 def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
-    '''Build CTC topology.
+    """Build CTC topology.
     A token which appears once on the right side (i.e. olabels) may
     appear multiple times on the left side (ilabels), possibly with
     epsilons in between.
@@ -42,48 +42,52 @@ def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
         A list of tokens, e.g., phones, characters, etc.
     Returns:
       Returns an FST that converts repeated tokens to a single token.
-    '''
-    assert 0 in tokens, 'We assume 0 is ID of the blank symbol'
+    """
+    assert 0 in tokens, "We assume 0 is ID of the blank symbol"
 
     num_states = len(tokens)
     final_state = num_states
-    arcs = ''
+    arcs = ""
     for i in range(num_states):
         for j in range(num_states):
             if i == j:
-                arcs += f'{i} {i} {tokens[i]} 0 0.0\n'
+                arcs += f"{i} {i} {tokens[i]} 0 0.0\n"
             else:
-                arcs += f'{i} {j} {tokens[j]} {tokens[j]} 0.0\n'
-        arcs += f'{i} {final_state} -1 -1 0.0\n'
-    arcs += f'{final_state}'
+                arcs += f"{i} {j} {tokens[j]} {tokens[j]} 0.0\n"
+        arcs += f"{i} {final_state} -1 -1 0.0\n"
+    arcs += f"{final_state}"
     ans = k2.Fsa.from_str(arcs, num_aux_labels=1)
     ans = k2.arc_sort(ans)
     return ans
 
+
 # copied from: https://github.com/k2-fsa/snowfall/blob/master/snowfall/common.py#L309
-def get_texts(best_paths: k2.Fsa, indices: Optional[torch.Tensor] = None) -> List[List[int]]:
-    '''Extract the texts from the best-path FSAs, in the original order (before
-       the permutation given by `indices`).
-       Args:
-           best_paths:  a k2.Fsa with best_paths.arcs.num_axes() == 3, i.e.
-                    containing multiple FSAs, which is expected to be the result
-                    of k2.shortest_path (otherwise the returned values won't
-                    be meaningful).  Must have the 'aux_labels' attribute, as
-                  a ragged tensor.
-           indices: possibly a torch.Tensor giving the permutation that we used
-                    on the supervisions of this minibatch to put them in decreasing
-                    order of num-frames.  We'll apply the inverse permutation.
-                    Doesn't have to be on the same device as `best_paths`
-      Return:
-          Returns a list of lists of int, containing the label sequences we
-          decoded.
-    '''
+def get_texts(
+    best_paths: k2.Fsa, indices: Optional[torch.Tensor] = None
+) -> List[List[int]]:
+    """Extract the texts from the best-path FSAs, in the original order (before
+     the permutation given by `indices`).
+     Args:
+         best_paths:  a k2.Fsa with best_paths.arcs.num_axes() == 3, i.e.
+                  containing multiple FSAs, which is expected to be the result
+                  of k2.shortest_path (otherwise the returned values won't
+                  be meaningful).  Must have the 'aux_labels' attribute, as
+                a ragged tensor.
+         indices: possibly a torch.Tensor giving the permutation that we used
+                  on the supervisions of this minibatch to put them in decreasing
+                  order of num-frames.  We'll apply the inverse permutation.
+                  Doesn't have to be on the same device as `best_paths`
+    Return:
+        Returns a list of lists of int, containing the label sequences we
+        decoded.
+    """
     # remove any 0's or -1's (there should be no 0's left but may be -1's.)
 
     if isinstance(best_paths.aux_labels, k2.RaggedInt):
         aux_labels = k2r.remove_values_leq(best_paths.aux_labels, 0)
-        aux_shape = k2r.compose_ragged_shapes(best_paths.arcs.shape(),
-                                                    aux_labels.shape())
+        aux_shape = k2r.compose_ragged_shapes(
+            best_paths.arcs.shape(), aux_labels.shape()
+        )
 
         # remove the states and arcs axes.
         aux_shape = k2r.remove_axis(aux_shape, 1)
@@ -96,10 +100,11 @@ def get_texts(best_paths: k2.Fsa, indices: Optional[torch.Tensor] = None) -> Lis
         # remove 0's and -1's.
         aux_labels = k2r.remove_values_leq(aux_labels, 0)
 
-    assert (aux_labels.num_axes() == 2)
-    aux_labels, _ = k2r.index(aux_labels,
-                                    invert_permutation(indices).to(dtype=torch.int32,
-                                                                   device=best_paths.device))
+    assert aux_labels.num_axes() == 2
+    aux_labels, _ = k2r.index(
+        aux_labels,
+        invert_permutation(indices).to(dtype=torch.int32, device=best_paths.device),
+    )
     return k2r.to_list(aux_labels)
 
 
@@ -107,6 +112,7 @@ def invert_permutation(indices: torch.Tensor) -> torch.Tensor:
     ans = torch.zeros(indices.shape, device=indices.device, dtype=torch.long)
     ans[indices] = torch.arange(0, indices.shape[0], device=indices.device)
     return ans
+
 
 class Speech2Text:
     """Speech2Text class
@@ -151,7 +157,9 @@ class Speech2Text:
 
         decoder = asr_model.decoder
         token_list = asr_model.token_list
-        self.decode_graph = k2.arc_sort(build_ctc_topo(list(range(len(token_list))))).to(device)
+        self.decode_graph = k2.arc_sort(
+            build_ctc_topo(list(range(len(token_list))))
+        ).to(device)
 
         if token_type is None:
             token_type = asr_train_args.token_type
@@ -176,12 +184,12 @@ class Speech2Text:
         self.tokenizer = tokenizer
         self.device = device
         self.dtype = dtype
-        self.output_beam_size=output_beam_size
+        self.output_beam_size = output_beam_size
 
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int]]]:
+    ) -> List[Tuple[Optional[str], List[str], List[int], float]]:
         """Inference
 
         Args:
@@ -211,7 +219,9 @@ class Speech2Text:
         assert len(enc) == 1, len(enc)
 
         # logp_encoder_output: [N, T, C]
-        logp_encoder_output = torch.nn.functional.log_softmax(self.asr_model.ctc.ctc_lo(enc), dim=2)
+        logp_encoder_output = torch.nn.functional.log_softmax(
+            self.asr_model.ctc.ctc_lo(enc), dim=2
+        )
 
         # TODO(Liyong Guo): Support batch decoding.
         # Following statement only support batch_size == 1
@@ -220,15 +230,21 @@ class Speech2Text:
 
         dense_fsa_vec = k2.DenseFsaVec(logp_encoder_output, supervision_segments)
 
-        lattices = k2.intersect_dense_pruned(self.decode_graph, dense_fsa_vec, 20.0, self.output_beam_size, 30, 10000)
+        lattices = k2.intersect_dense_pruned(
+            self.decode_graph, dense_fsa_vec, 20.0, self.output_beam_size, 30, 10000
+        )
 
         best_paths = k2.shortest_path(lattices, use_double_scores=True)
+        scores = best_paths.get_tot_scores(use_double_scores=True, log_semiring=False).tolist()
 
         hyps = get_texts(best_paths, indices)
+        # TODO(Liyong Guo): Support batch decoding. now batch_size == 1.
+        assert len(scores) == 1
+        assert len(scores) == len(hyps)
 
         results = []
 
-        for token_int in hyps:
+        for token_int, score in zip(hyps, scores):
             # Change integer-ids to tokens
             token = self.converter.ids2tokens(token_int)
 
@@ -236,7 +252,7 @@ class Speech2Text:
                 text = self.tokenizer.tokens2text(token)
             else:
                 text = None
-            results.append((text, token, token_int))
+            results.append((text, token, token_int, score))
 
         assert check_return_type(results)
         return results
@@ -335,14 +351,15 @@ def inference(
 
             # Only supporting batch_size==1
             key = keys[0]
-            for text, token, token_int in results:
+            for text, token, token_int, score in results:
 
                 # Write the result to each file
                 writer["token"][key] = " ".join(token)
                 writer["token_int"][key] = " ".join(map(str, token_int))
+                writer["score"][key] = str(score)
 
                 if text is not None:
-                   writer["text"][key] = text
+                    writer["text"][key] = text
 
 
 def get_parser():
