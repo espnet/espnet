@@ -60,8 +60,8 @@ To upload your model, you need first:
 2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
 3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-To port models from zenodo using hugging face hub, 
-1. Create a hugging face account - https://huggingface.co/
+To port models from zenodo using Hugging Face hub, 
+1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
 3. Go to `egs2/RECIPE/*/scripts/utils` and run `./upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
 
