@@ -30,7 +30,7 @@ for x in dir_dict:
         transcript_df=pd.read_csv(os.path.join(fsc_root, "data", dir_dict[x]))
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
-            words = row[4]+" "+row[5]+" "+row[6]
+            words = row[4].replace(" ","_")+"_"+row[5].replace(" ","_")+"_"+row[6].replace(" ","_")
             path_arr=row[1].split("/")
             utt_id = path_arr[-2]+"_"+path_arr[-1]
             # print(utt_id + " " + words + "\n")

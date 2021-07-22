@@ -9,8 +9,7 @@ train_set="train"
 valid_set="valid"
 test_sets="test valid"
 
-asr_config=conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml
-lm_config=conf/tuning/train_lm_transformer2.yaml
+asr_config=conf/tuning/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
@@ -20,7 +19,9 @@ inference_config=conf/decode_asr.yaml
     --nbpe 5000 \
     --token_type char\
     --audio_format wav\
+    --feats_type fbank_pitch\
     --max_wav_duration 30 \
+    --asr_config "${asr_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" "$@"
