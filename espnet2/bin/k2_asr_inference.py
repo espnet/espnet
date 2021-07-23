@@ -358,7 +358,7 @@ def inference(
             key = keys[0]
             for text, token, token_int, score in results:
 
-                best_writer = writer[f"1best_recog"]
+                best_writer = writer["1best_recog"]
                 # Write the result to each file
                 best_writer["token"][key] = " ".join(token)
                 best_writer["token_int"][key] = " ".join(map(str, token_int))
