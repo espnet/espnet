@@ -28,9 +28,12 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
-# copied from: https://github.com/k2-fsa/snowfall/blob/master/snowfall/training/ctc_graph.py#L13
+
+# copied from:
+# https://github.com/k2-fsa/snowfall/blob/master/snowfall/training/ctc_graph.py#L13
 def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
     """Build CTC topology.
+
     A token which appears once on the right side (i.e. olabels) may
     appear multiple times on the left side (ilabels), possibly with
     epsilons in between.
@@ -67,6 +70,7 @@ def get_texts(
 ) -> List[List[int]]:
     """Extract the texts from the best-path FSAs, in the original order (before
      the permutation given by `indices`).
+
      Args:
          best_paths:  a k2.Fsa with best_paths.arcs.num_axes() == 3, i.e.
                   containing multiple FSAs, which is expected to be the result
@@ -155,7 +159,6 @@ class k2Speech2Text:
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
-        decoder = asr_model.decoder
         token_list = asr_model.token_list
         self.decode_graph = k2.arc_sort(
             build_ctc_topo(list(range(len(token_list))))
@@ -309,7 +312,7 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    speech2text = Speech2Text(
+    speech2text = k2Speech2Text(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
         lm_train_config=lm_train_config,
