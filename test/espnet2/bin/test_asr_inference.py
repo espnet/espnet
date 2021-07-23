@@ -9,6 +9,7 @@ from espnet.nets.beam_search import Hypothesis
 from espnet2.bin.asr_inference import get_parser
 from espnet2.bin.asr_inference import main
 from espnet2.bin.asr_inference import Speech2Text
+from espnet2.bin.k2_asr_inference import k2Speech2Text
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 
@@ -118,3 +119,17 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(5)
+def test_k2Speech2Text(asr_config_file, lm_config_file):
+    k2speech2text = k2Speech2Text(
+        asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
+    )
+    speech = np.random.randn(100000)
+    results = k2speech2text(speech)
+    for text, token, token_int, score in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(score, float)

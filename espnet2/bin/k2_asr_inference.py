@@ -114,15 +114,15 @@ def invert_permutation(indices: torch.Tensor) -> torch.Tensor:
     return ans
 
 
-class Speech2Text:
+class k2Speech2Text:
     """Speech2Text class
 
     Examples:
         >>> import soundfile
-        >>> speech2text = Speech2Text("asr_config.yml", "asr.pth")
+        >>> speech2text = k2Speech2Text("asr_config.yml", "asr.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
-        [(text, token, token_int), ...]
+        [(text, token, token_int, score), ...]
 
     """
 
@@ -177,6 +177,7 @@ class Speech2Text:
             tokenizer = build_tokenizer(token_type=token_type)
         converter = TokenIDConverter(token_list=token_list)
         logging.info(f"Text tokenizer: {tokenizer}")
+        logging.info(f"Running on : {device}")
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
@@ -235,7 +236,9 @@ class Speech2Text:
         )
 
         best_paths = k2.shortest_path(lattices, use_double_scores=True)
-        scores = best_paths.get_tot_scores(use_double_scores=True, log_semiring=False).tolist()
+        scores = best_paths.get_tot_scores(
+            use_double_scores=True, log_semiring=False
+        ).tolist()
 
         hyps = get_texts(best_paths, indices)
         # TODO(Liyong Guo): Support batch decoding. now batch_size == 1.
@@ -339,7 +342,9 @@ def inference(
     )
 
     with DatadirWriter(output_dir) as writer:
-        for keys, batch in loader:
+        for batch_idx, (keys, batch) in enumerate(loader):
+            if batch_idx % 10 == 0:
+                logging.info(f"Processing {batch_idx} batch")
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -353,13 +358,14 @@ def inference(
             key = keys[0]
             for text, token, token_int, score in results:
 
+                best_writer = writer[f"1best_recog"]
                 # Write the result to each file
-                writer["token"][key] = " ".join(token)
-                writer["token_int"][key] = " ".join(map(str, token_int))
-                writer["score"][key] = str(score)
+                best_writer["token"][key] = " ".join(token)
+                best_writer["token_int"][key] = " ".join(map(str, token_int))
+                best_writer["score"][key] = str(score)
 
                 if text is not None:
-                    writer["text"][key] = text
+                    best_writer["text"][key] = text
 
 
 def get_parser():
