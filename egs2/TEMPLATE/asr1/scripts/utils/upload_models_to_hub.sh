@@ -6,7 +6,7 @@ echo ${model_name}
 
 python get_model_names.py "${model_name}" >> model_names.txt # Saves model path in a file
 declare a
-IFS=$'\n' GLOBIGNORE='*' command eval  'a=($(cat model_names.txt))'
+IFS=$'\n' GLOBIGNORE='*' command eval  "a=($(cat model_names.txt))"
 
 for value in "${a[@]}"
 do
