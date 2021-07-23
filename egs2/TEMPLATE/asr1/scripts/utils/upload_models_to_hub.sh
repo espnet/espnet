@@ -5,7 +5,7 @@ model_name="$1"
 echo ${model_name}
 
 python get_model_names.py "${model_name}" >> model_names.txt # Saves model path in a file
-
+declare a
 IFS=$'\n' GLOBIGNORE='*' command eval  'a=($(cat model_names.txt))'
 
 for value in "${a[@]}"
@@ -33,12 +33,12 @@ mv dest/* ${repo_name}/.
 
 # Add readme
 python create_README_file.py ${repo_name} "${model_name}"
-cd ${repo_name}
+cd ${repo_name} || exit
 git add .
 git commit -m "import from zenodo"
 git push
 
 
-cd ..
+cd ..  || exit
 rm -rf ${repo_name}
 done
