@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+pip install k2==1.2.dev20210723+cpu.torch${TH_VERSION} -f https://k2-fsa.org/nightly/
+
 ${CXX:-g++} -v
 
 (

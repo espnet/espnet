@@ -7,12 +7,14 @@ on:
   pull_request:
     branches:
       - master
+      - k2_espnet2
 
 jobs:
   linter_and_test:
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 20
+      fail-fast: false
       matrix:
         os: [ubuntu-18.04]
         python-version: [3.7]

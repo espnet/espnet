@@ -68,7 +68,9 @@ def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
 def get_texts(
     best_paths: k2.Fsa, indices: Optional[torch.Tensor] = None
 ) -> List[List[int]]:
-    """Extract the texts from the best-path FSAs, in the original order (before the permutation given by `indices`).
+    """Extract the texts from the best-path FSAs.
+
+     In the original order (before the permutation given by `indices`).
 
      Args:
          best_paths:  a k2.Fsa with best_paths.arcs.num_axes() == 3, i.e.
