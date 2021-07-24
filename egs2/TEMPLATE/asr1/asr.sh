@@ -307,7 +307,6 @@ else
     lm_token_type="${token_type}"
 fi
 
-echo ${asr_config}
 
 # Set tag for naming of model directory
 if [ -z "${asr_tag}" ]; then

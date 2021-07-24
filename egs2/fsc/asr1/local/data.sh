@@ -17,7 +17,6 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
 train_dev="dev"
-fsc=/home/siddhana/fluent_speech_commands_dataset
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -25,34 +24,34 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
 fi
 
-if [ -z "${fsc}" ]; then
-    log "Fill the value of 'fsc' of db.sh"
+if [ -z "${FSC}" ]; then
+    log "Fill the value of 'FSC' of db.sh"
     exit 1
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${fsc}/Fluent Speech Commands Public License.pdf" ]; then
-	echo "stage 1: Download data to ${fsc}"
+    if [ ! -e "${FSC}/Fluent Speech Commands Public License.pdf" ]; then
+	echo "stage 1: Download data to ${FSC}"
     else
-        log "stage 1: ${fsc}/Fluent Speech Commands Public License.pdf is already existing. Skip data downloading"
+        log "stage 1: ${FSC}/Fluent Speech Commands Public License.pdf is already existing. Skip data downloading"
     fi
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     mkdir -p data/{train,valid,test}
-    python3 local/data_prep.py ${fsc}
+    python3 local/data_prep.py ${FSC}
     for x in test valid train; do
         for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
+        utils/validate_data_dir.sh --no-feats data/${x} || exit 1
     done
 fi
 
