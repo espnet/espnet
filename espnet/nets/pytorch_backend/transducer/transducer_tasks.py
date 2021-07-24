@@ -1,13 +1,11 @@
 """Module implementing transducer main and auxiliary tasks."""
 
-from distutils.version import LooseVersion
 from typing import Any
 from typing import List
 from typing import Optional
 from typing import Tuple
 
 import torch
-from warprnnt_pytorch import RNNTLoss
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
@@ -79,6 +77,8 @@ class TransducerTasks(torch.nn.Module):
         )
 
         if training:
+            from warprnnt_pytorch import RNNTLoss
+
             self.transducer_loss = RNNTLoss(
                 blank=blank_id,
                 reduction="sum",
@@ -87,14 +87,11 @@ class TransducerTasks(torch.nn.Module):
         if ctc_loss:
             self.ctc_lin = torch.nn.Linear(encoder_dim, output_dim)
 
-            if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
-                self.ctc_loss = torch.nn.CTCLoss(
-                    blank=blank_id,
-                    reduction="sum",
-                    zero_infinity=True,
-                )
-            else:
-                self.ctc_loss = torch.nn.CTCLoss(blank=blank_id, reduction="sum")
+            self.ctc_loss = torch.nn.CTCLoss(
+                blank=blank_id,
+                reduction="none",
+                zero_infinity=True,
+            )
 
         if aux_transducer_loss:
             self.mlp = torch.nn.Sequential(
@@ -196,9 +193,7 @@ class TransducerTasks(torch.nn.Module):
         with torch.backends.cudnn.flags(deterministic=True):
             loss_ctc = self.ctc_loss(ctc_logp, target, t_len, u_len)
 
-        loss_ctc /= ctc_logp.size(0)
-
-        return loss_ctc
+        return loss_ctc.mean()
 
     def compute_aux_transducer_and_symm_kl_div_losses(
         self,
