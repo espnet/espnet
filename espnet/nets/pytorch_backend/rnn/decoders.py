@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+"""RNN decoder module."""
 import logging
 import math
 import random
@@ -265,15 +265,11 @@ class Decoder(torch.nn.Module, ScorerInterface):
         z_all = torch.stack(z_all, dim=1).view(batch * olength, -1)
         # compute loss
         y_all = self.output(z_all)
-        if LooseVersion(torch.__version__) < LooseVersion("1.0"):
-            reduction_str = "elementwise_mean"
-        else:
-            reduction_str = "mean"
         self.loss = F.cross_entropy(
             y_all,
             ys_out_pad.view(-1),
             ignore_index=self.ignore_id,
-            reduction=reduction_str,
+            reduction="mean",
         )
         # compute perplexity
         ppl = math.exp(self.loss.item())

@@ -2,13 +2,13 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.0.1|1.1.0|1.2.0|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|1.8.1|
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-|ubuntu20/python3.8/pip|||||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|debian9/python3.6/conda|||||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
-|centos7/python3.6/conda|||||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)|
-|[docs/coverage] python3.8|||||||||[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)|
+|system/pytorch ver.|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|1.8.1|1.9.0|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|ubuntu20/python3.8/pip|||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|debian9/python3.6/conda|||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
+|centos7/python3.6/conda||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)||
+|doc/python3.8|||||||[![doc](https://github.com/espnet/espnet/workflows/doc/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adoc)|
 
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
 [![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
@@ -146,6 +146,7 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
     ```
 
     There are some required packages depending on each task other than above. If you meet ImportError, please intall them at that time.
+- (ESPNet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
 
 ## Usage
 See [Usage](https://espnet.github.io/espnet/tutorial.html).
@@ -222,29 +223,29 @@ Available pretrained models in the demo script are listed as below.
 | [csj.rnn.v1](https://drive.google.com/open?id=1ALvD4nHan9VDJlYJwNurVr7H7OV0j2X9)                 | Joint-CTC attention VGGBLSTM trained on CSJ                |
 
 </div></details>
-  
+
 ### SE results
 <details><summary>expand</summary><div>
 
 We list results from three different models on WSJ0-2mix, which is one the most widely used benchmark dateset for speech separation.
-  
-|Model|STOI|SAR|SDR|SIR| 
+
+|Model|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
 |[TF Masking](https://zenodo.org/record/4498554)|0.89|11.40|10.24|18.04|
 |[Conv-Tasnet](https://zenodo.org/record/4498562)|0.95|16.62|15.94|25.90|
 |[DPRNN-Tasnet](https://zenodo.org/record/4688000)|0.96|18.82|18.29|28.92|
-  
+
 </div></details>
-  
+
 ### SE demos
 <details><summary>expand</summary><div>
 You can try the interactive demo with Google Colab. Please click the following button to get access to the demos.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
-  
- 
+
+
 It is based on ESPnet2. Pretrained models are available for both speech enhancement and speech separation tasks.
-  
+
 </div></details>
 
 ### ST results

@@ -1,0 +1,34 @@
+# This configuration requires Tesla V100-SXM2(32GB) x 8 GPUs It takes about 3.5 hours.
+#use_amp: true
+lm: transformer
+lm_conf:
+    pos_enc: null
+    embed_unit: 128
+    att_unit: 256
+    head: 8
+    unit: 1024
+    layer: 12
+    dropout_rate: 0.1
+
+log_interval: 3000
+# optimization related
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 90000000
+#batch_type: folded
+#batch_size: 2048
+accum_grad: 4
+max_epoch: 100
+
+optim: adam
+optim_conf:
+   lr: 0.002
+scheduler: warmuplr
+scheduler_conf:
+   warmup_steps: 25000
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10  # 10 is good.

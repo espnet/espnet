@@ -27,10 +27,10 @@ See the following pages before asking the question:
 
 ## Pretrained Models
 
-### vctk_tts_train_xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+### vctk_tts_train_xvector_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4393279
 
-### vctk_tts_train_gst+xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+### vctk_tts_train_gst+xvector_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4393277
 
 ### vctk_tts_train_xvector_tacotron2_raw_phn_tacotron_g2p_en_no_space_train.loss.ave

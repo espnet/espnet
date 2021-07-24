@@ -257,7 +257,27 @@ def get_parser():
         default=0.999,
         help="Threshold probability for CTC output",
     )
-
+    # quantize model related
+    parser.add_argument(
+        "--quantize-config",
+        nargs="*",
+        help="Quantize config list. E.g.: --quantize-config=[Linear,LSTM,GRU]",
+    )
+    parser.add_argument(
+        "--quantize-dtype", type=str, default="qint8", help="Dtype dynamic quantize"
+    )
+    parser.add_argument(
+        "--quantize-asr-model",
+        type=bool,
+        default=False,
+        help="Quantize asr model",
+    )
+    parser.add_argument(
+        "--quantize-lm-model",
+        type=bool,
+        default=False,
+        help="Quantize lm model",
+    )
     return parser
 
 

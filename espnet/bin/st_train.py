@@ -6,7 +6,6 @@
 
 """End-to-end speech translation model training script."""
 
-from distutils.version import LooseVersion
 import logging
 import os
 import random
@@ -15,13 +14,10 @@ import sys
 
 import configargparse
 import numpy as np
-import torch
 
 from espnet import __version__
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
-
-is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2")
 
 
 # NOTE: you need this func to generate our sphinx doc
@@ -508,7 +504,7 @@ def main(cmd_args):
                 ngpu = len(p.stderr.decode().split("\n")) - 1
         args.ngpu = ngpu
     else:
-        if is_torch_1_2_plus and args.ngpu != 1:
+        if args.ngpu != 1:
             logging.debug(
                 "There are some bugs with multi-GPU processing in PyTorch 1.2+"
                 + " (see https://github.com/pytorch/pytorch/issues/21108)"

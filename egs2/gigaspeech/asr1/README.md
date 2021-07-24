@@ -8,7 +8,7 @@
   - Commit date: `Sat Mar 13 10:16:16 2021 -0500`
 
 ## asr_train_asr_raw_en_bpe5000
-- https://zenodo.org/deposit/4630406
+- https://zenodo.org/record/4630406
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
