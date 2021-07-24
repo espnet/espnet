@@ -48,8 +48,8 @@ See: https://espnet.github.io/espnet/tutorial.html
 | librispeech             | LibriSpeech ASR corpus                                       | ASR                                        | EN             | http://www.openslr.org/12                                    |                               |
 | libritts                | LibriTTS: A Corpus Derived from LibriSpeech for Text-to-Speech | TTS                                      | EN             | http://www.openslr.org/60/                                   |                               |
 | ljspeech                | The LJ Speech Dataset                                        | TTS                                        | EN             | https://keithito.com/LJ-Speech-Dataset/                      |                               |
-| m_ailabs                | The M-AILABS Speech Dataset                                  | TTS                                        | ~5 languages   | https://www.caito.de/2019/01/the-m-ailabs-speech-dataset/    |
-| mucs_2021               | MUCS 2021: MUltilingual and Code-Switching ASR Challenges for Low Resource Indian Languages   | ASR/Code Switching          | {Hindi, Marathi, Odia, Tamil, Telugu, Gujrati, Hindi-English, Bengali-English} | https://navana-tech.github.io/MUCS2021/data.html        |   | 
+| m_ailabs                | The M-AILABS Speech Dataset                                  | TTS                                        | ~5 languages   | https://www.caito.de/2019/01/the-m-ailabs-speech-dataset/    | |
+| mucs_2021               | MUCS 2021: MUltilingual and Code-Switching ASR Challenges for Low Resource Indian Languages   | ASR/Code Switching          | {Hindi, Marathi, Odia, Tamil, Telugu, Gujrati, Hindi-English, Bengali-English} | https://navana-tech.github.io/MUCS2021/data.html        |   |
 
 
 | must_c                  | Must-C Multilingual Speech Translation Corpus | ASR/Machine Translation/Speech Translation                | EN->{DE, ES, FR, IT, NL, PT, RO, RU} | https://ict.fbk.eu/must-c/                                            |                          |
