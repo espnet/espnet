@@ -24,6 +24,8 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
+FSC=/home/siddhana/fluent_speech_commands_dataset
+
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
