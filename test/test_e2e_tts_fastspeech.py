@@ -21,7 +21,6 @@ from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (
     DurationCalculator,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import is_torch_1_1_plus
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -581,37 +580,6 @@ def test_length_regulator():
     ds[:, 2] = 0
     xs_expand = length_regulator(xs, ds)
     assert int(xs_expand.shape[1]) == int(ds.sum(dim=-1).max())
-
-
-@pytest.mark.skipif(not is_torch_1_1_plus, reason="torch 1.1+ is required.")
-def test_legacy_length_regulator():
-    # prepare inputs
-    idim = 5
-    ilens = [10, 5, 3]
-    xs = pad_list([torch.randn((ilen, idim)) for ilen in ilens], 0.0)
-    ds = pad_list([torch.arange(ilen) for ilen in ilens], 0)
-
-    # test with non-zero durations
-    length_regulator = LengthRegulator()
-    legacy_length_regulator = LengthRegulator()
-    legacy_length_regulator.repeat_fn = (
-        legacy_length_regulator._legacy_repeat_one_sequence
-    )
-    xs_expand_1 = length_regulator(xs, ds)
-    xs_expand_2 = legacy_length_regulator(xs, ds)
-    np.testing.assert_array_equal(
-        xs_expand_1.numpy(),
-        xs_expand_2.numpy(),
-    )
-
-    # test with duration including zero
-    ds[:, 2] = 0
-    xs_expand_1 = length_regulator(xs, ds)
-    xs_expand_2 = legacy_length_regulator(xs, ds)
-    np.testing.assert_array_equal(
-        xs_expand_1.numpy(),
-        xs_expand_2.numpy(),
-    )
 
 
 def test_duration_calculator():

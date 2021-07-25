@@ -115,13 +115,13 @@ if [ ${case} = tc ]; then
 fi
 
 # detokenize & remove punctuation except apostrophe
-local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc.rm
-local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc.rm
-local/remove_punctuation.pl < ${dir}/src.wrd.trn.detok > ${dir}/src.wrd.trn.detok.lc.rm
+remove_punctuation.pl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc.rm
+remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc.rm
+remove_punctuation.pl < ${dir}/src.wrd.trn.detok > ${dir}/src.wrd.trn.detok.lc.rm
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    local/remove_punctuation.pl < ${dir}/ref1.wrd.trn.detok > ${dir}/ref1.wrd.trn.detok.lc.rm
-    local/remove_punctuation.pl < ${dir}/ref2.wrd.trn.detok > ${dir}/ref2.wrd.trn.detok.lc.rm
-    local/remove_punctuation.pl < ${dir}/ref3.wrd.trn.detok > ${dir}/ref3.wrd.trn.detok.lc.rm
+    remove_punctuation.pl < ${dir}/ref1.wrd.trn.detok > ${dir}/ref1.wrd.trn.detok.lc.rm
+    remove_punctuation.pl < ${dir}/ref2.wrd.trn.detok > ${dir}/ref2.wrd.trn.detok.lc.rm
+    remove_punctuation.pl < ${dir}/ref3.wrd.trn.detok > ${dir}/ref3.wrd.trn.detok.lc.rm
 fi
 
 echo ${set} > ${dir}/result.lc.txt

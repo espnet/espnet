@@ -6,6 +6,7 @@ AN4=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
+DNS=
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -29,6 +30,7 @@ HKUST2=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
+FSC=
 MINI_LIBRISPEECH=downloads
 LIBRITTS=
 LJSPEECH=downloads
@@ -37,6 +39,7 @@ JSSS=downloads
 JSUT=downloads
 JVS=downloads
 SPGISPEECH=
+SWBD=
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
@@ -66,15 +69,22 @@ BABEL_401=
 BABEL_402=
 BABEL_403=
 BABEL_404=
+PUEBLA_NAHUATL=
 TEDLIUM3=downloads
 VCTK=downloads
 VIVOS=downloads
 YESNO=downloads
+YOLOXOCHITL_MIXTEC=downloads
 HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
+JAVA=downloads
 RU_OPEN_STT=downloads
 GIGASPEECH=
+NOISY_SPEECH=
+NOISY_REVERBERANT_SPEECH=
+LRS2=
+SUNDA=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -83,6 +93,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=
     DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
+    DNS=
     WSJ0=
     WSJ1=
     WSJCAM0=/export/corpora3/LDC/LDC95S24/wsjcam0
@@ -106,6 +117,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
+    FSC=
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
@@ -141,12 +153,17 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     BABEL_402=/export/babel/data/402-javanese/IARPA-babel402b-v1.0b-build/BABEL_OP3_402
     BABEL_403=/export/babel/data/403-dholuo/IARPA-babel403b-v1.0b-build/BABEL_OP3_403
     BABEL_404=/export/corpora/LDC/LDC2016S12/IARPA_BABEL_OP3_404
+    PUEBLA_NAHUATL=
     TEDLIUM3=downloads
     VCTK=downloads
     VIVOS=
     YESNO=
+    YOLOXOCHITL_MIXTEC=downloads
     HOW2_TEXT=
     HOW2_FEATS=
     ZEROTH_KOREAN=downloads
+    LRS2=
+    JAVA=
+    SUNDA=
 
 fi

@@ -23,7 +23,7 @@ class CTC(torch.nn.Module):
         dropout_rate: float = 0.0,
         ctc_type: str = "builtin",
         reduce: bool = True,
-        ignore_nan_grad: bool = False,
+        ignore_nan_grad: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -39,9 +39,7 @@ class CTC(torch.nn.Module):
             import warpctc_pytorch as warp_ctc
 
             if ignore_nan_grad:
-                raise NotImplementedError(
-                    "ignore_nan_grad option is not supported for warp_ctc"
-                )
+                logging.warning("ignore_nan_grad option is not supported for warp_ctc")
             self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
         else:
             raise ValueError(
