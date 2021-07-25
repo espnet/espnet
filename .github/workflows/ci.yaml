@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - master
-      - k2_espnet2
 
 jobs:
   linter_and_test:
