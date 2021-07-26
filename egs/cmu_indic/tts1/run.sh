@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2021 Carnegie Mellon University (Peter Wu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -43,7 +43,7 @@ download_dir=downloads
 pretrained_model="mailabs.en_UK.elizabeth.transformer.v1.single"  # see model info in local/pretrained_model_download.sh
 
 # dataset configuration
-spk=tam_sdr  # see local/data_prep.sh to check available speakers
+spk=hin_ab  # see local/data_prep.sh to check available speakers
 
 # exp tag
 tag=""  # tag for managing experiments.

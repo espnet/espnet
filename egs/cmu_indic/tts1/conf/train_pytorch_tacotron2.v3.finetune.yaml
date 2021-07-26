@@ -1,7 +1,3 @@
-# This configuration uses reduction factor = 1 and location-sensitive attention.
-# Furthermore, to accelerate the learning of diaogonal attention, we additionaly
-# use guided attention loss. This leads super fast and robust attention learning.
-
 # encoder related
 embed-dim: 512
 elayers: 1

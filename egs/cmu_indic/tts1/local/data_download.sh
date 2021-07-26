@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# Copyright 2019 Nagoya University (Tomoki Hayashi)
+# Copyright 2021 Carnegie Mellon University (Peter Wu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 db=$1
