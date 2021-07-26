@@ -15,7 +15,7 @@ inference_config=conf/decode_asr.yaml
 
 . ./db.sh
 
-#local/prepare_librilight.sh ${LIBRISPEECH}/librispeech_finetuning
+local/prepare_librilight.sh ./download
 
 ./asr.sh \
     --lang en \
