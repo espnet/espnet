@@ -13,18 +13,16 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.best/sunda_test|2185|17916|98.5|1.2|0.3|0.1|1.6|5.0|
-|decode_asr_batch_size1_asr_model_valid.acc.best/sunda_test|2185|17916|98.5|1.2|0.3|0.1|1.6|5.0|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.best/sunda_test|2185|117265|99.5|0.2|0.3|0.1|0.6|5.0|
-|decode_asr_batch_size1_asr_model_valid.acc.best/sunda_test|2185|117265|99.5|0.2|0.3|0.1|0.6|5.0|
 
 ### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.best/sunda_test|2185|36414|98.5|0.9|0.6|0.2|1.6|5.0|
-|decode_asr_batch_size1_asr_model_valid.acc.best/sunda_test|2185|36414|98.5|0.9|0.6|0.2|1.6|5.0|
+
