@@ -260,7 +260,7 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
             hyps (Hypothesis): Current list of hypothesis
 
         Returns:
-            Hypothesis: The exxtended hypothesis
+            Hypothesis: The extended hypothesis
 
         """
         for k, d in self.scorers.items():
