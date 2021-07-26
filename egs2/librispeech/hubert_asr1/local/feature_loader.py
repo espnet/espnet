@@ -1,0 +1,79 @@
+# -*- coding: utf-8 -*-
+import logging
+import os
+import sys
+
+import fairseq
+
+import soundfile as sf
+import torch
+import torchaudio
+
+
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=os.environ.get("LOGLEVEL", "INFO").upper(),
+    stream=sys.stdout,
+)
+logger = logging.getLogger("feature_loader")
+
+
+class MfccFeatureReader(object):
+    def __init__(self, fs):
+        self.fs = fs
+
+    def load_audio(self, path):
+        wav, sr = sf.read(path, channels=1)
+        assert sr == self.fs, sr
+        return wav
+
+    def get_feats(self, path):
+        x = self.load_audio(path)
+        with torch.no_grad():
+            x = torch.from_numpy(x).view(1, -1).float()
+
+            mfcc = torchaudio.compliance.kaldi.mfcc(
+                waveform=x,
+                sample_frequency=self.fs,
+                use_energy=False,
+            ).transpose(0, 1)  # (freq, time)
+            delta = torchaudio.functional.compute_deltas(mfcc)
+            ddelta = torchaudio.functional.compute_deltas(delta)
+            concat = torch.cat([mfccs, delta, ddelta], dim=0)\
+                          .transpose(0, 1).contiguous()
+            return concat
+
+
+class HubertFeatureReader(object):
+    def __init__(self, hubert_url, hubert_dir_path, layer, max_chunk=1600000):
+        print(hubert_url, hubert_dir_path)
+        e = FairseqHubertEncoder(0, hubert_url, hubert_dir_path).cuda()
+        self.model = e.encoders.eval()
+        self.layer = layer
+        self.max_chunk = max_chunk
+        logger.info(f" max_chunk = {self.max_chunk}")
+
+    def load_audio(self, path):
+        wav, sr = sf.read(path, channels=1)
+        assert sr == self.fs, sr
+        return wav
+
+    def get_feats(self, path):
+        x = self.load_audio(path)
+        with torch.no_grad():
+            x = torch.from_numpy(x).float().cuda()
+            #x = F.layer_norm(x, x.shape)
+            x = x.view(1, -1)
+
+            feat = []
+            for start in range(0, x.size(1), self.max_chunk):
+                x_chunk = x[:, start: start + self.max_chunk]
+                feat_chunk, _ = self.model.extract_features(
+                    source=x_chunk,
+                    padding_mask=None,
+                    mask=False,
+                    output_layer=self.layer,
+                )
+                feat.append(feat_chunk)
+            return torch.cat(feat, 1).squeeze(0)

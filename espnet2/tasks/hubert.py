@@ -39,7 +39,7 @@ from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
 )
-from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.hubert.espnet_model import HubertPretrainModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
@@ -194,7 +194,7 @@ class ASRTask(AbsTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetASRModel),
+            default=get_default_kwargs(HubertPretrainModel),
             help="The keyword arguments for model class.",
         )
 
@@ -273,6 +273,24 @@ class ASRTask(AbsTask):
             default="13_15",
             help="The range of noise decibel level.",
         )
+        parser.add_argument(
+            "--pred_masked_weight",
+            type=float,
+            default=1.0,
+            help="weight for predictive loss for masked frames",
+        )
+        parser.add_argument(
+            "--pred_nomask_weight",
+            type=float,
+            default=0.0,
+            help="weight for predictive loss for unmasked frames",
+        )
+        parser.add_argument(
+            "--loss_weights",
+            type=float,
+            default=0.0,
+            help="weights for additional loss terms (not first one)",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -345,7 +363,7 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetASRModel:
+    def build_model(cls, args: argparse.Namespace) -> HubertPretrainModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -380,7 +398,6 @@ class ASRTask(AbsTask):
             specaug = None
 
         # 3. Normalization layer
-
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
             normalize = normalize_class(**args.normalize_conf)
@@ -398,28 +415,27 @@ class ASRTask(AbsTask):
 
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        # need to change, move to hubert task
-        #encoder = encoder_class(input_size=input_size, **args.encoder_conf)
-        encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+        encoder = encoder_class(input_size=input_size, use_amp=args.use_amp, **args.encoder_conf)
         # 5. Decoder
-        decoder_class = decoder_choices.get_class(args.decoder)
+        # decoder_class = decoder_choices.get_class(args.decoder)
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder.output_size(),
-            **args.decoder_conf,
-        )
+        # decoder = decoder_class(
+        #    vocab_size=vocab_size,
+        #    encoder_output_size=encoder.output_size(),
+        #    **args.decoder_conf,
+        #)
+        decoder = None
 
         # 6. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
+           odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
         )
 
         # 7. RNN-T Decoder (Not implemented)
         rnnt_decoder = None
 
         # 8. Build model
-        model = ESPnetASRModel(
+        model = HubertPretrainModel(
             vocab_size=vocab_size,
             frontend=frontend,
             specaug=specaug,
