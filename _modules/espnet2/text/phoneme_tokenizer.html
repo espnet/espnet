@@ -384,7 +384,19 @@
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pypinyin_g2p_phone</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_arabic&quot;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span><span class="n">language</span><span class="o">=</span><span class="s2">&quot;ar&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span> <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
+                <span class="n">language</span><span class="o">=</span><span class="s2">&quot;ar&quot;</span><span class="p">,</span>
+                <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span>
+                <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_german&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
+                <span class="n">language</span><span class="o">=</span><span class="s2">&quot;de&quot;</span><span class="p">,</span>
+                <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span>
+                <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: g2p_type=</span><span class="si">{</span><span class="n">g2p_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 

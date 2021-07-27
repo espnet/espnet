@@ -447,7 +447,19 @@
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--g2p&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;g2p_en&quot;</span><span class="p">,</span> <span class="s2">&quot;pyopenjtalk&quot;</span><span class="p">,</span> <span class="s2">&quot;pyopenjtalk_kana&quot;</span><span class="p">],</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;g2p_en&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;g2p_en_no_space&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pyopenjtalk&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pyopenjtalk_kana&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pyopenjtalk_accent&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pyopenjtalk_accent_with_pause&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pypinyin_g2p&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;espeak_ng_arabic&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;espeak_ng_german&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify g2p method if --token_type=phn&quot;</span><span class="p">,</span>
         <span class="p">)</span>
