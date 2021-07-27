@@ -16,6 +16,8 @@ from typing import List
 
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet.nets.scorers.ngram import NgramFullScorer
+from espnet.nets.scorers.ngram import NgramPartScorer
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.asr.espnet_model import ESPnetASRInference
 from espnet2.asr.espnet_model import ESPnetASRModel
@@ -52,6 +54,8 @@ class Speech2Text:
         asr_model_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
+        ngram_scorer: str = "full",
+        ngram_file: Union[Path, str] = None,
         token_type: str = None,
         bpemodel: str = None,
         device: str = "cpu",
@@ -62,6 +66,7 @@ class Speech2Text:
         beam_size: int = 20,
         ctc_weight: float = 0.5,
         lm_weight: float = 1.0,
+        ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
         streaming: bool = False,
@@ -75,6 +80,7 @@ class Speech2Text:
             asr_train_config, asr_model_file, device
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
+        token_list = asr_model.token_list
 
         # 2. Build Language model
         lm = None
@@ -83,6 +89,13 @@ class Speech2Text:
                 lm_train_config, lm_file, device
             )
 
+        ngram = None
+        if ngram_file is not None:
+            if ngram_scorer == "full":
+                ngram = NgramFullScorer(ngram_file, token_list)
+            else:
+                ngram = NgramPartScorer(ngram_file, token_list)
+
         # 3. Build inference object
         asr_model_type = type(asr_model)
         if asr_model_type is ESPnetASRModel:
@@ -90,6 +103,7 @@ class Speech2Text:
                 asr_train_config=asr_train_config,
                 asr_model=asr_model,
                 lm=lm,
+                ngram=ngram,
                 device=device,
                 maxlenratio=maxlenratio,
                 minlenratio=minlenratio,
@@ -98,6 +112,7 @@ class Speech2Text:
                 beam_size=beam_size,
                 ctc_weight=ctc_weight,
                 lm_weight=lm_weight,
+                ngram_weight=ngram_weight,
                 penalty=penalty,
                 streaming=streaming,
             )
@@ -129,7 +144,7 @@ class Speech2Text:
                 tokenizer = None
         else:
             tokenizer = build_tokenizer(token_type=token_type)
-        converter = TokenIDConverter(token_list=asr_model.token_list)
+        converter = TokenIDConverter(token_list=token_list)
         logging.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
@@ -210,6 +225,7 @@ def inference(
     seed: int,
     ctc_weight: float,
     lm_weight: float,
+    ngram_weight: float,
     penalty: float,
     nbest: int,
     num_workers: int,
@@ -222,6 +238,7 @@ def inference(
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
     word_lm_file: Optional[str],
+    ngram_file: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
@@ -256,6 +273,7 @@ def inference(
         asr_model_file=asr_model_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
+        ngram_file=ngram_file,
         token_type=token_type,
         bpemodel=bpemodel,
         device=device,
@@ -265,6 +283,7 @@ def inference(
         beam_size=beam_size,
         ctc_weight=ctc_weight,
         lm_weight=lm_weight,
+        ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
@@ -372,6 +391,7 @@ def get_parser():
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)
     group.add_argument("--word_lm_file", type=str)
+    group.add_argument("--ngram_file", type=str)
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
@@ -405,6 +425,7 @@ def get_parser():
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
     group.add_argument("--streaming", type=str2bool, default=False)
 
     group = parser.add_argument_group("Mask-CTC related")

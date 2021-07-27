@@ -57,7 +57,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
                 # sound scp case
                 rate, array = retval
-            elif isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
+            elif isinstance(retval[1], int) and isinstance(retval[0], np.ndarray):
                 # Extended ark format case
                 array, rate = retval
             else:

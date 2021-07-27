@@ -1,0 +1,11 @@
+layer: 2
+unit: 1024
+opt: adam        # or sgd
+sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+batchsize: 256 # batch size in LM training
+epoch: 60      # if the data size is large, we can reduce this
+patience: 3
+maxlen: 150      # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
+
+tie-weights: true
+emb_dropout_rate: 0.3

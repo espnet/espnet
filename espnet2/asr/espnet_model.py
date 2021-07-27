@@ -24,6 +24,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.scorers.ngram import Ngrambase
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -86,7 +87,14 @@ class ESPnetASRModel(AbsESPnetModel):
         self.normalize = normalize
         self.preencoder = preencoder
         self.encoder = encoder
-        self.decoder = decoder
+        # we set self.decoder = None in the CTC mode since
+        # self.decoder parameters were never used and PyTorch complained
+        # and threw an Exception in the multi-GPU experiment.
+        # thanks Jeff Farris for pointing out the issue.
+        if ctc_weight == 1.0:
+            self.decoder = None
+        else:
+            self.decoder = decoder
         if ctc_weight == 0.0:
             self.ctc = None
         else:
@@ -315,6 +323,7 @@ class ESPnetASRInference(torch.nn.Module):
         asr_train_config: Union[Path, str],
         asr_model: ESPnetASRModel,
         lm: ESPnetLanguageModel = None,
+        ngram: Ngrambase = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -323,6 +332,7 @@ class ESPnetASRInference(torch.nn.Module):
         beam_size: int = 20,
         ctc_weight: float = 0.5,
         lm_weight: float = 1.0,
+        ngram_weight: float = 0.9,
         penalty: float = 0.0,
         streaming: bool = False,
     ):
@@ -339,12 +349,15 @@ class ESPnetASRInference(torch.nn.Module):
         )
         if lm is not None:
             scorers["lm"] = lm.lm
+        if ngram is not None:
+            scorers["ngram"] = ngram
 
         # Build BeamSearch object
         weights = dict(
             decoder=1.0 - ctc_weight,
             ctc=ctc_weight,
             lm=lm_weight,
+            ngram=ngram_weight,
             length_bonus=penalty,
         )
         beam_search = BeamSearch(
@@ -383,8 +396,8 @@ class ESPnetASRInference(torch.nn.Module):
         for scorer in scorers.values():
             if isinstance(scorer, torch.nn.Module):
                 scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-
         logging.info(f"Beam_search: {beam_search}")
+        logging.info(f"Decoding device={device}, dtype={dtype}")
 
         self.beam_search = beam_search
         self.maxlenratio = maxlenratio
