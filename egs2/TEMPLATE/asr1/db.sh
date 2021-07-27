@@ -27,6 +27,7 @@ CSJVER=dvd  ## Set your CSJ format (dvd or usb).
 CSMSC=downloads
 HKUST1=
 HKUST2=
+HUI_ACG=downloads
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
