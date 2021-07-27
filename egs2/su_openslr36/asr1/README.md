@@ -8,6 +8,8 @@
   - Commit date: `Fri Jul 9 08:52:32 2021 -0700`
 
 ## asr_train_asr_raw_bpe1000
+- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- Pretrained model: [https://zenodo.org/record/5090135](https://zenodo.org/record/5090135)
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
