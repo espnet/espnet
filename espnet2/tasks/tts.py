@@ -193,6 +193,7 @@ class TTSTask(AbsTask):
                 "espeak_ng_arabic",
                 "espeak_ng_german",
                 "espeak_ng_french",
+                "espeak_ng_spanish",
             ],
             default=None,
             help="Specify g2p method if --token_type=phn",
