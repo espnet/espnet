@@ -28,6 +28,7 @@ try:
     import phonemizer
 
     params.extend(["espeak_ng_arabic"])
+    params.extend(["espeak_ng_german"])
     del phonemizer
 except ImportError:
     pass
@@ -261,6 +262,26 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic":
         input = u"السلام عليكم"
         output = ["ʔ", "a", "s", "s", "ˈa", "l", "aː", "m", "ʕ", "l", "ˈiː", "k", "m"]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_german":
+        input = "Das hört sich gut an."
+        output = [
+            "d",
+            "a",
+            "s",
+            "h",
+            "ˈœ",
+            "ɾ",
+            "t",
+            "z",
+            "ɪ",
+            "ç",
+            "ɡ",
+            "ˈuː",
+            "t",
+            "ˈa",
+            "n",
+            ".",
+        ]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output

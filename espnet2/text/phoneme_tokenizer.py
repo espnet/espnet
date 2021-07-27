@@ -171,7 +171,19 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "pypinyin_g2p_phone":
             self.g2p = pypinyin_g2p_phone
         elif g2p_type == "espeak_ng_arabic":
-            self.g2p = Phonemizer(language="ar", backend="espeak", with_stress=True)
+            self.g2p = Phonemizer(
+                language="ar",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_german":
+            self.g2p = Phonemizer(
+                language="de",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 
