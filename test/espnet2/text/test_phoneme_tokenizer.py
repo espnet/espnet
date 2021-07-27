@@ -282,6 +282,9 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "n",
             ".",
         ]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_french":
+        input = "Bonjour le monde."
+        output = ["b", "ɔ̃", "ʒ", "ˈu", "ʁ", "l", "ə-", "m", "ˈɔ̃", "d", "."]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output

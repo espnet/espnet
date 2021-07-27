@@ -184,6 +184,13 @@ class PhonemeTokenizer(AbsTokenizer):
                 with_stress=True,
                 preserve_punctuation=True,
             )
+        elif g2p_type == "espeak_ng_french":
+            self.g2p = Phonemizer(
+                language="fr-fr",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 

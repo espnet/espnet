@@ -246,6 +246,7 @@ class ASRTask(AbsTask):
                 "pypinyin_g2p_phone",
                 "espeak_ng_arabic",
                 "espeak_ng_german",
+                "espeak_ng_french",
             ],
             default=None,
             help="Specify g2p method if --token_type=phn",
