@@ -29,6 +29,8 @@ try:
 
     params.extend(["espeak_ng_arabic"])
     params.extend(["espeak_ng_german"])
+    params.extend(["espeak_ng_french"])
+    params.extend(["espeak_ng_spanish"])
     del phonemizer
 except ImportError:
     pass
