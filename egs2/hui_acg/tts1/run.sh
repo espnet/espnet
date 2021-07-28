@@ -44,7 +44,7 @@ token_type=phn
 
 # NOTE(kan-bayashi): On-the-fly with Espeak is really slow,
 #   so we convert text into phn in data prep stage via
-#   --text_format=phnand and use g2p=none for training.
+#   --text_format=phn and use g2p=none for training.
 # g2p=espeak_ng_german
 g2p=none
 
