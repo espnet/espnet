@@ -14,17 +14,12 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
-data_url=www.openslr.org/resources/12
-train_set="train_960"
-train_dev="dev"
 log "$0 $*"
 . utils/parse_options.sh
 
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
-
-FSC=/home/siddhana/fluent_speech_commands_dataset
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
