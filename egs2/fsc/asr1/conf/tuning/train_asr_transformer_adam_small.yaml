@@ -17,7 +17,7 @@ decoder: transformer
 decoder_conf:
     attention_heads: 4
     linear_units: 2048
-    num_blocks: 6
+    num_blocks: 1
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.0
