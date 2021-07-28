@@ -519,7 +519,7 @@ Text converter related:
                     [--token_type {bpe,char,word,phn}] [--bpemodel BPEMODEL]
                     [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                     [--cleaner {None,tacotron,jaconv,vietnamese}]
-                    [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}]
+                    [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}]
                     [--speech_volume_normalize SPEECH_VOLUME_NORMALIZE]
                     [--rir_scp RIR_SCP] [--rir_apply_prob RIR_APPLY_PROB]
                     [--noise_scp NOISE_SCP]
@@ -545,7 +545,7 @@ optional arguments:
                         non_linguistic_symbols file path (default: None)
   --cleaner {None,tacotron,jaconv,vietnamese}
                         Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}
                         Specify g2p method if --token_type=phn (default: None)
   --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
                         Scale the maximum amplitude to the given value. (default: None)
@@ -2068,7 +2068,7 @@ The model configuration related:
                    [--token_type {bpe,char,word}] [--bpemodel BPEMODEL]
                    [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                    [--cleaner {None,tacotron,jaconv,vietnamese}]
-                   [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}]
+                   [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}]
                    [--lm {seq_rnn,transformer}] [--lm_conf LM_CONF]
 
 base parser
@@ -2079,7 +2079,7 @@ optional arguments:
                         non_linguistic_symbols file path (default: None)
   --cleaner {None,tacotron,jaconv,vietnamese}
                         Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}
                         Specify g2p method if --token_type=phn (default: None)
 
 Common configuration:
@@ -2454,7 +2454,7 @@ optional arguments:
                         [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                         [--remove_non_linguistic_symbols REMOVE_NON_LINGUISTIC_SYMBOLS]
                         [--cleaner {None,tacotron,jaconv,vietnamese}]
-                        [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}]
+                        [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}]
                         [--write_vocabulary WRITE_VOCABULARY]
                         [--vocabulary_size VOCABULARY_SIZE] [--cutoff CUTOFF]
                         [--add_symbol ADD_SYMBOL]
@@ -2485,7 +2485,7 @@ optional arguments:
                         False)
   --cleaner {None,tacotron,jaconv,vietnamese}
                         Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}
                         Specify g2p method if --token_type=phn (default: None)
 
 write_vocabulary mode related:
@@ -2655,7 +2655,7 @@ Grriffin-Lim related:
                     [--token_type {bpe,char,word,phn}] [--bpemodel BPEMODEL]
                     [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                     [--cleaner {None,tacotron,jaconv,vietnamese}]
-                    [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}]
+                    [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}]
                     [--feats_extract {fbank,spectrogram}]
                     [--feats_extract_conf FEATS_EXTRACT_CONF]
                     [--normalize {global_mvn,None}]
@@ -2678,7 +2678,7 @@ optional arguments:
                         non_linguistic_symbols file path (default: None)
   --cleaner {None,tacotron,jaconv,vietnamese}
                         Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish}
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian}
                         Specify g2p method if --token_type=phn (default: None)
 
 Common configuration:
