@@ -171,25 +171,26 @@ def get_parser():
         "--max-sym-exp",
         type=int,
         default=2,
-        help="Number of symbol expansions allowed in TSD decoding.",
+        help="Number of symbol expansions allowed in TSD.",
     )
     parser.add_argument(
         "--u-max",
         type=int,
         default=400,
-        help="Length prefix difference allowed in ALSD beam search.",
+        help="Length prefix difference allowed in ALSD.",
     )
     parser.add_argument(
         "--expansion-gamma",
         type=float,
         default=2.3,
-        help="Factor for prune-by-value method in mAES.",
+        help="Allowed logp difference for prune-by-value method in mAES.",
     )
     parser.add_argument(
         "--expansion-beta",
         type=int,
         default=2,
-        help="Number of additional prefixes to extract in mAES.",
+        help="""Number of additional candidates for expanded hypotheses
+                selection in mAES.""",
     )
     parser.add_argument(
         "--score-norm",

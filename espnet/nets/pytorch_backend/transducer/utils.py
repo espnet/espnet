@@ -148,18 +148,18 @@ def select_k_expansions(
 ) -> List[ExtendedHypothesis]:
     """Return K hypotheses candidates for expansion from a list of hypothesis.
 
-    Candidates are selected according to the extended hypotheses probabilities
-    and a prune-by-value method.
+    K candidates are selected according to the extended hypotheses probabilities
+    and a prune-by-value method. Where K is equal to beam_size + beta.
 
     Args:
         hyps: Hypotheses.
         beam_logp: Log-probabilities for hypotheses expansions.
         beam_size: Beam size.
-        gamma: Factor for prune-by-value method.
-        beta: Number of additional hypotheses candidates to store.
+        gamma: Allowed logp difference for prune-by-value method.
+        beta: Number of additional candidates to store.
 
     Return:
-        k_expansions: Best K candidates from expansion.
+        k_expansions: Best K expansion hypotheses candidates.
 
     """
     k_expansions = []

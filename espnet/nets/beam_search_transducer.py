@@ -54,8 +54,9 @@ class BeamSearchTransducer:
             u_max: Maximum output sequence length. (ALSD)
             nstep: Number of maximum expansion steps at each time step. (NSC/mAES)
             prefix_alpha: Maximum prefix length in prefix search. (NSC/mAES)
-            expansion_gamma: Factor for prune-by-value method. (mAES)
-            expansion_beta: Number of additional prefixes to extract. (mAES)
+            expansion_beta:
+              Number of additional candidates for expanded hypotheses selection. (mAES)
+            expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
             score_norm: Normalize final scores by length. ("default")
             softmax_temperature: Penalization term for softmax function.
             nbest: Number of final hypothesis.
