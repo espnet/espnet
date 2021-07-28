@@ -331,11 +331,12 @@ Various decoding algorithms are also available for transducer by setting `beam-s
 
   - Greedy search  constrained to one emission by timestep (`beam-size: 1`)
   - Beam search algorithm without prefix search. (`beam-size: >1` and `search-type: default`)
-  - Time-synchronous decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: tsd`)
-  - Alignment-length decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: alsd`)
-  - N-step Constrained beam search. (`beam-size: >1` and `search-type: default`)
+  - Time Synchronous Decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: tsd`)
+  - Alignment-Length Synchronous Decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: alsd`)
+  - N-step Constrained beam search modified from [Kim et al., 2020](https://arxiv.org/abs/2002.03577). (`beam-size: >1` and `search-type: default`)
+  - modified Adaptive Expansion Search, based on [Kim et al. (2021)](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC. (`beam-size: >1` and `search-type: maes`)
 
-The algorithms share two parameters to control beam size (`beam-size`) and final hypothesis normalization (`score-norm-transducer`). The specific parameters for each algorithms are:
+The algorithms share two parameters to control beam size (`beam-size`) and final hypotheses normalization (`score-norm-transducer`). The specific parameters for each algorithms are:
 
         # Default beam search
         search-type: default
@@ -354,9 +355,16 @@ The algorithms share two parameters to control beam size (`beam-size`) and final
                # nstep = max-sym-exp + 1 (blank transition)
         prefix-alpha: [Maximum prefix length in prefix search (int)]
 
+        # modified Adaptive Expansion Search
+        search-type: maes
+        nstep: [Number of maximum expansion steps at each time step (int)]
+        prefix-alpha: [Maximum prefix length in prefix search (int)]
+        expansion-gamma: [Number of additional candidates in expanded hypotheses selection (int)]
+        expansion-beta: [Allowed logp difference for prune-by-value method (float)]
+
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
 
-IMPORTANT (temporary) note: ALSD, TSD and NSC have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference will be handled at C++ level.
+IMPORTANT (temporary) note: ALSD, TSD, NSC and mAES have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference will be handled at C++ level.
 
 ### Additional notes
 

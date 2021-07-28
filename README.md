@@ -60,9 +60,10 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
     - Default beam search algorithm without prefix search.
     - Alignment-Length Synchronous decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
     - Time Synchronous Decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
-    - N-step Constrained beam search.
+    - N-step Constrained beam search modified from [Kim et al., 2020](https://arxiv.org/abs/2002.03577).
+    - modified Adaptive Expansion Search based on [Kim et al. (2021)](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC.
   - Features:
-    - Multi-task learning with various auxiliary tasks: CTC, LM, auxiliary RNN-T and symmetric KL divergence.
+    - Multi-task learning with various auxiliary tasks: CTC, Label smoothing, auxiliary RNN-T and symmetric KL divergence.
     - Transfer learning with acoustic model and/or language model.  
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
