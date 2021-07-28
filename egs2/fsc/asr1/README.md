@@ -3,52 +3,27 @@
 
 ## Using RNN based encoder-decoder and decoding character (ASR model is same as the default):
 
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Intent Classification (%)|
 |---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|3793|91.9|8.1|0.0|0.0|8.1|8.1|
-|inference_asr_model_valid.acc.best/valid|3118|3118|77.2|22.8|0.0|0.0|22.8|22.8|
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|80801|98.3|1.3|0.4|0.5|2.1|8.1|
-|inference_asr_model_valid.acc.best/valid|3118|66324|91.1|6.2|2.7|1.6|10.5|22.8|
-
+|inference_asr_model_valid.acc.best/test|3793|91.9|
+|inference_asr_model_valid.acc.best/valid|3118|77.2|
 
 ## Using Transformer based encoder-decoder and decoding character 
 
 - ASR config: [conf/tuning/train_asr.yaml](conf/train_asr.yaml)
 
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|Intent Classification (%)|
 |---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|3793|97.4|2.6|0.0|0.0|2.6|2.6|
-|inference_asr_model_valid.acc.best/valid|3118|3118|87.7|12.3|0.0|0.0|12.3|12.3|
+|inference_asr_model_valid.acc.best/test|3793|97.9|
+|inference_asr_model_valid.acc.best/valid|3118|87.7|
 
-### CER
+## Using Transformer based encoder-decoder and decoding sentence with Adam 
+- ASR config: [conf/tuning/train_asr_transfomer_adam_small.yaml](conf/tuning/train_asr_transfomer_adam_small.yaml)
+- token_type: word
 
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|dataset|Snt|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|80801|99.6|0.3|0.1|0.1|0.5|2.6|
-|inference_asr_model_valid.acc.best/valid|3118|66324|95.7|2.6|1.7|0.5|4.8|12.3|
+|inference_asr_model_valid.acc.best/test|3793|93.5|
+|inference_asr_model_valid.acc.best/valid|3118|80.1|
 
-## Using Transformer based encoder-decoder and decoding sentence 
-- ASR config: [conf/tuning/train_asr.yaml](conf/train_asr.yaml)
 
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|11787|91.8|7.9|0.2|0.4|8.5|17.2|
-|inference_asr_model_valid.acc.best/valid|3118|9646|81.9|17.3|0.8|0.5|18.6|31.8|
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|80801|94.8|3.7|1.5|1.1|6.3|17.2|
-|inference_asr_model_valid.acc.best/valid|3118|66324|87.8|8.4|3.7|1.9|14.1|31.8|

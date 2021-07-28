@@ -28,4 +28,4 @@ optim_conf:
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
     warmup_steps: 25000
-max_epoch: 80
+max_epoch: 200
