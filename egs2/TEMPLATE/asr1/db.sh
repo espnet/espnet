@@ -27,6 +27,7 @@ CSJVER=dvd  ## Set your CSJ format (dvd or usb).
 CSMSC=downloads
 HKUST1=
 HKUST2=
+HUI_ACG=downloads
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
@@ -80,6 +81,7 @@ HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
 JAVA=downloads
 RU_OPEN_STT=downloads
+RUSLAN=downloads
 GIGASPEECH=
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
@@ -114,6 +116,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     CSMSC=downloads
     HKUST1=
     HKUST2=
+    HUI_ACG=downloads
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
@@ -164,6 +167,8 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     ZEROTH_KOREAN=downloads
     LRS2=
     JAVA=
+    RU_OPEN_STT=downloads
+    RUSLAN=downloads
     SUNDA=
 
 fi
