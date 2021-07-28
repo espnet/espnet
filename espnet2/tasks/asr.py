@@ -248,6 +248,7 @@ class ASRTask(AbsTask):
                 "espeak_ng_german",
                 "espeak_ng_french",
                 "espeak_ng_spanish",
+                "espeak_ng_russian",
             ],
             default=None,
             help="Specify g2p method if --token_type=phn",
