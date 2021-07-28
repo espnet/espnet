@@ -20,7 +20,7 @@ spk=Hokuspokus   # See local/data_download.sh to check available spks.
 text_format=phn  # Use "raw" or "phn". If use "phn", convert to phn in data prep.
 local_data_opts=""
 local_data_opts+=" --spk ${spk}"
-local_data_opts+=" --text_format {text_format}"
+local_data_opts+=" --text_format ${text_format}"
 if [ "${text_format}" = phn ]; then
     local_data_opts+=" --g2p espeak_ng_german"
 fi
