@@ -15,8 +15,8 @@ from espnet.nets.pytorch_backend.transducer.utils import check_state
 from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis
 from espnet.nets.transducer_decoder_interface import Hypothesis
-from espnet.nets.transducer_decoder_interface import NSCHypothesis
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
@@ -162,7 +162,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
     def batch_score(
         self,
-        hyps: Union[List[Hypothesis], List[NSCHypothesis]],
+        hyps: Union[List[Hypothesis], List[ExtendedHypothesis]],
         dec_states: List[Optional[torch.Tensor]],
         cache: Dict[str, Any],
         use_lm: bool,

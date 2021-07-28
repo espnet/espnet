@@ -9,8 +9,8 @@ from typing import Union
 
 import torch
 
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis
 from espnet.nets.transducer_decoder_interface import Hypothesis
-from espnet.nets.transducer_decoder_interface import NSCHypothesis
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
@@ -193,7 +193,7 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
 
     def batch_score(
         self,
-        hyps: Union[List[Hypothesis], List[NSCHypothesis]],
+        hyps: Union[List[Hypothesis], List[ExtendedHypothesis]],
         dec_states: Tuple[torch.Tensor, Optional[torch.Tensor]],
         cache: Dict[str, Any],
         use_lm: bool,

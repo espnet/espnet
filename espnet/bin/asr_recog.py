@@ -148,25 +148,24 @@ def get_parser():
         "--search-type",
         type=str,
         default="default",
-        choices=["default", "nsc", "tsd", "alsd"],
+        choices=["default", "nsc", "tsd", "alsd", "maes"],
         help="""Type of beam search implementation to use during inference.
-        Can be either: default beam search, n-step constrained beam search ("nsc"),
-        time-synchronous decoding ("tsd") or alignment-length synchronous decoding
-        ("alsd").
-        Additional associated parameters: "nstep" + "prefix-alpha" (for nsc),
-        "max-sym-exp" (for tsd) and "u-max" (for alsd)""",
+        Can be either: default beam search ("default"),
+        N-Step Constrained beam search ("nsc"), Time-Synchronous Decoding ("tsd"),
+        Alignment-Length Synchronous Decoding ("alsd") or
+        modified Adaptive Expansion Search ("maes").""",
     )
     parser.add_argument(
         "--nstep",
         type=int,
         default=1,
-        help="Number of expansion steps allowed in NSC beam search.",
+        help="Number of expansion steps allowed in NSC beam search or mAES.",
     )
     parser.add_argument(
         "--prefix-alpha",
         type=int,
         default=2,
-        help="Length prefix difference allowed in NSC beam search.",
+        help="Length prefix difference allowed in NSC beam search or mAES.",
     )
     parser.add_argument(
         "--max-sym-exp",
@@ -181,17 +180,29 @@ def get_parser():
         help="Length prefix difference allowed in ALSD beam search.",
     )
     parser.add_argument(
+        "--expansion-gamma",
+        type=float,
+        default=2.3,
+        help="Factor for prune-by-value method in mAES.",
+    )
+    parser.add_argument(
+        "--expansion-beta",
+        type=int,
+        default=2,
+        help="Number of additional prefixes to extract in mAES.",
+    )
+    parser.add_argument(
         "--score-norm",
         type=strtobool,
         nargs="?",
         default=True,
-        help="Normalize transducer scores by length",
+        help="Normalize final hypotheses' score by length",
     )
     parser.add_argument(
         "--softmax-temperature",
         type=float,
         default=1.0,
-        help="Temperature for transducer output distribution.",
+        help="Penalization term for softmax function.",
     )
     # rnnlm related
     parser.add_argument(

@@ -11,8 +11,8 @@ import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis
 from espnet.nets.transducer_decoder_interface import Hypothesis
-from espnet.nets.transducer_decoder_interface import NSCHypothesis
 
 
 def get_decoder_input(
@@ -117,8 +117,8 @@ def is_prefix(x: List[int], pref: List[int]) -> bool:
 
 
 def substract(
-    x: List[NSCHypothesis], subset: List[NSCHypothesis]
-) -> List[NSCHypothesis]:
+    x: List[ExtendedHypothesis], subset: List[ExtendedHypothesis]
+) -> List[ExtendedHypothesis]:
     """Remove elements of subset if corresponding label ID sequence already exist in x.
 
     Args:
@@ -137,6 +137,45 @@ def substract(
         final.append(x_)
 
     return final
+
+
+def select_k_expansions(
+    hyps: List[ExtendedHypothesis],
+    logps: torch.Tensor,
+    beam_size: int,
+    gamma: float,
+    beta: float,
+) -> List[ExtendedHypothesis]:
+    """Return K hypotheses candidates for expansion from a list of hypothesis.
+
+    Candidates are selected according to the extended hypotheses probabilities
+    and a prune-by-value method.
+
+    Args:
+        hyps: Hypotheses.
+        beam_logp: Log-probabilities for hypotheses expansions.
+        beam_size: Beam size.
+        gamma: Factor for prune-by-value method.
+        beta: Number of additional hypotheses candidates to store.
+
+    Return:
+        k_expansions: Best K candidates from expansion.
+
+    """
+    k_expansions = []
+
+    for i, hyp in enumerate(hyps):
+        hyp_i = [(int(k), hyp.score + float(logp)) for k, logp in enumerate(logps[i])]
+        k_best_exp = max(hyp_i, key=lambda x: x[1])[1]
+
+        k_expansions.append(
+            sorted(
+                filter(lambda x: (k_best_exp - gamma) <= x[1], hyp_i),
+                key=lambda x: x[1],
+            )[: beam_size + beta]
+        )
+
+    return k_expansions
 
 
 def select_lm_state(

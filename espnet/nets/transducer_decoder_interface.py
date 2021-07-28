@@ -26,8 +26,8 @@ class Hypothesis:
 
 
 @dataclass
-class NSCHypothesis(Hypothesis):
-    """Extended hypothesis definition for NSC beam search."""
+class ExtendedHypothesis(Hypothesis):
+    """Extended hypothesis definition for NSC beam search and mAES."""
 
     dec_out: List[torch.Tensor] = None
     lm_scores: torch.Tensor = None
@@ -80,7 +80,7 @@ class TransducerDecoderInterface:
 
     def batch_score(
         self,
-        hyps: Union[List[Hypothesis], List[NSCHypothesis]],
+        hyps: Union[List[Hypothesis], List[ExtendedHypothesis]],
         dec_states: Union[
             Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
         ],

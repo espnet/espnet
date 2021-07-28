@@ -1094,6 +1094,8 @@ def recog(args):
             u_max=args.u_max,
             nstep=args.nstep,
             prefix_alpha=args.prefix_alpha,
+            expansion_gamma=args.expansion_gamma,
+            expansion_beta=args.expansion_beta,
             score_norm=args.score_norm,
             softmax_temperature=args.softmax_temperature,
             nbest=args.nbest,
