@@ -191,6 +191,17 @@ espnet2.bin.asr_align
     :show-inheritance:
 
 
+.. _espnet2.bin.k2_asr_inference:
+
+espnet2.bin.k2_asr_inference
+----------------------------
+
+.. automodule:: espnet2.bin.k2_asr_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.enh_inference:
 
 espnet2.bin.enh_inference

@@ -154,6 +154,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#enh-inference-py">enh_inference.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enh-scoring-py">enh_scoring.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enh-train-py">enh_train.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#k2-asr-inference-py">k2_asr_inference.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#launch-py">launch.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#lm-calc-perplexity-py">lm_calc_perplexity.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#lm-train-py">lm_train.py</a></li>
@@ -1924,8 +1925,90 @@ Optimizer related:
 </pre></div>
 </div>
 </div>
+<div class="section" id="k2-asr-inference-py">
+<span id="id11"></span><h2>k2_asr_inference.py<a class="headerlink" href="#k2-asr-inference-py" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: k2_asr_inference.py [-h] [--config CONFIG]
+                           [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                           --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
+                           [--dtype {float16,float32,float64}]
+                           [--num_workers NUM_WORKERS]
+                           --data_path_and_name_and_type
+                           DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
+                           [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                           --asr_train_config ASR_TRAIN_CONFIG
+                           --asr_model_file ASR_MODEL_FILE
+                           [--lm_train_config LM_TRAIN_CONFIG]
+                           [--lm_file LM_FILE]
+                           [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
+                           [--word_lm_file WORD_LM_FILE]
+                           [--batch_size BATCH_SIZE] [--nbest NBEST]
+                           [--beam_size BEAM_SIZE] [--penalty PENALTY]
+                           [--maxlenratio MAXLENRATIO]
+                           [--minlenratio MINLENRATIO]
+                           [--ctc_weight CTC_WEIGHT] [--lm_weight LM_WEIGHT]
+                           [--streaming STREAMING]
+                           [--token_type {char,bpe,None}]
+                           [--bpemodel BPEMODEL]
+
+ASR Decoding
+
+optional arguments:
+  --config CONFIG       Give config file in yaml format (default: None)
+  --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        The verbose level of logging (default: INFO)
+  --output_dir OUTPUT_DIR
+  --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
+  --seed SEED           Random seed (default: 0)
+  --dtype {float16,float32,float64}
+                        Data type (default: float32)
+  --num_workers NUM_WORKERS
+                        The number of workers used for DataLoader (default: 1)
+
+Input data related:
+  --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
+  --key_file KEY_FILE
+  --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+
+The model configuration related:
+  --asr_train_config ASR_TRAIN_CONFIG
+  --asr_model_file ASR_MODEL_FILE
+  --lm_train_config LM_TRAIN_CONFIG
+  --lm_file LM_FILE
+  --word_lm_train_config WORD_LM_TRAIN_CONFIG
+  --word_lm_file WORD_LM_FILE
+
+Beam-search related:
+  --batch_size BATCH_SIZE
+                        The batch size for inference (default: 1)
+  --nbest NBEST         Output N-best hypotheses (default: 1)
+  --beam_size BEAM_SIZE
+                        Beam size (default: 20)
+  --penalty PENALTY     Insertion penalty (default: 0.0)
+  --maxlenratio MAXLENRATIO
+                        Input length ratio to obtain max output length. If
+                        maxlenratio=0.0 (default), it uses a end-detect
+                        function to automatically find maximum hypothesis
+                        lengths (default: 0.0)
+  --minlenratio MINLENRATIO
+                        Input length ratio to obtain min output length
+                        (default: 0.0)
+  --ctc_weight CTC_WEIGHT
+                        CTC weight in joint decoding (default: 0.5)
+  --lm_weight LM_WEIGHT
+                        RNNLM weight (default: 1.0)
+  --streaming STREAMING
+
+Text converter related:
+  --token_type {char,bpe,None}
+                        The token type for ASR model. If not given, refers
+                        from the training args (default: None)
+  --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
+                        from the training args (default: None)
+</pre></div>
+</div>
+</div>
 <div class="section" id="launch-py">
-<span id="id11"></span><h2>launch.py<a class="headerlink" href="#launch-py" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>launch.py<a class="headerlink" href="#launch-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: launch.py [-h] [--cmd CMD] [--log LOG]
                  [--max_num_log_files MAX_NUM_LOG_FILES] [--ngpu NGPU]
                  [--num_nodes NUM_NODES | --host HOST] [--envfile ENVFILE]
@@ -1977,7 +2060,7 @@ optional arguments:
 </div>
 </div>
 <div class="section" id="lm-calc-perplexity-py">
-<span id="id12"></span><h2>lm_calc_perplexity.py<a class="headerlink" href="#lm-calc-perplexity-py" title="Permalink to this headline">¶</a></h2>
+<span id="id13"></span><h2>lm_calc_perplexity.py<a class="headerlink" href="#lm-calc-perplexity-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: lm_calc_perplexity.py [-h] [--config CONFIG]
                              [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                              --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -2020,7 +2103,7 @@ The model configuration related:
 </div>
 </div>
 <div class="section" id="lm-train-py">
-<span id="id13"></span><h2>lm_train.py<a class="headerlink" href="#lm-train-py" title="Permalink to this headline">¶</a></h2>
+<span id="id14"></span><h2>lm_train.py<a class="headerlink" href="#lm-train-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: lm_train.py [-h] [--config CONFIG] [--print_config]
                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                    [--dry_run DRY_RUN]
@@ -2432,7 +2515,7 @@ Optimizer related:
 </div>
 </div>
 <div class="section" id="pack-py">
-<span id="id14"></span><h2>pack.py<a class="headerlink" href="#pack-py" title="Permalink to this headline">¶</a></h2>
+<span id="id15"></span><h2>pack.py<a class="headerlink" href="#pack-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: pack.py [-h] {asr,tts,enh} ...
 
 Pack input files to archive format
@@ -2445,7 +2528,7 @@ optional arguments:
 </div>
 </div>
 <div class="section" id="split-scps-py">
-<span id="id15"></span><h2>split_scps.py<a class="headerlink" href="#split-scps-py" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>split_scps.py<a class="headerlink" href="#split-scps-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: split_scps.py [-h]
                      [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                      --scps SCPS [SCPS ...] [--names NAMES [NAMES ...]]
@@ -2468,7 +2551,7 @@ optional arguments:
 </div>
 </div>
 <div class="section" id="tokenize-text-py">
-<span id="id16"></span><h2>tokenize_text.py<a class="headerlink" href="#tokenize-text-py" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>tokenize_text.py<a class="headerlink" href="#tokenize-text-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tokenize_text.py [-h]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         --input INPUT --output OUTPUT [--field FIELD]
@@ -2527,7 +2610,7 @@ write_vocabulary mode related:
 </div>
 </div>
 <div class="section" id="tts-inference-py">
-<span id="id17"></span><h2>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h2>
+<span id="id18"></span><h2>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_inference.py [-h] [--config CONFIG]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -2605,7 +2688,7 @@ Grriffin-Lim related:
 </div>
 </div>
 <div class="section" id="tts-train-py">
-<span id="id18"></span><h2>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h2>
+<span id="id19"></span><h2>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_train.py [-h] [--config CONFIG] [--print_config]
                     [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                     [--dry_run DRY_RUN]
