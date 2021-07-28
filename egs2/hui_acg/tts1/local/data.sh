@@ -16,6 +16,9 @@ SECONDS=0
 stage=-1
 stop_stage=2
 spk=Hokuspokus
+text_format=raw
+nj=8
+g2p=espeak_ng_german
 
 log "$0 $*"
 # shellcheck disable=SC1091
@@ -64,4 +67,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/fix_data_dir.sh "data/${train_set}"
 fi
 
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && [ "${text_format}" = phn ]; then
+    log "stage 2: pyscripts/utils/convert_text_to_phn.py"
+    for dset in "${train_set}" "${dev_set}" "${eval_set}"; do
+        utils/copy_data_dir.sh "data/${dset}" "data/${dset}_phn"
+        pyscripts/utils/convert_text_to_phn.py --g2p "${g2p}" --nj "${nj}" \
+            "data/${dset}/text" "data/${dset}_phn/text"
+        utils/fix_data_dir.sh "data/${dset}_phn"
+    done
+fi
 log "Successfully finished. [elapsed=${SECONDS}s]"
