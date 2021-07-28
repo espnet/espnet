@@ -288,8 +288,11 @@ def prepare(args):
         ({}, {"beam_size": 2, "search_type": "tsd", "max_sym_exp": 3}),
         ({}, {"beam_size": 2, "search_type": "alsd"}),
         ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
+        ({}, {"beam_size": 2, "search_type": "maes", "nstep": 3, "prefix_alpha": 1}),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "maes", "nstep": 4, "rnnlm": get_lm()}),
+        ({}, {"beam_size": 2, "search_type": "maes", "rnnlm": get_wordlm()}),
     ],
 )
 def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):

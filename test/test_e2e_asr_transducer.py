@@ -69,6 +69,8 @@ def get_default_recog_args(**kwargs):
         max_sym_exp=2,
         prefix_alpha=2,
         u_max=5,
+        expansion_gamma=2,
+        expansion_beta=0.2,
         score_norm_transducer=True,
         rnnlm=None,
         lm_weight=0.1,
@@ -169,6 +171,7 @@ def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
         ({}, {"beam_size": 2, "search_type": "tsd", "max-sym-exp": 3}),
         ({}, {"beam_size": 2, "search_type": "alsd"}),
         ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
+        ({}, {"beam_size": 2, "search_type": "maes", "nstep": 2}),
         (
             {},
             {
@@ -202,6 +205,10 @@ def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
         ),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
+        (
+            {},
+            {"beam_size": 2, "search_type": "maes", "nstep": 2, "rnnlm": get_wordlm()},
+        ),
     ],
 )
 def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
