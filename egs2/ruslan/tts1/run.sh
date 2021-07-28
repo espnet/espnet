@@ -16,23 +16,20 @@ n_shift=300
 win_length=1200
 
 # Data prep related
-spk=Hokuspokus   # See local/data_download.sh to check available spks.
 text_format=phn  # Use "raw" or "phn". If use "phn", convert to phn in data prep.
 local_data_opts=""
-local_data_opts+=" --spk ${spk}"
 local_data_opts+=" --text_format ${text_format}"
 if [ "${text_format}" = phn ]; then
-    local_data_opts+=" --g2p espeak_ng_german"
+    local_data_opts+=" --g2p espeak_ng_russian"
 fi
 
-dset_prefix=${spk,,}_
 dset_suffix=""
 if [ "${text_format}" = phn ]; then
     dset_suffix=_phn
 fi
-train_set=${dset_prefix}tr_no_dev${dset_suffix}
-valid_set=${dset_prefix}dev${dset_suffix}
-test_sets="${dset_prefix}dev${dset_suffix} ${dset_prefix}eval1${dset_suffix}"
+train_set=tr_no_dev${dset_suffix}
+valid_set=dev${dset_suffix}
+test_sets="dev${dset_suffix} eval1${dset_suffix}"
 
 # config related
 train_config=conf/train.yaml
@@ -45,13 +42,13 @@ token_type=phn
 # NOTE(kan-bayashi): On-the-fly with Espeak is really slow,
 #   so we convert text into phn in data prep stage via
 #   --text_format=phn and use g2p=none for training.
-# g2p=espeak_ng_german
+# g2p=espeak_ng_russian
 g2p=none
 
 ./tts.sh \
     --local_data_opts "${local_data_opts}" \
     --audio_format wav \
-    --lang de \
+    --lang ru \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
