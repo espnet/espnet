@@ -115,6 +115,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     CSMSC=downloads
     HKUST1=
     HKUST2=
+    HUI_ACG=downloads
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
