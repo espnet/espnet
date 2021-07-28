@@ -30,10 +30,7 @@ def main():
     text = {line.split()[0]: " ".join(line.split()[1:]) for line in lines}
 
     phns_list = Parallel(n_jobs=args.nj)(
-        [
-            delayed(phoneme_tokenizer.text2tokens)(sentence)
-            for sentence in text.values()
-        ]
+        [delayed(phoneme_tokenizer.text2tokens)(sentence) for sentence in text.values()]
     )
     with codecs.open(args.out_text, "w", encoding="utf8") as g:
         for utt_id, phns in zip(text.keys(), phns_list):
