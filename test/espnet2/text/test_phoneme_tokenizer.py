@@ -31,6 +31,7 @@ try:
     params.extend(["espeak_ng_german"])
     params.extend(["espeak_ng_french"])
     params.extend(["espeak_ng_spanish"])
+    params.extend(["espeak_ng_russian"])
     del phonemizer
 except ImportError:
     pass
@@ -290,6 +291,9 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     elif phoneme_tokenizer.g2p_type == "espeak_ng_spanish":
         input = "Hola Mundo."
         output = ["ˈo", "l", "a", "m", "ˈu", "n", "d", "o", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_russian":
+        input = "Привет мир."
+        output = ["p", "rʲ", "i", "vʲ", "ˈe", "t", "mʲ", "ˈi", "r", "."]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output
