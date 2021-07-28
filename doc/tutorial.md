@@ -357,10 +357,10 @@ The algorithms share two parameters to control beam size (`beam-size`) and final
 
         # modified Adaptive Expansion Search
         search-type: maes
-        nstep: [Number of maximum expansion steps at each time step (int)]
+        nstep: [Number of maximum expansion steps at each time step (int, > 1)]
         prefix-alpha: [Maximum prefix length in prefix search (int)]
         expansion-gamma: [Number of additional candidates in expanded hypotheses selection (int)]
-        expansion-beta: [Allowed logp difference for prune-by-value method (float)]
+        expansion-beta: [Allowed logp difference for prune-by-value method (float, > 0)]
 
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
 

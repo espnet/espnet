@@ -89,7 +89,7 @@ class BeamSearchTransducer:
 
             self.search_algorithm = self.nsc_beam_search
         elif search_type == "maes":
-            self.nstep = nstep
+            self.nstep = nstep if nstep > 1 else 2
             self.prefix_alpha = prefix_alpha
             self.expansion_gamma = expansion_gamma
             self.expansion_beta = expansion_beta

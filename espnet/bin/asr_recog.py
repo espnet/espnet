@@ -159,7 +159,8 @@ def get_parser():
         "--nstep",
         type=int,
         default=1,
-        help="Number of expansion steps allowed in NSC beam search or mAES.",
+        help="""Number of expansion steps allowed in NSC beam search or mAES
+        (nstep > 0 for NSC and nstep > 1 for mAES).""",
     )
     parser.add_argument(
         "--prefix-alpha",
