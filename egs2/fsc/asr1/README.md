@@ -17,6 +17,15 @@
 |inference_asr_model_valid.acc.best/test|3793|97.9|
 |inference_asr_model_valid.acc.best/valid|3118|87.7|
 
+## Using Transformer based encoder-decoder with Adam Optimiser and decoding character 
+
+- ASR config: [conf/tuning/train_asr.yaml](conf/tuning/train_asr_transfomer_adam.yaml)
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.best/test|3793|91.1|
+|inference_asr_model_valid.acc.best/valid|3118|79.9|
+
 ## Using Transformer based encoder-decoder and decoding sentence with Adam 
 - ASR config: [conf/tuning/train_asr_transfomer_adam_small.yaml](conf/tuning/train_asr_transfomer_adam_small.yaml)
 - token_type: word
