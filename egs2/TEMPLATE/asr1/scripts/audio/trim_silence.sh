@@ -81,5 +81,5 @@ done > "${datadir}/segments" || exit 1
 rm -rf "${tmpdir}"
 
 # check
-utils/validate_data_dir.sh --no-feats "${datadir}"
+utils/fix_data_dir.sh "${datadir}"
 log "Successfully finished silence trimming. [elapsed=${SECONDS}s]"
