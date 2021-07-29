@@ -25,7 +25,7 @@ def freeze_modules(
 
     Args:
         model: Main model.
-        Modules: Specified module(s) to freeze.
+        modules: Specified module(s) to freeze.
 
     Return:
         model: Updated main model.
@@ -34,7 +34,7 @@ def freeze_modules(
     """
     for mod, param in model.named_parameters():
         if any(mod.startswith(m) for m in modules):
-            logging.info(f"Freezing {mod}, module will not be updated.")
+            logging.warning(f"Freezing {mod}. It will not be updated during training.")
             param.requires_grad = False
 
     model_params = filter(lambda x: x.requires_grad, model.parameters())
@@ -150,12 +150,11 @@ def filter_modules(model_state_dict: OrderedDict, modules: List) -> List:
 
     if incorrect_mods:
         logging.error(
-            "Specified module(s) %s don't match or (partially match) "
-            "available modules in model.",
-            incorrect_mods,
+            "Specified module(s) don't match or (partially match) "
+            f"available modules in model. You specified: {incorrect_mods}."
         )
         logging.error("The existing modules in model are:")
-        logging.error("%s", mods_model)
+        logging.error(f"{mods_model}")
         exit(1)
 
     return new_mods
@@ -222,7 +221,7 @@ def load_trained_model(
         model_path, os.path.join(os.path.dirname(model_path), "model.json")
     )
 
-    logging.warning("Reading model parameters from " + model_path)
+    logging.info(f"Reading model parameters from {model_path}")
 
     if hasattr(train_args, "model_module"):
         model_module = train_args.model_module
@@ -258,15 +257,14 @@ def get_trained_model_state_dict(
         (): Trained model state dict.
 
     """
-    conf_path = os.path.join(os.path.dirname(model_path), "model.json")
-    if "rnnlm" in model_path:
-        logging.warning("Reading model parameters from %s", model_path)
+    logging.info(f"Reading model parameters from {model_path}")
 
+    conf_path = os.path.join(os.path.dirname(model_path), "model.json")
+
+    if "rnnlm" in model_path:
         return get_lm_state_dict(torch.load(model_path))
 
     idim, odim, args = get_model_conf(model_path, conf_path)
-
-    logging.warning("Reading model parameters from " + model_path)
 
     if hasattr(args, "model_module"):
         model_module = args.model_module
@@ -313,10 +311,10 @@ def load_trained_modules(
     """
 
     def print_new_keys(state_dict, modules, model_path):
-        logging.warning("Loading %s from model: %s", modules, model_path)
+        logging.info(f"Loading {modules} from model: {model_path}")
 
         for k in state_dict.keys():
-            logging.warning("Overriding %s" % k)
+            logging.warning(f"Overriding module {k}")
 
     enc_model_path = args.enc_init
     dec_model_path = args.dec_init
@@ -350,7 +348,7 @@ def load_trained_modules(
                         print_new_keys(partial_state_dict, modules, model_path)
                         main_state_dict.update(partial_state_dict)
             else:
-                logging.error("Specified model was not found : %s", model_path)
+                logging.error(f"Specified model was not found: {model_path}")
                 exit(1)
 
     main_model.load_state_dict(main_state_dict)
