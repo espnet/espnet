@@ -32,7 +32,8 @@ text=${data_dir}/text
 # make scp, utt2spk, and spk2utt
 find "${db_root}" -name "*.wav" | sort | while read -r filename; do
     id=kss_$(basename "${filename}" | sed -e "s/\.[^\.]*$//g")
-    echo "${id} ${filename}" >> "${scp}"
+    # NOTE(kan-bayashi): Some wav files are stereo
+    echo "${id} sox ${filename} -t wav -c 1 - |" >> "${scp}"
     echo "${id} kss" >> "${utt2spk}"
 done
 utils/utt2spk_to_spk2utt.pl "${utt2spk}" > "${spk2utt}"
