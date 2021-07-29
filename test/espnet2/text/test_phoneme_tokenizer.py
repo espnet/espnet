@@ -28,6 +28,10 @@ try:
     import phonemizer
 
     params.extend(["espeak_ng_arabic"])
+    params.extend(["espeak_ng_german"])
+    params.extend(["espeak_ng_french"])
+    params.extend(["espeak_ng_spanish"])
+    params.extend(["espeak_ng_russian"])
     del phonemizer
 except ImportError:
     pass
@@ -261,6 +265,35 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic":
         input = u"السلام عليكم"
         output = ["ʔ", "a", "s", "s", "ˈa", "l", "aː", "m", "ʕ", "l", "ˈiː", "k", "m"]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_german":
+        input = "Das hört sich gut an."
+        output = [
+            "d",
+            "a",
+            "s",
+            "h",
+            "ˈœ",
+            "ɾ",
+            "t",
+            "z",
+            "ɪ",
+            "ç",
+            "ɡ",
+            "ˈuː",
+            "t",
+            "ˈa",
+            "n",
+            ".",
+        ]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_french":
+        input = "Bonjour le monde."
+        output = ["b", "ɔ̃", "ʒ", "ˈu", "ʁ", "l", "ə-", "m", "ˈɔ̃", "d", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_spanish":
+        input = "Hola Mundo."
+        output = ["ˈo", "l", "a", "m", "ˈu", "n", "d", "o", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_russian":
+        input = "Привет мир."
+        output = ["p", "rʲ", "i", "vʲ", "ˈe", "t", "mʲ", "ˈi", "r", "."]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output

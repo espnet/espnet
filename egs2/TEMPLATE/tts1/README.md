@@ -305,6 +305,18 @@ You can change via `--g2p` option in `tts.sh`.
 - `espeak_ng_arabic`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
     - e.g. `السلام عليكم` -> `[ʔ, a, s, s, ˈa, l, aː, m, ʕ, l, ˈiː, k, m]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_german`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Das hört sich gut an.` -> `[d, a, s, h, ˈœ, ɾ, t, z, ɪ, ç, ɡ, ˈuː, t, ˈa, n, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_french`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Bonjour le monde.` -> `[b, ɔ̃, ʒ, ˈu, ʁ, l, ə-, m, ˈɔ̃, d, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_spanish`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Hola Mundo.` -> `[ˈo, l, a, m, ˈu, n, d, o, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_russian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Привет мир.` -> `[p, rʲ, i, vʲ, ˈe, t, mʲ, ˈi, r, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 
 You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 
