@@ -79,7 +79,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --win_length 2048 \
         --shift_length 512 \
         --threshold "${threshold}" \
-        "data/${spk,,}" "data/${spk,,}/log"
+        data/all data/all/log
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
