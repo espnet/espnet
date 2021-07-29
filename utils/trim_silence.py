@@ -24,8 +24,8 @@ def _time_to_str(time_idx):
     return "%06d" % time_idx
 
 
-def main():
-    """Run silence trimming and generate segments."""
+def get_parser():
+    """Get argument parser."""
     parser = argparse.ArgumentParser(
         description="Trim slience with simple power thresholding "
         "and make segments file.",
@@ -90,6 +90,12 @@ def main():
         type=str,
         help="Segments file.",
     )
+    return parser
+
+
+def main():
+    """Run silence trimming and generate segments."""
+    parser = get_parser()
     args = parser.parse_args()
 
     # set logger
@@ -110,9 +116,7 @@ def main():
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
             if rate != args.fs:
-                array = resampy.resample(
-                    array, rate, args.fs, axis=0
-                )
+                array = resampy.resample(array, rate, args.fs, axis=0)
             array_trim, idx = librosa.effects.trim(
                 y=array,
                 top_db=args.threshold,
