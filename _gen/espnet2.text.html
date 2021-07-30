@@ -299,6 +299,16 @@ As a workaround, g2p_en.G2p is instantiated upon calling this class.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.G2pk">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">G2pk</code><span class="sig-paren">(</span><em class="sig-param">descritive=False</em>, <em class="sig-param">group_vowels=False</em>, <em class="sig-param">to_syl=False</em>, <em class="sig-param">no_space=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#G2pk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.G2pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>On behalf of g2pk.G2p.</p>
+<p>g2pk.G2p isn’t pickalable and it can’t be copied to the other processes
+via multiprocessing module.
+As a workaround, g2pk.G2p is instantiated upon calling this class.</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">PhonemeTokenizer</code><span class="sig-paren">(</span><em class="sig-param">g2p_type: Union[None, str], non_linguistic_symbols: Union[pathlib.Path, str, Iterable[str]] = None, space_symbol: str = '&lt;space&gt;', remove_non_linguistic_symbols: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="espnet2.text.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.text.abs_tokenizer.AbsTokenizer</span></code></a></p>

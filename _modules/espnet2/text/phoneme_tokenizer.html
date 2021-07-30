@@ -321,6 +321,44 @@
         <span class="k">return</span> <span class="n">phones</span></div>
 
 
+<div class="viewcode-block" id="G2pk"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.G2pk">[docs]</a><span class="k">class</span> <span class="nc">G2pk</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;On behalf of g2pk.G2p.</span>
+
+<span class="sd">    g2pk.G2p isn&#39;t pickalable and it can&#39;t be copied to the other processes</span>
+<span class="sd">    via multiprocessing module.</span>
+<span class="sd">    As a workaround, g2pk.G2p is instantiated upon calling this class.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">descritive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">group_vowels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">to_syl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">no_space</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">descritive</span> <span class="o">=</span> <span class="n">descritive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_vowels</span> <span class="o">=</span> <span class="n">group_vowels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_syl</span> <span class="o">=</span> <span class="n">to_syl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_space</span> <span class="o">=</span> <span class="n">no_space</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">g2pk</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">g2pk</span><span class="o">.</span><span class="n">G2p</span><span class="p">()</span>
+
+        <span class="n">phones</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span><span class="p">(</span>
+                <span class="n">text</span><span class="p">,</span>
+                <span class="n">descriptive</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">descritive</span><span class="p">,</span>
+                <span class="n">group_vowels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_vowels</span><span class="p">,</span>
+                <span class="n">to_syl</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">to_syl</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_space</span><span class="p">:</span>
+            <span class="c1"># remove space which represents word serapater</span>
+            <span class="n">phones</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span> <span class="o">!=</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">phones</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">phones</span></div>
+
+
 <div class="viewcode-block" id="Phonemizer"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.Phonemizer">[docs]</a><span class="k">class</span> <span class="nc">Phonemizer</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Phonemizer module for various languages.</span>
 
@@ -418,6 +456,10 @@
                 <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;g2pk&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">G2pk</span><span class="p">(</span><span class="n">no_space</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">G2pk</span><span class="p">(</span><span class="n">no_space</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: g2p_type=</span><span class="si">{</span><span class="n">g2p_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
