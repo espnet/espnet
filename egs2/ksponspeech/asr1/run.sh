@@ -8,8 +8,8 @@ set -o pipefail
 train_set="train"
 valid_set="dev"
 test_sets="eval_clean eval_other"
-asr_config="conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml"
-lm_config="conf/tuning/train_lm_transformer2.yaml"
+asr_config="conf/tuning/train_asr_conformer8_n_fft512_hop_length256.yaml"
+lm_config="conf/tuning/train_lm_transformer3.yaml"
 inference_config="conf/decode_asr.yaml"
 nbpe=2309
 
