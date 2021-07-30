@@ -35,6 +35,13 @@ try:
     del phonemizer
 except ImportError:
     pass
+try:
+    import g2pk
+
+    params.extend(["g2pk", "g2pk_no_space"])
+    del g2pk
+except ImportError:
+    pass
 
 
 @pytest.fixture(params=params)
@@ -294,6 +301,63 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     elif phoneme_tokenizer.g2p_type == "espeak_ng_russian":
         input = "Привет мир."
         output = ["p", "rʲ", "i", "vʲ", "ˈe", "t", "mʲ", "ˈi", "r", "."]
+    elif phoneme_tokenizer.g2p_type == "g2pk":
+        input = "안녕하세요 세계입니다."
+        output = [
+            "ᄋ",
+            "ᅡ",
+            "ᆫ",
+            "ᄂ",
+            "ᅧ",
+            "ᆼ",
+            "ᄒ",
+            "ᅡ",
+            "ᄉ",
+            "ᅦ",
+            "ᄋ",
+            "ᅭ",
+            " ",
+            "ᄉ",
+            "ᅦ",
+            "ᄀ",
+            "ᅨ",
+            "ᄋ",
+            "ᅵ",
+            "ᆷ",
+            "ᄂ",
+            "ᅵ",
+            "ᄃ",
+            "ᅡ",
+            ".",
+        ]
+    elif phoneme_tokenizer.g2p_type == "g2pk_no_space":
+        input = "안녕하세요 세계입니다."
+        output = [
+            "ᄋ",
+            "ᅡ",
+            "ᆫ",
+            "ᄂ",
+            "ᅧ",
+            "ᆼ",
+            "ᄒ",
+            "ᅡ",
+            "ᄉ",
+            "ᅦ",
+            "ᄋ",
+            "ᅭ",
+            "ᄉ",
+            "ᅦ",
+            "ᄀ",
+            "ᅨ",
+            "ᄋ",
+            "ᅵ",
+            "ᆷ",
+            "ᄂ",
+            "ᅵ",
+            "ᄃ",
+            "ᅡ",
+            ".",
+        ]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output
