@@ -67,4 +67,5 @@ def model_summary(model: torch.nn.Module) -> str:
     message += f"    Size: {num_bytes}\n"
     dtype = next(iter(model.parameters())).dtype
     message += f"    Type: {dtype}"
-    return message
+    print(message) # return message
+    
