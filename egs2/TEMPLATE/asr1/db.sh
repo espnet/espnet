@@ -39,6 +39,7 @@ NSC=
 JSSS=downloads
 JSUT=downloads
 JVS=downloads
+KSS=
 SPGISPEECH=
 SWBD=
 TIMIT=$(realpath ../../../../TIMIT)
@@ -127,6 +128,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JSSS=downloads
     JSUT=downloads
     JVS=downloads
+    KSS=
     TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
