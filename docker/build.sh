@@ -84,7 +84,6 @@ build(){
         echo "Now building CUDA container"
         docker build --build-arg FROM_TAG=runtime-latest \
                     -f prebuilt/devel/gpu/${default_cuda_ver}/Dockerfile -t ${this_tag} . | tee -a build_cuda.log > /dev/null
-
         docker_image=$( docker images -q ${this_tag} )
         [ -z "${docker_image}" ] && exit 1
     fi
@@ -100,16 +99,18 @@ build(){
         docker_image=$( docker images -q ${this_tag} )
         [ -z "${docker_image}" ] && exit 1
     fi
-    exit 1
+
     # build gpu based
     build_args="--build-arg FROM_TAG=cuda-latest 
                 --build-arg CUDA_VER=${default_cuda_ver}"
-    docker_image=$( docker images -q espnet/espnet:gpu-latest )
+    this_tag=espnet/espnet:gpu-latest
+    docker_image=$( docker images -q ${this_tag}  )
     if ! [[ -n ${docker_image} ]]; then
         echo "Now building gpu-latest with ubuntu:${default_ubuntu_ver} and cuda:${default_cuda_ver}"
-        docker build ${build_args} -f prebuilt/devel/Dockerfile -t espnet/espnet:gpu-latest . || exit 1
+        docker build ${build_args} -f prebuilt/devel/Dockerfile -t ${this_tag}  . | tee -a build_gpu.log > /dev/null
+        docker_image=$( docker images -q ${this_tag} )
+        [ -z "${docker_image}" ] && exit 1
     fi
-
 }
 
 
@@ -165,9 +166,7 @@ testing(){
     echo "Testing docker containers"
     # Test Docker Containers with cpu setup
     run_stage=-1
-    if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
-        run_stage=3
-    fi
+    
     for cuda_ver in cpu ${cuda_vers};do
         for backend in pytorch chainer;do
             if [ "${cuda_ver}" != "cpu" ];then
@@ -179,6 +178,9 @@ testing(){
                 gpu=-1
                 ngpu=0
             fi
+            if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+                run_stage=3
+            fi
             ( ./run.sh ${docker_cuda} \
                         --docker-egs an4/asr1 \
                         --docker-cmd run.sh \
@@ -187,7 +189,7 @@ testing(){
                         --backend ${backend} \
                         --ngpu ${ngpu} \
                         --stage ${run_stage} \
-                        --tag train_nodev_${backend}_cuda${cuda_ver} ) || exit 1
+                        --tag train_nodev_${backend}_cuda${cuda_ver} )   | tee -a ${PWD}/testing_${cuda_ver}_${backend}.log > /dev/null || exit 1
         done
     done
 

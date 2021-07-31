@@ -78,7 +78,6 @@ if [ ! "${docker_gpu}" == "-1" ]; then
         exit 1
     fi
         from_tag="gpu"
-    fi
 fi
 
 from_tag="${from_tag}-${docker_tag}"
