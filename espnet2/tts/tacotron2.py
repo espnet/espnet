@@ -305,8 +305,9 @@ class Tacotron2(AbsTTS):
 
         # modify mod part of groundtruth
         if self.reduction_factor > 1:
-            assert olens.ge(self.reduction_factor).all(), \
-                "Output length must be greater than or equal reduction factor."
+            assert olens.ge(
+                self.reduction_factor
+            ).all(), "Output length must be greater than or equal to reduction factor."
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
