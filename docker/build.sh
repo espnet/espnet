@@ -161,66 +161,67 @@ build_local(){
     test -r ${ESPNET_ARCHIVE} && rm ${ESPNET_ARCHIVE}
 }
 
+run_recipe1(){
+    ./run.sh --docker-egs an4/asr1 \
+                        --docker-cmd run.sh \
+                        --docker-gpu ${1} \
+                        --verbose 1 \
+                        --backend ${2} \
+                        --ngpu ${3} \
+                        --stage ${4} \
+                        --tag train_nodev_${2}_${5} | tee -a ${PWD}/testing_${5}_${2}.log > /dev/null
+}
+
+run_recipe2(){
+   ./run.sh --docker-egs an4/asr1  \
+                    --docker-cmd run.sh \
+                    --docker-gpu ${1} \
+                    --docker-env "NLTK_DATA=/espnet/egs2/an4/asr1/nltk_data,HOME=/espnet/egs2/an4/asr1" \
+                    --is-egs2 \
+                    --ngpu ${2} \
+                    --stage ${3} \
+                    --asr-tag train_nodev_${4} \
+                    --lm-tag train_nodev_${4}  | tee -a ${PWD}/testing2_pytorch_${4}.log > /dev/null 
+}
 
 testing(){
     echo "Testing docker containers"
     # Test Docker Containers with cpu setup
     run_stage=-1
-    
-    for cuda_ver in cpu ${cuda_vers};do
-        for backend in pytorch chainer;do
-            if [ "${cuda_ver}" != "cpu" ];then
-                docker_cuda="--docker-cuda ${cuda_ver}"
-                gpu=0
-                ngpu=1
-            else
-                docker_cuda=""
-                gpu=-1
-                ngpu=0
-            fi
-            if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
-                run_stage=3
-            fi
-            ( ./run.sh ${docker_cuda} \
-                        --docker-egs an4/asr1 \
-                        --docker-cmd run.sh \
-                        --docker-gpu ${gpu} \
-                        --verbose 1 \
-                        --backend ${backend} \
-                        --ngpu ${ngpu} \
-                        --stage ${run_stage} \
-                        --tag train_nodev_${backend}_cuda${cuda_ver} )   | tee -a ${PWD}/testing_${cuda_ver}_${backend}.log > /dev/null || exit 1
-        done
+    for backend in chainer pytorch; do
+        if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+            run_stage=3
+        fi
+        if [ ! -f .test_cpu_${backend}.done ]; then
+            run_recipe1 -1 ${backend} 0 ${run_stage} "cpu"
+            touch .test_cpu_${backend}.done
+        fi
+    done
+
+    for backend in chainer pytorch; do
+        if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+            run_stage=3
+        fi
+        if [ ! -f .test_gpu_${backend}.done ]; then
+            run_recipe1 0 ${backend} 1 ${run_stage} "gpu"
+            touch .test_gpu_${backend}.done
+        fi
     done
 
     echo "ESPnet egs Done. Press <enter> to continue with ESPnet2 egs"
     read enter
     # Test for espnet2
     run_stage=-1
-    if [ -f ../egs2/an4/asr1/dump/raw/train_nodev/text ]; then 
-        run_stage=9
+    # 
+    if [ ! -f .test2_cpu_${backend}.done ]; then
+        run_recipe2 -1 0 ${run_stage} "cpu"
+        touch .test2_cpu_${backend}.done
     fi
-    for cuda_ver in cpu ${cuda_vers};do
-        if [ "${cuda_ver}" != "cpu" ];then
-            docker_cuda="--docker-cuda ${cuda_ver}"
-            gpu=0
-            ngpu=1
-        else
-            docker_cuda=""
-            gpu=-1
-            ngpu=0
-        fi
-        ( ./run.sh ${docker_cuda} \
-                    --docker-egs an4/asr1  \
-                    --docker-cmd run.sh \
-                    --docker-gpu ${gpu} \
-                    --is-egs2 \
-                    --ngpu ${ngpu} \
-                    --stage ${run_stage} \
-                    --asr_tag train_nodev_cuda${cuda_ver} \
-                    --lm_tag train_nodev_cuda${cuda_ver}) || exit 1
-        run_stage=3
-    done
+    run_stage=6
+    if [ ! -f .test2_gpu_${backend}.done ]; then
+        run_recipe2 0 1 ${run_stage} "gpu"
+        touch .test2_gpu_${backend}.done
+    fi
 }
 
 

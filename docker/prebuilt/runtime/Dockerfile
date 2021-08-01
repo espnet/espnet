@@ -23,7 +23,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
         gawk \
         gfortran \
         git \
+        libboost-all-dev \
         libtool \
+        libbz2-dev \
+        liblzma-dev \
         libsndfile1-dev \
         patch \
         python2.7 \

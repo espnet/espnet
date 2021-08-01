@@ -45,9 +45,12 @@ RUN if [ -z "${CUDA_VER}" ]; then \
    rm -f activate_python.sh && touch activate_python.sh && \
    conda install -y conda "python=3.7.4" && \
     make KALDI=/opt/kaldi ${MY_OPTS} && \
-    . /espnet/tools/activate_python.sh && \
+    . ./activate_python.sh && \
+    ./installers/install_warp-ctc.sh && \
+    ./installers/install_kenlm.sh && \
+    # ./installers/install_chainer_ctc.sh && \
     conda clean --all && \
-    rm -f /espnet/tools/*.tar.*  && \
+    rm -f *.tar.*  && \
     pip cache purge
 
 RUN rm -rf ../espnet
