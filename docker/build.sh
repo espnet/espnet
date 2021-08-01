@@ -226,7 +226,7 @@ testing(){
 
 
 push(){
-    for tag in ${tags};do
+    for tag in runtime-latest cuda-latest cpu-latest gpu-latest;do
         echo "docker push espnet/espnet:${tag}"
         ( docker push espnet/espnet:${tag} )|| exit 1
     done
