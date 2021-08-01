@@ -309,7 +309,9 @@ class Tacotron2(AbsTTS):
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
-            labels[:, -1] = 1.0  # make sure at least one frame has 1
+            labels = torch.scatter(
+                labels, 1, (olens - 1).unsqueeze(1), 1.0
+            )  # see #3388
 
         # calculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
