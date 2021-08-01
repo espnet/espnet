@@ -576,7 +576,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
-            labels[:, -1] = 1.0  # make sure at least one frame has 1
+            labels = torch.scatter(
+                labels, 1, (olens - 1).unsqueeze(1), 1.0
+            )  # see #3388
         if self.encoder_reduction_factor > 1:
             ilens = ilens.new(
                 [ilen - ilen % self.encoder_reduction_factor for ilen in ilens]
