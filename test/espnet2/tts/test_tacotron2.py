@@ -58,8 +58,8 @@ def test_tacotron2(
     inputs = dict(
         text=torch.randint(0, 10, (2, 4)),
         text_lengths=torch.tensor([4, 1], dtype=torch.long),
-        speech=torch.randn(2, 3, 5),
-        speech_lengths=torch.tensor([3, 1], dtype=torch.long),
+        speech=torch.randn(2, 5, 5),
+        speech_lengths=torch.tensor([5, 3], dtype=torch.long),
     )
     if spk_embed_dim is not None:
         inputs.update(spembs=torch.randn(2, spk_embed_dim))
