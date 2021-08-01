@@ -11,3 +11,13 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+## Pretrained Models
+
+### hui_acg_tts_train_transformer_raw_hokuspokus_phn_espeak_ng_german_train.loss.ave
+- https://zenodo.org/record/5150954
+
+### hui_acg_tts_train_tacotron2_raw_hokuspokus_phn_espeak_ng_german_train.loss.ave
+- https://zenodo.org/record/5150957
+
+### hui_acg_tts_train_conformer_fastspeech2_raw_hokuspokus_phn_espeak_ng_german_teacher_transformer_train.loss.ave
+- https://zenodo.org/record/5150959
