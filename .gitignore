@@ -48,6 +48,7 @@ tools/lib64
 tools/bats-core
 tools/chainer_ctc/
 tools/kaldi*
+tools/activate_python.sh
 tools/miniconda.sh
 tools/moses/
 tools/mwerSegmenter/
