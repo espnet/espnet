@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Trim silence at the beginning and the end of audio."""
 
 import argparse
 import codecs
@@ -14,6 +14,7 @@ import kaldiio
 import librosa
 import matplotlib.pyplot as plt
 import numpy
+import resampy
 
 from espnet.utils.cli_utils import get_commandline_args
 
@@ -24,43 +25,76 @@ def _time_to_str(time_idx):
 
 
 def get_parser():
+    """Get argument parser."""
     parser = argparse.ArgumentParser(
         description="Trim slience with simple power thresholding "
         "and make segments file.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--fs", type=int, help="Sampling frequency")
     parser.add_argument(
-        "--threshold", type=float, default=60, help="Threshold in decibels"
+        "--fs",
+        type=int,
+        help="Sampling frequency.",
     )
     parser.add_argument(
-        "--win_length", type=int, default=1024, help="Analisys window length in point"
+        "--threshold",
+        type=float,
+        default=60,
+        help="Threshold in decibels.",
     )
     parser.add_argument(
-        "--shift_length", type=int, default=256, help="Shift length in point"
+        "--win_length",
+        type=int,
+        default=1200,
+        help="Analisys window length in point.",
     )
     parser.add_argument(
-        "--min_silence", type=float, default=0.01, help="minimum silence length"
+        "--shift_length",
+        type=int,
+        default=300,
+        help="Shift length in point.",
     )
     parser.add_argument(
-        "--figdir", type=str, default="figs", help="Directory to save figures"
+        "--min_silence",
+        type=float,
+        default=0.01,
+        help="Minimum silence length in sec.",
     )
-    parser.add_argument("--verbose", "-V", default=0, type=int, help="Verbose option")
+    parser.add_argument(
+        "--figdir",
+        type=str,
+        default=None,
+        help="Directory to save figures.",
+    )
+    parser.add_argument(
+        "--verbose",
+        default=0,
+        type=int,
+        help="Verbosity level.",
+    )
     parser.add_argument(
         "--normalize",
         choices=[1, 16, 24, 32],
         type=int,
         default=None,
         help="Give the bit depth of the PCM, "
-        "then normalizes data to scale in [-1,1]",
+        "then normalizes data to scale in [-1,1].",
     )
-    parser.add_argument("rspecifier", type=str, help="WAV scp file")
-    parser.add_argument("wspecifier", type=str, help="Segments file")
-
+    parser.add_argument(
+        "rspecifier",
+        type=str,
+        help="WAV scp file.",
+    )
+    parser.add_argument(
+        "wspecifier",
+        type=str,
+        help="Segments file.",
+    )
     return parser
 
 
 def main():
+    """Run silence trimming and generate segments."""
     parser = get_parser()
     args = parser.parse_args()
 
@@ -72,17 +106,17 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    if not os.path.exists(args.figdir):
-        os.makedirs(args.figdir)
+    os.makedirs(args.figdir, exist_ok=True)
 
     with kaldiio.ReadHelper(args.rspecifier) as reader, codecs.open(
         args.wspecifier, "w", encoding="utf-8"
     ) as f:
         for utt_id, (rate, array) in reader:
-            assert rate == args.fs
             array = array.astype(numpy.float32)
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
+            if rate != args.fs:
+                array = resampy.resample(array, rate, args.fs, axis=0)
             array_trim, idx = librosa.effects.trim(
                 y=array,
                 top_db=args.threshold,
@@ -92,15 +126,16 @@ def main():
             start, end = idx / args.fs
 
             # save figure
-            plt.subplot(2, 1, 1)
-            plt.plot(array)
-            plt.title("Original")
-            plt.subplot(2, 1, 2)
-            plt.plot(array_trim)
-            plt.title("Trim")
-            plt.tight_layout()
-            plt.savefig(args.figdir + "/" + utt_id + ".png")
-            plt.close()
+            if args.figdir is not None:
+                plt.subplot(2, 1, 1)
+                plt.plot(array)
+                plt.title("Original")
+                plt.subplot(2, 1, 2)
+                plt.plot(array_trim)
+                plt.title("Trim")
+                plt.tight_layout()
+                plt.savefig(args.figdir + "/" + utt_id + ".png")
+                plt.close()
 
             # added minimum silence part
             start = max(0.0, start - args.min_silence)

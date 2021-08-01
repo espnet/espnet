@@ -93,6 +93,7 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
 # Decoding related
+use_k2=false      # Whether to use k2 based decoder
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
@@ -404,6 +405,10 @@ if [ -z "${inference_tag}" ]; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+
+    if "${use_k2}"; then
+      inference_tag+="_use_k2"
+    fi
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -1175,7 +1180,15 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            if "${use_k2}"; then
+              # Now only _nj=1 is verified
+              _nj=1
+              asr_inference_tool="espnet2.bin.k2_asr_inference"
+            else
+              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+              asr_inference_tool="espnet2.bin.asr_inference"
+            fi
+
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
             done
@@ -1186,7 +1199,7 @@ if ! "${skip_eval}"; then
             log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                ${python} -m espnet2.bin.asr_inference \
+                ${python} -m ${asr_inference_tool} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
