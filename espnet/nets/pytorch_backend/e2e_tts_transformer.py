@@ -749,6 +749,8 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
+            assert olens.ge(self.reduction_factor).all(), \
+                "Output length must be greater than or equal reduction factor."
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)
             ys = ys[:, :max_olen]
