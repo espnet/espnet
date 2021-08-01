@@ -572,11 +572,16 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
+            assert olens.ge(
+                self.reduction_factor
+            ).all(), "Output length must be greater than or equal to reduction factor."
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
-            labels[:, -1] = 1.0  # make sure at least one frame has 1
+            labels = torch.scatter(
+                labels, 1, (olens - 1).unsqueeze(1), 1.0
+            )  # see #3388
         if self.encoder_reduction_factor > 1:
             ilens = ilens.new(
                 [ilen - ilen % self.encoder_reduction_factor for ilen in ilens]
