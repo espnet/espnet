@@ -962,11 +962,16 @@
 
         <span class="c1"># modifiy mod part of groundtruth</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">olens</span><span class="o">.</span><span class="n">ge</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s2">&quot;Output length must be greater than or equal to reduction factor.&quot;</span>
             <span class="n">olens</span> <span class="o">=</span> <span class="n">olens</span><span class="o">.</span><span class="n">new</span><span class="p">([</span><span class="n">olen</span> <span class="o">-</span> <span class="n">olen</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="k">for</span> <span class="n">olen</span> <span class="ow">in</span> <span class="n">olens</span><span class="p">])</span>
             <span class="n">max_olen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span>
             <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_olen</span><span class="p">]</span>
             <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_olen</span><span class="p">]</span>
-            <span class="n">labels</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># make sure at least one frame has 1</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+                <span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">olens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mf">1.0</span>
+            <span class="p">)</span>  <span class="c1"># see #3388</span>
 
         <span class="c1"># caluculate loss values</span>
         <span class="n">l1_loss</span><span class="p">,</span> <span class="n">l2_loss</span><span class="p">,</span> <span class="n">bce_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span>
