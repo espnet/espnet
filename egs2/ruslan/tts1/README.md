@@ -31,4 +31,4 @@ See the following pages before asking the question:
 - https://zenodo.org/record/5149493
 
 ### ruslan_tts_train_conformer_fastspeech2_raw_phn_espeak_ng_russian_teacher_transformer_train.loss.ave
-- https://zenodo.org/record/5149501
+- https://zenodo.org/record/5150961
