@@ -352,6 +352,8 @@ class BeamSearch(torch.nn.Module):
         # set length bounds
         if maxlenratio == 0:
             maxlen = x.shape[0]
+        elif maxlenratio < 0:
+            maxlen = -1 * int(maxlenratio)
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
         minlen = int(minlenratio * x.size(0))
