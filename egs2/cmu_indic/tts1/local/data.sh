@@ -30,7 +30,7 @@ if [ $# != 1 ]; then
 fi
 
 # check speakers
-if ! $(echo ${available_spks[*]} | grep -q ${spk}); then
+if ! eval "$(echo ${available_spks[*]} | grep -q ${spk})"; then
     echo "Specified spk (${spk}) is not available or not supported." >&2
     exit 2
 fi
