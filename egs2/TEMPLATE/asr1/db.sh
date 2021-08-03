@@ -36,6 +36,7 @@ MINI_LIBRISPEECH=downloads
 LIBRITTS=
 LJSPEECH=downloads
 NSC=
+JMD=downloads
 JSSS=downloads
 JSUT=downloads
 JVS=downloads
@@ -125,6 +126,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
+    JMD=downloads
     JSSS=downloads
     JSUT=downloads
     JVS=downloads
