@@ -8,12 +8,13 @@
 
 # general configuration
 backend=pytorch
+lang=hi-en
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=4         # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32
 debugmode=1
-dumpdir=dump   # directory to dump full features
+dumpdir=dump/$lang/  # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
@@ -44,7 +45,7 @@ use_lm_valbest_average=false # if true, the validation `lm_n_average`-best langu
                              # if false, the last `lm_n_average` language models will be averaged.
 
 # Set this to somewhere where you want to put your data, or where
-# someone else has already put it.  
+# someone else has already put it.
 datadir=
 
 # base url for downloads.
@@ -65,11 +66,25 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
+train_set=train/$lang
 train_sp=train_sp
-train_dev=test
+train_dev=test/$lang
 recog_set="test"
 
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+    echo "stage -1: Data Download"
+    local/download_data.sh data/ $lang
+fi
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    ### Task dependent. You have to make data the following preparation part by yourself.
+    ### But you can utilize Kaldi recipes in most cases
+    echo "stage 0: Data preparation"
+
+    for dset in test train; do
+    local/prepare_data.sh data/$lang/$dset/transcripts/wav.scp data/$lang/$dset/ out.scp
+    done
+fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_sp_dir=${dumpdir}/${train_sp}/delta${do_delta}; mkdir -p ${feat_sp_dir}
@@ -80,7 +95,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train test ; do
+    for x in hi-en/train/transcripts hi-en/test/transcripts ; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj ${nj} --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
@@ -101,7 +116,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_sp}/feats.scp data/${train_sp}/cmvn.ark
 
-    
+
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
         data/${train_sp}/feats.scp data/${train_sp}/cmvn.ark exp/dump_feats/train ${feat_sp_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \

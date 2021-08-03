@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 #Copyright
 
@@ -23,34 +23,37 @@ if ! $(echo ${available_languages[*]} | grep -q ${lang}); then
 fi
 
 declare -A trainset
-trainset['hi']='https://www.openslr.org/resources/103/Hindi_train.zip'
-trainset['mr']='https://www.openslr.org/resources/103/Marathi_train.zip'
-trainset['or']='https://www.openslr.org/resources/103/Odia_train.zip'
+trainset['hi']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi_train.tar.gz'
+trainset['mr']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Marathi_train.tar.gz'
+trainset['or']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Odia_train.tar.gz'
 trainset['ta']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
 trainset['te']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
 trainset['gu']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
-trainset['hi-en']='https://www.openslr.org/resources/104/Hindi-English_train.zip'
-trainset['bn-en']='https://www.openslr.org/resources/104/Bengali-English_train.zip'
+trainset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi-English_train.tar.gz'
+trainset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Bengali-English_train.tar.gz'
 
 declare -A testset
-testset['hi']='https://www.openslr.org/resources/103/Hindi_test.zip'
-testset['mr']='https://www.openslr.org/resources/103/Marathi_test.zip'
-testset['or']='https://www.openslr.org/resources/103/Odia_test.zip'
+testset['hi']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi_test.tar.gz'
+testset['mr']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Marathi_test.tar.gz'
+testset['or']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Odia_test.tar.gz'
 testset['ta']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
 testset['te']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
 testset['gu']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
-testset['hi-en']='https://www.openslr.org/resources/104/Hindi-English_test.zip'
-testset['bn-en']='https://www.openslr.org/resources/104/Bengali-English_test.zip'
+testset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi-English_test.tar.gz'
+testset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Bengali-English_test.tar.gz'
 
 cwd=`pwd`
-if [ ! -e ${db}/${spk}.done ]; then
+if [ ! -e ${db}/${lang}.done ]; then
     mkdir -p ${db}
     cd ${db}
     mkdir -p ${lang}
     cd ${lang}
-    wget ${testset[$lang]}
-    # tar xf cmu_indic_${spk}.tar.bz2
-    # rm cmu_indic_${spk}.tar.bz2
+    wget -O test.zip ${testset[$lang]}
+    tar xf "test.zip"
+    rm test.zip
+    wget -O train.zip ${trainset[$lang]}
+    tar xf "train.zip"
+    rm train.zip
     cd $cwd
     echo "Successfully finished download."
     touch ${db}/${lang}.done
