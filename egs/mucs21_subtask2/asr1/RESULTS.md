@@ -1,4 +1,10 @@
-#### Results:
+# Conformer (large model + specaug + TransformerLM)
+- Model files
+  - training config file: `conf/train.yaml`
+  - decoding config file: `conf/decode.yaml`
+  - preprocess config file: `conf/specaug.yaml`
+
+- Results
 WER:
 ```
 Test Set (UnA):
