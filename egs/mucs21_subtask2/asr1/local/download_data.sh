@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# Copyright 2021 Indian Institute of Science (Sathvik Udupa)
-#  Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+#Copyright
 
 
+
+# available_languages=(
+#     "hi" "mr" "or" "ta" "te" "gu" "hi-en" "bn-en"
+# )
 available_languages=(
-    "hi" "mr" "or" "ta" "te" "gu" "hi-en" "bn-en"
+    "hi-en" "bn-en"
 )
 db=$1
 lang=$2
 
 if [ $# != 2 ]; then
     echo "Usage: $0 <db_root_dir> <spk>"
-    echo "Available langauges: ${available_languages[*]}"
+    echo "Available langauges for mucs subtask2: ${available_languages[*]}"
     exit 1
 fi
 
@@ -23,22 +26,22 @@ if ! $(echo ${available_languages[*]} | grep -q ${lang}); then
 fi
 
 declare -A trainset
-trainset['hi']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi_train.tar.gz'
-trainset['mr']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Marathi_train.tar.gz'
-trainset['or']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Odia_train.tar.gz'
-trainset['ta']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
-trainset['te']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
-trainset['gu']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
+# trainset['hi']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi_train.tar.gz'
+# trainset['mr']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Marathi_train.tar.gz'
+# trainset['or']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Odia_train.tar.gz'
+# trainset['ta']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
+# trainset['te']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
+# trainset['gu']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
 trainset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi-English_train.tar.gz'
 trainset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Bengali-English_train.tar.gz'
 
 declare -A testset
-testset['hi']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi_test.tar.gz'
-testset['mr']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Marathi_test.tar.gz'
-testset['or']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Odia_test.tar.gz'
-testset['ta']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
-testset['te']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
-testset['gu']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
+# testset['hi']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi_test.tar.gz'
+# testset['mr']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Marathi_test.tar.gz'
+# testset['or']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Odia_test.tar.gz'
+# testset['ta']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
+# testset['te']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
+# testset['gu']='https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e'
 testset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi-English_test.tar.gz'
 testset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Bengali-English_test.tar.gz'
 
