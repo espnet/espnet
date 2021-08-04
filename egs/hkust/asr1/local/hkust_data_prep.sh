@@ -40,7 +40,7 @@ n=`cat $train_dir/sph.flist $dev_dir/sph.flist | wc -l`
 
 #collect all trans, convert encodings to utf-8,
 find -L $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
-  iconv -f GBK -t utf-8 - | perl -e '
+  iconv -f GBK -t UTF-8 | perl -e '
     while (<STDIN>) {
       @A = split(" ", $_);
       if (@A <= 1) { next; }
@@ -55,7 +55,7 @@ find -L $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
   ' | sort -k1 > $train_dir/transcripts.txt || { echo "Error: $hkust_text_dir is invalid"; exit 1; }
 
 find -L $hkust_text_dir -iname "*.txt" | grep -i "trans/dev" | xargs cat |\
-  iconv -f GBK -t utf-8 - | perl -e '
+  iconv -f GBK -t UTF-8 | perl -e '
     while (<STDIN>) {
       @A = split(" ", $_);
       if (@A <= 1) { next; }
