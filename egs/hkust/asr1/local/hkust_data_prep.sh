@@ -39,7 +39,8 @@ n=`cat $train_dir/sph.flist $dev_dir/sph.flist | wc -l`
 #Transcriptions preparation
 
 #collect all trans, convert encodings to utf-8,
-find -L $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat | iconv -f GBK -t UTF-8 | perl -e '
+find -L $hkust_text_dir -iname "*.txt" | grep -i "trans/train" | xargs cat |\
+  iconv -f GBK -t UTF-8 | perl -e '
     while (<STDIN>) {
       @A = split(" ", $_);
       if (@A <= 1) { next; }

@@ -62,6 +62,11 @@ bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 
+# Ngram model related
+use_ngram=false
+ngram_exp=
+ngram_num=3
+
 # Language model related
 use_lm=true       # Use language model for ASR decoding.
 lm_tag=           # Suffix to the result dir for language model training.
@@ -88,11 +93,13 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
 # Decoding related
+use_k2=false      # Whether to use k2 based decoder
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language modle path for decoding.
+inference_ngram=${ngram_num}gram.bin
 inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                       # e.g.
                                       # inference_asr_model=train.loss.best.pth
@@ -376,6 +383,9 @@ fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
 fi
+if [ -z "${ngram_exp}" ]; then
+    ngram_exp="${expdir}/ngram"
+fi
 
 
 if [ -z "${inference_tag}" ]; then
@@ -391,7 +401,14 @@ if [ -z "${inference_tag}" ]; then
     if "${use_lm}"; then
         inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
+    if "${use_ngram}"; then
+        inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
     inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+
+    if "${use_k2}"; then
+      inference_tag+="_use_k2"
+    fi
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -509,6 +526,11 @@ if ! "${skip_data_prep}"; then
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
                 <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+                # Derive the the frame length and feature dimension
+                _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
+                scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                    "${data_feats}${_suf}/${dset}/feats.scp" "${data_feats}${_suf}/${dset}/feats_shape"
 
                 pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}${_suf}/${dset}/feats.scp |" - | \
                     awk '{ print $2 }' | cut -d, -f2 > "${data_feats}${_suf}/${dset}/feats_dim"
@@ -844,7 +866,19 @@ if ! "${skip_train}"; then
     fi
 
 
+    mkdir -p ${ngram_exp}
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        if "${use_ngram}"; then
+            log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
+            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+        else
+            log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
+        fi
+    fi
+
+
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _asr_train_dir="${data_feats}/${train_set}"
         _asr_valid_dir="${data_feats}/${valid_set}"
         log "Stage 9: ASR collect stats: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
@@ -897,7 +931,7 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
+        log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
         mkdir -p "${asr_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${asr_stats_dir}/run.sh"; chmod +x "${asr_stats_dir}/run.sh"
 
         # 3. Submit jobs
@@ -945,10 +979,10 @@ if ! "${skip_train}"; then
     fi
 
 
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         _asr_train_dir="${data_feats}/${train_set}"
         _asr_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 10: ASR Training: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
+        log "Stage 11: ASR Training: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
 
         _opts=
         if [ -n "${asr_config}" ]; then
@@ -1092,8 +1126,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-        log "Stage 11: Decoding: training_dir=${asr_exp}"
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+        log "Stage 12: Decoding: training_dir=${asr_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1115,6 +1149,9 @@ if ! "${skip_eval}"; then
                 _opts+="--lm_train_config ${lm_exp}/config.yaml "
                 _opts+="--lm_file ${lm_exp}/${inference_lm} "
             fi
+        fi
+        if "${use_ngram}"; then
+             _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
         fi
 
         # 2. Generate run.sh
@@ -1143,7 +1180,15 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            if "${use_k2}"; then
+              # Now only _nj=1 is verified
+              _nj=1
+              asr_inference_tool="espnet2.bin.k2_asr_inference"
+            else
+              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+              asr_inference_tool="espnet2.bin.asr_inference"
+            fi
+
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
             done
@@ -1154,7 +1199,7 @@ if ! "${skip_eval}"; then
             log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                ${python} -m espnet2.bin.asr_inference \
+                ${python} -m ${asr_inference_tool} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
@@ -1173,8 +1218,8 @@ if ! "${skip_eval}"; then
     fi
 
 
-    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-        log "Stage 12: Scoring"
+    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+        log "Stage 13: Scoring"
         if [ "${token_type}" = phn ]; then
             log "Error: Not implemented for token_type=phn"
             exit 1
@@ -1294,8 +1339,8 @@ fi
 
 packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-        log "Stage 13: Pack model: ${packed_model}"
+    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Pack model: ${packed_model}"
 
         _opts=
         if "${use_lm}"; then
@@ -1325,8 +1370,8 @@ if ! "${skip_upload}"; then
     fi
 
 
-    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-        log "Stage 14: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
+        log "Stage 15: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/

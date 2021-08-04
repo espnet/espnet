@@ -38,8 +38,10 @@ from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
@@ -61,7 +63,11 @@ from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(default=DefaultFrontend, sliding_window=SlidingWindow),
+    classes=dict(
+        default=DefaultFrontend,
+        sliding_window=SlidingWindow,
+        s3prl=S3prlFrontend,
+    ),
     type_check=AbsFrontend,
     default="default",
 )
@@ -86,6 +92,7 @@ preencoder_choices = ClassChoices(
     name="preencoder",
     classes=dict(
         sinc=LightweightSincConvs,
+        linear=LinearProjection,
     ),
     type_check=AbsPreEncoder,
     default=None,
@@ -227,7 +234,24 @@ class ASRTask(AbsTask):
         parser.add_argument(
             "--g2p",
             type=str_or_none,
-            choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
+            choices=[
+                None,
+                "g2p_en",
+                "g2p_en_no_space",
+                "pyopenjtalk",
+                "pyopenjtalk_kana",
+                "pyopenjtalk_accent",
+                "pyopenjtalk_accent_with_pause",
+                "pypinyin_g2p",
+                "pypinyin_g2p_phone",
+                "espeak_ng_arabic",
+                "espeak_ng_german",
+                "espeak_ng_french",
+                "espeak_ng_spanish",
+                "espeak_ng_russian",
+                "g2pk",
+                "g2pk_no_space",
+            ],
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
