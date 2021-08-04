@@ -16,6 +16,11 @@
 
 ## Conformer+Transformer LM
 ### asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309
+- Total number of ASR model parameters: 112.01 M
+- Total number of LM model parameters: 51.99 M
+- ASR config: `conf/tuning/train_asr_conformer8_n_fft512_hop_length256.yaml`
+- LM config: `conf/tuning/train_lm_transformer3.yaml`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
