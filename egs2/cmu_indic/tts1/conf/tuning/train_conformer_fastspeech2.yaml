@@ -1,6 +1,6 @@
-# This configuration is for ESPnet2 to train GST-Conformer-based
+# This configuration is for ESPnet2 to train Conformer-based
 # FastSpeech2. It requires only a single GPU with 12 GB memory
-# and it takes ~7 days to finish the training on Titan V.
+# and it takes ~4 days to finish the training on Titan V.
 
 # Compared to the original FastSpeech2 paper, we use token
 # averaged pitch and energy as the same as FastPitch.
@@ -63,9 +63,6 @@ tts_conf:             # keyword arguments for the selected model
     energy_embed_kernel_size: 1                # kernel size of conv embedding layer for energy
     energy_embed_dropout: 0.0                  # dropout rate after conv embedding layer for energy
     stop_gradient_from_energy_predictor: false # whether to stop the gradient from energy predictor to encoder
-    use_gst: true                              # whether to use GST embedding
-    gst_heads: 8                               # number of heads in GST multi-head attention
-    gst_tokens: 128                            # number of global style tokens
 
 # extra module for additional inputs
 pitch_extract: dio           # pitch extractor type
@@ -87,12 +84,12 @@ scheduler_conf:        # keyword arguments for selected scheduler
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 1000  # number of iterations per epoch
-max_epoch: 1500           # number of epochs
+num_iters_per_epoch: 1000 # number of iterations per epoch
+max_epoch: 200            # number of epochs
 grad_clip: 1.0            # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
-accum_grad: 10            # gradient accumulation
-batch_bins: 2400000       # batch bins (feats_type=raw)
+accum_grad: 1             # gradient accumulation
+batch_bins: 12000000      # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches

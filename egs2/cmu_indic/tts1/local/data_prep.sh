@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2020 Tomoki Hayashi
+# Copyright 2021 Peter Wu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # shellcheck disable=SC1091
@@ -69,9 +69,7 @@ echo "Successfully finished making spk2utt."
 raw_text=${db}/etc/txt.done.data
 ids=$(sed < ${raw_text} -e "s/^( /${spk}_/g" -e "s/ )$//g" | cut -d " " -f 1)
 sentences=$(sed < ${raw_text} -e "s/^( //g" -e "s/ )$//g" -e "s/\"//g" | tr '[:lower:]' '[:upper:]' | cut -d " " -f 2-)
-paste -d " " <(echo "${ids}") <(echo "${sentences}") > ${text}.tmp
-local/clean_text.py ${text}.tmp > ${text}
-rm ${text}.tmp
+paste -d " " <(echo "${ids}") <(echo "${sentences}") > ${text}
 echo "Successfully finished making text."
 
 utils/fix_data_dir.sh data/${spk}
