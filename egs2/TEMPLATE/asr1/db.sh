@@ -43,6 +43,7 @@ JVS=downloads
 KSS=
 SPGISPEECH=
 SWBD=
+SNIPS= # smart-light-en-closed-field data path
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
