@@ -26,6 +26,7 @@ module_list = [
     ("phonemizer", None, "installers/install_phonemizer.sh"),
     ("gtn", None, "installers/install_gtn.sh"),
     ("s3prl", None, "installers/install_s3prl.sh"),
+    ("transformers", None, "installers/install_transformers.sh"),
 ]
 
 executable_list = [

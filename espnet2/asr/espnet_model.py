@@ -20,6 +20,7 @@ from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -46,6 +47,7 @@ class ESPnetASRModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
+        postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         ctc: CTC,
         rnnt_decoder: None,
@@ -75,6 +77,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.specaug = specaug
         self.normalize = normalize
         self.preencoder = preencoder
+        self.postencoder = postencoder
         self.encoder = encoder
         # we set self.decoder = None in the CTC mode since
         # self.decoder parameters were never used and PyTorch complained
@@ -214,6 +217,12 @@ class ESPnetASRModel(AbsESPnetModel):
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
         encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+
+        # Post-encoder, e.g. NLU
+        if self.postencoder is not None:
+            encoder_out, encoder_out_lens = self.postencoder(
+                encoder_out, encoder_out_lens
+            )
 
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),

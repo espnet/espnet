@@ -43,6 +43,8 @@ from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from espnet2.asr.postencoder.transformers import Transformers
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -111,6 +113,15 @@ encoder_choices = ClassChoices(
     type_check=AbsEncoder,
     default="rnn",
 )
+postencoder_choices = ClassChoices(
+    name="postencoder",
+    classes=dict(
+        transformers=Transformers,
+    ),
+    type_check=AbsPostEncoder,
+    default=None,
+    optional=True,
+)
 decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
@@ -142,6 +153,8 @@ class ASRTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --postencoder and --postencoder_conf
+        postencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
     ]
@@ -418,18 +431,30 @@ class ASRTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
+        # 5. Post-encoder block
+        # NOTE(kan-bayashi): Use getattr to keep the compatibility
+        encoder_output_size = encoder.output_size()
+        if getattr(args, "postencoder", None) is not None:
+            postencoder_class = postencoder_choices.get_class(args.postencoder)
+            postencoder = postencoder_class(
+                input_size=encoder_output_size, **args.postencoder_conf
+            )
+            encoder_output_size = postencoder.output_size()
+        else:
+            postencoder = None
+
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
         decoder = decoder_class(
             vocab_size=vocab_size,
-            encoder_output_size=encoder.output_size(),
+            encoder_output_size=encoder_output_size,
             **args.decoder_conf,
         )
 
         # 6. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
+            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
         )
 
         # 7. RNN-T Decoder (Not implemented)
@@ -443,6 +468,7 @@ class ASRTask(AbsTask):
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
+            postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
             rnnt_decoder=rnnt_decoder,
