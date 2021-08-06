@@ -213,6 +213,7 @@
   <h1>Source code for espnet2.asr.espnet_model</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
@@ -270,6 +271,7 @@
         <span class="n">report_wer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">sym_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
         <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span>
+        <span class="n">extract_feats_in_collect_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">ctc_weight</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">ctc_weight</span>
@@ -315,6 +317,8 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span> <span class="o">=</span> <span class="n">extract_feats_in_collect_stats</span>
 
 <div class="viewcode-block" id="ESPnetASRModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -395,7 +399,16 @@
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_feats</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span><span class="p">:</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_feats</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Generate dummy stats if extract_feats_in_collect_stats is False</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Generating dummy stats for feats and feats_lengths, &quot;</span>
+                <span class="s2">&quot;because encoder_conf.extract_feats_in_collect_stats is &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;feats&quot;</span><span class="p">:</span> <span class="n">feats</span><span class="p">,</span> <span class="s2">&quot;feats_lengths&quot;</span><span class="p">:</span> <span class="n">feats_lengths</span><span class="p">}</span></div>
 
 <div class="viewcode-block" id="ESPnetASRModel.encode"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>

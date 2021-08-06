@@ -646,7 +646,7 @@ asr_train.py
                             The number of input dimension of the feature (default: None)
       --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': True})
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'ctc_weight': 0.5, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>'})
+                            The keyword arguments for model class. (default: {'ctc_weight': 0.5, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True})
     
       Preprocess related
     
