@@ -5,7 +5,7 @@
 
 - ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 
-|dataset|Snt|Dialogue Act Classification (%)|
-|---|---|---|---|---|---|---|---|---|
+|Dataset|Snt|Dialogue Act Classification (%)|
+|---|---|---|
 |decode_asr_asr_model_valid.acc.best/test|2379|51.9|
 |decode_asr_asr_model_valid.acc.best/valid|8117|56.8|
