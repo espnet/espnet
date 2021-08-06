@@ -9,6 +9,8 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from typeguard import check_argument_types
 from typing import Tuple
 
+import copy
+import logging
 import torch
 
 
@@ -35,6 +37,7 @@ class Transformers(AbsPostEncoder):
 
         model = AutoModel.from_pretrained(model_name_or_path)
         self.transformer = model.encoder
+        self.pretrained_params = copy.deepcopy(model.encoder.state_dict())
         self.linear_in = torch.nn.Linear(
             input_size, self.transformer.config.hidden_size
         )
@@ -51,6 +54,10 @@ class Transformers(AbsPostEncoder):
         output = self.transformer(input, attention_mask=mask).last_hidden_state
 
         return output, input_lengths
+
+    def reload_pretrained_parameters(self):
+        self.transformer.load_state_dict(self.pretrained_params)
+        logging.info("Pretrained Transformers model parameters reloaded!")
 
     def output_size(self) -> int:
         """Get the output size."""
