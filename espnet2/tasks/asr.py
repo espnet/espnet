@@ -40,11 +40,11 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from espnet2.asr.postencoder.transformers import Transformers
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
-from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet2.asr.postencoder.transformers import Transformers
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize

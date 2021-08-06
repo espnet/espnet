@@ -31,7 +31,8 @@ class Transformers(AbsPostEncoder):
         except Exception as e:
             print("Error: Transformers is not properly installed.")
             print(
-                "Please install Transformers: cd ${MAIN_ROOT}/tools && make transformers.done"
+                "Please install Transformers: "
+                + "cd ${MAIN_ROOT}/tools && make transformers.done"
             )
             raise e
 
