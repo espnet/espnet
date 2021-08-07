@@ -48,6 +48,8 @@ args.utt2spk_f,"w") as utt2spk_f,open(args.semantics,"w") as semantics:
                     utt_semantic.append(partial_text["text"].lower())
             utt_text = utt_text.strip('\n')
             utt_text = utt_text.replace('\n'," ")
+            utt_semantic = [utt_semantic[0]]
+            #Currently, focus on intent classification task only 
             utt_semantic = " ".join(utt_semantic)
             # 1310.wav missed in the original dataset
             if utt_text != "Turn the lights up":
