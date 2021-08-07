@@ -11,7 +11,8 @@ fi
 if [ ! -e transformers.done ]; then
     (
         set -euo pipefail
-        python3 -m pip install transformers
+        # tested with 4.9.1
+        python3 -m pip install transformers>4.9.0
     )
     touch transformers.done
 else
