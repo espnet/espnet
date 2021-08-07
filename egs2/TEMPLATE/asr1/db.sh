@@ -124,6 +124,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TEDXJP=
     LIBRISPEECH=
     FSC=
+    SNIPS= # smart-light-en-closed-field data path
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
