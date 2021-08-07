@@ -37,8 +37,34 @@ class Transformers(AbsPostEncoder):
             raise e
 
         model = AutoModel.from_pretrained(model_name_or_path)
-        self.transformer = model.encoder
-        self.pretrained_params = copy.deepcopy(model.encoder.state_dict())
+
+        if hasattr(model, "encoder"):
+            self.transformer = model.encoder
+        else:
+            self.transformer = model
+
+        if hasattr(self.transformer, "embed_tokens"):
+            del self.transformer.embed_tokens
+        if hasattr(self.transformer, "wte"):
+            del self.transformer.wte
+        if hasattr(self.transformer, "word_embedding"):
+            del self.transformer.word_embedding
+
+        self.pretrained_params = copy.deepcopy(self.transformer.state_dict())
+
+        if (
+            self.transformer.config.is_encoder_decoder
+            or self.transformer.config.model_type in ["xlnet", "t5"]
+        ):
+            self.use_inputs_embeds = True
+            self.extend_attention_mask = False
+        elif self.transformer.config.model_type == "gpt2":
+            self.use_inputs_embeds = True
+            self.extend_attention_mask = True
+        else:
+            self.use_inputs_embeds = False
+            self.extend_attention_mask = True
+
         self.linear_in = torch.nn.Linear(
             input_size, self.transformer.config.hidden_size
         )
@@ -49,10 +75,24 @@ class Transformers(AbsPostEncoder):
         """Forward."""
         input = self.linear_in(input)
 
+        args = {"return_dict": True}
+
         mask = (~make_pad_mask(input_lengths)).to(input.device).float()
-        mask = mask[:, None, None, :]
-        mask = (1.0 - mask) * -10000.0
-        output = self.transformer(input, attention_mask=mask).last_hidden_state
+
+        if self.extend_attention_mask:
+            args["attention_mask"] = _extend_attention_mask(mask)
+        else:
+            args["attention_mask"] = mask
+
+        if self.use_inputs_embeds:
+            args["inputs_embeds"] = input
+        else:
+            args["hidden_states"] = input
+
+        if self.transformer.config.model_type == "mpnet":
+            args["head_mask"] = [None for _ in self.transformer.layer]
+
+        output = self.transformer(**args).last_hidden_state
 
         return output, input_lengths
 
@@ -63,3 +103,9 @@ class Transformers(AbsPostEncoder):
     def output_size(self) -> int:
         """Get the output size."""
         return self.transformer.config.hidden_size
+
+
+def _extend_attention_mask(mask: torch.Tensor) -> torch.Tensor:
+    mask = mask[:, None, None, :]
+    mask = (1.0 - mask) * -10000.0
+    return mask

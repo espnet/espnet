@@ -15,6 +15,10 @@ encoder_conf:
 # postencoder
 postencoder: transformers
 postencoder_conf:
+    # pick up a model from https://huggingface.co/models?filter=transformers
+    # most of models should work, but maybe some don't
+    # known to work: bert, gpt2, xlnet, roberta, mpnet, t5, bart
+    # xlnet currently works for single gpu only
     model_name_or_path: "bert-base-cased"
 
 # decoder related
