@@ -63,12 +63,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-   utils/subset_data_dir.sh --first data/all 450 data/dev_test
-   n=$(($(wc -l < data/all/text) - 450))
+   # tr,cv,test: 8:1:1
+   utils/subset_data_dir.sh --first data/all 332 data/dev_test
+   n=$(($(wc -l < data/all/text) - 332))
    utils/subset_data_dir.sh --last data/all ${n} data/train
    utils/fix_data_dir.sh data/train
-   utils/subset_data_dir.sh --first data/dev_test 150 data/dev
-   n=$(($(wc -l < data/dev_test/text) - 150))
+   utils/subset_data_dir.sh --first data/dev_test 166 data/dev
+   n=$(($(wc -l < data/dev_test/text) - 166))
    utils/subset_data_dir.sh --last data/dev_test ${n} data/test
    utils/fix_data_dir.sh data/dev
    utils/fix_data_dir.sh data/test
