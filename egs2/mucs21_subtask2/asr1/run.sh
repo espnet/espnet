@@ -23,4 +23,4 @@ asr_config=conf/train_asr.yaml
     --asr_config "${asr_config}" \
     --train_set "${train_set}" \
     --valid_set "${test_sets}" \
-    # --test_sets "${test_sets}" "$@"
+    --test_sets "${test_sets}" "$@"
