@@ -4,23 +4,23 @@
 set -e
 set -u
 set -o pipefail
-
-train_set="train"
-valid_set="valid"
-test_sets="test valid"
+lang=hi-en
+train_set="hi-en/train/transcripts"
+valid_set="hi-en/valid/transcripts"
+test_sets="hi-en/test/transcripts"
 
 asr_config=conf/train_asr.yaml
 
 ./asr.sh \
-    --lang en \
+    --lang hi-en \
     --ngpu 1 \
     --use_lm false \
     --nbpe 5000 \
     --token_type char\
     --audio_format wav\
-    --feats_type raw\
+    --feats_type fbank_pitch\
     --max_wav_duration 30 \
     --asr_config "${asr_config}" \
     --train_set "${train_set}" \
-    --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" "$@"
+    --valid_set "${test_sets}" \
+    # --test_sets "${test_sets}" "$@"

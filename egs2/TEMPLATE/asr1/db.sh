@@ -84,6 +84,7 @@ NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
+MUCS_subtask2=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
