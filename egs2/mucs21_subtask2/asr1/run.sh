@@ -7,13 +7,14 @@ set -o pipefail
 lang=hi-en
 train_set="hi-en/train/transcripts"
 valid_set="hi-en/valid/transcripts"
-test_sets="hi-en/test/transcripts"
+test_set="hi-en/valid/transcripts"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/train.yaml
 
 ./asr.sh \
     --lang hi-en \
     --ngpu 1 \
+    --skip_data_prep true\
     --use_lm false \
     --nbpe 5000 \
     --token_type char\
@@ -22,5 +23,5 @@ asr_config=conf/train_asr.yaml
     --max_wav_duration 30 \
     --asr_config "${asr_config}" \
     --train_set "${train_set}" \
-    --valid_set "${test_sets}" \
-    --test_sets "${test_sets}" "$@"
+    --valid_set "${valid_set}" \
+    --test_sets "${test_set}" "$@"
