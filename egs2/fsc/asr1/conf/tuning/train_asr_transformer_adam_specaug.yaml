@@ -22,7 +22,14 @@ decoder_conf:
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
-max_epoch: 80
+optim: adam
+optim_conf:
+    lr: 0.0002
+scheduler: warmuplr     # pytorch v1.1.0+ required
+scheduler_conf:
+    warmup_steps: 25000
+max_epoch: 200
+
 specaug: specaug
 specaug_conf:
     apply_time_warp: true

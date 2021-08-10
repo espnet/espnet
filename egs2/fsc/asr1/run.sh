@@ -9,7 +9,7 @@ train_set="train"
 valid_set="valid"
 test_sets="test valid"
 
-asr_config=conf/tuning/train_asr_transformer_adam_small_specaug.yaml
+asr_config=conf/train_asr.yaml
 
 ./asr.sh \
     --lang en \
@@ -20,7 +20,7 @@ asr_config=conf/tuning/train_asr_transformer_adam_small_specaug.yaml
     --audio_format wav\
     --feats_type raw\
     --max_wav_duration 30 \
-    --inference_asr_model last10_model.pth\
+    --inference_asr_model valid.acc.ave_5best.pth\
     --asr_config "${asr_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
