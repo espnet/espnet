@@ -112,7 +112,8 @@ Demonstration
 
 ### SLU: Speech Language Understanding
 - Predicting intent by directly classifying it as one of intent or decoding by character
-- Transformer & RNN based encoder-decoder model (Performs better than reported results of non-pretrained model on Fluent Speech Command Dataset)
+- Transformer & RNN based encoder-decoder model
+- Establish SOTA results with spectral augmentation (Performs better than reported results of pretrained model on Fluent Speech Command Dataset)
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
