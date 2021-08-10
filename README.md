@@ -39,6 +39,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Support numbers of `MT` recipes (IWSLT'16, the above ST recipes etc.)
 - Support speech separation and recognition recipe (WSJ-2mix)
 - Support voice conversion recipe (VCC2020 baseline) (new!)
+- Support speech language understanding recipe (FSC baseline) (new!)
 
 
 ### ASR: Automatic Speech Recognition
@@ -109,6 +110,11 @@ Demonstration
 ### VC: Voice conversion
 - Transformer and Tacotron2 based parallel VC using melspectrogram (new!)
 - End-to-end VC based on cascaded ASR+TTS (Baseline system for Voice Conversion Challenge 2020!)
+
+### SLU: Speech Language Understanding
+- Predicting intent by directly classifying it as one of intent or decoding by character
+- Transformer & RNN based encoder-decoder model
+- Establish SOTA results with spectral augmentation (Performs better than reported results of pretrained model on Fluent Speech Command Dataset)
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
@@ -479,6 +485,17 @@ You can listen to some samples on the [demo webpage](https://unilight.github.io/
 The [Voice Conversion Challenge 2020](http://www.vc-challenge.org/) (VCC2020) adopts ESPnet to build an end-to-end based baseline system.
 In VCC2020, the objective is intra/cross lingual nonparallel VC.
 You can download converted samples of the cascade ASR+TTS baseline system [here](https://drive.google.com/drive/folders/1oeZo83GrOgtqxGwF7KagzIrfjr8X59Ue?usp=sharing).
+
+</div></details>
+
+### SLU results
+
+<details><summary>ESPnet2</summary><div>
+
+- Transformer based SLU for Fluent Speech Command Dataset
+
+In SLU, The objective is to infer the meaning or intent of spoken utterance. The [Fluent Speech Command Dataset](https://fluent.ai/fluent-speech-commands-a-dataset-for-spoken-language-understanding-research/) describes an intent as combination of 3 slot values: action, object and location. You can see baseline results on this dataset [here](https://github.com/espnet/espnet/blob/master/egs2/fsc/asr1/RESULTS.md) 
+
 
 </div></details>
 

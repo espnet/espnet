@@ -16,10 +16,11 @@ asr_config=conf/train_asr.yaml
     --ngpu 1 \
     --use_lm false \
     --nbpe 5000 \
-    --token_type char\
+    --token_type word\
     --audio_format wav\
     --feats_type raw\
     --max_wav_duration 30 \
+    --inference_asr_model valid.acc.ave_5best.pth\
     --asr_config "${asr_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
