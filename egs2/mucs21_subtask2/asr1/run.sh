@@ -13,7 +13,7 @@ asr_config=conf/train.yaml
 
 ./asr.sh \
     --lang hi-en \
-    --ngpu 1 \
+    --ngpu 2 \
     --skip_data_prep true\
     --use_lm false \
     --nbpe 5000 \
