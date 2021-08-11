@@ -44,7 +44,7 @@ use_lm_valbest_average=false # if true, the validation `lm_n_average`-best langu
                              # if false, the last `lm_n_average` language models will be averaged.
 
 # Set this to somewhere where you want to put your data, or where
-# someone else has already put it.  
+# someone else has already put it.
 datadir=
 
 # base url for downloads.
@@ -70,6 +70,25 @@ train_sp=train_sp
 train_dev=test
 recog_set="test"
 
+
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+    echo "stage -1: Data Download"
+    local/download_data.sh raw_data
+fi
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    ### Task dependent. You have to make data the following preparation part by yourself.
+    ### But you can utilize Kaldi recipes in most cases
+    echo "stage 0: Data preparation"
+    # remove space in text
+    mkdir -p data
+    local/prepare_data.sh raw_data
+    local/check_audio_data_folder.sh raw_data
+    local/test_data_prep.sh raw_data data/test
+    local/train_data_prep.sh raw_data data/train
+    echo "End of stage 0"
+
+fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_sp_dir=${dumpdir}/${train_sp}/delta${do_delta}; mkdir -p ${feat_sp_dir}
@@ -101,7 +120,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_sp}/feats.scp data/${train_sp}/cmvn.ark
 
-    
+
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
         data/${train_sp}/feats.scp data/${train_sp}/cmvn.ark exp/dump_feats/train ${feat_sp_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta ${do_delta} \
