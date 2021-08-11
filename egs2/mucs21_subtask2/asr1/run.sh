@@ -10,12 +10,13 @@ valid_set="hi-en/valid/transcripts"
 test_set="hi-en/valid/transcripts"
 
 asr_config=conf/train.yaml
-
+lm_config_=conf/lm.yaml
 ./asr.sh \
     --lang hi-en \
     --ngpu 2 \
     --skip_data_prep true\
-    --use_lm false \
+    --use_lm true \
+    --lm_config "${lm_config_}" \
     --nbpe 5000 \
     --token_type char\
     --audio_format wav\

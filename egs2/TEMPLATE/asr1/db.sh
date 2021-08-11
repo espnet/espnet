@@ -164,5 +164,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LRS2=
     JAVA=
     SUNDA=
+    MUCS_subtask2=downloads
 
 fi
