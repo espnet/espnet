@@ -343,6 +343,8 @@ class BeamSearch(torch.nn.Module):
             maxlenratio (float): Input length ratio to obtain max output length.
                 If maxlenratio=0.0 (default), it uses a end-detect function
                 to automatically find maximum hypothesis lengths
+                If maxlenratio<0.0, its absolute value is interpreted
+                as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
 
         Returns:

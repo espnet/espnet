@@ -116,7 +116,9 @@ def get_parser():
         default=0.0,
         help="""Input length ratio to obtain max output length.
                         If maxlenratio=0.0 (default), it uses a end-detect function
-                        to automatically find maximum hypothesis lengths""",
+                        to automatically find maximum hypothesis lengths.
+                        If maxlenratio<0.0, its absolute value is interpreted
+                        as a constant max output length""",
     )
     parser.add_argument(
         "--minlenratio",
