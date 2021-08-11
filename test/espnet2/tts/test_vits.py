@@ -37,7 +37,10 @@ def make_vits_args(**kwargs):
         decoder_channels=16,
         decoder_upsample_scales=(2, 2),
         decoder_upsample_kernel_sizes=(4, 4),
-        decoder_resblock_kernel_sizes=(3, 5,),
+        decoder_resblock_kernel_sizes=(
+            3,
+            5,
+        ),
         decoder_resblock_dilations=[(1, 3), (1, 3)],
         use_weight_norm_in_decoder=True,
         posterior_encoder_kernel_size=5,
