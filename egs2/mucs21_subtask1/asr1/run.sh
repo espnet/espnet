@@ -4,10 +4,10 @@
 set -e
 set -u
 set -o pipefail
-lang=hi-en
-train_set="hi-en/train/transcripts"
-valid_set="hi-en/valid/transcripts"
-test_set="hi-en/valid/transcripts"
+
+train_set='train'
+valid_set='test'
+test_set='test'
 
 asr_config=conf/train.yaml
 lm_config_=conf/lm.yaml
