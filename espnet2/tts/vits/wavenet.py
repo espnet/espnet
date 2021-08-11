@@ -3,8 +3,7 @@
 
 """WaveNet modules.
 
-This code is slightly modified from my implementaion:
-- https://github.com/kan-bayashi/ParallelWaveGAN.
+This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 """
 

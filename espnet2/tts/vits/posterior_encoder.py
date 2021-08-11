@@ -3,8 +3,7 @@
 
 """Posterior encoder of VITS.
 
-This code is based on the official implementation:
-- https://github.com/jaywalnut310/vits
+This code is based on https://github.com/jaywalnut310/vits.
 
 """
 

@@ -3,8 +3,7 @@
 
 """VITS: Variational Inference with adversarial learning for end-to-end Text-to-Speech.
 
-This code is based on the official implementation:
-- https://github.com/jaywalnut310/vits
+This code is based on https://github.com/jaywalnut310/vits.
 
 """
 
