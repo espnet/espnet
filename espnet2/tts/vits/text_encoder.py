@@ -21,12 +21,11 @@ class TextEncoder(torch.nn.Module):
 
     def __init__(
         self,
-        idim,
-        odim,
+        vocabs,
         attention_dim=192,
         attention_heads=2,
         linear_units=768,
-        num_blocks=6,
+        blocks=6,
         positionwise_layer_type="conv1d",
         positionwise_conv_kernel_size=3,
         positional_encoding_layer_type="rel_pos",
@@ -43,12 +42,11 @@ class TextEncoder(torch.nn.Module):
         """Initialize TextEncoder module.
 
         Args:
-            idim: Input dimension.
-            odim: Output dimension.
+            vocabs: Vocabulary size.
             attention_dim: Attention dimension.
             attention_heads: Number of attention heads.
             linear_units: Number of linear units of positionwise layers.
-            num_blocks: Number of encoder blocks.
+            blocks: Number of encoder blocks.
             positionwise_layer_type: Positionwise layer type.
             positionwise_conv_kernel_size: Positionwise layer's kernel size.
             positional_encoding_layer_type: Positional encoding layer type.
@@ -65,11 +63,8 @@ class TextEncoder(torch.nn.Module):
         """
         super().__init__()
 
-        self.idim = idim
-        self.odim = odim
-
         # define modules
-        self.input_emb = torch.nn.Embedding(idim, attention_dim)
+        self.input_emb = torch.nn.Embedding(vocabs, attention_dim)
         torch.nn.init.normal_(self.emb.weight, 0.0, attention_dim ** -0.5)
 
         # NOTE(kan-bayashi): We use conformer encoder instead of transformer encoder
@@ -79,7 +74,7 @@ class TextEncoder(torch.nn.Module):
             attention_dim=attention_dim,
             attention_heads=attention_heads,
             linear_units=linear_units,
-            num_blocks=num_blocks,
+            num_blocks=blocks,
             dropout_rate=dropout_rate,
             positional_dropout_rate=positional_dropout_rate,
             attention_dropout_rate=attention_dropout_rate,
@@ -94,7 +89,7 @@ class TextEncoder(torch.nn.Module):
             cnn_module_kernel=conformer_kernel_size,
         )
 
-        self.output_conv = torch.nn.Conv1d(attention_dim, odim * 2, 1)
+        self.output_conv = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
 
     def forward(self, x, x_lengths):
         """Calculate forward propagation.
@@ -105,8 +100,8 @@ class TextEncoder(torch.nn.Module):
 
         Returns:
             Tensor: Encoded hidden representation (B, attention_dim, T).
-            Tensor: VAE mean tensor (B, odim, T).
-            Tensor: VAE scale tensor (B, odim, T).
+            Tensor: VAE mean tensor (B, attention_dim, T).
+            Tensor: VAE scale tensor (B, attention_dim, T).
             Tensor: Mask tensor for input tensor (B, 1, T).
 
         """
