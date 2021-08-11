@@ -17,7 +17,7 @@ except ImportError:
     is_compiled = False
 
 
-def make_vits_args(**kwargs):
+def make_vits_generator_args(**kwargs):
     defaults = dict(
         idim=10,
         odim=-1,
@@ -35,8 +35,8 @@ def make_vits_args(**kwargs):
         text_encoder_attention_dropout_rate=0.0,
         decoder_kernel_size=7,
         decoder_channels=16,
-        decoder_upsample_scales=(2, 2),
-        decoder_upsample_kernel_sizes=(4, 4),
+        decoder_upsample_scales=(16, 16),
+        decoder_upsample_kernel_sizes=(32, 32),
         decoder_resblock_kernel_sizes=(
             3,
             5,
@@ -65,6 +65,81 @@ def make_vits_args(**kwargs):
     return defaults
 
 
+def make_vits_discriminator_args(**kwargs):
+    defaults = dict(
+        scales=2,
+        scale_downsample_pooling="AvgPool1d",
+        scale_downsample_pooling_params={
+            "kernel_size": 4,
+            "stride": 2,
+            "padding": 2,
+        },
+        scale_discriminator_params={
+            "in_channels": 1,
+            "out_channels": 1,
+            "kernel_sizes": [15, 41, 5, 3],
+            "channels": 16,
+            "max_downsample_channels": 32,
+            "max_groups": 16,
+            "bias": True,
+            "downsample_scales": [2, 4, 1],
+            "nonlinear_activation": "LeakyReLU",
+            "nonlinear_activation_params": {"negative_slope": 0.1},
+        },
+        follow_official_norm=True,
+        periods=[2, 3, 5],
+        period_discriminator_params={
+            "in_channels": 1,
+            "out_channels": 1,
+            "kernel_sizes": [5, 3],
+            "channels": 4,
+            "downsample_scales": [3, 3, 1],
+            "max_downsample_channels": 16,
+            "bias": True,
+            "nonlinear_activation": "LeakyReLU",
+            "nonlinear_activation_params": {"negative_slope": 0.1},
+            "use_weight_norm": True,
+            "use_spectral_norm": False,
+        },
+    )
+    defaults.update(kwargs)
+    return defaults
+
+
+def make_vits_loss_args(**kwargs):
+    defaults = dict(
+        lambda_adv=1.0,
+        lambda_mel=45.0,
+        lambda_feat_match=1.0,
+        lambda_dur=1.0,
+        lambda_kl=1.0,
+        generator_adv_loss_params={
+            "average_by_discriminators": False,
+        },
+        discriminator_adv_loss_params={
+            "average_by_discriminators": False,
+        },
+        feat_match_loss_params={
+            "average_by_discriminators": False,
+            "average_by_layers": False,
+            "include_final_outputs": True,
+        },
+        mel_loss_params={
+            "fs": 22050,
+            "n_fft": 1024,
+            "hop_length": 256,
+            "win_length": None,
+            "window": "hann",
+            "n_mels": 80,
+            "fmin": 0,
+            "fmax": None,
+            "log_base": None,
+        },
+    )
+    defaults.update(kwargs)
+    return defaults
+
+
 @pytest.mark.skipif(not is_compiled, reason="monotonic_align is not compiled.")
 @pytest.mark.parametrize(
     "model_dict",
@@ -75,7 +150,7 @@ def make_vits_args(**kwargs):
 def test_vits_generator_forward(model_dict):
     idim = 10
     aux_channels = 5
-    args = make_vits_args(idim=idim, aux_channels=aux_channels, **model_dict)
+    args = make_vits_generator_args(idim=idim, aux_channels=aux_channels, **model_dict)
     model = VITSGenerator(**args)
 
     # check forward
@@ -108,10 +183,36 @@ def test_vits_generator_forward(model_dict):
 
 @pytest.mark.skipif(not is_compiled, reason="monotonic_align is not compiled.")
 @pytest.mark.parametrize(
-    "model_dict",
+    "gen_dict, dis_dict, loss_dict",
     [
-        ({}),
+        ({}, {}, {}),
     ],
 )
-def test_vits_is_trainable_and_decodable(model_dict):
-    model = VITS(idim=5, odim=-1)
+def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
+    idim = 10
+    aux_channels = 5
+    gen_args = make_vits_generator_args(
+        idim=idim, aux_channels=aux_channels, **gen_dict
+    )
+    dis_args = make_vits_discriminator_args(**dis_dict)
+    loss_args = make_vits_loss_args(**loss_dict)
+    model = VITS(
+        idim=idim,
+        odim=-1,
+        generator_params=gen_args,
+        discriminator_params=dis_args,
+        **loss_args,
+    )
+    upsample_factor = model.generator.upsample_factor
+    inputs = dict(
+        text=torch.randint(0, idim, (2, 8)),
+        text_lengths=torch.tensor([8, 5], dtype=torch.long),
+        feats=torch.randn(2, aux_channels, 16),
+        feats_lengths=torch.tensor([16, 13], dtype=torch.long),
+        speech=torch.randn(2, 1, 16 * upsample_factor),
+        speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
+    )
+    gen_loss, *_ = model.forward_generator(**inputs)
+    gen_loss.backward()
+    dis_loss, *_ = model.forward_discrminator(**inputs)
+    dis_loss.backward()

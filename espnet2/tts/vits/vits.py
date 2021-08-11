@@ -629,7 +629,7 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor],
+        sids: Optional[torch.Tensor] = None,
     ):
         """Perform generator forward.
 
@@ -650,21 +650,22 @@ class VITS(AbsGANTTS):
         """
         batch_size = text.size(0)
         outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
-        speech_hat_, dur, attn, start_idxs, x_mask, z_mask, outs_ = outs
-        z, z_p, m_p, logs_p, m_q, logs_q = outs_
+        speech_hat_, dur, _, start_idxs, _, z_mask, outs_ = outs
+        _, z_p, m_p, logs_p, _, logs_q = outs_
         start_idxs *= self.generator.upsample_factor
-        segment_size = (self.generator.segment_size * self.generator.upsample_factor,)
+        segment_size = self.generator.segment_size * self.generator.upsample_factor
         speech_ = self.generator.get_segments(
             x=speech,
             start_idxs=start_idxs,
             segment_size=segment_size,
         )
         p_hat = self.discriminator(speech_hat_)
-        p = self.discriminator(speech_)
+        with torch.no_grad():
+            p = self.discriminator(speech_)
         mel_loss = self.mel_loss(speech_hat_, speech_)
         kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
         dur_loss = torch.sum(dur.float())
-        adv_loss = self.generator_adv_loss(speech_hat_, speech_)
+        adv_loss = self.generator_adv_loss(p_hat)
         feat_match_loss = self.feat_match_loss(p_hat, p)
 
         mel_loss *= self.lambda_mel
@@ -694,7 +695,7 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor],
+        sids: Optional[torch.Tensor] = None,
     ):
         """Perform discriminator forward.
 
@@ -718,7 +719,7 @@ class VITS(AbsGANTTS):
             text, text_lengths, feats, feats_lengths, sids
         )
         start_idxs *= self.generator.upsample_factor
-        segment_size = (self.generator.segment_size * self.generator.upsample_factor,)
+        segment_size = self.generator.segment_size * self.generator.upsample_factor
         speech_ = self.generator.get_segments(
             x=speech,
             start_idxs=start_idxs,
