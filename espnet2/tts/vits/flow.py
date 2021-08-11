@@ -464,6 +464,6 @@ class ResidualAffineCouplingBlock(torch.nn.Module):
             for flow in self.flows:
                 x, _ = flow(x, x_mask, g=g, inverse=inverse)
         else:
-            for flow in inversed(self.flows):
+            for flow in reversed(self.flows):
                 x = flow(x, x_mask, g=g, inverse=inverse)
         return x
