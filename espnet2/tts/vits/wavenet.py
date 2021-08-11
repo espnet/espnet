@@ -65,6 +65,7 @@ class WaveNet(torch.nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.global_channels = global_channels
+        self.skip_channels = skip_channels
         self.layers = layers
         self.stacks = stacks
         self.kernel_size = kernel_size
@@ -99,6 +100,7 @@ class WaveNet(torch.nn.Module):
 
         # define output layers
         if self.use_last_conv:
+            assert self.skip_channels > 0
             self.last_conv = torch.nn.Sequential(
                 torch.nn.ReLU(inplace=True),
                 Conv1d1x1(skip_channels, skip_channels, bias=True),
@@ -131,13 +133,19 @@ class WaveNet(torch.nn.Module):
         skips = 0
         for f in self.conv_layers:
             x, h = f(x, c, g)
-            skips += h
-        skips *= math.sqrt(1.0 / len(self.conv_layers))
 
-        x = skips
+            if x_masks is not None:
+                x = x * x_masks
+
+            if self.skip_channels > 0:
+                skips += h
+
+        if self.skip_channels > 0:
+            skips *= math.sqrt(1.0 / len(self.conv_layers))
+            x = skips
 
         # apply final layers
-        if self.use_last_conv_layers:
+        if self.use_last_conv:
             x = self.last_conv(x)
 
         if x_masks is not None:
