@@ -62,10 +62,11 @@ class TextEncoder(torch.nn.Module):
 
         """
         super().__init__()
+        self.attention_dim = attention_dim
 
         # define modules
         self.input_emb = torch.nn.Embedding(vocabs, attention_dim)
-        torch.nn.init.normal_(self.emb.weight, 0.0, attention_dim ** -0.5)
+        torch.nn.init.normal_(self.input_emb.weight, 0.0, attention_dim ** -0.5)
 
         # NOTE(kan-bayashi): We use conformer encoder instead of transformer encoder
         self.encoder = Encoder(
@@ -105,10 +106,10 @@ class TextEncoder(torch.nn.Module):
             Tensor: Mask tensor for input tensor (B, 1, T).
 
         """
-        x = self.input_emb(x) * math.sqrt(self.attention_dim)  # (B, T, attention_dim)
+        x = self.input_emb(x) * math.sqrt(self.attention_dim)
         x_mask = make_non_pad_mask(x_lengths).to(dtype=x.dtype).unsqueeze(1)
-        x, _ = self.encoder(x * x_mask, x_mask)
+        x, _ = self.encoder(x, x_mask)
         x = x.transpose(1, 2)  # (B, attention_dim, T)
         stats = self.output_conv(x) * x_mask
-        m, logs = torch.split(stats, self.odim, dim=1)
+        m, logs = torch.split(stats, self.attention_dim, dim=1)
         return x, m, logs, x_mask

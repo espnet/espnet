@@ -40,7 +40,7 @@ class VITS(torch.nn.Module):
         hidden_channels=192,
         spks=-1,
         global_channels=-1,
-        segments_size=32,
+        segment_size=32,
         text_encoder_attention_heads=2,
         text_encoder_attention_expand=4,
         text_encoder_blocks=6,
@@ -82,7 +82,7 @@ class VITS(torch.nn.Module):
             hidden_channels (int): Number of hidden channels.
             spks (int): Number of speakers.
             global_channels (int): Number of global conditioning channels.
-            segments_size (int): Segment size for decoder.
+            segment_size (int): Segment size for decoder.
             text_encoder_attention_heads (int): Number of heads in text encoder.
             text_encoder_attention_expand (int): Expansion number in text encoder.
             text_encoder_blocks (int): Number of blocks in text encoder.
@@ -129,14 +129,14 @@ class VITS(torch.nn.Module):
 
         """
         super().__init__()
-        self.segments_size = segments_size
+        self.segment_size = segment_size
         self.text_encoder = TextEncoder(
             vocabs=idim,
             attention_dim=hidden_channels,
             attention_heads=text_encoder_attention_heads,
             linear_units=hidden_channels * text_encoder_attention_expand,
             blocks=text_encoder_blocks,
-            kernel_size=text_encoder_kernel_size,
+            positionwise_conv_kernel_size=text_encoder_kernel_size,
             dropout_rate=text_encoder_dropout_rate,
             positional_dropout_rate=text_encoder_positional_dropout_rate,
             attention_dropout_rate=text_encoder_attention_dropout_rate,
@@ -213,7 +213,7 @@ class VITS(torch.nn.Module):
             sids (Optional[Tensor]): Speaker index tensor (B,).
 
         Returns:
-            Tensor: Waveform tensor (B, 1, segments_size * upsample_factor).
+            Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
             Tensor: Duration tensor (B, 1, T).
             Tensor: Attention weight tensor (B, T_feat, T_text).
             Tensor: Segments start index tensor (B,).

@@ -62,8 +62,8 @@ class ElementwiseAffineFlow(torch.nn.Module):
         """Initialize ElementwiseAffineFlow module."""
         super().__init__()
         self.channels = channels
-        self.register_parameter("m", torch.zeros(channels, 1))
-        self.register_parameter("logs", torch.zeros(channels, 1))
+        self.register_parameter("m", torch.nn.Parameter(torch.zeros(channels, 1)))
+        self.register_parameter("logs", torch.nn.Parameter(torch.zeros(channels, 1)))
 
     def forward(self, x, x_mask, inverse=False, **kwargs):
         """Calculate forward propagation.
@@ -129,7 +129,7 @@ class DilatedDepthSeparableConv(torch.nn.Module):
         for i in range(layers):
             dilation = kernel_size ** i
             padding = (kernel_size * dilation - dilation) // 2
-            self.convs_sep += [
+            self.convs += [
                 torch.nn.Sequential(
                     torch.nn.Conv1d(
                         channels,
@@ -178,7 +178,7 @@ class DilatedDepthSeparableConv(torch.nn.Module):
         """
         if g is not None:
             x = x + g
-        for f in range(self.convs):
+        for f in self.convs:
             y = f(x * x_mask)
             x = x + y
         return x * x_mask

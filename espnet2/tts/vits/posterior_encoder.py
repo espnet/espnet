@@ -49,6 +49,8 @@ class PosteriorEncoder(torch.nn.Module):
 
         """
         super().__init__()
+        self.out_channels = out_channels
+
         self.input_conv = Conv1d(in_channels, hidden_channels, 1)
         self.encoder = WaveNet(
             in_channels=-1,
