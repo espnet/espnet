@@ -169,7 +169,10 @@ class WaveNet(torch.nn.Module):
 
     @staticmethod
     def _get_receptive_field_size(
-        layers, stacks, kernel_size, base_dilation,
+        layers,
+        stacks,
+        kernel_size,
+        base_dilation,
     ):
         assert layers % stacks == 0
         layers_per_cycle = layers // stacks
