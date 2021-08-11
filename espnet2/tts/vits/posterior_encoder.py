@@ -24,8 +24,9 @@ class PosteriorEncoder(torch.nn.Module):
         out_channels,
         hidden_channels=64,
         kernel_size=3,
-        layers=30,
-        stacks=3,
+        layers=16,
+        stacks=1,
+        base_dilation=1,
         global_channels=-1,
         dropout_rate=0.0,
         bias=True,
@@ -40,6 +41,7 @@ class PosteriorEncoder(torch.nn.Module):
             kernel_size (int): Kernel size in WaveNet.
             layers (int): Number of layers of WaveNet.
             stacks (int): Number of repeat stacking of WaveNet.
+            base_dilation (int): Base dilation factor.
             global_channels (int): Number of global conditioning channels.
             dropout_rate (float): Dropout rate.
             bias (bool): Whether to use bias parameters in conv.
@@ -54,6 +56,7 @@ class PosteriorEncoder(torch.nn.Module):
             kernel_size=kernel_size,
             layers=layers,
             stacks=stacks,
+            base_dilation=base_dilation,
             residual_channels=hidden_channels,
             aux_channels=-1,
             gate_channels=hidden_channels * 2,

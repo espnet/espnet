@@ -27,6 +27,7 @@ class WaveNet(torch.nn.Module):
         kernel_size=3,
         layers=30,
         stacks=3,
+        base_dilation=2,
         residual_channels=64,
         aux_channels=-1,
         gate_channels=128,
@@ -46,6 +47,7 @@ class WaveNet(torch.nn.Module):
             kernel_size (int): Kernel size of dilated convolution.
             layers (int): Number of residual block layers.
             stacks (int): Number of stacks i.e., dilation cycles.
+            base_dilation (int): Base dilation factor.
             residual_channels (int): Number of channels in residual conv.
             gate_channels (int):  Number of channels in gated conv.
             skip_channels (int): Number of channels in skip conv.
@@ -68,6 +70,7 @@ class WaveNet(torch.nn.Module):
         self.kernel_size = kernel_size
         self.use_first_conv = use_first_conv
         self.use_last_conv = use_last_conv
+        self.base_dilation = base_dilation
 
         # check the number of layers and stacks
         assert layers % stacks == 0
@@ -80,7 +83,7 @@ class WaveNet(torch.nn.Module):
         # define residual blocks
         self.conv_layers = torch.nn.ModuleList()
         for layer in range(layers):
-            dilation = 2 ** (layer % layers_per_stack)
+            dilation = base_dilation ** (layer % layers_per_stack)
             conv = ResidualBlock(
                 kernel_size=kernel_size,
                 residual_channels=residual_channels,
@@ -166,16 +169,16 @@ class WaveNet(torch.nn.Module):
 
     @staticmethod
     def _get_receptive_field_size(
-        layers, stacks, kernel_size, dilation=lambda x: 2 ** x
+        layers, stacks, kernel_size, base_dilation,
     ):
         assert layers % stacks == 0
         layers_per_cycle = layers // stacks
-        dilations = [dilation(i % layers_per_cycle) for i in range(layers)]
+        dilations = [base_dilation ** (i % layers_per_cycle) for i in range(layers)]
         return (kernel_size - 1) * sum(dilations) + 1
 
     @property
     def receptive_field_size(self):
         """Return receptive field size."""
         return self._get_receptive_field_size(
-            self.layers, self.stacks, self.kernel_size
+            self.layers, self.stacks, self.kernel_size, self.base_dilation
         )
