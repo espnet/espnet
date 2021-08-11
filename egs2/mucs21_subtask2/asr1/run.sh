@@ -6,10 +6,10 @@ set -u
 set -o pipefail
 lang=hi-en
 train_set="hi-en/train/transcripts"
-valid_set="hi-en/valid/transcripts"
-test_set="hi-en/valid/transcripts"
+valid_set="hi-en/test/transcripts"
+test_set="hi-en/test/transcripts"
 
-asr_config=conf/train.yaml
+asr_config=conf/train2.yaml
 lm_config_=conf/lm.yaml
 ./asr.sh \
     --lang hi-en \

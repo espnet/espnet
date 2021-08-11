@@ -24,13 +24,10 @@ declare -A trainset
 trainset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi-English_train.tar.gz'
 trainset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Bengali-English_train.tar.gz'
 
-declare -A valset
-valset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi-English_test.tar.gz'
-valset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Bengali-English_test.tar.gz'
-
 declare -A testset
-testset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/subtask2_blindtest_wReadme.tar.gz'
-testset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/subtask2_blindtest_wReadme.tar.gz'
+testset['hi-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Hindi-English_test.tar.gz'
+testset['bn-en']='http://www.ee.iisc.ac.in/new/people/faculty/prasantg/downloads/Bengali-English_test.tar.gz'
+
 
 cwd=`pwd`
 if [ ! -e ${db}/${lang}.done ]; then
@@ -38,9 +35,6 @@ if [ ! -e ${db}/${lang}.done ]; then
     cd ${db}
     mkdir -p ${lang}
     cd ${lang}
-    wget -O valid.zip ${valset[$lang]}
-    tar xf "valid.zip"
-    rm valid.zip
     wget -O test.zip ${testset[$lang]}
     tar xf "test.zip"
     rm test.zip
