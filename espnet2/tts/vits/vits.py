@@ -214,12 +214,18 @@ class VITS(torch.nn.Module):
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
-            Tensor: Duration tensor (B, 1, T).
-            Tensor: Attention weight tensor (B, T_feat, T_text).
+            Tensor: Duration tensor (B,).
+            Tensor: Monotonic attention weight tensor (B, 1, T_feats, T_text).
             Tensor: Segments start index tensor (B,).
             Tensor: Text mask tensor (B, 1, T_text).
             Tensor: Feature mask tensor (B, 1, T_feats).
-            tuple[Tensor]: Tuple of tensors.
+            tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+                - Tensor: Posterior encoder hidden represetation (B, H, T_feats).
+                - Tensor: Flow hidden representation (B, H, T_feats).
+                - Tensor: Expanded text encoder VAE mean (B, H, T_feats).
+                - Tensor: Expanded text encoder VAE scale (B, H, T_feats).
+                - Tensor: Posterior encoder VAE mean (B, H, T_feats).
+                - Tensor: Posterior encoder VAE scale (B, H, T_feats).
 
         """
         # forward text encoder
@@ -265,8 +271,9 @@ class VITS(torch.nn.Module):
             )
             # (B, T_feats, T_text)
             neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
+            # (B, 1, T_feats, T_text)
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            # (B, T_feats, T_text)
+            # monotonic attention weight: (B, 1, T_feats, T_text)
             attn = (
                 self.maximum_path(
                     neg_x_ent,
@@ -281,8 +288,10 @@ class VITS(torch.nn.Module):
         dur = self.duration_predictor(x, x_mask, w=w, g=g)
         dur = dur / torch.sum(x_mask)
 
-        # expand prior
+        # expand the length to match with the feature sequence
+        # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
         m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
+        # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
         logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
 
         # forward decoder with segments
@@ -364,10 +373,13 @@ class VITS(torch.nn.Module):
             max_len (Optional[int]): Maximum length.
 
         Returns:
-            Tensor: Generated waveform tensor (1, 1, T_wave).
-            Tensor: Attention weight tensor (1, T_feats, T_text).
-            Tensor: Feature mask tensor (1, 1, T_feats).
-            List[Tensor]: List of tensors.
+            Tensor: Generated waveform tensor (T_wav).
+            Tensor: Attention weight tensor (T_feats, T_text).
+            Tuple[Tensor, Tensor, Tensor, Tensor]:
+                - Tensor: Flow-inversed hidden representation tensor (H, T_feats).
+                - Tensor: Sampled hidden representation (H, T_feats).
+                - Tensor: Expanded text encoder VAE mean (H, T_feats).
+                - Tensor: Expanded text encoder VAE scale (H, T_feats).
 
         """
         # setup
@@ -390,7 +402,7 @@ class VITS(torch.nn.Module):
             x,
             x_mask,
             g=g,
-            reverse=True,
+            inverse=True,
             noise_scale=noise_scale_w,
         )
         w = torch.exp(logw) * x_mask * length_scale
@@ -400,6 +412,7 @@ class VITS(torch.nn.Module):
         attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
         attn = self._generate_path(dur, attn_mask)
 
+        # expand the length to match with the feature sequence
         # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
         m_p = torch.matmul(
             attn.squeeze(1),
@@ -413,10 +426,10 @@ class VITS(torch.nn.Module):
 
         # decoder
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
-        z = self.flow(z_p, y_mask, g=g, reverse=True)
+        z = self.flow(z_p, y_mask, g=g, inverse=True)
         wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
 
-        return wav, attn, y_mask, (z, z_p, m_p, logs_p)
+        return wav[0, 0], attn[0, 0], (z[0], z_p[0], m_p[0], logs_p[0])
 
     def _generate_path(self, dur, mask):
         """Generate path.
@@ -434,15 +447,10 @@ class VITS(torch.nn.Module):
         cum_dur_flat = cum_dur.view(b * t_x)
         path = torch.arange(t_y, dtype=dur.dtype, device=dur.device)
         path = path.unsqueeze(0) < cum_dur_flat.unsqueeze(1)
-        path = path.view(b, t_x, t_y)
-        path = (
-            path
-            - F.pad(path, self._convert_pad_shape([[0, 0], [1, 0], [0, 0]]))[:, :-1]
-        )
-        path = path.unsqueeze(1).transpose(2, 3) * mask
-        return path
-
-    def _convert_pad_shape(self, pad_shape):
-        l_ = pad_shape[::-1]
-        pad_shape = [item for sublist in l_ for item in sublist]
-        return pad_shape
+        path = path.view(b, t_x, t_y).to(dtype=mask.dtype)
+        # path will be like (t_x = 3, t_y = 5):
+        # [[[1., 1., 0., 0., 0.],      [[[1., 1., 0., 0., 0.],
+        #   [1., 1., 1., 1., 0.],  -->   [0., 0., 1., 1., 0.],
+        #   [1., 1., 1., 1., 1.]]]       [0., 0., 0., 0., 1.]]]
+        path = path - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1]
+        return path.unsqueeze(1).transpose(2, 3) * mask
