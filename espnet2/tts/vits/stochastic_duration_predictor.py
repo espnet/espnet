@@ -104,7 +104,7 @@ class StochasticDurationPredictor(torch.nn.Module):
             noise_scale (float): Noise scale value.
 
         Returns:
-            Tensor: Output tensor (B,).
+            Tensor: Output tensor (B, 1, T).
 
         """
         x = self.conv1(x.detach())  # stop gradient
