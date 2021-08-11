@@ -7,6 +7,7 @@ import pytest
 import torch
 
 from espnet2.tts.vits.vits import VITS
+from espnet2.tts.vits.vits import VITSGenerator
 
 try:
     from espnet2.tts.vits.monotonic_align import maximum_path  # NOQA
@@ -68,11 +69,11 @@ def make_vits_args(**kwargs):
         ({}),
     ],
 )
-def test_vits_forward(model_dict):
+def test_vits_generator_forward(model_dict):
     idim = 10
     aux_channels = 5
     args = make_vits_args(idim=idim, aux_channels=aux_channels, **model_dict)
-    model = VITS(**args)
+    model = VITSGenerator(**args)
 
     # check forward
     inputs = dict(
@@ -100,3 +101,14 @@ def test_vits_forward(model_dict):
         else:
             for j, output_ in enumerate(output):
                 print(f"{i+j+1}: {output_.shape}")
+
+
+@pytest.mark.skipif(not is_compiled, reason="monotonic_align is not compiled.")
+@pytest.mark.parametrize(
+    "model_dict",
+    [
+        ({}),
+    ],
+)
+def test_vits_is_trainable_and_decodable(model_dict):
+    model = VITS(idim=5, odim=-1)
