@@ -69,6 +69,7 @@ class WaveNetResidualBlock(torch.nn.Module):
         """
         super().__init__()
         self.dropout_rate = dropout_rate
+        self.skip_channels = skip_channels
         # no future time stamps available
         if use_causal_conv:
             padding = (kernel_size - 1) * dilation
@@ -102,7 +103,8 @@ class WaveNetResidualBlock(torch.nn.Module):
         # conv output is split into two groups
         gate_out_channels = gate_channels // 2
         self.conv1x1_out = Conv1d1x1(gate_out_channels, residual_channels, bias=bias)
-        self.conv1x1_skip = Conv1d1x1(gate_out_channels, skip_channels, bias=bias)
+        if skip_channels > 0:
+            self.conv1x1_skip = Conv1d1x1(gate_out_channels, skip_channels, bias=bias)
 
     def forward(self, x, c=None, g=None):
         """Calculate forward propagation.
@@ -140,7 +142,9 @@ class WaveNetResidualBlock(torch.nn.Module):
         x = torch.tanh(xa) * torch.sigmoid(xb)
 
         # for skip connection
-        s = self.conv1x1_skip(x)
+        s = None
+        if self.skip_channels > 0:
+            s = self.conv1x1_skip(x)
 
         # for residual connection
         x = (self.conv1x1_out(x) + residual) * math.sqrt(0.5)
