@@ -227,9 +227,9 @@ class VITS(AbsGANTTS):
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
-            feats (Tensor): Feature tensor (B, aux_channels, T_feats).
+            feats (Tensor): Feature tensor (B, T_feats, aux_channels).
             feats_lengths (Tensor): Feature length tensor (B,).
-            speech (Tensor): Speech waveform tensor (B, 1, T_wav).
+            speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,).
 
@@ -308,9 +308,9 @@ class VITS(AbsGANTTS):
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
-            feats (Tensor): Feature tensor (B, aux_channels, T_feats).
+            feats (Tensor): Feature tensor (B, T_feats, aux_channels).
             feats_lengths (Tensor): Feature length tensor (B,).
-            speech (Tensor): Speech waveform tensor (B, 1, T_wav).
+            speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,).
 
@@ -365,9 +365,9 @@ class VITS(AbsGANTTS):
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
-            feats (Tensor): Feature tensor (B, aux_channels, T_feats).
+            feats (Tensor): Feature tensor (B, T_feats, aux_channels).
             feats_lengths (Tensor): Feature length tensor (B,).
-            speech (Tensor): Speech waveform tensor (B, 1, T_wav).
+            speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,).
             is_generator (bool): For generator forward or not.
@@ -393,6 +393,8 @@ class VITS(AbsGANTTS):
                 Only provided for when is_generator = True.
 
         """
+        feats = feats.transpose(1, 2)
+        speech = speech.unsqueeze(1)
         if is_generator:
             outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
             speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
