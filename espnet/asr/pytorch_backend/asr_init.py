@@ -1,13 +1,10 @@
 """Finetuning methods."""
 
-from argparse import Namespace
 from collections import OrderedDict
 import logging
 import os
 import re
 import torch
-from typing import List
-from typing import Union
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
@@ -18,18 +15,16 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.dynamic_import import dynamic_import
 
 
-def freeze_modules(
-    model: torch.nn.Module, modules: List
-) -> Union[torch.nn.Module, filter]:
+def freeze_modules(model, modules):
     """Freeze model parameters according to modules list.
 
     Args:
-        model: Main model.
-        modules: Specified module(s) to freeze.
+        model (torch.nn.Module): Main model.
+        modules (List): Specified module(s) to freeze.
 
     Return:
-        model: Updated main model.
-        model_params: Filtered model parameters.
+        model (torch.nn.Module) : Updated main model.
+        model_params (filter): Filtered model parameters.
 
     """
     for mod, param in model.named_parameters():
@@ -42,18 +37,16 @@ def freeze_modules(
     return model, model_params
 
 
-def transfer_verification(
-    model_state_dict: OrderedDict, partial_state_dict: OrderedDict, modules: List
-) -> bool:
+def transfer_verification(model_state_dict, partial_state_dict, modules):
     """Verify tuples (key, shape) for input model modules match specified modules.
 
     Args:
-        model_state_dict: Main model state dict.
-        partial_state_dict: Pre-trained model state dict.
-        modules: Specified module(s) to transfer.
+        model_state_dict (Dict) : Main model state dict.
+        partial_state_dict (Dict): Pre-trained model state dict.
+        modules (List): Specified module(s) to transfer.
 
     Return:
-        (): Whether transfer learning is allowed.
+        (bool): Whether transfer learning is allowed.
 
     """
     model_modules = []
@@ -83,15 +76,15 @@ def transfer_verification(
     return module_match
 
 
-def get_partial_state_dict(model_state_dict: OrderedDict, modules: List) -> OrderedDict:
+def get_partial_state_dict(model_state_dict, modules):
     """Create state dict with specified modules matching input model modules.
 
     Args:
-        model_state_dict: Pre-trained model state dict.
-        modules: Specified module(s) to transfer.
+        model_state_dict (Dict): Pre-trained model state dict.
+        modules (Dict): Specified module(s) to transfer.
 
     Return:
-        new_state_dict: State dict with specified modules weights.
+        new_state_dict (Dict): State dict with specified modules weights.
 
     """
     new_state_dict = OrderedDict()
@@ -103,14 +96,14 @@ def get_partial_state_dict(model_state_dict: OrderedDict, modules: List) -> Orde
     return new_state_dict
 
 
-def get_lm_state_dict(lm_state_dict: OrderedDict) -> OrderedDict:
+def get_lm_state_dict(lm_state_dict):
     """Create compatible ASR decoder state dict from LM state dict.
 
     Args:
-        lm_state_dict: Pre-trained LM state dict.
+        lm_state_dict (Dict): Pre-trained LM state dict.
 
     Return:
-        new_state_dict: State dict with compatible key names.
+        new_state_dict (Dict): State dict with compatible key names.
 
     """
     new_state_dict = OrderedDict()
@@ -127,15 +120,15 @@ def get_lm_state_dict(lm_state_dict: OrderedDict) -> OrderedDict:
     return new_state_dict
 
 
-def filter_modules(model_state_dict: OrderedDict, modules: List) -> List:
+def filter_modules(model_state_dict, modules):
     """Filter non-matched modules in model state dict.
 
     Args:
-        model_state_dict: Pre-trained model state dict.
-        modules: Specified module(s) to transfer.
+        model_state_dict (Dict): Pre-trained model state dict.
+        modules (List): Specified module(s) to transfer.
 
     Return:
-        new_mods: Filtered module list.
+        new_mods (List): Filtered module list.
 
     """
     new_mods = []
@@ -161,8 +154,8 @@ def filter_modules(model_state_dict: OrderedDict, modules: List) -> List:
 
 
 def create_transducer_compatible_state_dict(
-    model_state_dict: OrderedDict, encoder_type: str, encoder_units: int
-) -> OrderedDict:
+    model_state_dict, encoder_type, encoder_units
+):
     """Create a compatible transducer model state dict for transfer learning.
 
     If RNN encoder modules from a non-Transducer model are found in
@@ -170,12 +163,12 @@ def create_transducer_compatible_state_dict(
     renamed for compatibility.
 
     Args:
-        model_state_dict: Pre-trained model state dict
-        encoder_type: Type of pre-trained encoder.
-        encoder_units: Number of encoder units in pre-trained model.
+        model_state_dict (Dict): Pre-trained model state dict
+        encoder_type (str): Type of pre-trained encoder.
+        encoder_units (int): Number of encoder units in pre-trained model.
 
     Returns:
-        new_state_dict: Transducer compatible pre-trained model state dict.
+        new_state_dict (Dict): Transducer compatible pre-trained model state dict.
 
     """
     if encoder_type.endswith("p") or not encoder_type.endswith(("lstm", "gru")):
@@ -203,18 +196,16 @@ def create_transducer_compatible_state_dict(
     return new_state_dict
 
 
-def load_trained_model(
-    model_path: str, training: bool = True
-) -> Union[torch.nn.Module, Namespace]:
+def load_trained_model(model_path, training):
     """Load the trained model for recognition.
 
     Args:
-        model_path: Path to model.***.best
-        training: Training mode specification for transducer model.
+        model_path (str): Path to model.***.best
+        training (bool): Training mode specification for transducer model.
 
     Returns:
-        model: Trained model.
-        train_args: Trained model arguments.
+        model (torch.nn.Module): Trained model.
+        train_args (Namespace): Trained model arguments.
 
     """
     idim, odim, train_args = get_model_conf(
@@ -244,17 +235,15 @@ def load_trained_model(
     return model, train_args
 
 
-def get_trained_model_state_dict(
-    model_path: str, new_is_transducer: bool
-) -> OrderedDict:
+def get_trained_model_state_dict(model_path, new_is_transducer):
     """Extract the trained model state dict for pre-initialization.
 
     Args:
-        model_path: Path to trained model.
-        new_is_transducer: Whether the new model is Transducer-based.
+        model_path (str): Path to trained model.
+        new_is_transducer (bool): Whether the new model is Transducer-based.
 
     Return:
-        (): Trained model state dict.
+        (Dict): Trained model state dict.
 
     """
     logging.info(f"Reading model parameters from {model_path}")
@@ -291,22 +280,17 @@ def get_trained_model_state_dict(
     return model.state_dict()
 
 
-def load_trained_modules(
-    idim: int,
-    odim: int,
-    args: Namespace,
-    interface: Union[ASRInterface, MTInterface, TTSInterface] = ASRInterface,
-) -> torch.nn.Module:
+def load_trained_modules(idim, odim, args, interface=ASRInterface):
     """Load ASR/MT/TTS model with pre-trained weights for specified modules.
 
     Args:
-        idim: Input dimension.
-        odim: Output dimension.
-        args: Model arguments.
-        interface: Model interface.
+        idim (int): Input dimension.
+        odim (int): Output dimension.
+        args Namespace: Model arguments.
+        interface (ASRInterface|MTInterface|TTSInterface): Model interface.
 
     Return:
-        main_model: Model with pre-initialized weights.
+        main_model (torch.nn.Module): Model with pre-initialized weights.
 
     """
 
