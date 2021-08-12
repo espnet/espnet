@@ -147,6 +147,7 @@ def make_vits_loss_args(**kwargs):
         ({}),
     ],
 )
+@torch.no_grad()
 def test_vits_generator_forward(model_dict):
     idim = 10
     aux_channels = 5
@@ -170,9 +171,39 @@ def test_vits_generator_forward(model_dict):
 
     # check inference
     inputs = dict(
-        text=torch.randint(0, idim, (3,)),
+        text=torch.randint(
+            0,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        text_lengths=torch.tensor([5, 3], dtype=torch.long),
     )
     outputs = model.inference(**inputs)
+    for i, output in enumerate(outputs):
+        if not isinstance(output, tuple):
+            print(f"{i+1}: {output.shape}")
+        else:
+            for j, output_ in enumerate(output):
+                print(f"{i+j+1}: {output_.shape}")
+
+    # check inference with teacher forcing
+    inputs = dict(
+        text=torch.randint(
+            0,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        text_lengths=torch.tensor([5], dtype=torch.long),
+        dur=torch.tensor([[[1, 2, 3, 4, 5]]], dtype=torch.long),
+    )
+    outputs = model.inference(**inputs)
+    assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
             print(f"{i+1}: {output.shape}")
@@ -203,6 +234,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         discriminator_params=dis_args,
         **loss_args,
     )
+    model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
         text=torch.randint(0, idim, (2, 8)),
@@ -216,3 +248,33 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     gen_loss.backward()
     dis_loss, *_ = model.forward_discrminator(**inputs)
     dis_loss.backward()
+
+    with torch.no_grad():
+        model.eval()
+
+        # check inference
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            )
+        )
+        model.inference(**inputs)
+        model.inference(noise_scale=1.5, **inputs)
+        model.inference(noise_scale_w=1.5, **inputs)
+        model.inference(length_scale=1.5, **inputs)
+
+        # check inference with teacher forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (
+                    5,
+                ),
+            ),
+            durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
+        )
+        outputs = model.inference(**inputs)
+        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
