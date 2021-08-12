@@ -87,11 +87,11 @@ class VITSGenerator(torch.nn.Module):
         stochastic_duration_predictor_flows=4,
         stochastic_duration_predictor_dds_conv_layers=3,
     ):
-        """Initilize VITS module.
+        """Initialize VITS module.
 
         Args:
             idim (int): Input dimension.
-            odim (int): Output dimenstion.
+            odim (int): Output dimension.
             aux_channels (int): Number of auxiliary feature channels.
             hidden_channels (int): Number of hidden channels.
             spks (int): Number of speakers.
@@ -115,7 +115,7 @@ class VITSGenerator(torch.nn.Module):
                 decoder.
             decoder_resblock_dilations (list): List of list of dilations for resblocks
                 in decoder.
-            use_weight_norm_in_decoder (bool): Whether to apply weight normlization in
+            use_weight_norm_in_decoder (bool): Whether to apply weight normalization in
                 decoder.
             posterior_encoder_kernel_size (int): Posterior encoder kernel size.
             posterior_encoder_layers (int): Number of layers of posterior encoder.
@@ -123,13 +123,13 @@ class VITSGenerator(torch.nn.Module):
             posterior_encoder_base_dilation (int): Base dilation of posterior encoder.
             posterior_encoder_dropout_rate (float): Dropout rate for posterior encoder.
             use_weight_norm_in_posterior_encoder (bool): Whether to apply weight
-                normlization in posterior encoder.
+                normalization in posterior encoder.
             flow_flows (int): Number of flows in flow.
-            flow_kernel_size (int): Kernel sizein flow.
+            flow_kernel_size (int): Kernel size in flow.
             flow_base_dilation (int): Base dilation in flow.
             flow_layers (int): Number of layers in flow.
             flow_dropout_rate (float): Dropout rate in flow
-            use_weight_norm_in_flow (bool): Whether to apply weight normlization in
+            use_weight_norm_in_flow (bool): Whether to apply weight normalization in
                 flow.
             use_only_mean_in_flow (bool): Whether to use only mean in flow.
             stochastic_duration_predictor_kernel_size (int): Kernel size in stochastic
@@ -224,18 +224,18 @@ class VITSGenerator(torch.nn.Module):
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             feats (Tensor): Feature tensor (B, aux_channels, T_feats).
-            feats_lengths (Tensor): Feature length tensor (B,)
+            feats_lengths (Tensor): Feature length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,).
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
-            Tensor: Duration tensor (B,).
+            Tensor: Duration negative lower bound tensor (B,).
             Tensor: Monotonic attention weight tensor (B, 1, T_feats, T_text).
             Tensor: Segments start index tensor (B,).
             Tensor: Text mask tensor (B, 1, T_text).
             Tensor: Feature mask tensor (B, 1, T_feats).
             tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-                - Tensor: Posterior encoder hidden represetation (B, H, T_feats).
+                - Tensor: Posterior encoder hidden representation (B, H, T_feats).
                 - Tensor: Flow hidden representation (B, H, T_feats).
                 - Tensor: Expanded text encoder VAE mean (B, H, T_feats).
                 - Tensor: Expanded text encoder VAE scale (B, H, T_feats).
@@ -246,7 +246,7 @@ class VITSGenerator(torch.nn.Module):
         # forward text encoder
         x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
 
-        # calcualte global conditioning
+        # calculate global conditioning
         if self.spks > 0:
             g = self.global_enb(sids).unsqueeze(-1)  # (B, global_channels, 1)
         else:
@@ -300,8 +300,8 @@ class VITSGenerator(torch.nn.Module):
 
         # get durations
         w = attn.sum(2)
-        dur = self.duration_predictor(x, x_mask, w=w, g=g)
-        dur = dur / torch.sum(x_mask)
+        dur_nll = self.duration_predictor(x, x_mask, w=w, g=g)
+        dur_nll = dur_nll / torch.sum(x_mask)
 
         # expand the length to match with the feature sequence
         # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
@@ -319,7 +319,7 @@ class VITSGenerator(torch.nn.Module):
 
         return (
             wav,
-            dur,
+            dur_nll,
             attn,
             z_start_idxs,
             x_mask,
@@ -371,7 +371,9 @@ class VITSGenerator(torch.nn.Module):
     def inference(
         self,
         text,
-        sid=None,
+        text_lengths,
+        sids=None,
+        dur=None,
         noise_scale=1.0,
         length_scale=1.0,
         noise_scale_w=1.0,
@@ -380,48 +382,44 @@ class VITSGenerator(torch.nn.Module):
         """Run inference.
 
         Args:
-            text (Tensor): Input text index tensor (T_text,).
-            sid (Tensor): Speaker index tensor (1,)
+            text (Tensor): Input text index tensor (B, T_text,).
+            text_lengths (Tensor): Text length tensor (B,).
+            sid (Optional[Tensor]): Speaker index tensor (B,).
+            dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
+                skip the prediction of durations (i.e., teacher forcing).
             noise_scale (float): Noise scale value for flow.
             length_scale (float): Length scaling value.
             noise_scale_w (float): Noise scale value for duration predictor.
             max_len (Optional[int]): Maximum length.
 
         Returns:
-            Tensor: Generated waveform tensor (T_wav).
-            Tensor: Attention weight tensor (T_feats, T_text).
+            Tensor: Generated waveform tensor (B, T_wav).
+            Tensor: Attention weight tensor (B, T_feats, T_text).
             Tuple[Tensor, Tensor, Tensor, Tensor]:
-                - Tensor: Flow-inversed hidden representation tensor (H, T_feats).
-                - Tensor: Sampled hidden representation (H, T_feats).
-                - Tensor: Expanded text encoder VAE mean (H, T_feats).
-                - Tensor: Expanded text encoder VAE scale (H, T_feats).
+                - Tensor: Flow-inversed hidden representation tensor (B, H, T_feats).
+                - Tensor: Sampled hidden representation (B, H, T_feats).
+                - Tensor: Expanded text encoder VAE mean (B, H, T_feats).
+                - Tensor: Expanded text encoder VAE scale (B, H, T_feats).
 
         """
-        # setup
-        text = text[None]
-        text_lengths = torch.tensor(
-            [text.size(1)],
-            dtype=torch.long,
-            device=text.device,
-        )
-
         # encoder
         x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
         if self.spks > 0:
-            g = self.global_emb(sid.view(1)).unsqueeze(-1)  # (B, global_channels, 1)
+            g = self.global_emb(sids).unsqueeze(-1)  # (B, global_channels, 1)
         else:
             g = None
 
         # duration
-        logw = self.duration_predictor(
-            x,
-            x_mask,
-            g=g,
-            inverse=True,
-            noise_scale=noise_scale_w,
-        )
-        w = torch.exp(logw) * x_mask * length_scale
-        dur = torch.ceil(w)
+        if dur is None:
+            logw = self.duration_predictor(
+                x,
+                x_mask,
+                g=g,
+                inverse=True,
+                noise_scale=noise_scale_w,
+            )
+            w = torch.exp(logw) * x_mask * length_scale
+            dur = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
         y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
         attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
@@ -444,7 +442,7 @@ class VITSGenerator(torch.nn.Module):
         z = self.flow(z_p, y_mask, g=g, inverse=True)
         wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
 
-        return wav[0, 0], attn[0, 0], (z[0], z_p[0], m_p[0], logs_p[0])
+        return wav.squeeze(1), attn.squeeze(1), (z, z_p, m_p, logs_p)
 
     def _generate_path(self, dur, mask):
         """Generate path.
@@ -637,7 +635,7 @@ class VITS(AbsGANTTS):
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             feats (Tensor): Feature tensor (B, aux_channels, T_feats).
-            feats_lengths (Tensor): Feature length tensor (B,)
+            feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, 1, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,).
@@ -703,7 +701,7 @@ class VITS(AbsGANTTS):
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             feats (Tensor): Feature tensor (B, aux_channels, T_feats).
-            feats_lengths (Tensor): Feature length tensor (B,)
+            feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, 1, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,).
@@ -743,6 +741,7 @@ class VITS(AbsGANTTS):
         self,
         text,
         sids=None,
+        durations=None,
         noise_scale=1.0,
         length_scale=1.0,
         noise_scale_w=1.0,
@@ -752,7 +751,8 @@ class VITS(AbsGANTTS):
 
         Args:
             text (Tensor): Input text index tensor (T_text,).
-            sids (Tensor): Speaker index tensor (1,)
+            sids (Tensor): Speaker index tensor (1,).
+            durations (Tensor): Ground-truth duration tensor (T_text,).
             noise_scale (float): Noise scale value for flow.
             length_scale (float): Length scaling value.
             noise_scale_w (float): Noise scale value for duration predictor.
@@ -764,12 +764,26 @@ class VITS(AbsGANTTS):
             None: Dummy outputs for compatibility.
 
         """
+        # setup
+        text = text[None]
+        text_lengths = torch.tensor(
+            [text.size(1)],
+            dtype=torch.long,
+            device=text.device,
+        )
+        if sids is not None:
+            sids = sids.view(1, 1)
+        if durations is not None:
+            durations = durations.view(1, 1, -1)
+
         wav, att_w, _ = self.generator.inference(
             text=text,
+            text_lengths=text_lengths,
             sids=sids,
+            dur=durations,
             noise_scale=noise_scale,
             length_scale=length_scale,
             noise_scale_w=noise_scale_w,
             max_len=max_len,
         )
-        return wav, att_w, None
+        return wav[0], att_w[0], None
