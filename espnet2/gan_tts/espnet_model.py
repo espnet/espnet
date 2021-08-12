@@ -57,7 +57,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             text=text,
             text_lengths=text_lengths,
             speech=speech,
-            speech_lengths=speech,
+            speech_lengths=speech_lengths,
             sids=sids,
             spembs=spembs,
             is_generator=True,
@@ -78,7 +78,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             text=text,
             text_lengths=text_lengths,
             speech=speech,
-            speech_lengths=speech,
+            speech_lengths=speech_lengths,
             sids=sids,
             spembs=spembs,
             is_generator=False,
@@ -113,7 +113,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         if spembs is not None:
             kwargs.update(spembs=spembs)
 
-        if self.model.tts.require_raw_speech:
+        if self.tts.require_raw_speech:
             kwargs.update(feats=feats)
             kwargs.update(feats_lengths=feats_lengths)
             kwargs.update(speech=speech)
@@ -168,7 +168,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
                 feats = speech
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
-            if self.model.tts.require_raw_speech:
+            if self.tts.require_raw_speech:
                 kwargs["feats"] = feats
             else:
                 kwargs["speech"] = feats
