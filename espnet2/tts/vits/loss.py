@@ -207,19 +207,24 @@ class MelSpectrogramLoss(torch.nn.Module):
             log_base=log_base,
         )
 
-    def forward(self, y_hat, y):
+    def forward(self, y_hat, y, spec=None):
         """Calculate Mel-spectrogram loss.
 
         Args:
-            y_hat (Tensor): Generated single tensor (B, 1, T).
-            y (Tensor): Groundtruth single tensor (B, 1, T).
+            y_hat (Tensor): Generated waveform tensor (B, 1, T).
+            y (Tensor): Groundtruth waveform tensor (B, 1, T).
+            spec (Tensor): Groundtruth linear amplitude spectrum tensor (B, n_fft, T).
+                if provided, use this one instead of groundtruth waveform.
 
         Returns:
             Tensor: Mel-spectrogram loss value.
 
         """
-        mel_hat, _ = self.wav_to_mel(y_hat)
-        mel, _ = self.wav_to_mel(y)
+        mel_hat, _ = self.wav_to_mel(y_hat.squeeze(1))
+        if spec is None:
+            mel, _ = self.wav_to_mel(y.squeeze(1))
+        else:
+            mel, _ = self.wav_to_mel.logmel(spec)
         mel_loss = F.l1_loss(mel_hat, mel)
 
         return mel_loss
