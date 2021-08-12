@@ -19,6 +19,9 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
+from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
+from espnet2.gan_tts.vits.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
@@ -27,13 +30,10 @@ from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.gan_trainer import GANTrainer
 from espnet2.train.preprocessor import CommonPreprocessor
-from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
-from espnet2.tts.espnet_model import ESPnetGANTTSModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.gan_tts.vits.vits import VITS
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
