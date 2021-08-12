@@ -45,22 +45,24 @@ python=python3       # Specify python to execute espnet commands.
 local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
-feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
-min_wav_duration=0.1 # Minimum duration in second.
-max_wav_duration=20  # Maximum duration in second.
-use_xvector=false    # Whether to use x-vector (Require Kaldi).
+feats_type=raw             # Input feature type (fbank or stft or raw).
+audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+min_wav_duration=0.1       # Minimum duration in second.
+max_wav_duration=20        # Maximum duration in second.
+use_xvector=false          # Whether to use x-vector (Require Kaldi).
 # Only used for feats_type != raw
-fs=16000          # Sampling rate.
-fmin=80           # Minimum frequency of Mel basis.
-fmax=7600         # Maximum frequency of Mel basis.
-n_mels=80         # The number of mel basis.
-n_fft=1024        # The number of fft points.
-n_shift=256       # The number of shift points.
-win_length=null   # Window length.
-# Only used for the model using pitch features (e.g. FastSpeech2)
-f0min=80          # Maximum f0 for pitch extraction.
-f0max=400         # Minimum f0 for pitch extraction.
+feats_extract=fbank        # Feature extractor.
+feats_normalize=global_mvn # Feature normalizer.
+fs=16000                   # Sampling rate.
+n_fft=1024                 # The number of fft points.
+n_shift=256                # The number of shift points.
+win_length=null            # Window length.
+fmin=80                    # Minimum frequency of Mel basis.
+fmax=7600                  # Maximum frequency of Mel basis.
+n_mels=80                  # The number of mel basis.
+# Only used for the model using pitch & energy features (e.g. FastSpeech2)
+f0min=80  # Maximum f0 for pitch extraction.
+f0max=400 # Minimum f0 for pitch extraction.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
@@ -75,7 +77,8 @@ tts_exp=""         # Specify the direcotry path for experiment. If this option i
 tts_stats_dir=""   # Specify the direcotry path for statistics. If empty, automatically decided.
 num_splits=1       # Number of splitting for tts corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
-write_collected_feats=false # Whether to dump features in stats collection.
+write_collected_feats=false         # Whether to dump features in stats collection.
+tts_train_cmd=espnet2.bin.tts_train # TTS task training command.
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -535,14 +538,16 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
             fi
-            _opts+="--feats_extract fbank "
+            _opts+="--feats_extract ${feats_extract} "
             _opts+="--feats_extract_conf fs=${fs} "
             _opts+="--feats_extract_conf n_fft=${n_fft} "
-            _opts+="--feats_extract_conf fmin=${fmin} "
-            _opts+="--feats_extract_conf fmax=${fmax} "
-            _opts+="--feats_extract_conf n_mels=${n_mels} "
             _opts+="--feats_extract_conf hop_length=${n_shift} "
             _opts+="--feats_extract_conf win_length=${win_length} "
+            if [ "${feats_extract}" = fbank ]; then
+                _opts+="--feats_extract_conf fmin=${fmin} "
+                _opts+="--feats_extract_conf fmax=${fmax} "
+                _opts+="--feats_extract_conf n_mels=${n_mels} "
+            fi
         else
             _scp=feats.scp
             _type=kaldi_ark
@@ -607,7 +612,7 @@ if ! "${skip_train}"; then
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.tts_train \
+            ${python} -m "${tts_train_cmd}" \
                 --collect_stats true \
                 --write_collected_feats "${write_collected_feats}" \
                 --use_preprocessor true \
@@ -669,14 +674,16 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
                 _fold_length="$((speech_fold_length * n_shift))"
-                _opts+="--feats_extract fbank "
+                _opts+="--feats_extract ${feats_extract} "
                 _opts+="--feats_extract_conf fs=${fs} "
-                _opts+="--feats_extract_conf fmin=${fmin} "
-                _opts+="--feats_extract_conf fmax=${fmax} "
-                _opts+="--feats_extract_conf n_mels=${n_mels} "
-                _opts+="--feats_extract_conf hop_length=${n_shift} "
                 _opts+="--feats_extract_conf n_fft=${n_fft} "
+                _opts+="--feats_extract_conf hop_length=${n_shift} "
                 _opts+="--feats_extract_conf win_length=${win_length} "
+                if [ "${feats_extract}" = fbank ]; then
+                    _opts+="--feats_extract_conf fmin=${fmin} "
+                    _opts+="--feats_extract_conf fmax=${fmax} "
+                    _opts+="--feats_extract_conf n_mels=${n_mels} "
+                fi
             else
                 _scp=feats.scp
                 _type=kaldi_ark
@@ -753,14 +760,16 @@ if ! "${skip_train}"; then
                     _scp=wav.scp
                     _type=sound
                     _fold_length="$((speech_fold_length * n_shift))"
-                    _opts+="--feats_extract fbank "
+                    _opts+="--feats_extract ${feats_extract} "
                     _opts+="--feats_extract_conf fs=${fs} "
-                    _opts+="--feats_extract_conf fmin=${fmin} "
-                    _opts+="--feats_extract_conf fmax=${fmax} "
-                    _opts+="--feats_extract_conf n_mels=${n_mels} "
-                    _opts+="--feats_extract_conf hop_length=${n_shift} "
                     _opts+="--feats_extract_conf n_fft=${n_fft} "
+                    _opts+="--feats_extract_conf hop_length=${n_shift} "
                     _opts+="--feats_extract_conf win_length=${win_length} "
+                    if [ "${feats_extract}" = fbank ]; then
+                        _opts+="--feats_extract_conf fmin=${fmin} "
+                        _opts+="--feats_extract_conf fmax=${fmax} "
+                        _opts+="--feats_extract_conf n_mels=${n_mels} "
+                    fi
                 else
                     _scp=feats.scp
                     _type=kaldi_ark
@@ -800,14 +809,12 @@ if ! "${skip_train}"; then
             _opts+="--pitch_extract_conf hop_length=${n_shift} "
             _opts+="--pitch_extract_conf f0max=${f0max} "
             _opts+="--pitch_extract_conf f0min=${f0min} "
-            _opts+="--pitch_normalize_conf stats_file=${tts_stats_dir}/train/pitch_stats.npz "
         fi
         if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
             _opts+="--energy_extract_conf fs=${fs} "
             _opts+="--energy_extract_conf n_fft=${n_fft} "
             _opts+="--energy_extract_conf hop_length=${n_shift} "
             _opts+="--energy_extract_conf win_length=${win_length} "
-            _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
         # Add X-vector to the inputs if needed
@@ -816,6 +823,10 @@ if ! "${skip_train}"; then
             _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
             _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
             _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        fi
+
+        if [ "${feats_normalize}" = "global_mvn" ]; then
+            _opts+=""--normalize_conf "stats_file=${tts_stats_dir}/train/feats_stats.npz "
         fi
 
         log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 6 using this script"
@@ -838,15 +849,14 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${tts_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.tts_train \
+            ${python} -m "${tts_train_cmd}" \
                 --use_preprocessor true \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --normalize global_mvn \
-                --normalize_conf "stats_file=${tts_stats_dir}/train/feats_stats.npz" \
+                --normalize "${feats_normalize}" \
                 --resume true \
                 --fold_length "${text_fold_length}" \
                 --fold_length "${_fold_length}" \
