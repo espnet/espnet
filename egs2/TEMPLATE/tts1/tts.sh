@@ -539,11 +539,11 @@ if ! "${skip_train}"; then
                 _type=sound
             fi
             _opts+="--feats_extract ${feats_extract} "
-            _opts+="--feats_extract_conf fs=${fs} "
             _opts+="--feats_extract_conf n_fft=${n_fft} "
             _opts+="--feats_extract_conf hop_length=${n_shift} "
             _opts+="--feats_extract_conf win_length=${win_length} "
             if [ "${feats_extract}" = fbank ]; then
+                _opts+="--feats_extract_conf fs=${fs} "
                 _opts+="--feats_extract_conf fmin=${fmin} "
                 _opts+="--feats_extract_conf fmax=${fmax} "
                 _opts+="--feats_extract_conf n_mels=${n_mels} "
@@ -675,11 +675,11 @@ if ! "${skip_train}"; then
                 _type=sound
                 _fold_length="$((speech_fold_length * n_shift))"
                 _opts+="--feats_extract ${feats_extract} "
-                _opts+="--feats_extract_conf fs=${fs} "
                 _opts+="--feats_extract_conf n_fft=${n_fft} "
                 _opts+="--feats_extract_conf hop_length=${n_shift} "
                 _opts+="--feats_extract_conf win_length=${win_length} "
                 if [ "${feats_extract}" = fbank ]; then
+                    _opts+="--feats_extract_conf fs=${fs} "
                     _opts+="--feats_extract_conf fmin=${fmin} "
                     _opts+="--feats_extract_conf fmax=${fmax} "
                     _opts+="--feats_extract_conf n_mels=${n_mels} "
@@ -761,11 +761,11 @@ if ! "${skip_train}"; then
                     _type=sound
                     _fold_length="$((speech_fold_length * n_shift))"
                     _opts+="--feats_extract ${feats_extract} "
-                    _opts+="--feats_extract_conf fs=${fs} "
                     _opts+="--feats_extract_conf n_fft=${n_fft} "
                     _opts+="--feats_extract_conf hop_length=${n_shift} "
                     _opts+="--feats_extract_conf win_length=${win_length} "
                     if [ "${feats_extract}" = fbank ]; then
+                        _opts+="--feats_extract_conf fs=${fs} "
                         _opts+="--feats_extract_conf fmin=${fmin} "
                         _opts+="--feats_extract_conf fmax=${fmax} "
                         _opts+="--feats_extract_conf n_mels=${n_mels} "
