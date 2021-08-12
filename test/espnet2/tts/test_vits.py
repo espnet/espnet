@@ -258,9 +258,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
             text=torch.randint(
                 0,
                 idim,
-                (
-                    5,
-                ),
+                (5,),
             ),
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
