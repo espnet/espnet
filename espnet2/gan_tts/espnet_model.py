@@ -80,18 +80,12 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             kwargs.update(speech=feats)
             kwargs.update(speech_lengths=feats_lengths)
 
-        if forward_generator:
-            return self.tts.forward_generator(
-                text=text,
-                text_lengths=text_lengths,
-                **kwargs,
-            )
-        else:
-            return self.tts.forward_discrminator(
-                text=text,
-                text_lengths=text_lengths,
-                **kwargs,
-            )
+        return self.tts(
+            text=text,
+            text_lengths=text_lengths,
+            forward_generator=forward_generator,
+            **kwargs,
+        )
 
     def collect_feats(
         self,
