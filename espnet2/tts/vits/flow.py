@@ -115,11 +115,11 @@ class DilatedDepthSeparableConv(torch.nn.Module):
         """Initialize DilatedDepthSeparableConv module.
 
         Args:
-            channels: Number of channels.
-            kernel_size: Kernel size.
-            layers: Number of layers.
-            dropout_rate: Dropout rate.
-            eps: Epsilon for layer norm.
+            channels (int): Number of channels.
+            kernel_size (int): Kernel size.
+            layers (int): Number of layers.
+            dropout_rate (float): Dropout rate.
+            eps (float): Epsilon for layer norm.
 
         """
         super().__init__()
@@ -237,7 +237,7 @@ class ConvFlow(torch.nn.Module):
         Args:
             x (Tensor): Input tensor (B, channels, T).
             x_lengths (Tensor): Length tensor (B,).
-            g (Optional[Tensor]): Global conditioning tensor (B, channels, 1)
+            g (Optional[Tensor]): Global conditioning tensor (B, channels, 1).
             inverse (bool): Whether to inverse the flow.
 
         Returns:
@@ -298,16 +298,16 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
 
         Args:
             in_channels (int): Number of input channels.
-            hidden_channels: Number of hidden channels.
-            kernel_size: Kernel size for WaveNet.
-            base_dilation: Base dilation factor for WaveNet.
-            layers: Number of layers of WaveNet.
-            stacks: Number of stacks of WaveNet.
-            global_channels: Number of global channels.
-            dropout_rate: Dropout rate.
-            use_weight_norm: Whether to use weight normalization in WaveNet.
-            bias: Whether to use bias paramters in WaveNet.
-            use_only_mean: Whether to estimate only VAE mean.
+            hidden_channels (int): Number of hidden channels.
+            kernel_size (int): Kernel size for WaveNet.
+            base_dilation (int): Base dilation factor for WaveNet.
+            layers (int): Number of layers of WaveNet.
+            stacks (int): Number of stacks of WaveNet.
+            global_channels (int): Number of global channels.
+            dropout_rate (float): Dropout rate.
+            use_weight_norm (bool): Whether to use weight normalization in WaveNet.
+            bias (bool): Whether to use bias paramters in WaveNet.
+            use_only_mean (bool): Whether to estimate only VAE mean.
 
         """
         assert in_channels % 2 == 0, "in_channels should be divisible by 2"
@@ -412,17 +412,17 @@ class ResidualAffineCouplingBlock(torch.nn.Module):
 
         Args:
             in_channels (int): Number of input channels.
-            hidden_channels: Number of hidden channels.
+            hidden_channels (int): Number of hidden channels.
             flows (int): Number of flows.
-            kernel_size: Kernel size for WaveNet.
-            base_dilation: Base dilation factor for WaveNet.
-            layers: Number of layers of WaveNet.
-            stacks: Number of stacks of WaveNet.
-            global_channels: Number of global channels.
-            dropout_rate: Dropout rate.
-            use_weight_norm: Whether to use weight normalization in WaveNet.
-            bias: Whether to use bias paramters in WaveNet.
-            use_only_mean: Whether to estimate only VAE mean.
+            kernel_size (int): Kernel size for WaveNet.
+            base_dilation (int): Base dilation factor for WaveNet.
+            layers (int): Number of layers of WaveNet.
+            stacks (int): Number of stacks of WaveNet.
+            global_channels (int): Number of global channels.
+            dropout_rate (float): Dropout rate.
+            use_weight_norm (bool): Whether to use weight normalization in WaveNet.
+            bias (bool): Whether to use bias paramters in WaveNet.
+            use_only_mean (bool): Whether to estimate only VAE mean.
 
         """
         super().__init__()
