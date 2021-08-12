@@ -20,7 +20,6 @@ import torch.nn.functional as F
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.vits.flow import ResidualAffineCouplingBlock
 from espnet2.gan_tts.vits.hifigan import HiFiGANGenerator
@@ -31,8 +30,11 @@ from espnet2.gan_tts.vits.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet2.gan_tts.vits.loss import MelSpectrogramLoss
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
-from espnet2.gan_tts.vits.stochastic_duration_predictor import StochasticDurationPredictor
+from espnet2.gan_tts.vits.stochastic_duration_predictor import (
+    StochasticDurationPredictor,  # noqa: H301
+)
 from espnet2.gan_tts.vits.text_encoder import TextEncoder
+from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class VITS(AbsGANTTS):
