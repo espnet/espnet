@@ -2,7 +2,7 @@
 # this config, you need to specify the options for tts.sh:
 # - --tts_train_cmd espnet2.bin.gan_tts_train
 # - --feats_extract linear_spectrogram
-# This configuration rquires 2 GPU with 32GB GPU memory
+# This configuration rquires 1 GPU with 32GB GPU memory
 # and it takes around (?) week to finish the training.
 
 ##########################################################
@@ -41,7 +41,7 @@ tts_conf:
         flow_flows: 4
         flow_kernel_size: 5
         flow_base_dilation: 1
-        flow_layers: 5
+        flow_layers: 4
         flow_dropout_rate: 0.0
         use_weight_norm_in_flow: true
         use_only_mean_in_flow: true
@@ -52,7 +52,7 @@ tts_conf:
     # discriminator related
     discriminator_type: hifigan_multi_scale_multi_period_discriminator
     discriminator_params:
-        scales: 3
+        scales: 1
         scale_downsample_pooling: AvgPool1d
         scale_downsample_pooling_params:
             kernel_size: 4
@@ -70,7 +70,8 @@ tts_conf:
             nonlinear_activation: LeakyReLU
             nonlinear_activation_params:
                 negative_slope: 0.1
-        follow_official_norm: true
+            use_weight_norm: true
+        follow_official_norm: false
         periods: [2, 3, 5, 7, 11]
         period_discriminator_params:
             in_channels: 1
@@ -106,42 +107,35 @@ tts_conf:
         log_base: null
     lambda_adv: 1.0
     lambda_mel: 45.0
-    lambda_feat_match: 1.0
+    lambda_feat_match: 2.0
     lambda_dur: 1.0
     lambda_kl: 1.0
+    cache_generator_outputs: true
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # for generator
-optim: adam
+optim: adamw
 optim_conf:
     lr: 2.0e-4
-    betas: [0.5, 0.9]
+    betas: [0.8, 0.99]
+    eps: 1.0e-9
     weight_decay: 0.0
-scheduler: multisteplr
+scheduler: exponentiallr
 scheduler_conf:
-    gamma: 0.5
-    milestones:
-        - 200000
-        - 400000
-        - 600000
-        - 800000
+    gamma: 0.999875
 # for discriminator
-optim2: adam
+optim2: adamw
 optim2_conf:
     lr: 2.0e-4
-    betas: [0.5, 0.9]
+    betas: [0.8, 0.99]
+    eps: 1.0e-9
     weight_decay: 0.0
-scheduler2: multisteplr
+scheduler2: exponentiallr
 scheduler2_conf:
-    gamma: 0.5
-    milestones:
-        - 200000
-        - 400000
-        - 600000
-        - 800000
-generator_first: true
+    gamma: 0.999875
+generator_first: false
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #
@@ -149,14 +143,14 @@ generator_first: true
 num_iters_per_epoch: 1000 # number of iterations per epoch
 max_epoch: 1000           # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_bins: 6000000       # batch bins (feats_type=raw)
+batch_bins: 4500000       # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
 num_workers: 16           # number of workers of data loader
-use_amp: false            # whether to use pytorch amp
+use_amp: false             # whether to use pytorch amp
 train_dtype: float32      # dtype in training
 log_interval: null        # log interval in iterations
 keep_nbest_models: 5      # number of models to keep
