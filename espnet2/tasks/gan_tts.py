@@ -27,13 +27,13 @@ from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.gan_trainer import GANTrainer
 from espnet2.train.preprocessor import CommonPreprocessor
-from espnet2.tts.abs_gan_tts import AbsGANTTS
+from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.tts.espnet_model import ESPnetGANTTSModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.tts.vits.vits import VITS
+from espnet2.gan_tts.vits.vits import VITS
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -296,7 +296,7 @@ class GANTTSTask(AbsTask):
             except ImportError:
                 raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             optim_g = fairscale.optim.oss.OSS(
-                params=model.generator.parameters(),
+                params=model.tts.generator.parameters(),
                 optim=optim_g_class,
                 **args.optim1_conf,
             )
@@ -317,7 +317,7 @@ class GANTTSTask(AbsTask):
             except ImportError:
                 raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             optim_d = fairscale.optim.oss.OSS(
-                params=model.discriminator.parameters(),
+                params=model.tts.discriminator.parameters(),
                 optim=optim_d_class,
                 **args.optim2_conf,
             )
