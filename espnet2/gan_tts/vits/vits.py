@@ -399,7 +399,7 @@ class VITS(AbsGANTTS):
             outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
             speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
             _, z_p, m_p, logs_p, _, logs_q = outs_
-            start_idxs *= self.generator.upsample_factor
+            start_idxs = start_idxs * self.generator.upsample_factor
             segment_size = self.generator.segment_size * self.generator.upsample_factor
             speech_ = self.generator.get_segments(
                 x=speech,
@@ -658,7 +658,7 @@ class VITSGenerator(torch.nn.Module):
             global_channels=global_channels,
         )
 
-        self.upsample_factor = np.prod(decoder_upsample_scales)
+        self.upsample_factor = int(np.prod(decoder_upsample_scales))
         self.spks = spks
         if self.spks > 1:
             assert global_channels > 0
