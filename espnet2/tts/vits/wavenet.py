@@ -38,7 +38,7 @@ class WaveNet(torch.nn.Module):
         use_first_conv=False,
         use_last_conv=False,
     ):
-        """Initialize Parallel WaveGAN Generator module.
+        """Initialize WaveNet  module.
 
         Args:
             in_channels (int): Number of input channels.
