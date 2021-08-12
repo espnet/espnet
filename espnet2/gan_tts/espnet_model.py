@@ -43,48 +43,6 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         assert hasattr(tts, "generator")
         assert hasattr(tts, "discriminator")
 
-    def forward_generator(
-        self,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        **kwargs,
-    ):
-        return self.forward(
-            text=text,
-            text_lengths=text_lengths,
-            speech=speech,
-            speech_lengths=speech_lengths,
-            sids=sids,
-            spembs=spembs,
-            is_generator=True,
-            **kwargs,
-        )
-
-    def forward_discrminator(
-        self,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        **kwargs,
-    ):
-        return self.forward(
-            text=text,
-            text_lengths=text_lengths,
-            speech=speech,
-            speech_lengths=speech_lengths,
-            sids=sids,
-            spembs=spembs,
-            is_generator=False,
-            **kwargs,
-        )
-
     def forward(
         self,
         text: torch.Tensor,
@@ -93,7 +51,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         speech_lengths: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
-        is_generator: bool = True,
+        forward_generator: bool = True,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         with autocast(False):
@@ -122,7 +80,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             kwargs.update(speech=feats)
             kwargs.update(speech_lengths=feats_lengths)
 
-        if is_generator:
+        if forward_generator:
             return self.tts.forward_generator(
                 text=text,
                 text_lengths=text_lengths,

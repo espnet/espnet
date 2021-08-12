@@ -184,10 +184,10 @@ class GANTrainer(Trainer):
             for turn in turns:
                 with autocast(scaler is not None):
                     with reporter.measure_time(f"{turn}_forward_time"):
-                        if turn == "generator":
-                            retval = model.forward_generator(**batch)
-                        else:
-                            retval = model.forward_discrminator(**batch)
+                        forward_generator = turn == "generator"
+                        retval = model.forward_generator(
+                            forward_generator=forward_generator, **batch
+                        )
                         # Note(kamo):
                         # Supporting two patterns for the returned value from the model
                         #   a. dict type
