@@ -156,7 +156,8 @@ class Stft(torch.nn.Module, InversibleInterface):
 
         if is_complex(input):
             input = torch.stack([input.real, input.imag], dim=-1)
-        assert input.shape[-1] == 2
+        elif input.shape[-1] != 2:
+            raise TypeError("Invalid input type")
         input = input.transpose(1, 2)
 
         wavs = istft(

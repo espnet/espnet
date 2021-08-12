@@ -250,8 +250,10 @@ def signal_framing(
     if isinstance(signal, ComplexTensor):
         complex_wrapper = ComplexTensor
         pad_func = FC.pad
-    else:
+    elif is_torch_complex_tensor(signal):
         complex_wrapper = torch.complex
+        pad_func = torch.nn.functional.pad
+    else:
         pad_func = torch.nn.functional.pad
 
     frame_length2 = frame_length - 1
@@ -297,7 +299,6 @@ def signal_framing(
     else:
         # (..., T - bdelay - frame_length + 2, frame_length)
         signal = signal[..., indices]
-        # signal[..., :-1] = -signal[..., :-1]
         return signal
 
 
@@ -505,7 +506,7 @@ def get_WPD_filter_with_rtf(
     """
     if isinstance(psd_speech, ComplexTensor):
         pad_func = FC.pad
-    if is_torch_complex_tensor(psd_speech):
+    elif is_torch_complex_tensor(psd_speech):
         pad_func = torch.nn.functional.pad
     else:
         raise ValueError(
