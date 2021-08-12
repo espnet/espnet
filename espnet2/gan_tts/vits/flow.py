@@ -11,8 +11,8 @@ import math
 
 import torch
 
-from espnet2.tts.vits.transform import piecewise_rational_quadratic_transform
-from espnet2.tts.vits.wavenet import WaveNet
+from espnet2.gan_tts.vits.transform import piecewise_rational_quadratic_transform
+from espnet2.gan_tts.vits.wavenet import WaveNet
 
 
 class Flip(torch.nn.Module):

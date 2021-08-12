@@ -10,8 +10,8 @@ This code is based on https://github.com/jaywalnut310/vits.
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet2.tts.vits.residual_block import Conv1d
-from espnet2.tts.vits.wavenet import WaveNet
+from espnet2.gan_tts.vits.residual_block import Conv1d
+from espnet2.gan_tts.vits.wavenet import WaveNet
 
 
 class PosteriorEncoder(torch.nn.Module):

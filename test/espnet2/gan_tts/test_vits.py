@@ -6,8 +6,8 @@
 import pytest
 import torch
 
-from espnet2.tts.vits.vits import VITS
-from espnet2.tts.vits.vits import VITSGenerator
+from espnet2.gan_tts.vits.vits import VITS
+from espnet2.gan_tts.vits.vits import VITSGenerator
 
 
 def make_vits_generator_args(**kwargs):

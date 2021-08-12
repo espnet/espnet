@@ -13,7 +13,7 @@ import logging
 import torch
 import torch.nn.functional as F
 
-from espnet2.tts.vits.residual_block import HiFiGANResidualBlock as ResidualBlock
+from espnet2.gan_tts.vits.residual_block import HiFiGANResidualBlock as ResidualBlock
 
 
 class HiFiGANGenerator(torch.nn.Module):

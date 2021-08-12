@@ -12,8 +12,8 @@ import math
 
 import torch
 
-from espnet2.tts.vits.residual_block import Conv1d1x1
-from espnet2.tts.vits.residual_block import WaveNetResidualBlock as ResidualBlock
+from espnet2.gan_tts.vits.residual_block import Conv1d1x1
+from espnet2.gan_tts.vits.residual_block import WaveNetResidualBlock as ResidualBlock
 
 
 class WaveNet(torch.nn.Module):

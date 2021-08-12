@@ -21,18 +21,18 @@ from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.tts.abs_gan_tts import AbsGANTTS
-from espnet2.tts.vits.flow import ResidualAffineCouplingBlock
-from espnet2.tts.vits.hifigan import HiFiGANGenerator
-from espnet2.tts.vits.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
-from espnet2.tts.vits.loss import DiscriminatorAdversarialLoss
-from espnet2.tts.vits.loss import FeatureMatchLoss
-from espnet2.tts.vits.loss import GeneratorAdversarialLoss
-from espnet2.tts.vits.loss import KLDivergenceLoss
-from espnet2.tts.vits.loss import MelSpectrogramLoss
-from espnet2.tts.vits.posterior_encoder import PosteriorEncoder
-from espnet2.tts.vits.stochastic_duration_predictor import StochasticDurationPredictor
-from espnet2.tts.vits.text_encoder import TextEncoder
+from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
+from espnet2.gan_tts.vits.flow import ResidualAffineCouplingBlock
+from espnet2.gan_tts.vits.hifigan import HiFiGANGenerator
+from espnet2.gan_tts.vits.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
+from espnet2.gan_tts.vits.loss import DiscriminatorAdversarialLoss
+from espnet2.gan_tts.vits.loss import FeatureMatchLoss
+from espnet2.gan_tts.vits.loss import GeneratorAdversarialLoss
+from espnet2.gan_tts.vits.loss import KLDivergenceLoss
+from espnet2.gan_tts.vits.loss import MelSpectrogramLoss
+from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
+from espnet2.gan_tts.vits.stochastic_duration_predictor import StochasticDurationPredictor
+from espnet2.gan_tts.vits.text_encoder import TextEncoder
 
 
 class VITS(AbsGANTTS):
@@ -468,7 +468,7 @@ class VITS(AbsGANTTS):
             noise_scale_w=noise_scale_w,
             max_len=max_len,
         )
-        return wav[0], att_w[0], None
+        return wav[0], None, att_w[0]
 
 
 class VITSGenerator(torch.nn.Module):
@@ -642,7 +642,7 @@ class VITSGenerator(torch.nn.Module):
             self.global_emb = torch.nn.Embedding(spks, global_channels)
 
         # delayed import
-        from espnet2.tts.vits.monotonic_align import maximum_path
+        from espnet2.gan_tts.vits.monotonic_align import maximum_path
 
         self.maximum_path = maximum_path
 

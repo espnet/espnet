@@ -12,11 +12,11 @@ import math
 import torch
 import torch.nn.functional as F
 
-from espnet2.tts.vits.flow import ConvFlow
-from espnet2.tts.vits.flow import DilatedDepthSeparableConv
-from espnet2.tts.vits.flow import ElementwiseAffineFlow
-from espnet2.tts.vits.flow import Flip
-from espnet2.tts.vits.flow import LogFlow
+from espnet2.gan_tts.vits.flow import ConvFlow
+from espnet2.gan_tts.vits.flow import DilatedDepthSeparableConv
+from espnet2.gan_tts.vits.flow import ElementwiseAffineFlow
+from espnet2.gan_tts.vits.flow import Flip
+from espnet2.gan_tts.vits.flow import LogFlow
 
 
 class StochasticDurationPredictor(torch.nn.Module):
