@@ -32,6 +32,8 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.gan_trainer import GANTrainer
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.tts.feats_extract.dio import Dio
+from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
@@ -69,6 +71,41 @@ tts_choices = ClassChoices(
     type_check=AbsGANTTS,
     default="vits",
 )
+# for compatibility
+pitch_extractor_choices = ClassChoices(
+    "pitch_extract",
+    classes=dict(dio=Dio),
+    type_check=AbsFeatsExtract,
+    default=None,
+    optional=True,
+)
+energy_extractor_choices = ClassChoices(
+    "energy_extract",
+    classes=dict(energy=Energy),
+    type_check=AbsFeatsExtract,
+    default=None,
+    optional=True,
+)
+pitch_normalize_choices = ClassChoices(
+    "pitch_normalize",
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
+    type_check=AbsNormalize,
+    default=None,
+    optional=True,
+)
+energy_normalize_choices = ClassChoices(
+    "energy_normalize",
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
+    type_check=AbsNormalize,
+    default=None,
+    optional=True,
+)
 
 
 class GANTTSTask(AbsTask):
@@ -83,6 +120,14 @@ class GANTTSTask(AbsTask):
         normalize_choices,
         # --tts and --tts_conf
         tts_choices,
+        # --pitch_extract and --pitch_extract_conf
+        pitch_extractor_choices,
+        # --pitch_normalize and --pitch_normalize_conf
+        pitch_normalize_choices,
+        # --energy_extract and --energy_extract_conf
+        energy_extractor_choices,
+        # --energy_normalize and --energy_normalize_conf
+        energy_normalize_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -131,6 +176,12 @@ class GANTTSTask(AbsTask):
             default="phn",
             choices=["bpe", "char", "word", "phn"],
             help="The text will be tokenized in the specified level token",
+        )
+        group.add_argument(
+            "--bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece",
         )
         parser.add_argument(
             "--non_linguistic_symbols",
@@ -291,7 +342,7 @@ class GANTTSTask(AbsTask):
         assert hasattr(model.tts, "discriminator")
 
         # define generator optimizer
-        optim_g_class = optim_classes.get(args.optim1)
+        optim_g_class = optim_classes.get(args.optim)
         if optim_g_class is None:
             raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
         if args.sharded_ddp:
@@ -302,19 +353,19 @@ class GANTTSTask(AbsTask):
             optim_g = fairscale.optim.oss.OSS(
                 params=model.tts.generator.parameters(),
                 optim=optim_g_class,
-                **args.optim1_conf,
+                **args.optim_conf,
             )
         else:
             optim_g = optim_g_class(
                 model.tts.generator.parameters(),
-                **args.optim1_conf,
+                **args.optim_conf,
             )
         optimizers = [optim_g]
 
         # define discriminator optimizer
         optim_d_class = optim_classes.get(args.optim2)
         if optim_d_class is None:
-            raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
+            raise ValueError(f"must be one of {list(optim_classes)}: {args.optim2}")
         if args.sharded_ddp:
             try:
                 import fairscale
