@@ -19,11 +19,14 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+import numpy as np
 import torch
+import wandb
 
 from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
 
+from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.torch_utils.device_funcs import to_device
@@ -396,3 +399,82 @@ class GANTrainer(Trainer):
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+
+    # TODO(kan-bayashi): Remove this part since this is the same. But if
+    #   not copied, the type check of TrainerOptions will cause errors.
+    @classmethod
+    @torch.no_grad()
+    def plot_attention(
+        cls,
+        model: torch.nn.Module,
+        output_dir: Optional[Path],
+        summary_writer: Optional[SummaryWriter],
+        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        reporter: SubReporter,
+        options: TrainerOptions,
+    ) -> None:
+        assert check_argument_types()
+        import matplotlib
+
+        ngpu = options.ngpu
+        no_forward_run = options.no_forward_run
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import MaxNLocator
+
+        model.eval()
+        for ids, batch in iterator:
+            assert isinstance(batch, dict), type(batch)
+            assert len(next(iter(batch.values()))) == len(ids), (
+                len(next(iter(batch.values()))),
+                len(ids),
+            )
+            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+            if no_forward_run:
+                continue
+
+            # 1. Forwarding model and gathering all attentions
+            #    calculate_all_attentions() uses single gpu only.
+            att_dict = calculate_all_attentions(model, batch)
+
+            # 2. Plot attentions: This part is slow due to matplotlib
+            for k, att_list in att_dict.items():
+                assert len(att_list) == len(ids), (len(att_list), len(ids))
+                for id_, att_w in zip(ids, att_list):
+
+                    if isinstance(att_w, torch.Tensor):
+                        att_w = att_w.detach().cpu().numpy()
+
+                    if att_w.ndim == 2:
+                        att_w = att_w[None]
+                    elif att_w.ndim > 3 or att_w.ndim == 1:
+                        raise RuntimeError(f"Must be 2 or 3 dimension: {att_w.ndim}")
+
+                    w, h = plt.figaspect(1.0 / len(att_w))
+                    fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
+                    axes = fig.subplots(1, len(att_w))
+                    if len(att_w) == 1:
+                        axes = [axes]
+
+                    for ax, aw in zip(axes, att_w):
+                        ax.imshow(aw.astype(np.float32), aspect="auto")
+                        ax.set_title(f"{k}_{id_}")
+                        ax.set_xlabel("Input")
+                        ax.set_ylabel("Output")
+                        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+                        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+                    if output_dir is not None:
+                        p = output_dir / id_ / f"{k}.{reporter.get_epoch()}ep.png"
+                        p.parent.mkdir(parents=True, exist_ok=True)
+                        fig.savefig(p)
+
+                    if summary_writer is not None:
+                        summary_writer.add_figure(
+                            f"{k}_{id_}", fig, reporter.get_epoch()
+                        )
+
+                    if options.use_wandb:
+                        wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
+            reporter.next()
