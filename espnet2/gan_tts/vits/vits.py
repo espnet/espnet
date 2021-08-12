@@ -408,9 +408,7 @@ class VITS(AbsGANTTS):
         reuse_cache = True
         if self._cache is None:
             reuse_cache = False
-            self._cache = self.generator(
-                text, text_lengths, feats, feats_lengths, sids
-            )
+            self._cache = self.generator(text, text_lengths, feats, feats_lengths, sids)
         speech_hat_, _, _, start_idxs, *_ = self._cache
         start_idxs = start_idxs * self.generator.upsample_factor
         segment_size = self.generator.segment_size * self.generator.upsample_factor
