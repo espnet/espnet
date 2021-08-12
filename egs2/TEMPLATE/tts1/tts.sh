@@ -826,7 +826,7 @@ if ! "${skip_train}"; then
         fi
 
         if [ "${feats_normalize}" = "global_mvn" ]; then
-            _opts+=""--normalize_conf "stats_file=${tts_stats_dir}/train/feats_stats.npz "
+            _opts+="--normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz "
         fi
 
         log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 6 using this script"
