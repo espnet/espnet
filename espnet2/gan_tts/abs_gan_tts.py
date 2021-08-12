@@ -9,25 +9,19 @@ from abc import abstractmethod
 from typing import Dict
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import torch
 
 
 class AbsGANTTS(torch.nn.Module, ABC):
     @abstractmethod
-    def forward_generator(
+    def forward(
         self,
+        forward_generator,
         *args,
         **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def forward_discrminator(
-        self,
-        *args,
-        **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    ) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], int]]:
         raise NotImplementedError
 
     @abstractmethod
