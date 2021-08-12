@@ -10,8 +10,10 @@ from typing import Union
 
 import torch
 
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-class AbsGANESPnetModel(torch.nn.Module, ABC):
+
+class AbsGANESPnetModel(AbsESPnetModel, torch.nn.Module, ABC):
     """The common abstract class among each GAN-based task
 
     "ESPnetModel" is referred to a class which inherits torch.nn.Module,
