@@ -9,13 +9,6 @@ import torch
 from espnet2.tts.vits.vits import VITS
 from espnet2.tts.vits.vits import VITSGenerator
 
-try:
-    from espnet2.tts.vits.monotonic_align import maximum_path  # NOQA
-
-    is_compiled = True
-except ImportError:
-    is_compiled = False
-
 
 def make_vits_generator_args(**kwargs):
     defaults = dict(
@@ -140,7 +133,6 @@ def make_vits_loss_args(**kwargs):
     return defaults
 
 
-@pytest.mark.skipif(not is_compiled, reason="monotonic_align is not compiled.")
 @pytest.mark.parametrize(
     "model_dict",
     [
@@ -212,7 +204,6 @@ def test_vits_generator_forward(model_dict):
                 print(f"{i+j+1}: {output_.shape}")
 
 
-@pytest.mark.skipif(not is_compiled, reason="monotonic_align is not compiled.")
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict",
     [
@@ -261,9 +252,6 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
             )
         )
         model.inference(**inputs)
-        model.inference(noise_scale=1.5, **inputs)
-        model.inference(noise_scale_w=1.5, **inputs)
-        model.inference(length_scale=1.5, **inputs)
 
         # check inference with teacher forcing
         inputs = dict(
