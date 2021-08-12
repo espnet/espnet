@@ -42,23 +42,23 @@ class TextEncoder(torch.nn.Module):
         """Initialize TextEncoder module.
 
         Args:
-            vocabs: Vocabulary size.
-            attention_dim: Attention dimension.
-            attention_heads: Number of attention heads.
-            linear_units: Number of linear units of positionwise layers.
-            blocks: Number of encoder blocks.
-            positionwise_layer_type: Positionwise layer type.
-            positionwise_conv_kernel_size: Positionwise layer's kernel size.
-            positional_encoding_layer_type: Positional encoding layer type.
-            self_attention_layer_type: Self-attention layer type.
-            activation_type: Activation function type.
-            normalize_before: Whether to apply LayerNorm before attention.
-            use_macaron_style: Whether to use macaron style components.
-            use_conformer_conv: Whether to use conformer conv layers.
-            conformer_kernel_size: Conformer's conv kernel size.
-            dropout_rate: Dropout rate.
-            positional_dropout_rate: Dropout rate for positional encoding.
-            attention_dropout_rate: Dropout rate for attention.
+            vocabs (int): Vocabulary size.
+            attention_dim (int): Attention dimension.
+            attention_heads (int): Number of attention heads.
+            linear_units (int): Number of linear units of positionwise layers.
+            blocks (int): Number of encoder blocks.
+            positionwise_layer_type (str): Positionwise layer type.
+            positionwise_conv_kernel_size (int): Positionwise layer's kernel size.
+            positional_encoding_layer_type (str): Positional encoding layer type.
+            self_attention_layer_type (str): Self-attention layer type.
+            activation_type (str): Activation function type.
+            normalize_before (bool): Whether to apply LayerNorm before attention.
+            use_macaron_style (bool): Whether to use macaron style components.
+            use_conformer_conv (bool): Whether to use conformer conv layers.
+            conformer_kernel_size (int): Conformer's conv kernel size.
+            dropout_rate (float): Dropout rate.
+            positional_dropout_rate (float): Dropout rate for positional encoding.
+            attention_dropout_rate (float): Dropout rate for attention.
 
         """
         super().__init__()
