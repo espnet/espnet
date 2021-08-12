@@ -207,6 +207,11 @@ class VITS(AbsGANTTS):
         self.lambda_feat_match = lambda_feat_match
         self.lambda_dur = lambda_dur
 
+    @property
+    def require_raw_speech(self):
+        """Return whether or not speech is required."""
+        return True
+
     def forward_generator(
         self,
         text: torch.Tensor,
@@ -436,13 +441,14 @@ class VITS(AbsGANTTS):
 
     def inference(
         self,
-        text,
-        sids=None,
-        durations=None,
-        noise_scale=1.0,
-        length_scale=1.0,
-        noise_scale_w=1.0,
-        max_len=None,
+        text: torch.Tensor,
+        sids: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        noise_scale: float = 1.0,
+        length_scale: float = 1.0,
+        noise_scale_w: float = 1.0,
+        max_len: Optional[int] = None,
+        **kwargs,
     ):
         """Run inference.
 

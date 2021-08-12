@@ -113,24 +113,25 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         if spembs is not None:
             kwargs.update(spembs=spembs)
 
+        if self.model.tts.require_raw_speech:
+            kwargs.update(feats=feats)
+            kwargs.update(feats_lengths=feats_lengths)
+            kwargs.update(speech=speech)
+            kwargs.update(speech_lengths=speech_lengths)
+        else:
+            kwargs.update(speech=feats)
+            kwargs.update(speech_lengths=feats_lengths)
+
         if is_generator:
             return self.tts.forward_generator(
                 text=text,
                 text_lengths=text_lengths,
-                feats=feats,
-                feats_lengths=feats_lengths,
-                speech=speech,
-                speech_lengths=speech_lengths,
                 **kwargs,
             )
         else:
             return self.tts.forward_discrminator(
                 text=text,
                 text_lengths=text_lengths,
-                feats=feats,
-                feats_lengths=feats_lengths,
-                speech=speech,
-                speech_lengths=speech_lengths,
                 **kwargs,
             )
 
@@ -161,15 +162,16 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         kwargs = {}
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
-            if speech is None:
-                raise RuntimeError("missing required argument: 'speech'")
             if self.feats_extract is not None:
                 feats = self.feats_extract(speech[None])[0][0]
             else:
                 feats = speech
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
-            kwargs["feats"] = feats
+            if self.model.tts.require_raw_speech:
+                kwargs["feats"] = feats
+            else:
+                kwargs["speech"] = feats
 
         if decode_config["use_teacher_forcing"]:
             if durations is not None:

@@ -37,3 +37,8 @@ class AbsGANTTS(torch.nn.Module, ABC):
         **kwargs,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         raise NotImplementedError
+
+    @property
+    def require_raw_speech(self):
+        """Return whether or not raw_speech is required."""
+        return False
