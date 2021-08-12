@@ -195,26 +195,27 @@ minlenratio: 0.3
 - The pure attention mode requires to set the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`), appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.
 - About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics. 
 
-## Transducer
+### Transducer
 
-ESPnet supports models trained with transducer loss, aka transducer models. To train such model, the following should be set in the training config:
+ESPnet supports models trained with Transducer loss, aka Transducer models. To train such model, the following should be set in the training config:
 
 ```
 criterion: loss
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 ```
 
-### Architecture
+#### Architecture
 
-Several transducer architectures are currently available:
+Several Transducer architectures are currently available in ESPnet:
 - RNN-Transducer (default, e.g.: `etype: blstm` with `dtype: lstm`)
 - Custom-Transducer (e.g.: `etype: custom` and `dtype: custom`)
 - Mixed Custom/RNN-Transducer (e.g: `etype: custom` with `dtype: lstm`)
 
-The architecture specification is separated for the encoder and decoder part, and defined by the user through, respectively, `etype` and `dtype` in training config. If `custom` is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.
+The architecture specification is separated for the encoder and decoder part, and defined by the user through, respectively, `etype` and `dtype` in the training config. If `custom` is specified for either, a customizable architecture will be used for the corresponding part. Otherwise, an RNN-based architecture will be selected.
 
-While defining a RNN architecture is done in an usual manner (similarly to CTC, attention and MTL) with global parameters, a customizable architecture definition for transducer is different:
-1) Each blocks (or layers) for both network part should be specified individually through `enc-block-arch` or/and `dec-block-arch`:
+Here, the *custom* architecture is a unique feature of the Transducer model in ESPnet. It was made available to add some flexibility in the architecture definition and ease the reproduction of some SOTA Transducer models mixing  different layers types or parameters within the same model part (encoder or decoder). As such, the architecture definition is different compared to the RNN architecture :
+
+1) Each block (or layer) of the custom architecture should be specified individually through `enc-block-arch` or/and `dec-block-arch` parameters:
 
         # e.g: TDNN-Transformer encoder
         etype: custom
@@ -230,7 +231,7 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
                   d_ff: 320
                   heads: 4
 
-2) Each part has different allowed block type: `tdnn`, `conformer` or `transformer` for encoder and `causal-conv1d` or `transformer` for decoder. For each block type, a set of parameters are needed:
+2) Different block types are allowed for the custom encoder (`tdnn`, `conformer` or `transformer`) and the custom decoder (`causal-conv1d` or `transformer`). Each one has a set of mandatory and optional parameters :
 
         # TDNN
         - type: tdnn
@@ -270,7 +271,7 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
           stride: [Stride of the convolution. (int)]
           dilation: [Spacing between the kernel points. (int)]
 
-3) Each specified block(s) for each network part can be repeated by specifying the number of duplications through `enc-block-repeat` or `dec-block-repeat` parameters:
+3) The defined architecture can be repeated by specifying the total number of blocks/layers in the architecture through `enc-block-repeat` or/and `dec-block-repeat` parameters:
 
         # e.g.: 2x (Causal-Conv1d + Transformer) decoder
         dtype: transformer
@@ -287,36 +288,34 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
                   att-dropout-rate: 0.4
         dec-block-repeat: 2
 
-For more information about the customizable architecture, please refer to [vivos config examples](https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer) which cover most cases.
+#### Augmented training
 
-### Augmented training
-
-We also supports augmented transducer model training with various auxiliary tasks, such as: CTC loss, LM loss (label-smoothing), auxiliary transducer loss and symmetric KL divergence loss.
+We also support augmented Transducer model training with various auxiliary tasks, such as CTC loss, LM loss (label-smoothing), auxiliary Transducer loss, and symmetric KL divergence loss.
 The five losses can be simultaneously trained and jointly optimize the total loss function defined as:
 
-![augmented transducer training](http://www.sciweavers.org/tex2img.php?eq=\mathcal{L}_{tot}%20%3D%20\lambda_{1}\mathcal{L}_{1}%20%2B%20\lambda_{2}\mathcal{L}_{2}%20%2B%20\lambda_{3}\mathcal{L}_{3}%20%2B%20\lambda_{4}%20\mathcal{L}_{4}%20%2B%20\lambda_{5}%20\mathcal{L}_{5}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
+![augmented Transducer training](http://www.sciweavers.org/tex2img.php?eq=\mathcal{L}_{tot}%20%3D%20\lambda_{1}\mathcal{L}_{1}%20%2B%20\lambda_{2}\mathcal{L}_{2}%20%2B%20\lambda_{3}\mathcal{L}_{3}%20%2B%20\lambda_{4}%20\mathcal{L}_{4}%20%2B%20\lambda_{5}%20\mathcal{L}_{5}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
 
-where the losses are respectively, in order: The main transducer loss, the CTC loss, the auxiliary transducer loss, the symmetric KL divergence loss and the LM loss. Lambda values define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task. 
+where the losses are respectively, in order: The main Transducer loss, the CTC loss, the auxiliary Transducer loss, the symmetric KL divergence loss, and the LM loss. Lambda values define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task.
 
 Each loss can be defined in the training config alongside its specific options, such as follow:
 
         # Transducer loss (L1)
-        transducer-loss-weight: [Weight of the main transducer loss (float)]
+        transducer-loss-weight: [Weight of the main Transducer loss (float)]
 
         # CTC loss (L2)
         use-ctc-loss: True
         ctc-loss-weight: [Weight of the CTC loss. (float)]
         ctc-loss-dropout-rate: [Dropout rate for encoder output representation. (float)]
 
-        # Auxiliary transducer loss (L3)
+        # Auxiliary Transducer loss (L3)
         use-aux-transducer-loss: True
-        aux-transducer-loss-weight: [Weight of the auxiliary transducer loss. (float)]
-        aux-transducer-loss-enc-output-layers: [List of intermediate encoder layer IDs to compute auxiliary transducer loss(es). (list)]
+        aux-transducer-loss-weight: [Weight of the auxiliary Transducer loss. (float)]
+        aux-transducer-loss-enc-output-layers: [List of intermediate encoder layer IDs to compute auxiliary Transducer loss(es). (list)]
         aux-transducer-loss-mlp-dim: [Hidden dimension for the MLP network. (int)]
         aux-transducer-loss-mlp-dropout-rate: [Dropout rate for the MLP network. (float)]
 
         # Symmetric KL divergence loss (L4)
-        # Note: Only used in addition to the auxiliary transducer loss.
+        # Note: It can be only used paired with the auxiliary Transducer loss.
         use-symm-kl-div-loss: True
         symm-kl-div-loss-weight: [Weight of the symmetric KL divergence loss. (float)]
 
@@ -325,9 +324,9 @@ Each loss can be defined in the training config alongside its specific options, 
         lm-loss-weight: [Weight of the LM loss. (float)]
         lm-loss-smoothing-rate: [Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float)]
 
-### Inference
+#### Inference
 
-Various decoding algorithms are also available for transducer by setting `beam-size` and `search-type` parameter in decode config.
+Various decoding algorithms are also available for Transducer by setting `beam-size` and `search-type` parameters in decode config.
 
   - Greedy search  constrained to one emission by timestep (`beam-size: 1`)
   - Beam search algorithm without prefix search. (`beam-size: >1` and `search-type: default`)
@@ -336,7 +335,7 @@ Various decoding algorithms are also available for transducer by setting `beam-s
   - N-step Constrained beam search modified from [Kim et al., 2020](https://arxiv.org/abs/2002.03577). (`beam-size: >1` and `search-type: default`)
   - modified Adaptive Expansion Search, based on [Kim et al. (2021)](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC. (`beam-size: >1` and `search-type: maes`)
 
-The algorithms share two parameters to control beam size (`beam-size`) and final hypotheses normalization (`score-norm-transducer`). The specific parameters for each algorithms are:
+The algorithms share two parameters to control beam size (`beam-size`) and final hypotheses normalization (`score-norm-transducer`). The specific parameters for each algorithm are:
 
         # Default beam search
         search-type: default
@@ -364,16 +363,13 @@ The algorithms share two parameters to control beam size (`beam-size`) and final
 
 Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
 
-IMPORTANT (temporary) note: ALSD, TSD, NSC and mAES have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference will be handled at C++ level.
+#### Additional notes
 
-### Additional notes
-
-- Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
-- There are several differences between MTL and transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview and `espnet/espnet/nets/pytorch_backend/transducer/arguments` for all possible arguments.
+- Similarly to training with CTC, Transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
+- There are several differences between MTL and Transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview and `espnet/espnet/nets/pytorch_backend/transducer/arguments` for all possible arguments.
 - Memory usage during training can be reduced with minor training time augmentation using efficient encoder and decoder output combination [Li et al. (2019)](https://arxiv.org/pdf/1909.12415.pdf). To enable the feature, `joint-memory-reduction` can be set to True in training config.
-- RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
-- Transformer-decoder pre-initialization using a transformer LM is not supported yet.
-- Mixing transformer and conformer blocks within the same architecture part (i.e.: encoder) is not supported.
+- RNN-decoder pre-initialization using an LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
+- Transformer-decoder pre-initialization using a Transformer LM is not supported yet.
 
 ### Changing the training configuration
 
@@ -449,7 +445,7 @@ We expect the user to define the following options in its main training config (
 ### Important notes
 
 - Given a pre-trained source model, the modules specified for transfer learning are expected to have the same parameters (i.e.: layers and units) as the target model modules.
-- We also support initialization with a pre-trained RNN LM for the RNN-transducer decoder.
+- We also support initialization with a pre-trained RNN LM for the RNN-Transducer decoder.
 - RNN models use different key names for encoder and decoder parts compared to Transformer, Conformer or Custom models:
   - RNN model use `enc.` for encoder part and `dec.` for decoder part.
   - Transformer/Conformer/Custom model use `encoder.` for encoder part and `decoder.` for decoder part.
