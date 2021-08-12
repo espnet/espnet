@@ -34,12 +34,12 @@ class StochasticDurationPredictor(torch.nn.Module):
         """Initialize StochasticDurationPredictor module.
 
         Args:
-            channels: Number of channels.
-            kernel_size: Kernel size.
-            dropout_rate: Dropout rate.
-            flows: Number of flows.
-            dds_conv_layers: Number of conv layers in DDS conv.
-            global_channels: Number of global conditioning channels.
+            channels (int): Number of channels.
+            kernel_size (int): Kernel size.
+            dropout_rate (float): Dropout rate.
+            flows (int): Number of flows.
+            dds_conv_layers (int): Number of conv layers in DDS conv.
+            global_channels (int): Number of global conditioning channels.
 
         """
         super().__init__()
@@ -97,13 +97,13 @@ class StochasticDurationPredictor(torch.nn.Module):
         Args:
             x (Tensor): Input tensor (B, channels, T).
             x_mask (Tensor): Mask tensor (B, 1, T).
-            w (Optional[Tensor]):
+            w (Optional[Tensor]): Duration tensor (B, 1, T).
             g (Optional[Tensor]): Global conditioning tensor (B, channels, 1)
             inverse (bool): Whether to inverse the flow.
             noise_scale (float): Noise scale value.
 
         Returns:
-            Tensor: Output tensor (B, 1, T).
+            Tensor: Negative lower bound tensor (B,) if not inverse.
 
         """
         x = self.conv1(x.detach())  # stop gradient
