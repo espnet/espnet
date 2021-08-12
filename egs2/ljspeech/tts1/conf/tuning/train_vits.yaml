@@ -162,6 +162,7 @@ keep_nbest_models: 5      # number of models to keep
 num_att_plot: 3           # number of attention figures to be saved in every check
 seed: 0                   # random seed number
 patience: null            # patience for early stopping
+unused_parameters: true   # needed for multi gpu case
 best_model_criterion:     # criterion to save the best models
 -   - valid
     - loss
