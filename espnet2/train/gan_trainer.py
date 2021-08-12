@@ -263,35 +263,20 @@ class GANTrainer(Trainer):
                         "Gradient noise injection is not supported."
                     )
 
-                # compute the gradient norm to check if it is normal or not
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(),
-                    max_norm=grad_clip,
-                    norm_type=grad_clip_type,
-                )
-                # PyTorch<=1.4, clip_grad_norm_ returns float value
-                if not isinstance(grad_norm, torch.Tensor):
-                    grad_norm = torch.tensor(grad_norm)
-
-                if not torch.isfinite(grad_norm):
-                    logging.warning(
-                        f"The grad norm is {grad_norm}. " "Skipping updating the model."
+                # TODO(kan-bayashi): Compute grad norm without clipping
+                grad_norm = None
+                if grad_clip > 0.0:
+                    # compute the gradient norm to check if it is normal or not
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        model.parameters(),
+                        max_norm=grad_clip,
+                        norm_type=grad_clip_type,
                     )
+                    # PyTorch<=1.4, clip_grad_norm_ returns float value
+                    if not isinstance(grad_norm, torch.Tensor):
+                        grad_norm = torch.tensor(grad_norm)
 
-                    # Must invoke scaler.update() if unscale_() is used in the
-                    # iteration to avoid the following error:
-                    #   RuntimeError: unscale_() has already been called
-                    #   on this optimizer since the last update().
-                    # Note that if the gradient has inf/nan values,
-                    # scaler.step skips optimizer.step().
-                    if scaler is not None:
-                        for iopt, optimizer in enumerate(optimizers):
-                            if optim_idx is not None and iopt != optim_idx:
-                                continue
-                            scaler.step(optimizer)
-                            scaler.update()
-
-                else:
+                if grad_norm is None or torch.isfinite(grad_norm):
                     all_steps_are_invalid = False
                     with reporter.measure_time(f"{turn}_optim_step_time"):
                         for iopt, (optimizer, scheduler) in enumerate(
@@ -309,6 +294,23 @@ class GANTrainer(Trainer):
                                 optimizer.step()
                             if isinstance(scheduler, AbsBatchStepScheduler):
                                 scheduler.step()
+                else:
+                    logging.warning(
+                        f"The grad norm is {grad_norm}. " "Skipping updating the model."
+                    )
+                    # Must invoke scaler.update() if unscale_() is used in the
+                    # iteration to avoid the following error:
+                    #   RuntimeError: unscale_() has already been called
+                    #   on this optimizer since the last update().
+                    # Note that if the gradient has inf/nan values,
+                    # scaler.step skips optimizer.step().
+                    if scaler is not None:
+                        for iopt, optimizer in enumerate(optimizers):
+                            if optim_idx is not None and iopt != optim_idx:
+                                continue
+                            scaler.step(optimizer)
+                            scaler.update()
+
                 for iopt, optimizer in enumerate(optimizers):
                     if optim_idx is not None and iopt != optim_idx:
                         continue
