@@ -185,9 +185,8 @@ class GANTrainer(Trainer):
                 with autocast(scaler is not None):
                     with reporter.measure_time(f"{turn}_forward_time"):
                         forward_generator = turn == "generator"
-                        retval = model.forward_generator(
-                            forward_generator=forward_generator, **batch
-                        )
+                        retval = model(forward_generator=forward_generator, **batch)
+
                         # Note(kamo):
                         # Supporting two patterns for the returned value from the model
                         #   a. dict type
@@ -377,18 +376,20 @@ class GANTrainer(Trainer):
             if no_forward_run:
                 continue
 
-            retval = model(**batch)
-            if isinstance(retval, dict):
-                stats = retval["stats"]
-                weight = retval["weight"]
-            else:
-                _, stats, weight = retval
-            if ngpu > 1 or distributed:
-                # Apply weighted averaging for stats.
-                # if distributed, this method can also apply all_reduce()
-                stats, weight = recursive_average(stats, weight, distributed)
+            for turn in ["generator", "discriminator"]:
+                forward_generator = turn == "generator"
+                retval = model(forward_generator=forward_generator, **batch)
+                if isinstance(retval, dict):
+                    stats = retval["stats"]
+                    weight = retval["weight"]
+                else:
+                    _, stats, weight = retval
+                if ngpu > 1 or distributed:
+                    # Apply weighted averaging for stats.
+                    # if distributed, this method can also apply all_reduce()
+                    stats, weight = recursive_average(stats, weight, distributed)
+                reporter.register(stats, weight)
 
-            reporter.register(stats, weight)
             reporter.next()
 
         else:
