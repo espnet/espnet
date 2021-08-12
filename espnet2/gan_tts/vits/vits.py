@@ -227,9 +227,11 @@ class VITS(AbsGANTTS):
             sids (Optional[Tensor]): Speaker index tensor (B,).
 
         Returns:
-            Tensor: Loss scalar tensor.
-            Dict[str, float]: Statistics to be monitored.
-            Tensor: Weight value.
+            Dict[str, Any]:
+                - Tensor: Loss scalar tensor.
+                - Dict[str, float]: Statistics to be monitored.
+                - Tensor: Weight value.
+                - int: Optimizer index (0 for generator).
 
         """
         batch_size = text.size(0)
@@ -277,7 +279,12 @@ class VITS(AbsGANTTS):
         )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        return {
+            "loss": loss,
+            "stats": stats,
+            "weight": weight,
+            "optim_idx": 0,  # needed for trainer
+        }
 
     def forward_discrminator(
         self,
@@ -301,9 +308,11 @@ class VITS(AbsGANTTS):
             sids (Optional[Tensor]): Speaker index tensor (B,).
 
         Returns:
-            Tensor: Loss scalar tensor.
-            Dict[str, float]: Statistics to be monitored.
-            Tensor: Weight value.
+            Dict[str, Any]:
+                - Tensor: Loss scalar tensor.
+                - Dict[str, float]: Statistics to be monitored.
+                - Tensor: Weight value.
+                - int: Optimizer index (1 for discriminator).
 
         """
         batch_size = text.size(0)
@@ -325,9 +334,13 @@ class VITS(AbsGANTTS):
             discriminator_real_loss=real_loss.item(),
             discriminator_fake_loss=fake_loss.item(),
         )
-
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        return {
+            "loss": loss,
+            "stats": stats,
+            "weight": weight,
+            "optim_idx": 1,  # needed for trainer
+        }
 
     def forward(
         self,

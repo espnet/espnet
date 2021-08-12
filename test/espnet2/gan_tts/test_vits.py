@@ -235,9 +235,9 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         speech=torch.randn(2, 1, 16 * upsample_factor),
         speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
     )
-    gen_loss, *_ = model.forward_generator(**inputs)
+    gen_loss = model.forward_generator(**inputs)["loss"]
     gen_loss.backward()
-    dis_loss, *_ = model.forward_discrminator(**inputs)
+    dis_loss = model.forward_discrminator(**inputs)["loss"]
     dis_loss.backward()
 
     with torch.no_grad():
