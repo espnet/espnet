@@ -212,7 +212,7 @@ def test_vits_generator_forward(model_dict):
 )
 def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     idim = 10
-    aux_channels = 5
+    aux_channels = 80
     gen_args = make_vits_generator_args(
         idim=idim, aux_channels=aux_channels, **gen_dict
     )
@@ -230,9 +230,9 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     inputs = dict(
         text=torch.randint(0, idim, (2, 8)),
         text_lengths=torch.tensor([8, 5], dtype=torch.long),
-        feats=torch.randn(2, aux_channels, 16),
+        feats=torch.randn(2, 16, aux_channels),
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
-        speech=torch.randn(2, 1, 16 * upsample_factor),
+        speech=torch.randn(2, 16 * upsample_factor),
         speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
     )
     gen_loss = model.forward_generator(**inputs)["loss"]
