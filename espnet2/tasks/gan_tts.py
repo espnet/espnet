@@ -24,6 +24,7 @@ from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
 from espnet2.gan_tts.vits.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.abs_task import optim_classes
 from espnet2.train.class_choices import ClassChoices
@@ -52,7 +53,10 @@ feats_extractor_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(global_mvn=GlobalMVN),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
