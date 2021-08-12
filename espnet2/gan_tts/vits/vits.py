@@ -212,7 +212,59 @@ class VITS(AbsGANTTS):
         """Return whether or not speech is required."""
         return True
 
-    def forward_generator(
+    def forward(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        feats: torch.Tensor,
+        feats_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        sids: Optional[torch.Tensor] = None,
+        forward_generator: bool = True,
+    ):
+        """Perform generator forward.
+
+        Args:
+            text (Tensor): Text index tensor (B, T_text).
+            text_lengths (Tensor): Text length tensor (B,).
+            feats (Tensor): Feature tensor (B, T_feats, aux_channels).
+            feats_lengths (Tensor): Feature length tensor (B,).
+            speech (Tensor): Speech waveform tensor (B, T_wav).
+            speech_lengths (Tensor): Speech length tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,).
+            forward_generator (bool): Whether to forward generator.
+
+        Returns:
+            Dict[str, Any]:
+                - Tensor: Loss scalar tensor.
+                - Dict[str, float]: Statistics to be monitored.
+                - Tensor: Weight value.
+                - int: Optimizer index (0 for generator and 1 for discriminator).
+
+        """
+        if forward_generator:
+            return self._forward_generator(
+                text=text,
+                text_lengths=text_lengths,
+                feats=feats,
+                feats_lengths=feats_lengths,
+                speech=speech,
+                speech_lengths=speech_lengths,
+                sids=sids,
+            )
+        else:
+            return self._forward_discrminator(
+                text=text,
+                text_lengths=text_lengths,
+                feats=feats,
+                feats_lengths=feats_lengths,
+                speech=speech,
+                speech_lengths=speech_lengths,
+                sids=sids,
+            )
+
+    def _forward_generator(
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
@@ -241,28 +293,28 @@ class VITS(AbsGANTTS):
                 - int: Optimizer index (0 for generator).
 
         """
+        # setup
         batch_size = text.size(0)
-        (
-            p_hat,
-            p,
-            speech_hat_,
-            speech_,
-            dur_nll,
-            z_p,
-            m_p,
-            logs_p,
-            logs_q,
-            z_mask,
-        ) = self.forward(
-            text=text,
-            text_lengths=text_lengths,
-            feats=feats,
-            feats_lengths=feats_lengths,
-            speech=speech,
-            speech_lengths=speech_lengths,
-            sids=sids,
-            is_generator=True,
+        feats = feats.transpose(1, 2)
+        speech = speech.unsqueeze(1)
+
+        # calculate outputs
+        outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
+        speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
+        _, z_p, m_p, logs_p, _, logs_q = outs_
+        start_idxs = start_idxs * self.generator.upsample_factor
+        segment_size = self.generator.segment_size * self.generator.upsample_factor
+        speech_ = self.generator.get_segments(
+            x=speech,
+            start_idxs=start_idxs,
+            segment_size=segment_size,
         )
+        p_hat = self.discriminator(speech_hat_)
+        with torch.no_grad():
+            # do not store discriminator gradient in generator turn
+            p = self.discriminator(speech_)
+
+        # calculate losses
         mel_loss = self.mel_loss(speech_hat_, speech_)
         kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
         dur_loss = torch.sum(dur_nll.float())
@@ -293,7 +345,7 @@ class VITS(AbsGANTTS):
             "optim_idx": 0,  # needed for trainer
         }
 
-    def forward_discrminator(
+    def _forward_discrminator(
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
@@ -322,17 +374,28 @@ class VITS(AbsGANTTS):
                 - int: Optimizer index (1 for discriminator).
 
         """
+        # setup
         batch_size = text.size(0)
-        p_hat, p = self.forward(
-            text=text,
-            text_lengths=text_lengths,
-            feats=feats,
-            feats_lengths=feats_lengths,
-            speech=speech,
-            speech_lengths=speech_lengths,
-            sids=sids,
-            is_generator=False,
+        feats = feats.transpose(1, 2)
+        speech = speech.unsqueeze(1)
+
+        # calculate outputs
+        with torch.no_grad():
+            # do not store generator gradient in generator turn
+            speech_hat_, _, _, start_idxs, *_ = self.generator(
+                text, text_lengths, feats, feats_lengths, sids
+            )
+        start_idxs *= self.generator.upsample_factor
+        segment_size = self.generator.segment_size * self.generator.upsample_factor
+        speech_ = self.generator.get_segments(
+            x=speech,
+            start_idxs=start_idxs,
+            segment_size=segment_size,
         )
+        p_hat = self.discriminator(speech_hat_.detach())
+        p = self.discriminator(speech_)
+
+        # calculate losses
         real_loss, fake_loss = self.discriminator_adv_loss(p_hat, p)
         loss = real_loss + fake_loss
 
@@ -348,98 +411,6 @@ class VITS(AbsGANTTS):
             "weight": weight,
             "optim_idx": 1,  # needed for trainer
         }
-
-    def forward(
-        self,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
-        feats: torch.Tensor,
-        feats_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor] = None,
-        is_generator: bool = True,
-    ):
-        """Perform forward calculation.
-
-        Args:
-            text (Tensor): Text index tensor (B, T_text).
-            text_lengths (Tensor): Text length tensor (B,).
-            feats (Tensor): Feature tensor (B, T_feats, aux_channels).
-            feats_lengths (Tensor): Feature length tensor (B,).
-            speech (Tensor): Speech waveform tensor (B, T_wav).
-            speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,).
-            is_generator (bool): For generator forward or not.
-
-        Returns:
-            List[List[Tensor]]: List of list of discriminator outputs for fake samples.
-            List[List[Tensor]]: List of list of discriminator outputs for real samples.
-            Tensor: Fake waveform tensor (B, 1, segment_size * upsample_factor).
-                Only provided for when is_generator = True.
-            Tensor: Real waveform tensor (B, 1, segment_size * upsample_factor).
-                Only provided for when is_generator = True.
-            Tensor: Duration negative lower bound (B,).
-                Only provided for when is_generator = True.
-            Tensor: Flow hidden representation (B, H, T_feats).
-                Only provided for when is_generator = True.
-            Tensor: Expanded text encoder VAE mean (B, H, T_feats).
-                Only provided for when is_generator = True.
-            Tensor: Expanded text encoder VAE scale (B, H, T_feats).
-                Only provided for when is_generator = True.
-            Tensor: Posterior encoder VAE scale (B, H, T_feats).
-                Only provided for when is_generator = True.
-            Tensor: Feature mask tensor (B, 1, T_feats).
-                Only provided for when is_generator = True.
-
-        """
-        feats = feats.transpose(1, 2)
-        speech = speech.unsqueeze(1)
-        if is_generator:
-            outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
-            speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
-            _, z_p, m_p, logs_p, _, logs_q = outs_
-            start_idxs = start_idxs * self.generator.upsample_factor
-            segment_size = self.generator.segment_size * self.generator.upsample_factor
-            speech_ = self.generator.get_segments(
-                x=speech,
-                start_idxs=start_idxs,
-                segment_size=segment_size,
-            )
-            p_hat = self.discriminator(speech_hat_)
-            with torch.no_grad():
-                # do not store discriminator gradient in generator turn
-                p = self.discriminator(speech_)
-
-            return (
-                p_hat,
-                p,
-                speech_hat_,
-                speech_,
-                dur_nll,
-                z_p,
-                m_p,
-                logs_p,
-                logs_q,
-                z_mask,
-            )
-        else:
-            with torch.no_grad():
-                # do not store generator gradient in generator turn
-                speech_hat_, _, _, start_idxs, *_ = self.generator(
-                    text, text_lengths, feats, feats_lengths, sids
-                )
-            start_idxs *= self.generator.upsample_factor
-            segment_size = self.generator.segment_size * self.generator.upsample_factor
-            speech_ = self.generator.get_segments(
-                x=speech,
-                start_idxs=start_idxs,
-                segment_size=segment_size,
-            )
-            p_hat = self.discriminator(speech_hat_.detach())
-            p = self.discriminator(speech_)
-
-            return p_hat, p
 
     def inference(
         self,
