@@ -42,6 +42,7 @@ class HiFiGANGenerator(torch.nn.Module):
             in_channels (int): Number of input channels.
             out_channels (int): Number of output channels.
             channels (int): Number of hidden representation channels.
+            global_channels (int): Number of global conditioning channels.
             kernel_size (int): Kernel size of initial and final conv layer.
             upsample_scales (list): List of upsampling scales.
             upsample_kernal_sizes (list): List of kernal sizes for upsampling layers.
