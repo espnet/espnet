@@ -34,8 +34,8 @@ class GeneratorAdversarialLoss(torch.nn.Module):
         """Calcualate generator adversarial loss.
 
         Args:
-            outputs (Tensor or list): Discriminator outputs or list of
-                discriminator outputs.
+            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator
+                outputs or list of discriminator outputs.
 
         Returns:
             Tensor: Generator adversarial loss value.
@@ -85,10 +85,10 @@ class DiscriminatorAdversarialLoss(torch.nn.Module):
         """Calcualate discriminator adversarial loss.
 
         Args:
-            outputs_hat (Tensor or list): Discriminator outputs or list of
-                discriminator outputs calculated from generator outputs.
-            outputs (Tensor or list): Discriminator outputs or list of
-                discriminator outputs calculated from groundtruth.
+            outputs_hat (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator
+                outputs or list of discriminator outputs calculated from generator.
+            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator
+                outputs or list of discriminator outputs calculated from groundtruth.
 
         Returns:
             Tensor: Discriminator real loss value.
@@ -143,12 +143,12 @@ class FeatureMatchLoss(torch.nn.Module):
         self.include_final_outputs = include_final_outputs
 
     def forward(self, feats_hat, feats):
-        """Calcualate feature matching loss.
+        """Calculate feature matching loss.
 
         Args:
-            feats_hat (list): List of list of discriminator outputs
-                calcuated from generater outputs.
-            feats (list): List of list of discriminator outputs
+            feats_hat (List[List[Tensor]]): List of list of discriminator outputs
+                calcuated from generater.
+            feats (List[List[Tensor]]): List of list of discriminator outputs
                 calcuated from groundtruth.
 
         Returns:
