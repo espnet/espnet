@@ -164,6 +164,7 @@ class VITS(AbsGANTTS):
         lambda_feat_match: float = 1.0,
         lambda_dur: float = 1.0,
         lambda_kl: float = 1.0,
+        cache_generator_outputs: bool = True,
     ):
         """Initialize VITS module.
 
@@ -188,6 +189,8 @@ class VITS(AbsGANTTS):
         """
         assert check_argument_types()
         super().__init__()
+
+        # define modules
         generator_params.update(idim=idim, odim=odim)
         generator_class = AVAILABLE_GENERATERS[generator_type]
         self.generator = generator_class(
@@ -211,11 +214,16 @@ class VITS(AbsGANTTS):
         )
         self.kl_loss = KLDivergenceLoss()
 
+        # coefficients
         self.lambda_adv = lambda_adv
         self.lambda_mel = lambda_mel
         self.lambda_kl = lambda_kl
         self.lambda_feat_match = lambda_feat_match
         self.lambda_dur = lambda_dur
+
+        # cache
+        self.cache_generator_outputs = cache_generator_outputs
+        self._cache = None
 
     @property
     def require_raw_speech(self):
@@ -309,8 +317,11 @@ class VITS(AbsGANTTS):
         speech = speech.unsqueeze(1)
 
         # calculate outputs
-        outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
-        speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
+        reuse_cache = True
+        if self._cache is None:
+            reuse_cache = False
+            self._cache = self.generator(text, text_lengths, feats, feats_lengths, sids)
+        speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = self._cache
         _, z_p, m_p, logs_p, _, logs_q = outs_
         start_idxs = start_idxs * self.generator.upsample_factor
         segment_size = self.generator.segment_size * self.generator.upsample_factor
@@ -331,11 +342,11 @@ class VITS(AbsGANTTS):
         adv_loss = self.generator_adv_loss(p_hat)
         feat_match_loss = self.feat_match_loss(p_hat, p)
 
-        mel_loss *= self.lambda_mel
-        kl_loss *= self.lambda_kl
-        dur_loss *= self.lambda_dur
-        adv_loss *= self.lambda_adv
-        feat_match_loss *= self.lambda_feat_match
+        mel_loss = mel_loss * self.lambda_mel
+        kl_loss = kl_loss * self.lambda_kl
+        dur_loss = dur_loss * self.lambda_dur
+        adv_loss = adv_loss * self.lambda_adv
+        feat_match_loss = feat_match_loss * self.lambda_feat_match
         loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
 
         stats = dict(
@@ -348,6 +359,11 @@ class VITS(AbsGANTTS):
         )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+
+        # reset cache
+        if reuse_cache or not self.cache_generator_outputs:
+            self._cache = None
+
         return {
             "loss": loss,
             "stats": stats,
@@ -389,13 +405,14 @@ class VITS(AbsGANTTS):
         feats = feats.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
-        # calculate outputs
-        with torch.no_grad():
-            # do not store generator gradient in generator turn
-            speech_hat_, _, _, start_idxs, *_ = self.generator(
+        reuse_cache = True
+        if self._cache is None:
+            reuse_cache = False
+            self._cache = self.generator(
                 text, text_lengths, feats, feats_lengths, sids
             )
-        start_idxs *= self.generator.upsample_factor
+        speech_hat_, _, _, start_idxs, *_ = self._cache
+        start_idxs = start_idxs * self.generator.upsample_factor
         segment_size = self.generator.segment_size * self.generator.upsample_factor
         speech_ = self.generator.get_segments(
             x=speech,
@@ -415,6 +432,11 @@ class VITS(AbsGANTTS):
             discriminator_fake_loss=fake_loss.item(),
         )
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+
+        # reset cache
+        if not self.cache_generator_outputs or reuse_cache:
+            self._cache = None
+
         return {
             "loss": loss,
             "stats": stats,
