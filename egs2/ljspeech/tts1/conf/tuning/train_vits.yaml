@@ -149,8 +149,8 @@ grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
-num_workers: 16           # number of workers of data loader
-use_amp: false             # whether to use pytorch amp
+num_workers: 8            # number of workers of data loader
+use_amp: true             # whether to use pytorch amp
 train_dtype: float32      # dtype in training
 log_interval: null        # log interval in iterations
 keep_nbest_models: 5      # number of models to keep
