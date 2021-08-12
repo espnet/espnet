@@ -14,47 +14,45 @@ from espnet2.gan_tts.vits.vits import VITS
 
 def make_vits_generator_args(**kwargs):
     defaults = dict(
-        idim=10,
-        odim=-1,
-        aux_channels=5,
-        hidden_channels=4,
-        spks=-1,
-        global_channels=-1,
-        segment_size=4,
-        text_encoder_attention_heads=2,
-        text_encoder_attention_expand=4,
-        text_encoder_blocks=2,
-        text_encoder_kernel_size=3,
-        text_encoder_dropout_rate=0.1,
-        text_encoder_positional_dropout_rate=0.0,
-        text_encoder_attention_dropout_rate=0.0,
-        decoder_kernel_size=7,
-        decoder_channels=16,
-        decoder_upsample_scales=(16, 16),
-        decoder_upsample_kernel_sizes=(32, 32),
-        decoder_resblock_kernel_sizes=(
-            3,
-            5,
-        ),
-        decoder_resblock_dilations=[(1, 3), (1, 3)],
-        use_weight_norm_in_decoder=True,
-        posterior_encoder_kernel_size=5,
-        posterior_encoder_layers=2,
-        posterior_encoder_stacks=1,
-        posterior_encoder_base_dilation=1,
-        posterior_encoder_dropout_rate=0.0,
-        use_weight_norm_in_posterior_encoder=True,
-        flow_flows=2,
-        flow_kernel_size=5,
-        flow_base_dilation=1,
-        flow_layers=2,
-        flow_dropout_rate=0.0,
-        use_weight_norm_in_flow=True,
-        use_only_mean_in_flow=True,
-        stochastic_duration_predictor_kernel_size=3,
-        stochastic_duration_predictor_dropout_rate=0.5,
-        stochastic_duration_predictor_flows=2,
-        stochastic_duration_predictor_dds_conv_layers=3,
+        generator_type="vits_generator",
+        generator_params={
+            "aux_channels": 5,
+            "hidden_channels": 4,
+            "spks": -1,
+            "global_channels": -1,
+            "segment_size": 4,
+            "text_encoder_attention_heads": 2,
+            "text_encoder_attention_expand": 4,
+            "text_encoder_blocks": 2,
+            "text_encoder_kernel_size": 3,
+            "text_encoder_dropout_rate": 0.1,
+            "text_encoder_positional_dropout_rate": 0.0,
+            "text_encoder_attention_dropout_rate": 0.0,
+            "decoder_kernel_size": 7,
+            "decoder_channels": 16,
+            "decoder_upsample_scales": (16, 16),
+            "decoder_upsample_kernel_sizes": (32, 32),
+            "decoder_resblock_kernel_sizes": (3, 5),
+            "decoder_resblock_dilations": [(1, 3), (1, 3)],
+            "use_weight_norm_in_decoder": True,
+            "posterior_encoder_kernel_size": 5,
+            "posterior_encoder_layers": 2,
+            "posterior_encoder_stacks": 1,
+            "posterior_encoder_base_dilation": 1,
+            "posterior_encoder_dropout_rate": 0.0,
+            "use_weight_norm_in_posterior_encoder": True,
+            "flow_flows": 2,
+            "flow_kernel_size": 5,
+            "flow_base_dilation": 1,
+            "flow_layers": 2,
+            "flow_dropout_rate": 0.0,
+            "use_weight_norm_in_flow": True,
+            "use_only_mean_in_flow": True,
+            "stochastic_duration_predictor_kernel_size": 3,
+            "stochastic_duration_predictor_dropout_rate": 0.5,
+            "stochastic_duration_predictor_flows": 2,
+            "stochastic_duration_predictor_dds_conv_layers": 3,
+        },
     )
     defaults.update(kwargs)
     return defaults
@@ -62,39 +60,42 @@ def make_vits_generator_args(**kwargs):
 
 def make_vits_discriminator_args(**kwargs):
     defaults = dict(
-        scales=2,
-        scale_downsample_pooling="AvgPool1d",
-        scale_downsample_pooling_params={
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
-        scale_discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [15, 41, 5, 3],
-            "channels": 16,
-            "max_downsample_channels": 32,
-            "max_groups": 16,
-            "bias": True,
-            "downsample_scales": [2, 4, 1],
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-        },
-        follow_official_norm=True,
-        periods=[2, 3, 5],
-        period_discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [5, 3],
-            "channels": 4,
-            "downsample_scales": [3, 3, 1],
-            "max_downsample_channels": 16,
-            "bias": True,
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-            "use_weight_norm": True,
-            "use_spectral_norm": False,
+        discriminator_type="hifigan_multi_scale_multi_period_discriminator",
+        discriminator_params={
+            "scales": 2,
+            "scale_downsample_pooling": "AvgPool1d",
+            "scale_downsample_pooling_params": {
+                "kernel_size": 4,
+                "stride": 2,
+                "padding": 2,
+            },
+            "scale_discriminator_params": {
+                "in_channels": 1,
+                "out_channels": 1,
+                "kernel_sizes": [15, 41, 5, 3],
+                "channels": 16,
+                "max_downsample_channels": 32,
+                "max_groups": 16,
+                "bias": True,
+                "downsample_scales": [2, 4, 1],
+                "nonlinear_activation": "LeakyReLU",
+                "nonlinear_activation_params": {"negative_slope": 0.1},
+            },
+            "follow_official_norm": True,
+            "periods": [2, 3, 5],
+            "period_discriminator_params": {
+                "in_channels": 1,
+                "out_channels": 1,
+                "kernel_sizes": [5, 3],
+                "channels": 4,
+                "downsample_scales": [3, 3, 1],
+                "max_downsample_channels": 16,
+                "bias": True,
+                "nonlinear_activation": "LeakyReLU",
+                "nonlinear_activation_params": {"negative_slope": 0.1},
+                "use_weight_norm": True,
+                "use_spectral_norm": False,
+            },
         },
     )
     defaults.update(kwargs)
@@ -154,8 +155,13 @@ def make_vits_loss_args(**kwargs):
 def test_vits_generator_forward(model_dict):
     idim = 10
     aux_channels = 5
-    args = make_vits_generator_args(idim=idim, aux_channels=aux_channels, **model_dict)
-    model = VITSGenerator(**args)
+    args = make_vits_generator_args(**model_dict)
+    args["generator_params"]["aux_channels"] = aux_channels
+    model = VITSGenerator(
+        idim=idim,
+        odim=-1,
+        **args["generator_params"],
+    )
 
     # check forward
     inputs = dict(
@@ -228,21 +234,111 @@ def test_vits_generator_forward(model_dict):
     "gen_dict, dis_dict, loss_dict",
     [
         ({}, {}, {}),
+        ({}, {}, {"cache_generator_outputs": True}),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_scale_discriminator",
+                "discriminator_params": {
+                    "scales": 2,
+                    "downsample_pooling": "AvgPool1d",
+                    "downsample_pooling_params": {
+                        "kernel_size": 4,
+                        "stride": 2,
+                        "padding": 2,
+                    },
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [15, 41, 5, 3],
+                        "channels": 16,
+                        "max_downsample_channels": 32,
+                        "max_groups": 16,
+                        "bias": True,
+                        "downsample_scales": [2, 2, 1],
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_period_discriminator",
+                "discriminator_params": {
+                    "periods": [2, 3],
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [5, 3],
+                        "channels": 16,
+                        "downsample_scales": [3, 3, 1],
+                        "max_downsample_channels": 32,
+                        "bias": True,
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                        "use_weight_norm": True,
+                        "use_spectral_norm": False,
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_period_discriminator",
+                "discriminator_params": {
+                    "period": 2,
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 16,
+                    "downsample_scales": [3, 3, 1],
+                    "max_downsample_channels": 32,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_scale_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [15, 41, 5, 3],
+                    "channels": 16,
+                    "max_downsample_channels": 32,
+                    "max_groups": 16,
+                    "bias": True,
+                    "downsample_scales": [2, 2, 1],
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                },
+            },
+            {},
+        ),
     ],
 )
 def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     idim = 10
-    aux_channels = 80
-    gen_args = make_vits_generator_args(
-        idim=idim, aux_channels=aux_channels, **gen_dict
-    )
+    aux_channels = 5
+    gen_args = make_vits_generator_args(**gen_dict)
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
     model = VITS(
         idim=idim,
         odim=-1,
-        generator_params=gen_args,
-        discriminator_params=dis_args,
+        **gen_args,
+        **dis_args,
         **loss_args,
     )
     model.train()
