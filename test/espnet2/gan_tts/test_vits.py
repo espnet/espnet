@@ -140,8 +140,8 @@ def make_vits_loss_args(**kwargs):
     reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) == LooseVersion("1.6"),
-    reason="Group conv in pytorch 1.6 has an issue. "
+    LooseVersion(torch.__version__) == LooseVersion("1.6.0+cpu"),
+    reason="Group conv in pytorch 1.6.0+cpu has an issue. "
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
 @pytest.mark.parametrize(
@@ -220,8 +220,8 @@ def test_vits_generator_forward(model_dict):
     reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) == LooseVersion("1.6"),
-    reason="Group conv in pytorch 1.6 has an issue. "
+    LooseVersion(torch.__version__) == LooseVersion("1.6.0+cpu"),
+    reason="Group conv in pytorch 1.6.0+cpu has an issue. "
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
 @pytest.mark.parametrize(
