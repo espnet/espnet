@@ -4,17 +4,20 @@
 """Trainer module for GAN-based training."""
 
 import argparse
+import dataclasses
 import logging
 import time
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+from pathlib import Path
 from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from typing import Union
 
 import torch
 
@@ -28,7 +31,7 @@ from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import SubReporter
 from espnet2.train.trainer import Trainer
-from espnet2.train.trainer import TrainerOptions
+from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.types import str2bool
 
 if torch.distributed.is_available():
@@ -49,6 +52,34 @@ try:
     import fairscale
 except ImportError:
     fairscale = None
+
+
+@dataclasses.dataclass
+class TrainerOptions:
+    ngpu: int
+    resume: bool
+    use_amp: bool
+    train_dtype: str
+    grad_noise: bool
+    accum_grad: int
+    grad_clip: float
+    grad_clip_type: float
+    log_interval: Optional[int]
+    no_forward_run: bool
+    use_tensorboard: bool
+    use_wandb: bool
+    output_dir: Union[Path, str]
+    max_epoch: int
+    seed: int
+    sharded_ddp: bool
+    patience: Optional[int]
+    keep_nbest_models: Union[int, List[int]]
+    early_stopping_criterion: Sequence[str]
+    best_model_criterion: Sequence[Sequence[str]]
+    val_scheduler_criterion: Sequence[str]
+    unused_parameters: bool
+    wandb_model_log_interval: int
+    generator_first: bool
 
 
 class GANTrainer(Trainer):
@@ -73,6 +104,12 @@ class GANTrainer(Trainer):
     ...         optimizers[1].step()
 
     """
+
+    @classmethod
+    def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
+        """Build options consumed by train(), eval(), and plot_attention()"""
+        assert check_argument_types()
+        return build_dataclass(TrainerOptions, args)
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
@@ -181,10 +218,9 @@ class GANTrainer(Trainer):
                                 else:
                                     optim_idx = optim_idx.item()
 
-                        #   b. tuple or list type
+                        # b. tuple or list type
                         else:
-                            loss, stats, weight = retval
-                            optim_idx = None
+                            raise RuntimeError("model output must be dict.")
 
                     stats = {k: v for k, v in stats.items() if v is not None}
                     if ngpu > 1 or distributed:
@@ -281,15 +317,14 @@ class GANTrainer(Trainer):
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
                 reporter.register(
-                    dict(
-                        {
-                            f"optim{i}_lr{j}": pg["lr"]
-                            for i, optimizer in enumerate(optimizers)
-                            for j, pg in enumerate(optimizer.param_groups)
-                            if "lr" in pg
-                        },
-                        train_time=time.perf_counter() - start_time,
-                    ),
+                    {
+                        f"optim{optim_idx}_lr{i}": pg["lr"]
+                        for i, pg in enumerate(optimizers[optim_idx].param_groups)
+                        if "lr" in pg
+                    },
+                )
+                reporter.register(
+                    {f"{turn}_train_time": time.perf_counter() - start_time}
                 )
                 start_time = time.perf_counter()
 
