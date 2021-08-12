@@ -3,11 +3,16 @@
 
 """Test VITS related modules."""
 
+from distutils.version import LooseVersion
+
 import pytest
 import torch
 
 from espnet2.gan_tts.vits.vits import VITS
 from espnet2.gan_tts.vits.vits import VITSGenerator
+
+
+is_pytorch_1_6 = LooseVersion(torch.__version__) == "1.6"
 
 
 def make_vits_generator_args(**kwargs):
@@ -133,6 +138,11 @@ def make_vits_loss_args(**kwargs):
     return defaults
 
 
+@pytest.mark.skipif(
+    is_pytorch_1_6,
+    reason="Group conv in pytorch 1.6 has an issue. "
+    "See https://github.com/pytorch/pytorch/issues/42446.",
+)
 @pytest.mark.parametrize(
     "model_dict",
     [
@@ -204,6 +214,11 @@ def test_vits_generator_forward(model_dict):
                 print(f"{i+j+1}: {output_.shape}")
 
 
+@pytest.mark.skipif(
+    is_pytorch_1_6,
+    reason="Group conv in pytorch 1.6 has an issue. "
+    "See https://github.com/pytorch/pytorch/issues/42446.",
+)
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict",
     [
