@@ -196,7 +196,7 @@ def create_transducer_compatible_state_dict(
     return new_state_dict
 
 
-def load_trained_model(model_path, training):
+def load_trained_model(model_path, training=True):
     """Load the trained model for recognition.
 
     Args:
