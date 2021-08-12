@@ -107,7 +107,14 @@ class TextEncoder(torch.nn.Module):
 
         """
         x = self.input_emb(x) * math.sqrt(self.attention_dim)
-        x_mask = make_non_pad_mask(x_lengths).to(dtype=x.dtype).unsqueeze(1)
+        x_mask = (
+            make_non_pad_mask(x_lengths)
+            .to(
+                device=x.device,
+                dtype=x.dtype,
+            )
+            .unsqueeze(1)
+        )
         x, _ = self.encoder(x, x_mask)
         x = x.transpose(1, 2)  # (B, attention_dim, T)
         stats = self.output_conv(x) * x_mask
