@@ -325,7 +325,7 @@ def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
     with torch.no_grad():
         nbest = model.recognize(feats[0, : feats_len[0]].numpy(), beam_search)
 
-        print(nbest[0]["label_seq"][1:-1])
+        print(nbest[0]["yseq"][1:-1])
 
 
 def test_calculate_plot_attention():
@@ -415,7 +415,7 @@ def test_auxiliary_task(train_dic):
 
         nbest = model.recognize(feats[0, : feats_len[0]].numpy(), beam_search)
 
-        print(nbest[0]["label_seq"][1:-1])
+        print(nbest[0]["yseq"][1:-1])
 
 
 def test_no_block_arch():

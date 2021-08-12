@@ -135,15 +135,15 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
             lm_label: Label ID for LM. (1,)
 
         """
-        labels = torch.tensor([hyp.label_seq], device=self.device)
+        labels = torch.tensor([hyp.yseq], device=self.device)
         lm_label = labels[:, -1]
 
-        str_labels = "".join(list(map(str, hyp.label_seq)))
+        str_labels = "".join(list(map(str, hyp.yseq)))
 
         if str_labels in cache:
             dec_out, dec_state = cache[str_labels]
         else:
-            dec_out_mask = subsequent_mask(len(hyp.label_seq)).unsqueeze_(0)
+            dec_out_mask = subsequent_mask(len(hyp.yseq)).unsqueeze_(0)
 
             new_state = check_state(hyp.dec_state, (labels.size(1) - 1), self.blank_id)
 
@@ -187,12 +187,12 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         done = [None] * final_batch
 
         for i, hyp in enumerate(hyps):
-            str_labels = "".join(list(map(str, hyp.label_seq)))
+            str_labels = "".join(list(map(str, hyp.yseq)))
 
             if str_labels in cache:
                 done[i] = cache[str_labels]
             else:
-                process.append((str_labels, hyp.label_seq, hyp.dec_state))
+                process.append((str_labels, hyp.yseq, hyp.dec_state))
 
         if process:
             labels = pad_sequence([p[1] for p in process], self.blank_id)
@@ -231,12 +231,12 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
 
         dec_out = torch.stack([d[0] for d in done])
         dec_states = self.create_batch_states(
-            dec_states, [d[1] for d in done], [[0] + h.label_seq for h in hyps]
+            dec_states, [d[1] for d in done], [[0] + h.yseq for h in hyps]
         )
 
         if use_lm:
             lm_labels = torch.LongTensor(
-                [hyp.label_seq[-1] for hyp in hyps], device=self.device
+                [hyp.yseq[-1] for hyp in hyps], device=self.device
             )
 
             return dec_out, dec_states, lm_labels

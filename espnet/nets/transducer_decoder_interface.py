@@ -16,7 +16,7 @@ class Hypothesis:
     """Default hypothesis definition for transducer search algorithms."""
 
     score: float
-    label_seq: List[int]
+    yseq: List[int]
     dec_state: Union[
         Tuple[torch.Tensor, Optional[torch.Tensor]],
         List[Optional[torch.Tensor]],

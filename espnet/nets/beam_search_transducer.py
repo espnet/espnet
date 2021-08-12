@@ -145,7 +145,7 @@ class BeamSearchTransducer:
 
         """
         if self.score_norm:
-            hyps.sort(key=lambda x: x.score / len(x.label_seq), reverse=True)
+            hyps.sort(key=lambda x: x.score / len(x.yseq), reverse=True)
         else:
             hyps.sort(key=lambda x: x.score, reverse=True)
 
@@ -161,11 +161,11 @@ class BeamSearchTransducer:
         """
         for j, hyp_j in enumerate(hyps[:-1]):
             for hyp_i in hyps[(j + 1) :]:
-                curr_id = len(hyp_j.label_seq)
-                pref_id = len(hyp_i.label_seq)
+                curr_id = len(hyp_j.yseq)
+                pref_id = len(hyp_i.yseq)
 
                 if (
-                    is_prefix(hyp_j.label_seq, hyp_i.label_seq)
+                    is_prefix(hyp_j.yseq, hyp_i.yseq)
                     and (curr_id - pref_id) <= self.prefix_alpha
                 ):
                     logp = torch.log_softmax(
@@ -174,7 +174,7 @@ class BeamSearchTransducer:
                         dim=-1,
                     )
 
-                    curr_score = hyp_i.score + float(logp[hyp_j.label_seq[pref_id]])
+                    curr_score = hyp_i.score + float(logp[hyp_j.yseq[pref_id]])
 
                     for k in range(pref_id, (curr_id - 1)):
                         logp = torch.log_softmax(
@@ -183,7 +183,7 @@ class BeamSearchTransducer:
                             dim=-1,
                         )
 
-                        curr_score += float(logp[hyp_j.label_seq[k + 1]])
+                        curr_score += float(logp[hyp_j.yseq[k + 1]])
 
                     hyp_j.score = np.logaddexp(hyp_j.score, curr_score)
 
@@ -201,7 +201,7 @@ class BeamSearchTransducer:
         """
         dec_state = self.decoder.init_state(1)
 
-        hyp = Hypothesis(score=0.0, label_seq=[self.blank_id], dec_state=dec_state)
+        hyp = Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)
         cache = {}
 
         dec_out, state, _ = self.decoder.score(hyp, cache)
@@ -214,7 +214,7 @@ class BeamSearchTransducer:
             top_logp, pred = torch.max(logp, dim=-1)
 
             if pred != self.blank_id:
-                hyp.label_seq.append(int(pred))
+                hyp.yseq.append(int(pred))
                 hyp.score += float(top_logp)
 
                 hyp.dec_state = state
@@ -240,9 +240,7 @@ class BeamSearchTransducer:
 
         dec_state = self.decoder.init_state(1)
 
-        kept_hyps = [
-            Hypothesis(score=0.0, label_seq=[self.blank_id], dec_state=dec_state)
-        ]
+        kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)]
         cache = {}
 
         for enc_out_t in enc_out:
@@ -264,7 +262,7 @@ class BeamSearchTransducer:
                 kept_hyps.append(
                     Hypothesis(
                         score=(max_hyp.score + float(logp[0:1])),
-                        label_seq=max_hyp.label_seq[:],
+                        yseq=max_hyp.yseq[:],
                         dec_state=max_hyp.dec_state,
                         lm_state=max_hyp.lm_state,
                     )
@@ -284,7 +282,7 @@ class BeamSearchTransducer:
                     hyps.append(
                         Hypothesis(
                             score=score,
-                            label_seq=max_hyp.label_seq[:] + [int(k + 1)],
+                            yseq=max_hyp.yseq[:] + [int(k + 1)],
                             dec_state=state,
                             lm_state=lm_state,
                         )
@@ -319,7 +317,7 @@ class BeamSearchTransducer:
 
         B = [
             Hypothesis(
-                label_seq=[self.blank_id],
+                yseq=[self.blank_id],
                 score=0.0,
                 dec_state=self.decoder.select_state(beam_state, 0),
             )
@@ -352,20 +350,20 @@ class BeamSearchTransducer:
                 )
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
-                seq_A = [h.label_seq for h in A]
+                seq_A = [h.yseq for h in A]
 
                 for i, hyp in enumerate(C):
-                    if hyp.label_seq not in seq_A:
+                    if hyp.yseq not in seq_A:
                         A.append(
                             Hypothesis(
                                 score=(hyp.score + float(beam_logp[i, 0])),
-                                label_seq=hyp.label_seq[:],
+                                yseq=hyp.yseq[:],
                                 dec_state=hyp.dec_state,
                                 lm_state=hyp.lm_state,
                             )
                         )
                     else:
-                        dict_pos = seq_A.index(hyp.label_seq)
+                        dict_pos = seq_A.index(hyp.yseq)
 
                         A[dict_pos].score = np.logaddexp(
                             A[dict_pos].score, (hyp.score + float(beam_logp[i, 0]))
@@ -385,7 +383,7 @@ class BeamSearchTransducer:
                         for logp, k in zip(beam_topk[0][i], beam_topk[1][i] + 1):
                             new_hyp = Hypothesis(
                                 score=(hyp.score + float(logp)),
-                                label_seq=(hyp.label_seq + [int(k)]),
+                                yseq=(hyp.yseq + [int(k)]),
                                 dec_state=self.decoder.select_state(beam_state, i),
                                 lm_state=hyp.lm_state,
                             )
@@ -426,7 +424,7 @@ class BeamSearchTransducer:
 
         B = [
             Hypothesis(
-                label_seq=[self.blank_id],
+                yseq=[self.blank_id],
                 score=0.0,
                 dec_state=self.decoder.select_state(beam_state, 0),
             )
@@ -443,7 +441,7 @@ class BeamSearchTransducer:
             B_ = []
             B_enc_out = []
             for hyp in B:
-                u = len(hyp.label_seq) - 1
+                u = len(hyp.yseq) - 1
                 t = i - u + 1
 
                 if t > (t_max - 1):
@@ -481,7 +479,7 @@ class BeamSearchTransducer:
                 for i, hyp in enumerate(B_):
                     new_hyp = Hypothesis(
                         score=(hyp.score + float(beam_logp[i, 0])),
-                        label_seq=hyp.label_seq[:],
+                        yseq=hyp.yseq[:],
                         dec_state=hyp.dec_state,
                         lm_state=hyp.lm_state,
                     )
@@ -494,7 +492,7 @@ class BeamSearchTransducer:
                     for logp, k in zip(beam_topk[0][i], beam_topk[1][i] + 1):
                         new_hyp = Hypothesis(
                             score=(hyp.score + float(logp)),
-                            label_seq=(hyp.label_seq[:] + [int(k)]),
+                            yseq=(hyp.yseq[:] + [int(k)]),
                             dec_state=self.decoder.select_state(beam_state, i),
                             lm_state=hyp.lm_state,
                         )
@@ -537,7 +535,7 @@ class BeamSearchTransducer:
 
         init_tokens = [
             ExtendedHypothesis(
-                label_seq=[self.blank_id],
+                yseq=[self.blank_id],
                 score=0.0,
                 dec_state=self.decoder.select_state(beam_state, 0),
             )
@@ -568,7 +566,7 @@ class BeamSearchTransducer:
 
         kept_hyps = [
             ExtendedHypothesis(
-                label_seq=[self.blank_id],
+                yseq=[self.blank_id],
                 score=0.0,
                 dec_state=state,
                 dec_out=[beam_dec_out[0]],
@@ -579,7 +577,7 @@ class BeamSearchTransducer:
 
         for enc_out_t in enc_out:
             hyps = self.prefix_search(
-                sorted(kept_hyps, key=lambda x: len(x.label_seq), reverse=True),
+                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True),
                 enc_out_t,
             )
             kept_hyps = []
@@ -601,7 +599,7 @@ class BeamSearchTransducer:
                 for i, hyp in enumerate(hyps):
                     S.append(
                         ExtendedHypothesis(
-                            label_seq=hyp.label_seq[:],
+                            yseq=hyp.yseq[:],
                             score=hyp.score + float(beam_logp[i, 0:1]),
                             dec_out=hyp.dec_out[:],
                             dec_state=hyp.dec_state,
@@ -618,7 +616,7 @@ class BeamSearchTransducer:
 
                         V.append(
                             ExtendedHypothesis(
-                                label_seq=hyp.label_seq[:] + [int(k)],
+                                yseq=hyp.yseq[:] + [int(k)],
                                 score=score,
                                 dec_out=hyp.dec_out[:],
                                 dec_state=hyp.dec_state,
@@ -633,7 +631,7 @@ class BeamSearchTransducer:
                 beam_state = self.decoder.create_batch_states(
                     beam_state,
                     [v.dec_state for v in V],
-                    [v.label_seq for v in V],
+                    [v.yseq for v in V],
                 )
                 beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
                     V,
@@ -707,7 +705,7 @@ class BeamSearchTransducer:
 
         init_tokens = [
             ExtendedHypothesis(
-                label_seq=[self.blank_id],
+                yseq=[self.blank_id],
                 score=0.0,
                 dec_state=self.decoder.select_state(beam_state, 0),
             )
@@ -738,7 +736,7 @@ class BeamSearchTransducer:
 
         kept_hyps = [
             ExtendedHypothesis(
-                label_seq=[self.blank_id],
+                yseq=[self.blank_id],
                 score=0.0,
                 dec_state=state,
                 dec_out=[beam_dec_out[0]],
@@ -749,7 +747,7 @@ class BeamSearchTransducer:
 
         for enc_out_t in enc_out:
             hyps = self.prefix_search(
-                sorted(kept_hyps, key=lambda x: len(x.label_seq), reverse=True),
+                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True),
                 enc_out_t,
             )
             kept_hyps = []
@@ -773,7 +771,7 @@ class BeamSearchTransducer:
                 for i, hyp in enumerate(hyps):
                     for k, new_score in k_expansions[i]:
                         new_hyp = ExtendedHypothesis(
-                            label_seq=hyp.label_seq[:],
+                            yseq=hyp.yseq[:],
                             score=new_score,
                             dec_out=hyp.dec_out[:],
                             dec_state=hyp.dec_state,
@@ -784,7 +782,7 @@ class BeamSearchTransducer:
                         if k == 0:
                             list_b.append(new_hyp)
                         else:
-                            new_hyp.label_seq.append(int(k))
+                            new_hyp.yseq.append(int(k))
 
                             if self.use_lm:
                                 new_hyp.score += self.lm_weight * float(
@@ -803,7 +801,7 @@ class BeamSearchTransducer:
                     beam_state = self.decoder.create_batch_states(
                         beam_state,
                         [hyp.dec_state for hyp in list_exp],
-                        [hyp.label_seq for hyp in list_exp],
+                        [hyp.yseq for hyp in list_exp],
                     )
 
                     beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(

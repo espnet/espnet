@@ -81,7 +81,7 @@ class ErrorCalculator(object):
             nbest_hyps = self.beam_search(enc_out[b])
             batch_nbest.append(nbest_hyps[-1])
 
-        batch_nbest = [nbest_hyp.label_seq[1:] for nbest_hyp in batch_nbest]
+        batch_nbest = [nbest_hyp.yseq[1:] for nbest_hyp in batch_nbest]
 
         hyps, refs = self.convert_to_char(batch_nbest, target.cpu())
 

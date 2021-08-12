@@ -132,7 +132,7 @@ def substract(
     final = []
 
     for x_ in x:
-        if any(x_.label_seq == sub.label_seq for sub in subset):
+        if any(x_.yseq == sub.yseq for sub in subset):
             continue
         final.append(x_)
 
@@ -283,10 +283,10 @@ def recombine_hyps(hyps: List[Hypothesis]) -> List[Hypothesis]:
     final = []
 
     for hyp in hyps:
-        seq_final = [f.label_seq for f in final if f.label_seq]
+        seq_final = [f.yseq for f in final if f.yseq]
 
-        if hyp.label_seq in seq_final:
-            seq_pos = seq_final.index(hyp.label_seq)
+        if hyp.yseq in seq_final:
+            seq_pos = seq_final.index(hyp.yseq)
 
             final[seq_pos].score = np.logaddexp(final[seq_pos].score, hyp.score)
         else:

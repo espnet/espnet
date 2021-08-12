@@ -175,11 +175,9 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
             label: Label ID for LM. (1,)
 
         """
-        label = torch.full(
-            (1, 1), hyp.label_seq[-1], dtype=torch.long, device=self.device
-        )
+        label = torch.full((1, 1), hyp.yseq[-1], dtype=torch.long, device=self.device)
 
-        str_labels = "".join(list(map(str, hyp.label_seq)))
+        str_labels = "".join(list(map(str, hyp.yseq)))
 
         if str_labels in cache:
             dec_out, dec_state = cache[str_labels]
@@ -218,12 +216,12 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
         done = [None] * final_batch
 
         for i, hyp in enumerate(hyps):
-            str_labels = "".join(list(map(str, hyp.label_seq)))
+            str_labels = "".join(list(map(str, hyp.yseq)))
 
             if str_labels in cache:
                 done[i] = cache[str_labels]
             else:
-                process.append((str_labels, hyp.label_seq[-1], hyp.dec_state))
+                process.append((str_labels, hyp.yseq[-1], hyp.dec_state))
 
         if process:
             labels = torch.LongTensor([[p[1]] for p in process], device=self.device)
@@ -248,9 +246,7 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
         dec_states = self.create_batch_states(dec_states, [d[1] for d in done])
 
         if use_lm:
-            lm_labels = torch.LongTensor(
-                [h.label_seq[-1] for h in hyps], device=self.device
-            )
+            lm_labels = torch.LongTensor([h.yseq[-1] for h in hyps], device=self.device)
 
             return dec_out, dec_states, lm_labels
 

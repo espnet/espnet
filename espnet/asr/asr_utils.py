@@ -831,10 +831,7 @@ def parse_hypothesis(hyp, char_list):
 
     """
     # remove sos and get results
-    if "label_seq" in hyp:
-        tokenid_as_list = list(map(int, hyp["label_seq"][1:]))
-    else:
-        tokenid_as_list = list(map(int, hyp["yseq"][1:]))
+    tokenid_as_list = list(map(int, hyp["yseq"][1:]))
     token_as_list = [char_list[idx] for idx in tokenid_as_list]
     score = float(hyp["score"])
 
