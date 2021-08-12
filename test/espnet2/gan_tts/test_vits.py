@@ -8,11 +8,8 @@ from distutils.version import LooseVersion
 import pytest
 import torch
 
+from espnet2.gan_tts.vits.generator import VITSGenerator
 from espnet2.gan_tts.vits.vits import VITS
-from espnet2.gan_tts.vits.vits import VITSGenerator
-
-
-is_pytorch_1_6 = LooseVersion(torch.__version__) == "1.6"
 
 
 def make_vits_generator_args(**kwargs):
@@ -139,8 +136,7 @@ def make_vits_loss_args(**kwargs):
 
 
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < 1.4,
-    reason="Pytorch >= 1.4 is required."
+    LooseVersion(torch.__version__) < "1.4", reason="Pytorch >= 1.4 is required."
 )
 @pytest.mark.skipif(
     LooseVersion(torch.__version__) == "1.6",
@@ -219,8 +215,7 @@ def test_vits_generator_forward(model_dict):
 
 
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < 1.4,
-    reason="Pytorch >= 1.4 is required."
+    LooseVersion(torch.__version__) < "1.4", reason="Pytorch >= 1.4 is required."
 )
 @pytest.mark.skipif(
     LooseVersion(torch.__version__) == "1.6",

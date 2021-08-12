@@ -28,7 +28,7 @@ class AbsGANESPnetModel(AbsESPnetModel, torch.nn.Module, ABC):
         ...     def forward(self, input, input_lengths, forward_generator=True):
         ...         ...
         ...         if forward_generator:
-        ...             # optim idx 0 indicates generater optimizer
+        ...             # optim idx 0 indicates generator optimizer
         ...             return dict(loss=loss, stats=stats, weight=weight, optim_idx=0)
         ...         else:
         ...             # optim idx 1 indicates discriminator optimizer

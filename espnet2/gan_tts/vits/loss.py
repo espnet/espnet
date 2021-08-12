@@ -147,7 +147,7 @@ class FeatureMatchLoss(torch.nn.Module):
 
         Args:
             feats_hat (List[List[Tensor]]): List of list of discriminator outputs
-                calcuated from generater.
+                calcuated from generator.
             feats (List[List[Tensor]]): List of list of discriminator outputs
                 calcuated from groundtruth.
 
