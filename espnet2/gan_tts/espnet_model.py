@@ -16,7 +16,7 @@ from typeguard import check_argument_types
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -28,7 +28,7 @@ else:
         yield
 
 
-class ESPnetGANTTSModel(AbsESPnetModel):
+class ESPnetGANTTSModel(AbsGANESPnetModel):
     def __init__(
         self,
         feats_extract: Optional[AbsFeatsExtract],
