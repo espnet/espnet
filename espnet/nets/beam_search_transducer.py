@@ -1,5 +1,6 @@
 """Search algorithms for transducer models."""
 
+import logging
 from typing import List
 from typing import Union
 
@@ -110,8 +111,17 @@ class BeamSearchTransducer:
         else:
             self.use_lm = False
 
+        if softmax_temperature > 1.0 and lm is not None:
+            logging.warning(
+                "Softmax temperature is not supported with LM decoding."
+                "Setting softmax-temperature value to 1.0."
+            )
+
+            self.softmax_temperature = 1.0
+        else:
+            self.softmax_temperature = softmax_temperature
+
         self.score_norm = score_norm
-        self.softmax_temperature = softmax_temperature
         self.nbest = nbest
 
     def __call__(
