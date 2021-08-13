@@ -103,7 +103,9 @@ class TextEncoder(torch.nn.Module):
         self.proj = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
 
     def forward(
-        self, x: torch.Tensor, x_lengths: torch.Tensor,
+        self,
+        x: torch.Tensor,
+        x_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
 
