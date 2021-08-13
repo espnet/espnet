@@ -101,7 +101,7 @@ def is_prefix(x, pref):
     return True
 
 
-def subtract(x, subset):
+def substract(x, subset):
     """Remove elements of subset if corresponding token id sequence exist in x.
 
     Args:

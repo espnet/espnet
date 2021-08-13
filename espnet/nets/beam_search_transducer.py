@@ -11,7 +11,7 @@ from espnet.nets.pytorch_backend.transducer.utils import init_lm_state
 from espnet.nets.pytorch_backend.transducer.utils import is_prefix
 from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
 from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
-from espnet.nets.pytorch_backend.transducer.utils import subtract
+from espnet.nets.pytorch_backend.transducer.utils import substract
 from espnet.nets.transducer_decoder_interface import Hypothesis
 from espnet.nets.transducer_decoder_interface import NSCHypothesis
 from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
@@ -570,7 +570,7 @@ class BeamSearchTransducer:
                         )
 
                 V.sort(key=lambda x: x.score, reverse=True)
-                V = subtract(V, hyps)[:beam]
+                V = substract(V, hyps)[:beam]
 
                 beam_state = self.decoder.create_batch_states(
                     beam_state,
