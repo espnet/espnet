@@ -48,7 +48,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Data Preparation"
+    log "stage 2: Pretrain Data Preparation"
     for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
         # use underscore-separated names in data directories.
         local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
@@ -73,6 +73,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 	zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
 	    awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
     fi
+fi
+
+
+if [ ${stage} -le 6 ] && [ ${stage} -ge 6 ]; then
+    log "Stage 5: Download and Preparation Finetune Data"
+    ./local/prepare_librilight.sh ${LIBRILIGHT}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
