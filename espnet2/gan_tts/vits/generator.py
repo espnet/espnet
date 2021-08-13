@@ -147,6 +147,7 @@ class VITSGenerator(torch.nn.Module):
             in_channels=hidden_channels,
             out_channels=1,
             channels=decoder_channels,
+            global_channels=global_channels,
             kernel_size=decoder_kernel_size,
             upsample_scales=decoder_upsample_scales,
             upsample_kernal_sizes=decoder_upsample_kernel_sizes,
@@ -236,7 +237,7 @@ class VITSGenerator(torch.nn.Module):
 
         # calculate global conditioning
         if self.spks > 0:
-            g = self.global_enb(sids).unsqueeze(-1)  # (B, global_channels, 1)
+            g = self.global_emb(sids).unsqueeze(-1)  # (B, global_channels, 1)
         else:
             g = None
 
