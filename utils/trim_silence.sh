@@ -20,7 +20,7 @@ Options:
   --win_length <win_length>      # window length in point (default=1024)
   --shift_length <shift_length>  # shift length in point (default=256)
   --threshold <threshold>        # power threshold in db (default=60)
-  --min_silence <sec>            # minimum silence lenght in sec (default=0.01)
+  --min_silence <sec>            # minimum silence length in sec (default=0.01)
   --normalize <bit>              # audio bit (default=16)
   --cmd <cmd>                    # how to run jobs (default=run.pl)
   --nj <nj>                      # number of parallel jobs (default=32)
