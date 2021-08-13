@@ -271,7 +271,7 @@
                 <span class="s2">&quot;predicted durations includes all 0 sequences. &quot;</span>
                 <span class="s2">&quot;fill the first element with 1.&quot;</span>
             <span class="p">)</span>
-            <span class="c1"># NOTE(kan-bayashi): This case must not be happend in teacher forcing.</span>
+            <span class="c1"># NOTE(kan-bayashi): This case must not be happened in teacher forcing.</span>
             <span class="c1">#   It will be happened in inference with a bad duration predictor.</span>
             <span class="c1">#   So we do not need to care the padded sequence case here.</span>
             <span class="n">ds</span><span class="p">[</span><span class="n">ds</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>

@@ -307,7 +307,7 @@
         <span class="sd">&quot;&quot;&quot;E2E forward propagation.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)</span>
+<span class="sd">            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)</span>
 <span class="sd">            ilens (chainer.Variable): Batch of length of each input batch. (B,)</span>
 <span class="sd">            ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)</span>
 
@@ -363,7 +363,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            x (chainer.Variable): Input tensor for recognition.</span>
 <span class="sd">            recog_args (parser.args): Arguments of config file.</span>
-<span class="sd">            char_list (List[str]): List of Charactors.</span>
+<span class="sd">            char_list (List[str]): List of Characters.</span>
 <span class="sd">            rnnlm (Module): RNNLM module defined at `espnet.lm.chainer_backend.lm`.</span>
 
 <span class="sd">        Returns:</span>

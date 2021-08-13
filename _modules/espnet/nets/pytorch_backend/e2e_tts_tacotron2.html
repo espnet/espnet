@@ -275,8 +275,8 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            att_ws (Tensor): Batch of attention weights (B, T_max_out, T_max_in).</span>
-<span class="sd">            ilens (LongTensor): Batch of input lenghts (B,).</span>
-<span class="sd">            olens (LongTensor): Batch of output lenghts (B,).</span>
+<span class="sd">            ilens (LongTensor): Batch of input lengths (B,).</span>
+<span class="sd">            olens (LongTensor): Batch of output lengths (B,).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Guided attention loss value.</span>
@@ -469,7 +469,7 @@
         <span class="n">unexpected_keys</span><span class="p">,</span>
         <span class="n">error_msgs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Apply pre hook fucntion before loading state dict.</span>
+        <span class="sd">&quot;&quot;&quot;Apply pre hook function before loading state dict.</span>
 
 <span class="sd">        From v.0.6.1 `bce_criterion.pos_weight` param is registered as a parameter but</span>
 <span class="sd">        old models do not include it and as a result, it causes missing key error when</span>
@@ -960,7 +960,7 @@
                 <span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">olens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mf">1.0</span>
             <span class="p">)</span>  <span class="c1"># see #3388</span>
 
-        <span class="c1"># caluculate taco2 loss</span>
+        <span class="c1"># calculate taco2 loss</span>
         <span class="n">l1_loss</span><span class="p">,</span> <span class="n">mse_loss</span><span class="p">,</span> <span class="n">bce_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">taco2_loss</span><span class="p">(</span>
             <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">olens</span>
         <span class="p">)</span>
@@ -971,7 +971,7 @@
             <span class="p">{</span><span class="s2">&quot;bce_loss&quot;</span><span class="p">:</span> <span class="n">bce_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()},</span>
         <span class="p">]</span>
 
-        <span class="c1"># caluculate attention loss</span>
+        <span class="c1"># calculate attention loss</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_guided_attn_loss</span><span class="p">:</span>
             <span class="c1"># NOTE(kan-bayashi):</span>
             <span class="c1"># length of output for auto-regressive input will be changed when r &gt; 1</span>
@@ -985,13 +985,13 @@
                 <span class="p">{</span><span class="s2">&quot;attn_loss&quot;</span><span class="p">:</span> <span class="n">attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()},</span>
             <span class="p">]</span>
 
-        <span class="c1"># caluculate cbhg loss</span>
+        <span class="c1"># calculate cbhg loss</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cbhg</span><span class="p">:</span>
             <span class="c1"># remove unnecessary padded part (for multi-gpus)</span>
             <span class="k">if</span> <span class="n">max_out</span> <span class="o">!=</span> <span class="n">extras</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
                 <span class="n">extras</span> <span class="o">=</span> <span class="n">extras</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_out</span><span class="p">]</span>
 
-            <span class="c1"># caluculate cbhg outputs &amp; loss and report them</span>
+            <span class="c1"># calculate cbhg outputs &amp; loss and report them</span>
             <span class="n">cbhg_outs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhg</span><span class="p">(</span><span class="n">after_outs</span><span class="p">,</span> <span class="n">olens</span><span class="p">)</span>
             <span class="n">cbhg_l1_loss</span><span class="p">,</span> <span class="n">cbhg_mse_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhg_loss</span><span class="p">(</span><span class="n">cbhg_outs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">olens</span><span class="p">)</span>
             <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">cbhg_l1_loss</span> <span class="o">+</span> <span class="n">cbhg_mse_loss</span>

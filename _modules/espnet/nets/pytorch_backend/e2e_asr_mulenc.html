@@ -1052,7 +1052,7 @@
             <span class="c1"># 1. Encoder</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">replace_sos</span><span class="p">:</span>
                 <span class="n">tgt_lang_ids</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>  <span class="c1"># remove target language ID in the beggining</span>
+                <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>  <span class="c1"># remove target language ID in the beginning</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">tgt_lang_ids</span> <span class="o">=</span> <span class="kc">None</span>
 

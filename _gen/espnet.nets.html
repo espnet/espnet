@@ -781,7 +781,7 @@ and next state list for ys.</p>
 <dd><p>Bases: <a class="reference internal" href="#espnet.nets.scorer_interface.ScorerInterface" title="espnet.nets.scorer_interface.ScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.ScorerInterface</span></code></a></p>
 <p>Partial scorer interface for beam search.</p>
 <p>The partial scorer performs scoring when non-partial scorer finished scoring,
-and recieves pre-pruned next tokens to score because it is too heavy to score
+and receives pre-pruned next tokens to score because it is too heavy to score
 all the tokens.</p>
 <p class="rubric">Examples</p>
 <ul class="simple">
@@ -1729,7 +1729,7 @@ and state values of <cite>self.full_scorers</cite></p>
 <dl class="method">
 <dt id="espnet.nets.mt_interface.MTInterface.calculate_all_attentions">
 <code class="sig-name descname">calculate_all_attentions</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">ilens</em>, <em class="sig-param">ys</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/mt_interface.html#MTInterface.calculate_all_attentions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.mt_interface.MTInterface.calculate_all_attentions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Caluculate attention.</p>
+<dd><p>Calculate attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -2340,7 +2340,7 @@ intended.</p>
 <dl class="method">
 <dt id="espnet.nets.asr_interface.ASRInterface.calculate_all_attentions">
 <code class="sig-name descname">calculate_all_attentions</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">ilens</em>, <em class="sig-param">ys</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/asr_interface.html#ASRInterface.calculate_all_attentions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.asr_interface.ASRInterface.calculate_all_attentions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Caluculate attention.</p>
+<dd><p>Calculate attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -2361,7 +2361,7 @@ intended.</p>
 <dl class="method">
 <dt id="espnet.nets.asr_interface.ASRInterface.calculate_all_ctc_probs">
 <code class="sig-name descname">calculate_all_ctc_probs</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">ilens</em>, <em class="sig-param">ys</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/asr_interface.html#ASRInterface.calculate_all_ctc_probs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.asr_interface.ASRInterface.calculate_all_ctc_probs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Caluculate CTC probability.</p>
+<dd><p>Calculate CTC probability.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -3652,8 +3652,8 @@ how close attention to a diagonal.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>att_ws</strong> (<em>Tensor</em>) – Batch of multi head attention weights (B, H, T_max_out, T_max_in).</p></li>
-<li><p><strong>ilens</strong> (<em>LongTensor</em>) – Batch of input lenghts (B,).</p></li>
-<li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of output lenghts (B,).</p></li>
+<li><p><strong>ilens</strong> (<em>LongTensor</em>) – Batch of input lengths (B,).</p></li>
+<li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of output lengths (B,).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -5255,8 +5255,8 @@ how close attention to a diagonal.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>att_ws</strong> (<em>Tensor</em>) – Batch of attention weights (B, T_max_out, T_max_in).</p></li>
-<li><p><strong>ilens</strong> (<em>LongTensor</em>) – Batch of input lenghts (B,).</p></li>
-<li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of output lenghts (B,).</p></li>
+<li><p><strong>ilens</strong> (<em>LongTensor</em>) – Batch of input lengths (B,).</p></li>
+<li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of output lengths (B,).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -8204,7 +8204,7 @@ and not store pre_compute_enc_h</p></li>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.rnn.attentions.AttLoc.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em>, <em class="sig-param">scaling=2.0</em>, <em class="sig-param">last_attended_idx=None</em>, <em class="sig-param">backward_window=1</em>, <em class="sig-param">forward_window=3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttLoc.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttLoc.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calcualte AttLoc forward propagation.</p>
+<dd><p>Calculate AttLoc forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -8741,7 +8741,7 @@ and not store pre_compute_k and pre_compute_v</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Input dimension.</p></li>
-<li><p><strong>attention_dim</strong> (<em>int</em>) – Dimention of attention.</p></li>
+<li><p><strong>attention_dim</strong> (<em>int</em>) – Dimension of attention.</p></li>
 <li><p><strong>attention_heads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
 <li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
 <li><p><strong>num_blocks</strong> (<em>int</em>) – The number of decoder blocks.</p></li>
@@ -10889,7 +10889,7 @@ between one and the target sequence’s length.
 </div>
 <div class="section" id="espnet-nets-pytorch-backend-transformer-add-sos-eos">
 <span id="id82"></span><h2>espnet.nets.pytorch_backend.transformer.add_sos_eos<a class="headerlink" href="#espnet-nets-pytorch-backend-transformer-add-sos-eos" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.nets.pytorch_backend.transformer.add_sos_eos"></span><p>Unility funcitons for Transformer.</p>
+<span class="target" id="module-espnet.nets.pytorch_backend.transformer.add_sos_eos"></span><p>Unility functions for Transformer.</p>
 <dl class="function">
 <dt id="espnet.nets.pytorch_backend.transformer.add_sos_eos.add_sos_eos">
 <code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.add_sos_eos.</code><code class="sig-name descname">add_sos_eos</code><span class="sig-paren">(</span><em class="sig-param">ys_pad</em>, <em class="sig-param">sos</em>, <em class="sig-param">eos</em>, <em class="sig-param">ignore_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/add_sos_eos.html#add_sos_eos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.add_sos_eos.add_sos_eos" title="Permalink to this definition">¶</a></dt>
@@ -10931,7 +10931,7 @@ between one and the target sequence’s length.
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Input dimension.</p></li>
-<li><p><strong>attention_dim</strong> (<em>int</em>) – Dimention of attention.</p></li>
+<li><p><strong>attention_dim</strong> (<em>int</em>) – Dimension of attention.</p></li>
 <li><p><strong>attention_heads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
 <li><p><strong>conv_wshare</strong> (<em>int</em>) – The number of kernel of convolution. Only used in
 self_attention_layer_type == “lightconv*” or “dynamiconv*”.</p></li>
@@ -11053,7 +11053,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(batch, time1, d_model) ouput</p>
+<dd class="field-even"><p>(batch, time1, d_model) output</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>x (torch.Tensor)</p>
@@ -11454,7 +11454,7 @@ values should be torch.Tensor (head, input_length, output_length)</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>odim</strong> (<em>int</em>) – Output diminsion.</p></li>
 <li><p><strong>self_attention_layer_type</strong> (<em>str</em>) – Self-attention layer type.</p></li>
-<li><p><strong>attention_dim</strong> (<em>int</em>) – Dimention of attention.</p></li>
+<li><p><strong>attention_dim</strong> (<em>int</em>) – Dimension of attention.</p></li>
 <li><p><strong>attention_heads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
 <li><p><strong>conv_wshare</strong> (<em>int</em>) – The number of kernel of convolution. Only used in
 self_attention_layer_type == “lightconv*” or “dynamiconv*”.</p></li>
@@ -11932,12 +11932,12 @@ torch.Tensor: Transformed value tensor (#batch, n_head, time2, d_k).</p>
 </div>
 <div class="section" id="espnet-nets-pytorch-backend-transformer-dynamic-conv2d">
 <span id="id96"></span><h2>espnet.nets.pytorch_backend.transformer.dynamic_conv2d<a class="headerlink" href="#espnet-nets-pytorch-backend-transformer-dynamic-conv2d" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.nets.pytorch_backend.transformer.dynamic_conv2d"></span><p>Dynamic 2-Dimentional Convolution module.</p>
+<span class="target" id="module-espnet.nets.pytorch_backend.transformer.dynamic_conv2d"></span><p>Dynamic 2-Dimensional Convolution module.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.dynamic_conv2d.DynamicConvolution2D">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.dynamic_conv2d.</code><code class="sig-name descname">DynamicConvolution2D</code><span class="sig-paren">(</span><em class="sig-param">wshare</em>, <em class="sig-param">n_feat</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">kernel_size</em>, <em class="sig-param">use_kernel_mask=False</em>, <em class="sig-param">use_bias=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/dynamic_conv2d.html#DynamicConvolution2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.dynamic_conv2d.DynamicConvolution2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>Dynamic 2-Dimentional Convolution layer.</p>
+<p>Dynamic 2-Dimensional Convolution layer.</p>
 <p>This implementation is based on
 <a class="reference external" href="https://github.com/pytorch/fairseq/tree/master/fairseq">https://github.com/pytorch/fairseq/tree/master/fairseq</a></p>
 <dl class="field-list simple">
@@ -11952,11 +11952,11 @@ torch.Tensor: Transformed value tensor (#batch, n_head, time2, d_k).</p>
 </ul>
 </dd>
 </dl>
-<p>Construct Dynamic 2-Dimentional Convolution layer.</p>
+<p>Construct Dynamic 2-Dimensional Convolution layer.</p>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.dynamic_conv2d.DynamicConvolution2D.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">query</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em>, <em class="sig-param">mask</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/dynamic_conv2d.html#DynamicConvolution2D.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.dynamic_conv2d.DynamicConvolution2D.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward of ‘Dynamic 2-Dimentional Convolution’.</p>
+<dd><p>Forward of ‘Dynamic 2-Dimensional Convolution’.</p>
 <p>This function takes query, key and value but uses only query.
 This is just for compatibility with self-attention layer (attention.py)</p>
 <dl class="field-list simple">
@@ -11969,7 +11969,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(batch, time1, d_model) ouput</p>
+<dd class="field-even"><p>(batch, time1, d_model) output</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>x (torch.Tensor)</p>
@@ -11992,7 +11992,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – input dim</p></li>
-<li><p><strong>attention_dim</strong> (<em>int</em>) – dimention of attention</p></li>
+<li><p><strong>attention_dim</strong> (<em>int</em>) – dimension of attention</p></li>
 <li><p><strong>attention_heads</strong> (<em>int</em>) – the number of heads of multi head attention</p></li>
 <li><p><strong>linear_units</strong> (<em>int</em>) – the number of units of position-wise feed forward</p></li>
 <li><p><strong>num_blocks</strong> (<em>int</em>) – the number of decoder blocks</p></li>
@@ -12103,12 +12103,12 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 </div>
 <div class="section" id="espnet-nets-pytorch-backend-transformer-lightconv2d">
 <span id="id99"></span><h2>espnet.nets.pytorch_backend.transformer.lightconv2d<a class="headerlink" href="#espnet-nets-pytorch-backend-transformer-lightconv2d" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.nets.pytorch_backend.transformer.lightconv2d"></span><p>Lightweight 2-Dimentional Convolution module.</p>
+<span class="target" id="module-espnet.nets.pytorch_backend.transformer.lightconv2d"></span><p>Lightweight 2-Dimensional Convolution module.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.lightconv2d.LightweightConvolution2D">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.lightconv2d.</code><code class="sig-name descname">LightweightConvolution2D</code><span class="sig-paren">(</span><em class="sig-param">wshare</em>, <em class="sig-param">n_feat</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">kernel_size</em>, <em class="sig-param">use_kernel_mask=False</em>, <em class="sig-param">use_bias=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/lightconv2d.html#LightweightConvolution2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.lightconv2d.LightweightConvolution2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>Lightweight 2-Dimentional Convolution layer.</p>
+<p>Lightweight 2-Dimensional Convolution layer.</p>
 <p>This implementation is based on
 <a class="reference external" href="https://github.com/pytorch/fairseq/tree/master/fairseq">https://github.com/pytorch/fairseq/tree/master/fairseq</a></p>
 <dl class="field-list simple">
@@ -12123,11 +12123,11 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 </ul>
 </dd>
 </dl>
-<p>Construct Lightweight 2-Dimentional Convolution layer.</p>
+<p>Construct Lightweight 2-Dimensional Convolution layer.</p>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.lightconv2d.LightweightConvolution2D.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">query</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em>, <em class="sig-param">mask</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/lightconv2d.html#LightweightConvolution2D.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.lightconv2d.LightweightConvolution2D.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward of ‘Lightweight 2-Dimentional Convolution’.</p>
+<dd><p>Forward of ‘Lightweight 2-Dimensional Convolution’.</p>
 <p>This function takes query, key and value but uses only query.
 This is just for compatibility with self-attention layer (attention.py)</p>
 <dl class="field-list simple">
@@ -12140,7 +12140,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(batch, time1, d_model) ouput</p>
+<dd class="field-even"><p>(batch, time1, d_model) output</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>x (torch.Tensor)</p>
@@ -12306,7 +12306,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(batch, time1, d_model) ouput</p>
+<dd class="field-even"><p>(batch, time1, d_model) output</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>x (torch.Tensor)</p>
@@ -12451,7 +12451,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.PositionwiseFeedForward.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/positionwise_feed_forward.html#PositionwiseFeedForward.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.PositionwiseFeedForward.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward funciton.</p>
+<dd><p>Forward function.</p>
 </dd></dl>
 
 </dd></dl>
@@ -13318,7 +13318,7 @@ which described in <a class="reference external" href="https://arxiv.org/abs/171
 Conditioning WaveNet on Mel Spectrogram Predictions</a>.
 The Postnet predicts refines the predicted
 Mel-filterbank of the decoder,
-which helps to compensate the detail sturcture of spectrogram.</p>
+which helps to compensate the detail structure of spectrogram.</p>
 <p>Initialize postnet module.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -13609,7 +13609,7 @@ Tensor: Mean square error loss value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ctc</strong> (<em>torch.nn.Module</em>) – The CTC implementaiton.
+<li><p><strong>ctc</strong> (<em>torch.nn.Module</em>) – The CTC implementation.
 For example, <a class="reference internal" href="#espnet.nets.pytorch_backend.ctc.CTC" title="espnet.nets.pytorch_backend.ctc.CTC"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.pytorch_backend.ctc.CTC</span></code></a></p></li>
 <li><p><strong>eos</strong> (<em>int</em>) – The end-of-sequence id.</p></li>
 </ul>
@@ -13654,7 +13654,7 @@ and next state for ys</p>
 <dt id="espnet.nets.scorers.ctc.CTCPrefixScorer.extend_prob">
 <code class="sig-name descname">extend_prob</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/scorers/ctc.html#CTCPrefixScorer.extend_prob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.scorers.ctc.CTCPrefixScorer.extend_prob" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend probs for decoding.</p>
-<p>This extention is for streaming decoding
+<p>This extension is for streaming decoding
 as in Eq (14) in <a class="reference external" href="https://arxiv.org/abs/2006.14941">https://arxiv.org/abs/2006.14941</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -13667,7 +13667,7 @@ as in Eq (14) in <a class="reference external" href="https://arxiv.org/abs/2006.
 <dt id="espnet.nets.scorers.ctc.CTCPrefixScorer.extend_state">
 <code class="sig-name descname">extend_state</code><span class="sig-paren">(</span><em class="sig-param">state</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/scorers/ctc.html#CTCPrefixScorer.extend_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.scorers.ctc.CTCPrefixScorer.extend_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend state for decoding.</p>
-<p>This extention is for streaming decoding
+<p>This extension is for streaming decoding
 as in Eq (14) in <a class="reference external" href="https://arxiv.org/abs/2006.14941">https://arxiv.org/abs/2006.14941</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -13907,7 +13907,7 @@ and next state list for ys.</p>
 <dt id="espnet.nets.scorers.ngram.Ngrambase">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.scorers.ngram.</code><code class="sig-name descname">Ngrambase</code><span class="sig-paren">(</span><em class="sig-param">ngram_model</em>, <em class="sig-param">token_list</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/scorers/ngram.html#Ngrambase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.scorers.ngram.Ngrambase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
-<p>Ngram base implemented throught ScorerInterface.</p>
+<p>Ngram base implemented through ScorerInterface.</p>
 <p>Initialize Ngrambase.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -14145,7 +14145,7 @@ loss.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>xs</strong> (<em>chainer.Variable</em>) – Batch of padded charactor ids. (B, Tmax)</p></li>
+<li><p><strong>xs</strong> (<em>chainer.Variable</em>) – Batch of padded character ids. (B, Tmax)</p></li>
 <li><p><strong>ilens</strong> (<em>chainer.Variable</em>) – Batch of length of each input batch. (B,)</p></li>
 <li><p><strong>ys</strong> (<em>chainer.Variable</em>) – Batch of padded target features. (B, Lmax, odim)</p></li>
 </ul>
@@ -14177,7 +14177,7 @@ float (optional): Accuracy.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>chainer.Variable</em>) – Input tensor for recognition.</p></li>
 <li><p><strong>recog_args</strong> (<em>parser.args</em>) – Arguments of config file.</p></li>
-<li><p><strong>char_list</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of Charactors.</p></li>
+<li><p><strong>char_list</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of Characters.</p></li>
 <li><p><strong>rnnlm</strong> (<em>Module</em>) – RNNLM module defined at <cite>espnet.lm.chainer_backend.lm</cite>.</p></li>
 </ul>
 </dd>
@@ -14567,7 +14567,7 @@ of return value is filled with 0.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>xs</strong> (<em>chainer.Variable</em>) – Batch of padded charactor ids. (B, Tmax)</p></li>
+<li><p><strong>xs</strong> (<em>chainer.Variable</em>) – Batch of padded character ids. (B, Tmax)</p></li>
 <li><p><strong>ilens</strong> (<em>chainer.Variable</em>) – Batch of length of each input batch. (B,)</p></li>
 <li><p><strong>ys</strong> (<em>chainer.Variable</em>) – Batch of padded target features. (B, Lmax, odim)</p></li>
 <li><p><strong>calculate_attentions</strong> (<em>bool</em>) – If true, return value is the output of encoder.</p></li>
@@ -14622,7 +14622,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>h</strong> (<em>ndarray</em>) – Encoder ouput features (B, T, D) or (T, D).</p></li>
+<li><p><strong>h</strong> (<em>ndarray</em>) – Encoder output features (B, T, D) or (T, D).</p></li>
 <li><p><strong>lpz</strong> (<em>ndarray</em>) – Log probabilities from CTC.</p></li>
 <li><p><strong>recog_args</strong> (<em>Namespace</em>) – Argment namespace contraining options.</p></li>
 <li><p><strong>char_list</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of characters.</p></li>
@@ -14804,7 +14804,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 <li><p><strong>att</strong> (<em>Module</em>) – Attention module defined at
 <cite>espnet.espnet.nets.chainer_backend.attentions</cite>.</p></li>
 <li><p><strong>verbose</strong> (<em>int</em>) – Verbosity level.</p></li>
-<li><p><strong>char_list</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of all charactors.</p></li>
+<li><p><strong>char_list</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of all characters.</p></li>
 <li><p><strong>labeldist</strong> (<em>numpy.array</em>) – Distributed array of counted transcript length.</p></li>
 <li><p><strong>lsm_weight</strong> (<em>float</em>) – Weight to use when calculating the training loss.</p></li>
 <li><p><strong>sampling_probability</strong> (<em>float</em>) – Threshold for scheduled sampling.</p></li>
@@ -14841,7 +14841,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 <li><p><strong>h</strong> (<em>chainer.Variable</em>) – One of the output from the encoder.</p></li>
 <li><p><strong>lpz</strong> (<em>chainer.Variable | None</em>) – Result of net propagation.</p></li>
 <li><p><strong>recog_args</strong> (<em>Namespace</em>) – The argument.</p></li>
-<li><p><strong>char_list</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of all charactors.</p></li>
+<li><p><strong>char_list</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of all characters.</p></li>
 <li><p><strong>rnnlm</strong> (<em>Module</em>) – RNNLM module. Defined at <cite>espnet.lm.chainer_backend.lm</cite></p></li>
 </ul>
 </dd>
@@ -15199,7 +15199,7 @@ updates of parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>e</strong> (<em>chainer.Variable</em>) – Batch of padded charactor. (B, Tmax)</p></li>
+<li><p><strong>e</strong> (<em>chainer.Variable</em>) – Batch of padded character. (B, Tmax)</p></li>
 <li><p><strong>ilens</strong> (<em>chainer.Variable</em>) – Batch of length of each input batch. (B,)</p></li>
 </ul>
 </dd>
@@ -15362,7 +15362,7 @@ chainer.Variable: Batch of lengths of each encoder outputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hs</strong> (<em>iterable of chainer.Variable | N-dimention array</em>) – Input variable from encoder.</p></li>
+<li><p><strong>hs</strong> (<em>iterable of chainer.Variable | N-dimension array</em>) – Input variable from encoder.</p></li>
 <li><p><strong>ys</strong> (<em>iterable of N-dimension array</em>) – Input variable of decoder.</p></li>
 </ul>
 </dd>
@@ -15413,7 +15413,7 @@ chainer.Variable: Batch of lengths of each encoder outputs.</p>
 <li><p><strong>h</strong> (<em>int</em>) – Number of attention heads.</p></li>
 <li><p><strong>dropout</strong> (<em>float</em>) – Dropout rate.</p></li>
 <li><p><strong>initialW</strong> (<em>Initializer</em>) – Initializer to initialize the weight.</p></li>
-<li><p><strong>initial_bias</strong> (<em>Initializer</em>) – Initializer to initialize teh bias.</p></li>
+<li><p><strong>initial_bias</strong> (<em>Initializer</em>) – Initializer to initialize the bias.</p></li>
 </ul>
 </dd>
 </dl>

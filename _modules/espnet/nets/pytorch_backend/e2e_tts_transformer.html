@@ -258,8 +258,8 @@
 <span class="sd">        Args:</span>
 <span class="sd">            att_ws (Tensor):</span>
 <span class="sd">                Batch of multi head attention weights (B, H, T_max_out, T_max_in).</span>
-<span class="sd">            ilens (LongTensor): Batch of input lenghts (B,).</span>
-<span class="sd">            olens (LongTensor): Batch of output lenghts (B,).</span>
+<span class="sd">            ilens (LongTensor): Batch of input lengths (B,).</span>
+<span class="sd">            olens (LongTensor): Batch of output lengths (B,).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Guided attention loss value.</span>
@@ -973,7 +973,7 @@
                 <span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">olens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mf">1.0</span>
             <span class="p">)</span>  <span class="c1"># see #3388</span>
 
-        <span class="c1"># caluculate loss values</span>
+        <span class="c1"># calculate loss values</span>
         <span class="n">l1_loss</span><span class="p">,</span> <span class="n">l2_loss</span><span class="p">,</span> <span class="n">bce_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span>
             <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">olens</span>
         <span class="p">)</span>

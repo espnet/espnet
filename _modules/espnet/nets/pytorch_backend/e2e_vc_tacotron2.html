@@ -753,7 +753,7 @@
             <span class="n">hs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">att_ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
 
-        <span class="c1"># caluculate src reconstruction</span>
+        <span class="c1"># calculate src reconstruction</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_reconstruction_loss_lambda</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">B</span><span class="p">,</span> <span class="n">_in_length</span><span class="p">,</span> <span class="n">_adim</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">shape</span>
             <span class="n">xt</span><span class="p">,</span> <span class="n">xtlens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_reconstructor</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">)</span>
@@ -761,7 +761,7 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">xt</span> <span class="o">=</span> <span class="n">xt</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">idim</span><span class="p">)</span>
 
-        <span class="c1"># caluculate trg reconstruction</span>
+        <span class="c1"># calculate trg reconstruction</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trg_reconstruction_loss_lambda</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">olens_trg_cp</span> <span class="o">=</span> <span class="n">olens</span><span class="o">.</span><span class="n">new</span><span class="p">(</span>
                 <span class="nb">sorted</span><span class="p">([</span><span class="n">olen</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="k">for</span> <span class="n">olen</span> <span class="ow">in</span> <span class="n">olens</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -802,7 +802,7 @@
             <span class="n">max_in</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_in</span><span class="p">]</span>
 
-        <span class="c1"># caluculate taco2 loss</span>
+        <span class="c1"># calculate taco2 loss</span>
         <span class="n">l1_loss</span><span class="p">,</span> <span class="n">mse_loss</span><span class="p">,</span> <span class="n">bce_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">taco2_loss</span><span class="p">(</span>
             <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">olens</span>
         <span class="p">)</span>
@@ -813,7 +813,7 @@
             <span class="p">{</span><span class="s2">&quot;bce_loss&quot;</span><span class="p">:</span> <span class="n">bce_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()},</span>
         <span class="p">]</span>
 
-        <span class="c1"># caluculate context_perservation loss</span>
+        <span class="c1"># calculate context_preservation loss</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_reconstruction_loss_lambda</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">src_recon_l1_loss</span><span class="p">,</span> <span class="n">src_recon_mse_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_reconstruction_loss</span><span class="p">(</span>
                 <span class="n">xt</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span>
@@ -833,7 +833,7 @@
                 <span class="p">{</span><span class="s2">&quot;trg_recon_mse_loss&quot;</span><span class="p">:</span> <span class="n">trg_recon_mse_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()},</span>
             <span class="p">]</span>
 
-        <span class="c1"># caluculate attention loss</span>
+        <span class="c1"># calculate attention loss</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_guided_attn_loss</span><span class="p">:</span>
             <span class="c1"># NOTE(kan-bayashi): length of output for auto-regressive input</span>
             <span class="c1">#   will be changed when r &gt; 1</span>
@@ -853,13 +853,13 @@
                 <span class="p">{</span><span class="s2">&quot;attn_loss&quot;</span><span class="p">:</span> <span class="n">attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()},</span>
             <span class="p">]</span>
 
-        <span class="c1"># caluculate cbhg loss</span>
+        <span class="c1"># calculate cbhg loss</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cbhg</span><span class="p">:</span>
             <span class="c1"># remove unnecessary padded part (for multi-gpus)</span>
             <span class="k">if</span> <span class="n">max_out</span> <span class="o">!=</span> <span class="n">spcs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
                 <span class="n">spcs</span> <span class="o">=</span> <span class="n">spcs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_out</span><span class="p">]</span>
 
-            <span class="c1"># caluculate cbhg outputs &amp; loss and report them</span>
+            <span class="c1"># calculate cbhg outputs &amp; loss and report them</span>
             <span class="n">cbhg_outs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhg</span><span class="p">(</span><span class="n">after_outs</span><span class="p">,</span> <span class="n">olens</span><span class="p">)</span>
             <span class="n">cbhg_l1_loss</span><span class="p">,</span> <span class="n">cbhg_mse_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbhg_loss</span><span class="p">(</span><span class="n">cbhg_outs</span><span class="p">,</span> <span class="n">spcs</span><span class="p">,</span> <span class="n">olens</span><span class="p">)</span>
             <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">cbhg_l1_loss</span> <span class="o">+</span> <span class="n">cbhg_mse_loss</span>

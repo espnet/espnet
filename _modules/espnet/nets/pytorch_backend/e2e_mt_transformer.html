@@ -544,7 +544,7 @@
 
             <span class="c1"># add eos in the final loop to avoid that there are no ended hyps</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adding &lt;eos&gt; in the last postion in the loop&quot;</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adding &lt;eos&gt; in the last position in the loop&quot;</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">:</span>
                     <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">)</span>
 

@@ -374,7 +374,7 @@
             <span class="p">)</span>
             <span class="n">r</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">x_</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span>
 
-        <span class="c1"># compute log prefix probabilites log(psi)</span>
+        <span class="c1"># compute log prefix probabilities log(psi)</span>
         <span class="n">log_phi_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">log_phi</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">log_phi</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">x_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">scoring_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">log_psi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
@@ -547,7 +547,7 @@
             <span class="n">log_phi</span> <span class="o">=</span> <span class="n">r_sum</span>
 
         <span class="c1"># compute forward probabilities log(r_t^n(h)), log(r_t^b(h)),</span>
-        <span class="c1"># and log prefix probabilites log(psi)</span>
+        <span class="c1"># and log prefix probabilities log(psi)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">output_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">log_psi</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_length</span><span class="p">):</span>

@@ -263,7 +263,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        odim (int): Output diminsion.</span>
 <span class="sd">        self_attention_layer_type (str): Self-attention layer type.</span>
-<span class="sd">        attention_dim (int): Dimention of attention.</span>
+<span class="sd">        attention_dim (int): Dimension of attention.</span>
 <span class="sd">        attention_heads (int): The number of heads of multi head attention.</span>
 <span class="sd">        conv_wshare (int): The number of kernel of convolution. Only used in</span>
 <span class="sd">            self_attention_layer_type == &quot;lightconv*&quot; or &quot;dynamiconv*&quot;.</span>
@@ -363,7 +363,7 @@
         <span class="k">elif</span> <span class="n">selfattention_layer_type</span> <span class="o">==</span> <span class="s2">&quot;lightconv2d&quot;</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;decoder self-attention layer &quot;</span>
-                <span class="s2">&quot;type = lightweight convolution 2-dimentional&quot;</span>
+                <span class="s2">&quot;type = lightweight convolution 2-dimensional&quot;</span>
             <span class="p">)</span>
             <span class="n">decoder_selfattn_layer</span> <span class="o">=</span> <span class="n">LightweightConvolution2D</span>
             <span class="n">decoder_selfattn_layer_args</span> <span class="o">=</span> <span class="p">[</span>
@@ -393,7 +393,7 @@
             <span class="p">]</span>
         <span class="k">elif</span> <span class="n">selfattention_layer_type</span> <span class="o">==</span> <span class="s2">&quot;dynamicconv2d&quot;</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;decoder self-attention layer type = dynamic convolution 2-dimentional&quot;</span>
+                <span class="s2">&quot;decoder self-attention layer type = dynamic convolution 2-dimensional&quot;</span>
             <span class="p">)</span>
             <span class="n">decoder_selfattn_layer</span> <span class="o">=</span> <span class="n">DynamicConvolution2D</span>
             <span class="n">decoder_selfattn_layer_args</span> <span class="o">=</span> <span class="p">[</span>

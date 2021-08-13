@@ -465,7 +465,7 @@
         <span class="sd">&quot;&quot;&quot;E2E forward propagation.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)</span>
+<span class="sd">            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)</span>
 <span class="sd">            ilens (chainer.Variable): Batch of length of each input batch. (B,)</span>
 <span class="sd">            ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)</span>
 <span class="sd">            calculate_attentions (bool): If true, return value is the output of encoder.</span>
@@ -594,7 +594,7 @@
         <span class="sd">&quot;&quot;&quot;E2E beam search.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            h (ndarray): Encoder ouput features (B, T, D) or (T, D).</span>
+<span class="sd">            h (ndarray): Encoder output features (B, T, D) or (T, D).</span>
 <span class="sd">            lpz (ndarray): Log probabilities from CTC.</span>
 <span class="sd">            recog_args (Namespace): Argment namespace contraining options.</span>
 <span class="sd">            char_list (List[str]): List of characters.</span>
@@ -719,7 +719,7 @@
 
             <span class="c1"># add eos in the final loop to avoid that there are no ended hyps</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adding &lt;eos&gt; in the last postion in the loop&quot;</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adding &lt;eos&gt; in the last position in the loop&quot;</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">:</span>
                     <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">)</span>
 

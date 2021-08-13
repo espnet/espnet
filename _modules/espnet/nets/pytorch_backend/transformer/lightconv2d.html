@@ -211,7 +211,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet.nets.pytorch_backend.transformer.lightconv2d</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Lightweight 2-Dimentional Convolution module.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Lightweight 2-Dimensional Convolution module.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -223,7 +223,7 @@
 
 
 <div class="viewcode-block" id="LightweightConvolution2D"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.lightconv2d.LightweightConvolution2D">[docs]</a><span class="k">class</span> <span class="nc">LightweightConvolution2D</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Lightweight 2-Dimentional Convolution layer.</span>
+    <span class="sd">&quot;&quot;&quot;Lightweight 2-Dimensional Convolution layer.</span>
 
 <span class="sd">    This implementation is based on</span>
 <span class="sd">    https://github.com/pytorch/fairseq/tree/master/fairseq</span>
@@ -247,7 +247,7 @@
         <span class="n">use_kernel_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct Lightweight 2-Dimentional Convolution layer.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Construct Lightweight 2-Dimensional Convolution layer.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LightweightConvolution2D</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">assert</span> <span class="n">n_feat</span> <span class="o">%</span> <span class="n">wshare</span> <span class="o">==</span> <span class="mi">0</span>
@@ -277,7 +277,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">kernel_mask1</span><span class="p">,</span> <span class="n">kernel_mask0</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LightweightConvolution2D.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.lightconv2d.LightweightConvolution2D.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward of &#39;Lightweight 2-Dimentional Convolution&#39;.</span>
+        <span class="sd">&quot;&quot;&quot;Forward of &#39;Lightweight 2-Dimensional Convolution&#39;.</span>
 
 <span class="sd">        This function takes query, key and value but uses only query.</span>
 <span class="sd">        This is just for compatibility with self-attention layer (attention.py)</span>
@@ -289,7 +289,7 @@
 <span class="sd">            mask (torch.Tensor): (batch, time1, time2) mask</span>
 
 <span class="sd">        Return:</span>
-<span class="sd">            x (torch.Tensor): (batch, time1, d_model) ouput</span>
+<span class="sd">            x (torch.Tensor): (batch, time1, d_model) output</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># linear -&gt; GLU -&gt; lightconv -&gt; linear</span>
