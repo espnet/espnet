@@ -7,7 +7,6 @@ This code is based on https://github.com/jaywalnut310/vits.
 
 """
 
-
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -316,20 +315,28 @@ class VITS(AbsGANTTS):
         feats = feats.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
-        # calculate outputs
+        # calculate generator outputs
         reuse_cache = True
-        if self._cache is None:
+        if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            self._cache = self.generator(text, text_lengths, feats, feats_lengths, sids)
-        speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = self._cache
+            outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
+        else:
+            outs = self._cache
+
+        # store cache
+        if self.training and self.cache_generator_outputs and not reuse_cache:
+            self._cache = outs
+
+        # parse outputs
+        speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
         _, z_p, m_p, logs_p, _, logs_q = outs_
-        start_idxs = start_idxs * self.generator.upsample_factor
-        segment_size = self.generator.segment_size * self.generator.upsample_factor
         speech_ = self.generator.get_segments(
             x=speech,
-            start_idxs=start_idxs,
-            segment_size=segment_size,
+            start_idxs=start_idxs * self.generator.upsample_factor,
+            segment_size=self.generator.segment_size * self.generator.upsample_factor,
         )
+
+        # calculate discriminator outputs
         p_hat = self.discriminator(speech_hat_)
         with torch.no_grad():
             # do not store discriminator gradient in generator turn
@@ -361,7 +368,7 @@ class VITS(AbsGANTTS):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
         # reset cache
-        if reuse_cache or not self.cache_generator_outputs:
+        if reuse_cache or not self.training:
             self._cache = None
 
         return {
@@ -405,18 +412,27 @@ class VITS(AbsGANTTS):
         feats = feats.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
+        # calculate generator outputs
         reuse_cache = True
-        if self._cache is None:
+        if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            self._cache = self.generator(text, text_lengths, feats, feats_lengths, sids)
-        speech_hat_, _, _, start_idxs, *_ = self._cache
-        start_idxs = start_idxs * self.generator.upsample_factor
-        segment_size = self.generator.segment_size * self.generator.upsample_factor
+            outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
+        else:
+            outs = self._cache
+
+        # store cache
+        if self.cache_generator_outputs and not reuse_cache:
+            self._cache = outs
+
+        # parse outputs
+        speech_hat_, _, _, start_idxs, *_ = outs
         speech_ = self.generator.get_segments(
             x=speech,
-            start_idxs=start_idxs,
-            segment_size=segment_size,
+            start_idxs=start_idxs * self.generator.upsample_factor,
+            segment_size=self.generator.segment_size * self.generator.upsample_factor,
         )
+
+        # calculate discriminator outputs
         p_hat = self.discriminator(speech_hat_.detach())
         p = self.discriminator(speech_)
 
@@ -432,7 +448,7 @@ class VITS(AbsGANTTS):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
         # reset cache
-        if not self.cache_generator_outputs or reuse_cache:
+        if reuse_cache or not self.training:
             self._cache = None
 
         return {
