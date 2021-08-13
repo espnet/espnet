@@ -461,7 +461,7 @@ asr_train.py
     Sequence iterator related:
       --batch_type {unsorted,sorted,folded,length,numel}
                             "unsorted":
-                            UnsortedBatchSampler has nothing in paticular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
+                            UnsortedBatchSampler has nothing in particular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
                             
                                 utterance_id_a
                                 utterance_id_b
@@ -956,7 +956,7 @@ diar_train.py
     Sequence iterator related:
       --batch_type {unsorted,sorted,folded,length,numel}
                             "unsorted":
-                            UnsortedBatchSampler has nothing in paticular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
+                            UnsortedBatchSampler has nothing in particular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
                             
                                 utterance_id_a
                                 utterance_id_b
@@ -1482,7 +1482,7 @@ enh_train.py
     Sequence iterator related:
       --batch_type {unsorted,sorted,folded,length,numel}
                             "unsorted":
-                            UnsortedBatchSampler has nothing in paticular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
+                            UnsortedBatchSampler has nothing in particular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
                             
                                 utterance_id_a
                                 utterance_id_b
@@ -2084,7 +2084,7 @@ lm_train.py
     Sequence iterator related:
       --batch_type {unsorted,sorted,folded,length,numel}
                             "unsorted":
-                            UnsortedBatchSampler has nothing in paticular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
+                            UnsortedBatchSampler has nothing in particular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
                             
                                 utterance_id_a
                                 utterance_id_b
@@ -2693,7 +2693,7 @@ tts_train.py
     Sequence iterator related:
       --batch_type {unsorted,sorted,folded,length,numel}
                             "unsorted":
-                            UnsortedBatchSampler has nothing in paticular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
+                            UnsortedBatchSampler has nothing in particular feature and just creates mini-batches which has constant batch_size. This sampler doesn't require any length information for each feature. 'key_file' is just a text file which describes each sample name.
                             
                                 utterance_id_a
                                 utterance_id_b

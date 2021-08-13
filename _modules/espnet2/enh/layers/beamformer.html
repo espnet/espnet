@@ -457,7 +457,7 @@
 <span class="sd">        matrix of the framed signal.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        Y : Complext STFT signal with shape (B, F, C, T)</span>
+<span class="sd">        Y : Complex STFT signal with shape (B, F, C, T)</span>
 <span class="sd">        inverse_power : Weighting factor with shape (B, F, T)</span>
 
 <span class="sd">    Returns:</span>
@@ -564,7 +564,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ComplexTensor</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Return the WPD vector (v2).</span>
 
-<span class="sd">       This implementaion is more efficient than `get_WPD_filter` as</span>
+<span class="sd">       This implementation is more efficient than `get_WPD_filter` as</span>
 <span class="sd">        it skips unnecessary computation with zeros.</span>
 
 <span class="sd">    Args:</span>

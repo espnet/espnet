@@ -922,7 +922,7 @@ None: Dummy for compatibility.</p>
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.gst.style_encoder.</code><code class="sig-name descname">ReferenceEncoder</code><span class="sig-paren">(</span><em class="sig-param">idim=80</em>, <em class="sig-param">conv_layers: int = 6</em>, <em class="sig-param">conv_chans_list: Sequence[int] = (32</em>, <em class="sig-param">32</em>, <em class="sig-param">64</em>, <em class="sig-param">64</em>, <em class="sig-param">128</em>, <em class="sig-param">128)</em>, <em class="sig-param">conv_kernel_size: int = 3</em>, <em class="sig-param">conv_stride: int = 2</em>, <em class="sig-param">gru_layers: int = 1</em>, <em class="sig-param">gru_units: int = 128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/gst/style_encoder.html#ReferenceEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.gst.style_encoder.ReferenceEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Reference encoder module.</p>
-<p>This module is refernece encoder introduced in <cite>Style Tokens: Unsupervised Style
+<p>This module is reference encoder introduced in <cite>Style Tokens: Unsupervised Style
 Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1193,7 +1193,7 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.tts.feats_extract.dio.Dio">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.dio.</code><code class="sig-name descname">Dio</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">f0min: int = 80</em>, <em class="sig-param">f0max: int = 400</em>, <em class="sig-param">use_token_averaged_f0: bool = True</em>, <em class="sig-param">use_continuous_f0: bool = True</em>, <em class="sig-param">use_log_f0: bool = True</em>, <em class="sig-param">reduction_factor: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
-<p>F0 estimation with dio + stonemask algortihm.</p>
+<p>F0 estimation with dio + stonemask algorithm.</p>
 <p>This is f0 extractor based on dio + stonmask algorithm introduced in <a class="reference external" href="https://doi.org/10.1587/transinf.2015EDP7457">WORLD:
 a vocoder-based high-quality speech synthesis system for real-time applications</a>.</p>
 <div class="admonition note">

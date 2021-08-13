@@ -836,7 +836,7 @@ is the reference_vector.</p></li>
 <dd><p>Return the WPD vector (v2).</p>
 <blockquote>
 <div><dl class="simple">
-<dt>This implementaion is more efficient than <cite>get_WPD_filter</cite> as</dt><dd><p>it skips unnecessary computation with zeros.</p>
+<dt>This implementation is more efficient than <cite>get_WPD_filter</cite> as</dt><dd><p>it skips unnecessary computation with zeros.</p>
 </dd>
 </dl>
 </div></blockquote>
@@ -958,7 +958,7 @@ there will be as many output frames as input frames.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Y</strong> – Complext STFT signal with shape (B, F, C, T)</p></li>
+<li><p><strong>Y</strong> – Complex STFT signal with shape (B, F, C, T)</p></li>
 <li><p><strong>inverse_power</strong> – Weighting factor with shape (B, F, T)</p></li>
 </ul>
 </dd>
@@ -1455,7 +1455,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>encoder_output_dim</strong> – input feature dimension, deafult=1 after the NullEncoder</p></li>
+<li><p><strong>encoder_output_dim</strong> – input feature dimension, default=1 after the NullEncoder</p></li>
 <li><p><strong>num_spk</strong> – number of speakers</p></li>
 <li><p><strong>loss_type</strong> – loss type of enhancement</p></li>
 <li><p><strong>model_name</strong> – Asteroid model names, e.g. ConvTasNet, DPTNet. Refers to
@@ -1587,7 +1587,7 @@ others predicted data, e.g. masks: OrderedDict[</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_dim</strong> – input feature dimension</p></li>
 <li><p><strong>num_spk</strong> – number of speakers</p></li>
-<li><p><strong>adim</strong> (<em>int</em>) – Dimention of attention.</p></li>
+<li><p><strong>adim</strong> (<em>int</em>) – Dimension of attention.</p></li>
 <li><p><strong>aheads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
 <li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
 <li><p><strong>layers</strong> (<em>int</em>) – The number of transformer blocks.</p></li>
@@ -1688,7 +1688,7 @@ registered hooks while the latter silently ignores them.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_dim</strong> – input feature dimension</p></li>
 <li><p><strong>num_spk</strong> – number of speakers</p></li>
-<li><p><strong>adim</strong> (<em>int</em>) – Dimention of attention.</p></li>
+<li><p><strong>adim</strong> (<em>int</em>) – Dimension of attention.</p></li>
 <li><p><strong>aheads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
 <li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
 <li><p><strong>layers</strong> (<em>int</em>) – The number of transformer blocks.</p></li>

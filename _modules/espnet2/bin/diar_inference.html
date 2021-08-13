@@ -312,7 +312,7 @@
         <span class="k">assert</span> <span class="n">speech</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="c1"># lenghts: (B,)</span>
+        <span class="c1"># lengths: (B,)</span>
         <span class="n">lengths</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">new_full</span><span class="p">(</span>
             <span class="p">[</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">)</span>
