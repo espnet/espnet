@@ -999,32 +999,46 @@ if ! "${skip_eval}"; then
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
-            mkdir -p "${_dir}"/{norm,denorm,wav}
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/norm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/denorm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/speech_shape/speech_shape"
-            done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
-            for i in $(seq "${_nj}"); do
-                mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-                rm -rf "${_logdir}/output.${i}"/wav
-            done
+            if [ -e "${_logdir}/output.${_nj}/norm" ]; then
+                mkdir -p "${_dir}"/norm
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/norm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
+                mkdir -p "${_dir}"/denorm
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/denorm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+                done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/wav" ]; then
+                mkdir -p "${_dir}"/wav
+                for i in $(seq "${_nj}"); do
+                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                    rm -rf "${_logdir}/output.${i}"/wav
+                done
+            fi
             if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
                 mkdir -p "${_dir}"/att_ws
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/durations/durations"
-                done | LC_ALL=C sort -k1 > "${_dir}/durations"
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
                 for i in $(seq "${_nj}"); do
                     mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
                     rm -rf "${_logdir}/output.${i}"/att_ws
                 done
+            fi
+            if [ -e "${_logdir}/output.${_nj}/durations" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/durations/durations"
+                done | LC_ALL=C sort -k1 > "${_dir}/durations"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
             fi
             if [ -e "${_logdir}/output.${_nj}/probs" ]; then
                 mkdir -p "${_dir}"/probs
