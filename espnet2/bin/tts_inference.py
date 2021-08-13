@@ -163,10 +163,11 @@ class Text2Speech:
             duration, focus_rate = self.duration_calculator(output_dict["att_w"])
 
         if self.spc2wav is not None:
-            assert output_dict.get("feat_gen_denorm") is not None
-            output_dict["wav"] = torch.tensor(
-                self.spc2wav(output_dict["feat_gen_denorm"].cpu().numpy())
-            )
+            if output_dict.get("feat_gen_denorm") is not None:
+                input_feat = output_dict["feat_gen_denorm"]
+            else:
+                input_feat = output_dict["feat_gen"]
+            output_dict["wav"] = torch.tensor(self.spc2wav(input_feat.cpu().numpy()))
 
         return output_dict
 
