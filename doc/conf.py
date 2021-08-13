@@ -103,7 +103,7 @@ language = None
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = [
     '_build', 'Thumbs.db', '.DS_Store', "README.md",
-    # NOTE: becuase these genearate files are directly included
+    # NOTE: because these genearate files are directly included
     # from the other files, we should exclude these files manually.
     "_gen/modules.rst",
     "_gen/utils_sh.rst",
