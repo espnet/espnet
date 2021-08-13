@@ -432,7 +432,7 @@ class Transformer(AbsTTS):
                 labels, 1, (olens - 1).unsqueeze(1), 1.0
             )  # see #3388
 
-        # caluculate loss values
+        # calculate loss values
         l1_loss, l2_loss, bce_loss = self.criterion(
             after_outs, before_outs, logits, ys, labels, olens
         )
