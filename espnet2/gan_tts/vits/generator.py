@@ -52,6 +52,9 @@ class VITSGenerator(torch.nn.Module):
         text_encoder_blocks: int = 6,
         text_encoder_positionwise_layer_type: str = "conv1d",
         text_encoder_positionwise_conv_kernel_size: int = 1,
+        text_encoder_positional_encoding_layer_type: str = "rel_pos",
+        text_encoder_self_attention_layer_type: str = "rel_selfattn",
+        text_encoder_activation_type: str = "swish",
         text_encoder_normalize_before: bool = True,
         text_encoder_dropout_rate: float = 0.1,
         text_encoder_positional_dropout_rate: float = 0.0,
@@ -93,21 +96,32 @@ class VITSGenerator(torch.nn.Module):
             spks (int): Number of speakers.
             global_channels (int): Number of global conditioning channels.
             segment_size (int): Segment size for decoder.
-            text_encoder_attention_heads (int): Number of heads in text encoder.
-            text_encoder_ffn_expand (int): Expansion ratio of FFN in text encoder.
-            text_encoder_blocks (int): Number of blocks in text encoder.
-            text_encoder_positionwise_layer_type (str): Position-wise layer type.
+            text_encoder_attention_heads (int): Number of heads in conformer block
+                of text encoder.
+            text_encoder_ffn_expand (int): Expansion ratio of FFN in conformer block
+                of text encoder.
+            text_encoder_blocks (int): Number of conformer blocks in text encoder.
+            text_encoder_positionwise_layer_type (str): Position-wise layer type in
+                conformer block of text encoder.
             text_encoder_positionwise_conv_kernel_size (int): Position-wise convolution
-                kernal size. Only used when the above layer is conv1d or conv1d-linear.
-            text_encoder_normalize_before (bool): Whether to appli layer norm before
-                self-attention in conformer block.
-            text_encoder_dropout_rate (float): Dropout rate in text encoder.
-            text_encoder_positional_dropout_rate (float): Dropout rate for positional
-                encoding in text encoder.
-            text_encoder_attention_dropout_rate (float): Dropout rate for attention in
+                kernal size in conformer block of text encoder. Only used when the
+                above layer type is conv1d or conv1d-linear.
+            text_encoder_positional_encoding_layer_type (str): Positional encoding layer
+                type in conformer block of text encoder.
+            text_encoder_self_attention_layer_type (str): Self-attention layer type in
+                conformer block of text encoder.
+            text_encoder_activation_type (str): Activation function type in conformer
+                block of text encoder.
+            text_encoder_normalize_before (bool): Whether to apply layer norm before
+                self-attention in conformer block of text encoder.
+            text_encoder_dropout_rate (float): Dropout rate in conformer block of
                 text encoder.
-            text_encoder_conformer_kernel_size (int): Conformer conv kernal size in
-                text encoder. Only used when use_conformer_conv_in_text_encoder = True.
+            text_encoder_positional_dropout_rate (float): Dropout rate for positional
+                encoding in conformer block of text encoder.
+            text_encoder_attention_dropout_rate (float): Dropout rate for attention in
+                conformer block of text encoder.
+            text_encoder_conformer_kernel_size (int): Conformer conv kernal size. It
+                will be used when only use_conformer_conv_in_text_encoder = True.
             use_macaron_style_in_text_encoder (bool): Whether to use macaron style FFN
                 in conformer block of text encoder.
             use_conformer_conv_in_text_encoder (bool): Whether to use covolution in
@@ -158,6 +172,9 @@ class VITSGenerator(torch.nn.Module):
             blocks=text_encoder_blocks,
             positionwise_layer_type=text_encoder_positionwise_layer_type,
             positionwise_conv_kernel_size=text_encoder_positionwise_conv_kernel_size,
+            positional_encoding_layer_type=text_encoder_positional_encoding_layer_type,
+            self_attention_layer_type=text_encoder_self_attention_layer_type,
+            activation_type=text_encoder_activation_type,
             normalize_before=text_encoder_normalize_before,
             dropout_rate=text_encoder_dropout_rate,
             positional_dropout_rate=text_encoder_positional_dropout_rate,
