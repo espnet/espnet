@@ -1,0 +1,146 @@
+# Copyright 2021 Tomoki Hayashi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""GAN-based TTS ESPnet model."""
+
+from contextlib import contextmanager
+from distutils.version import LooseVersion
+from typing import Any
+from typing import Dict
+from typing import Optional
+
+import torch
+
+from typeguard import check_argument_types
+
+from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
+from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.inversible_interface import InversibleInterface
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    from torch.cuda.amp import autocast
+else:
+    # Nothing to do if torch < 1.6.0
+    @contextmanager
+    def autocast(enabled=True):  # NOQA
+        yield
+
+
+class ESPnetGANTTSModel(AbsGANESPnetModel):
+    """GAN-based TTS ESPnet model."""
+
+    def __init__(
+        self,
+        feats_extract: Optional[AbsFeatsExtract],
+        normalize: Optional[AbsNormalize and InversibleInterface],
+        tts: AbsGANTTS,
+    ):
+        """Initialize ESPnetGANTTSModel module."""
+        assert check_argument_types()
+        super().__init__()
+        self.feats_extract = feats_extract
+        self.normalize = normalize
+        self.tts = tts
+        assert hasattr(
+            tts, "generator"
+        ), "generator module must be resistered as tts.generator"
+        assert hasattr(
+            tts, "discriminator"
+        ), "discriminator module must be resistered as tts.discriminator"
+
+    def forward(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        forward_generator: bool = True,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Return generator or discriminator loss with dict format.
+
+        Args:
+            text (Tensor): Text index tensor (B, T_text).
+            text_lengths (Tensor): Text length tensor (B,).
+            speech (Tensor): Speech waveform tensor (B, T_wav).
+            speech_lengths (Tensor): Speech length tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
+            forward_generator (bool): Whether to forward generator.
+
+        Returns:
+            Dict[str, Any]:
+                - loss (Tensor): Loss scalar tensor.
+                - stats (Dict[str, float]): Statistics to be monitored.
+                - weight (Tensor): Weight tensor to summarize losses.
+                - optim_idx (int): Optimizer index (0 for G and 1 for D).
+
+        """
+        with autocast(False):
+            # Extract features
+            if self.feats_extract is not None:
+                feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+            else:
+                feats, feats_lengths = speech, speech_lengths
+
+            # Normalize
+            if self.normalize is not None:
+                feats, feats_lengths = self.normalize(feats, feats_lengths)
+
+        # Update kwargs for additional auxiliary inputs
+        if sids is not None:
+            kwargs.update(sids=sids)
+        if spembs is not None:
+            kwargs.update(spembs=spembs)
+
+        if self.tts.require_raw_speech:
+            kwargs.update(feats=feats)
+            kwargs.update(feats_lengths=feats_lengths)
+            kwargs.update(speech=speech)
+            kwargs.update(speech_lengths=speech_lengths)
+        else:
+            kwargs.update(speech=feats)
+            kwargs.update(speech_lengths=feats_lengths)
+
+        return self.tts(
+            text=text,
+            text_lengths=text_lengths,
+            forward_generator=forward_generator,
+            **kwargs,
+        )
+
+    def collect_feats(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        sids: torch.Tensor = None,
+        spembs: torch.Tensor = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Return collected features.
+
+        Args:
+            text (Tensor): Text index tensor (B, T_text).
+            text_lengths (Tensor): Text length tensor (B,).
+            speech (Tensor): Speech waveform tensor (B, T_wav).
+            speech_lengths (Tensor): Speech length tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
+
+        Returns:
+            Dict[str, Tensor]:
+                - feats (Tensor): Acoustic feature tensor (B, T_feats, C).
+                - feats_length (Tensor): Length tensor (B,).
+
+        """
+        output_dict = {"speech": speech, "speech_lengths": speech_lengths}
+        if self.feats_extract is not None:
+            feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+            output_dict = {"feats": feats, "feats_lengths": feats_lengths}
+
+        return output_dict
