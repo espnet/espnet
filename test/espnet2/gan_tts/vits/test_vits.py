@@ -293,8 +293,8 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
             ),
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
-        outputs = model.inference(**inputs)
-        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
+        output_dict = model.inference(**inputs)
+        assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
 
 @pytest.mark.skipif(
@@ -461,8 +461,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_
             sids=torch.randint(0, spks, (1,))[0],
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
-        outputs = model.inference(**inputs)
-        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
+        output_dict = model.inference(**inputs)
+        assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
 
 @pytest.mark.skipif(
@@ -631,8 +631,8 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
         inputs = {k: v.to(device) for k, v in inputs.items()}
-        outputs = model.inference(**inputs)
-        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
+        output_dict = model.inference(**inputs)
+        assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
 
 @pytest.mark.skipif(
@@ -810,5 +810,5 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
         inputs = {k: v.to(device) for k, v in inputs.items()}
-        outputs = model.inference(**inputs)
-        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
+        output_dict = model.inference(**inputs)
+        assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
