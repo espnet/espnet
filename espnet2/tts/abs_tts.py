@@ -28,3 +28,13 @@ class AbsTTS(torch.nn.Module, ABC):
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         raise NotImplementedError
+
+    @property
+    def require_raw_speech(self):
+        """Return whether or not raw_speech is required."""
+        return False
+
+    @property
+    def require_vocoder(self):
+        """Return whether or not vocoder is required."""
+        return True
