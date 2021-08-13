@@ -614,7 +614,7 @@ if ! "${skip_train}"; then
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m "epsnet2.bin.${tts_task}_train" \
+            ${python} -m "espnet2.bin.${tts_task}_train" \
                 --collect_stats true \
                 --write_collected_feats "${write_collected_feats}" \
                 --use_preprocessor true \
