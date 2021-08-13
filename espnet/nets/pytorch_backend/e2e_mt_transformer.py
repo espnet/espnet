@@ -331,7 +331,7 @@ class E2E(MTInterface, torch.nn.Module):
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
-                logging.info("adding <eos> in the last postion in the loop")
+                logging.info("adding <eos> in the last position in the loop")
                 for hyp in hyps:
                     hyp["yseq"].append(self.eos)
 
