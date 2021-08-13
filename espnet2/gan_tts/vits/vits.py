@@ -500,7 +500,7 @@ class VITS(AbsGANTTS):
             device=text.device,
         )
         if sids is not None:
-            sids = sids.view(1, 1)
+            sids = sids.view(1,)
         if durations is not None:
             durations = durations.view(1, 1, -1)
 
