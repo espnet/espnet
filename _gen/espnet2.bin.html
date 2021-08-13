@@ -1054,11 +1054,10 @@ is, 0 has two meanings here.
 
 <dl class="function">
 <dt id="espnet2.bin.k2_asr_inference.get_texts">
-<code class="sig-prename descclassname">espnet2.bin.k2_asr_inference.</code><code class="sig-name descname">get_texts</code><span class="sig-paren">(</span><em class="sig-param">best_paths: k2.fsa.Fsa</em>, <em class="sig-param">indices: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; List[List[int]]<a class="reference internal" href="../_modules/espnet2/bin/k2_asr_inference.html#get_texts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.k2_asr_inference.get_texts" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.bin.k2_asr_inference.</code><code class="sig-name descname">get_texts</code><span class="sig-paren">(</span><em class="sig-param">best_paths: k2.fsa.Fsa</em><span class="sig-paren">)</span> &#x2192; List[List[int]]<a class="reference internal" href="../_modules/espnet2/bin/k2_asr_inference.html#get_texts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.k2_asr_inference.get_texts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract the texts from the best-path FSAs.</p>
 <blockquote>
-<div><p>In the original order (before the permutation given by <cite>indices</cite>).</p>
-<dl>
+<div><dl>
 <dt>Args:</dt><dd><dl>
 <dt>best_paths:  a k2.Fsa with best_paths.arcs.num_axes() == 3, i.e.</dt><dd><blockquote>
 <div><p>containing multiple FSAs, which is expected to be the result
@@ -1066,10 +1065,6 @@ of k2.shortest_path (otherwise the returned values won’t
 be meaningful).  Must have the ‘aux_labels’ attribute, as</p>
 </div></blockquote>
 <p>a ragged tensor.</p>
-</dd>
-<dt>indices: possibly a torch.Tensor giving the permutation that we used</dt><dd><p>on the supervisions of this minibatch to put them in decreasing
-order of num-frames.  We’ll apply the inverse permutation.
-Doesn’t have to be on the same device as <cite>best_paths</cite></p>
 </dd>
 </dl>
 </dd>
@@ -1088,11 +1083,6 @@ decoded.</p>
 <code class="sig-prename descclassname">espnet2.bin.k2_asr_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, maxlenratio: float, minlenratio: float, batch_size: int, dtype: str, beam_size: int, ngpu: int, seed: int, ctc_weight: float, lm_weight: float, penalty: float, nbest: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], asr_train_config: str, asr_model_file: str, lm_train_config: Optional[str], lm_file: Optional[str], word_lm_train_config: Optional[str], word_lm_file: Optional[str], token_type: Optional[str], bpemodel: Optional[str], allow_variable_data_keys: bool, streaming: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/k2_asr_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.k2_asr_inference.inference" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
-<dt id="espnet2.bin.k2_asr_inference.invert_permutation">
-<code class="sig-prename descclassname">espnet2.bin.k2_asr_inference.</code><code class="sig-name descname">invert_permutation</code><span class="sig-paren">(</span><em class="sig-param">indices: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/bin/k2_asr_inference.html#invert_permutation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.k2_asr_inference.invert_permutation" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="class">
 <dt id="espnet2.bin.k2_asr_inference.k2Speech2Text">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.k2_asr_inference.</code><code class="sig-name descname">k2Speech2Text</code><span class="sig-paren">(</span><em class="sig-param">asr_train_config: Union[pathlib.Path, str], asr_model_file: Union[pathlib.Path, str] = None, lm_train_config: Union[pathlib.Path, str] = None, lm_file: Union[pathlib.Path, str] = None, token_type: str = None, bpemodel: str = None, device: str = 'cpu', maxlenratio: float = 0.0, minlenratio: float = 0.0, batch_size: int = 1, dtype: str = 'float32', beam_size: int = 8, ctc_weight: float = 0.5, lm_weight: float = 1.0, penalty: float = 0.0, nbest: int = 1, streaming: bool = False, output_beam_size: int = 8</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/k2_asr_inference.html#k2Speech2Text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.k2_asr_inference.k2Speech2Text" title="Permalink to this definition">¶</a></dt>
@@ -1102,7 +1092,10 @@ decoded.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span> <span class="o">=</span> <span class="n">k2Speech2Text</span><span class="p">(</span><span class="s2">&quot;asr_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;asr.pth&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">audio</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># shape: [batch_size, speech_length]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech_lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">audio</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="c1"># shape: [batch_size]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">batch</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;speech&quot;</span><span class="p">:</span> <span class="n">speech</span><span class="p">,</span> <span class="s2">&quot;speech_lengths&quot;</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 <span class="go">[(text, token, token_int, score), ...]</span>
 </pre></div>
 </div>
