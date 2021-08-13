@@ -140,6 +140,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-init">espnet2.tts.gst.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-style-encoder">espnet2.tts.gst.style_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-mel-fbank">espnet2.tts.feats_extract.log_mel_fbank</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-linear-spectrogram">espnet2.tts.feats_extract.linear_spectrogram</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-spectrogram">espnet2.tts.feats_extract.log_spectrogram</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-abs-feats-extract">espnet2.tts.feats_extract.abs_feats_extract</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-init">espnet2.tts.feats_extract.__init__</a></li>
@@ -1044,9 +1045,9 @@ Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 <span id="id16"></span><h2>espnet2.tts.feats_extract.log_mel_fbank<a class="headerlink" href="#espnet2-tts-feats-extract-log-mel-fbank" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.log_mel_fbank"></span><dl class="class">
 <dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_mel_fbank.</code><code class="sig-name descname">LogMelFbank</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = 80</em>, <em class="sig-param">fmax: Optional[int] = 7600</em>, <em class="sig-param">htk: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_mel_fbank.</code><code class="sig-name descname">LogMelFbank</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = 80</em>, <em class="sig-param">fmax: Optional[int] = 7600</em>, <em class="sig-param">htk: bool = False</em>, <em class="sig-param">log_base: Optional[float] = 10.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
-<p>Conventional frontend structure for ASR</p>
+<p>Conventional frontend structure for TTS.</p>
 <p>Stft -&gt; amplitude-spec -&gt; Log-Mel-Fbank</p>
 <dl class="method">
 <dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.forward">
@@ -1076,8 +1077,44 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="espnet2-tts-feats-extract-linear-spectrogram">
+<span id="id17"></span><h2>espnet2.tts.feats_extract.linear_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-linear-spectrogram" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.linear_spectrogram"></span><dl class="class">
+<dt id="espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.linear_spectrogram.</code><code class="sig-name descname">LinearSpectrogram</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/linear_spectrogram.html#LinearSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<p>Linear amplitude spectrogram.</p>
+<p>Stft -&gt; amplitude-spec</p>
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/linear_spectrogram.html#LinearSpectrogram.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/linear_spectrogram.html#LinearSpectrogram.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the parameters required by Vocoder.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/linear_spectrogram.html#LinearSpectrogram.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="espnet2-tts-feats-extract-log-spectrogram">
-<span id="id17"></span><h2>espnet2.tts.feats_extract.log_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-log-spectrogram" title="Permalink to this headline">¶</a></h2>
+<span id="id18"></span><h2>espnet2.tts.feats_extract.log_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-log-spectrogram" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.log_spectrogram"></span><dl class="class">
 <dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_spectrogram.</code><code class="sig-name descname">LogSpectrogram</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram" title="Permalink to this definition">¶</a></dt>
@@ -1113,7 +1150,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </div>
 <div class="section" id="espnet2-tts-feats-extract-abs-feats-extract">
-<span id="id18"></span><h2>espnet2.tts.feats_extract.abs_feats_extract<a class="headerlink" href="#espnet2-tts-feats-extract-abs-feats-extract" title="Permalink to this headline">¶</a></h2>
+<span id="id19"></span><h2>espnet2.tts.feats_extract.abs_feats_extract<a class="headerlink" href="#espnet2-tts-feats-extract-abs-feats-extract" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.abs_feats_extract"></span><dl class="class">
 <dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.abs_feats_extract.</code><code class="sig-name descname">AbsFeatsExtract</code><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="Permalink to this definition">¶</a></dt>
@@ -1147,10 +1184,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </div>
 <div class="section" id="espnet2-tts-feats-extract-init">
-<span id="id19"></span><h2>espnet2.tts.feats_extract.__init__<a class="headerlink" href="#espnet2-tts-feats-extract-init" title="Permalink to this headline">¶</a></h2>
+<span id="id20"></span><h2>espnet2.tts.feats_extract.__init__<a class="headerlink" href="#espnet2-tts-feats-extract-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.__init__"></span></div>
 <div class="section" id="espnet2-tts-feats-extract-dio">
-<span id="id20"></span><h2>espnet2.tts.feats_extract.dio<a class="headerlink" href="#espnet2-tts-feats-extract-dio" title="Permalink to this headline">¶</a></h2>
+<span id="id21"></span><h2>espnet2.tts.feats_extract.dio<a class="headerlink" href="#espnet2-tts-feats-extract-dio" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.dio"></span><p>F0 extractor using DIO + Stonemask algorithm.</p>
 <dl class="class">
 <dt id="espnet2.tts.feats_extract.dio.Dio">
@@ -1192,7 +1229,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </div>
 <div class="section" id="espnet2-tts-feats-extract-energy">
-<span id="id22"></span><h2>espnet2.tts.feats_extract.energy<a class="headerlink" href="#espnet2-tts-feats-extract-energy" title="Permalink to this headline">¶</a></h2>
+<span id="id23"></span><h2>espnet2.tts.feats_extract.energy<a class="headerlink" href="#espnet2-tts-feats-extract-energy" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.energy"></span><p>Energy extractor.</p>
 <dl class="class">
 <dt id="espnet2.tts.feats_extract.energy.Energy">

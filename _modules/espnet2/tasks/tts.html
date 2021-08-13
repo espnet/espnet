@@ -239,6 +239,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.abs_feats_extract</span> <span class="kn">import</span> <span class="n">AbsFeatsExtract</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.dio</span> <span class="kn">import</span> <span class="n">Dio</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.energy</span> <span class="kn">import</span> <span class="n">Energy</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.linear_spectrogram</span> <span class="kn">import</span> <span class="n">LinearSpectrogram</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.log_mel_fbank</span> <span class="kn">import</span> <span class="n">LogMelFbank</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.log_spectrogram</span> <span class="kn">import</span> <span class="n">LogSpectrogram</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.tacotron2</span> <span class="kn">import</span> <span class="n">Tacotron2</span>
@@ -251,7 +252,11 @@
 
 <span class="n">feats_extractor_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="s2">&quot;feats_extract&quot;</span><span class="p">,</span>
-    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">fbank</span><span class="o">=</span><span class="n">LogMelFbank</span><span class="p">,</span> <span class="n">spectrogram</span><span class="o">=</span><span class="n">LogSpectrogram</span><span class="p">),</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">fbank</span><span class="o">=</span><span class="n">LogMelFbank</span><span class="p">,</span>
+        <span class="n">spectrogram</span><span class="o">=</span><span class="n">LogSpectrogram</span><span class="p">,</span>
+        <span class="n">linear_spectrogram</span><span class="o">=</span><span class="n">LinearSpectrogram</span><span class="p">,</span>
+    <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsFeatsExtract</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;fbank&quot;</span><span class="p">,</span>
 <span class="p">)</span>

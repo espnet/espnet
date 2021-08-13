@@ -2738,7 +2738,7 @@ Grriffin-Lim related:
                     [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                     [--cleaner {None,tacotron,jaconv,vietnamese}]
                     [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,g2pk,g2pk_no_space}]
-                    [--feats_extract {fbank,spectrogram}]
+                    [--feats_extract {fbank,spectrogram,linear_spectrogram}]
                     [--feats_extract_conf FEATS_EXTRACT_CONF]
                     [--normalize {global_mvn,None}]
                     [--normalize_conf NORMALIZE_CONF]
@@ -3082,7 +3082,7 @@ Optimizer related:
   --token_type {bpe,char,word,phn}
                         The text will be tokenized in the specified level token (default: phn)
   --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
-  --feats_extract {fbank,spectrogram}
+  --feats_extract {fbank,spectrogram,linear_spectrogram}
                         The feats_extract type (default: fbank)
   --feats_extract_conf FEATS_EXTRACT_CONF
                         The keyword arguments for feats_extract (default: {})

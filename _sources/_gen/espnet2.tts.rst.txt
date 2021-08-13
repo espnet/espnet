@@ -136,6 +136,17 @@ espnet2.tts.feats_extract.log_mel_fbank
     :show-inheritance:
 
 
+.. _espnet2.tts.feats_extract.linear_spectrogram:
+
+espnet2.tts.feats_extract.linear_spectrogram
+--------------------------------------------
+
+.. automodule:: espnet2.tts.feats_extract.linear_spectrogram
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tts.feats_extract.log_spectrogram:
 
 espnet2.tts.feats_extract.log_spectrogram
