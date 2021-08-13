@@ -314,8 +314,8 @@ class GANTrainer(Trainer):
                             scaler.update()
 
                 for iopt, optimizer in enumerate(optimizers):
-                    if optim_idx is not None and iopt != optim_idx:
-                        continue
+                    # NOTE(kan-bayashi): In the case of GAN, we need to clear
+                    #   the gradient of both optimizers after every update.
                     optimizer.zero_grad()
 
                 # Register lr and train/load time[sec/step],
