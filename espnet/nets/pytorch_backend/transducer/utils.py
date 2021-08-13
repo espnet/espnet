@@ -116,7 +116,7 @@ def is_prefix(x: List[int], pref: List[int]) -> bool:
     return True
 
 
-def substract(
+def subtract(
     x: List[ExtendedHypothesis], subset: List[ExtendedHypothesis]
 ) -> List[ExtendedHypothesis]:
     """Remove elements of subset if corresponding label ID sequence already exist in x.
