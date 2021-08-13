@@ -36,9 +36,8 @@ class VITSGenerator(torch.nn.Module):
 
     def __init__(
         self,
-        idim,
-        odim,
-        aux_channels=80,
+        vocabs,
+        aux_channels=513,
         hidden_channels=192,
         spks=-1,
         global_channels=-1,
@@ -66,7 +65,7 @@ class VITSGenerator(torch.nn.Module):
         flow_flows=4,
         flow_kernel_size=5,
         flow_base_dilation=1,
-        flow_layers=5,
+        flow_layers=4,
         flow_dropout_rate=0.0,
         use_weight_norm_in_flow=True,
         use_only_mean_in_flow=True,
@@ -78,9 +77,8 @@ class VITSGenerator(torch.nn.Module):
         """Initialize VITS module.
 
         Args:
-            idim (int): Input dimension.
-            odim (int): Output dimension.
-            aux_channels (int): Number of auxiliary feature channels.
+            vocabs (int): Input vocabulary size.
+            aux_channels (int): Number of acoustic feature channels.
             hidden_channels (int): Number of hidden channels.
             spks (int): Number of speakers.
             global_channels (int): Number of global conditioning channels.
@@ -133,7 +131,7 @@ class VITSGenerator(torch.nn.Module):
         super().__init__()
         self.segment_size = segment_size
         self.text_encoder = TextEncoder(
-            vocabs=idim,
+            vocabs=vocabs,
             attention_dim=hidden_channels,
             attention_heads=text_encoder_attention_heads,
             linear_units=hidden_channels * text_encoder_attention_expand,

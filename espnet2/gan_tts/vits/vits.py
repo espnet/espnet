@@ -60,7 +60,6 @@ class VITS(AbsGANTTS):
         odim: int,
         generator_type: str = "vits_generator",
         generator_params: Dict[str, Any] = {
-            "aux_channels": 80,
             "hidden_channels": 192,
             "spks": -1,
             "global_channels": -1,
@@ -168,8 +167,10 @@ class VITS(AbsGANTTS):
         """Initialize VITS module.
 
         Args:
-            idim (int): Input dimension.
-            odim (int): Output dimension (dummy for compatibility).
+            idim (int): Input vocabrary size.
+            odim (int): Acoustic feature dimension. The actual output channels will
+                be 1 since VITS is the end-to-end text-to-wave model but for the
+                compatibility odim is used to indicate the acoustic feature dimension.
             generator_params (Dict[str, Any]): Generator parameter dict.
             discriminator_params (Dict[str, Any]): Discriminator parameter dict.
             generator_adv_loss_params (Dict[str, Any]): Generator adversarial loss
@@ -190,8 +191,13 @@ class VITS(AbsGANTTS):
         super().__init__()
 
         # define modules
-        generator_params.update(idim=idim, odim=odim)
         generator_class = AVAILABLE_GENERATERS[generator_type]
+        if generator_type == "vits_generator":
+            # NOTE(kan-bayashi): Update parameters for the compatibility.
+            #   The idim and odim is automatically decided from input data,
+            #   where idim represents #vocabularies and odim represents
+            #   the input acoustic feature dimension.
+            generator_params.update(vocabs=idim, aux_channels=odim)
         self.generator = generator_class(
             **generator_params,
         )
