@@ -161,7 +161,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         pitch: torch.Tensor = None,
         energy: torch.Tensor = None,
         **decode_config,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         kwargs = {}
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
             if speech is None:
@@ -203,11 +203,12 @@ class ESPnetTTSModel(AbsESPnetModel):
         if spembs is not None:
             kwargs["spembs"] = spembs
 
-        outs, probs, att_ws = self.tts.inference(text=text, **kwargs, **decode_config)
+        output_dict = self.tts.inference(text=text, **kwargs, **decode_config)
 
-        if self.normalize is not None:
+        if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation
-            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
-        else:
-            outs_denorm = outs
-        return outs, outs_denorm, probs, att_ws
+            output_dict["feat_gen_denorm"] = self.normalize.inverse(
+                output_dict["feat_gen"].clone()[None]
+            )[0][0]
+
+        return output_dict
