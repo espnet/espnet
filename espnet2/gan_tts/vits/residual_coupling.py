@@ -209,7 +209,7 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
         xa, xb = x.split(x.size(1) // 2, dim=1)
         h = self.input_conv(xa) * x_mask
         h = self.encoder(h, x_mask, g=g)
-        stats = self.output_conv(h) * x_mask
+        stats = self.proj(h) * x_mask
         if not self.use_only_mean:
             m, logs = stats.split(stats.size(1) // 2, dim=1)
         else:

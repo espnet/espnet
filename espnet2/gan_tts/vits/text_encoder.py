@@ -134,6 +134,6 @@ class TextEncoder(torch.nn.Module):
         # convert the channel first (B, attention_dim, T_text)
         x = x.transpose(1, 2)
         stats = self.proj(x) * x_mask
-        m, logs = stats.split(stats.size(1), dim=1)
+        m, logs = stats.split(stats.size(1) // 2, dim=1)
 
         return x, m, logs, x_mask

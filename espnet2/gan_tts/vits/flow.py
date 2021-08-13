@@ -22,7 +22,7 @@ class FlipFlow(torch.nn.Module):
     """Flip flow module."""
 
     def forward(
-        self, x: torch.Tensor, inverse: bool = False, *args, **kwargs
+        self, x: torch.Tensor, *args, inverse: bool = False, **kwargs
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Calculate forward propagation.
 
