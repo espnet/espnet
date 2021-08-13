@@ -12,9 +12,9 @@ win_length=null
 
 opts="--audio_format wav "
 
-train_set=train_no_dev
-valid_set=dev
-test_sets=eval
+train_set="train_no_dev"
+valid_set="dev"
+test_sets="eval"
 
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml

@@ -23,9 +23,9 @@ log "$0 $*"
 db_root=${INDIC_SPEECH}
 spk="Hindi_TTS_dataset"
 
-train_set=train_no_dev
-dev_set=dev
-eval_set=eval
+train_set="train_no_dev"
+dev_set="dev"
+eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
