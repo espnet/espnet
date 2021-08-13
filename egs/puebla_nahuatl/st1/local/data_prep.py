@@ -118,7 +118,7 @@ def ELANProcess(afile, spk_info, spk_details):
             "UtteranceType",
             "Transcripción",
             "Traducción",
-            "Transcription",
+            "Transcripcion",
             "Traduccíón",
         ]:
             # only consider pure caption
@@ -137,7 +137,7 @@ def ELANProcess(afile, spk_info, spk_details):
         if tier.getAttribute("LINGUISTIC_TYPE_REF") in [
             "UtteranceType",
             "Transcripción",
-            "Transcription",
+            "Transcripcion",
         ]:
             channel = channels[spk_info.index(code)]
             corr_flag = False
