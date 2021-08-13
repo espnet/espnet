@@ -572,7 +572,7 @@ class FastSpeech2(AbsTTS):
         energy: torch.Tensor = None,
         alpha: float = 1.0,
         use_teacher_forcing: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -587,9 +587,11 @@ class FastSpeech2(AbsTTS):
                 If true, groundtruth of duration, pitch and energy will be used.
 
         Returns:
-            Tensor: Output sequence of features (L, odim).
-            None: Dummy for compatibility.
-            None: Dummy for compatibility.
+            Dict[str, Tensor]: Output dict including the following items:
+                * feat_gen (Tensor): Output sequence of features (L, odim).
+                * duration (Tensor): Duration sequence (T + 1,).
+                * pitch (Tensor): Pitch sequence (T + 1,).
+                * energy (Tensor): Energy sequence (T + 1,).
 
         """
         x, y = text, speech
@@ -609,7 +611,7 @@ class FastSpeech2(AbsTTS):
         if use_teacher_forcing:
             # use groundtruth of duration, pitch, and energy
             ds, ps, es = d.unsqueeze(0), p.unsqueeze(0), e.unsqueeze(0)
-            _, outs, *_ = self._forward(
+            _, outs, d_outs, p_outs, e_outs = self._forward(
                 xs,
                 ilens,
                 ys,
@@ -619,7 +621,7 @@ class FastSpeech2(AbsTTS):
                 spembs=spembs,
             )  # (1, L, odim)
         else:
-            _, outs, *_ = self._forward(
+            _, outs, d_outs, p_outs, e_outs = self._forward(
                 xs,
                 ilens,
                 ys,
@@ -628,7 +630,12 @@ class FastSpeech2(AbsTTS):
                 alpha=alpha,
             )  # (1, L, odim)
 
-        return outs[0], None, None
+        return dict(
+            feat_gen=outs[0],
+            duration=d_outs[0],
+            pitch=p_outs[0],
+            energy=e_outs[0],
+        )
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
