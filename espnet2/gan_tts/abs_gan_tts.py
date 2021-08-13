@@ -7,14 +7,14 @@ from abc import ABC
 from abc import abstractmethod
 
 from typing import Dict
-from typing import Optional
-from typing import Tuple
 from typing import Union
 
 import torch
 
+from espnet2.tts.abs_tts import AbsTTS
 
-class AbsGANTTS(torch.nn.Module, ABC):
+
+class AbsGANTTS(AbsTTS, ABC):
     @abstractmethod
     def forward(
         self,
@@ -22,17 +22,6 @@ class AbsGANTTS(torch.nn.Module, ABC):
         *args,
         **kwargs,
     ) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], int]]:
+        # NOTE(kan-bayashi): Require additional arguments forward_generator
+        #   to switch the loss calculation of generator and discriminator.
         raise NotImplementedError
-
-    @abstractmethod
-    def inference(
-        self,
-        *args,
-        **kwargs,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
-        raise NotImplementedError
-
-    @property
-    def require_raw_speech(self):
-        """Return whether or not raw_speech is required."""
-        return False

@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Dict
 from typing import Tuple
+from typing import Union
 
 import torch
 
@@ -26,5 +27,18 @@ class AbsTTS(torch.nn.Module, ABC):
         text: torch.Tensor,
         spembs: torch.Tensor = None,
         **kwargs,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Union[
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        Dict[str, torch.Tensor],
+    ]:
         raise NotImplementedError
+
+    @property
+    def require_raw_speech(self):
+        """Return whether or not raw_speech is required."""
+        return False
+
+    @property
+    def require_vocoder(self):
+        """Return whether or not vocoder is required."""
+        return True
