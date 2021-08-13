@@ -210,18 +210,9 @@ class ESPnetTTSModel(AbsESPnetModel):
         if sids is not None:
             kwargs["sids"] = spembs
 
-        outs = self.tts.inference(text=text, **kwargs, **decode_config)
+        output_dict = self.tts.inference(text=text, **kwargs, **decode_config)
 
-        if isinstance(outs, tuple):
-            # for old version compatibility
-            # it is better to unify the output format into dict
-            feat_gen, prob, att_w = outs
-            output_dict = dict(feat_gen=feat_gen, prob=prob, att_w=att_w)
-        else:
-            assert isinstance(outs, dict)
-            output_dict = outs
-
-        if self.normalize is not None and outs.get("feat_gen") is not None:
+        if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation
             output_dict["feat_gen_denorm"] = self.normalize.inverse(
                 output_dict["feat_gen"].clone()[None]
