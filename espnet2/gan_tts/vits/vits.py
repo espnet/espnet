@@ -58,6 +58,7 @@ class VITS(AbsGANTTS):
         # generator related
         idim: int,
         odim: int,
+        sampling_rate: int = 22050,
         generator_type: str = "vits_generator",
         generator_params: Dict[str, Any] = {
             "hidden_channels": 192,
@@ -230,10 +231,19 @@ class VITS(AbsGANTTS):
         self.cache_generator_outputs = cache_generator_outputs
         self._cache = None
 
+        # store sampling rate for saving wav file
+        # (not used for the training)
+        self.fs = sampling_rate
+
     @property
     def require_raw_speech(self):
         """Return whether or not speech is required."""
         return True
+
+    @property
+    def require_vocoder(self):
+        """Return whether or not vocoder is required."""
+        return False
 
     def forward(
         self,
@@ -487,9 +497,10 @@ class VITS(AbsGANTTS):
             max_len (Optional[int]): Maximum length.
 
         Returns:
-            Tensor: Generated waveform tensor (T_wav).
-            Tensor: Attention weight tensor (T_feats, T_text).
-            None: Dummy outputs for compatibility.
+            Dict[str, Tensor]: Output dict including the following items:
+                * wav (Tensor): Waveform tensor (T_wav,).
+                * att_w (Tensor): Monotonic attention weight tensor (T_feats, T_text).
+                * duration (Tensor): Duration tensor (T_text,).
 
         """
         # setup
@@ -504,7 +515,7 @@ class VITS(AbsGANTTS):
         if durations is not None:
             durations = durations.view(1, 1, -1)
 
-        wav, att_w, _ = self.generator.inference(
+        wav, att_w, dur = self.generator.inference(
             text=text,
             text_lengths=text_lengths,
             sids=sids,
@@ -514,4 +525,11 @@ class VITS(AbsGANTTS):
             noise_scale_w=noise_scale_w,
             max_len=max_len,
         )
-        return wav[0], None, att_w[0]
+
+        output_dict = {
+            "wav": wav.reshape(-1),
+            "att_w": att_w[0],
+            "duration": dur[0],
+        }
+
+        return output_dict
