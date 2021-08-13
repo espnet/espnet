@@ -60,6 +60,10 @@ def make_generator_args(**kwargs):
     return defaults
 
 
+# NOTE(kan-bayashi): first forward requires jit compile
+#   so a little bit more time is needed to run. Therefore,
+#   here we extend execution timeout from 2 sec to 5 sec.
+@pytest.mark.execution_timeout(5)
 @pytest.mark.skipif(
     LooseVersion(torch.__version__) < LooseVersion("1.4"),
     reason="Pytorch >= 1.4 is required.",
