@@ -62,7 +62,7 @@ In the case of `feats_type=raw`, reformat `wav.scp` in date directories.
 In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with Librosa will be performed.
 Since the performance is almost the same, we recommend using `feats_type=raw`.
 
-Additionaly, we support X-vector extraction in this stage as you can use in ESPnet1.
+Additionally, we support X-vector extraction in this stage as you can use in ESPnet1.
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
 This processing requires the compiled kaldi, please be careful.
 

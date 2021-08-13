@@ -70,9 +70,9 @@ ngram_num=3
 # Language model related
 use_lm=true       # Use language model for ASR decoding.
 lm_tag=           # Suffix to the result dir for language model training.
-lm_exp=           # Specify the direcotry path for LM experiment.
+lm_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
-lm_stats_dir=     # Specify the direcotry path for LM statistics.
+lm_stats_dir=     # Specify the directory path for LM statistics.
 lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
                   # Note that it will overwrite args in lm config.
@@ -83,9 +83,9 @@ word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
 asr_tag=       # Suffix to the result dir for asr model training.
-asr_exp=       # Specify the direcotry path for ASR experiment.
+asr_exp=       # Specify the directory path for ASR experiment.
                # If this option is specified, asr_tag is ignored.
-asr_stats_dir= # Specify the direcotry path for ASR statistics.
+asr_stats_dir= # Specify the directory path for ASR statistics.
 asr_config=    # Config for asr model training.
 asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in asr config.
@@ -99,7 +99,7 @@ inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
-inference_lm=valid.loss.ave.pth       # Language modle path for decoding.
+inference_lm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
 inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
                                       # e.g.
@@ -173,9 +173,9 @@ Options:
 
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
-    --lm_exp          # Specify the direcotry path for LM experiment.
+    --lm_exp          # Specify the directory path for LM experiment.
                       # If this option is specified, lm_tag is ignored (default="${lm_exp}").
-    --lm_stats_dir    # Specify the direcotry path for LM statistics (default="${lm_stats_dir}").
+    --lm_stats_dir    # Specify the directory path for LM statistics (default="${lm_stats_dir}").
     --lm_config       # Config for language model training (default="${lm_config}").
     --lm_args         # Arguments for language model training (default="${lm_args}").
                       # e.g., --lm_args "--max_epoch 10"
@@ -186,9 +186,9 @@ Options:
 
     # ASR model related
     --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
-    --asr_exp          # Specify the direcotry path for ASR experiment.
+    --asr_exp          # Specify the directory path for ASR experiment.
                        # If this option is specified, asr_tag is ignored (default="${asr_exp}").
-    --asr_stats_dir    # Specify the direcotry path for ASR statistics (default="${asr_stats_dir}").
+    --asr_stats_dir    # Specify the directory path for ASR statistics (default="${asr_stats_dir}").
     --asr_config       # Config for asr model training (default="${asr_config}").
     --asr_args         # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
@@ -202,7 +202,7 @@ Options:
     --inference_args      # Arguments for decoding (default="${inference_args}").
                           # e.g., --inference_args "--lm_weight 0.1"
                           # Note that it will overwrite args in inference config.
-    --inference_lm        # Language modle path for decoding (default="${inference_lm}").
+    --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 

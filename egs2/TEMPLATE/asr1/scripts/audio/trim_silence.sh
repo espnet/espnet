@@ -28,7 +28,7 @@ Options:
   --win_length <win_length>      # Window length in point (default="${win_length}").
   --shift_length <shift_length>  # Shift length in point (default="${shift_length}").
   --threshold <threshold>        # Power threshold in db (default="${threshold}").
-  --min_silence <sec>            # Minimum silence lenght in sec (default="${min_silence}").
+  --min_silence <sec>            # Minimum silence length in sec (default="${min_silence}").
   --normalize <bit>              # Audio bit (default="${normalize}").
   --cmd <cmd>                    # How to run jobs (default="${cmd}").
   --nj <nj>                      # Number of parallel jobs (default="${nj}").

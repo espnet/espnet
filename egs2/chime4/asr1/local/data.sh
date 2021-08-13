@@ -58,7 +58,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 \
 	    ${CHIME4}/data/audio/16kHz/isolated_6ch_track enhan/beamformit_5mics
 
-    # prepartion for chime4 data
+    # preparation for chime4 data
     local/real_noisy_chime4_data_prep.sh ${CHIME4}
     local/simu_noisy_chime4_data_prep.sh ${CHIME4}
 
