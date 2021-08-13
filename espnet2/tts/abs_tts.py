@@ -24,9 +24,8 @@ class AbsTTS(torch.nn.Module, ABC):
     def inference(
         self,
         text: torch.Tensor,
-        spembs: torch.Tensor = None,
         **kwargs,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
 
     @property
