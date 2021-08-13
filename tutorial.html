@@ -416,7 +416,7 @@ ESPnet also supports the GPU-based decoding for fast recognition.</p>
 <h2>Start from the middle stage or stop at specified stage<a class="headerlink" href="#start-from-the-middle-stage-or-stop-at-specified-stage" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">run.sh</span></code> has multiple stages including data prepration, traning, and etc., so you may likely want to start
 from the specified stage if some stages are failed by some reason for example.</p>
-<p>You can start from specified stage as following and stop the process at the specifed stage:</p>
+<p>You can start from specified stage as following and stop the process at the specified stage:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start from 3rd stage and stop at 5th stage</span>
 $ ./run.sh --stage <span class="m">3</span> --stop-stage <span class="m">5</span>
 </pre></div>
@@ -520,7 +520,7 @@ To switch to transducer mode, the following should be set in the training config
    d_hidden: input/output dimension
    d_ff: feed-forward hidden dimension
    heads: number of heads in multi-head attention
-   macaron_style: wheter to use macaron style
+   macaron_style: whether to use macaron style
    use_conv_mod: whether to use convolutional module
    conv_mod_kernel: number of kernel in convolutional module (optional if `use_conv_mod=True`)
    [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]

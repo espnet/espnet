@@ -591,7 +591,7 @@ and the shape information is required only when <code class="docutils literal no
 </div>
 <div class="section" id="batch-type-folded">
 <h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code><a class="headerlink" href="#batch-type-folded" title="Permalink to this headline">¶</a></h3>
-<p><strong>In ESPnet1, this mode is refered as seq.</strong></p>
+<p><strong>In ESPnet1, this mode is referred as seq.</strong></p>
 <p>This mode creates mini-batch which has the size of <code class="docutils literal notranslate"><span class="pre">base_batch_size</span> <span class="pre">//</span> <span class="pre">max_i(1</span> <span class="pre">+</span> <span class="pre">L_i</span> <span class="pre">//</span> <span class="pre">f_i)</span></code>.
 Where <code class="docutils literal notranslate"><span class="pre">L_i</span></code> is the maximum length in the mini-batch for <code class="docutils literal notranslate"><span class="pre">i</span></code>th feature and
 <code class="docutils literal notranslate"><span class="pre">f_i</span></code> is the <code class="docutils literal notranslate"><span class="pre">--fold</span> <span class="pre">length</span></code> corresponding to the feature.
