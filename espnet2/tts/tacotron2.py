@@ -380,7 +380,7 @@ class Tacotron2(AbsTTS):
         backward_window: int = 1,
         forward_window: int = 3,
         use_teacher_forcing: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
