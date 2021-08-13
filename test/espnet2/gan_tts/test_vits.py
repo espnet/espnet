@@ -16,6 +16,7 @@ def make_vits_generator_args(**kwargs):
     defaults = dict(
         generator_type="vits_generator",
         generator_params={
+            "vocabs": 10,
             "aux_channels": 5,
             "hidden_channels": 4,
             "spks": -1,
@@ -141,33 +142,24 @@ def make_vits_loss_args(**kwargs):
     reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) == LooseVersion("1.6.0+cpu"),
-    reason="Group conv in pytorch 1.6.0+cpu has an issue. "
+    "1.6" in torch.__version__,
+    reason="group conv in pytorch 1.6 has an issue. "
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
-@pytest.mark.parametrize(
-    "model_dict",
-    [
-        ({}),
-    ],
-)
 @torch.no_grad()
-def test_vits_generator_forward(model_dict):
+def test_vits_generator_forward():
     idim = 10
-    aux_channels = 5
-    args = make_vits_generator_args(**model_dict)
-    args["generator_params"]["aux_channels"] = aux_channels
-    model = VITSGenerator(
-        idim=idim,
-        odim=-1,
-        **args["generator_params"],
-    )
+    odim = 5
+    args = make_vits_generator_args()["generator_params"]
+    args["vocabs"] = idim
+    args["aux_channels"] = odim
+    model = VITSGenerator(**args)
 
     # check forward
     inputs = dict(
         text=torch.randint(0, idim, (2, 8)),
         text_lengths=torch.tensor([8, 5], dtype=torch.long),
-        feats=torch.randn(2, aux_channels, 16),
+        feats=torch.randn(2, odim, 16),
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
     )
     outputs = model(**inputs)
@@ -226,8 +218,91 @@ def test_vits_generator_forward(model_dict):
     reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) == LooseVersion("1.6.0+cpu"),
-    reason="Group conv in pytorch 1.6.0+cpu has an issue. "
+    "1.6" in torch.__version__,
+    reason="group conv in pytorch 1.6 has an issue. "
+    "See https://github.com/pytorch/pytorch/issues/42446.",
+)
+@torch.no_grad()
+def test_multi_speaker_vits_generator_forward():
+    idim = 10
+    odim = 5
+    spks = 10
+    global_channels = 8
+    args = make_vits_generator_args()["generator_params"]
+    args["vocabs"] = idim
+    args["aux_channels"] = odim
+    args["spks"] = spks
+    args["global_channels"] = global_channels
+    model = VITSGenerator(**args)
+
+    # check forward
+    inputs = dict(
+        text=torch.randint(0, idim, (2, 8)),
+        text_lengths=torch.tensor([8, 5], dtype=torch.long),
+        feats=torch.randn(2, odim, 16),
+        feats_lengths=torch.tensor([16, 13], dtype=torch.long),
+        sids=torch.randint(0, spks, (2,)),
+    )
+    outputs = model(**inputs)
+    for i, output in enumerate(outputs):
+        if not isinstance(output, tuple):
+            print(f"{i+1}: {output.shape}")
+        else:
+            for j, output_ in enumerate(output):
+                print(f"{i+j+1}: {output_.shape}")
+
+    # check inference
+    inputs = dict(
+        text=torch.randint(
+            0,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        text_lengths=torch.tensor([5, 3], dtype=torch.long),
+        sids=torch.randint(0, spks, (1,)),
+    )
+    outputs = model.inference(**inputs)
+    for i, output in enumerate(outputs):
+        if not isinstance(output, tuple):
+            print(f"{i+1}: {output.shape}")
+        else:
+            for j, output_ in enumerate(output):
+                print(f"{i+j+1}: {output_.shape}")
+
+    # check inference with teacher forcing
+    inputs = dict(
+        text=torch.randint(
+            0,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        text_lengths=torch.tensor([5], dtype=torch.long),
+        sids=torch.randint(0, spks, (1,)),
+        dur=torch.tensor([[[1, 2, 3, 4, 5]]], dtype=torch.long),
+    )
+    outputs = model.inference(**inputs)
+    assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
+    for i, output in enumerate(outputs):
+        if not isinstance(output, tuple):
+            print(f"{i+1}: {output.shape}")
+        else:
+            for j, output_ in enumerate(output):
+                print(f"{i+j+1}: {output_.shape}")
+
+
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.4"),
+    reason="Pytorch >= 1.4 is required.",
+)
+@pytest.mark.skipif(
+    "1.6" in torch.__version__,
+    reason="group conv in pytorch 1.6 has an issue. "
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
 @pytest.mark.parametrize(
@@ -330,13 +405,13 @@ def test_vits_generator_forward(model_dict):
 )
 def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     idim = 10
-    aux_channels = 5
+    odim = 5
     gen_args = make_vits_generator_args(**gen_dict)
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
     model = VITS(
         idim=idim,
-        odim=-1,
+        odim=odim,
         **gen_args,
         **dis_args,
         **loss_args,
@@ -346,7 +421,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     inputs = dict(
         text=torch.randint(0, idim, (2, 8)),
         text_lengths=torch.tensor([8, 5], dtype=torch.long),
-        feats=torch.randn(2, 16, aux_channels),
+        feats=torch.randn(2, 16, odim),
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         speech=torch.randn(2, 16 * upsample_factor),
         speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
@@ -378,5 +453,522 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
             ),
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
+        outputs = model.inference(**inputs)
+        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
+
+
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.4"),
+    reason="Pytorch >= 1.4 is required.",
+)
+@pytest.mark.skipif(
+    "1.6" in torch.__version__,
+    reason="Group conv in pytorch 1.6 has an issue. "
+    "See https://github.com/pytorch/pytorch/issues/42446.",
+)
+@pytest.mark.parametrize(
+    "gen_dict, dis_dict, loss_dict",
+    [
+        ({}, {}, {}),
+        ({}, {}, {"cache_generator_outputs": True}),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_scale_discriminator",
+                "discriminator_params": {
+                    "scales": 2,
+                    "downsample_pooling": "AvgPool1d",
+                    "downsample_pooling_params": {
+                        "kernel_size": 4,
+                        "stride": 2,
+                        "padding": 2,
+                    },
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [15, 41, 5, 3],
+                        "channels": 16,
+                        "max_downsample_channels": 32,
+                        "max_groups": 16,
+                        "bias": True,
+                        "downsample_scales": [2, 2, 1],
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_period_discriminator",
+                "discriminator_params": {
+                    "periods": [2, 3],
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [5, 3],
+                        "channels": 16,
+                        "downsample_scales": [3, 3, 1],
+                        "max_downsample_channels": 32,
+                        "bias": True,
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                        "use_weight_norm": True,
+                        "use_spectral_norm": False,
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_period_discriminator",
+                "discriminator_params": {
+                    "period": 2,
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 16,
+                    "downsample_scales": [3, 3, 1],
+                    "max_downsample_channels": 32,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_scale_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [15, 41, 5, 3],
+                    "channels": 16,
+                    "max_downsample_channels": 32,
+                    "max_groups": 16,
+                    "bias": True,
+                    "downsample_scales": [2, 2, 1],
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                },
+            },
+            {},
+        ),
+    ],
+)
+def test_multi_speaker_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
+    idim = 10
+    odim = 5
+    spks = 10
+    global_channels = 8
+    gen_args = make_vits_generator_args(**gen_dict)
+    gen_args["generator_params"]["spks"] = spks
+    gen_args["generator_params"]["global_channels"] = global_channels
+    dis_args = make_vits_discriminator_args(**dis_dict)
+    loss_args = make_vits_loss_args(**loss_dict)
+    model = VITS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
+    model.train()
+    upsample_factor = model.generator.upsample_factor
+    inputs = dict(
+        text=torch.randint(0, idim, (2, 8)),
+        text_lengths=torch.tensor([8, 5], dtype=torch.long),
+        feats=torch.randn(2, 16, odim),
+        feats_lengths=torch.tensor([16, 13], dtype=torch.long),
+        speech=torch.randn(2, 16 * upsample_factor),
+        speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
+        sids=torch.randint(0, spks, (2,)),
+    )
+    gen_loss = model(forward_generator=True, **inputs)["loss"]
+    gen_loss.backward()
+    dis_loss = model(forward_generator=False, **inputs)["loss"]
+    dis_loss.backward()
+
+    with torch.no_grad():
+        model.eval()
+
+        # check inference
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            sids=torch.randint(0, spks, (1,))[0],
+        )
+        model.inference(**inputs)
+
+        # check inference with teacher forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            sids=torch.randint(0, spks, (1,))[0],
+            durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
+        )
+        outputs = model.inference(**inputs)
+        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
+
+
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="GPU is needed.",
+)
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.4"),
+    reason="Pytorch >= 1.4 is required.",
+)
+@pytest.mark.skipif(
+    "1.6" in torch.__version__,
+    reason="group conv in pytorch 1.6 has an issue. "
+    "See https://github.com/pytorch/pytorch/issues/42446.",
+)
+@pytest.mark.parametrize(
+    "gen_dict, dis_dict, loss_dict",
+    [
+        ({}, {}, {}),
+        ({}, {}, {"cache_generator_outputs": True}),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_scale_discriminator",
+                "discriminator_params": {
+                    "scales": 2,
+                    "downsample_pooling": "AvgPool1d",
+                    "downsample_pooling_params": {
+                        "kernel_size": 4,
+                        "stride": 2,
+                        "padding": 2,
+                    },
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [15, 41, 5, 3],
+                        "channels": 16,
+                        "max_downsample_channels": 32,
+                        "max_groups": 16,
+                        "bias": True,
+                        "downsample_scales": [2, 2, 1],
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_period_discriminator",
+                "discriminator_params": {
+                    "periods": [2, 3],
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [5, 3],
+                        "channels": 16,
+                        "downsample_scales": [3, 3, 1],
+                        "max_downsample_channels": 32,
+                        "bias": True,
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                        "use_weight_norm": True,
+                        "use_spectral_norm": False,
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_period_discriminator",
+                "discriminator_params": {
+                    "period": 2,
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 16,
+                    "downsample_scales": [3, 3, 1],
+                    "max_downsample_channels": 32,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_scale_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [15, 41, 5, 3],
+                    "channels": 16,
+                    "max_downsample_channels": 32,
+                    "max_groups": 16,
+                    "bias": True,
+                    "downsample_scales": [2, 2, 1],
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                },
+            },
+            {},
+        ),
+    ],
+)
+def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
+    idim = 10
+    odim = 5
+    gen_args = make_vits_generator_args(**gen_dict)
+    dis_args = make_vits_discriminator_args(**dis_dict)
+    loss_args = make_vits_loss_args(**loss_dict)
+    model = VITS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
+    model.train()
+    upsample_factor = model.generator.upsample_factor
+    inputs = dict(
+        text=torch.randint(0, idim, (2, 8)),
+        text_lengths=torch.tensor([8, 5], dtype=torch.long),
+        feats=torch.randn(2, 16, odim),
+        feats_lengths=torch.tensor([16, 13], dtype=torch.long),
+        speech=torch.randn(2, 16 * upsample_factor),
+        speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
+    )
+    device = torch.device("cuda")
+    model.to(device)
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    gen_loss = model(forward_generator=True, **inputs)["loss"]
+    gen_loss.backward()
+    dis_loss = model(forward_generator=False, **inputs)["loss"]
+    dis_loss.backward()
+
+    with torch.no_grad():
+        model.eval()
+
+        # check inference
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            )
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        model.inference(**inputs)
+
+        # check inference with teacher forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        outputs = model.inference(**inputs)
+        assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
+
+
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="GPU is needed.",
+)
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.4"),
+    reason="Pytorch >= 1.4 is required.",
+)
+@pytest.mark.skipif(
+    "1.6" in torch.__version__,
+    reason="Group conv in pytorch 1.6 has an issue. "
+    "See https://github.com/pytorch/pytorch/issues/42446.",
+)
+@pytest.mark.parametrize(
+    "gen_dict, dis_dict, loss_dict",
+    [
+        ({}, {}, {}),
+        ({}, {}, {"cache_generator_outputs": True}),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_scale_discriminator",
+                "discriminator_params": {
+                    "scales": 2,
+                    "downsample_pooling": "AvgPool1d",
+                    "downsample_pooling_params": {
+                        "kernel_size": 4,
+                        "stride": 2,
+                        "padding": 2,
+                    },
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [15, 41, 5, 3],
+                        "channels": 16,
+                        "max_downsample_channels": 32,
+                        "max_groups": 16,
+                        "bias": True,
+                        "downsample_scales": [2, 2, 1],
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_period_discriminator",
+                "discriminator_params": {
+                    "periods": [2, 3],
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [5, 3],
+                        "channels": 16,
+                        "downsample_scales": [3, 3, 1],
+                        "max_downsample_channels": 32,
+                        "bias": True,
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                        "use_weight_norm": True,
+                        "use_spectral_norm": False,
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_period_discriminator",
+                "discriminator_params": {
+                    "period": 2,
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 16,
+                    "downsample_scales": [3, 3, 1],
+                    "max_downsample_channels": 32,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_scale_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [15, 41, 5, 3],
+                    "channels": 16,
+                    "max_downsample_channels": 32,
+                    "max_groups": 16,
+                    "bias": True,
+                    "downsample_scales": [2, 2, 1],
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                },
+            },
+            {},
+        ),
+    ],
+)
+def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
+    gen_dict, dis_dict, loss_dict
+):
+    idim = 10
+    odim = 5
+    spks = 10
+    global_channels = 8
+    gen_args = make_vits_generator_args(**gen_dict)
+    gen_args["generator_params"]["spks"] = spks
+    gen_args["generator_params"]["global_channels"] = global_channels
+    dis_args = make_vits_discriminator_args(**dis_dict)
+    loss_args = make_vits_loss_args(**loss_dict)
+    model = VITS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
+    model.train()
+    upsample_factor = model.generator.upsample_factor
+    inputs = dict(
+        text=torch.randint(0, idim, (2, 8)),
+        text_lengths=torch.tensor([8, 5], dtype=torch.long),
+        feats=torch.randn(2, 16, odim),
+        feats_lengths=torch.tensor([16, 13], dtype=torch.long),
+        speech=torch.randn(2, 16 * upsample_factor),
+        speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
+        sids=torch.randint(0, spks, (2,)),
+    )
+    device = torch.device("cuda")
+    model.to(device)
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    gen_loss = model(forward_generator=True, **inputs)["loss"]
+    gen_loss.backward()
+    dis_loss = model(forward_generator=False, **inputs)["loss"]
+    dis_loss.backward()
+
+    with torch.no_grad():
+        model.eval()
+
+        # check inference
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            sids=torch.randint(0, spks, (1,))[0],
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        model.inference(**inputs)
+
+        # check inference with teacher forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            sids=torch.randint(0, spks, (1,))[0],
+            durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
         outputs = model.inference(**inputs)
         assert outputs[0].size(0) == inputs["durations"].sum() * upsample_factor
