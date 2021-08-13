@@ -63,7 +63,7 @@ def ignore_sil(voice_part_ana, sec=0.1):
     return voice_part_tmp
 
 
-def seperate_vp(voice_part_old, voice_part_tmp):
+def separete_vp(voice_part_old, voice_part_tmp):
     # set length of voice_part
     ovn = len(voice_part_old)  # Number of Old Voice part
     tvn = len(voice_part_tmp)  # Number of Tmp Voice part
@@ -218,7 +218,7 @@ def main():
     voice_part_tmp = ignore_sil(voice_part_ana, sec=0.01)
 
     # separate voice_part based on lab
-    voice_part_tmp = seperate_vp(voice_part_old, voice_part_tmp)
+    voice_part_tmp = separete_vp(voice_part_old, voice_part_tmp)
 
     # create voice_part_new by merging voice_parts and skipping non_voice_part
     voice_part_new = create_vp(voice_part_old, voice_part_tmp)
