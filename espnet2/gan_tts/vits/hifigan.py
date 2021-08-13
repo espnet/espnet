@@ -614,7 +614,7 @@ class HiFiGANMultiScaleDiscriminator(torch.nn.Module):
                     params["use_spectral_norm"] = False
             self.discriminators += [HiFiGANScaleDiscriminator(**params)]
         self.pooling = None
-        if len(scales) == 1:
+        if scales > 1:
             self.pooling = getattr(torch.nn, downsample_pooling)(
                 **downsample_pooling_params
             )
