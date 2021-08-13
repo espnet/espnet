@@ -26,7 +26,7 @@ class AbsTTS(torch.nn.Module, ABC):
         self,
         text: torch.Tensor,
         **kwargs,
-    ) -> Dict[str, torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
 
     @property

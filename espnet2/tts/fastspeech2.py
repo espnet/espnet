@@ -572,7 +572,7 @@ class FastSpeech2(AbsTTS):
         energy: torch.Tensor = None,
         alpha: float = 1.0,
         use_teacher_forcing: bool = False,
-    ) -> Dict[str, torch.Tensor]
+    ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
