@@ -66,7 +66,7 @@ feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Download pre-encoded features from SSC dataset; by default using dct-30 features.
-    ### You can choose to use auto encoders features and other dct features of different dimentions.
+    ### You can choose to use auto encoders features and other dct features of different dimensions.
     echo "stage 0: Dataset Download"
     local/ssc_data_prepare.sh ${training_features}
 fi

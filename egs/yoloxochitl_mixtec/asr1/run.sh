@@ -21,7 +21,7 @@ annotation_type=eaf
 annotation_id=mixtec_surface
 text_format=surface # underlying_full, underlying_reduce
 
-# wav and transcription data directoy
+# wav and transcription data directory
 download_dir=
 wavdir=${download_dir}/Sound-files-Narratives-for-ASR
 annodir=${download_dir}/Transcriptions-for-ASR/ELAN-files-with-underlying-and-surface-tiers
