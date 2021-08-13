@@ -381,12 +381,8 @@ class VITSGenerator(torch.nn.Module):
 
         Returns:
             Tensor: Generated waveform tensor (B, T_wav).
-            Tensor: Attention weight tensor (B, T_feats, T_text).
-            Tuple[Tensor, Tensor, Tensor, Tensor]:
-                - Tensor: Flow-inversed hidden representation tensor (B, H, T_feats).
-                - Tensor: Sampled hidden representation (B, H, T_feats).
-                - Tensor: Expanded text encoder VAE mean (B, H, T_feats).
-                - Tensor: Expanded text encoder VAE scale (B, H, T_feats).
+            Tensor: Monotonic attention weight tensor (B, T_feats, T_text).
+            Tensor: Duration tensor (B, T_text).
 
         """
         # encoder
@@ -429,7 +425,7 @@ class VITSGenerator(torch.nn.Module):
         z = self.flow(z_p, y_mask, g=g, inverse=True)
         wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
 
-        return wav.squeeze(1), attn.squeeze(1), (z, z_p, m_p, logs_p)
+        return wav.squeeze(1), attn.squeeze(1), dur.squeeze(1)
 
     def _generate_path(self, dur, mask):
         """Generate path.
