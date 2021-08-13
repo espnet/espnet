@@ -157,6 +157,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         text: torch.Tensor,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        sids: torch.Tensor = None,
         durations: torch.Tensor = None,
         pitch: torch.Tensor = None,
         energy: torch.Tensor = None,
@@ -172,7 +173,10 @@ class ESPnetTTSModel(AbsESPnetModel):
                 feats = speech
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
-            kwargs["speech"] = feats
+            if self.tts.require_raw_speech:
+                kwargs["feats"] = feats
+            else:
+                kwargs["speech"] = feats
 
         if decode_config["use_teacher_forcing"]:
             if durations is not None:
@@ -203,11 +207,24 @@ class ESPnetTTSModel(AbsESPnetModel):
         if spembs is not None:
             kwargs["spembs"] = spembs
 
-        outs, probs, att_ws = self.tts.inference(text=text, **kwargs, **decode_config)
+        if sids is not None:
+            kwargs["sids"] = spembs
 
-        if self.normalize is not None:
-            # NOTE: normalize.inverse is in-place operation
-            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
+        outs = self.tts.inference(text=text, **kwargs, **decode_config)
+
+        if isinstance(outs, tuple):
+            # for old version compatibility
+            # it is better to unify the output format into dict
+            feat_gen, prob, att_w = outs
+            output_dict = dict(feat_gen=feat_gen, prob=prob, att_w=att_w)
         else:
-            outs_denorm = outs
-        return outs, outs_denorm, probs, att_ws
+            assert isinstance(outs, dict)
+            output_dict = outs
+
+        if self.normalize is not None and outs.get("feat_gen") is not None:
+            # NOTE: normalize.inverse is in-place operation
+            output_dict["feat_gen_denorm"] = self.normalize.inverse(
+                output_dict["feat_gen"].clone()[None]
+            )[0][0]
+
+        return output_dict
