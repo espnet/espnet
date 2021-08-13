@@ -22,17 +22,21 @@ tts_conf:
         text_encoder_ffn_expand: 4
         text_encoder_blocks: 6
         text_encoder_positionwise_layer_type: "conv1d"
-        text_encoder_positionwise_conv_kernel_size: 1
+        text_encoder_positionwise_conv_kernel_size: 3
         text_encoder_positional_encoding_layer_type: "rel_pos"
         text_encoder_self_attention_layer_type: "rel_selfattn"
         text_encoder_activation_type: "swish"
         text_encoder_normalize_before: true
         text_encoder_dropout_rate: 0.1
         text_encoder_positional_dropout_rate: 0.0
-        text_encoder_attention_dropout_rate: 0.0
-        text_encoder_conformer_kernel_size: 7
+        text_encoder_attention_dropout_rate: 0.1
         use_macaron_style_in_text_encoder: true
-        use_conformer_conv_in_text_encoder: true
+        # NOTE(kan-bayashi): Conformer conv requires BatchNorm1d which causes
+        #   errors when using mixed precision training with multiple GPUs.
+        #   Therefore, we disable it as a default. We need to consider the
+        #   alternative normalization or newer pytorch may solve this issue.
+        use_conformer_conv_in_text_encoder: false
+        text_encoder_conformer_kernel_size: -1
         decoder_kernel_size: 7
         decoder_channels: 512
         decoder_upsample_scales: [8, 8, 2, 2]
