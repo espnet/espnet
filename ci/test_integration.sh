@@ -205,6 +205,10 @@ for t in ${feats_types}; do
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --python "${python}"
     done
 done
+echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}" || exit 1
