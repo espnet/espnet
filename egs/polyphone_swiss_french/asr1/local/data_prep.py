@@ -100,7 +100,7 @@ class FrPolyphonePrepper:
 
         text = text.lower()
         text = re.sub(r"\[\\?hésitation", " ", text)
-        text = re.sub(r"\[\\?pronunciation bizarre", " ", text)
+        text = re.sub(r"\[\\?prononciation bizarre", " ", text)
         text = re.sub(r"\[\\?inintelligible", " ", text)
         text = re.sub(r"\[[^\]]+\]", " ", text)
         text = re.sub(r"[\[\]]+", " ", text)
