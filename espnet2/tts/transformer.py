@@ -575,7 +575,7 @@ class Transformer(AbsTTS):
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
         use_teacher_forcing: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -588,9 +588,10 @@ class Transformer(AbsTTS):
             use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
-            Tensor: Output sequence of features (L, odim).
-            Tensor: Output sequence of stop probabilities (L,).
-            Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).
+            Dict[str, Tensor]: Output dict including the following items:
+                * feat_gen (Tensor): Output sequence of features (L, odim).
+                * prob (Tensor): Output sequence of stop probabilities (L,).
+                * att_w (Tensor): Source attention weights (#layers, #heads, L, T).
 
         """
         x = text
@@ -617,7 +618,7 @@ class Transformer(AbsTTS):
                 att_ws += [self.decoder.decoders[i].src_attn.attn]
             att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_out, T_in)
 
-            return outs[0], None, att_ws[0]
+            return dict(feat_gen=outs[0], att_w=att_ws[0])
 
         # forward encoder
         xs = x.unsqueeze(0)
@@ -694,7 +695,7 @@ class Transformer(AbsTTS):
         # concatenate attention weights -> (#layers, #heads, L, T)
         att_ws = torch.stack(att_ws, dim=0)
 
-        return outs, probs, att_ws
+        return dict(feat_gen=outs, prob=probs, att_w=att_ws)
 
     def _add_first_frame_and_remove_last_frame(self, ys: torch.Tensor) -> torch.Tensor:
         ys_in = torch.cat(
