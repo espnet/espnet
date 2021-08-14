@@ -13,7 +13,7 @@ def main():
     """Print utt2sid in stdout."""
     parser = argparse.ArgumentParser()
     parser.add_argument("spk2sid", type=str, help="Kaldi-style spk2sid file path.")
-    parser.add_argument("utt2spk", type=str, help="Kaldi-style spk2sid file path.")
+    parser.add_argument("utt2spk", type=str, help="Kaldi-style utt2spk file path.")
     args = parser.parse_args()
 
     # load files
