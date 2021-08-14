@@ -131,6 +131,7 @@ class Text2Speech:
         speech: Union[torch.Tensor, np.ndarray] = None,
         durations: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
+        sids: Union[torch.Tensor, np.ndarray] = None,
         speed_control_alpha: Optional[float] = None,
     ) -> Dict[str, torch.Tensor]:
         assert check_argument_types()
@@ -148,6 +149,8 @@ class Text2Speech:
             batch["durations"] = durations
         if spembs is not None:
             batch["spembs"] = spembs
+        if sids is not None:
+            batch["sids"] = sids
 
         cfg = self.decode_config
         if speed_control_alpha is not None and isinstance(

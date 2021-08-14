@@ -56,6 +56,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         energy: torch.Tensor = None,
         energy_lengths: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        sids: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         with autocast(False):
@@ -94,6 +95,8 @@ class ESPnetTTSModel(AbsESPnetModel):
         # Update kwargs for additional auxiliary inputs
         if spembs is not None:
             kwargs.update(spembs=spembs)
+        if sids is not None:
+            kwargs.update(sids=sids)
         if durations is not None:
             kwargs.update(durations=durations, durations_lengths=durations_lengths)
         if self.pitch_extract is not None and pitch is not None:
@@ -122,6 +125,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         energy: torch.Tensor = None,
         energy_lengths: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        sids: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
@@ -157,6 +161,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         text: torch.Tensor,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        sids: torch.Tensor = None,
         durations: torch.Tensor = None,
         pitch: torch.Tensor = None,
         energy: torch.Tensor = None,
@@ -202,6 +207,8 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         if spembs is not None:
             kwargs["spembs"] = spembs
+        if sids is not None:
+            kwargs["sids"] = sids
 
         output_dict = self.tts.inference(text=text, **kwargs, **decode_config)
 
