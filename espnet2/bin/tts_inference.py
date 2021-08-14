@@ -409,10 +409,10 @@ def inference(
                     "PCM_16",
                 )
 
-    # remove duration related files if attention is not provided
-    if output_dict.get("norm") is None:
+    # remove files if those are not included in output dict
+    if output_dict.get("feat_gen") is None:
         shutil.rmtree(output_dir / "norm")
-    if output_dict.get("denorm") is None:
+    if output_dict.get("feat_gen_denorm") is None:
         shutil.rmtree(output_dir / "denorm")
     if output_dict.get("att_w") is None:
         shutil.rmtree(output_dir / "att_ws")
